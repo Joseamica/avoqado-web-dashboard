@@ -8,11 +8,11 @@ import { UserAuthForm } from './components/UserAuthForm'
 const Login: React.FC = () => {
   return (
     <>
-      <div className="md:hidden">
+      <div className=" md:hidden">
         <img src="/examples/authentication-light.png" width={1280} height={843} alt="Authentication" className="block dark:hidden" />
         <img src="/examples/authentication-dark.png" width={1280} height={843} alt="Authentication" className="hidden dark:block" />
       </div>
-      <div className="container relative hidden h-[800px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+      <div className="container relative flex-col items-center justify-center hidden h-screen md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
         <Link
           // href="/examples/authentication"
           to="/examples/authentication"
@@ -35,7 +35,7 @@ const Login: React.FC = () => {
             >
               <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
             </svg>
-            Acme Inc
+            Avoqado
           </div>
           <div className="relative z-20 mt-auto">
             <blockquote className="space-y-2">

@@ -1,6 +1,8 @@
 export interface Venue {
   id: string
   name: string
+  plan: string
+  logo: string
   // Add other venue-related fields
 }
 

@@ -26,8 +26,6 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const location = useLocation()
-
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>

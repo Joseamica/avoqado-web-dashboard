@@ -171,19 +171,10 @@ const data = {
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
-  // const { venueId } = useParams()
-  // const venues =
-  //   user?.venues?.map(venue => ({
-  //     id: venue.id, // Assuming venue has an 'id' field
-  //     name: venue.name,
-  //     logo: GalleryVerticalEnd, // Replace with actual logo if available
-  //     plan: 'Enterprise', // Replace with actual plan if available
-  //   })) || []
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <VenuesSwitcher venues={user.venues} />
+        <VenuesSwitcher venues={user.venues} defaultVenue={user.venues[0]} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
