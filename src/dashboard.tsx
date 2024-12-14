@@ -8,7 +8,6 @@ import { useAuth } from './context/AuthContext'
 export default function Dashboard() {
   const location = useLocation()
   const { user } = useAuth()
-  console.log('LOG: user', user)
 
   // Split the current path into segments
   const pathSegments = location.pathname
