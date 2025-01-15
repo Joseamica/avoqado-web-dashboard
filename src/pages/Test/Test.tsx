@@ -5,8 +5,15 @@ import { Link, Navigate } from 'react-router-dom'
 
 export function Test() {
   const { toast } = useToast()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, logout, user, isLoading } = useAuth()
 
+  if (isLoading || !user) {
+    return <div>s...</div>
+  }
+
+  if (isAuthenticated && user.venues.length >= 1) {
+    return <Navigate to={`/venues/${user.venues[0].id}/home`} />
+  }
   return (
     <div>
       <h1>Test Page</h1>
