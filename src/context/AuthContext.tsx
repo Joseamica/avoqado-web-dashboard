@@ -66,13 +66,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) => api.post(`/v1/auth/login`, { email, password }),
     onSuccess: response => {
-      console.log('response', response)
       queryClient.invalidateQueries({ queryKey: ['status'] }) // Refetch status if necessary
       setIsAuthenticated(true)
       setUser(response.data.user)
       const soleVenueId = response.data.user.userVenues[0].venueId
       navigate(`/venues/${soleVenueId}/home`)
-      toast({ title: 'Login successful!' })
+      toast({ title: 'Haz iniciado sesión correctamente.' })
     },
     onError: (error: any) => {
       console.error('Login failed:', error.response.data.message)

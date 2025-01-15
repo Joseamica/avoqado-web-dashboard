@@ -1,4 +1,16 @@
-import { AudioWaveform, BookOpen, Command, Frame, GalleryVerticalEnd, Home, Map, PieChart, Settings2 } from 'lucide-react'
+import {
+  AudioWaveform,
+  BookOpen,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Home,
+  Map,
+  PieChart,
+  Settings2,
+  Smartphone,
+  Terminal,
+} from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
@@ -6,7 +18,6 @@ import { NavProjects } from '@/components/Sidebar/nav-projects'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
-import { useAuth } from '@/context/AuthContext'
 import { User } from '@/types'
 
 // This is sample data.
@@ -46,6 +57,7 @@ const data = {
       url: 'menumaker/overview',
       icon: BookOpen,
       isActive: true,
+
       // items: [
       //   {
       //     title: 'Menus',
@@ -64,6 +76,12 @@ const data = {
       //     url: 'modifiers',
       //   },
       // ],
+    },
+    {
+      title: 'TPV',
+      isActive: true,
+      url: 'tpv', // Update the URL if necessary
+      icon: Smartphone,
     },
     // {
     //   title: 'Operaciones',
