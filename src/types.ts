@@ -21,9 +21,22 @@ export interface AvoqadoMenu {
   active: boolean
   isFixed: boolean
   startTime?: string | null
+  startTimeV2?: Date | null
+  endTimeV2?: Date | null
   endTime?: string | null
   imageCover?: string | null
   languageId: string
+  venueId: string
+  updatedAt: string
+  createdAt: string
+}
+
+export interface ModifierGroup {
+  id: string
+  name: string
+  description?: string | null
+  orderByNumber?: number | null
+  active: boolean
   venueId: string
   updatedAt: string
   createdAt: string
@@ -64,6 +77,17 @@ export interface Category {
   createdAt: string
   avoqadoProducts: AvoqadoProduct[]
   avoqadoMenus: AvoqadoMenu[]
+}
+
+export interface Tpv {
+  id: string
+  name: string
+  serial: string
+  version: string
+  configuration: string
+  venueId: string
+  updatedAt: string
+  createdAt: string
 }
 
 export interface Users {

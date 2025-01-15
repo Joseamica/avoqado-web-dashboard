@@ -35,7 +35,7 @@ export function NavUser({
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               <Avatar className="w-8 h-8 rounded-lg">
                 <AvatarImage src={user.image} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{user.email.charAt(0).toLocaleUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-sm leading-tight text-left">
                 <span className="font-semibold truncate">{user.name}</span>
