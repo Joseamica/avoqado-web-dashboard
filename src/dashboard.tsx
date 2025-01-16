@@ -8,13 +8,13 @@ import { useAuth } from './context/AuthContext'
 export default function Dashboard() {
   const location = useLocation()
   const { user } = useAuth()
-  console.log('LOG: user', user)
+
   // Split the current path into segments
   const pathSegments = location.pathname
     .split('/')
     .filter(segment => segment)
     .slice(1)
-
+  if (user.venues.length === 0) return <>El usuario no tiene ningun Venue ATTACHED</>
   return (
     <SidebarProvider>
       <AppSidebar user={user} />

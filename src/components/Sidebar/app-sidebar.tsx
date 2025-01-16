@@ -1,16 +1,4 @@
-import {
-  AudioWaveform,
-  BookOpen,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Home,
-  Map,
-  PieChart,
-  Settings2,
-  Smartphone,
-  Terminal,
-} from 'lucide-react'
+import { AudioWaveform, BookOpen, Command, Frame, GalleryVerticalEnd, Home, Map, PieChart, Settings2, Smartphone } from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
