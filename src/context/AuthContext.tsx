@@ -1,4 +1,5 @@
 import api from '@/api'
+import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { User } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true)
       setUser(response.data.user)
       const soleVenueId = response.data.user.userVenues[0].venueId
-      navigate(`/venues/${soleVenueId}/home`)
+      navigate(`/venues/${soleVenueId}/home`, { replace: true })
       toast({ title: 'Haz iniciado sesión correctamente.' })
     },
     onError: (error: any) => {
@@ -90,12 +91,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       queryClient.clear()
       setIsAuthenticated(false)
       setUser(null)
+
       Object.keys(localStorage).forEach(key => {
         if (!key.startsWith('persist:')) {
           localStorage.removeItem(key)
         }
       })
-      navigate('/login')
+      navigate('/login', { replace: true })
     },
     onError: error => {
       console.error('Error al cerrar sesión', error)
@@ -103,10 +105,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   })
   const logout = () => {
     logoutMutation.mutate()
-    setIsAuthenticated(false)
   }
   if (isLoading || !data) {
-    return <div>Loading...</div>
+    return <LoadingScreen message="Partiendo la cuenta y el aguacate…" />
   }
   if (isError) {
     return <div>Error: {error.message}</div>

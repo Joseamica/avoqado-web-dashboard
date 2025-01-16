@@ -89,7 +89,7 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
           </div>
           <Button disabled={isLoading}>
             {isLoading && <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />}
-            Sign In with Email
+            Iniciar sesión
           </Button>
         </div>
       </form>
@@ -98,7 +98,7 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="px-2 bg-background text-muted-foreground">Or continue with</span>
+          <span className="px-2 bg-background text-muted-foreground">O continua con</span>
         </div>
       </div>
       <Button variant="outline" type="button" disabled={isLoading}>
