@@ -15,6 +15,7 @@ import { Venue } from '@/types'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent } from '../ui/dialog'
 import { AddVenueDialog } from './add-venue-dialog'
+import { Avatar, AvatarImage, AvatarFallback } from '@radix-ui/react-avatar'
 
 export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defaultVenue: Venue }) {
   const { isMobile } = useSidebar()
@@ -64,9 +65,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                <div className="flex items-center justify-center rounded-lg aspect-square size-8 text-sidebar-primary-foreground">
-                  <img src={activeVenue?.logo} alt={`${activeVenue?.name} Logo`} className="rounded-full" />{' '}
-                </div>
+                {/* <div className="flex items-center justify-center rounded-lg aspect-square size-8 text-sidebar-primary-foreground">
+                  <img src={activeVenue?.logo} alt={`${activeVenue?.name} Logo`} className="shrink-0" />
+                </div> */}
+                <Avatar className="flex items-center justify-center rounded-lg aspect-square size-8">
+                  <AvatarImage src={activeVenue?.logo} />
+                  <AvatarFallback>{activeVenue.name.charAt(0).toLocaleUpperCase()}</AvatarFallback>
+                </Avatar>
                 <div className="grid flex-1 text-sm leading-tight text-left">
                   <span className="font-semibold truncate">{activeVenue.name}</span>
                   <span className="text-xs truncate">{activeVenue.plan}</span>
@@ -83,9 +88,10 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
               <DropdownMenuLabel className="text-xs text-zinc-500 dark:text-zinc-400">Sucursales</DropdownMenuLabel>
               {venues.map((venue, index) => (
                 <DropdownMenuItem key={venue.id} onClick={() => handleVenueChange(venue)} className="gap-2 p-2">
-                  <div className="flex items-center justify-center rounded-sm size-6">
-                    <img src={venue.logo} alt={`${venue.name} Logo`} className="size-4 shrink-0" />
-                  </div>
+                  <Avatar className="flex items-center justify-center rounded-lg aspect-square size-6">
+                    <AvatarImage src={venue?.logo} />
+                    <AvatarFallback>{venue.name.charAt(0).toLocaleUpperCase()}</AvatarFallback>
+                  </Avatar>
                   {venue.name}
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
