@@ -149,8 +149,8 @@ function SortableBadge({
       <Badge
         className={cn(
           'flex items-center py-2',
-          'data-[disabled]:bg-muted-foreground data-[disabled]:text-muted data-[disabled]:hover:bg-muted-foreground',
-          'data-[fixed]:bg-muted-foreground data-[fixed]:text-muted data-[fixed]:hover:bg-muted-foreground',
+          'data-disabled:bg-muted-foreground data-disabled:text-muted data-disabled:hover:bg-muted-foreground',
+          'data-fixed:bg-muted-foreground data-fixed:text-muted data-fixed:hover:bg-muted-foreground',
           badgeClassName,
         )}
         data-fixed={option.fixed}
@@ -160,7 +160,7 @@ function SortableBadge({
         {option.label}
         <button
           className={cn(
-            'ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'ml-1 rounded-full outline-hidden ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',
             (disabled || option.fixed) && 'hidden',
           )}
           onKeyDown={e => {
@@ -493,7 +493,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                 }}
                 placeholder={hidePlaceholderWhenSelected && selected.length ? '' : placeholder}
                 className={cn(
-                  'flex-1 bg-transparent outline-none placeholder:text-muted-foreground',
+                  'flex-1 bg-transparent outline-hidden placeholder:text-muted-foreground',
                   {
                     'w-full': hidePlaceholderWhenSelected,
                     'px-3 py-2': selected.length === 0,
@@ -526,7 +526,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
           <div className="relative">
             {open && (
               <CommandList
-                className="absolute z-10 w-full border rounded-md shadow-md outline-none top-1 bg-popover text-popover-foreground animate-in"
+                className="absolute z-10 w-full border rounded-md shadow-md outline-hidden top-1 bg-popover text-popover-foreground animate-in"
                 onMouseLeave={() => {
                   setOnScrollbar(false)
                 }}
