@@ -52,6 +52,8 @@ const router = createBrowserRouter([
             errorElement: <ErrorPage />,
             children: [
               { path: 'home', element: <Home /> },
+              { path: 'account', element: <div>hola</div> },
+
               {
                 path: 'menumaker',
                 element: <MenuMakerLayout />,
