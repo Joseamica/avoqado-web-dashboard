@@ -82,56 +82,6 @@ export default function Tpvs() {
       //     return <ul>{Currency(price, false)}</ul>
       //   },
     },
-    // {
-    //   id: 'categories',
-    //   accessorKey: 'categories',
-    //   header: 'Categorías',
-    //   enableColumnFilter: false,
-    //   cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
-    // },
-    // {
-    //   id: 'modifierGroups',
-    //   accessorKey: 'modifierGroups',
-    //   header: 'Grupos Modificadores',
-    //   enableColumnFilter: false,
-    //   cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
-    // },
-    // {
-    //   id: 'updatedAt',
-    //   accessorKey: 'updatedAt',
-    //   header: 'Ultima actualización',
-    //   enableColumnFilter: false,
-    //   cell: ({ cell }) => {
-    //     const updatedAt = cell.getValue() as string
-    //     return (
-    //       <span>
-    //         {new Date(updatedAt).toLocaleDateString('es-MX', {
-    //           day: 'numeric',
-    //           month: 'numeric',
-    //         })}
-    //       </span>
-    //     )
-    //   },
-    // },
-    // {
-    //   id: 'id',
-    //   accessorKey: 'active',
-    //   header: '',
-    //   enableColumnFilter: false,
-    //   cell: ({ row, cell }) => {
-    //     const productId = row.original.id as string
-    //     const active = cell.getValue() as boolean
-
-    //     return (
-    //       <Switch
-    //         id={`active-switch-${productId}`}
-    //         checked={active}
-    //         onCheckedChange={() => toggleActive.mutate({ productId, status: !active })}
-    //         disabled={toggleActive.isPending}
-    //       />
-    //     )
-    //   },
-    // },
   ]
 
   const filteredTpvs = useMemo(() => {

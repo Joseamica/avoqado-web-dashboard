@@ -1,4 +1,18 @@
-import { AudioWaveform, BookOpen, Command, Frame, GalleryVerticalEnd, Home, Map, PieChart, Settings2, Smartphone } from 'lucide-react'
+import {
+  AudioWaveform,
+  Banknote,
+  BookOpen,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Home,
+  Map,
+  PieChart,
+  Settings2,
+  Smartphone,
+  Star,
+  Users,
+} from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
@@ -66,10 +80,28 @@ const data = {
       // ],
     },
     {
+      title: 'Pagos',
+      isActive: true,
+      url: 'payments', // Update the URL if necessary
+      icon: Banknote,
+    },
+    {
       title: 'TPV',
       isActive: true,
       url: 'tpv', // Update the URL if necessary
       icon: Smartphone,
+    },
+    {
+      title: 'Usuarios',
+      isActive: true,
+      url: 'users', // Update the URL if necessary
+      icon: Users,
+    },
+    {
+      title: 'Reseñas',
+      isActive: true,
+      url: 'reviews', // Update the URL if necessary
+      icon: Star,
     },
     // {
     //   title: 'Operaciones',
