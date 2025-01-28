@@ -23,6 +23,7 @@ import Tpv from '@/pages/Tpv/Tpv'
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
 import { Layout } from '@/Layout'
+import Account from '@/pages/Account/Account'
 
 const router = createBrowserRouter([
   {
@@ -52,7 +53,7 @@ const router = createBrowserRouter([
             errorElement: <ErrorPage />,
             children: [
               { path: 'home', element: <Home /> },
-              { path: 'account', element: <div>hola</div> },
+              { path: 'account', element: <Account /> },
 
               {
                 path: 'menumaker',

@@ -23,6 +23,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
   const navigate = useNavigate()
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [activeVenue, setActiveVenue] = useState(defaultVenue)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // Function to extract venueId from the URL
   const getVenueIdFromURL = () => {
@@ -62,7 +63,8 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
     <>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            {' '}
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
                 {/* <div className="flex items-center justify-center rounded-lg aspect-square size-8 text-sidebar-primary-foreground">
@@ -99,7 +101,14 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
               <DropdownMenuSeparator />
 
               {/* Dialog Trigger for "Agregar sucursal" */}
-              <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={() => setDialogOpen(true)}>
+              <DropdownMenuItem
+                className="gap-2 p-2 cursor-pointer"
+                onClick={() => {
+                  setDialogOpen(true)
+                  setDropdownOpen(false) // Close dropdown when opening dialog
+                }}
+              >
+                {' '}
                 <div className="flex items-center justify-center bg-white border rounded-md size-6 border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950">
                   <Plus className="size-4" />
                 </div>
@@ -112,9 +121,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
 
       {/* Dialog Component */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <AddVenueDialog onClose={() => setDialogOpen(false)} />
-        </DialogContent>
+        <AddVenueDialog onClose={() => setDialogOpen(false)} />
       </Dialog>
     </>
   )

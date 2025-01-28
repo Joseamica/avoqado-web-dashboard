@@ -2,6 +2,7 @@ import React from 'react'
 
 import { cn } from '@/lib/utils'
 import { NavLink, Outlet } from 'react-router-dom'
+import { Hourglass, PersonStanding, TimerReset, WatchIcon } from 'lucide-react'
 export default function MenuMakerLayout() {
   return (
     <div className="pb-4 ">
@@ -15,10 +16,10 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
   return (
     <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-y p-4 ', className)} {...props}>
       <NavLink to="overview" className="text-sm font-medium transition-colors text-muted-foreground hover:text-primary">
-        Resumen (pending)
+        Resumen <TimerReset className="w-3 h-3" />
       </NavLink>
       <NavLink to="menus" className="text-sm font-medium transition-colors text-muted-foreground hover:text-primary">
-        Menús (pending)
+        Menús <TimerReset className="w-3 h-3" />
       </NavLink>
       <NavLink to="categories" className="text-sm font-medium transition-colors hover:text-primary">
         Categorias
@@ -27,10 +28,10 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
         Productos
       </NavLink>
       <NavLink to="modifiers" className="text-sm font-medium transition-colors text-muted-foreground hover:text-primary">
-        Modificadores (pending)
+        Modificadores <TimerReset className="w-3 h-3" />
       </NavLink>
       <NavLink to="/examples/dashboard" className="text-sm font-medium transition-colors text-muted-foreground hover:text-primary">
-        Customers (pending)
+        Customers <TimerReset className="w-3 h-3" />
       </NavLink>
     </nav>
   )
