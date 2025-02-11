@@ -1,8 +1,8 @@
 import React from 'react'
 
 import { cn } from '@/lib/utils'
+import { TimerReset } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { Hourglass, PersonStanding, TimerReset, WatchIcon } from 'lucide-react'
 export default function MenuMakerLayout() {
   return (
     <div className="pb-4 ">
