@@ -19,11 +19,15 @@ import ProductId from '@/pages/Menu/Products/productId'
 import Products from '@/pages/Menu/Products/Products'
 
 import CreateTpv from '@/pages/Tpv/createTpv'
-import Tpv from '@/pages/Tpv/Tpv'
+import Tpv from '@/pages/Tpv/Tpvs'
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
 import { Layout } from '@/Layout'
 import Account from '@/pages/Account/Account'
+import Payments from '@/pages/Payment/Payments'
+import Users from '@/pages/User/Users'
+import MenuId from '@/pages/Menu/Menus/menuId'
+import Reviews from '@/pages/Review/Reviews'
 
 const router = createBrowserRouter([
   {
@@ -68,6 +72,10 @@ const router = createBrowserRouter([
                     element: <Menus />,
                   },
                   {
+                    path: 'menus/:menuId',
+                    element: <MenuId />,
+                  },
+                  {
                     path: 'menus/create',
                     element: <CreateMenu />,
                   },
@@ -95,8 +103,11 @@ const router = createBrowserRouter([
                   { path: 'modifiers', element: <Modifiers /> },
                 ],
               },
-
+              { path: 'payments', element: <Payments /> },
               { path: 'tpv', element: <Tpv /> },
+              { path: 'users', element: <Users /> },
+              { path: 'reviews', element: <Reviews /> },
+
               {
                 path: 'tpv/create',
                 element: <CreateTpv />,

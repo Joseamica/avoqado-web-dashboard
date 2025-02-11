@@ -136,7 +136,6 @@ export default function Modifiers() {
       size: 10,
       minSize: 200, // enforced during column resizing
     },
-
     debugTable: true,
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -204,6 +203,7 @@ export default function Modifiers() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues) {
+    console.log('LOG: formValues', formValues)
     // formValues.avoqadoProduct is what the DraggableMultipleSelector returns
     // Add an order index to each item
     formValues.avoqadoProduct = formValues.avoqadoProduct.map((item, idx) => ({
@@ -397,7 +397,6 @@ export default function Modifiers() {
                       <Button type="submit">Save changes</Button>
                     </SheetClose>
                   </SheetFooter>
-                  <button>a</button>
                 </form>
               </Form>
             )}

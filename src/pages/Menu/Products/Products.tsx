@@ -1,27 +1,18 @@
 import api from '@/api'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, UploadCloud } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 
-import { DataTablePagination } from '@/components/pagination'
+import DataTable from '@/components/data-table'
+import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Category } from '@/types'
 import { Currency } from '@/utils/currency'
-import { ItemsCell } from '@/components/multiple-cell-values'
 
 export default function Products() {
   const { venueId } = useParams()
@@ -185,27 +176,8 @@ export default function Products() {
       return nameMatches || modifierGroupMatches || categoryMatches
     })
   }, [searchTerm, products])
-  const table = useReactTable({
-    data: filteredProducts || [],
-    columns,
-    rowCount: products?.length,
-    getCoreRowModel: getCoreRowModel(),
-    defaultColumn: {
-      size: 10,
-      minSize: 200, //enforced during column resizing
-    },
-    debugTable: true,
 
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    sortDescFirst: true, //sort by all columns in descending order first (default is ascending for string columns and descending for number columns)
-
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      sorting: [{ id: 'name', desc: true }],
-    },
-  })
-  if (isLoading) return <div>Loading...</div>
+  // if (isLoading) return <div>Loading...</div>
 
   return (
     <div className="p-4">
@@ -230,48 +202,7 @@ export default function Products() {
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
       />
-      <Table className="mb-4 bg-white rounded-xl">
-        {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
-        <TableHeader>
-          {table.getHeaderGroups().map(headerGroup => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map(header => {
-                return (
-                  <TableHead key={header.id} className="p-4">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    {/* {header.column.getCanFilter() ? (
-                      <div>
-                        <Filter column={header.column} table={table} />
-                      </div>
-                    ) : null} */}
-                  </TableHead>
-                )
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map(row => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className="p-4">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-10 text-center">
-                Sin resultados.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
-      <DataTablePagination table={table} />
+      <DataTable data={filteredProducts} rowCount={products?.length} columns={columns} isLoading={isLoading} />
     </div>
   )
 }
