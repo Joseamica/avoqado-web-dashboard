@@ -17,7 +17,6 @@ import Overview from '@/pages/Menu/Overview'
 import CreateProduct from '@/pages/Menu/Products/createProduct'
 import ProductId from '@/pages/Menu/Products/productId'
 import Products from '@/pages/Menu/Products/Products'
-
 import CreateTpv from '@/pages/Tpv/createTpv'
 import Tpv from '@/pages/Tpv/Tpvs'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -25,9 +24,11 @@ import Root from '@/root'
 import { Layout } from '@/Layout'
 import Account from '@/pages/Account/Account'
 import Payments from '@/pages/Payment/Payments'
-import Users from '@/pages/User/Users'
 import MenuId from '@/pages/Menu/Menus/menuId'
 import Reviews from '@/pages/Review/Reviews'
+import { SuperProtectedRoute } from './SuperProtectedRoute'
+import Waiters from '@/pages/Waiter/Waiters'
+import EditVenue from '@/pages/Venue/Venue.edit'
 
 const router = createBrowserRouter([
   {
@@ -104,13 +105,19 @@ const router = createBrowserRouter([
                 ],
               },
               { path: 'payments', element: <Payments /> },
+              { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },
-              { path: 'users', element: <Users /> },
+              { path: 'waiters', element: <Waiters /> },
               { path: 'reviews', element: <Reviews /> },
 
               {
                 path: 'tpv/create',
                 element: <CreateTpv />,
+              },
+              {
+                path: 'superadmin',
+                element: <SuperProtectedRoute allowedRoles={['SUPERADMIN']} />,
+                children: [{ path: '', element: <div>a</div> }],
               },
             ],
           },

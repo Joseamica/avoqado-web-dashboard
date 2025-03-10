@@ -64,9 +64,11 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
       <SidebarMenu>
         <SidebarMenuItem>
           <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-            {' '}
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
+              >
                 {/* <div className="flex items-center justify-center rounded-lg aspect-square size-8 text-sidebar-primary-foreground">
                   <img src={activeVenue?.logo} alt={`${activeVenue?.name} Logo`} className="shrink-0" />
                 </div> */}

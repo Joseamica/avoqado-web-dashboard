@@ -91,10 +91,11 @@ const data = {
       url: 'tpv', // Update the URL if necessary
       icon: Smartphone,
     },
+
     {
-      title: 'Usuarios',
+      title: 'Meseros',
       isActive: true,
-      url: 'users', // Update the URL if necessary
+      url: 'waiters', // Update the URL if necessary
       icon: Users,
     },
     {
@@ -155,7 +156,7 @@ const data = {
       items: [
         {
           title: 'General',
-          url: '#',
+          url: 'editVenue',
         },
         {
           title: 'Team',
@@ -189,33 +190,42 @@ const data = {
       icon: Map,
     },
   ],
-  home: [
-    {
-      name: 'Design Engineering',
-      url: '#',
-      icon: Frame,
-    },
-    {
-      name: 'Sales & Marketing',
-      url: '#',
-      icon: PieChart,
-    },
-    {
-      name: 'Travel',
-      url: '#',
-      icon: Map,
-    },
-  ],
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
+  const superAdminRoutes = [
+    {
+      title: 'Admin Panel',
+      isActive: true,
+      url: 'admin',
+      icon: Settings2,
+    },
+    {
+      title: 'User Management',
+      isActive: true,
+      url: 'admin/users',
+      icon: Users,
+    },
+    {
+      title: 'System Logs',
+      isActive: true,
+      url: 'admin/logs',
+      icon: BookOpen,
+    },
+    {
+      title: 'Advanced Settings',
+      isActive: true,
+      url: 'admin/settings',
+      icon: Settings2,
+    },
+  ]
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <VenuesSwitcher venues={user.venues} defaultVenue={user.venues[0]} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={user.role === 'SUPERADMIN' ? [...data.navMain, ...superAdminRoutes] : data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>

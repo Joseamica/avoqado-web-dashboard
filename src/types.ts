@@ -62,6 +62,19 @@ export interface AvoqadoProduct {
   createdAt: string
 }
 
+export interface Payment {
+  id: string
+  paymentType: string
+  amount: string
+  currency: string
+  status: string
+  createdAt: string
+  updatedAt: string
+  venueId: string
+  last4: string
+  tips: any[]
+}
+
 export interface Category {
   id: string
   name: string
