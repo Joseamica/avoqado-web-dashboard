@@ -16,7 +16,14 @@ interface AddVenueDialogProps {
 }
 
 export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
-  const form = useForm({})
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      type: '',
+      logo: '',
+      pos: 'soft_restaurant',
+    },
+  })
   const { venueId } = useParams()
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -67,6 +74,7 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
           setFileRef(storageRef)
           setUploading(false)
           setImageForCrop(null)
+          form.setValue('logo', downloadURL, { shouldValidate: true }) // Agregar esta línea
         })
       },
     )
@@ -85,6 +93,11 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
     }
   }
 
+  function onSubmit(formValues) {
+    // FIXME: Add the logic to save the new venue
+    console.log(formValues)
+  }
+
   return (
     <>
       <DialogContent>
@@ -93,7 +106,7 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
           <DialogDescription>Completa la información de la nueva sucursal para agregarla al sistema.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(data => console.log(data))}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -116,7 +129,7 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de sucursal</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona un tipo de negocio" />
@@ -135,8 +148,32 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
               <FormField
                 control={form.control}
                 rules={{ required: 'Este campo es requerido' }}
+                name="pos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>POS</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona que POS usas" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="soft_restaurant" defaultChecked>
+                          Soft Restaurant
+                        </SelectItem>
+                        <SelectItem value="none">Ninguno</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                rules={{ required: 'Este campo es requerido' }}
                 name="logo"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Logo</FormLabel>
                     <FormControl>
