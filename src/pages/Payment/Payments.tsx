@@ -1,21 +1,18 @@
 import api from '@/api'
+import { Button } from '@/components/ui/button'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { useParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
-import { ItemsCell } from '@/components/multiple-cell-values'
 import { Input } from '@/components/ui/input'
 import { Payment } from '@/types'
-import getIcon from '@/utils/getIcon'
 import { Currency } from '@/utils/currency'
+import getIcon from '@/utils/getIcon'
 export default function Payments() {
   const { venueId } = useParams()
-
-  const location = useLocation()
 
   const [searchTerm, setSearchTerm] = useState('')
 
