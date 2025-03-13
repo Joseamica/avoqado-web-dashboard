@@ -6,7 +6,12 @@ import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { BarChart, Bar, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { BarChart, Bar, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { Download, Loader2 } from 'lucide-react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 // Traducciones para métodos de pago
 const paymentMethodTranslations = {
@@ -23,19 +28,28 @@ const categoryTranslations = {
   OTHER: 'Otros',
 }
 
+// Paleta de colores mejorada para los gráficos
+const CHART_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1']
+
 const Home = () => {
   const { venueId } = useParams()
+  const [exportLoading, setExportLoading] = useState(false)
 
-  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>({
-    from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000),
-    to: new Date(new Date().setHours(23, 59, 59, 999)),
+  const [selectedRange, setSelectedRange] = useState({
+    from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+    to: new Date(new Date().setHours(23, 59, 59, 999)), // Today
   })
 
   // Fetch all info from API with date range parameters
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['general_stats', venueId],
+    queryKey: ['general_stats', venueId, selectedRange?.from, selectedRange?.to],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`)
+      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
+        params: {
+          from: selectedRange?.from?.toISOString(),
+          to: selectedRange?.to?.toISOString(),
+        },
+      })
 
       if (!response) {
         throw new Error('Failed to fetch data')
@@ -54,10 +68,6 @@ const Home = () => {
     </div>
   )
 
-  const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#E91E63', '#673AB7']
-
-  // Use useMemo for filteredPayments
-
   // Use useMemo for filteredReviews
   const filteredReviews = useMemo(() => {
     if (!selectedRange || !data?.feedbacks) return []
@@ -71,11 +81,7 @@ const Home = () => {
   const fiveStarReviews = useMemo(() => {
     return filteredReviews.filter(review => review.stars === 5).length
   }, [filteredReviews])
-  // NOTE - use later
-  // const review = filteredReviews?.length > 0 ? filteredReviews.reduce((sum, review) => sum + review.stars, 0) : 0
-  // const totalReviews = filteredReviews?.length > 0 ? review : 'N/A'
 
-  // Calculate tip-related metrics from filtered payments
   // Use useMemo for filteredPayments
   const filteredPayments = useMemo(() => {
     if (!selectedRange || !data?.payments) return []
@@ -85,15 +91,13 @@ const Home = () => {
       return paymentDate >= selectedRange.from && paymentDate <= selectedRange.to
     })
   }, [selectedRange, data?.payments])
-  // Use useMemo for amount calculation (it's a good practice)
+
+  // Use useMemo for amount calculation
   const amount = useMemo(() => {
     return filteredPayments.reduce((sum, payment) => sum + Number(payment.amount), 0)
   }, [filteredPayments])
 
-  // This doesn't need useMemo as it's just a simple conditional
   const totalAmount = filteredPayments.length > 0 ? amount : 0
-
-  // Use useMemo for fiveStarReviews calculation
 
   // Calculate tip-related metrics from filtered payments
   const tipStats = useMemo(() => {
@@ -182,17 +186,132 @@ const Home = () => {
     })
 
     return Object.entries(tipsByDate)
-      .map(([date, amount]) => ({ date, amount: Number((amount / 100).toFixed(2)) }))
+      .map(([date, amount]) => ({
+        date,
+        amount: Number((amount / 100).toFixed(2)),
+        formattedDate: format(new Date(date), 'dd MMM', { locale: es }),
+      }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [filteredPayments])
-  console.log('LOG: bestSellingProducts', bestSellingProducts)
+
+  // Función para exportar los datos a un archivo CSV
+  const exportToCSV = async () => {
+    try {
+      setExportLoading(true)
+
+      // Preparar los datos para exportar
+      const exportData = {
+        metricas: {
+          totalVentas: totalAmount,
+          fiveStarReviews,
+          totalPropinas: tipStats.totalTips,
+          promedioPropinas: tipStats.avgTipPercentage,
+        },
+        metodosPago: paymentMethodsData,
+        mejoresProductos: {
+          comida: bestSellingProducts.FOOD,
+          bebidas: bestSellingProducts.BEVERAGE,
+          otros: bestSellingProducts.OTHER,
+        },
+        propinas: tipsChartData,
+      }
+
+      // Convertir a JSON y luego a Blob
+      const jsonString = JSON.stringify(exportData, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json' })
+
+      // Crear URL para descargar
+      const url = URL.createObjectURL(blob)
+
+      // Nombre del archivo con fecha actual
+      const fileName = `dashboard_${venueId}_${format(new Date(), 'yyyy-MM-dd')}.json`
+
+      // Crear enlace y forzar descarga
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+
+      // Limpieza
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error al exportar datos:', error)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  // Función para exportar a Excel (CSV)
+  const exportToExcel = async () => {
+    try {
+      setExportLoading(true)
+
+      // Preparar datos para CSV
+      let csvContent = 'data:text/csv;charset=utf-8,'
+
+      // Ventas
+      csvContent += 'MÉTRICAS GENERALES\n'
+      csvContent += 'Total Ventas,5 Estrellas Google,Total Propinas,Promedio Propinas %\n'
+      csvContent += `${Currency(totalAmount).replace('$', '')},${fiveStarReviews},${Currency(tipStats.totalTips).replace('$', '')},${
+        tipStats.avgTipPercentage
+      }%\n\n`
+
+      // Métodos de pago
+      csvContent += 'MÉTODOS DE PAGO\n'
+      csvContent += 'Método,Total\n'
+      paymentMethodsData.forEach(item => {
+        csvContent += `${item.method},${Currency(item.total).replace('$', '')}\n`
+      })
+      csvContent += '\n'
+
+      // Productos mejor vendidos
+      csvContent += 'PRODUCTOS MEJOR VENDIDOS\n'
+      csvContent += 'Categoría,Producto,Cantidad\n'
+
+      bestSellingProducts.FOOD.forEach(item => {
+        csvContent += `${categoryTranslations.FOOD},${item.name},${item.quantity}\n`
+      })
+      bestSellingProducts.BEVERAGE.forEach(item => {
+        csvContent += `${categoryTranslations.BEVERAGE},${item.name},${item.quantity}\n`
+      })
+      bestSellingProducts.OTHER.forEach(item => {
+        csvContent += `${categoryTranslations.OTHER},${item.name},${item.quantity}\n`
+      })
+      csvContent += '\n'
+
+      // Propinas por fecha
+      csvContent += 'PROPINAS POR FECHA\n'
+      csvContent += 'Fecha,Monto\n'
+      tipsChartData.forEach(item => {
+        csvContent += `${item.date},${item.amount}\n`
+      })
+
+      // Codificar y crear URL
+      const encodedUri = encodeURI(csvContent)
+      const fileName = `dashboard_${venueId}_${format(new Date(), 'yyyy-MM-dd')}.csv`
+
+      const link = document.createElement('a')
+      link.setAttribute('href', encodedUri)
+      link.setAttribute('download', fileName)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error)
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className=" flex flex-col min-h-screen bg-gray-50">
       {/* Header with date range buttons */}
       <div className="sticky top-0 z-10 bg-white border-b shadow-sm p-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
             <DateRangePicker
               showCompare={false}
               onUpdate={({ range }) => {
@@ -201,9 +320,29 @@ const Home = () => {
               align="start"
               locale="es-ES"
             />
-            <Button size="sm" variant="outline">
-              Export
-            </Button>
+            <div className="relative">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={isLoading || exportLoading || isError} className="flex items-center gap-2">
+                    {exportLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Exportando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span>Exportar</span>
+                      </>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={exportToCSV}>Exportar como JSON</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToExcel}>Exportar como CSV (Excel)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
@@ -222,26 +361,40 @@ const Home = () => {
           <>
             {/* Key metrics cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard title="Total Ventas" value={isLoading ? null : Currency(totalAmount)} isLoading={isLoading} />
-              <MetricCard title="5 Estrellas Google" value={isLoading ? null : fiveStarReviews} isLoading={isLoading} />
-              {/* <MetricCard title="Instagram Access" value={isLoading ? null : data?.total_instagram_access || '0'} isLoading={isLoading} /> */}
-              <MetricCard title="Total Propinas" value={isLoading ? null : Currency(tipStats.totalTips)} isLoading={isLoading} />
-              <MetricCard title="Promedio Propinas %" value={isLoading ? null : `${tipStats.avgTipPercentage}%`} isLoading={isLoading} />
+              <MetricCard
+                title="Total Ventas"
+                value={isLoading ? null : Currency(totalAmount)}
+                isLoading={isLoading}
+                icon={<DollarIcon />}
+              />
+              <MetricCard title="5 Estrellas Google" value={isLoading ? null : fiveStarReviews} isLoading={isLoading} icon={<StarIcon />} />
+              <MetricCard
+                title="Total Propinas"
+                value={isLoading ? null : Currency(tipStats.totalTips)}
+                isLoading={isLoading}
+                icon={<TipIcon />}
+              />
+              <MetricCard
+                title="Promedio Propinas %"
+                value={isLoading ? null : `${tipStats.avgTipPercentage}%`}
+                isLoading={isLoading}
+                icon={<PercentIcon />}
+              />
             </div>
 
             {/* Charts section */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
               {/* Payment methods chart */}
               <Card className="lg:col-span-4">
-                <CardHeader>
-                  <CardTitle>Metodos de pago</CardTitle>
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Métodos de pago</CardTitle>
                 </CardHeader>
-                <CardContent className="h-80">
+                <CardContent className="h-80 pt-6">
                   {isLoading ? (
                     <LoadingSkeleton />
-                  ) : !paymentMethodsData ? (
+                  ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No payment data available</p>
+                      <p className="text-gray-500">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
@@ -252,15 +405,21 @@ const Home = () => {
                           nameKey="method"
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
-                          label={entry => entry.method}
+                          outerRadius={120}
+                          innerRadius={60}
+                          paddingAngle={2}
+                          label={({ method, percent }) => `${method}: ${(percent * 100).toFixed(0)}%`}
+                          labelLine={false}
                         >
                           {paymentMethodsData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={value => `${Currency(value as number)}`} />
-                        <Legend />
+                        <Tooltip
+                          formatter={value => `${Currency(value as number)}`}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        />
+                        <Legend verticalAlign="bottom" align="center" layout="horizontal" iconSize={10} iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -269,11 +428,11 @@ const Home = () => {
 
               {/* Best selling products */}
               <Card className="lg:col-span-3">
-                <CardHeader>
-                  <CardTitle>Productos mejores vendidos</CardTitle>
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Productos mejor vendidos</CardTitle>
                   <CardDescription>Artículos más vendidos por categoría</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   {isLoading ? (
                     <LoadingSkeleton />
                   ) : (
@@ -290,15 +449,15 @@ const Home = () => {
 
             {/* Tips over time chart */}
             <Card>
-              <CardHeader>
-                <CardTitle>Tips Over Time</CardTitle>
+              <CardHeader className="border-b pb-3">
+                <CardTitle>Propinas por fecha</CardTitle>
               </CardHeader>
-              <CardContent className="h-80">
+              <CardContent className="h-80 pt-6">
                 {isLoading ? (
                   <LoadingSkeleton />
-                ) : !tipsChartData ? (
+                ) : !tipsChartData || tipsChartData.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No tip data available</p>
+                    <p className="text-gray-500">No hay datos de propinas disponibles</p>
                   </div>
                 ) : (
                   <TipsChart tips={tipsChartData} />
@@ -313,13 +472,16 @@ const Home = () => {
 }
 
 // Metric Card Component
-const MetricCard = ({ title, value, isLoading }) => {
+const MetricCard = ({ title, value, isLoading, icon }) => {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2 bg-gradient-to-br from-blue-50 to-white">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-medium text-gray-700">{title}</CardTitle>
+          <div className="text-blue-500">{icon}</div>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {isLoading ? (
           <div className="h-8 bg-gray-200 rounded-md w-20 animate-pulse"></div>
         ) : (
@@ -331,36 +493,39 @@ const MetricCard = ({ title, value, isLoading }) => {
 }
 
 // Best Selling Products Component
-// Best Selling Products Component
 const BestSellingProducts = ({ bestFood, bestBeverages, bestOther, translations }) => {
   const limitedFood = bestFood.slice(0, 3)
   const limitedBeverages = bestBeverages.slice(0, 3)
   const limitedOther = bestOther.slice(0, 3)
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <ProductList title={translations.FOOD} products={limitedFood} />
-      <ProductList title={translations.BEVERAGE} products={limitedBeverages} />
-      <ProductList title={translations.OTHER} products={limitedOther} />
+    <div className="grid grid-cols-1 gap-6">
+      <ProductList title={translations.FOOD} products={limitedFood} icon={<FoodIcon />} />
+      <ProductList title={translations.BEVERAGE} products={limitedBeverages} icon={<BeverageIcon />} />
+      <ProductList title={translations.OTHER} products={limitedOther} icon={<OtherIcon />} />
     </div>
   )
 }
+
 // Product List Component
-const ProductList = ({ title, products }) => {
+const ProductList = ({ title, products, icon }) => {
   return (
-    <div>
-      <h3 className="font-medium mb-2">{title}</h3>
+    <div className="bg-white rounded-lg p-3 border">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="text-blue-500">{icon}</div>
+        <h3 className="font-medium">{title}</h3>
+      </div>
       {products.length > 0 ? (
         <ul className="space-y-2">
           {products.map((product, index) => (
-            <li key={index} className="flex justify-between text-sm">
+            <li key={index} className="flex justify-between text-sm p-2 bg-gray-50 rounded-md">
               <span className="truncate mr-2">{product.name}</span>
               <span className="font-medium">{product.quantity}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-gray-500">No data available</p>
+        <p className="text-sm text-gray-500 text-center py-4">No hay datos disponibles</p>
       )}
     </div>
   )
@@ -368,25 +533,149 @@ const ProductList = ({ title, products }) => {
 
 // Tips Chart Component
 const TipsChart = ({ tips }) => {
-  console.log(tips)
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={tips}>
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 12 }}
-          interval="preserveStartEnd"
-          tickFormatter={value => {
-            const parts = value.split('-')
-            return parts[2] + '/' + parts[1]
-          }}
+      <BarChart data={tips} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+        <XAxis dataKey="formattedDate" tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
+        <YAxis tick={{ fontSize: 12 }} tickFormatter={value => `$${value}`} width={60} />
+        <Tooltip
+          formatter={value => [`$${value}`, 'Propinas']}
+          labelFormatter={label => `Fecha: ${label}`}
+          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
         />
-        <YAxis tick={{ fontSize: 12 }} tickFormatter={value => `$${value}`} />
-        <Tooltip formatter={value => [`$${value}`, 'Tips']} labelFormatter={label => `Date: ${label}`} />
-        <Bar dataKey="amount" fill="#FF9800" />
+        <Bar dataKey="amount" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={30}>
+          {tips.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={`rgba(59, 130, 246, ${0.5 + (0.5 * index) / tips.length})`} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )
 }
+
+// Iconos para las tarjetas y categorías
+const DollarIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="1" x2="12" y2="23"></line>
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+  </svg>
+)
+
+const StarIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+  </svg>
+)
+
+const TipIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="9 11 12 14 22 4"></polyline>
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+  </svg>
+)
+
+const PercentIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="19" y1="5" x2="5" y2="19"></line>
+    <circle cx="6.5" cy="6.5" r="2.5"></circle>
+    <circle cx="17.5" cy="17.5" r="2.5"></circle>
+  </svg>
+)
+
+const FoodIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+    <line x1="6" y1="1" x2="6" y2="4"></line>
+    <line x1="10" y1="1" x2="10" y2="4"></line>
+    <line x1="14" y1="1" x2="14" y2="4"></line>
+  </svg>
+)
+
+const BeverageIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 8h1a4 4 0 1 1 0 8h-1"></path>
+    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"></path>
+  </svg>
+)
+
+const OtherIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="8" x2="12" y2="12"></line>
+    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+  </svg>
+)
 
 export default Home
