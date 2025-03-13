@@ -68,7 +68,7 @@ export default function Payments() {
         </Button>
       ),
       cell: info => {
-        return <>{!info.getValue() ? 'No asignado' : (info.getValue() as string)}</>
+        return <>{!info.getValue() ? '-' : (info.getValue() as string)}</>
       },
     },
     {
@@ -125,10 +125,11 @@ export default function Payments() {
         const last4 = row.original.last4
 
         return (
-          <div className="space-x-2 flex flex-row">
+          <div className="space-x-2 flex flex-row items-center">
             {value ? (
               <>
-                <span> {getIcon(value)}</span> <span className="text-[16px] font-[600] text-dashboard-gray_darkest">{last4}</span>
+                <span> {getIcon(value)}</span>{' '}
+                <span className="text-[12px] font-[600] text-dashboard-gray_dark">{last4 ? last4.slice(-4) : ''}</span>
               </>
             ) : (
               'CASH'
