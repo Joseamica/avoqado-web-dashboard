@@ -1,6 +1,7 @@
 import api from '@/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -10,7 +11,7 @@ const Home = () => {
   const { venueId } = useParams()
   const [dateRange, setDateRange] = useState('day') // 'day', 'week', or 'month'
 
-  // Calculate date range as Date objects for easier comparison
+  // Calculate date range as ISO strings for API
   const dateRangeParams = useMemo(() => {
     const now = new Date()
     // End of the current day: today at 23:59:59.999
@@ -26,19 +27,25 @@ const Home = () => {
       start.setMonth(start.getMonth() - 1)
     }
 
-    return { startDate: start, endDate: end }
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      period: dateRange,
+    }
   }, [dateRange])
 
-  // Fetch all info from API
-  const {
-    data: rawData,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: ['all_info', venueId],
+  // Fetch all info from API with date range parameters
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['all_info', venueId, dateRangeParams.period],
     queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/all-info`)
+      const response = await api.get(`/v1/dashboard/${venueId}/all-info`, {
+        params: {
+          startDate: dateRangeParams.startDate,
+          endDate: dateRangeParams.endDate,
+          period: dateRangeParams.period,
+        },
+      })
+
       if (!response) {
         throw new Error('Failed to fetch data')
       }
@@ -47,71 +54,6 @@ const Home = () => {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   })
-
-  // Filter the rawData based on the selected date range
-  const data = useMemo(() => {
-    if (!rawData) return null
-
-    // Copy raw data to result object
-    const result = { ...rawData }
-
-    if (rawData.tips) {
-      result.tips = rawData.tips.filter(tip => {
-        const tipDate = new Date(tip.createdAt)
-        return tipDate.getTime() >= dateRangeParams.startDate.getTime() && tipDate.getTime() <= dateRangeParams.endDate.getTime()
-      })
-    }
-
-    if (rawData.bills) {
-      result.bills = rawData.bills.filter(bill => {
-        const billDate = new Date(bill.createdAt)
-        return billDate.getTime() >= dateRangeParams.startDate.getTime() && billDate.getTime() <= dateRangeParams.endDate.getTime()
-      })
-    }
-
-    if (rawData.payments) {
-      result.payments = rawData.payments.filter(payment => {
-        const paymentDate = new Date(payment.createdAt)
-        return paymentDate.getTime() >= dateRangeParams.startDate.getTime() && paymentDate.getTime() <= dateRangeParams.endDate.getTime()
-      })
-
-      // Recalculate payment stats based on filtered data
-      const methodTotals: Record<
-        string,
-        {
-          method: string
-          total: number
-          count: number
-          sum: number
-          max_amount: number
-        }
-      > = {}
-
-      result.payments.forEach(payment => {
-        if (!methodTotals[payment.method]) {
-          methodTotals[payment.method] = {
-            method: payment.method,
-            total: 0,
-            count: 0,
-            sum: 0,
-            max_amount: 0,
-          }
-        }
-        const amount = payment.amount / 100
-        methodTotals[payment.method].total += amount
-        methodTotals[payment.method].count++
-        methodTotals[payment.method].sum += amount
-        methodTotals[payment.method].max_amount = Math.max(methodTotals[payment.method].max_amount, amount)
-      })
-
-      result.payments_stats = Object.values(methodTotals).map(stat => ({
-        ...stat,
-        average_amount: stat.count > 0 ? stat.sum / stat.count : 0,
-      }))
-    }
-
-    return result
-  }, [rawData, dateRangeParams])
 
   // Simple loading skeleton component
   const LoadingSkeleton = () => (
@@ -201,7 +143,7 @@ const Home = () => {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={value => `$${value}`} />
+                        <Tooltip formatter={value => `${Currency(value as number)}`} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -312,8 +254,7 @@ const TipsChart = ({ tips }) => {
   const chartData = useMemo(() => {
     // Group tips by day (using only the date part)
     const groupedByDate = tips.reduce((acc, tip) => {
-      const dateObj = new Date(tip.createdAt)
-      const dateStr = `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`
+      const dateStr = tip.createdAt.split('T')[0] // Use the date part from ISO string
       if (!acc[dateStr]) {
         acc[dateStr] = 0
       }
