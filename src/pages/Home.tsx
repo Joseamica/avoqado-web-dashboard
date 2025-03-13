@@ -103,7 +103,7 @@ const Home = () => {
           <>
             {/* Key metrics cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard title="Total Earnings" value={isLoading ? null : `$${data?.total_earnings || '0'}`} isLoading={isLoading} />
+              <MetricCard title="Total Earnings" value={isLoading ? null : Currency(data?.total_earnings)} isLoading={isLoading} />
               <MetricCard title="Google Reviews" value={isLoading ? null : data?.total_google_reviews || '0'} isLoading={isLoading} />
               <MetricCard title="Instagram Access" value={isLoading ? null : data?.total_instagram_access || '0'} isLoading={isLoading} />
               <MetricCard
