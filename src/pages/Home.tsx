@@ -1,4 +1,5 @@
 import api from '@/api'
+import { DateRangePicker } from '@/components/date-range-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Currency } from '@/utils/currency'
@@ -7,44 +8,34 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { BarChart, Bar, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
+// Traducciones para métodos de pago
+const paymentMethodTranslations = {
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+  TRANSFER: 'Transferencia',
+  OTHER: 'Otro',
+}
+
+// Traducciones para categorías de productos
+const categoryTranslations = {
+  FOOD: 'Comida',
+  BEVERAGE: 'Bebida',
+  OTHER: 'Otros',
+}
+
 const Home = () => {
   const { venueId } = useParams()
-  const [dateRange, setDateRange] = useState('day') // 'day', 'week', or 'month'
 
-  // Calculate date range as ISO strings for API
-  const dateRangeParams = useMemo(() => {
-    const now = new Date()
-    // End of the current day: today at 23:59:59.999
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-    // Start of today at 00:00:00.000
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-
-    if (dateRange === 'week') {
-      // For a 7-day period including today, subtract 6 days
-      start.setDate(start.getDate() - 6)
-    } else if (dateRange === 'month') {
-      // Subtract one month (be cautious with day overflow)
-      start.setMonth(start.getMonth() - 1)
-    }
-
-    return {
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
-      period: dateRange,
-    }
-  }, [dateRange])
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>({
+    from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000),
+    to: new Date(new Date().setHours(23, 59, 59, 999)),
+  })
 
   // Fetch all info from API with date range parameters
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['all_info', venueId, dateRangeParams.period],
+    queryKey: ['general_stats', venueId],
     queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/all-info`, {
-        params: {
-          startDate: dateRangeParams.startDate,
-          endDate: dateRangeParams.endDate,
-          period: dateRangeParams.period,
-        },
-      })
+      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`)
 
       if (!response) {
         throw new Error('Failed to fetch data')
@@ -63,9 +54,138 @@ const Home = () => {
     </div>
   )
 
-  // Colors for charts
   const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#E91E63', '#673AB7']
 
+  // Use useMemo for filteredPayments
+
+  // Use useMemo for filteredReviews
+  const filteredReviews = useMemo(() => {
+    if (!selectedRange || !data?.feedbacks) return []
+
+    return data.feedbacks.filter(review => {
+      const reviewDate = new Date(review.createdAt)
+      return reviewDate >= selectedRange.from && reviewDate <= selectedRange.to
+    })
+  }, [selectedRange, data?.feedbacks])
+
+  const fiveStarReviews = useMemo(() => {
+    return filteredReviews.filter(review => review.stars === 5).length
+  }, [filteredReviews])
+  // NOTE - use later
+  // const review = filteredReviews?.length > 0 ? filteredReviews.reduce((sum, review) => sum + review.stars, 0) : 0
+  // const totalReviews = filteredReviews?.length > 0 ? review : 'N/A'
+
+  // Calculate tip-related metrics from filtered payments
+  // Use useMemo for filteredPayments
+  const filteredPayments = useMemo(() => {
+    if (!selectedRange || !data?.payments) return []
+
+    return data.payments.filter(payment => {
+      const paymentDate = new Date(payment.createdAt)
+      return paymentDate >= selectedRange.from && paymentDate <= selectedRange.to
+    })
+  }, [selectedRange, data?.payments])
+  // Use useMemo for amount calculation (it's a good practice)
+  const amount = useMemo(() => {
+    return filteredPayments.reduce((sum, payment) => sum + Number(payment.amount), 0)
+  }, [filteredPayments])
+
+  // This doesn't need useMemo as it's just a simple conditional
+  const totalAmount = filteredPayments.length > 0 ? amount : 0
+
+  // Use useMemo for fiveStarReviews calculation
+
+  // Calculate tip-related metrics from filtered payments
+  const tipStats = useMemo(() => {
+    if (!filteredPayments?.length) return { totalTips: 0, avgTipPercentage: 0 }
+
+    // Filter payments that have at least one tip
+    const paymentsWithTips = filteredPayments.filter(payment => payment.tips && payment.tips.length > 0)
+
+    // Calculate total tips by summing up all tips
+    const totalTips = paymentsWithTips.reduce((sum, payment) => {
+      const tipsSum = payment.tips.reduce((tipSum, tip) => tipSum + Number(tip.amount), 0)
+      return sum + tipsSum
+    }, 0)
+
+    // Calculate average tip percentage
+    let avgTipPercentage = 0
+    if (paymentsWithTips.length > 0) {
+      const tipPercentages = paymentsWithTips.map(payment => {
+        const paymentAmount = Number(payment.amount)
+        const tipsTotal = payment.tips.reduce((tipSum, tip) => tipSum + Number(tip.amount), 0)
+        // Calculate percentage only if payment amount is greater than 0
+        return paymentAmount > 0 ? (tipsTotal / paymentAmount) * 100 : 0
+      })
+
+      avgTipPercentage = tipPercentages.reduce((sum, percentage) => sum + percentage, 0) / paymentsWithTips.length
+    }
+
+    return {
+      totalTips,
+      avgTipPercentage: avgTipPercentage.toFixed(1),
+    }
+  }, [filteredPayments])
+
+  // Payment Methods Chart (Filtered)
+  const paymentMethodsData = useMemo(() => {
+    const methodTotals: Record<string, number> = {}
+
+    filteredPayments.forEach(payment => {
+      const method = paymentMethodTranslations[payment.method] || 'Otro'
+      methodTotals[method] = (methodTotals[method] || 0) + Number(payment.amount)
+    })
+
+    return Object.entries(methodTotals).map(([method, total]) => ({ method, total }))
+  }, [filteredPayments])
+
+  // Best Selling Products (Filtered)
+  const bestSellingProducts = useMemo(() => {
+    if (!selectedRange || !data?.products) return { FOOD: [], BEVERAGE: [], OTHER: [] }
+
+    const filteredProducts = data.products.filter(product => {
+      const productDate = new Date(product.createdAt)
+      return productDate >= selectedRange.from && productDate <= selectedRange.to
+    })
+
+    const categories = { FOOD: [], BEVERAGE: [], OTHER: [] }
+
+    filteredProducts.forEach(product => {
+      if (categories[product.type]) {
+        const existing = categories[product.type].find(p => p.name === product.name)
+        if (existing) {
+          existing.quantity += product.quantity
+        } else {
+          categories[product.type].push({ ...product })
+        }
+      }
+    })
+
+    // Sort by quantity and limit top 3
+    Object.keys(categories).forEach(type => {
+      categories[type].sort((a, b) => b.quantity - a.quantity)
+      categories[type] = categories[type].slice(0, 3)
+    })
+
+    return categories
+  }, [selectedRange, data?.products])
+
+  // Tips Over Time Chart (Filtered)
+  const tipsChartData = useMemo(() => {
+    const tipsByDate: Record<string, number> = {}
+
+    filteredPayments.forEach(payment => {
+      payment.tips?.forEach(tip => {
+        const dateStr = payment.createdAt.split('T')[0]
+        tipsByDate[dateStr] = (tipsByDate[dateStr] || 0) + Number(tip.amount)
+      })
+    })
+
+    return Object.entries(tipsByDate)
+      .map(([date, amount]) => ({ date, amount: Number((amount / 100).toFixed(2)) }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [filteredPayments])
+  console.log('LOG: bestSellingProducts', bestSellingProducts)
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header with date range buttons */}
@@ -73,15 +193,14 @@ const Home = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
-            <Button size="sm" variant={dateRange === 'day' ? 'default' : 'outline'} onClick={() => setDateRange('day')}>
-              Today
-            </Button>
-            <Button size="sm" variant={dateRange === 'week' ? 'default' : 'outline'} onClick={() => setDateRange('week')}>
-              This Week
-            </Button>
-            <Button size="sm" variant={dateRange === 'month' ? 'default' : 'outline'} onClick={() => setDateRange('month')}>
-              This Month
-            </Button>
+            <DateRangePicker
+              showCompare={false}
+              onUpdate={({ range }) => {
+                setSelectedRange(range)
+              }}
+              align="start"
+              locale="es-ES"
+            />
             <Button size="sm" variant="outline">
               Export
             </Button>
@@ -103,14 +222,11 @@ const Home = () => {
           <>
             {/* Key metrics cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard title="Total Earnings" value={isLoading ? null : Currency(data?.total_earnings)} isLoading={isLoading} />
-              <MetricCard title="Google Reviews" value={isLoading ? null : data?.total_google_reviews || '0'} isLoading={isLoading} />
-              <MetricCard title="Instagram Access" value={isLoading ? null : data?.total_instagram_access || '0'} isLoading={isLoading} />
-              <MetricCard
-                title="Avg Tip %"
-                value={isLoading ? null : `${(parseFloat(data?.tipPercentage_average || '0') * 100).toFixed(1)}%`}
-                isLoading={isLoading}
-              />
+              <MetricCard title="Total Ventas" value={isLoading ? null : Currency(totalAmount)} isLoading={isLoading} />
+              <MetricCard title="5 Estrellas Google" value={isLoading ? null : fiveStarReviews} isLoading={isLoading} />
+              {/* <MetricCard title="Instagram Access" value={isLoading ? null : data?.total_instagram_access || '0'} isLoading={isLoading} /> */}
+              <MetricCard title="Total Propinas" value={isLoading ? null : Currency(tipStats.totalTips)} isLoading={isLoading} />
+              <MetricCard title="Promedio Propinas %" value={isLoading ? null : `${tipStats.avgTipPercentage}%`} isLoading={isLoading} />
             </div>
 
             {/* Charts section */}
@@ -118,12 +234,12 @@ const Home = () => {
               {/* Payment methods chart */}
               <Card className="lg:col-span-4">
                 <CardHeader>
-                  <CardTitle>Payment Methods</CardTitle>
+                  <CardTitle>Metodos de pago</CardTitle>
                 </CardHeader>
                 <CardContent className="h-80">
                   {isLoading ? (
                     <LoadingSkeleton />
-                  ) : !data?.payments_stats?.length ? (
+                  ) : !paymentMethodsData ? (
                     <div className="flex items-center justify-center h-full">
                       <p className="text-gray-500">No payment data available</p>
                     </div>
@@ -131,7 +247,7 @@ const Home = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={data.payments_stats}
+                          data={paymentMethodsData}
                           dataKey="total"
                           nameKey="method"
                           cx="50%"
@@ -139,7 +255,7 @@ const Home = () => {
                           outerRadius={80}
                           label={entry => entry.method}
                         >
-                          {data.payments_stats.map((entry, index) => (
+                          {paymentMethodsData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -154,17 +270,18 @@ const Home = () => {
               {/* Best selling products */}
               <Card className="lg:col-span-3">
                 <CardHeader>
-                  <CardTitle>Best-Selling Products</CardTitle>
-                  <CardDescription>Top items by category</CardDescription>
+                  <CardTitle>Productos mejores vendidos</CardTitle>
+                  <CardDescription>Artículos más vendidos por categoría</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
                     <LoadingSkeleton />
                   ) : (
                     <BestSellingProducts
-                      bestFood={data?.bestFood || []}
-                      bestBeverages={data?.bestBeverages || []}
-                      bestOther={data?.bestOther || []}
+                      bestFood={bestSellingProducts.FOOD}
+                      bestBeverages={bestSellingProducts.BEVERAGE}
+                      bestOther={bestSellingProducts.OTHER}
+                      translations={categoryTranslations}
                     />
                   )}
                 </CardContent>
@@ -179,12 +296,12 @@ const Home = () => {
               <CardContent className="h-80">
                 {isLoading ? (
                   <LoadingSkeleton />
-                ) : !data?.tips?.length ? (
+                ) : !tipsChartData ? (
                   <div className="flex items-center justify-center h-full">
                     <p className="text-gray-500">No tip data available</p>
                   </div>
                 ) : (
-                  <TipsChart tips={data.tips} />
+                  <TipsChart tips={tipsChartData} />
                 )}
               </CardContent>
             </Card>
@@ -214,20 +331,20 @@ const MetricCard = ({ title, value, isLoading }) => {
 }
 
 // Best Selling Products Component
-const BestSellingProducts = ({ bestFood, bestBeverages, bestOther }) => {
+// Best Selling Products Component
+const BestSellingProducts = ({ bestFood, bestBeverages, bestOther, translations }) => {
   const limitedFood = bestFood.slice(0, 3)
   const limitedBeverages = bestBeverages.slice(0, 3)
   const limitedOther = bestOther.slice(0, 3)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <ProductList title="Food" products={limitedFood} />
-      <ProductList title="Beverages" products={limitedBeverages} />
-      <ProductList title="Other" products={limitedOther} />
+      <ProductList title={translations.FOOD} products={limitedFood} />
+      <ProductList title={translations.BEVERAGE} products={limitedBeverages} />
+      <ProductList title={translations.OTHER} products={limitedOther} />
     </div>
   )
 }
-
 // Product List Component
 const ProductList = ({ title, products }) => {
   return (
@@ -251,28 +368,10 @@ const ProductList = ({ title, products }) => {
 
 // Tips Chart Component
 const TipsChart = ({ tips }) => {
-  const chartData = useMemo(() => {
-    // Group tips by day (using only the date part)
-    const groupedByDate = tips.reduce((acc, tip) => {
-      const dateStr = tip.createdAt.split('T')[0] // Use the date part from ISO string
-      if (!acc[dateStr]) {
-        acc[dateStr] = 0
-      }
-      acc[dateStr] += parseFloat(tip.amount) / 100
-      return acc
-    }, {})
-
-    return Object.entries(groupedByDate)
-      .map(([date, amount]) => ({
-        date,
-        amount: parseFloat((amount as number).toFixed(2)),
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [tips])
-
+  console.log(tips)
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={chartData}>
+      <BarChart data={tips}>
         <XAxis
           dataKey="date"
           tick={{ fontSize: 12 }}
