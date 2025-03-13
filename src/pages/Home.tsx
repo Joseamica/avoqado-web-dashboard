@@ -3,17 +3,16 @@ import { DateRangePicker } from '@/components/date-range-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Currency } from '@/utils/currency'
-
+import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 // Traducciones para métodos de pago
 const paymentMethodTranslations = {
   CASH: 'Efectivo',
@@ -24,13 +23,13 @@ const paymentMethodTranslations = {
 
 // Traducciones para categorías de productos
 const categoryTranslations = {
-  food: 'Comida',
-  beverage: 'Bebida',
-  other: 'Otros',
+  FOOD: 'Comida',
+  BEVERAGE: 'Bebida',
+  OTHER: 'Otros',
 }
 
 // Paleta de colores mejorada para los gráficos
-const CHART_COLORS = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1']
+const CHART_COLORS = ['#2563EB', '#60A8FB', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1']
 
 // Simple icon components
 const DollarIcon = () => <DollarSign className="h-5 w-5 text-blue-500" />
@@ -39,7 +38,7 @@ const TipIcon = () => <Gift className="h-5 w-5 text-green-500" />
 const PercentIcon = () => <Percent className="h-5 w-5 text-purple-500" />
 
 // Type for comparison period
-type ComparisonPeriod = 'day' | 'week' | 'month' | ''
+type ComparisonPeriod = 'day' | 'week' | 'month' | 'custom' | ''
 
 // Metric Card Component
 const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparisonLabel = 'período anterior' }) => {
@@ -108,7 +107,9 @@ const Home = () => {
     to: new Date(new Date(new Date().setHours(0, 0, 0, 0) - 8 * 24 * 60 * 60 * 1000).getTime() - 1), // day before the selectedRange starts
   })
 
-  // Date range quick filter handlers
+  const [activeFilter, setActiveFilter] = useState('7days') // Por defecto '7days'
+
+  // Handlers modificados para establecer el filtro activo
   const handleToday = () => {
     const today = new Date()
     const todayStart = new Date(today.setHours(0, 0, 0, 0))
@@ -124,6 +125,7 @@ const Home = () => {
     setCompareRange({ from: yesterdayStart, to: yesterdayEnd })
     setCompareType('day')
     setComparisonLabel('ayer')
+    setActiveFilter('today')
   }
 
   const handleLast7Days = () => {
@@ -142,6 +144,7 @@ const Home = () => {
     setCompareRange({ from: compareStart, to: compareEnd })
     setCompareType('week')
     setComparisonLabel('7 días anteriores')
+    setActiveFilter('7days')
   }
 
   const handleLast30Days = () => {
@@ -160,18 +163,14 @@ const Home = () => {
     setCompareRange({ from: compareStart, to: compareEnd })
     setCompareType('month')
     setComparisonLabel('30 días anteriores')
+    setActiveFilter('30days')
   }
 
   // Fetch current period data from API
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['general_stats', venueId, selectedRange?.from, selectedRange?.to],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
-        params: {
-          from: selectedRange?.from?.toISOString(),
-          to: selectedRange?.to?.toISOString(),
-        },
-      })
+      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {})
 
       if (!response) {
         throw new Error('Failed to fetch data')
@@ -251,6 +250,68 @@ const Home = () => {
     }
   }, [filteredPayments])
 
+  // Procesamiento de datos para ventas por método de pago por día
+  const paymentsByDay = useMemo(() => {
+    if (!filteredPayments || filteredPayments.length === 0) return []
+
+    // Simplificamos y solo mostramos CASH y CARD para mantener la claridad visual,
+    // similar al ejemplo que muestra desktop y mobile
+    const paymentsByDate = {}
+
+    // Agrupar pagos por fecha
+    filteredPayments.forEach(payment => {
+      const dateStr = format(new Date(payment.createdAt), 'dd MMM', { locale: es })
+
+      if (!paymentsByDate[dateStr]) {
+        paymentsByDate[dateStr] = {
+          date: dateStr,
+          CASH: 0,
+          CARD: 0,
+        }
+      }
+
+      // Simplificamos: CARD incluye CARD y AMEX, CASH incluye CASH y other
+      if (payment.method === 'CARD' || payment.method === 'AMEX') {
+        paymentsByDate[dateStr].CARD += Number(payment.amount) / 100 // Convertir a unidad monetaria
+      } else {
+        paymentsByDate[dateStr].CASH += Number(payment.amount) / 100 // Efectivo y otros
+      }
+    })
+
+    // Convertir a array y ordenar por fecha
+    return Object.values(paymentsByDate).sort((a, b) => {
+      // Convertir "dd MMM" a objetos Date para ordenamiento correcto
+      const monthsES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+      const [dayA, monthA] = (a as { date: string }).date.split(' ')
+      const [dayB, monthB] = (b as { date: string }).date.split(' ')
+
+      const monthIndexA = monthsES.indexOf(monthA.toLowerCase())
+      const monthIndexB = monthsES.indexOf(monthB.toLowerCase())
+
+      if (monthIndexA !== monthIndexB) return monthIndexA - monthIndexB
+      return parseInt(dayA) - parseInt(dayB)
+    })
+  }, [filteredPayments])
+
+  // Para el resumen de métodos de pago (totales)
+  const paymentMethodTotals = useMemo(() => {
+    if (!filteredPayments || filteredPayments.length === 0) return {}
+
+    const totals = {
+      CASH: 0,
+      CARD: 0,
+      AMEX: 0,
+      other: 0,
+    }
+
+    filteredPayments.forEach(payment => {
+      const method = ['CASH', 'CARD', 'AMEX'].includes(payment.method) ? payment.method : 'other'
+
+      totals[method] += Number(payment.amount) / 100
+    })
+
+    return totals
+  }, [filteredPayments])
   // Payment methods chart (filtered)
   const paymentMethodsData = useMemo(() => {
     const methodTotals = {}
@@ -262,7 +323,7 @@ const Home = () => {
 
     return Object.entries(methodTotals).map(([method, total]) => ({ method, total }))
   }, [filteredPayments])
-  console.log('LOG: paymentMethodsData', paymentMethodsData)
+
   // Best selling products (filtered)
   const bestSellingProducts = useMemo(() => {
     if (!selectedRange || !data?.products) return { food: [], beverage: [], other: [] }
@@ -293,7 +354,7 @@ const Home = () => {
 
     return categories
   }, [selectedRange, data?.products])
-
+  console.log('LOG: bestSellingProducts', bestSellingProducts)
   // Tips over time chart (filtered)
   const tipsChartData = useMemo(() => {
     const tipsByDate = {}
@@ -470,13 +531,13 @@ const Home = () => {
       csvContent += 'Categoría,Producto,Cantidad\n'
 
       bestSellingProducts.food.forEach(item => {
-        csvContent += `${categoryTranslations.food},${item.name},${item.quantity}\n`
+        csvContent += `${categoryTranslations.FOOD},${item.name},${item.quantity}\n`
       })
       bestSellingProducts.beverage.forEach(item => {
-        csvContent += `${categoryTranslations.beverage},${item.name},${item.quantity}\n`
+        csvContent += `${categoryTranslations.BEVERAGE},${item.name},${item.quantity}\n`
       })
       bestSellingProducts.other.forEach(item => {
-        csvContent += `${categoryTranslations.other},${item.name},${item.quantity}\n`
+        csvContent += `${categoryTranslations.OTHER},${item.name},${item.quantity}\n`
       })
       csvContent += '\n'
 
@@ -513,13 +574,28 @@ const Home = () => {
           <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
             {/* Quick filter buttons */}
             <div className="flex space-x-2">
-              <Button size="sm" variant="outline" onClick={handleToday} className="whitespace-nowrap">
+              <Button
+                size="sm"
+                variant={activeFilter === 'today' ? 'default' : 'outline'}
+                onClick={handleToday}
+                className="whitespace-nowrap"
+              >
                 Hoy
               </Button>
-              <Button size="sm" variant="outline" onClick={handleLast7Days} className="whitespace-nowrap">
+              <Button
+                size="sm"
+                variant={activeFilter === '7days' ? 'default' : 'outline'}
+                onClick={handleLast7Days}
+                className="whitespace-nowrap"
+              >
                 Últimos 7 días
               </Button>
-              <Button size="sm" variant="outline" onClick={handleLast30Days} className="whitespace-nowrap">
+              <Button
+                size="sm"
+                variant={activeFilter === '30days' ? 'default' : 'outline'}
+                onClick={handleLast30Days}
+                className="whitespace-nowrap"
+              >
                 Últimos 30 días
               </Button>
             </div>
@@ -528,8 +604,17 @@ const Home = () => {
               showCompare={false}
               onUpdate={({ range }) => {
                 setSelectedRange(range)
-                setCompareType('') // Clear comparison type when manual date selection is used
+
+                // Calcular un rango de comparación para el DatePicker personalizado
+                // (período anterior de igual duración)
+                const selectedDuration = range.to.getTime() - range.from.getTime()
+                const compareEnd = new Date(range.from.getTime() - 1) // Un milisegundo antes del inicio del rango seleccionado
+                const compareStart = new Date(compareEnd.getTime() - selectedDuration)
+
+                setCompareRange({ from: compareStart, to: compareEnd })
+                setCompareType('custom')
                 setComparisonLabel('período anterior')
+                setActiveFilter('custom')
               }}
               initialDateFrom={selectedRange.from}
               initialDateTo={selectedRange.to}
@@ -564,7 +649,7 @@ const Home = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-4 md:p-6 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="flex-1 p-2 md:p-4 space-y-4  mx-auto w-full">
         {isError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
@@ -659,7 +744,7 @@ const Home = () => {
                                 if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                                   return (
                                     <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                      <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-2xl font-bold">
+                                      <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-lg font-bold">
                                         {Currency(totalAmount)}
                                       </tspan>
                                       <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground text-sm">
@@ -702,7 +787,7 @@ const Home = () => {
                 )}
               </Card>
 
-              {/* Best selling products */}
+              {/* ANCHOR - Best selling products */}
               <Card className="lg:col-span-3">
                 <CardHeader className="border-b pb-3">
                   <CardTitle>Productos Mejor Vendidos</CardTitle>
@@ -736,12 +821,20 @@ const Home = () => {
                 </CardContent>
               </Card>
 
-              {/* Tips over time chart */}
+              {/* ANCHOR - Tips over time chart */}
+
               <Card className="lg:col-span-7">
                 <CardHeader className="border-b pb-3">
                   <CardTitle>Propinas por Fecha</CardTitle>
+                  <CardDescription>
+                    {selectedRange.from && selectedRange.to
+                      ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
+                          locale: es,
+                        })}`
+                      : 'Periodo actual'}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="h-80 pt-6">
+                <CardContent className="pt-6" style={{ height: '360px' }}>
                   {isLoading ? (
                     <LoadingSkeleton />
                   ) : !tipsChartData || tipsChartData.length === 0 ? (
@@ -749,21 +842,474 @@ const Home = () => {
                       <p className="text-gray-500">No hay datos disponibles</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={tipsChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="formattedDate" />
-                        <YAxis />
-                        <Tooltip
-                          formatter={value => `${Currency(Number(value))}`}
-                          labelFormatter={label => `Fecha: ${label}`}
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        amount: {
+                          label: 'Propinas',
+                          color: CHART_COLORS[0],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={tipsChartData}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent formatter={value => `${Currency(Number(value))}`} hideLabel />}
                         />
-                        <Bar dataKey="amount" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="amount" fill="var(--chart-1)" radius={4} maxBarSize={60}>
+                          <LabelList
+                            position="top"
+                            offset={8}
+                            className="fill-foreground"
+                            fontSize={10}
+                            formatter={value => `${Currency(Number(value))}`}
+                          />
+                        </Bar>
                       </BarChart>
-                    </ResponsiveContainer>
+                    </ChartContainer>
                   )}
                 </CardContent>
+                {!isLoading && tipsChartData && tipsChartData.length > 0 && compareType && (
+                  <CardFooter className="flex-col items-start gap-2 text-sm">
+                    <div className="flex items-center gap-2 font-medium leading-none">
+                      {tipsChangePercentage > 0 ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <span className="text-green-600">
+                            Incremento de {tipsChangePercentage}% vs {comparisonLabel}
+                          </span>
+                        </>
+                      ) : tipsChangePercentage < 0 ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
+                          <span className="text-red-600">
+                            Disminución de {Math.abs(tipsChangePercentage)}% vs {comparisonLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Sin cambios vs {comparisonLabel}</span>
+                      )}
+                    </div>
+                    <div className="leading-none text-muted-foreground">
+                      Mostrando propinas totales para el{' '}
+                      {activeFilter === 'today'
+                        ? 'día de hoy'
+                        : activeFilter === '7days'
+                        ? 'los últimos 7 días'
+                        : activeFilter === '30days'
+                        ? 'los últimos 30 días'
+                        : 'período seleccionado'}
+                    </div>
+                  </CardFooter>
+                )}
+              </Card>
+              {/* Sales by Payment Method Chart */}
+              {/* ANCHOR - Sales by Payment Method Chart */}
+              <Card className="lg:col-span-7">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Ventas por Método de Pago</CardTitle>
+                  <CardDescription>
+                    {selectedRange.from && selectedRange.to
+                      ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
+                          locale: es,
+                        })}`
+                      : 'Periodo actual'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '400px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : !filteredPayments || filteredPayments.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        CASH: {
+                          label: paymentMethodTranslations.CASH || 'Efectivo',
+                          color: CHART_COLORS[0],
+                        },
+                        CARD: {
+                          label: paymentMethodTranslations.CARD || 'Tarjeta',
+                          color: CHART_COLORS[1],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={paymentsByDay}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={value => value.slice(0, 3)}
+                        />
+                        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="CARD" stackId="a" fill="var(--color-CARD)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="CASH" stackId="a" fill="var(--color-CASH)" radius={[0, 0, 4, 4]} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+                {!isLoading && filteredPayments && filteredPayments.length > 0 && compareType && (
+                  <CardFooter className="flex-col items-start gap-2 text-sm">
+                    <div className="flex items-center gap-2 font-medium leading-none">
+                      {amountChangePercentage > 0 ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <span className="text-green-600">
+                            Incremento de {amountChangePercentage}% vs {comparisonLabel}
+                          </span>
+                        </>
+                      ) : amountChangePercentage < 0 ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
+                          <span className="text-red-600">
+                            Disminución de {Math.abs(amountChangePercentage)}% vs {comparisonLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Sin cambios vs {comparisonLabel}</span>
+                      )}
+                    </div>
+                    <div className="leading-none text-muted-foreground">
+                      Mostrando ventas por método de pago para el{' '}
+                      {activeFilter === 'today'
+                        ? 'día de hoy'
+                        : activeFilter === '7days'
+                        ? 'los últimos 7 días'
+                        : activeFilter === '30days'
+                        ? 'los últimos 30 días'
+                        : 'período seleccionado'}
+                    </div>
+                  </CardFooter>
+                )}
+              </Card>
+              {/* 1. HORAS PICO - Análisis de ventas por hora del día */}
+              <Card className="lg:col-span-7">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Horas Pico de Ventas</CardTitle>
+                  <CardDescription>Identifica tus horas más productivas y optimiza tu personal</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : (
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        sales: {
+                          label: 'Ventas',
+                          color: CHART_COLORS[0],
+                        },
+                        transactions: {
+                          label: 'N° Transacciones',
+                          color: CHART_COLORS[1],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={null}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="hour"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          label={{ value: 'Hora del día', position: 'insideBottomRight', offset: -10 }}
+                        />
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent formatter={(value, name) => (name === 'sales' ? Currency(Number(value)) : value)} />
+                          }
+                        />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="sales" fill="var(--color-sales)" />
+                        <Bar dataKey="transactions" fill="var(--color-transactions)" />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="leading-none text-muted-foreground">
+                    Tu hora más rentable es a las <span className="font-bold">14:00</span> con un promedio de{' '}
+                    <span className="font-bold">$XXX</span> en ventas
+                  </div>
+                </CardFooter>
+              </Card>
+
+              {/* 2. ANÁLISIS DE MESAS - Ocupación y gasto promedio por mesa */}
+              <Card className="lg:col-span-6">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Rendimiento por Mesa</CardTitle>
+                  <CardDescription>Identifica tus mesas más rentables y las que necesitan atención</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Ejemplo de tarjeta de mesa */}
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(tableNum => (
+                      <div
+                        key={tableNum}
+                        className={`p-4 rounded-lg border ${
+                          tableNum === 3 ? 'bg-green-50 border-green-200' : tableNum === 7 ? 'bg-red-50 border-red-200' : ''
+                        }`}
+                      >
+                        <div className="text-lg font-bold mb-1">Mesa {tableNum}</div>
+                        <div className="text-sm mb-2">Capacidad: 4</div>
+                        <div className="text-sm font-medium">Ticket promedio:</div>
+                        <div className="text-lg font-bold mb-2">{Currency(tableNum * 1000 + 500)}</div>
+                        <div className="text-sm font-medium">Rotación diaria:</div>
+                        <div className="text-lg font-bold">{(tableNum % 3) + 2}x</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="leading-none text-muted-foreground">
+                    <span className="font-bold text-green-600">Mesa 3</span> tiene el ticket promedio más alto •
+                    <span className="font-bold text-red-600">Mesa 7</span> tiene el ticket promedio más bajo
+                  </div>
+                </CardFooter>
+              </Card>
+
+              {/* 3. PRODUCTOS MÁS RENTABLES - No solo los más vendidos, sino los que generan más margen */}
+              <Card className="lg:col-span-6">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Productos Más Rentables</CardTitle>
+                  <CardDescription>Conoce qué platos generan mayor margen de beneficio</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-4 font-medium">Producto</th>
+                          <th className="text-right p-4 font-medium">Ventas</th>
+                          <th className="text-right p-4 font-medium">Precio</th>
+                          <th className="text-right p-4 font-medium">Costo</th>
+                          <th className="text-right p-4 font-medium">Margen</th>
+                          <th className="text-right p-4 font-medium">% Margen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Ejemplo de productos */}
+                        <tr className="border-b bg-green-50">
+                          <td className="p-4">Ensalada César</td>
+                          <td className="p-4 text-right">46</td>
+                          <td className="p-4 text-right">{Currency(12000)}</td>
+                          <td className="p-4 text-right">{Currency(3500)}</td>
+                          <td className="p-4 text-right font-bold">{Currency(8500)}</td>
+                          <td className="p-4 text-right font-bold text-green-600">71%</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="p-4">Risotto de Hongos</td>
+                          <td className="p-4 text-right">32</td>
+                          <td className="p-4 text-right">{Currency(14500)}</td>
+                          <td className="p-4 text-right">{Currency(5800)}</td>
+                          <td className="p-4 text-right font-bold">{Currency(8700)}</td>
+                          <td className="p-4 text-right font-bold">60%</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="p-4">Filete de Res</td>
+                          <td className="p-4 text-right">28</td>
+                          <td className="p-4 text-right">{Currency(22000)}</td>
+                          <td className="p-4 text-right">{Currency(11000)}</td>
+                          <td className="p-4 text-right font-bold">{Currency(11000)}</td>
+                          <td className="p-4 text-right font-bold">50%</td>
+                        </tr>
+                        <tr className="border-b bg-red-50">
+                          <td className="p-4">Pasta Carbonara</td>
+                          <td className="p-4 text-right">38</td>
+                          <td className="p-4 text-right">{Currency(13500)}</td>
+                          <td className="p-4 text-right">{Currency(9500)}</td>
+                          <td className="p-4 text-right font-bold">{Currency(4000)}</td>
+                          <td className="p-4 text-right font-bold text-red-600">30%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="leading-none text-muted-foreground">
+                    Recomendación: Promociona más la Ensalada César y considera ajustar el precio de la Pasta Carbonara
+                  </div>
+                </CardFooter>
+              </Card>
+
+              {/* 4. ANÁLISIS DE DÍAS Y TENDENCIAS */}
+              <Card className="lg:col-span-7">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Tendencias Semanales</CardTitle>
+                  <CardDescription>Compara el rendimiento por día de la semana</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : (
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        currentWeek: {
+                          label: 'Semana Actual',
+                          color: CHART_COLORS[0],
+                        },
+                        previousWeek: {
+                          label: 'Semana Anterior',
+                          color: CHART_COLORS[1],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={[
+                          { day: 'Lunes', currentWeek: 1200, previousWeek: 980 },
+                          { day: 'Martes', currentWeek: 980, previousWeek: 1050 },
+                          { day: 'Miércoles', currentWeek: 1100, previousWeek: 930 },
+                          { day: 'Jueves', currentWeek: 1300, previousWeek: 1180 },
+                          { day: 'Viernes', currentWeek: 1900, previousWeek: 1750 },
+                          { day: 'Sábado', currentWeek: 2100, previousWeek: 2300 },
+                          { day: 'Domingo', currentWeek: 1600, previousWeek: 1400 },
+                        ]}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="day" tickLine={false} tickMargin={10} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent formatter={value => Currency(Number(value) * 100)} />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="currentWeek" fill="var(--color-currentWeek)" radius={4} maxBarSize={30} />
+                        <Bar dataKey="previousWeek" fill="var(--color-previousWeek)" radius={4} maxBarSize={30} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="flex items-center gap-2 font-medium leading-none">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600">Incremento de 8.3% respecto a la semana anterior</span>
+                  </div>
+                  <div className="leading-none text-muted-foreground">
+                    El sábado es tu día más ocupado, pero has tenido una caída del 8.7% respecto a la semana anterior
+                  </div>
+                </CardFooter>
+              </Card>
+
+              {/* 5. EFICIENCIA DEL PERSONAL */}
+              <Card className="lg:col-span-5">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Eficiencia del Personal</CardTitle>
+                  <CardDescription>Analiza el rendimiento de tus meseros y cocineros</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Ventas por Mesero</h3>
+                        <div className="space-y-3">
+                          {[
+                            { name: 'Carlos Rodríguez', amount: 450000, tickets: 42, avgTime: '24 min' },
+                            { name: 'Ana Martínez', amount: 380000, tickets: 36, avgTime: '22 min' },
+                            { name: 'Miguel Sánchez', amount: 320000, tickets: 38, avgTime: '28 min' },
+                            { name: 'Laura González', amount: 290000, tickets: 29, avgTime: '25 min' },
+                          ].map((employee, i) => (
+                            <div key={i} className="flex items-center">
+                              <div className="w-32 flex-shrink-0 font-medium truncate">{employee.name}</div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center">
+                                  <div
+                                    className="h-2 rounded"
+                                    style={{
+                                      width: `${(employee.amount / 450000) * 100}%`,
+                                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                                    }}
+                                  ></div>
+                                  <span className="ml-2 text-sm">{Currency(employee.amount)}</span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {employee.tickets} órdenes • Tiempo promedio: {employee.avgTime}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Tiempo Promedio de Preparación</h3>
+                        <div className="space-y-3">
+                          {[
+                            { type: 'Entradas', time: 8, target: 10 },
+                            { type: 'Platos Principales', time: 18, target: 15 },
+                            { type: 'Postres', time: 6, target: 5 },
+                            { type: 'Bebidas', time: 4, target: 3 },
+                          ].map((category, i) => (
+                            <div key={i} className="flex items-center">
+                              <div className="w-32 flex-shrink-0 font-medium">{category.type}</div>
+                              <div className="flex-1">
+                                <div className="flex items-center">
+                                  <div className="flex-1 bg-gray-200 h-2 rounded overflow-hidden">
+                                    <div
+                                      className={`h-full rounded ${category.time <= category.target ? 'bg-green-500' : 'bg-amber-500'}`}
+                                      style={{ width: `${(category.time / 20) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="ml-2 text-sm">{category.time} min</span>
+                                  <span className="ml-2 text-xs text-gray-500">Meta: {category.target} min</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="leading-none text-muted-foreground">
+                    Carlos genera las mayores ventas • Los platos principales están tomando 3 min más que el objetivo
+                  </div>
+                </CardFooter>
               </Card>
             </div>
           </>
