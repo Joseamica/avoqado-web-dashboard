@@ -1,21 +1,46 @@
-import React, { useState, useMemo } from 'react'
 import api from '@/api'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const Home = () => {
   const { venueId } = useParams()
   const [dateRange, setDateRange] = useState('day') // day, week, month
 
-  // Use React Query with caching for better performance
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['all_info', venueId, dateRange],
+  // Calculate actual date range based on selection
+  const dateRangeParams = useMemo(() => {
+    const now = new Date()
+    const end = new Date(now)
+    end.setHours(23, 59, 59, 999)
+
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+
+    if (dateRange === 'week') {
+      start.setDate(start.getDate() - 7)
+    } else if (dateRange === 'month') {
+      start.setMonth(start.getMonth() - 1)
+    }
+
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    }
+  }, [dateRange])
+
+  // Use React Query with client-side filtering to reduce backend load
+  const {
+    data: rawData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['all_info', venueId],
     queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/all-info?range=${dateRange}`)
+      const response = await api.get(`/v1/dashboard/${venueId}/all-info`)
       if (!response) {
         throw new Error('Failed to fetch data')
       }
@@ -24,6 +49,69 @@ const Home = () => {
     staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
   })
+
+  // Filter data based on selected date range
+  const data = useMemo(() => {
+    if (!rawData) return null
+
+    // For metrics that don't need filtering (like totals), use as is
+    const result = { ...rawData }
+
+    // Filter time-based data
+    if (rawData.tips) {
+      result.tips = rawData.tips.filter(tip => {
+        const tipDate = new Date(tip.createdAt)
+        return tipDate >= new Date(dateRangeParams.startDate) && tipDate <= new Date(dateRangeParams.endDate)
+      })
+    }
+
+    if (rawData.bills) {
+      result.bills = rawData.bills.filter(bill => {
+        const billDate = new Date(bill.createdAt)
+        return billDate >= new Date(dateRangeParams.startDate) && billDate <= new Date(dateRangeParams.endDate)
+      })
+    }
+
+    if (rawData.payments) {
+      result.payments = rawData.payments.filter(payment => {
+        const paymentDate = new Date(payment.createdAt)
+        return paymentDate >= new Date(dateRangeParams.startDate) && paymentDate <= new Date(dateRangeParams.endDate)
+      })
+
+      // Recalculate payment stats based on filtered data
+      interface MethodTotal {
+        method: string
+        total: number
+        count: number
+        sum: number
+        max_amount: number
+      }
+
+      const methodTotals: Record<string, MethodTotal> = {}
+      result.payments.forEach(payment => {
+        if (!methodTotals[payment.method]) {
+          methodTotals[payment.method] = {
+            method: payment.method,
+            total: 0,
+            count: 0,
+            sum: 0,
+            max_amount: 0,
+          }
+        }
+        methodTotals[payment.method].total += payment.amount / 100
+        methodTotals[payment.method].count++
+        methodTotals[payment.method].sum += payment.amount / 100
+        methodTotals[payment.method].max_amount = Math.max(methodTotals[payment.method].max_amount, payment.amount / 100)
+      })
+
+      result.payments_stats = Object.values(methodTotals).map(stat => ({
+        ...stat,
+        average_amount: stat.count > 0 ? stat.sum / stat.count : 0,
+      }))
+    }
+
+    return result
+  }, [rawData, dateRangeParams])
 
   // Loading states for skeleton display
   const LoadingSkeleton = () => (
