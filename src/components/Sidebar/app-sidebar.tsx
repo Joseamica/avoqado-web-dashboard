@@ -11,6 +11,7 @@ import {
   Settings2,
   Smartphone,
   Star,
+  Ungroup,
   Users,
 } from 'lucide-react'
 import * as React from 'react'
@@ -84,6 +85,12 @@ const data = {
       isActive: true,
       url: 'payments', // Update the URL if necessary
       icon: Banknote,
+    },
+    {
+      title: 'Turnos',
+      isActive: true,
+      url: 'shifts', // Update the URL if necessary
+      icon: Ungroup,
     },
     {
       title: 'TPV',
