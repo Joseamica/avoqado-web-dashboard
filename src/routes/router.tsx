@@ -30,6 +30,7 @@ import { SuperProtectedRoute } from './SuperProtectedRoute'
 import Waiters from '@/pages/Waiter/Waiters'
 import EditVenue from '@/pages/Venue/Venue.edit'
 import Shifts from '@/pages/Shift/Shifts'
+import WaiterId from '@/pages/Waiter/waiterId'
 
 const router = createBrowserRouter([
   {
@@ -110,6 +111,7 @@ const router = createBrowserRouter([
               { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },
               { path: 'waiters', element: <Waiters /> },
+              { path: 'waiters/:waiterId', element: <WaiterId /> },
               { path: 'reviews', element: <Reviews /> },
 
               {

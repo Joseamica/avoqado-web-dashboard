@@ -1,13 +1,12 @@
 import api from '@/api'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Link, useLocation, useParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { useMemo, useState } from 'react'
-import { Input } from '@/components/ui/input'
 import DataTable from '@/components/data-table'
-import { ItemsCell } from '@/components/multiple-cell-values'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 
 export default function Waiters() {
   const { venueId } = useParams()
@@ -68,7 +67,7 @@ export default function Waiters() {
     {
       id: 'captain',
       accessorKey: 'captain',
-      header: 'Rol',
+      header: 'Capitán',
       enableColumnFilter: false,
       cell: ({ row }) => {
         return <span>{row.original.captain === true ? 'Si' : 'No'}</span>
