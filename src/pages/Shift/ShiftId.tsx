@@ -1,13 +1,12 @@
 import api from '@/api'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { themeClasses } from '@/lib/theme-utils'
+import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { Currency } from '@/utils/currency'
 
 export default function ShiftId() {
   const { venueId, shiftId } = useParams()

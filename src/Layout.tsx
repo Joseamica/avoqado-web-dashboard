@@ -19,14 +19,14 @@ export function Layout() {
     return <Navigate to={`/venues/${user.venues[0].id}/home`} />
   }
 
-  if (isAuthenticated && user.venues.length === 0) {
+  if (user.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-gray-100 dark:bg-gray-900">
         <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
           <div className="absolute top-4 right-4">
             <ThemeToggle />
           </div>
-          <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">¡No Tienes Sucursales Asignados!</h1>
+          <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">¡No Tienes Suscursales Asignados!</h1>
           <p className="mb-6 text-gray-600 dark:text-gray-300">
             Para comenzar a usar la plataforma, crea un venue o contacta al administrador para que te asigne uno.
           </p>
