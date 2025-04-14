@@ -2,6 +2,7 @@ import api from '@/api'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
@@ -49,20 +50,7 @@ export default function Waiters() {
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
-
-      cell: ({ row, cell }) => {
-        return (
-          <Link
-            to={row.original.id}
-            className="text-links hover:underline"
-            state={{
-              from: location.pathname,
-            }}
-          >
-            {cell.getValue() as string}
-          </Link>
-        )
-      },
+      cell: ({ cell }) => <span>{cell.getValue() as string}</span>,
     },
     {
       id: 'captain',
@@ -89,14 +77,14 @@ export default function Waiters() {
 
     return waiters?.filter(waiter => {
       // Buscar en el name del waiter o en los menús (avoqadoMenus.name)
-      const nameMatches = waiter.name.toLowerCase().includes(lowerSearchTerm)
-      const menuMatches = waiter.avoqadoMenus.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm))
+      const nameMatches = waiter.name?.toLowerCase().includes(lowerSearchTerm) || false
+      const menuMatches = waiter.avoqadoMenus?.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm)) || false
       return nameMatches || menuMatches
     })
   }, [searchTerm, waiters])
 
   return (
-    <div className="p-4">
+    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Meseros</h1>
         <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
@@ -119,10 +107,19 @@ export default function Waiters() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
+        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
 
-      <DataTable data={filteredWaiters} rowCount={waiters?.length} columns={columns} isLoading={isLoading} />
+      <DataTable
+        data={filteredWaiters}
+        rowCount={waiters?.length}
+        columns={columns}
+        isLoading={isLoading}
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+      />
     </div>
   )
 }

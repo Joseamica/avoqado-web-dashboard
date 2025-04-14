@@ -13,6 +13,9 @@ import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from '
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { useTheme } from '@/context/ThemeContext'
+import { themeClasses } from '@/lib/theme-utils'
+
 // Traducciones para métodos de pago
 const paymentMethodTranslations = {
   CASH: 'Efectivo',
@@ -42,6 +45,8 @@ type ComparisonPeriod = 'day' | 'week' | 'month' | 'custom' | ''
 
 // Metric Card Component
 const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparisonLabel = 'período anterior' }) => {
+  const { isDark } = useTheme()
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -50,14 +55,14 @@ const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparis
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-7 w-20 bg-gray-200 rounded animate-pulse"></div>
+          <div className={`h-7 w-20 ${themeClasses.neutral.bg} rounded animate-pulse`}></div>
         ) : (
           <div className="space-y-1">
             <div className="text-2xl font-bold">{value || 0}</div>
             {percentage !== null && (
               <div
                 className={`text-xs flex items-center ${
-                  percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : 'text-gray-500'
+                  percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : themeClasses.textMuted
                 }`}
               >
                 {percentage > 0 ? (
@@ -92,6 +97,7 @@ const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparis
 
 const Home = () => {
   const { venueId } = useParams()
+  const { isDark } = useTheme()
   const [exportLoading, setExportLoading] = useState(false)
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
   const [comparisonLabel, setComparisonLabel] = useState('período anterior')
@@ -184,8 +190,8 @@ const Home = () => {
   // Simple loading skeleton component
   const LoadingSkeleton = () => (
     <div className="animate-pulse flex h-full w-full flex-col space-y-4">
-      <div className="h-6 bg-gray-200 rounded w-1/2"></div>
-      <div className="h-24 bg-gray-200 rounded w-full"></div>
+      <div className={`h-6 ${themeClasses.neutral.bg} rounded w-1/2`}></div>
+      <div className={`h-24 ${themeClasses.neutral.bg} rounded w-full`}></div>
     </div>
   )
 
@@ -566,9 +572,9 @@ const Home = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
       {/* Header with date range buttons */}
-      <div className="sticky top-0 z-10 bg-white border-b shadow-sm p-4">
+      <div className={`sticky top-0 z-10 ${themeClasses.cardBg} ${themeClasses.border} border-b shadow-sm p-4`}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
@@ -649,12 +655,12 @@ const Home = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-2 md:p-4 space-y-4  mx-auto w-full">
+      <div className="flex-1 p-2 md:p-4 space-y-4 mx-auto w-full">
         {isError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-red-600">Failed to load dashboard data</h2>
-              <p className="text-gray-500">{error?.message || 'An unknown error occurred'}</p>
+              <p className={themeClasses.textMuted}>{error?.message || 'An unknown error occurred'}</p>
               <Button onClick={() => window.location.reload()}>Retry</Button>
             </div>
           </Card>
@@ -1085,7 +1091,17 @@ const Home = () => {
                       <div
                         key={tableNum}
                         className={`p-4 rounded-lg border ${
-                          tableNum === 3 ? 'bg-green-50 border-green-200' : tableNum === 7 ? 'bg-red-50 border-red-200' : ''
+                          tableNum === 3
+                            ? isDark
+                              ? 'bg-green-900/20 border-green-800'
+                              : 'bg-green-50 border-green-200'
+                            : tableNum === 7
+                            ? isDark
+                              ? 'bg-red-900/20 border-red-800'
+                              : 'bg-red-50 border-red-200'
+                            : isDark
+                            ? 'border-[hsl(240_3.7%_15.9%)]'
+                            : ''
                         }`}
                       >
                         <div className="text-lg font-bold mb-1">Mesa {tableNum}</div>
@@ -1127,7 +1143,7 @@ const Home = () => {
                       </thead>
                       <tbody>
                         {/* Ejemplo de productos */}
-                        <tr className="border-b bg-green-50">
+                        <tr className={`border-b ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
                           <td className="p-4">Ensalada César</td>
                           <td className="p-4 text-right">46</td>
                           <td className="p-4 text-right">{Currency(12000)}</td>
@@ -1151,7 +1167,7 @@ const Home = () => {
                           <td className="p-4 text-right font-bold">{Currency(11000)}</td>
                           <td className="p-4 text-right font-bold">50%</td>
                         </tr>
-                        <tr className="border-b bg-red-50">
+                        <tr className={`border-b ${isDark ? 'bg-red-900/20' : 'bg-red-50'}`}>
                           <td className="p-4">Pasta Carbonara</td>
                           <td className="p-4 text-right">38</td>
                           <td className="p-4 text-right">{Currency(13500)}</td>

@@ -10,24 +10,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../ui/input'
 import { getCroppedImg } from '@/utils/cropImage'
 import { useParams } from 'react-router-dom'
-
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import api from '@/api'
 interface AddVenueDialogProps {
   onClose: () => void
+  navigate: (path: string) => void
 }
 
-export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
+export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
   const form = useForm({
     defaultValues: {
       name: '',
       type: '',
       logo: '',
-      pos: 'soft_restaurant',
+      pos: 'SOFTRESTAURANT',
     },
   })
   const { venueId } = useParams()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [fileRef, setFileRef] = useState<any>(null)
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await api.post(`/v2/dashboard/venue`, data)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Sucursal creada',
+        description: 'La sucursal se ha creado correctamente.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['status'] }) // Refetch product data
+      form.reset()
+      navigate(`/venues/${venueId}/editVenue`)
+      onClose()
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al guardar',
+        description: error.message || 'Hubo un problema al guardar los cambios.',
+        variant: 'destructive',
+      })
+    },
+  })
 
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -95,7 +126,7 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
 
   function onSubmit(formValues) {
     // FIXME: Add the logic to save the new venue
-    console.log(formValues)
+    mutate({ ...formValues, userId: user?.id })
   }
 
   return (
@@ -136,9 +167,9 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="restaurant">Restaurante</SelectItem>
-                        <SelectItem value="studio">Estudio</SelectItem>
-                        <SelectItem value="hotel">Hotel</SelectItem>
+                        <SelectItem value="RESTAURANT">Restaurante</SelectItem>
+                        <SelectItem value="STUDIO">Estudio</SelectItem>
+                        <SelectItem value="HOTEL">Hotel</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -159,10 +190,10 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="soft_restaurant" defaultChecked>
+                        <SelectItem value="SOFTRESTAURANT" defaultChecked>
                           Soft Restaurant
                         </SelectItem>
-                        <SelectItem value="none">Ninguno</SelectItem>
+                        <SelectItem value="NONE">Ninguno</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -226,8 +257,8 @@ export function AddVenueDialog({ onClose }: AddVenueDialogProps) {
               <Button variant="outline" type="button" onClick={onClose} disabled={uploading}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={uploading || !imageUrl}>
-                Guardar
+              <Button type="submit" disabled={uploading || !imageUrl || isPending}>
+                {isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>
           </form>

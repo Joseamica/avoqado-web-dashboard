@@ -31,6 +31,7 @@ import Waiters from '@/pages/Waiter/Waiters'
 import EditVenue from '@/pages/Venue/Venue.edit'
 import Shifts from '@/pages/Shift/Shifts'
 import WaiterId from '@/pages/Waiter/waiterId'
+import ShiftId from '@/pages/Shift/ShiftId'
 
 const router = createBrowserRouter([
   {
@@ -107,6 +108,7 @@ const router = createBrowserRouter([
                 ],
               },
               { path: 'shifts', element: <Shifts /> },
+              { path: 'shifts/:shiftId', element: <ShiftId /> },
               { path: 'payments', element: <Payments /> },
               { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },

@@ -1,0 +1,68 @@
+/* Custom theme styles */
+
+/* Dark mode card styling */
+.dark .card,
+.dark [class*='bg-white'] {
+  background-color: hsl(240 5.9% 10%);
+  color: hsl(240 4.8% 95.9%);
+  border-color: hsl(240 3.7% 15.9%);
+}
+
+/* Dark mode text */
+.dark [class*='text-gray-800'],
+.dark [class*='text-gray-900'] {
+  color: hsl(240 4.8% 95.9%);
+}
+
+.dark [class*='text-gray-600'],
+.dark [class*='text-gray-700'] {
+  color: hsl(240 5% 84%);
+}
+
+.dark [class*='text-gray-500'] {
+  color: hsl(240 5% 65%);
+}
+
+/* Dark mode inputs */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: hsl(240 3.7% 15.9%);
+  border-color: hsl(240 5% 26%);
+  color: hsl(240 4.8% 95.9%);
+}
+
+/* Dark mode tables */
+.dark table {
+  border-color: hsl(240 3.7% 15.9%);
+}
+
+.dark th,
+.dark td {
+  border-color: hsl(240 3.7% 15.9%);
+  color: hsl(240 4.8% 95.9%);
+}
+
+.dark tr:hover {
+  background-color: hsl(240 3.7% 15.9%);
+}
+
+/* Dark mode buttons */
+.dark button:not([class*='bg-']) {
+  background-color: hsl(224.3 76.3% 48%);
+  color: hsl(0 0% 100%);
+  border-color: hsl(224.3 70% 40%);
+}
+
+/* Dashboard cards for dark mode */
+.dark [class*='card'],
+.dark [class*='dashboard-card'] {
+  background-color: hsl(240 5.9% 10%);
+  color: hsl(240 4.8% 95.9%);
+  border-color: hsl(240 3.7% 15.9%);
+}
+
+/* Transition for smoother theme switching */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
