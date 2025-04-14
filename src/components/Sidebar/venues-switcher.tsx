@@ -22,7 +22,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
   const { isMobile } = useSidebar()
   const location = useLocation()
   const navigate = useNavigate()
-  const { checkVenueAccess } = useAuth()
+  const { checkVenueAccess, user } = useAuth()
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [activeVenue, setActiveVenue] = useState(defaultVenue)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -57,10 +57,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
   const handleVenueChange = (venue: Venue) => {
     if (venue.id === activeVenue.id) return // Avoid unnecessary navigation
 
-    // Verify access before changing (authorization redirect handled by Dashboard)
-    if (!checkVenueAccess(venue.id)) {
-      console.warn(`Attempted to access unauthorized venue: ${venue.id}`)
-      return
+    // Skip access check for SUPERADMIN users
+    if (user?.role !== 'SUPERADMIN') {
+      // Verify access before changing (authorization redirect handled by Dashboard)
+      if (!checkVenueAccess(venue.id)) {
+        console.warn(`Attempted to access unauthorized venue: ${venue.id}`)
+        return
+      }
     }
 
     setActiveVenue(venue)
@@ -83,11 +86,11 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
                 </div> */}
                 <Avatar className="flex items-center justify-center rounded-lg aspect-square size-8">
                   <AvatarImage src={activeVenue?.logo} />
-                  <AvatarFallback>{activeVenue.name.charAt(0).toLocaleUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{activeVenue?.name?.charAt(0).toLocaleUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-sm leading-tight text-left">
-                  <span className="font-semibold truncate">{activeVenue.name}</span>
-                  <span className="text-xs truncate">{activeVenue.plan}</span>
+                  <span className="font-semibold truncate">{activeVenue?.name}</span>
+                  <span className="text-xs truncate">{activeVenue?.plan}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
               </SidebarMenuButton>
@@ -103,9 +106,9 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
                 <DropdownMenuItem key={venue.id} onClick={() => handleVenueChange(venue)} className="gap-2 p-2">
                   <Avatar className="flex items-center justify-center rounded-lg aspect-square size-6">
                     <AvatarImage src={venue?.logo} />
-                    <AvatarFallback>{venue.name.charAt(0).toLocaleUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase()}</AvatarFallback>
                   </Avatar>
-                  {venue.name}
+                  {venue?.name}
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
               ))}

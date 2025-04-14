@@ -14,11 +14,12 @@ export default function Dashboard() {
   const { venueId } = useParams()
 
   // Check venue authorization on mount and when venueId changes
+  // Skip for SUPERADMIN users
   useEffect(() => {
-    if (venueId) {
+    if (venueId && user?.role !== 'SUPERADMIN') {
       authorizeVenue(venueId)
     }
-  }, [venueId, authorizeVenue])
+  }, [venueId, authorizeVenue, user?.role])
 
   const pathSegments = location.pathname
     .split('/')

@@ -21,6 +21,7 @@ import { NavProjects } from '@/components/Sidebar/nav-projects'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
+import { useAuth } from '@/context/AuthContext'
 import { User } from '@/types'
 
 // This is sample data.
@@ -200,6 +201,8 @@ const data = {
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
+  const { allVenues } = useAuth()
+
   const superAdminRoutes = [
     {
       title: 'Admin Panel',
@@ -226,11 +229,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       icon: Settings2,
     },
   ]
+
+  // Use all venues for SUPERADMIN, otherwise use user's assigned venues
+  const venuesToShow = user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
+  const defaultVenue = venuesToShow.length > 0 ? venuesToShow[0] : null
+
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <VenuesSwitcher venues={user.venues} defaultVenue={user.venues[0]} />
-      </SidebarHeader>
+      <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
       <SidebarContent>
         <NavMain items={user.role === 'SUPERADMIN' ? [...data.navMain, ...superAdminRoutes] : data.navMain} />
         <NavProjects projects={data.projects} />

@@ -1,7 +1,7 @@
 import api from '@/api'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
-import { User } from '@/types'
+import { User, Venue } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -16,6 +16,7 @@ interface AuthContextType {
   error: any
   checkVenueAccess: (venueId: string) => boolean
   authorizeVenue: (venueId: string) => boolean
+  allVenues: Venue[]
 }
 
 // Create the context with default values
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   checkVenueAccess: () => false,
   authorizeVenue: () => false,
+  allVenues: [],
 })
 
 // Custom hook to use the auth context
@@ -43,10 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const params = useParams()
 
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const [allVenues, setAllVenues] = useState<Venue[]>([])
   // Ref to track the last unauthorized venueId to prevent duplicate toasts
   const lastUnauthorizedVenueRef = useRef<string | null>(null)
   // Ref to track when the last toast was shown (to prevent rapid duplicate toasts)
@@ -60,6 +62,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     // refetchOnWindowFocus: true,
   })
+
+  // Fetch all venues if user is SUPERADMIN
+  const { data: allVenuesData, isSuccess: allVenuesSuccess } = useQuery({
+    queryKey: ['allVenues'],
+    queryFn: async () => {
+      const response = await api.get(`/v2/dashboard/venues`)
+      return response.data
+    },
+    enabled: !!user && user.role === 'SUPERADMIN',
+  })
+
   // Synchronize local state with fetched data
   useEffect(() => {
     if (isSuccess && data) {
@@ -71,14 +84,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [data, isSuccess])
 
+  // Update allVenues when data is fetched
+  useEffect(() => {
+    if (allVenuesSuccess && allVenuesData) {
+      setAllVenues(allVenuesData)
+    }
+  }, [allVenuesData, allVenuesSuccess])
+
   // Venue authorization functions
   const checkVenueAccess = (venueId: string): boolean => {
     if (!user || !venueId) return false
+
+    // SUPERADMIN can access all venues
+    if (user.role === 'SUPERADMIN') return true
+
     return user.venues.some(venue => venue.id === venueId)
   }
 
   const authorizeVenue = (venueId: string): boolean => {
     if (!user || !venueId) return false
+
+    // SUPERADMIN can access all venues
+    if (user.role === 'SUPERADMIN') return true
 
     const hasAccess = user.venues.some(venue => venue.id === venueId)
 
@@ -152,6 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       })
       navigate('/login', { replace: true })
+      toast({ title: 'Haz cerrado sesión correctamente.' })
     },
     onError: error => {
       console.error('Error al cerrar sesión', error)
@@ -178,6 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         error,
         checkVenueAccess,
         authorizeVenue,
+        allVenues,
       }}
     >
       {children}
