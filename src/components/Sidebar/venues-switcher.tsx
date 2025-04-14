@@ -12,15 +12,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { Venue } from '@/types'
+import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Dialog, DialogContent } from '../ui/dialog'
+import { Dialog } from '../ui/dialog'
 import { AddVenueDialog } from './add-venue-dialog'
-import { Avatar, AvatarImage, AvatarFallback } from '@radix-ui/react-avatar'
+import { useAuth } from '@/context/AuthContext'
 
 export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defaultVenue: Venue }) {
   const { isMobile } = useSidebar()
   const location = useLocation()
   const navigate = useNavigate()
+  const { checkVenueAccess } = useAuth()
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [activeVenue, setActiveVenue] = useState(defaultVenue)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -43,7 +45,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
       if (venueFromURL) {
         setActiveVenue(venueFromURL)
       } else {
-        // Optionally handle invalid venueId in URL
+        // If invalid venueId in URL, use default (authorization handled by Dashboard)
         console.warn(`Venue with ID "${venueIdFromURL}" not found. Falling back to default venue.`)
         setActiveVenue(defaultVenue)
       }
@@ -54,6 +56,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
 
   const handleVenueChange = (venue: Venue) => {
     if (venue.id === activeVenue.id) return // Avoid unnecessary navigation
+
+    // Verify access before changing (authorization redirect handled by Dashboard)
+    if (!checkVenueAccess(venue.id)) {
+      console.warn(`Attempted to access unauthorized venue: ${venue.id}`)
+      return
+    }
+
     setActiveVenue(venue)
     const updatedPath = location.pathname.replace(/venues\/[^/]+/, `venues/${venue.id}`)
     navigate(updatedPath)
@@ -123,7 +132,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: { venues: Venue[]; defa
 
       {/* Dialog Component */}
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <AddVenueDialog onClose={() => setDialogOpen(false)} />
+        <AddVenueDialog onClose={() => setDialogOpen(false)} navigate={navigate} />
       </Dialog>
     </>
   )

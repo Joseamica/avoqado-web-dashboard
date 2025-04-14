@@ -16,7 +16,8 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { DataTablePagination } from '@/components/pagination'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ClickableTableRow, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { themeClasses } from '@/lib/theme-utils'
 import { Tpv } from '@/types'
 
 export default function Tpvs() {
@@ -45,42 +46,19 @@ export default function Tpvs() {
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
-
-      cell: ({ row, cell }) => {
-        return (
-          <Link
-            to={row.original.id}
-            className="text-links hover:underline"
-            state={{
-              from: location.pathname,
-            }}
-          >
-            {cell.getValue() as string}
-          </Link>
-        )
-      },
+      cell: ({ cell }) => <span>{cell.getValue() as string}</span>,
     },
     {
       id: 'serial',
       accessorKey: 'serial',
       sortDescFirst: true,
-      header: ({ column }) => <div className=" flex-row-center">Numero de serie</div>,
-
-      //   cell: ({ cell }) => {
-      //     const price = cell.getValue() as number
-      //     return <ul>{Currency(price, false)}</ul>
-      //   },
+      header: ({ column }) => <div className="flex-row-center">Numero de serie</div>,
     },
     {
       id: 'version',
       accessorKey: 'version',
       sortDescFirst: true,
-      header: ({ column }) => <div className=" flex-row-center">Versión</div>,
-
-      //   cell: ({ cell }) => {
-      //     const price = cell.getValue() as number
-      //     return <ul>{Currency(price, false)}</ul>
-      //   },
+      header: ({ column }) => <div className="flex-row-center">Versión</div>,
     },
   ]
 
@@ -122,7 +100,7 @@ export default function Tpvs() {
   if (isLoading) return <div>Loading...</div>
 
   return (
-    <div className="p-4">
+    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Terminales punto de venta</h1>
         <Button asChild>
@@ -142,42 +120,39 @@ export default function Tpvs() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
+        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
-      <Table className="mb-4 bg-white rounded-xl">
-        {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
+      <Table className={`mb-4 ${themeClasses.table.bg} rounded-xl`}>
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map(header => {
-                return (
-                  <TableHead key={header.id} className="p-4">
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                    {/* {header.column.getCanFilter() ? (
-                      <div>
-                        <Filter column={header.column} table={table} />
-                      </div>
-                    ) : null} */}
-                  </TableHead>
-                )
-              })}
+              {headerGroup.headers.map(header => (
+                <TableHead key={header.id} className="p-4">
+                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map(row => (
-              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+              <ClickableTableRow
+                key={row.id}
+                data-state={row.getIsSelected() && 'selected'}
+                to={row.original.id}
+                state={{ from: location.pathname }}
+              >
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id} className="p-4">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
-              </TableRow>
+              </ClickableTableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-10 text-center">
+              <TableCell colSpan={columns.length} className={`h-10 text-center ${themeClasses.textMuted}`}>
                 Sin resultados.
               </TableCell>
             </TableRow>

@@ -1,5 +1,6 @@
 import api from '@/api'
 import { Button } from '@/components/ui/button'
+import { themeClasses } from '@/lib/theme-utils'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
@@ -13,7 +14,6 @@ import { Currency } from '@/utils/currency'
 import getIcon from '@/utils/getIcon'
 export default function Payments() {
   const { venueId } = useParams()
-
   const [searchTerm, setSearchTerm] = useState('')
 
   const { data: payments, isLoading } = useQuery({
@@ -88,21 +88,27 @@ export default function Payments() {
         const subtotal = parseFloat(row.original.amount) / 100 || 0
         const tipPercentage = subtotal !== 0 ? (totalTip / subtotal) * 100 : 0
 
-        let bg = 'bg-[#D1FDDD]' // Color por defecto
-        let text = 'text-[#6DA37B]'
+        let tipClasses = {
+          bg: themeClasses.success.bg,
+          text: themeClasses.success.text,
+        }
 
         if (tipPercentage < 7) {
-          bg = 'bg-[#FDE2E2]'
-          text = 'text-[#D64545]'
+          tipClasses = {
+            bg: themeClasses.error.bg,
+            text: themeClasses.error.text,
+          }
         } else if (tipPercentage >= 7 && tipPercentage < 10) {
-          bg = 'bg-[#FAF5D4]'
-          text = 'text-[#DDB082]'
+          tipClasses = {
+            bg: themeClasses.warning.bg,
+            text: themeClasses.warning.text,
+          }
         }
 
         return (
-          <div className={`flex flex-col space-y-1 items-center `}>
-            <span className="text-[12px] font-semibold text-dashboard-gray_darkest">{tipPercentage.toFixed(1)}%</span>
-            <p className={`${bg} ${text} px-3 py-1 font-medium  rounded-full`}>{Currency(totalTip * 100)}</p>
+          <div className="flex flex-col space-y-1 items-center">
+            <span className={`text-[12px] font-semibold ${themeClasses.textSubtle}`}>{tipPercentage.toFixed(1)}%</span>
+            <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTip * 100)}</p>
           </div>
         )
       },
@@ -129,7 +135,7 @@ export default function Payments() {
             {value ? (
               <>
                 <span> {getIcon(value)}</span>{' '}
-                <span className="text-[12px] font-[600] text-dashboard-gray_dark">{last4 ? last4.slice(-4) : ''}</span>
+                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{last4 ? last4.slice(-4) : ''}</span>
               </>
             ) : (
               'CASH'
@@ -199,7 +205,7 @@ export default function Payments() {
   }, [searchTerm, payments])
 
   return (
-    <div className="p-4">
+    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Pagos</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
@@ -222,7 +228,7 @@ export default function Payments() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
+        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
 
       <DataTable data={filteredPayments} rowCount={payments?.length} columns={columns} isLoading={isLoading} />
