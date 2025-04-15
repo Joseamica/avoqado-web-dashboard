@@ -16,15 +16,27 @@ export default function Payments() {
   const { venueId } = useParams()
   const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
-  const { data: payments, isLoading } = useQuery({
-    queryKey: ['payments', venueId],
+  const { data, isLoading } = useQuery({
+    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/payments`)
+      const response = await api.get(`/v2/dashboard/${venueId}/payments`, {
+        params: {
+          page: pagination.pageIndex + 1,
+          pageSize: pagination.pageSize,
+        },
+      })
       return response.data
     },
   })
-  console.log(payments)
+
+  const payments = data?.data || []
+  const totalPayments = data?.meta?.total || 0
+
   const columns: ColumnDef<Payment, unknown>[] = [
     {
       accessorKey: 'createdAt',
@@ -236,13 +248,15 @@ export default function Payments() {
 
       <DataTable
         data={filteredPayments}
-        rowCount={payments?.length}
+        rowCount={totalPayments}
         columns={columns}
         isLoading={isLoading}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
         })}
+        pagination={pagination}
+        setPagination={setPagination}
       />
     </div>
   )
