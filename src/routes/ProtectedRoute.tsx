@@ -5,7 +5,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
 export const ProtectedRoute = () => {
   const { user, isAuthenticated, logout } = useAuth()
-  console.log(user)
   const location = useLocation()
   if (user?.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {
     return (

@@ -25,12 +25,18 @@ type DataTableProps<TData> = {
 }
 
 function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickableRow, pagination, setPagination }: DataTableProps<TData>) {
+  // Default pagination state if not provided
+  const defaultPagination = {
+    pageIndex: 0,
+    pageSize: 10,
+  }
+
   const table = useReactTable({
     data: data || [],
     columns,
-    pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : undefined,
+    pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : Math.ceil(rowCount / defaultPagination.pageSize),
     state: {
-      pagination,
+      pagination: pagination || defaultPagination,
     },
     onPaginationChange: setPagination,
     manualPagination: !!pagination, // Enable server-side pagination when pagination prop is provided
@@ -50,6 +56,9 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
   if (isLoading) {
     return <TableSkeleton columns={columns.length} rows={5} />
   }
+
+  // Handle case where there's no data yet
+  const hasRows = table.getRowModel() && table.getRowModel().rows && table.getRowModel().rows.length > 0
 
   return (
     <>
@@ -74,7 +83,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows?.length ? (
+          {hasRows ? (
             table.getRowModel().rows.map(row => {
               if (clickableRow) {
                 const { to, state } = clickableRow(row.original)

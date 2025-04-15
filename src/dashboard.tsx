@@ -8,9 +8,26 @@ import { useAuth } from './context/AuthContext'
 import { themeClasses } from './lib/theme-utils'
 import { useEffect } from 'react'
 
+// Route path segment to display name mapping
+const routeDisplayNames: Record<string, string> = {
+  payments: 'Pagos',
+  home: 'Inicio',
+  menu: 'Menú',
+  settings: 'Configuración',
+  shifts: 'Turnos',
+  categories: 'Categorías',
+  products: 'Productos',
+  users: 'Usuarios',
+  waiters: 'Meseros',
+  tpv: 'Terminales',
+  overview: 'Resumen',
+  menumaker: 'Creación de menú',
+  // Add more mappings as needed
+}
+
 export default function Dashboard() {
   const location = useLocation()
-  const { user, authorizeVenue } = useAuth()
+  const { user, authorizeVenue, allVenues } = useAuth()
   const { venueId } = useParams()
 
   // Check venue authorization on mount and when venueId changes
@@ -25,6 +42,30 @@ export default function Dashboard() {
     .split('/')
     .filter(segment => segment)
     .slice(1)
+
+  // Get the display name for a path segment
+  const getDisplayName = (segment: string, index: number) => {
+    // First check if this segment matches any venue ID
+    // For superadmin, check in the allVenues list
+    if (user?.role === 'SUPERADMIN' && allVenues?.length) {
+      const venue = allVenues.find(v => v.id === segment)
+      if (venue) return venue.name
+    }
+    // For regular users, check in their venues list
+    else if (user?.venues?.length) {
+      const venue = user.venues.find(v => v.id === segment)
+      if (venue) return venue.name
+    }
+
+    // Check if we have a predefined display name for this segment
+    const lowerSegment = segment.toLowerCase()
+    if (routeDisplayNames[lowerSegment]) {
+      return routeDisplayNames[lowerSegment]
+    }
+
+    // Otherwise return the segment as is
+    return segment
+  }
 
   return (
     <SidebarProvider>
@@ -41,15 +82,16 @@ export default function Dashboard() {
                 {pathSegments.map((segment, index) => {
                   const isLast = index === pathSegments.length - 1
                   const linkPath = `/venues/${pathSegments.slice(0, index + 1).join('/')}`
+                  const displayName = getDisplayName(segment, index)
 
                   return (
                     <BreadcrumbItem key={segment}>
                       {isLast ? (
-                        <BreadcrumbPage className="capitalize">{segment}</BreadcrumbPage>
+                        <BreadcrumbPage className="capitalize">{displayName}</BreadcrumbPage>
                       ) : (
                         <>
                           <BreadcrumbLink as={Link} to={linkPath} className="capitalize">
-                            {segment}
+                            {displayName}
                           </BreadcrumbLink>
                           <BreadcrumbSeparator />
                         </>
