@@ -17,6 +17,7 @@ import {
   Products,
   CreateTpv,
   Tpv,
+  TpvId,
   Account,
   Payments,
   PaymentId,
@@ -115,14 +116,12 @@ const router = createBrowserRouter([
               { path: 'payments/:paymentId', element: <PaymentId /> },
               { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },
+              { path: 'tpv/create', element: <CreateTpv /> },
+              { path: 'tpv/:tpvId', element: <TpvId /> },
               { path: 'waiters', element: <Waiters /> },
               { path: 'waiters/:waiterId', element: <WaiterId /> },
               { path: 'reviews', element: <Reviews /> },
 
-              {
-                path: 'tpv/create',
-                element: <CreateTpv />,
-              },
               {
                 path: 'superadmin',
                 element: <SuperProtectedRoute allowedRoles={['SUPERADMIN']} />,
