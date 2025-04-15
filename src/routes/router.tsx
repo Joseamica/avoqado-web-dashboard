@@ -30,6 +30,8 @@ import {
   Dashboard,
   ErrorPage,
   ShiftId,
+  Bills,
+  BillId,
 } from '@/pages/index'
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
@@ -114,6 +116,8 @@ const router = createBrowserRouter([
               { path: 'shifts/:shiftId', element: <ShiftId /> },
               { path: 'payments', element: <Payments /> },
               { path: 'payments/:paymentId', element: <PaymentId /> },
+              { path: 'bills', element: <Bills /> },
+              { path: 'bills/:billId', element: <BillId /> },
               { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },
               { path: 'tpv/create', element: <CreateTpv /> },

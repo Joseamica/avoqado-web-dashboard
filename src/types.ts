@@ -112,3 +112,37 @@ export interface Users {
   email: string
   venues: Venue[]
 }
+
+export interface Bill {
+  id: string
+  key?: string
+  status?: string
+  billName?: string
+  folio?: string
+  tableNumber?: number
+  tableName?: string
+  total?: string
+  waiterName?: string
+  waiterId?: string
+  posOrder?: number
+  splitFromPos?: boolean
+  venueId?: string
+  createdAt: string
+  updatedAt?: string
+  shiftId?: string
+  qrCode?: string
+  payments?: Payment[]
+  tips?: Tip[]
+  uniqueCodeFromPos?: string
+  isSplittedFromPos?: boolean
+  printed?: boolean
+}
+
+export interface Tip {
+  id: string
+  amount: string
+  percentage: string
+  waiterId?: string
+  waiterName?: string
+  createdAt: string
+}

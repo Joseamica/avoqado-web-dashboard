@@ -88,6 +88,12 @@ const data = {
       icon: Banknote,
     },
     {
+      title: 'Cuentas',
+      isActive: true,
+      url: 'bills',
+      icon: Frame,
+    },
+    {
       title: 'Turnos',
       isActive: true,
       url: 'shifts', // Update the URL if necessary

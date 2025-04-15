@@ -26,3 +26,7 @@ export { default as EditVenue } from '@/pages/Venue/Venue.edit'
 export { default as Shifts } from '@/pages/Shift/Shifts'
 export { default as WaiterId } from '@/pages/Waiter/waiterId'
 export { default as ShiftId } from '@/pages/Shift/ShiftId'
+
+// Bill
+export { default as Bills } from './Bill/Bills'
+export { default as BillId } from './Bill/BillId'

@@ -11,6 +11,7 @@ import { useEffect } from 'react'
 // Route path segment to display name mapping
 const routeDisplayNames: Record<string, string> = {
   payments: 'Pagos',
+  bills: 'Cuentas',
   home: 'Inicio',
   menu: 'Menú',
   settings: 'Configuración',
