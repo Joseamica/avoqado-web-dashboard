@@ -33,8 +33,7 @@ export default function Payments() {
       return response.data
     },
   })
-
-  const payments = data?.data || []
+  console.log(data)
   const totalPayments = data?.meta?.total || 0
 
   const columns: ColumnDef<Payment, unknown>[] = [
@@ -204,6 +203,7 @@ export default function Payments() {
   ]
 
   const filteredPayments = useMemo(() => {
+    const payments = data?.data || []
     if (!searchTerm) return payments
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -217,7 +217,7 @@ export default function Payments() {
 
       return amountMatch || waiterMatches
     })
-  }, [searchTerm, payments])
+  }, [searchTerm, data])
 
   return (
     <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
