@@ -7,7 +7,7 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage() {
-  const error = useRouteError() as ErrorPageProps
+  const error = useRouteError() as ErrorPageProps | null
   console.error(error)
 
   return (
@@ -15,7 +15,7 @@ export default function ErrorPage() {
       <div className="rounded-lg bg-white p-8 shadow-lg">
         <h1 className="mb-4 text-4xl font-bold text-red-500">Oops!</h1>
         <p className="mb-6 text-lg text-gray-700">Sorry, an unexpected error has occurred.</p>
-        {(error.statusText || error.message) && (
+        {error && (error.statusText || error.message) && (
           <p className="mb-6 rounded-md bg-gray-100 p-4 text-gray-600">
             <span className="font-medium">{error.status ? `${error.status}: ` : ''}</span>
             <span className="italic">{error.statusText || error.message}</span>

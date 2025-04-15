@@ -4,14 +4,32 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Receipt } from 'lucide-react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Receipt, Trash2 } from 'lucide-react'
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
 
 export default function BillId() {
   const { venueId, billId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const isSuperAdmin = user?.role === 'SUPERADMIN'
 
   // Fetch the bill data
   const { data: bill, isLoading } = useQuery({
@@ -19,6 +37,28 @@ export default function BillId() {
     queryFn: async () => {
       const response = await api.get(`/v2/dashboard/${venueId}/bills/${billId}`)
       return response.data
+    },
+  })
+
+  // Delete bill mutation
+  const deleteBillMutation = useMutation({
+    mutationFn: async () => {
+      return await api.delete(`/v2/dashboard/${venueId}/bills/${billId}`)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Cuenta eliminada',
+        description: 'La cuenta ha sido eliminada exitosamente',
+      })
+      queryClient.invalidateQueries({ queryKey: ['bills', venueId] })
+      navigate(`/venues/${venueId}/bills`)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'No se pudo eliminar la cuenta',
+        variant: 'destructive',
+      })
     },
   })
 
@@ -97,10 +137,33 @@ export default function BillId() {
           </Link>
           <span>Detalles de la Cuenta</span>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <span className={`px-3 py-1 ${statusClasses.bg} ${statusClasses.text} rounded-full font-medium`}>
             {getStatusText(bill?.status)}
           </span>
+
+          {isSuperAdmin && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta y todos los datos asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteBillMutation.mutate()}>Eliminar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -163,17 +226,17 @@ export default function BillId() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">Subtotal</Label>
-              <p className="text-xl font-semibold">{Currency(total * 100)}</p>
+              <p className="text-xl font-semibold">{Currency(total)}</p>
             </div>
             {bill?.tips && bill.tips.length > 0 && (
               <div className="p-4 border rounded-md">
                 <Label className="text-sm text-muted-foreground">Propinas</Label>
-                <p className="text-xl font-semibold">{Currency(totalTips * 100)}</p>
+                <p className="text-xl font-semibold">{Currency(totalTips)}</p>
               </div>
             )}
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">Total</Label>
-              <p className="text-xl font-semibold">{Currency((total + totalTips) * 100)}</p>
+              <p className="text-xl font-semibold">{Currency(total + totalTips)}</p>
             </div>
           </div>
         </div>

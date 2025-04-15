@@ -89,16 +89,7 @@ export default function Bills() {
         ),
         cell: info => <>{!info.getValue() ? '-' : (info.getValue() as string)}</>,
       },
-      {
-        accessorKey: 'tableNumber',
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Mesa
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
-        cell: info => <>{!info.getValue() ? '-' : (info.getValue() as string)}</>,
-      },
+
       {
         accessorKey: 'waiterName',
         header: ({ column }) => (
@@ -178,7 +169,7 @@ export default function Bills() {
         ),
         cell: ({ cell }) => {
           const value = cell.getValue() as number
-          return value ? Currency(value * 100) : '$0.00'
+          return value ? Currency(value) : '$0.00'
         },
         footer: props => props.column.id,
         // Using a custom sort function for numeric values
