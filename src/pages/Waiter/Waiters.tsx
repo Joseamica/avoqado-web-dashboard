@@ -7,7 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 
 export default function Waiters() {
   const { venueId } = useParams()
@@ -15,15 +15,25 @@ export default function Waiters() {
   const location = useLocation()
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
-  const { data: waiters, isLoading } = useQuery({
-    queryKey: ['waiters', venueId],
+  const { data, isLoading } = useQuery({
+    queryKey: ['waiters', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/waiters`)
+      const response = await api.get(`/v2/dashboard/${venueId}/waiters`, {
+        params: {
+          page: pagination.pageIndex + 1,
+          pageSize: pagination.pageSize,
+        },
+      })
       return response.data
     },
   })
-  console.log('LOG: waiters', waiters)
+
+  const totalWaiters = data?.meta?.total || 0
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -71,17 +81,19 @@ export default function Waiters() {
   ]
 
   const filteredWaiters = useMemo(() => {
-    if (!searchTerm) return waiters
+    const currentWaiters = data?.data || []
+
+    if (!searchTerm) return currentWaiters
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return waiters?.filter(waiter => {
+    return currentWaiters.filter(waiter => {
       // Buscar en el name del waiter o en los menús (avoqadoMenus.name)
       const nameMatches = waiter.name?.toLowerCase().includes(lowerSearchTerm) || false
       const menuMatches = waiter.avoqadoMenus?.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm)) || false
       return nameMatches || menuMatches
     })
-  }, [searchTerm, waiters])
+  }, [searchTerm, data])
 
   return (
     <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
@@ -112,13 +124,15 @@ export default function Waiters() {
 
       <DataTable
         data={filteredWaiters}
-        rowCount={waiters?.length}
+        rowCount={totalWaiters}
         columns={columns}
         isLoading={isLoading}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
         })}
+        pagination={pagination}
+        setPagination={setPagination}
       />
     </div>
   )

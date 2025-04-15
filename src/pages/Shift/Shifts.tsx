@@ -14,14 +14,26 @@ import { Currency } from '@/utils/currency'
 export default function Shifts() {
   const { venueId } = useParams()
   const [searchTerm, setSearchTerm] = useState('')
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
-  const { data: shifts, isLoading } = useQuery({
-    queryKey: ['shifts', venueId],
+  const { data, isLoading } = useQuery({
+    queryKey: ['shifts', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/shifts`)
+      const response = await api.get(`/v2/dashboard/${venueId}/shifts`, {
+        params: {
+          page: pagination.pageIndex + 1,
+          pageSize: pagination.pageSize,
+        },
+      })
       return response.data
     },
   })
+
+  // const shifts = data?.data || []
+  const totalShifts = data?.meta?.total || 0
 
   const columns: ColumnDef<any, unknown>[] = [
     {
@@ -236,22 +248,23 @@ export default function Shifts() {
   ]
 
   const filteredShifts = useMemo(() => {
-    if (!searchTerm) return shifts
+    const currentShifts = data || []
+
+    if (!searchTerm) return currentShifts
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return shifts?.filter(shift => {
+    return currentShifts.filter(shift => {
       // Convertimos turnId a string para poder usar includes
       const turnIdMatch = shift.turnId.toString().includes(lowerSearchTerm)
       const amountMatch = shift.payments
         .reduce((acc, payment) => acc + Number(payment.amount), 0)
         .toString()
         .includes(lowerSearchTerm)
-      // Aquí podrías agregar más condiciones de filtrado (por ejemplo, por nombre de mesero)
 
       return turnIdMatch || amountMatch
     })
-  }, [searchTerm, shifts])
+  }, [searchTerm, data])
 
   return (
     <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
@@ -282,13 +295,15 @@ export default function Shifts() {
 
       <DataTable
         data={filteredShifts}
-        rowCount={shifts?.length}
+        rowCount={totalShifts}
         columns={columns}
         isLoading={isLoading}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
         })}
+        pagination={pagination}
+        setPagination={setPagination}
       />
     </div>
   )
