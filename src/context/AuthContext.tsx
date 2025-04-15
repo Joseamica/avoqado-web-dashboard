@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import { User, Venue } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 // Define the shape of the auth context
 interface AuthContextType {
