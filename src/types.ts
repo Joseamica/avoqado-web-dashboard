@@ -69,10 +69,12 @@ export interface Payment {
   currency: string
   status: string
   createdAt: string
+  method: string
   updatedAt: string
   venueId: string
   last4: string
   tips: any[]
+  cardBrand: string
 }
 
 export interface Category {

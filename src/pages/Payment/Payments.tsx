@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,7 @@ import { Currency } from '@/utils/currency'
 import getIcon from '@/utils/getIcon'
 export default function Payments() {
   const { venueId } = useParams()
+  const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
 
   const { data: payments, isLoading } = useQuery({
@@ -117,33 +118,35 @@ export default function Payments() {
     },
 
     {
-      accessorKey: 'cardBrand',
+      accessorKey: 'method',
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Tarjeta
+            Método de pago
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
       },
       cell: ({ cell, row }) => {
-        const value = cell.getValue() as string
         const last4 = row.original.last4
+        const method = cell.getValue() as string
+        const cardBrand = row.original.cardBrand
+
+        const translatedMethod = method === 'CARD' ? 'Tarjeta' : method === 'CASH' ? 'Efectivo' : method
 
         return (
           <div className="space-x-2 flex flex-row items-center">
-            {value ? (
+            {method === 'CARD' ? (
               <>
-                <span> {getIcon(value)}</span>{' '}
-                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{last4 ? last4.slice(-4) : ''}</span>
+                <span>{getIcon(cardBrand)}</span>
+                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{last4 ? last4.slice(-4) : 'Tarjeta'}</span>
               </>
             ) : (
-              'CASH'
+              <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{translatedMethod}</span>
             )}
           </div>
         )
       },
-      footer: props => props.column.id,
     },
     {
       accessorFn: row => parseFloat(row.amount) / 100,
@@ -231,7 +234,16 @@ export default function Payments() {
         className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
 
-      <DataTable data={filteredPayments} rowCount={payments?.length} columns={columns} isLoading={isLoading} />
+      <DataTable
+        data={filteredPayments}
+        rowCount={payments?.length}
+        columns={columns}
+        isLoading={isLoading}
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+      />
     </div>
   )
 }
