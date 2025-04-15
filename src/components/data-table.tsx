@@ -8,7 +8,9 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  PaginationState,
 } from '@tanstack/react-table'
+import { Dispatch, SetStateAction } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -18,12 +20,20 @@ type DataTableProps<TData> = {
   columns: ColumnDef<TData, any>[]
   isLoading?: boolean
   clickableRow?: (row: TData) => { to: string; state?: Record<string, any> }
+  pagination?: PaginationState
+  setPagination?: Dispatch<SetStateAction<PaginationState>>
 }
 
-function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickableRow }: DataTableProps<TData>) {
+function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickableRow, pagination, setPagination }: DataTableProps<TData>) {
   const table = useReactTable({
     data: data || [],
     columns,
+    pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : undefined,
+    state: {
+      pagination,
+    },
+    onPaginationChange: setPagination,
+    manualPagination: !!pagination, // Enable server-side pagination when pagination prop is provided
     rowCount: rowCount || 0,
     getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
@@ -31,15 +41,10 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
       minSize: 200, //enforced during column resizing
     },
     debugTable: true,
-
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     sortDescFirst: true, //sort by all columns in descending order first (default is ascending for string columns and descending for number columns)
-
     getPaginationRowModel: getPaginationRowModel(),
-    // initialState: {
-    //   sorting: [{ id: 'createdAt', desc: true }],
-    // },
   })
 
   if (isLoading) {
