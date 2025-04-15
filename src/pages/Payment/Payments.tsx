@@ -24,7 +24,7 @@ export default function Payments() {
       return response.data
     },
   })
-
+  console.log(payments)
   const columns: ColumnDef<Payment, unknown>[] = [
     {
       accessorKey: 'createdAt',
