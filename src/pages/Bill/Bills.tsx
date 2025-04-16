@@ -184,7 +184,8 @@ export default function Bills() {
   )
 
   const filteredBills = useMemo(() => {
-    const bills = data || []
+    // Fix: Correctly access the data array from the API response
+    const bills = data?.data || []
     if (!searchTerm) return bills
 
     const lowerSearchTerm = searchTerm.toLowerCase()
