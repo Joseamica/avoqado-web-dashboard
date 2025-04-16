@@ -2,7 +2,6 @@ import api from '@/api'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Currency } from '@/utils/currency'
@@ -16,23 +15,23 @@ import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieC
 import { useTheme } from '@/context/ThemeContext'
 import { themeClasses } from '@/lib/theme-utils'
 
-// Traducciones para métodos de pago
-const paymentMethodTranslations = {
-  CASH: 'Efectivo',
-  CARD: 'Tarjeta',
-  AMEX: 'Amex',
+// Translations for payment methods
+const PAYMENT_METHOD_TRANSLATIONS = {
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  amex: 'Amex',
   other: 'Otro',
 }
 
-// Traducciones para categorías de productos
-const categoryTranslations = {
-  FOOD: 'Comida',
-  BEVERAGE: 'Bebida',
-  OTHER: 'Otros',
+// Translations for product categories
+const CATEGORY_TRANSLATIONS = {
+  food: 'Comida',
+  beverage: 'Bebida',
+  other: 'Otros',
 }
 
-// Paleta de colores mejorada para los gráficos
-const CHART_COLORS = ['#2563EB', '#60A8FB', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1']
+// Enhanced color palette for charts
+const CHART_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
 
 // Simple icon components
 const DollarIcon = () => <DollarSign className="h-5 w-5 text-blue-500" />
@@ -43,7 +42,7 @@ const PercentIcon = () => <Percent className="h-5 w-5 text-purple-500" />
 // Type for comparison period
 type ComparisonPeriod = 'day' | 'week' | 'month' | 'custom' | ''
 
-// Metric Card Component
+// Metric card component - optimized with proper naming and types
 const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparisonLabel = 'período anterior' }) => {
   const { isDark } = useTheme()
 
@@ -95,6 +94,14 @@ const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparis
   )
 }
 
+// Simple loading skeleton component
+const LoadingSkeleton = () => (
+  <div className="animate-pulse flex h-full w-full flex-col space-y-4">
+    <div className={`h-6 ${themeClasses.neutral.bg} rounded w-1/2`}></div>
+    <div className={`h-24 ${themeClasses.neutral.bg} rounded w-full`}></div>
+  </div>
+)
+
 const Home = () => {
   const { venueId } = useParams()
   const { isDark } = useTheme()
@@ -102,7 +109,7 @@ const Home = () => {
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
   const [comparisonLabel, setComparisonLabel] = useState('período anterior')
 
-  // Define ranges as objects containing Date objects, not numbers
+  // Define ranges as objects containing date objects
   const [selectedRange, setSelectedRange] = useState({
     from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000), // last 7 days
     to: new Date(new Date().setHours(23, 59, 59, 999)), // today
@@ -113,9 +120,9 @@ const Home = () => {
     to: new Date(new Date(new Date().setHours(0, 0, 0, 0) - 8 * 24 * 60 * 60 * 1000).getTime() - 1), // day before the selectedRange starts
   })
 
-  const [activeFilter, setActiveFilter] = useState('7days') // Por defecto '7days'
+  const [activeFilter, setActiveFilter] = useState('7days') // default '7days'
 
-  // Handlers modificados para establecer el filtro activo
+  // Handler for "Today" filter
   const handleToday = () => {
     const today = new Date()
     const todayStart = new Date(today.setHours(0, 0, 0, 0))
@@ -134,6 +141,7 @@ const Home = () => {
     setActiveFilter('today')
   }
 
+  // Handler for "Last 7 days" filter
   const handleLast7Days = () => {
     const today = new Date()
     const end = new Date(today.setHours(23, 59, 59, 999))
@@ -153,6 +161,7 @@ const Home = () => {
     setActiveFilter('7days')
   }
 
+  // Handler for "Last 30 days" filter
   const handleLast30Days = () => {
     const today = new Date()
     const end = new Date(today.setHours(23, 59, 59, 999))
@@ -172,11 +181,17 @@ const Home = () => {
     setActiveFilter('30days')
   }
 
-  // Fetch current period data from API
+  // Fetch data with date range parameters
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['general_stats', venueId, selectedRange?.from, selectedRange?.to],
+    queryKey: ['general_stats', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {})
+      // Add date params to the API call
+      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
+        params: {
+          fromDate: selectedRange.from.toISOString(),
+          toDate: selectedRange.to.toISOString(),
+        },
+      })
 
       if (!response) {
         throw new Error('Failed to fetch data')
@@ -187,51 +202,30 @@ const Home = () => {
     refetchOnWindowFocus: false,
   })
 
-  // Simple loading skeleton component
-  const LoadingSkeleton = () => (
-    <div className="animate-pulse flex h-full w-full flex-col space-y-4">
-      <div className={`h-6 ${themeClasses.neutral.bg} rounded w-1/2`}></div>
-      <div className={`h-24 ${themeClasses.neutral.bg} rounded w-full`}></div>
-    </div>
-  )
-
-  // Main period filtered data
-  const filteredReviews = useMemo(() => {
-    if (!selectedRange || !data?.feedbacks) return []
-
-    return data.feedbacks.filter(review => {
-      const reviewDate = new Date(review.createdAt)
-      return reviewDate >= selectedRange.from && reviewDate <= selectedRange.to
-    })
-  }, [selectedRange, data?.feedbacks])
+  // Since backend now filters by date, we don't need to filter again in the frontend
+  const filteredReviews = useMemo(() => data?.feedbacks || [], [data?.feedbacks])
 
   const fiveStarReviews = useMemo(() => {
     return filteredReviews.filter(review => review.stars === 5).length
   }, [filteredReviews])
 
-  const filteredPayments = useMemo(() => {
-    if (!selectedRange || !data?.payments) return []
+  const filteredPayments = useMemo(() => data?.payments || [], [data?.payments])
 
-    return data.payments.filter(payment => {
-      const paymentDate = new Date(payment.createdAt)
-      return paymentDate >= selectedRange.from && paymentDate <= selectedRange.to
-    })
-  }, [selectedRange, data?.payments])
-
+  // Calculate total amount from payments
   const amount = useMemo(() => {
     return filteredPayments.reduce((sum, payment) => sum + Number(payment.amount), 0)
   }, [filteredPayments])
 
   const totalAmount = filteredPayments.length > 0 ? amount : 0
 
-  // Calculate tip-related metrics from filtered payments
+  // Calculate tip-related metrics
   const tipStats = useMemo(() => {
     if (!filteredPayments?.length) return { totalTips: 0, avgTipPercentage: 0 }
 
     // Filter payments that have at least one tip
     const paymentsWithTips = filteredPayments.filter(payment => payment.tips && payment.tips.length > 0)
 
-    // Calculate total tips by summing up all tips
+    // Calculate total tips
     const totalTips = paymentsWithTips.reduce((sum, payment) => {
       const tipsSum = payment.tips.reduce((tipSum, tip) => tipSum + Number(tip.amount), 0)
       return sum + tipsSum
@@ -243,7 +237,6 @@ const Home = () => {
       const tipPercentages = paymentsWithTips.map(payment => {
         const paymentAmount = Number(payment.amount)
         const tipsTotal = payment.tips.reduce((tipSum, tip) => tipSum + Number(tip.amount), 0)
-        // Calculate percentage only if payment amount is greater than 0
         return paymentAmount > 0 ? (tipsTotal / paymentAmount) * 100 : 0
       })
 
@@ -256,89 +249,71 @@ const Home = () => {
     }
   }, [filteredPayments])
 
-  // Procesamiento de datos para ventas por método de pago por día
+  // Process data for sales by payment method by day
   const paymentsByDay = useMemo(() => {
     if (!filteredPayments || filteredPayments.length === 0) return []
 
-    // Simplificamos y solo mostramos CASH y CARD para mantener la claridad visual,
-    // similar al ejemplo que muestra desktop y mobile
     const paymentsByDate = {}
 
-    // Agrupar pagos por fecha
+    // Group payments by date
     filteredPayments.forEach(payment => {
       const dateStr = format(new Date(payment.createdAt), 'dd MMM', { locale: es })
 
       if (!paymentsByDate[dateStr]) {
         paymentsByDate[dateStr] = {
           date: dateStr,
-          CASH: 0,
-          CARD: 0,
+          cash: 0,
+          card: 0,
         }
       }
 
-      // Simplificamos: CARD incluye CARD y AMEX, CASH incluye CASH y other
-      if (payment.method === 'CARD' || payment.method === 'AMEX') {
-        paymentsByDate[dateStr].CARD += Number(payment.amount) / 100 // Convertir a unidad monetaria
+      // Simplify: card includes card and amex, cash includes cash and other
+      if (payment.method === 'card' || payment.method === 'amex') {
+        paymentsByDate[dateStr].card += Number(payment.amount) / 100 // Convert to monetary unit
       } else {
-        paymentsByDate[dateStr].CASH += Number(payment.amount) / 100 // Efectivo y otros
+        paymentsByDate[dateStr].cash += Number(payment.amount) / 100 // Cash and others
       }
     })
 
-    // Convertir a array y ordenar por fecha
-    return Object.values(paymentsByDate).sort((a, b) => {
-      // Convertir "dd MMM" a objetos Date para ordenamiento correcto
-      const monthsES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-      const [dayA, monthA] = (a as { date: string }).date.split(' ')
-      const [dayB, monthB] = (b as { date: string }).date.split(' ')
+    // Define type for payment day objects
+    interface PaymentDay {
+      date: string
+      cash: number
+      card: number
+    }
 
-      const monthIndexA = monthsES.indexOf(monthA.toLowerCase())
-      const monthIndexB = monthsES.indexOf(monthB.toLowerCase())
+    // Convert to array and sort by date
+    return Object.values(paymentsByDate).sort((a: PaymentDay, b: PaymentDay) => {
+      // Convert "dd MMM" to Date objects for correct sorting
+      const monthsEs = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+      const [dayA, monthA] = a.date.split(' ')
+      const [dayB, monthB] = b.date.split(' ')
+
+      const monthIndexA = monthsEs.indexOf(monthA.toLowerCase())
+      const monthIndexB = monthsEs.indexOf(monthB.toLowerCase())
 
       if (monthIndexA !== monthIndexB) return monthIndexA - monthIndexB
       return parseInt(dayA) - parseInt(dayB)
     })
   }, [filteredPayments])
 
-  // Para el resumen de métodos de pago (totales)
-  const paymentMethodTotals = useMemo(() => {
-    if (!filteredPayments || filteredPayments.length === 0) return {}
-
-    const totals = {
-      CASH: 0,
-      CARD: 0,
-      AMEX: 0,
-      other: 0,
-    }
-
-    filteredPayments.forEach(payment => {
-      const method = ['CASH', 'CARD', 'AMEX'].includes(payment.method) ? payment.method : 'other'
-
-      totals[method] += Number(payment.amount) / 100
-    })
-
-    return totals
-  }, [filteredPayments])
-  // Payment methods chart (filtered)
+  // Payment methods data for pie chart
   const paymentMethodsData = useMemo(() => {
     const methodTotals = {}
 
     filteredPayments.forEach(payment => {
-      const method = paymentMethodTranslations[payment.method] || 'Otro'
+      const method = PAYMENT_METHOD_TRANSLATIONS[payment.method] || 'Otro'
       methodTotals[method] = (methodTotals[method] || 0) + Number(payment.amount)
     })
 
     return Object.entries(methodTotals).map(([method, total]) => ({ method, total }))
   }, [filteredPayments])
 
-  // Best selling products (filtered)
+  // Best selling products
   const bestSellingProducts = useMemo(() => {
-    if (!selectedRange || !data?.products) return { food: [], beverage: [], other: [] }
+    if (!data?.products) return { food: [], beverage: [], other: [] }
 
-    const filteredProducts = data.products.filter(product => {
-      const productDate = new Date(product.createdAt)
-      return productDate >= selectedRange.from && productDate <= selectedRange.to
-    })
-
+    const filteredProducts = data.products
     const categories = { food: [], beverage: [], other: [] }
 
     filteredProducts.forEach(product => {
@@ -359,9 +334,9 @@ const Home = () => {
     })
 
     return categories
-  }, [selectedRange, data?.products])
-  console.log('LOG: bestSellingProducts', bestSellingProducts)
-  // Tips over time chart (filtered)
+  }, [data?.products])
+
+  // Tips over time chart data
   const tipsChartData = useMemo(() => {
     const tipsByDate = {}
 
@@ -381,40 +356,50 @@ const Home = () => {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [filteredPayments])
 
-  // Comparison period data (calculated from the same data source, not from a second API call)
-  const compareFilteredReviews = useMemo(() => {
-    if (!compareType || !data?.feedbacks) return []
+  // Fetch comparison period data in a separate query
+  const { data: compareData, isLoading: isCompareLoading } = useQuery({
+    queryKey: ['general_stats_compare', venueId, compareRange?.from?.toISOString(), compareRange?.to?.toISOString()],
+    queryFn: async () => {
+      if (!compareType) return null
 
-    return data.feedbacks.filter(review => {
-      const reviewDate = new Date(review.createdAt)
-      return reviewDate >= compareRange.from && reviewDate <= new Date(compareRange.to)
-    })
-  }, [compareType, data?.feedbacks, compareRange])
+      // Only fetch comparison data when a comparison type is selected
+      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
+        params: {
+          fromDate: compareRange.from.toISOString(),
+          toDate: compareRange.to.toISOString(),
+        },
+      })
+
+      if (!response) {
+        throw new Error('Failed to fetch comparison data')
+      }
+      return response.data
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: !!compareType, // Only run this query when compareType has a value
+  })
+
+  // Process comparison data
+  const compareReviews = useMemo(() => compareData?.feedbacks || [], [compareData?.feedbacks])
 
   const compareFiveStarReviews = useMemo(() => {
-    return compareFilteredReviews.filter(review => review.stars === 5).length
-  }, [compareFilteredReviews])
+    return compareReviews.filter(review => review.stars === 5).length
+  }, [compareReviews])
 
-  const compareFilteredPayments = useMemo(() => {
-    if (!compareType || !data?.payments) return []
-
-    return data.payments.filter(payment => {
-      const paymentDate = new Date(payment.createdAt)
-      return paymentDate >= compareRange.from && paymentDate <= new Date(compareRange.to)
-    })
-  }, [compareType, data?.payments, compareRange])
+  const comparePayments = useMemo(() => compareData?.payments || [], [compareData?.payments])
 
   const compareAmount = useMemo(() => {
-    return compareFilteredPayments.reduce((sum, payment) => sum + Number(payment.amount), 0)
-  }, [compareFilteredPayments])
+    return comparePayments.reduce((sum, payment) => sum + Number(payment.amount), 0)
+  }, [comparePayments])
 
   const compareTipStats = useMemo(() => {
-    if (!compareFilteredPayments?.length) return { totalTips: 0, avgTipPercentage: '0' }
+    if (!comparePayments?.length) return { totalTips: 0, avgTipPercentage: '0' }
 
     // Filter payments that have at least one tip
-    const paymentsWithTips = compareFilteredPayments.filter(payment => payment.tips && payment.tips.length > 0)
+    const paymentsWithTips = comparePayments.filter(payment => payment.tips && payment.tips.length > 0)
 
-    // Calculate total tips by summing up all tips
+    // Calculate total tips
     const totalTips = paymentsWithTips.reduce((sum, payment) => {
       const tipsSum = payment.tips.reduce((tipSum, tip) => tipSum + Number(tip.amount), 0)
       return sum + tipsSum
@@ -436,7 +421,7 @@ const Home = () => {
       totalTips,
       avgTipPercentage: avgTipPercentage.toFixed(1),
     }
-  }, [compareFilteredPayments])
+  }, [comparePayments])
 
   // Calculate comparison percentages
   const getComparisonPercentage = (currentValue: number, previousValue: number): number => {
@@ -444,6 +429,7 @@ const Home = () => {
     return Math.round(((currentValue - previousValue) / previousValue) * 100)
   }
 
+  // Calculate percentage changes
   const amountChangePercentage = useMemo(() => {
     return getComparisonPercentage(totalAmount, compareAmount)
   }, [totalAmount, compareAmount])
@@ -460,12 +446,12 @@ const Home = () => {
     return getComparisonPercentage(parseFloat(String(tipStats.avgTipPercentage)), parseFloat(String(compareTipStats.avgTipPercentage)))
   }, [tipStats.avgTipPercentage, compareTipStats.avgTipPercentage])
 
-  // Función para exportar los datos a un archivo CSV
+  // Export to JSON
   const exportToCSV = async () => {
     try {
       setExportLoading(true)
 
-      // Preparar los datos para exportar
+      // Prepare data for export
       const exportData = {
         metricas: {
           totalVentas: totalAmount,
@@ -482,24 +468,24 @@ const Home = () => {
         propinas: tipsChartData,
       }
 
-      // Convertir a JSON y luego a Blob
+      // Convert to JSON and then to blob
       const jsonString = JSON.stringify(exportData, null, 2)
       const blob = new Blob([jsonString], { type: 'application/json' })
 
-      // Crear URL para descargar
+      // Create URL for download
       const url = URL.createObjectURL(blob)
 
-      // Nombre del archivo con fecha actual
+      // Filename with current date
       const filename = `dashboard_${venueId}_${format(new Date(), 'yyyy-MM-dd')}.json`
 
-      // Crear enlace y forzar descarga
+      // Create link and force download
       const a = document.createElement('a')
       a.href = url
       a.download = filename
       document.body.appendChild(a)
       a.click()
 
-      // Limpieza
+      // Cleanup
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (error) {
@@ -509,52 +495,52 @@ const Home = () => {
     }
   }
 
-  // Función para exportar a Excel (CSV)
+  // Export to Excel (CSV)
   const exportToExcel = async () => {
     try {
       setExportLoading(true)
 
-      // Preparar datos para CSV
+      // Prepare data for CSV
       let csvContent = 'data:text/csv;charset=utf-8,'
 
-      // Ventas
-      csvContent += 'Métricas Generales\n'
-      csvContent += 'Total Ventas,5 Estrellas Google,Total Propinas,Promedio Propinas %\n'
+      // Sales
+      csvContent += 'Métricas generales\n'
+      csvContent += 'Total ventas,5 estrellas Google,Total propinas,Promedio propinas %\n'
       csvContent += `${Currency(totalAmount).replace('$', '')},${fiveStarReviews},${Currency(tipStats.totalTips).replace('$', '')},${
         tipStats.avgTipPercentage
       }%\n\n`
 
-      // Métodos de pago
-      csvContent += 'Métodos de Pago\n'
+      // Payment methods
+      csvContent += 'Métodos de pago\n'
       csvContent += 'Método,Total\n'
       paymentMethodsData.forEach(item => {
         csvContent += `${item.method},${Currency(Number(item.total)).replace('$', '')}\n`
       })
       csvContent += '\n'
 
-      // Productos mejor vendidos
-      csvContent += 'Productos Mejor Vendidos\n'
+      // Best selling products
+      csvContent += 'Productos mejor vendidos\n'
       csvContent += 'Categoría,Producto,Cantidad\n'
 
       bestSellingProducts.food.forEach(item => {
-        csvContent += `${categoryTranslations.FOOD},${item.name},${item.quantity}\n`
+        csvContent += `${CATEGORY_TRANSLATIONS.food},${item.name},${item.quantity}\n`
       })
       bestSellingProducts.beverage.forEach(item => {
-        csvContent += `${categoryTranslations.BEVERAGE},${item.name},${item.quantity}\n`
+        csvContent += `${CATEGORY_TRANSLATIONS.beverage},${item.name},${item.quantity}\n`
       })
       bestSellingProducts.other.forEach(item => {
-        csvContent += `${categoryTranslations.OTHER},${item.name},${item.quantity}\n`
+        csvContent += `${CATEGORY_TRANSLATIONS.other},${item.name},${item.quantity}\n`
       })
       csvContent += '\n'
 
-      // Propinas por fecha
-      csvContent += 'Propinas por Fecha\n'
+      // Tips by date
+      csvContent += 'Propinas por fecha\n'
       csvContent += 'Fecha,Monto\n'
       tipsChartData.forEach(item => {
         csvContent += `${item.date},${item.amount}\n`
       })
 
-      // Codificar y crear URL
+      // Encode and create URL
       const encodedUri = encodeURI(csvContent)
       const filename = `dashboard_${venueId}_${format(new Date(), 'yyyy-MM-dd')}.csv`
 
@@ -611,10 +597,9 @@ const Home = () => {
               onUpdate={({ range }) => {
                 setSelectedRange(range)
 
-                // Calcular un rango de comparación para el DatePicker personalizado
-                // (período anterior de igual duración)
+                // Calculate comparison range for custom date picker
                 const selectedDuration = range.to.getTime() - range.from.getTime()
-                const compareEnd = new Date(range.from.getTime() - 1) // Un milisegundo antes del inicio del rango seleccionado
+                const compareEnd = new Date(range.from.getTime() - 1)
                 const compareStart = new Date(compareEnd.getTime() - selectedDuration)
 
                 setCompareRange({ from: compareStart, to: compareEnd })
@@ -669,7 +654,7 @@ const Home = () => {
             {/* Key metrics cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
-                title="Total Ventas"
+                title="Total ventas"
                 value={isLoading ? null : Currency(totalAmount)}
                 isLoading={isLoading}
                 icon={<DollarIcon />}
@@ -677,7 +662,7 @@ const Home = () => {
                 comparisonLabel={comparisonLabel}
               />
               <MetricCard
-                title="5 Estrellas Google"
+                title="5 estrellas Google"
                 value={isLoading ? null : fiveStarReviews}
                 isLoading={isLoading}
                 icon={<StarIcon />}
@@ -685,7 +670,7 @@ const Home = () => {
                 comparisonLabel={comparisonLabel}
               />
               <MetricCard
-                title="Total Propinas"
+                title="Total propinas"
                 value={isLoading ? null : Currency(tipStats.totalTips)}
                 isLoading={isLoading}
                 icon={<TipIcon />}
@@ -693,7 +678,7 @@ const Home = () => {
                 comparisonLabel={comparisonLabel}
               />
               <MetricCard
-                title="Promedio Propinas %"
+                title="Promedio propinas %"
                 value={isLoading ? null : `${tipStats.avgTipPercentage}%`}
                 isLoading={isLoading}
                 icon={<PercentIcon />}
@@ -707,7 +692,7 @@ const Home = () => {
               {/* Payment methods chart */}
               <Card className="lg:col-span-4 flex flex-col">
                 <CardHeader className="border-b pb-3">
-                  <CardTitle>Métodos de Pago</CardTitle>
+                  <CardTitle>Métodos de pago</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
                       ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
@@ -793,10 +778,10 @@ const Home = () => {
                 )}
               </Card>
 
-              {/* ANCHOR - Best selling products */}
+              {/* Best selling products */}
               <Card className="lg:col-span-3">
                 <CardHeader className="border-b pb-3">
-                  <CardTitle>Productos Mejor Vendidos</CardTitle>
+                  <CardTitle>Productos mejor vendidos</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
                   {isLoading ? (
@@ -806,7 +791,7 @@ const Home = () => {
                       {Object.entries(bestSellingProducts).map(([category, products]) => (
                         <div key={category} className="space-y-2">
                           <h3 className="font-medium text-sm uppercase text-muted-foreground">
-                            {categoryTranslations[category] || category}
+                            {CATEGORY_TRANSLATIONS[category] || category}
                           </h3>
                           {products.length === 0 ? (
                             <p className="text-sm text-gray-500">No hay datos disponibles</p>
@@ -827,11 +812,10 @@ const Home = () => {
                 </CardContent>
               </Card>
 
-              {/* ANCHOR - Tips over time chart */}
-
+              {/* Tips over time chart */}
               <Card className="lg:col-span-7">
                 <CardHeader className="border-b pb-3">
-                  <CardTitle>Propinas por Fecha</CardTitle>
+                  <CardTitle>Propinas por fecha</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
                       ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
@@ -921,11 +905,11 @@ const Home = () => {
                   </CardFooter>
                 )}
               </Card>
-              {/* Sales by Payment Method Chart */}
-              {/* ANCHOR - Sales by Payment Method Chart */}
+
+              {/* Sales by payment method chart */}
               <Card className="lg:col-span-7">
                 <CardHeader className="border-b pb-3">
-                  <CardTitle>Ventas por Método de Pago</CardTitle>
+                  <CardTitle>Ventas por método de pago</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
                       ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
@@ -945,12 +929,12 @@ const Home = () => {
                     <ChartContainer
                       className="h-full"
                       config={{
-                        CASH: {
-                          label: paymentMethodTranslations.CASH || 'Efectivo',
+                        cash: {
+                          label: PAYMENT_METHOD_TRANSLATIONS.cash || 'Efectivo',
                           color: CHART_COLORS[0],
                         },
-                        CARD: {
-                          label: paymentMethodTranslations.CARD || 'Tarjeta',
+                        card: {
+                          label: PAYMENT_METHOD_TRANSLATIONS.card || 'Tarjeta',
                           color: CHART_COLORS[1],
                         },
                       }}
@@ -976,8 +960,8 @@ const Home = () => {
                         />
                         <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                         <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="CARD" stackId="a" fill="var(--color-CARD)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="CASH" stackId="a" fill="var(--color-CASH)" radius={[0, 0, 4, 4]} />
+                        <Bar dataKey="card" stackId="a" fill="var(--color-card)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cash" stackId="a" fill="var(--color-cash)" radius={[0, 0, 4, 4]} />
                       </BarChart>
                     </ChartContainer>
                   )}
@@ -1015,317 +999,6 @@ const Home = () => {
                     </div>
                   </CardFooter>
                 )}
-              </Card>
-              {/* 1. HORAS PICO - Análisis de ventas por hora del día */}
-              <Card className="lg:col-span-7">
-                <CardHeader className="border-b pb-3">
-                  <CardTitle>Horas Pico de Ventas</CardTitle>
-                  <CardDescription>Identifica tus horas más productivas y optimiza tu personal</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6" style={{ height: '360px' }}>
-                  {isLoading ? (
-                    <LoadingSkeleton />
-                  ) : (
-                    <ChartContainer
-                      className="h-full"
-                      config={{
-                        sales: {
-                          label: 'Ventas',
-                          color: CHART_COLORS[0],
-                        },
-                        transactions: {
-                          label: 'N° Transacciones',
-                          color: CHART_COLORS[1],
-                        },
-                      }}
-                    >
-                      <BarChart
-                        accessibilityLayer
-                        data={null}
-                        margin={{
-                          top: 30,
-                          right: 30,
-                          left: 20,
-                          bottom: 20,
-                        }}
-                        height={280}
-                      >
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="hour"
-                          tickLine={false}
-                          tickMargin={10}
-                          axisLine={false}
-                          label={{ value: 'Hora del día', position: 'insideBottomRight', offset: -10 }}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent formatter={(value, name) => (name === 'sales' ? Currency(Number(value)) : value)} />
-                          }
-                        />
-                        <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="sales" fill="var(--color-sales)" />
-                        <Bar dataKey="transactions" fill="var(--color-transactions)" />
-                      </BarChart>
-                    </ChartContainer>
-                  )}
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="leading-none text-muted-foreground">
-                    Tu hora más rentable es a las <span className="font-bold">14:00</span> con un promedio de{' '}
-                    <span className="font-bold">$XXX</span> en ventas
-                  </div>
-                </CardFooter>
-              </Card>
-
-              {/* 2. ANÁLISIS DE MESAS - Ocupación y gasto promedio por mesa */}
-              <Card className="lg:col-span-6">
-                <CardHeader className="border-b pb-3">
-                  <CardTitle>Rendimiento por Mesa</CardTitle>
-                  <CardDescription>Identifica tus mesas más rentables y las que necesitan atención</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {/* Ejemplo de tarjeta de mesa */}
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(tableNum => (
-                      <div
-                        key={tableNum}
-                        className={`p-4 rounded-lg border ${
-                          tableNum === 3
-                            ? isDark
-                              ? 'bg-green-900/20 border-green-800'
-                              : 'bg-green-50 border-green-200'
-                            : tableNum === 7
-                            ? isDark
-                              ? 'bg-red-900/20 border-red-800'
-                              : 'bg-red-50 border-red-200'
-                            : isDark
-                            ? 'border-[hsl(240_3.7%_15.9%)]'
-                            : ''
-                        }`}
-                      >
-                        <div className="text-lg font-bold mb-1">Mesa {tableNum}</div>
-                        <div className="text-sm mb-2">Capacidad: 4</div>
-                        <div className="text-sm font-medium">Ticket promedio:</div>
-                        <div className="text-lg font-bold mb-2">{Currency(tableNum * 1000 + 500)}</div>
-                        <div className="text-sm font-medium">Rotación diaria:</div>
-                        <div className="text-lg font-bold">{(tableNum % 3) + 2}x</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="leading-none text-muted-foreground">
-                    <span className="font-bold text-green-600">Mesa 3</span> tiene el ticket promedio más alto •
-                    <span className="font-bold text-red-600">Mesa 7</span> tiene el ticket promedio más bajo
-                  </div>
-                </CardFooter>
-              </Card>
-
-              {/* 3. PRODUCTOS MÁS RENTABLES - No solo los más vendidos, sino los que generan más margen */}
-              <Card className="lg:col-span-6">
-                <CardHeader className="border-b pb-3">
-                  <CardTitle>Productos Más Rentables</CardTitle>
-                  <CardDescription>Conoce qué platos generan mayor margen de beneficio</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-4 font-medium">Producto</th>
-                          <th className="text-right p-4 font-medium">Ventas</th>
-                          <th className="text-right p-4 font-medium">Precio</th>
-                          <th className="text-right p-4 font-medium">Costo</th>
-                          <th className="text-right p-4 font-medium">Margen</th>
-                          <th className="text-right p-4 font-medium">% Margen</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Ejemplo de productos */}
-                        <tr className={`border-b ${isDark ? 'bg-green-900/20' : 'bg-green-50'}`}>
-                          <td className="p-4">Ensalada César</td>
-                          <td className="p-4 text-right">46</td>
-                          <td className="p-4 text-right">{Currency(12000)}</td>
-                          <td className="p-4 text-right">{Currency(3500)}</td>
-                          <td className="p-4 text-right font-bold">{Currency(8500)}</td>
-                          <td className="p-4 text-right font-bold text-green-600">71%</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-4">Risotto de Hongos</td>
-                          <td className="p-4 text-right">32</td>
-                          <td className="p-4 text-right">{Currency(14500)}</td>
-                          <td className="p-4 text-right">{Currency(5800)}</td>
-                          <td className="p-4 text-right font-bold">{Currency(8700)}</td>
-                          <td className="p-4 text-right font-bold">60%</td>
-                        </tr>
-                        <tr className="border-b">
-                          <td className="p-4">Filete de Res</td>
-                          <td className="p-4 text-right">28</td>
-                          <td className="p-4 text-right">{Currency(22000)}</td>
-                          <td className="p-4 text-right">{Currency(11000)}</td>
-                          <td className="p-4 text-right font-bold">{Currency(11000)}</td>
-                          <td className="p-4 text-right font-bold">50%</td>
-                        </tr>
-                        <tr className={`border-b ${isDark ? 'bg-red-900/20' : 'bg-red-50'}`}>
-                          <td className="p-4">Pasta Carbonara</td>
-                          <td className="p-4 text-right">38</td>
-                          <td className="p-4 text-right">{Currency(13500)}</td>
-                          <td className="p-4 text-right">{Currency(9500)}</td>
-                          <td className="p-4 text-right font-bold">{Currency(4000)}</td>
-                          <td className="p-4 text-right font-bold text-red-600">30%</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="leading-none text-muted-foreground">
-                    Recomendación: Promociona más la Ensalada César y considera ajustar el precio de la Pasta Carbonara
-                  </div>
-                </CardFooter>
-              </Card>
-
-              {/* 4. ANÁLISIS DE DÍAS Y TENDENCIAS */}
-              <Card className="lg:col-span-7">
-                <CardHeader className="border-b pb-3">
-                  <CardTitle>Tendencias Semanales</CardTitle>
-                  <CardDescription>Compara el rendimiento por día de la semana</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6" style={{ height: '360px' }}>
-                  {isLoading ? (
-                    <LoadingSkeleton />
-                  ) : (
-                    <ChartContainer
-                      className="h-full"
-                      config={{
-                        currentWeek: {
-                          label: 'Semana Actual',
-                          color: CHART_COLORS[0],
-                        },
-                        previousWeek: {
-                          label: 'Semana Anterior',
-                          color: CHART_COLORS[1],
-                        },
-                      }}
-                    >
-                      <BarChart
-                        accessibilityLayer
-                        data={[
-                          { day: 'Lunes', currentWeek: 1200, previousWeek: 980 },
-                          { day: 'Martes', currentWeek: 980, previousWeek: 1050 },
-                          { day: 'Miércoles', currentWeek: 1100, previousWeek: 930 },
-                          { day: 'Jueves', currentWeek: 1300, previousWeek: 1180 },
-                          { day: 'Viernes', currentWeek: 1900, previousWeek: 1750 },
-                          { day: 'Sábado', currentWeek: 2100, previousWeek: 2300 },
-                          { day: 'Domingo', currentWeek: 1600, previousWeek: 1400 },
-                        ]}
-                        margin={{
-                          top: 30,
-                          right: 30,
-                          left: 20,
-                          bottom: 20,
-                        }}
-                        height={280}
-                      >
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="day" tickLine={false} tickMargin={10} axisLine={false} />
-                        <ChartTooltip content={<ChartTooltipContent formatter={value => Currency(Number(value) * 100)} />} />
-                        <ChartLegend content={<ChartLegendContent />} />
-                        <Bar dataKey="currentWeek" fill="var(--color-currentWeek)" radius={4} maxBarSize={30} />
-                        <Bar dataKey="previousWeek" fill="var(--color-previousWeek)" radius={4} maxBarSize={30} />
-                      </BarChart>
-                    </ChartContainer>
-                  )}
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="flex items-center gap-2 font-medium leading-none">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600">Incremento de 8.3% respecto a la semana anterior</span>
-                  </div>
-                  <div className="leading-none text-muted-foreground">
-                    El sábado es tu día más ocupado, pero has tenido una caída del 8.7% respecto a la semana anterior
-                  </div>
-                </CardFooter>
-              </Card>
-
-              {/* 5. EFICIENCIA DEL PERSONAL */}
-              <Card className="lg:col-span-5">
-                <CardHeader className="border-b pb-3">
-                  <CardTitle>Eficiencia del Personal</CardTitle>
-                  <CardDescription>Analiza el rendimiento de tus meseros y cocineros</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6" style={{ height: '360px' }}>
-                  {isLoading ? (
-                    <LoadingSkeleton />
-                  ) : (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Ventas por Mesero</h3>
-                        <div className="space-y-3">
-                          {[
-                            { name: 'Carlos Rodríguez', amount: 450000, tickets: 42, avgTime: '24 min' },
-                            { name: 'Ana Martínez', amount: 380000, tickets: 36, avgTime: '22 min' },
-                            { name: 'Miguel Sánchez', amount: 320000, tickets: 38, avgTime: '28 min' },
-                            { name: 'Laura González', amount: 290000, tickets: 29, avgTime: '25 min' },
-                          ].map((employee, i) => (
-                            <div key={i} className="flex items-center">
-                              <div className="w-32 flex-shrink-0 font-medium truncate">{employee.name}</div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center">
-                                  <div
-                                    className="h-2 rounded"
-                                    style={{
-                                      width: `${(employee.amount / 450000) * 100}%`,
-                                      backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
-                                    }}
-                                  ></div>
-                                  <span className="ml-2 text-sm">{Currency(employee.amount)}</span>
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {employee.tickets} órdenes • Tiempo promedio: {employee.avgTime}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Tiempo Promedio de Preparación</h3>
-                        <div className="space-y-3">
-                          {[
-                            { type: 'Entradas', time: 8, target: 10 },
-                            { type: 'Platos Principales', time: 18, target: 15 },
-                            { type: 'Postres', time: 6, target: 5 },
-                            { type: 'Bebidas', time: 4, target: 3 },
-                          ].map((category, i) => (
-                            <div key={i} className="flex items-center">
-                              <div className="w-32 flex-shrink-0 font-medium">{category.type}</div>
-                              <div className="flex-1">
-                                <div className="flex items-center">
-                                  <div className="flex-1 bg-gray-200 h-2 rounded overflow-hidden">
-                                    <div
-                                      className={`h-full rounded ${category.time <= category.target ? 'bg-green-500' : 'bg-amber-500'}`}
-                                      style={{ width: `${(category.time / 20) * 100}%` }}
-                                    ></div>
-                                  </div>
-                                  <span className="ml-2 text-sm">{category.time} min</span>
-                                  <span className="ml-2 text-xs text-gray-500">Meta: {category.target} min</span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="leading-none text-muted-foreground">
-                    Carlos genera las mayores ventas • Los platos principales están tomando 3 min más que el objetivo
-                  </div>
-                </CardFooter>
               </Card>
             </div>
           </>
