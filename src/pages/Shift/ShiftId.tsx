@@ -4,13 +4,29 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Trash2 } from 'lucide-react'
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 export default function ShiftId() {
   const { venueId, shiftId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   // Fetch the shift data
   const { data: shift, isLoading } = useQuery({
@@ -22,6 +38,28 @@ export default function ShiftId() {
   })
 
   const from = (location.state as any)?.from || `/venues/${venueId}/shifts`
+
+  // Delete shift mutation
+  const deleteShift = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/v2/dashboard/${venueId}/shifts/${shiftId}`)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Turno eliminado',
+        description: 'El turno ha sido eliminado exitosamente',
+      })
+      queryClient.invalidateQueries({ queryKey: ['shifts', venueId] })
+      navigate(from)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'No se pudo eliminar el turno',
+        variant: 'destructive',
+      })
+    },
+  })
 
   if (isLoading) {
     return <div className="p-8 text-center">Cargando información del turno...</div>
@@ -58,7 +96,7 @@ export default function ShiftId() {
           </Link>
           <span>Detalles del Turno {shift?.turnId || ''}</span>
         </div>
-        <div>
+        <div className="flex items-center space-x-4">
           <span
             className={`px-3 py-1 ${shift?.endTime ? themeClasses.neutral.bg : themeClasses.success.bg} ${
               shift?.endTime ? themeClasses.neutral.text : themeClasses.success.text
@@ -66,6 +104,29 @@ export default function ShiftId() {
           >
             {shift?.endTime ? 'Cerrado' : 'Abierto'}
           </span>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="size-4 mr-1" />
+                Eliminar
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Eliminar turno</AlertDialogTitle>
+                <AlertDialogDescription>
+                  ¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
