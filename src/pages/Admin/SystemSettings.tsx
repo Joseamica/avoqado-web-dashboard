@@ -2,18 +2,41 @@ import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ShieldAlert, Database, Server, RefreshCcw, AlertTriangle, FileText, Download, Loader2 } from 'lucide-react'
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { ShieldAlert, Database, Server, RefreshCcw, AlertTriangle, FileText, Download, Loader2, Trash2, Code } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/api'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Switch } from '@/components/ui/switch'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useTheme } from '@/context/ThemeContext'
 
 export default function SystemSettings() {
   const { user } = useAuth()
+  const { toast } = useToast()
+  const { theme } = useTheme()
+  const queryClient = useQueryClient()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
   const [logType, setLogType] = useState('application')
   const [linesCount, setLinesCount] = useState('100')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [formattedLogs, setFormattedLogs] = useState('')
+  const [useFormatting, setUseFormatting] = useState(true)
+  const [isJsonContent, setIsJsonContent] = useState(false)
 
   // Query to fetch logs
   const {
@@ -27,6 +50,95 @@ export default function SystemSettings() {
       return response.data
     },
     enabled: isSuperAdmin,
+  })
+
+  // Format logs when they change
+  useEffect(() => {
+    if (logs?.content) {
+      formatLogs(logs.content)
+    } else {
+      setFormattedLogs('No hay logs disponibles.')
+      setIsJsonContent(false)
+    }
+  }, [logs, useFormatting])
+
+  // Format logs to make them more readable
+  const formatLogs = content => {
+    if (!content) {
+      setFormattedLogs('No hay logs disponibles.')
+      setIsJsonContent(false)
+      return
+    }
+
+    if (!useFormatting) {
+      setFormattedLogs(content)
+      setIsJsonContent(false)
+      return
+    }
+
+    try {
+      // Split content into lines
+      const lines = content.split('\n')
+      const formattedLines = []
+      let hasJsonContent = false
+
+      // Process each line
+      for (let line of lines) {
+        // Try to detect JSON content inside the line
+        try {
+          // Look for JSON objects in the line
+          const jsonRegex = /{.*}|\[.*\]/
+          const match = line.match(jsonRegex)
+
+          if (match) {
+            const jsonString = match[0]
+            const jsonObj = JSON.parse(jsonString)
+            const formattedJson = JSON.stringify(jsonObj, null, 2)
+
+            // Replace the JSON part with formatted JSON
+            const before = line.substring(0, match.index)
+            const after = line.substring(match.index + jsonString.length)
+            line = before + '\n' + formattedJson + '\n' + after
+            hasJsonContent = true
+          }
+        } catch (e) {
+          // Not valid JSON or other error, keep line as is
+        }
+
+        formattedLines.push(line)
+      }
+
+      setIsJsonContent(hasJsonContent)
+      setFormattedLogs(formattedLines.join('\n'))
+    } catch (error) {
+      console.error('Error formatting logs:', error)
+      setFormattedLogs(content)
+      setIsJsonContent(false)
+    }
+  }
+
+  // Mutation to clear logs
+  const clearLogsMutation = useMutation({
+    mutationFn: async () => {
+      return await api.post(`/v1/admin/logs/clear`, { type: logType })
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Logs borrados',
+        description: `Los logs de ${getLogTypeName(logType)} han sido borrados correctamente.`,
+      })
+      queryClient.invalidateQueries({ queryKey: ['system-logs'] })
+      setIsDialogOpen(false)
+    },
+    onError: error => {
+      console.error('Error clearing logs:', error)
+      toast({
+        title: 'Error',
+        description: 'No se pudieron borrar los logs. Contacte al administrador del sistema.',
+        variant: 'destructive',
+      })
+      setIsDialogOpen(false)
+    },
   })
 
   if (!isSuperAdmin) {
@@ -53,6 +165,16 @@ export default function SystemSettings() {
     } catch (error) {
       console.error('Error downloading logs:', error)
     }
+  }
+
+  const getLogTypeName = type => {
+    const types = {
+      application: 'Aplicación',
+      error: 'Errores',
+      access: 'Acceso',
+      system: 'Sistema',
+    }
+    return types[type] || type
   }
 
   return (
@@ -203,11 +325,52 @@ export default function SystemSettings() {
                     </Select>
                   </div>
 
-                  <div className="w-full sm:w-auto sm:self-end">
+                  <div className="flex items-center gap-2 w-full mt-2 sm:mt-0 sm:w-auto sm:self-end">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="format-json" checked={useFormatting} onCheckedChange={setUseFormatting} />
+                      <label htmlFor="format-json" className="text-sm font-medium">
+                        <Code className="h-4 w-4 inline mr-1" />
+                        Formatear JSON
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 w-full sm:w-auto sm:self-end">
                     <Button variant="outline" onClick={() => refetchLogs()} className="w-full sm:w-auto">
                       <RefreshCcw className="h-4 w-4 mr-2" />
                       Actualizar
                     </Button>
+
+                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full sm:w-auto">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Borrar Logs
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción borrará el archivo de logs de {getLogTypeName(logType)} y no se puede deshacer. Se creará un nuevo
+                            archivo de logs vacío.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className="bg-red-600 hover:bg-red-700">
+                            {clearLogsMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Borrando...
+                              </>
+                            ) : (
+                              'Borrar Logs'
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
 
@@ -217,11 +380,23 @@ export default function SystemSettings() {
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
-                    <Textarea
-                      className="font-mono text-xs h-[400px] p-4 dark:bg-gray-900"
-                      readOnly
-                      value={logs?.content || 'No hay logs disponibles.'}
-                    />
+                    <>
+                      {isJsonContent && useFormatting ? (
+                        <div className="h-[400px] overflow-auto">
+                          <SyntaxHighlighter
+                            language="json"
+                            style={theme === 'dark' ? vscDarkPlus : vs}
+                            className="h-full p-4 text-xs"
+                            showLineNumbers={true}
+                            wrapLongLines={true}
+                          >
+                            {formattedLogs}
+                          </SyntaxHighlighter>
+                        </div>
+                      ) : (
+                        <Textarea className="font-mono text-xs h-[400px] p-4 dark:bg-gray-900" readOnly value={formattedLogs} />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -230,10 +405,12 @@ export default function SystemSettings() {
               <p className="text-xs text-muted-foreground">
                 {logs?.lastUpdated ? `Última actualización: ${new Date(logs.lastUpdated).toLocaleString()}` : 'Sin datos'}
               </p>
-              <Button variant="outline" size="sm" onClick={handleDownloadLogs}>
-                <Download className="h-4 w-4 mr-2" />
-                Descargar Logs
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleDownloadLogs}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar Logs
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </TabsContent>
