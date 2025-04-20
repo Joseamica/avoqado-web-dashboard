@@ -30,3 +30,8 @@ export { default as ShiftId } from '@/pages/Shift/ShiftId'
 // Bill
 export { default as Bills } from './Bill/Bills'
 export { default as BillId } from './Bill/BillId'
+
+// Admin
+export { default as AdminDashboard } from '@/pages/Admin/AdminDashboard'
+export { default as UserManagement } from '@/pages/Admin/UserManagement'
+export { default as SystemSettings } from '@/pages/Admin/SystemSettings'
