@@ -157,7 +157,6 @@ export default function Overview() {
   const { venueId } = useParams()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { isDark } = useTheme()
 
   // State for expanded menu sections
   const [expandedMenus, setExpandedMenus] = useState({})

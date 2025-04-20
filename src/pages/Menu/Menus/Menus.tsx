@@ -1,27 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import api from '@/api'
+import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
-import { DataTablePagination } from '@/components/pagination'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { AvoqadoMenu } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
-import DataTable from '@/components/data-table'
 
 export default function Menus() {
   const { venueId } = useParams()
