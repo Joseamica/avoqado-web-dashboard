@@ -37,6 +37,12 @@ import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
 import { Layout } from '@/Layout'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
+import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
+
+// Importamos los nuevos componentes de administración
+import AdminDashboard from '@/pages/Admin/AdminDashboard'
+import UserManagement from '@/pages/Admin/UserManagement'
+import SystemSettings from '@/pages/Admin/SystemSettings'
 
 const router = createBrowserRouter([
   {
@@ -55,6 +61,55 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />, // Protected routes
         children: [
+          // Nueva sección de administración
+          {
+            path: '/admin',
+            element: <AdminProtectedRoute />, // Protegido para ADMIN y SUPERADMIN
+            children: [
+              {
+                index: true,
+                element: <AdminDashboard />,
+              },
+              {
+                path: 'general',
+                element: <AdminDashboard />,
+              },
+              {
+                path: 'users',
+                element: <UserManagement />,
+              },
+              {
+                path: 'venues',
+                element: <div>Gestión de Venues (en desarrollo)</div>,
+              },
+              {
+                path: 'settings',
+                element: <div>Configuración de cuenta de admin (en desarrollo)</div>,
+              },
+              // Rutas solo para superadmin
+              {
+                path: 'system',
+                element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+                children: [
+                  {
+                    index: true,
+                    element: <SystemSettings />,
+                  },
+                ],
+              },
+              {
+                path: 'global',
+                element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+                children: [
+                  {
+                    index: true,
+                    element: <div>Configuración global (solo superadmin)</div>,
+                  },
+                ],
+              },
+            ],
+          },
+
           {
             path: '/venues/:venueId',
             element: <Dashboard />,
@@ -126,13 +181,14 @@ const router = createBrowserRouter([
               { path: 'waiters/:waiterId', element: <WaiterId /> },
               { path: 'reviews', element: <Reviews /> },
 
+              // Esta sección pasa a ser parte del nuevo panel de administración
               {
                 path: 'superadmin',
                 element: <SuperProtectedRoute allowedRoles={['SUPERADMIN']} />,
                 children: [
                   {
                     index: true,
-                    element: <div>Super Admin Dashboard</div>,
+                    element: <div>Super Admin Dashboard (Obsoleto, usar /admin)</div>,
                   },
                 ],
               },

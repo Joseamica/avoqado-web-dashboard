@@ -23,7 +23,7 @@ const routeDisplayNames: Record<string, string> = {
   tpv: 'Terminales',
   overview: 'Resumen',
   menumaker: 'Creación de menú',
-  // Add more mappings as needed
+  editvenue: 'Editar restaurante',
 }
 
 export default function Dashboard() {

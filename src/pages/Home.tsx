@@ -17,17 +17,17 @@ import { themeClasses } from '@/lib/theme-utils'
 
 // Translations for payment methods
 const PAYMENT_METHOD_TRANSLATIONS = {
-  cash: 'Efectivo',
-  card: 'Tarjeta',
-  amex: 'Amex',
-  other: 'Otro',
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+  AMEX: 'Amex',
+  OTHER: 'Otro',
 }
 
 // Translations for product categories
 const CATEGORY_TRANSLATIONS = {
-  food: 'Comida',
-  beverage: 'Bebida',
-  other: 'Otros',
+  FOOD: 'Comida',
+  BEVERAGE: 'Bebida',
+  OTHER: 'Otros',
 }
 
 // Enhanced color palette for charts
@@ -42,8 +42,85 @@ const PercentIcon = () => <Percent className="h-5 w-5 text-purple-500" />
 // Type for comparison period
 type ComparisonPeriod = 'day' | 'week' | 'month' | 'custom' | ''
 
-// Metric card component - optimized with proper naming and types
-const MetricCard = ({ title, value, isLoading, icon, percentage = null, comparisonLabel = 'período anterior' }) => {
+// Type for table performance data
+interface TablePerformance {
+  tableId: string
+  tableNumber: number
+  capacity: number
+  avgTicket: number
+  rotationRate: number
+  totalRevenue: number
+}
+
+// Type for staff performance data
+interface StaffPerformance {
+  staffId: string
+  name: string
+  role: string
+  totalSales: number
+  totalTips: number
+  orderCount: number
+  avgPrepTime: number
+}
+
+// Type for product profitability data
+interface ProductProfitability {
+  name: string
+  type: string
+  price: number
+  cost: number
+  margin: number
+  marginPercentage: number
+  quantity: number
+  totalRevenue: number
+}
+
+// Type for peak hours data
+interface PeakHoursData {
+  hour: number
+  sales: number
+  transactions: number
+}
+
+// Type for weekly trends data
+interface WeeklyTrendsData {
+  day: string
+  currentWeek: number
+  previousWeek: number
+  changePercentage: number
+}
+
+// Type for extra metrics
+interface ExtraMetrics {
+  tablePerformance: TablePerformance[]
+  staffPerformanceMetrics: StaffPerformance[]
+  productProfitability: ProductProfitability[]
+  peakHoursData: PeakHoursData[]
+  weeklyTrendsData: WeeklyTrendsData[]
+  prepTimesByCategory: {
+    entradas: { avg: number; target: number }
+    principales: { avg: number; target: number }
+    postres: { avg: number; target: number }
+    bebidas: { avg: number; target: number }
+  }
+}
+
+// Metric card component
+const MetricCard = ({
+  title,
+  value,
+  isLoading,
+  icon,
+  percentage = null,
+  comparisonLabel = 'período anterior',
+}: {
+  title: string
+  value: string | number | null
+  isLoading: boolean
+  icon: React.ReactNode
+  percentage?: number | null
+  comparisonLabel?: string
+}) => {
   const { isDark } = useTheme()
 
   return (
@@ -181,7 +258,7 @@ const Home = () => {
     setActiveFilter('30days')
   }
 
-  // Fetch data with date range parameters
+  // Fetch main data with date range parameters
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['general_stats', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
     queryFn: async () => {
@@ -202,14 +279,30 @@ const Home = () => {
     refetchOnWindowFocus: false,
   })
 
-  // Since backend now filters by date, we don't need to filter again in the frontend
+  // Extract the data we need
   const filteredReviews = useMemo(() => data?.feedbacks || [], [data?.feedbacks])
+  const filteredPayments = useMemo(() => data?.payments || [], [data?.payments])
+  const extraMetrics = useMemo<ExtraMetrics>(
+    () =>
+      data?.extraMetrics || {
+        tablePerformance: [],
+        staffPerformanceMetrics: [],
+        productProfitability: [],
+        peakHoursData: [],
+        weeklyTrendsData: [],
+        prepTimesByCategory: {
+          entradas: { avg: 0, target: 10 },
+          principales: { avg: 0, target: 15 },
+          postres: { avg: 0, target: 5 },
+          bebidas: { avg: 0, target: 3 },
+        },
+      },
+    [data?.extraMetrics],
+  )
 
   const fiveStarReviews = useMemo(() => {
     return filteredReviews.filter(review => review.stars === 5).length
   }, [filteredReviews])
-
-  const filteredPayments = useMemo(() => data?.payments || [], [data?.payments])
 
   // Calculate total amount from payments
   const amount = useMemo(() => {
@@ -268,7 +361,7 @@ const Home = () => {
       }
 
       // Simplify: card includes card and amex, cash includes cash and other
-      if (payment.method === 'card' || payment.method === 'amex') {
+      if (payment.method === 'CARD' || payment.method === 'AMEX') {
         paymentsByDate[dateStr].card += Number(payment.amount) / 100 // Convert to monetary unit
       } else {
         paymentsByDate[dateStr].cash += Number(payment.amount) / 100 // Cash and others
@@ -302,7 +395,8 @@ const Home = () => {
     const methodTotals = {}
 
     filteredPayments.forEach(payment => {
-      const method = PAYMENT_METHOD_TRANSLATIONS[payment.method] || 'Otro'
+      const methodKey = payment.method || 'OTHER'
+      const method = PAYMENT_METHOD_TRANSLATIONS[methodKey] || 'Otro'
       methodTotals[method] = (methodTotals[method] || 0) + Number(payment.amount)
     })
 
@@ -311,19 +405,22 @@ const Home = () => {
 
   // Best selling products
   const bestSellingProducts = useMemo(() => {
-    if (!data?.products) return { food: [], beverage: [], other: [] }
+    if (!data?.products) return { FOOD: [], BEVERAGE: [], OTHER: [] }
 
     const filteredProducts = data.products
-    const categories = { food: [], beverage: [], other: [] }
+    const categories = { FOOD: [], BEVERAGE: [], OTHER: [] }
 
     filteredProducts.forEach(product => {
-      if (categories[product.type]) {
-        const existing = categories[product.type].find(p => p.name === product.name)
+      const productType = product.type || 'OTHER'
+      if (categories[productType]) {
+        const existing = categories[productType].find(p => p.name === product.name)
         if (existing) {
           existing.quantity += product.quantity
         } else {
-          categories[product.type].push({ ...product })
+          categories[productType].push({ ...product })
         }
+      } else {
+        categories.OTHER.push({ ...product })
       }
     })
 
@@ -446,6 +543,72 @@ const Home = () => {
     return getComparisonPercentage(parseFloat(String(tipStats.avgTipPercentage)), parseFloat(String(compareTipStats.avgTipPercentage)))
   }, [tipStats.avgTipPercentage, compareTipStats.avgTipPercentage])
 
+  // Find the most and least profitable products
+  const mostProfitableProduct = useMemo(() => {
+    if (!extraMetrics.productProfitability.length) return null
+    return extraMetrics.productProfitability.reduce((prev, current) => (prev.marginPercentage > current.marginPercentage ? prev : current))
+  }, [extraMetrics.productProfitability])
+
+  const leastProfitableProduct = useMemo(() => {
+    if (!extraMetrics.productProfitability.length) return null
+    return extraMetrics.productProfitability.reduce((prev, current) => (prev.marginPercentage < current.marginPercentage ? prev : current))
+  }, [extraMetrics.productProfitability])
+
+  // Find the best and worst performing tables
+  const bestTable = useMemo(() => {
+    if (!extraMetrics.tablePerformance.length) return null
+    return extraMetrics.tablePerformance.reduce((prev, current) => (prev.avgTicket > current.avgTicket ? prev : current))
+  }, [extraMetrics.tablePerformance])
+
+  const worstTable = useMemo(() => {
+    if (!extraMetrics.tablePerformance.length) return null
+    return extraMetrics.tablePerformance.reduce((prev, current) => (prev.avgTicket < current.avgTicket ? prev : current))
+  }, [extraMetrics.tablePerformance])
+
+  // Find the peak hour
+  const peakHour = useMemo(() => {
+    if (!extraMetrics.peakHoursData.length) return null
+    return extraMetrics.peakHoursData.reduce((prev, current) => (prev.sales > current.sales ? prev : current))
+  }, [extraMetrics.peakHoursData])
+
+  // Calculate weekly trends overall change percentage
+  const weeklyTrendsChangePercentage = useMemo(() => {
+    if (!extraMetrics.weeklyTrendsData.length) return 0
+
+    const totalCurrentWeek = extraMetrics.weeklyTrendsData.reduce((sum, day) => sum + day.currentWeek, 0)
+    const totalPreviousWeek = extraMetrics.weeklyTrendsData.reduce((sum, day) => sum + day.previousWeek, 0)
+
+    return getComparisonPercentage(totalCurrentWeek, totalPreviousWeek)
+  }, [extraMetrics.weeklyTrendsData])
+
+  // Find the best and worst performing staff
+  const bestStaff = useMemo(() => {
+    if (!extraMetrics.staffPerformanceMetrics.length) return null
+    return extraMetrics.staffPerformanceMetrics.reduce((prev, current) => (prev.totalSales > current.totalSales ? prev : current))
+  }, [extraMetrics.staffPerformanceMetrics])
+
+  // Calculate average prep time overrun
+  const prepTimeOverrun = useMemo(() => {
+    if (!extraMetrics.prepTimesByCategory) return null
+
+    // Get the category with the biggest overrun compared to target
+    const categories = Object.entries(extraMetrics.prepTimesByCategory)
+    const categoryWithOverrun = categories.reduce((prev, [name, data]) => {
+      const prevOverrun = prev ? prev[1].avg - prev[1].target : 0
+      const currentOverrun = data.avg - data.target
+      return currentOverrun > prevOverrun ? [name, data] : prev
+    }, null as [string, { avg: number; target: number }] | null)
+
+    return categoryWithOverrun
+      ? {
+          category: categoryWithOverrun[0],
+          avg: categoryWithOverrun[1].avg,
+          target: categoryWithOverrun[1].target,
+          overrun: categoryWithOverrun[1].avg - categoryWithOverrun[1].target,
+        }
+      : null
+  }, [extraMetrics.prepTimesByCategory])
+
   // Export to JSON
   const exportToCSV = async () => {
     try {
@@ -460,12 +623,13 @@ const Home = () => {
           promedioPropinas: tipStats.avgTipPercentage,
         },
         metodosPago: paymentMethodsData,
-        mejoresProductos: {
-          comida: bestSellingProducts.food,
-          bebidas: bestSellingProducts.beverage,
-          otros: bestSellingProducts.other,
-        },
+        mejoresProductos: bestSellingProducts,
         propinas: tipsChartData,
+        horasPico: extraMetrics.peakHoursData,
+        desempeñoMesas: extraMetrics.tablePerformance,
+        productosRentables: extraMetrics.productProfitability,
+        tendenciasSemanal: extraMetrics.weeklyTrendsData,
+        desempeñoPersonal: extraMetrics.staffPerformanceMetrics,
       }
 
       // Convert to JSON and then to blob
@@ -522,14 +686,11 @@ const Home = () => {
       csvContent += 'Productos mejor vendidos\n'
       csvContent += 'Categoría,Producto,Cantidad\n'
 
-      bestSellingProducts.food.forEach(item => {
-        csvContent += `${CATEGORY_TRANSLATIONS.food},${item.name},${item.quantity}\n`
-      })
-      bestSellingProducts.beverage.forEach(item => {
-        csvContent += `${CATEGORY_TRANSLATIONS.beverage},${item.name},${item.quantity}\n`
-      })
-      bestSellingProducts.other.forEach(item => {
-        csvContent += `${CATEGORY_TRANSLATIONS.other},${item.name},${item.quantity}\n`
+      Object.entries(bestSellingProducts).forEach(([category, products]) => {
+        const categoryName = CATEGORY_TRANSLATIONS[category] || category
+        products.forEach(item => {
+          csvContent += `${categoryName},${item.name},${item.quantity}\n`
+        })
       })
       csvContent += '\n'
 
@@ -538,6 +699,53 @@ const Home = () => {
       csvContent += 'Fecha,Monto\n'
       tipsChartData.forEach(item => {
         csvContent += `${item.date},${item.amount}\n`
+      })
+
+      // Peak hours data
+      csvContent += '\nHoras pico\n'
+      csvContent += 'Hora,Ventas,Transacciones\n'
+      extraMetrics.peakHoursData.forEach(item => {
+        csvContent += `${item.hour}:00,${item.sales},${item.transactions}\n`
+      })
+
+      // Table performance data
+      csvContent += '\nDesempeño de mesas\n'
+      csvContent += 'Mesa,Capacidad,Ticket Promedio,Rotación,Ingresos Totales\n'
+      extraMetrics.tablePerformance.forEach(table => {
+        csvContent += `${table.tableNumber},${table.capacity},${Currency(table.avgTicket).replace('$', '')},${table.rotationRate.toFixed(
+          1,
+        )}x,${Currency(table.totalRevenue).replace('$', '')}\n`
+      })
+
+      // Product profitability
+      csvContent += '\nRentabilidad de productos\n'
+      csvContent += 'Producto,Tipo,Precio,Costo,Margen,% Margen,Cantidad,Ingresos\n'
+      extraMetrics.productProfitability.forEach(product => {
+        csvContent += `${product.name},${product.type},${Currency(product.price).replace('$', '')},${Currency(product.cost).replace(
+          '$',
+          '',
+        )},${Currency(product.margin).replace('$', '')},${product.marginPercentage.toFixed(1)}%,${product.quantity},${Currency(
+          product.totalRevenue,
+        ).replace('$', '')}\n`
+      })
+
+      // Weekly trends
+      csvContent += '\nTendencias semanales\n'
+      csvContent += 'Día,Semana Actual,Semana Anterior,% Cambio\n'
+      extraMetrics.weeklyTrendsData.forEach(day => {
+        csvContent += `${day.day},${Currency(day.currentWeek).replace('$', '')},${Currency(day.previousWeek).replace(
+          '$',
+          '',
+        )},${day.changePercentage.toFixed(1)}%\n`
+      })
+
+      // Staff performance
+      csvContent += '\nDesempeño del personal\n'
+      csvContent += 'Nombre,Rol,Ventas Totales,Cantidad de Órdenes,Tiempo Promedio\n'
+      extraMetrics.staffPerformanceMetrics.forEach(staff => {
+        csvContent += `${staff.name},${staff.role},${Currency(staff.totalSales).replace('$', '')},${
+          staff.orderCount
+        },${staff.avgPrepTime.toFixed(1)} min\n`
       })
 
       // Encode and create URL
@@ -930,11 +1138,11 @@ const Home = () => {
                       className="h-full"
                       config={{
                         cash: {
-                          label: PAYMENT_METHOD_TRANSLATIONS.cash || 'Efectivo',
+                          label: PAYMENT_METHOD_TRANSLATIONS.CASH || 'Efectivo',
                           color: CHART_COLORS[0],
                         },
                         card: {
-                          label: PAYMENT_METHOD_TRANSLATIONS.card || 'Tarjeta',
+                          label: PAYMENT_METHOD_TRANSLATIONS.CARD || 'Tarjeta',
                           color: CHART_COLORS[1],
                         },
                       }}
@@ -999,6 +1207,405 @@ const Home = () => {
                     </div>
                   </CardFooter>
                 )}
+              </Card>
+
+              {/* Peak Sales Hours Chart - REAL DATA */}
+              <Card className="lg:col-span-7">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Horas Pico de Ventas</CardTitle>
+                  <CardDescription>Identifica tus horas más productivas y optimiza tu personal</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : !extraMetrics.peakHoursData || extraMetrics.peakHoursData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        sales: {
+                          label: 'Ventas',
+                          color: CHART_COLORS[0],
+                        },
+                        transactions: {
+                          label: 'N° Transacciones',
+                          color: CHART_COLORS[1],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={extraMetrics.peakHoursData}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="hour"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={value => `${value}:00`}
+                          label={{ value: 'Hora del día', position: 'insideBottomRight', offset: -10 }}
+                        />
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value, name) => (name === 'sales' ? Currency(Number(value)) : `${value} transacciones`)}
+                            />
+                          }
+                        />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="sales" fill="var(--color-sales)" radius={4} maxBarSize={30} />
+                        <Bar dataKey="transactions" fill="var(--color-transactions)" radius={4} maxBarSize={30} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  {peakHour && (
+                    <div className="leading-none text-muted-foreground">
+                      Tu hora más rentable es a las <span className="font-bold">{peakHour.hour}:00</span> con un promedio de{' '}
+                      <span className="font-bold">{Currency(peakHour.sales)}</span> en ventas
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+
+              {/* Table Performance Analysis - REAL DATA */}
+              <Card className="lg:col-span-6">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Rendimiento por Mesa</CardTitle>
+                  <CardDescription>Identifica tus mesas más rentables y las que necesitan atención</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : !extraMetrics.tablePerformance || extraMetrics.tablePerformance.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {extraMetrics.tablePerformance.map(table => (
+                        <div
+                          key={table.tableId}
+                          className={`p-4 rounded-lg border ${
+                            bestTable && table.tableNumber === bestTable.tableNumber
+                              ? isDark
+                                ? 'bg-green-900/20 border-green-800'
+                                : 'bg-green-50 border-green-200'
+                              : worstTable && table.tableNumber === worstTable.tableNumber
+                              ? isDark
+                                ? 'bg-red-900/20 border-red-800'
+                                : 'bg-red-50 border-red-200'
+                              : isDark
+                              ? 'border-[hsl(240_3.7%_15.9%)]'
+                              : ''
+                          }`}
+                        >
+                          <div className="text-lg font-bold mb-1">Mesa {table.tableNumber}</div>
+                          <div className="text-sm mb-2">Capacidad: {table.capacity}</div>
+                          <div className="text-sm font-medium">Ticket promedio:</div>
+                          <div className="text-lg font-bold mb-2">{Currency(table.avgTicket)}</div>
+                          <div className="text-sm font-medium">Rotación diaria:</div>
+                          <div className="text-lg font-bold">{table.rotationRate.toFixed(1)}x</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  {bestTable && worstTable && (
+                    <div className="leading-none text-muted-foreground">
+                      <span className="font-bold text-green-600">Mesa {bestTable.tableNumber}</span> tiene el ticket promedio más alto •
+                      <span className="font-bold text-red-600"> Mesa {worstTable.tableNumber}</span> tiene el ticket promedio más bajo
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+
+              {/* Product Profitability Analysis - REAL DATA */}
+              <Card className="lg:col-span-6">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Productos Más Rentables</CardTitle>
+                  <CardDescription>Conoce qué platos generan mayor margen de beneficio</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoading ? (
+                    <div className="p-4">
+                      <LoadingSkeleton />
+                    </div>
+                  ) : !extraMetrics.productProfitability || extraMetrics.productProfitability.length === 0 ? (
+                    <div className="flex items-center justify-center h-32 p-4">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-4 font-medium">Producto</th>
+                            <th className="text-right p-4 font-medium">Ventas</th>
+                            <th className="text-right p-4 font-medium">Precio</th>
+                            <th className="text-right p-4 font-medium">Costo</th>
+                            <th className="text-right p-4 font-medium">Margen</th>
+                            <th className="text-right p-4 font-medium">% Margen</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {extraMetrics.productProfitability.slice(0, 4).map((product, index) => (
+                            <tr
+                              key={index}
+                              className={`border-b ${
+                                mostProfitableProduct && product.name === mostProfitableProduct.name
+                                  ? isDark
+                                    ? 'bg-green-900/20'
+                                    : 'bg-green-50'
+                                  : leastProfitableProduct && product.name === leastProfitableProduct.name
+                                  ? isDark
+                                    ? 'bg-red-900/20'
+                                    : 'bg-red-50'
+                                  : ''
+                              }`}
+                            >
+                              <td className="p-4">{product.name}</td>
+                              <td className="p-4 text-right">{product.quantity}</td>
+                              <td className="p-4 text-right">{Currency(product.price)}</td>
+                              <td className="p-4 text-right">{Currency(product.cost)}</td>
+                              <td className="p-4 text-right font-bold">{Currency(product.margin)}</td>
+                              <td
+                                className={`p-4 text-right font-bold ${
+                                  product.marginPercentage > 60 ? 'text-green-600' : product.marginPercentage < 35 ? 'text-red-600' : ''
+                                }`}
+                              >
+                                {product.marginPercentage.toFixed(0)}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  {mostProfitableProduct && leastProfitableProduct && (
+                    <div className="leading-none text-muted-foreground">
+                      Recomendación: Promociona más {mostProfitableProduct.name} (margen {mostProfitableProduct.marginPercentage.toFixed(0)}
+                      %) y considera ajustar el precio de {leastProfitableProduct.name} (margen{' '}
+                      {leastProfitableProduct.marginPercentage.toFixed(0)}%)
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+
+              {/* Weekly Trends Analysis - REAL DATA */}
+              <Card className="lg:col-span-7">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Tendencias Semanales</CardTitle>
+                  <CardDescription>Compara el rendimiento por día de la semana</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : !extraMetrics.weeklyTrendsData || extraMetrics.weeklyTrendsData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <ChartContainer
+                      className="h-full"
+                      config={{
+                        currentWeek: {
+                          label: 'Semana Actual',
+                          color: CHART_COLORS[0],
+                        },
+                        previousWeek: {
+                          label: 'Semana Anterior',
+                          color: CHART_COLORS[1],
+                        },
+                      }}
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={extraMetrics.weeklyTrendsData}
+                        margin={{
+                          top: 30,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
+                        }}
+                        height={280}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="day" tickLine={false} tickMargin={10} axisLine={false} />
+                        <ChartTooltip content={<ChartTooltipContent formatter={value => Currency(Number(value))} />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="currentWeek" fill="var(--color-currentWeek)" radius={4} maxBarSize={30} />
+                        <Bar dataKey="previousWeek" fill="var(--color-previousWeek)" radius={4} maxBarSize={30} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  {extraMetrics.weeklyTrendsData && extraMetrics.weeklyTrendsData.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 font-medium leading-none">
+                        {weeklyTrendsChangePercentage > 0 ? (
+                          <>
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                            <span className="text-green-600">
+                              Incremento de {weeklyTrendsChangePercentage.toFixed(1)}% respecto a la semana anterior
+                            </span>
+                          </>
+                        ) : weeklyTrendsChangePercentage < 0 ? (
+                          <>
+                            <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
+                            <span className="text-red-600">
+                              Disminución de {Math.abs(weeklyTrendsChangePercentage).toFixed(1)}% respecto a la semana anterior
+                            </span>
+                          </>
+                        ) : (
+                          <span>Sin cambios respecto a la semana anterior</span>
+                        )}
+                      </div>
+                      {(() => {
+                        // Find the day with the biggest drop
+                        const biggestDrop = extraMetrics.weeklyTrendsData.reduce(
+                          (prev, current) => (current.changePercentage < prev.changePercentage ? current : prev),
+                          { changePercentage: 0, day: '' },
+                        )
+
+                        // Find the most profitable day
+                        const bestDay = extraMetrics.weeklyTrendsData.reduce(
+                          (prev, current) => (current.currentWeek > prev.currentWeek ? current : prev),
+                          { currentWeek: 0, day: '' },
+                        )
+
+                        return (
+                          <div className="leading-none text-muted-foreground">
+                            {bestDay.day !== '' && (
+                              <>
+                                El {bestDay.day.toLowerCase()} es tu día más ocupado
+                                {biggestDrop.changePercentage < -5 && biggestDrop.day === bestDay.day && (
+                                  <>
+                                    , pero has tenido una caída del {Math.abs(biggestDrop.changePercentage).toFixed(1)}% respecto a la
+                                    semana anterior
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </>
+                  )}
+                </CardFooter>
+              </Card>
+
+              {/* Staff Efficiency Analysis - REAL DATA */}
+              <Card className="lg:col-span-5">
+                <CardHeader className="border-b pb-3">
+                  <CardTitle>Eficiencia del Personal</CardTitle>
+                  <CardDescription>Analiza el rendimiento de tus meseros y cocineros</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6" style={{ height: '360px' }}>
+                  {isLoading ? (
+                    <LoadingSkeleton />
+                  ) : !extraMetrics.staffPerformanceMetrics || extraMetrics.staffPerformanceMetrics.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No hay datos disponibles</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Ventas por Mesero</h3>
+                        <div className="space-y-3">
+                          {extraMetrics.staffPerformanceMetrics
+                            .filter(staff => staff.role.toLowerCase().includes('mesero') || staff.role.toLowerCase().includes('waiter'))
+                            .slice(0, 4)
+                            .map((employee, i) => {
+                              const maxSales = extraMetrics.staffPerformanceMetrics.reduce((max, s) => Math.max(max, s.totalSales), 0)
+
+                              return (
+                                <div key={i} className="flex items-center">
+                                  <div className="w-32 flex-shrink-0 font-medium truncate">{employee.name}</div>
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex items-center">
+                                      <div
+                                        className="h-2 rounded"
+                                        style={{
+                                          width: `${(employee.totalSales / maxSales) * 100}%`,
+                                          backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                                        }}
+                                      ></div>
+                                      <span className="ml-2 text-sm">{Currency(employee.totalSales)}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {employee.orderCount} órdenes • Tiempo promedio: {employee.avgPrepTime.toFixed(0)} min
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Tiempo Promedio de Preparación</h3>
+                        <div className="space-y-3">
+                          {Object.entries(extraMetrics.prepTimesByCategory).map(([category, data], i) => (
+                            <div key={i} className="flex items-center">
+                              <div className="w-32 flex-shrink-0 font-medium">
+                                {category === 'entradas'
+                                  ? 'Entradas'
+                                  : category === 'principales'
+                                  ? 'Platos Principales'
+                                  : category === 'postres'
+                                  ? 'Postres'
+                                  : category === 'bebidas'
+                                  ? 'Bebidas'
+                                  : category}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center">
+                                  <div className="flex-1 bg-gray-200 h-2 rounded overflow-hidden">
+                                    <div
+                                      className={`h-full rounded ${data.avg <= data.target ? 'bg-green-500' : 'bg-amber-500'}`}
+                                      style={{ width: `${(data.avg / 20) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="ml-2 text-sm">{data.avg.toFixed(0)} min</span>
+                                  <span className="ml-2 text-xs text-gray-500">Meta: {data.target} min</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  {bestStaff && prepTimeOverrun && (
+                    <div className="leading-none text-muted-foreground">
+                      {bestStaff.name} genera las mayores ventas •
+                      {prepTimeOverrun.overrun > 0
+                        ? ` Los ${
+                            prepTimeOverrun.category === 'principales' ? 'platos principales' : prepTimeOverrun.category
+                          } están tomando ${prepTimeOverrun.overrun.toFixed(0)} min más que el objetivo`
+                        : ` Todos los tiempos de preparación están dentro de los objetivos`}
+                    </div>
+                  )}
+                </CardFooter>
               </Card>
             </div>
           </>

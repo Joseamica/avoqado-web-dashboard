@@ -4,9 +4,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, DollarSign, ClipboardList } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function WaiterId() {
   const { venueId, waiterId } = useParams()
@@ -24,6 +25,12 @@ export default function WaiterId() {
 
   const from = (location.state as any)?.from || `/dashboard/${venueId}/waiters`
 
+  // Calculate total tips
+  const totalTips = waiter?.tips?.reduce((sum: number, tip: any) => sum + (parseFloat(tip.amount) || 0), 0) || 0
+
+  // Count attended bills
+  const attendedBills = waiter?.bills?.length || 0
+
   if (isLoading) {
     return <div className="p-8 text-center">Cargando información del mesero...</div>
   }
@@ -39,7 +46,29 @@ export default function WaiterId() {
         </div>
       </div>
 
-      <div className="max-w-2xl p-6 mx-auto">
+      <div className="max-w-7xl p-6 mx-auto">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base font-medium">Propinas Totales</CardTitle>
+              <DollarSign className="h-5 w-5 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">${totalTips.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base font-medium">Cuentas Atendidas</CardTitle>
+              <ClipboardList className="h-5 w-5 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{attendedBills}</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>

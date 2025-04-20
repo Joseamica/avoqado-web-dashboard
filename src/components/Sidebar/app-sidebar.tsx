@@ -213,7 +213,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     {
       title: 'Admin Panel',
       isActive: true,
-      url: 'admin',
+      url: '/admin',
       icon: Settings2,
     },
     {
