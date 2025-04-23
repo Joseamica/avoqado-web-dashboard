@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Receipt, Trash2 } from 'lucide-react'
+import { ArrowLeft, Receipt, Trash2, PencilIcon, Save, X } from 'lucide-react'
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
@@ -21,6 +21,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useState, useEffect } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function BillId() {
   const { venueId, billId } = useParams()
@@ -30,6 +32,22 @@ export default function BillId() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedBill, setEditedBill] = useState<any>(null)
+
+  // Status options
+  const statusOptions = [
+    { value: 'OPEN', label: 'Abierta' },
+    { value: 'PAID', label: 'Pagada' },
+    { value: 'PENDING', label: 'Pendiente' },
+    { value: 'CLOSED', label: 'Cerrada' },
+    { value: 'CANCELED', label: 'Cancelada' },
+    { value: 'PRECREATED', label: 'Pre-creada' },
+    { value: 'WITHOUT_TABLE', label: 'Sin mesa' },
+    { value: 'DELETED', label: 'Eliminada' },
+    { value: 'EARLYACCESS', label: 'Acceso anticipado' },
+    { value: 'COURTESY', label: 'Cortesía' },
+  ]
 
   // Fetch the bill data
   const { data: bill, isLoading } = useQuery({
@@ -39,6 +57,13 @@ export default function BillId() {
       return response.data
     },
   })
+
+  // Set editedBill when bill data is loaded
+  useEffect(() => {
+    if (bill && !editedBill) {
+      setEditedBill(bill)
+    }
+  }, [bill, editedBill])
 
   // Delete bill mutation
   const deleteBillMutation = useMutation({
@@ -61,6 +86,44 @@ export default function BillId() {
       })
     },
   })
+
+  // Update bill mutation
+  const updateBillMutation = useMutation({
+    mutationFn: async (updatedBill: any) => {
+      return await api.put(`/v2/dashboard/${venueId}/bills/${billId}`, updatedBill)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Cuenta actualizada',
+        description: 'La cuenta ha sido actualizada exitosamente',
+      })
+      queryClient.invalidateQueries({ queryKey: ['bill', venueId, billId] })
+      setIsEditing(false)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'No se pudo actualizar la cuenta',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleInputChange = (field: string, value: string) => {
+    setEditedBill((prev: any) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleSave = () => {
+    updateBillMutation.mutate(editedBill)
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setEditedBill(bill) // Reset to original data
+  }
 
   const from = (location.state as any)?.from || `/venues/${venueId}/bills`
 
@@ -138,31 +201,65 @@ export default function BillId() {
           <span>Detalles de la Cuenta</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 ${statusClasses.bg} ${statusClasses.text} rounded-full font-medium`}>
-            {getStatusText(bill?.status)}
-          </span>
+          {isEditing ? (
+            <Select value={editedBill?.status} onValueChange={value => handleInputChange('status', value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className={`px-3 py-1 ${statusClasses.bg} ${statusClasses.text} rounded-full font-medium`}>
+              {getStatusText(bill?.status)}
+            </span>
+          )}
 
           {isSuperAdmin && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
+            <>
+              {isEditing ? (
+                <>
+                  <Button variant="default" size="sm" onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleCancel}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <PencilIcon className="h-4 w-4 mr-2" />
+                  Editar
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta y todos los datos asociados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteBillMutation.mutate()}>Eliminar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. Esto eliminará permanentemente la cuenta y todos los datos asociados.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteBillMutation.mutate()}>Eliminar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
       </div>
@@ -195,26 +292,55 @@ export default function BillId() {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
               <Label htmlFor="folio">Folio</Label>
-              <Input id="folio" value={bill?.folio || '-'} disabled />
+              <Input
+                id="folio"
+                value={isEditing ? editedBill?.folio || '' : bill?.folio || '-'}
+                disabled={!isEditing}
+                onChange={e => handleInputChange('folio', e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="billName">Nombre de la Cuenta</Label>
-              <Input id="billName" value={bill?.billName || '-'} disabled />
+              <Input
+                id="billName"
+                value={isEditing ? editedBill?.billName || '' : bill?.billName || '-'}
+                disabled={!isEditing}
+                onChange={e => handleInputChange('billName', e.target.value)}
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <div>
               <Label htmlFor="tableNumber">Mesa</Label>
-              <Input id="tableNumber" value={bill?.tableNumber?.toString() || bill?.tableName || '-'} disabled />
+              <Input
+                id="tableNumber"
+                value={
+                  isEditing
+                    ? editedBill?.tableNumber?.toString() || editedBill?.tableName || ''
+                    : bill?.tableNumber?.toString() || bill?.tableName || '-'
+                }
+                disabled={!isEditing}
+                onChange={e => handleInputChange('tableNumber', e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="waiter">Mesero</Label>
-              <Input id="waiter" value={bill?.waiterName || '-'} disabled />
+              <Input
+                id="waiter"
+                value={isEditing ? editedBill?.waiterName || '' : bill?.waiterName || '-'}
+                disabled={!isEditing}
+                onChange={e => handleInputChange('waiterName', e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="shift">Turno</Label>
-              <Input id="shift" value={bill?.shiftId || '-'} disabled />
+              <Input
+                id="shift"
+                value={isEditing ? editedBill?.shiftId || '' : bill?.shiftId || '-'}
+                disabled={!isEditing}
+                onChange={e => handleInputChange('shiftId', e.target.value)}
+              />
             </div>
           </div>
         </div>

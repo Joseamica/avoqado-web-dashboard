@@ -2,18 +2,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
-import { BarChart3, Building, Database, Globe, Lock, Settings, Shield, Users } from 'lucide-react'
-import { useState, CSSProperties } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
 import { useTheme } from '@/context/ThemeContext'
 import { themeClasses } from '@/lib/theme-utils'
+import { BarChart3, Building, Database, Globe, Lock, Settings, Shield, Users } from 'lucide-react'
+import { CSSProperties, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 
 // Enhanced color palette for UI elements
 const UI_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
 
 export default function AdminDashboard() {
   const { user } = useAuth()
-  const { isDark } = useTheme()
+
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('general')
 

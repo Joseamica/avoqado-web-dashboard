@@ -13,6 +13,10 @@ import {
   Star,
   Ungroup,
   Users,
+  Building,
+  Server,
+  Globe,
+  ShieldAlert,
 } from 'lucide-react'
 import * as React from 'react'
 
@@ -211,7 +215,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const superAdminRoutes = [
     {
-      title: 'Admin Panel',
+      title: 'Admin Dashboard',
       isActive: true,
       url: '/admin',
       icon: Settings2,
@@ -219,20 +223,32 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     {
       title: 'User Management',
       isActive: true,
-      url: 'admin/users',
+      url: '/admin/users',
       icon: Users,
     },
     {
-      title: 'System Logs',
+      title: 'Venue Management',
       isActive: true,
-      url: 'admin/logs',
-      icon: BookOpen,
+      url: '/admin/venues',
+      icon: Building,
     },
     {
-      title: 'Advanced Settings',
+      title: 'System Settings',
       isActive: true,
-      url: 'admin/settings',
-      icon: Settings2,
+      url: '/admin/system',
+      icon: Server,
+    },
+    {
+      title: 'Global Config',
+      isActive: true,
+      url: '/admin/global',
+      icon: Globe,
+    },
+    {
+      title: 'SuperAdmin Management',
+      isActive: true,
+      url: '/admin/superadmins',
+      icon: ShieldAlert,
     },
   ]
 

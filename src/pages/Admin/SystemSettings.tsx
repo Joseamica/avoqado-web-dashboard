@@ -1,27 +1,4 @@
-import { useAuth } from '@/context/AuthContext'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  ShieldAlert,
-  Database,
-  Server,
-  RefreshCcw,
-  AlertTriangle,
-  FileText,
-  Download,
-  Loader2,
-  Trash2,
-  Code,
-  ArrowDownToLine,
-  ArrowUpToLine,
-} from 'lucide-react'
-import { useState, useEffect, useMemo, CSSProperties, useRef } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/api'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,12 +10,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
+import { useToast } from '@/hooks/use-toast'
+import { themeClasses } from '@/lib/theme-utils'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  Code,
+  Database,
+  Download,
+  FileText,
+  Loader2,
+  RefreshCcw,
+  Server,
+  ShieldAlert,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { useTheme } from '@/context/ThemeContext'
-import { themeClasses } from '@/lib/theme-utils'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 // Enhanced color palette for charts and UI elements
 const UI_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
@@ -63,7 +61,7 @@ interface MetricData {
 export default function SystemSettings() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const { theme, isDark } = useTheme()
+  const { isDark } = useTheme()
   const queryClient = useQueryClient()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
   const [logType, setLogType] = useState('application')
