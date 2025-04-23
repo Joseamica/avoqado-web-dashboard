@@ -39,10 +39,13 @@ import { Layout } from '@/Layout'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
 
-// Importamos los nuevos componentes de administración
+// Importamos los componentes de administración
 import AdminDashboard from '@/pages/Admin/AdminDashboard'
 import UserManagement from '@/pages/Admin/UserManagement'
 import SystemSettings from '@/pages/Admin/SystemSettings'
+import VenueManagement from '@/pages/Admin/VenueManagement'
+import GlobalConfig from '@/pages/Admin/GlobalConfig'
+import SuperAdminManagement from '@/pages/Admin/SuperAdminManagement'
 
 const router = createBrowserRouter([
   {
@@ -80,7 +83,7 @@ const router = createBrowserRouter([
               },
               {
                 path: 'venues',
-                element: <div>Gestión de Venues (en desarrollo)</div>,
+                element: <VenueManagement />,
               },
               {
                 path: 'settings',
@@ -103,7 +106,17 @@ const router = createBrowserRouter([
                 children: [
                   {
                     index: true,
-                    element: <div>Configuración global (solo superadmin)</div>,
+                    element: <GlobalConfig />,
+                  },
+                ],
+              },
+              {
+                path: 'superadmins',
+                element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+                children: [
+                  {
+                    index: true,
+                    element: <SuperAdminManagement />,
                   },
                 ],
               },
