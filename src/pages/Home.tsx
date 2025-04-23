@@ -415,7 +415,7 @@ const Home = () => {
       if (categories[productType]) {
         const existing = categories[productType].find(p => p.name === product.name)
         if (existing) {
-          existing.quantity += product.quantity
+          existing.quantity = Number(existing.quantity) + Number(product.quantity)
         } else {
           categories[productType].push({ ...product })
         }
