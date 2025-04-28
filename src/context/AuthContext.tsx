@@ -151,8 +151,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       queryClient.invalidateQueries({ queryKey: ['status'] }) // Refetch status if necessary
       setIsAuthenticated(true)
       setUser(response.data.user)
-      const soleVenueId = response.data.user.userVenues[0].venueId
-      navigate(`/venues/${soleVenueId}/home`, { replace: true })
+
+      if (response.data.user.role === 'SUPERADMIN') {
+        navigate('/venues', { replace: true })
+      } else {
+        const soleVenueId = response.data.user.userVenues[0].venueId
+        navigate(`/venues/${soleVenueId}/home`, { replace: true })
+      }
       toast({ title: 'Haz iniciado sesión correctamente.' })
     },
     onError: (error: any) => {

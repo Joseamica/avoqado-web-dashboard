@@ -11,8 +11,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -23,17 +25,23 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   ArrowUpToLine,
+  BarChart3,
+  Building,
   Code,
   Database,
   Download,
   FileText,
+  Globe,
   Loader2,
   RefreshCcw,
   Server,
+  Settings,
   ShieldAlert,
   Trash2,
+  Users,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -63,6 +71,7 @@ export default function SystemSettings() {
   const { toast } = useToast()
   const { isDark } = useTheme()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
   const [logType, setLogType] = useState('application')
   const [linesCount, setLinesCount] = useState('100')
@@ -70,8 +79,19 @@ export default function SystemSettings() {
   const [formattedLogs, setFormattedLogs] = useState('')
   const [useFormatting, setUseFormatting] = useState(true)
   const [isJsonContent, setIsJsonContent] = useState(false)
-  const [activeTab, setActiveTab] = useState('database')
   const [showNewestFirst, setShowNewestFirst] = useState(true)
+
+  // Admin dashboard tab state
+  const [adminTab, setAdminTab] = useState('system')
+
+  // System settings tab state
+  const [activeTab, setActiveTab] = useState('database')
+
+  // Custom styles for active tab
+  const activeTabStyle: CSSProperties = {
+    borderBottom: `2px solid ${UI_COLORS[0]}`,
+    color: UI_COLORS[0],
+  }
 
   // Refs for scrolling
   const logsTextAreaRef = useRef(null)
@@ -79,6 +99,12 @@ export default function SystemSettings() {
 
   // Get the syntax highlighting theme based on app theme
   const syntaxTheme = isDark ? oneDark : oneLight
+
+  // Handle admin dashboard tab change
+  const handleAdminTabChange = (value: string) => {
+    setAdminTab(value)
+    navigate(`/admin/${value}`)
+  }
 
   // Custom syntax highlighter styling to match the app theme
   const syntaxStyles = useMemo(
@@ -132,7 +158,6 @@ export default function SystemSettings() {
     enabled: activeTab === 'system' && isSuperAdmin,
   })
 
-  // Query to fetch logs
   const {
     data: logs,
     isLoading: logsLoading,
@@ -140,10 +165,35 @@ export default function SystemSettings() {
   } = useQuery({
     queryKey: ['system-logs', logType, linesCount],
     queryFn: async () => {
-      const response = await api.get(`/v1/admin/logs?type=${logType}&lines=${linesCount}`)
-      return response.data
+      // Add a timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+      try {
+        const response = await api.get(`/v1/admin/logs?type=${logType}&lines=${linesCount}`, {
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+        return response.data
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          toast({
+            title: 'Tiempo de espera agotado',
+            description: 'La carga de logs tomó demasiado tiempo. Intente con menos líneas.',
+            variant: 'destructive',
+          })
+        }
+        throw error
+      }
     },
     enabled: isSuperAdmin,
+    // Disable automatic refetching to prevent unintended heavy loads
+    refetchOnWindowFocus: false,
+    // Add error handling
+    retry: (failureCount, error) => {
+      // Only retry once for network errors, not for timeout errors
+      return failureCount < 1 && error.name !== 'AbortError'
+    },
   })
 
   // Helper function to calculate the current CPU usage percentage
@@ -239,61 +289,116 @@ export default function SystemSettings() {
     }
 
     if (!useFormatting) {
-      // If showing newest first, reverse the lines
+      // If showing newest first, reverse the lines but do it efficiently for large content
       if (showNewestFirst) {
-        setFormattedLogs(content.split('\n').reverse().join('\n'))
+        // For large content, this is more efficient than split/reverse/join
+        const lines = content.split('\n')
+        // Only process if not too large to prevent browser hanging
+        if (lines.length < 10000) {
+          setFormattedLogs(lines.reverse().join('\n'))
+        } else {
+          // For very large content, just show the last N lines
+          const lastNLines = lines.slice(-5000)
+          setFormattedLogs(lastNLines.reverse().join('\n'))
+          toast({
+            title: 'Archivo de logs muy grande',
+            description: 'Mostrando solo las últimas 5000 líneas para mejorar el rendimiento.',
+          })
+        }
       } else {
-        setFormattedLogs(content)
+        // If content is too large, truncate it
+        if (content.length > 500000) {
+          setFormattedLogs(content.substring(content.length - 500000))
+          toast({
+            title: 'Archivo de logs muy grande',
+            description: 'Mostrando solo la parte final del archivo para mejorar el rendimiento.',
+          })
+        } else {
+          setFormattedLogs(content)
+        }
       }
       setIsJsonContent(false)
       return
     }
 
     try {
-      // Split content into lines
+      // Optimize JSON detection and formatting
+      // Split content into lines but with a limit to prevent performance issues
       let lines = content.split('\n')
+
+      // For very large logs, limit the number of lines we process
+      const maxLinesToProcess = 2000
+      let truncatedLines = false
+
+      if (lines.length > maxLinesToProcess) {
+        truncatedLines = true
+        if (showNewestFirst) {
+          lines = lines.slice(-maxLinesToProcess)
+        } else {
+          lines = lines.slice(0, maxLinesToProcess)
+        }
+      }
 
       // If showing newest first, reverse the lines
       if (showNewestFirst) {
         lines = lines.reverse()
       }
 
-      const formattedLines = []
       let hasJsonContent = false
+      const formattedLines = []
 
-      // Process each line
+      // Use a simple JSON detection regex to improve performance
+      const jsonRegex = /({[\s\S]*}|\[[\s\S]*\])/
+
+      // Process each line, limiting JSON formatting to reasonable size objects
       for (let line of lines) {
-        // Try to detect JSON content inside the line
         try {
-          // Look for JSON objects in the line
-          const jsonRegex = /{.*}|\[.*\]/
           const match = line.match(jsonRegex)
 
-          if (match) {
+          if (match && match[0].length < 10000) {
+            // Only try to parse reasonably sized JSON
             const jsonString = match[0]
-            const jsonObj = JSON.parse(jsonString)
-            const formattedJson = JSON.stringify(jsonObj, null, 2)
+            try {
+              const jsonObj = JSON.parse(jsonString)
+              const formattedJson = JSON.stringify(jsonObj, null, 2)
 
-            // Replace the JSON part with formatted JSON
-            const before = line.substring(0, match.index)
-            const after = line.substring(match.index + jsonString.length)
-            line = before + '\n' + formattedJson + '\n' + after
-            hasJsonContent = true
+              // Replace the JSON part with formatted JSON
+              const before = line.substring(0, match.index)
+              const after = line.substring(match.index + jsonString.length)
+              line = before + '\n' + formattedJson + '\n' + after
+              hasJsonContent = true
+            } catch (jsonError) {
+              // Not valid JSON, keep line as is
+            }
           }
         } catch (e) {
-          // Not valid JSON or other error, keep line as is
+          // Error in regex or other issue, keep line as is
         }
 
         formattedLines.push(line)
       }
 
       setIsJsonContent(hasJsonContent)
-      setFormattedLogs(formattedLines.join('\n'))
+      const result = formattedLines.join('\n')
+
+      if (truncatedLines) {
+        toast({
+          title: 'Archivo de logs muy grande',
+          description: `Mostrando solo ${maxLinesToProcess} líneas para mejorar el rendimiento.`,
+        })
+      }
+
+      setFormattedLogs(result)
     } catch (error) {
       console.error('Error formatting logs:', error)
-      // If showing newest first, reverse the lines
+      // Fall back to simpler processing for error cases
       if (showNewestFirst) {
-        setFormattedLogs(content.split('\n').reverse().join('\n'))
+        const lines = content.split('\n')
+        if (lines.length > 5000) {
+          setFormattedLogs(lines.slice(-5000).reverse().join('\n'))
+        } else {
+          setFormattedLogs(lines.reverse().join('\n'))
+        }
       } else {
         setFormattedLogs(content)
       }
@@ -301,10 +406,27 @@ export default function SystemSettings() {
     }
   }
 
-  // Mutation to clear logs
+  // 2. Improved log truncation with specific file handling
   const clearLogsMutation = useMutation({
     mutationFn: async () => {
-      return await api.post(`/v1/admin/logs/clear`, { type: logType })
+      // First try the standard endpoint
+      try {
+        return await api.post(`/v1/admin/logs/clear`, {
+          type: logType,
+          // Add a parameter to handle different file types
+          handleCompressed: true,
+        })
+      } catch (error) {
+        // If that fails with a specific error code (your backend would need to return this)
+        if (error.response?.status === 400 && error.response?.data?.error === 'compressed_file') {
+          // Try the alternative endpoint for compressed files
+          return await api.post(`/v1/admin/logs/truncate`, {
+            type: logType,
+          })
+        }
+        // Otherwise rethrow
+        throw error
+      }
     },
     onSuccess: () => {
       toast({
@@ -314,11 +436,14 @@ export default function SystemSettings() {
       queryClient.invalidateQueries({ queryKey: ['system-logs'] })
       setIsDialogOpen(false)
     },
-    onError: error => {
+    onError: (error: any) => {
       console.error('Error clearing logs:', error)
+      // More specific error message
+      const errorMessage = error.response?.data?.message || 'No se pudieron borrar los logs. Contacte al administrador del sistema.'
+
       toast({
         title: 'Error',
-        description: 'No se pudieron borrar los logs. Contacte al administrador del sistema.',
+        description: errorMessage,
         variant: 'destructive',
       })
       setIsDialogOpen(false)
@@ -361,13 +486,6 @@ export default function SystemSettings() {
     return types[type] || type
   }
 
-  // Style for tab buttons
-  const tabStyle = isActive => {
-    return `flex items-center space-x-2 py-4 px-6 flex-1 justify-center transition-colors ${
-      isActive ? `bg-gray-800 text-white` : `bg-black hover:bg-gray-900 text-white`
-    } ${!isActive ? 'border-r border-gray-700' : ''}`
-  }
-
   // CPU usage chart component
   const CpuUsageChart = ({ cpuData }: { cpuData: MetricData }) => {
     // Transform the data for the chart
@@ -402,6 +520,68 @@ export default function SystemSettings() {
 
   return (
     <div className={`flex flex-col space-y-6 ${themeClasses.pageBg}`}>
+      {/* Admin Dashboard Tabs */}
+      <div className="mb-4">
+        <Tabs defaultValue={adminTab} onValueChange={handleAdminTabChange} className="w-full">
+          <div className={`border-b ${themeClasses.border}`}>
+            <TabsList className="mb-0">
+              <TabsTrigger
+                value="general"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                style={adminTab === 'general' ? activeTabStyle : undefined}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                General
+              </TabsTrigger>
+              <TabsTrigger
+                value="users"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                style={adminTab === 'users' ? activeTabStyle : undefined}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Usuarios
+              </TabsTrigger>
+              <TabsTrigger
+                value="venues"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                style={adminTab === 'venues' ? activeTabStyle : undefined}
+              >
+                <Building className="h-4 w-4 mr-2" />
+                Venues
+              </TabsTrigger>
+              {isSuperAdmin && (
+                <>
+                  <TabsTrigger
+                    value="system"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                    style={adminTab === 'system' ? activeTabStyle : undefined}
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    Sistema
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="global"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                    style={adminTab === 'global' ? activeTabStyle : undefined}
+                  >
+                    <Globe className="h-4 w-4 mr-2" />
+                    Configuración Global
+                  </TabsTrigger>
+                </>
+              )}
+              <TabsTrigger
+                value="settings"
+                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                style={adminTab === 'settings' ? activeTabStyle : undefined}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Configuración
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </Tabs>
+      </div>
+
       {/* Warning banner */}
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/20 dark:border-yellow-600">
         <div className="flex">
@@ -417,45 +597,44 @@ export default function SystemSettings() {
         </div>
       </div>
 
-      {/* Tabs navigation */}
-      <div className={`${isDark ? 'bg-black' : themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
-        <div className="flex">
-          <button className={tabStyle(activeTab === 'database')} onClick={() => setActiveTab('database')}>
-            <Database className="h-5 w-5 mr-2" />
-            <span>Base de Datos</span>
-          </button>
+      {/* System Settings Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm mb-6`}>
+          <TabsList className="w-full grid grid-cols-4 rounded-none">
+            <TabsTrigger value="database" className="rounded-none">
+              <Database className="h-5 w-5 mr-2" />
+              <span>Base de Datos</span>
+            </TabsTrigger>
 
-          <button className={tabStyle(activeTab === 'system')} onClick={() => setActiveTab('system')}>
-            <Server className="h-5 w-5 mr-2" />
-            <span>Servidor</span>
-          </button>
+            <TabsTrigger value="system" className="rounded-none">
+              <Server className="h-5 w-5 mr-2" />
+              <span>Servidor</span>
+            </TabsTrigger>
 
-          <button className={tabStyle(activeTab === 'logs')} onClick={() => setActiveTab('logs')}>
-            <FileText className="h-5 w-5 mr-2" />
-            <span>Logs</span>
-          </button>
+            <TabsTrigger value="logs" className="rounded-none">
+              <FileText className="h-5 w-5 mr-2" />
+              <span>Logs</span>
+            </TabsTrigger>
 
-          <button className={tabStyle(activeTab === 'security')} onClick={() => setActiveTab('security')}>
-            <ShieldAlert className="h-5 w-5 mr-2" />
-            <span>Seguridad</span>
-          </button>
+            <TabsTrigger value="security" className="rounded-none">
+              <ShieldAlert className="h-5 w-5 mr-2" />
+              <span>Seguridad</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
 
-      {/* Tab content */}
-      <div className="mt-2">
         {/* Database tab */}
-        {activeTab === 'database' && (
+        <TabsContent value="database" className="mt-2">
           <div className="space-y-4">
             <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de Base de Datos</h3>
 
-            <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
-              <div className={`border-b ${themeClasses.border} p-4`}>
-                <h2 className={`text-lg font-medium ${themeClasses.text}`}>Mantenimiento</h2>
-                <p className={`text-sm ${themeClasses.textMuted}`}>Opciones de mantenimiento de la base de datos</p>
-              </div>
+            <Card className={themeClasses.cardBg}>
+              <CardHeader className={`border-b ${themeClasses.border}`}>
+                <CardTitle className={themeClasses.text}>Mantenimiento</CardTitle>
+                <CardDescription className={themeClasses.textMuted}>Opciones de mantenimiento de la base de datos</CardDescription>
+              </CardHeader>
 
-              <div className="p-6">
+              <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Cache</h4>
@@ -485,7 +664,7 @@ export default function SystemSettings() {
                     </Button>
                   </div>
                 </div>
-              </div>
+              </CardContent>
 
               <div className={`border-t ${themeClasses.border} p-4 flex justify-between items-center`}>
                 <p className={`text-xs ${themeClasses.textMuted}`}>Último mantenimiento: Hace 5 días</p>
@@ -493,22 +672,22 @@ export default function SystemSettings() {
                   Ejecutar Mantenimiento Completo
                 </Button>
               </div>
-            </div>
+            </Card>
           </div>
-        )}
+        </TabsContent>
 
         {/* System tab */}
-        {activeTab === 'system' && (
+        <TabsContent value="system" className="mt-2">
           <div className="space-y-4">
             <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración del Servidor</h3>
 
-            <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
-              <div className={`border-b ${themeClasses.border} p-4`}>
-                <h2 className={`text-lg font-medium ${themeClasses.text}`}>Estado del Sistema</h2>
-                <p className={`text-sm ${themeClasses.textMuted}`}>Estado actual del servidor y opciones de mantenimiento</p>
-              </div>
+            <Card className={themeClasses.cardBg}>
+              <CardHeader className={`border-b ${themeClasses.border}`}>
+                <CardTitle className={themeClasses.text}>Estado del Sistema</CardTitle>
+                <CardDescription className={themeClasses.textMuted}>Estado actual del servidor y opciones de mantenimiento</CardDescription>
+              </CardHeader>
 
-              <div className="p-6">
+              <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Uso de CPU</h4>
@@ -563,9 +742,9 @@ export default function SystemSettings() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </CardContent>
 
-              <div className="p-6 pt-0">
+              <CardContent className="px-6 pb-6 pt-0">
                 <h4 className={`text-base font-medium ${themeClasses.text} mb-4`}>Historial de CPU (últimos 60 minutos)</h4>
                 {cpuUsageLoading ? (
                   <div className="h-24 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse flex items-center justify-center">
@@ -582,7 +761,7 @@ export default function SystemSettings() {
                     )}
                   </div>
                 )}
-              </div>
+              </CardContent>
 
               <div className={`border-t ${themeClasses.border} p-4`}>
                 <Button
@@ -599,24 +778,24 @@ export default function SystemSettings() {
                   Actualizar Datos
                 </Button>
               </div>
-            </div>
+            </Card>
           </div>
-        )}
+        </TabsContent>
 
         {/* Logs tab */}
-        {activeTab === 'logs' && (
+        <TabsContent value="logs" className="mt-2">
           <div className="space-y-4">
             <h3 className={`text-lg font-medium ${themeClasses.text}`}>Visualizador de Logs</h3>
 
-            <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
-              <div className={`border-b ${themeClasses.border} p-4`}>
-                <h2 className={`text-lg font-medium ${themeClasses.text}`}>Logs del Sistema</h2>
-                <p className={`text-sm ${themeClasses.textMuted}`}>
+            <Card className={themeClasses.cardBg}>
+              <CardHeader className={`border-b ${themeClasses.border}`}>
+                <CardTitle className={themeClasses.text}>Logs del Sistema</CardTitle>
+                <CardDescription className={themeClasses.textMuted}>
                   Visualiza los logs del backend para diagnóstico y solución de problemas
-                </p>
-              </div>
+                </CardDescription>
+              </CardHeader>
 
-              <div className="p-6">
+              <CardContent className="p-6">
                 <div className="flex flex-wrap gap-4 mb-6">
                   <div className="w-full sm:w-auto">
                     <label className={`text-sm font-medium ${themeClasses.text} mb-2 block`}>Tipo de Log</label>
@@ -746,7 +925,7 @@ export default function SystemSettings() {
                     </>
                   )}
                 </div>
-              </div>
+              </CardContent>
 
               <div className={`border-t ${themeClasses.border} p-4 flex justify-between items-center`}>
                 <p className={`text-xs ${themeClasses.textMuted}`}>
@@ -762,28 +941,28 @@ export default function SystemSettings() {
                   Descargar Logs
                 </Button>
               </div>
-            </div>
+            </Card>
           </div>
-        )}
+        </TabsContent>
 
         {/* Security tab */}
-        {activeTab === 'security' && (
+        <TabsContent value="security" className="mt-2">
           <div className="space-y-4">
             <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de Seguridad</h3>
 
-            <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
-              <div className={`border-b ${themeClasses.border} p-4`}>
-                <h2 className={`text-lg font-medium ${themeClasses.text}`}>Opciones de Seguridad</h2>
-                <p className={`text-sm ${themeClasses.textMuted}`}>Configuración de seguridad de la plataforma</p>
-              </div>
+            <Card className={themeClasses.cardBg}>
+              <CardHeader className={`border-b ${themeClasses.border}`}>
+                <CardTitle className={themeClasses.text}>Opciones de Seguridad</CardTitle>
+                <CardDescription className={themeClasses.textMuted}>Configuración de seguridad de la plataforma</CardDescription>
+              </CardHeader>
 
-              <div className="p-6">
+              <CardContent className="p-6">
                 <p className={themeClasses.text}>Contenido de configuración de seguridad</p>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
