@@ -80,6 +80,8 @@ export default function SystemSettings() {
   const [useFormatting, setUseFormatting] = useState(true)
   const [isJsonContent, setIsJsonContent] = useState(false)
   const [showNewestFirst, setShowNewestFirst] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filteredLogs, setFilteredLogs] = useState('')
 
   // Admin dashboard tab state
   const [adminTab, setAdminTab] = useState('system')
@@ -240,6 +242,13 @@ export default function SystemSettings() {
       setIsJsonContent(false)
     }
   }, [logs, useFormatting, showNewestFirst])
+
+  // Add new useEffect for search filtering
+  useEffect(() => {
+    if (formattedLogs) {
+      setFilteredLogs(filterLogs(formattedLogs, searchQuery))
+    }
+  }, [formattedLogs, searchQuery])
 
   // Scroll to bottom when logs change or show newest first option changes
   useEffect(() => {
@@ -404,6 +413,13 @@ export default function SystemSettings() {
       }
       setIsJsonContent(false)
     }
+  }
+
+  // Add this function after the formatLogs function
+  const filterLogs = (content: string, query: string) => {
+    if (!query) return content
+    const lines = content.split('\n')
+    return lines.filter(line => line.toLowerCase().includes(query.toLowerCase())).join('\n')
   }
 
   // 2. Improved log truncation with specific file handling
@@ -827,6 +843,33 @@ export default function SystemSettings() {
                     </Select>
                   </div>
 
+                  <div className="w-full sm:w-auto">
+                    <label className={`text-sm font-medium ${themeClasses.text} mb-2 block`}>Buscar en logs</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Buscar texto o clave..."
+                        className={`w-full sm:w-[300px] h-10 px-4 py-2 rounded-md ${themeClasses.inputBg} ${themeClasses.border} ${themeClasses.text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 w-full mt-2 sm:mt-0 sm:w-auto sm:self-end">
                     <div className="flex items-center space-x-2">
                       <Switch id="format-json" checked={useFormatting} onCheckedChange={setUseFormatting} />
@@ -911,7 +954,7 @@ export default function SystemSettings() {
                             showLineNumbers={true}
                             wrapLongLines={true}
                           >
-                            {formattedLogs}
+                            {filteredLogs}
                           </SyntaxHighlighter>
                         </div>
                       ) : (
@@ -919,7 +962,7 @@ export default function SystemSettings() {
                           ref={logsTextAreaRef}
                           className={`font-mono text-xs h-[400px] p-4 resize-none ${themeClasses.inputBg} ${themeClasses.text}`}
                           readOnly
-                          value={formattedLogs}
+                          value={filteredLogs}
                         />
                       )}
                     </>
@@ -931,15 +974,17 @@ export default function SystemSettings() {
                 <p className={`text-xs ${themeClasses.textMuted}`}>
                   {logs?.lastUpdated ? `Última actualización: ${new Date(logs.lastUpdated).toLocaleString()}` : 'Sin datos'}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadLogs}
-                  className={`${isDark ? 'bg-gray-800 hover:bg-gray-700' : ''} ${themeClasses.border}`}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Descargar Logs
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadLogs}
+                    className={`${isDark ? 'bg-gray-800 hover:bg-gray-700' : ''} ${themeClasses.border}`}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Descargar Logs
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
