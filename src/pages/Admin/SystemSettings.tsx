@@ -45,6 +45,7 @@ import { useNavigate } from 'react-router-dom'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Enhanced color palette for charts and UI elements
 const UI_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
@@ -82,6 +83,7 @@ export default function SystemSettings() {
   const [showNewestFirst, setShowNewestFirst] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredLogs, setFilteredLogs] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   // Admin dashboard tab state
   const [adminTab, setAdminTab] = useState('system')
@@ -415,11 +417,15 @@ export default function SystemSettings() {
     }
   }
 
-  // Add this function after the formatLogs function
+  // Update the filterLogs function to include loading state
   const filterLogs = (content: string, query: string) => {
     if (!query) return content
+    setIsSearching(true)
     const lines = content.split('\n')
-    return lines.filter(line => line.toLowerCase().includes(query.toLowerCase())).join('\n')
+    const filtered = lines.filter(line => line.toLowerCase().includes(query.toLowerCase())).join('\n')
+    // Simulate a small delay to show loading state
+    setTimeout(() => setIsSearching(false), 300)
+    return filtered
   }
 
   // 2. Improved log truncation with specific file handling
@@ -535,7 +541,7 @@ export default function SystemSettings() {
   }
 
   return (
-    <div className={`flex flex-col space-y-6 ${themeClasses.pageBg}`}>
+    <div className={`flex flex-col space-y-6 h-screen ${themeClasses.pageBg}`}>
       {/* Admin Dashboard Tabs */}
       <div className="mb-4">
         <Tabs defaultValue={adminTab} onValueChange={handleAdminTabChange} className="w-full">
@@ -867,6 +873,11 @@ export default function SystemSettings() {
                           </svg>
                         </button>
                       )}
+                      {isSearching && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -939,8 +950,25 @@ export default function SystemSettings() {
 
                 <div className={`border ${themeClasses.border} rounded-md overflow-hidden`}>
                   {logsLoading ? (
-                    <div className={`flex justify-center items-center p-8 ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-[95%]" />
+                      <Skeleton className="h-4 w-[90%]" />
+                      <Skeleton className="h-4 w-[85%]" />
+                      <Skeleton className="h-4 w-[80%]" />
+                      <Skeleton className="h-4 w-[75%]" />
+                      <Skeleton className="h-4 w-[70%]" />
+                      <Skeleton className="h-4 w-[65%]" />
+                      <Skeleton className="h-4 w-[60%]" />
+                      <Skeleton className="h-4 w-[55%]" />
+                    </div>
+                  ) : isSearching ? (
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-[95%]" />
+                      <Skeleton className="h-4 w-[90%]" />
+                      <Skeleton className="h-4 w-[85%]" />
+                      <Skeleton className="h-4 w-[80%]" />
                     </div>
                   ) : (
                     <>
