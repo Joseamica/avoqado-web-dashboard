@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { themeClasses } from '@/lib/theme-utils'
 
 export enum AdminAccessLevel {
   ADMIN = 'ADMIN', // Para roles ADMIN y SUPERADMIN
@@ -45,13 +46,15 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
   // Si se requiere SUPERADMIN pero el usuario es solo ADMIN, mostrar mensaje específico
   if (requiredRole === AdminAccessLevel.SUPERADMIN && !isSuperAdmin) {
     return (
-      <div className="p-6 bg-gray-50 rounded-lg dark:bg-gray-800/50">
+      <div className={`p-6 h-screen ${themeClasses.pageBg}`}>
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Acceso restringido</AlertTitle>
-          <AlertDescription>Esta sección está disponible solo para SuperAdministradores.</AlertDescription>
+          <AlertDescription className={`${themeClasses.textMuted}`}>
+            Esta sección está disponible solo para SuperAdministradores.
+          </AlertDescription>
         </Alert>
-        <p className="text-muted-foreground text-sm mt-4">Si necesitas acceso a esta funcionalidad, contacta a un SuperAdmin.</p>
+        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un SuperAdmin.</p>
       </div>
     )
   }

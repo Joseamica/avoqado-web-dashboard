@@ -3,6 +3,12 @@ export interface Venue {
   name: string
   plan: string
   logo: string
+  address?: string
+  city?: string
+  type: string
+  status: 'active' | 'inactive'
+  admins?: number
+  waiters?: number
   // Add other venue-related fields
 }
 

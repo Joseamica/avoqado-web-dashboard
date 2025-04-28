@@ -38,3 +38,5 @@ export { default as SystemSettings } from '@/pages/Admin/SystemSettings'
 export { default as VenueManagement } from '@/pages/Admin/VenueManagement'
 export { default as GlobalConfig } from '@/pages/Admin/GlobalConfig'
 export { default as SuperAdminManagement } from '@/pages/Admin/SuperAdminManagement'
+
+export { default as Venues } from '@/pages/Venue/Venues'

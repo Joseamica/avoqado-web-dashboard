@@ -32,6 +32,7 @@ import {
   ShiftId,
   Bills,
   BillId,
+  Venues,
 } from '@/pages/index'
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
@@ -64,10 +65,22 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />, // Protected routes
         children: [
+          // Add venues route before venues/:venueId
+          {
+            path: '/venues',
+            element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+            children: [
+              {
+                index: true,
+                element: <Venues />,
+              },
+            ],
+          },
+
           // Nueva sección de administración
           {
             path: '/admin',
-            element: <AdminProtectedRoute />, // Protegido para ADMIN y SUPERADMIN
+            element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />, // Protegido para ADMIN y SUPERADMIN
             children: [
               {
                 index: true,
@@ -83,7 +96,13 @@ const router = createBrowserRouter([
               },
               {
                 path: 'venues',
-                element: <VenueManagement />,
+                element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+                children: [
+                  {
+                    index: true,
+                    element: <Venues />,
+                  },
+                ],
               },
               {
                 path: 'settings',
