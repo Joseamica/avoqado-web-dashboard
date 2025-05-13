@@ -283,7 +283,6 @@ const Home = () => {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   })
-
   // Register socket event handlers to update data in real-time
   useSocketEvents(
     venueId,
@@ -449,7 +448,6 @@ const Home = () => {
 
     return categories
   }, [data?.products])
-  console.log(bestSellingProducts)
 
   // Tips over time chart data
   const tipsChartData = useMemo(() => {
@@ -786,6 +784,7 @@ const Home = () => {
       setExportLoading(false)
     }
   }
+  console.log(data)
 
   return (
     <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
