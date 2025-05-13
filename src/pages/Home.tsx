@@ -441,7 +441,6 @@ const Home = () => {
         categories.OTHER.push({ ...product })
       }
     })
-    console.log(bestSellingProducts)
     // Sort by quantity and limit top 3
     Object.keys(categories).forEach(type => {
       categories[type].sort((a, b) => b.quantity - a.quantity)
@@ -450,6 +449,7 @@ const Home = () => {
 
     return categories
   }, [data?.products])
+  console.log(bestSellingProducts)
 
   // Tips over time chart data
   const tipsChartData = useMemo(() => {
