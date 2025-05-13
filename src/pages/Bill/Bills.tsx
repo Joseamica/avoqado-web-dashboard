@@ -6,6 +6,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
+import { useSocketEvents } from '@/hooks/use-socket-events'
 
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,7 @@ export default function Bills() {
     pageSize: 10,
   })
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['bills', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
       const response = await api.get(`/v2/dashboard/${venueId}/bills`, {
@@ -35,6 +36,16 @@ export default function Bills() {
   })
 
   const totalBills = data?.meta?.total || 0
+
+  // Connect to socket and listen for bill updates
+  useSocketEvents(
+    venueId,
+    (data) => {
+      console.log('Received dashboard update:', data)
+      // Refetch bills data when a new update is received
+      refetch()
+    }
+  )
 
   // Memoize columns definition to prevent unnecessary re-renders
   const columns = useMemo<ColumnDef<Bill, unknown>[]>(
