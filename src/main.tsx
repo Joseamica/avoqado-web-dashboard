@@ -6,6 +6,7 @@ import App from './App'
 import './index.css'
 import './theme.css'
 import { ThemeProvider } from './context/ThemeContext'
+import { SocketProvider } from './context/SocketContext'
 const queryClient = new QueryClient({
   // defaultOptions:{
   //   queries:{
@@ -21,7 +22,9 @@ const root = ReactDOM.createRoot(rootElement)
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <SocketProvider>
+        <App />
+      </SocketProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 )

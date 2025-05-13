@@ -14,6 +14,7 @@ import { useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { useTheme } from '@/context/ThemeContext'
 import { themeClasses } from '@/lib/theme-utils'
+import { useSocketEvents } from '@/hooks/use-socket-events'
 
 // Translations for payment methods
 const PAYMENT_METHOD_TRANSLATIONS = {
@@ -257,7 +258,13 @@ const Home = () => {
   }
 
   // Fetch main data with date range parameters
-  const { data, isLoading, isError, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch: refetchDashboardData,
+  } = useQuery({
     queryKey: ['general_stats', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
     queryFn: async () => {
       // Add date params to the API call
@@ -276,6 +283,19 @@ const Home = () => {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   })
+
+  // Register socket event handlers to update data in real-time
+  useSocketEvents(
+    venueId,
+    data => {
+      console.log('Received payment update:', data)
+      refetchDashboardData()
+    },
+    data => {
+      console.log('Received shift update:', data)
+      refetchDashboardData()
+    },
+  )
 
   // Extract the data we need
   const filteredReviews = useMemo(() => data?.feedbacks || [], [data?.feedbacks])
@@ -421,7 +441,7 @@ const Home = () => {
         categories.OTHER.push({ ...product })
       }
     })
-
+    console.log(bestSellingProducts)
     // Sort by quantity and limit top 3
     Object.keys(categories).forEach(type => {
       categories[type].sort((a, b) => b.quantity - a.quantity)
@@ -452,7 +472,11 @@ const Home = () => {
   }, [filteredPayments])
 
   // Fetch comparison period data in a separate query
-  const { data: compareData, isLoading: isCompareLoading } = useQuery({
+  const {
+    data: compareData,
+    isLoading: isCompareLoading,
+    refetch: refetchCompareData,
+  } = useQuery({
     queryKey: ['general_stats_compare', venueId, compareRange?.from?.toISOString(), compareRange?.to?.toISOString()],
     queryFn: async () => {
       if (!compareType) return null
