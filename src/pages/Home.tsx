@@ -784,7 +784,6 @@ const Home = () => {
       setExportLoading(false)
     }
   }
-  console.log(data)
 
   return (
     <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
