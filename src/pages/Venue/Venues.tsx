@@ -35,7 +35,7 @@ const Venues = () => {
   })
 
   const handleVenueClick = (venueId: string) => {
-    navigate(`/venues/${venueId}`)
+    navigate(`${venueId}`)
   }
 
   return (

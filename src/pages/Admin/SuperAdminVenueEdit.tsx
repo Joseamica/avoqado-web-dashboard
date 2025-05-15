@@ -1,5 +1,4 @@
 import api from '@/api'
-import AlertDialogWrapper from '@/components/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -18,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { ArrowLeft } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -27,8 +26,9 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import countryList from 'react-select-country-list'
 import { Skeleton } from '@/components/ui/skeleton'
+import { themeClasses } from '@/lib/theme-utils'
 
-// Add VenueType enum to match Prisma schema
+// VenueType and PosNames enums from regular venue edit
 enum VenueType {
   RESTAURANT = 'RESTAURANT',
   STUDIO = 'STUDIO',
@@ -43,7 +43,8 @@ enum PosNames {
   NONE = 'NONE',
 }
 
-const venueFormSchema = z.object({
+// Extended schema with editable feature flags for SuperAdmin
+const superAdminVenueFormSchema = z.object({
   name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
   posName: z.string().nullable().optional(),
   posUniqueId: z.string().nullable().optional(),
@@ -74,7 +75,10 @@ const venueFormSchema = z.object({
   stripeAccountId: z.string().nullable().optional(),
   specialPayment: z.boolean().default(false),
   specialPaymentRef: z.string().nullable().optional(),
+  
+  // Features (editable for SuperAdmin)
   ordering: z.boolean().default(false),
+  
   // Menta fields
   merchantIdA: z.string().nullable().optional(),
   merchantIdB: z.string().nullable().optional(),
@@ -82,12 +86,12 @@ const venueFormSchema = z.object({
   apiKeyB: z.string().nullable().optional(),
 })
 
-type VenueFormValues = z.infer<typeof venueFormSchema>
+type SuperAdminVenueFormValues = z.infer<typeof superAdminVenueFormSchema>
 
-// Add a VenueSkeleton component
+// Skeleton component for loading state
 function VenueSkeleton() {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Skeleton className="h-5 w-5" />
@@ -100,52 +104,15 @@ function VenueSkeleton() {
       </div>
 
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96 mb-6" />
+        </div>
         <div className="space-y-6 md:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
               <Skeleton className="h-7 w-48 mb-2" />
               <Skeleton className="h-0.5 w-full mb-6" />
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <Skeleton className="h-7 w-48 mb-2" />
-              <Skeleton className="h-0.5 w-full mb-6" />
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
-              <div className="space-y-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-
               <div className="space-y-4">
                 <Skeleton className="h-5 w-24" />
                 <Skeleton className="h-10 w-full" />
@@ -158,37 +125,25 @@ function VenueSkeleton() {
   )
 }
 
-export default function EditVenue() {
+export default function SuperAdminVenueEdit() {
   const { venueId } = useParams()
-
-  // Get the list of countries - moved to top of component
-  const countries = useMemo(() => {
-    // Obtener la lista de países pero usar el código ISO de dos letras como valor
-    const list = countryList().getData()
-    return list.map(country => ({
-      value: country.value,
-      label: `${country.label} (${country.value})`, // Mostrar el código junto al nombre
-    }))
-  }, [])
-
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const from = (location.state as any)?.from || '/'
+  const from = (location.state as any)?.from || '/admin/venues'
+  const queryClient = useQueryClient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
-  const queryClient = useQueryClient()
 
-  const { data: venue, isLoading } = useQuery({
-    queryKey: ['get-venue-data', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/venue`)
-      return response.data
-    },
-  })
+  // Get country list for select dropdown
+  const countries = countryList().getData().map(country => ({
+    value: country.value,
+    label: `${country.label} (${country.value})`,
+  }))
 
-  const form = useForm<VenueFormValues>({
-    resolver: zodResolver(venueFormSchema),
+  // Set up form with resolver and default values
+  const form = useForm<SuperAdminVenueFormValues>({
+    resolver: zodResolver(superAdminVenueFormSchema),
     defaultValues: {
       name: '',
       posName: null,
@@ -227,14 +182,19 @@ export default function EditVenue() {
     },
   })
 
+  // Query to fetch venue data
+  const { data: venue, isLoading } = useQuery({
+    queryKey: ['get-venue-data-superadmin', venueId],
+    queryFn: async () => {
+      const response = await api.get(`/v2/dashboard/${venueId}/venue`)
+      return response.data
+    },
+  })
+
   // Update form values when venue data is loaded
   useEffect(() => {
     if (venue) {
-      console.log('Venue data for reset:', venue) // Debugging
-
-      // El país puede venir como código ISO (MX) o como nombre completo
-      const countryValue = venue.country || ''
-      console.log('Country value from API:', countryValue)
+      console.log('SuperAdmin venue data:', venue)
 
       form.reset({
         name: venue.name || '',
@@ -243,7 +203,7 @@ export default function EditVenue() {
         address: venue.address || '',
         city: venue.city || '',
         type: (venue.type as VenueType) || null,
-        country: countryValue, // Usamos el valor tal como viene
+        country: venue.country || '',
         utc: venue.utc || 'America/Mexico_City',
         instagram: venue.instagram || '',
         phone: venue.phone || '',
@@ -272,22 +232,12 @@ export default function EditVenue() {
         apiKeyA: venue.menta?.apiKeyA || '',
         apiKeyB: venue.menta?.apiKeyB || '',
       })
-
-      // Después de reiniciar el formulario, verificar el valor establecido
-      console.log('Form reset with country:', form.getValues('country'))
     }
   }, [venue, form])
 
-  useEffect(() => {
-    if (venue) {
-      // Para debugging
-      console.log('Venue POS system:', venue.posName)
-      console.log('Venue country code:', venue.country)
-    }
-  }, [venue])
-
+  // Mutation to save venue data
   const saveVenue = useMutation({
-    mutationFn: async (data: VenueFormValues) => {
+    mutationFn: async (data: SuperAdminVenueFormValues) => {
       // Create a clean object with only the fields that have values
       const venueData: any = {}
 
@@ -330,7 +280,7 @@ export default function EditVenue() {
         title: 'Venue actualizado',
         description: 'El venue se ha actualizado correctamente.',
       })
-      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data-superadmin', venueId] })
     },
     onError: error => {
       toast({
@@ -363,13 +313,13 @@ export default function EditVenue() {
     },
   })
 
-  function onSubmit(formValues: VenueFormValues) {
+  function onSubmit(formValues: SuperAdminVenueFormValues) {
     saveVenue.mutate(formValues)
   }
 
   if (isLoading) return <VenueSkeleton />
 
-  const expectedDeleteText = `delete ${venue.name}`
+  const expectedDeleteText = `delete ${venue?.name}`
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
 
   return (
@@ -379,7 +329,9 @@ export default function EditVenue() {
           <Link to={from} className="flex items-center hover:text-primary">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="font-medium truncate max-w-[200px] md:max-w-none">{venue.name}</span>
+          <span className={`font-medium truncate max-w-[200px] md:max-w-none ${themeClasses.text}`}>
+            {venue?.name} <span className={`text-xs ${themeClasses.textMuted}`}>(SUPERADMIN)</span>
+          </span>
         </div>
         <div className="space-x-2 flex items-center">
           <Button
@@ -402,13 +354,13 @@ export default function EditVenue() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro de que deseas eliminar este venue?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Para confirmar, escribe "delete {venue.name}" a continuación:
+              Esta acción no se puede deshacer. Para confirmar, escribe "delete {venue?.name}" a continuación:
             </AlertDialogDescription>
             <div className="mt-4">
               <Input
                 value={deleteConfirmation}
                 onChange={e => setDeleteConfirmation(e.target.value)}
-                placeholder={`delete ${venue.name}`}
+                placeholder={`delete ${venue?.name}`}
                 className="mt-2"
               />
             </div>
@@ -427,11 +379,18 @@ export default function EditVenue() {
       </AlertDialog>
 
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
+        <div>
+          <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Venue - SUPERADMIN</h2>
+          <p className={`${themeClasses.textMuted}`}>Edición avanzada con acceso a características premium</p>
+        </div>
+
+        <div className="my-6"></div>
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Información básica</h3>
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Información básica</h3>
                 <Separator />
 
                 <FormField
@@ -475,20 +434,6 @@ export default function EditVenue() {
 
                 <FormField
                   control={form.control}
-                  name="cuisine"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Cocina</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Tipo de cocina" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="address"
                   render={({ field }) => (
                     <FormItem>
@@ -519,50 +464,65 @@ export default function EditVenue() {
                   <FormField
                     control={form.control}
                     name="country"
-                    render={({ field }) => {
-                      // Para debugging
-                      console.log('Field country value:', field.value)
-                      return (
-                        <FormItem>
-                          <FormLabel>País</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un país" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {countries.map(country => (
-                                <SelectItem key={country.value} value={country.value}>
-                                  {country.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>País</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona un país" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {countries.map(country => (
+                              <SelectItem key={country.value} value={country.value}>
+                                {country.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Características premium (SUPERADMIN)</h3>
+                <Separator />
+
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+                  <h4 className="font-medium text-yellow-800 dark:text-yellow-300 mb-2">Configuración de características de pago</h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                    Estas opciones solo están disponibles para administradores con nivel SUPERADMIN y permiten habilitar/deshabilitar
+                    características de pago para este venue.
+                  </p>
                 </div>
 
                 <FormField
                   control={form.control}
-                  name="utc"
+                  name="ordering"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zona horaria</FormLabel>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md bg-white dark:bg-gray-900">
                       <FormControl>
-                        <Input placeholder="America/Mexico_City" {...field} />
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
-                      <FormMessage />
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Ordenar desde TPV</FormLabel>
+                        <p className="text-sm text-muted-foreground">Permite ordenar desde el Terminal Punto de Venta (característica premium)</p>
+                      </div>
                     </FormItem>
                   )}
                 />
-              </div>
 
+                {/* Espacio para futuras características premium */}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Contacto e imágenes</h3>
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Contacto e imágenes</h3>
                 <Separator />
 
                 <FormField
@@ -620,200 +580,10 @@ export default function EditVenue() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de imagen principal</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/imagen.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de logo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/logo.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración del WiFi</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="wifiName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del WiFi</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nombre de la red WiFi" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="wifiPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña del WiFi</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Contraseña del WiFi" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración del menú</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="dynamicMenu"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Menú dinámico</FormLabel>
-                        <p className="text-sm text-muted-foreground">Habilitar menú dinámico para este venue</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="askNameOrdering"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Pedir nombre al ordenar</FormLabel>
-                        <p className="text-sm text-muted-foreground">Solicitar nombre del cliente al realizar una orden</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="ordering"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Ordenar desde TPV</FormLabel>
-                        <p className="text-sm text-muted-foreground">Permite ordenar desde el Terminal Punto de Venta (solo lectura)</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="language"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Idioma por defecto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un idioma" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="es">Español</SelectItem>
-                          <SelectItem value="en">Inglés</SelectItem>
-                          <SelectItem value="fr">Francés</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración de propinas</h3>
-                <Separator />
-
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="tipPercentage1"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Propina 1</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tipPercentage2"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Propina 2</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.15" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tipPercentage3"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Propina 3</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.20" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración de pagos</h3>
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de pagos</h3>
                 <Separator />
 
                 <FormField
@@ -845,97 +615,13 @@ export default function EditVenue() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="specialPaymentRef"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Referencia de pago especial</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Referencia de pago especial" {...field} disabled={!form.watch('specialPayment')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Integración con POS</h3>
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Integración con Menta (Pasarela de pagos)</h3>
                 <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="posName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sistema POS</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un sistema POS" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={PosNames.WANSOFT}>Wansoft</SelectItem>
-                          <SelectItem value={PosNames.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
-                          <SelectItem value={PosNames.NONE}>Ninguno</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="posUniqueId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Único POS</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ID único del sistema POS" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="softRestaurantVenueId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID de Soft Restaurant</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ID de Soft Restaurant" {...field} disabled={form.watch('posName') !== 'SOFTRESTAURANT'} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Integraciones externas</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="googleBusinessId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID de Google Business</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ID de Google Business" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
@@ -987,6 +673,48 @@ export default function EditVenue() {
                       <FormLabel>Menta API Key B (opcional)</FormLabel>
                       <FormControl>
                         <Input placeholder="Menta API Key B" {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-6">
+                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración del sistema</h3>
+                <Separator />
+
+                <FormField
+                  control={form.control}
+                  name="posName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sistema POS</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un sistema POS" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={PosNames.WANSOFT}>Wansoft</SelectItem>
+                          <SelectItem value={PosNames.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
+                          <SelectItem value={PosNames.NONE}>Ninguno</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="posUniqueId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ID Único POS</FormLabel>
+                      <FormControl>
+                        <Input placeholder="ID único del sistema POS" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
