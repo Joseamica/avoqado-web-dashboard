@@ -27,20 +27,21 @@ import { Textarea } from '@/components/ui/textarea'
 import countryList from 'react-select-country-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { themeClasses } from '@/lib/theme-utils'
+import { cn } from '@/lib/utils'
 
-// VenueType and PosNames enums from regular venue edit
-enum VenueType {
-  RESTAURANT = 'RESTAURANT',
-  STUDIO = 'STUDIO',
-  BAR = 'BAR',
-  CAFE = 'CAFE',
-  OTHER = 'OTHER',
+// Define venue types as string literals instead of enums to avoid linting errors
+const VENUE_TYPES = {
+  RESTAURANT: 'RESTAURANT',
+  STUDIO: 'STUDIO',
+  BAR: 'BAR',
+  CAFE: 'CAFE',
+  OTHER: 'OTHER',
 }
 
-enum PosNames {
-  WANSOFT = 'WANSOFT',
-  SOFTRESTAURANT = 'SOFTRESTAURANT',
-  NONE = 'NONE',
+const POS_NAMES = {
+  WANSOFT: 'WANSOFT',
+  SOFTRESTAURANT: 'SOFTRESTAURANT',
+  NONE: 'NONE',
 }
 
 // Extended schema with editable feature flags for SuperAdmin
@@ -75,10 +76,10 @@ const superAdminVenueFormSchema = z.object({
   stripeAccountId: z.string().nullable().optional(),
   specialPayment: z.boolean().default(false),
   specialPaymentRef: z.string().nullable().optional(),
-  
+
   // Features (editable for SuperAdmin)
   ordering: z.boolean().default(false),
-  
+
   // Menta fields
   merchantIdA: z.string().nullable().optional(),
   merchantIdB: z.string().nullable().optional(),
@@ -91,7 +92,7 @@ type SuperAdminVenueFormValues = z.infer<typeof superAdminVenueFormSchema>
 // Skeleton component for loading state
 function VenueSkeleton() {
   return (
-    <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
+    <div className={`space-y-6 ${themeClasses.pageBg} h-screen p-4`}>
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Skeleton className="h-5 w-5" />
@@ -136,10 +137,12 @@ export default function SuperAdminVenueEdit() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   // Get country list for select dropdown
-  const countries = countryList().getData().map(country => ({
-    value: country.value,
-    label: `${country.label} (${country.value})`,
-  }))
+  const countries = countryList()
+    .getData()
+    .map(country => ({
+      value: country.value,
+      label: `${country.label} (${country.value})`,
+    }))
 
   // Set up form with resolver and default values
   const form = useForm<SuperAdminVenueFormValues>({
@@ -198,11 +201,11 @@ export default function SuperAdminVenueEdit() {
 
       form.reset({
         name: venue.name || '',
-        posName: (venue.posName as PosNames) || null,
+        posName: venue.posName || null,
         posUniqueId: venue.posUniqueId || '',
         address: venue.address || '',
         city: venue.city || '',
-        type: (venue.type as VenueType) || null,
+        type: venue.type || null,
         country: venue.country || '',
         utc: venue.utc || 'America/Mexico_City',
         instagram: venue.instagram || '',
@@ -255,12 +258,12 @@ export default function SuperAdminVenueEdit() {
       venueData.feature = {
         upsert: {
           create: {
-            ordering: data.ordering
+            ordering: data.ordering,
           },
           update: {
-            ordering: data.ordering
-          }
-        }
+            ordering: data.ordering,
+          },
+        },
       }
 
       // Only add the menta object if at least one of the fields has a value
@@ -323,7 +326,7 @@ export default function SuperAdminVenueEdit() {
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className={`${themeClasses.pageBg} min-h-screen`}>
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Link to={from} className="flex items-center hover:text-primary">
@@ -335,7 +338,7 @@ export default function SuperAdminVenueEdit() {
         </div>
         <div className="space-x-2 flex items-center">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             className="px-3 md:px-4 whitespace-nowrap"
             disabled={!form.formState.isDirty || saveVenue.isPending}
@@ -378,16 +381,14 @@ export default function SuperAdminVenueEdit() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
         <div>
-          <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Venue - SUPERADMIN</h2>
+          <h2 className={`text-3xl font-semibold ${themeClasses.text}`}>Gestión de Venue - SUPERADMIN</h2>
           <p className={`${themeClasses.textMuted}`}>Edición avanzada con acceso a características premium</p>
         </div>
 
-        <div className="my-6"></div>
-        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <h3 className={`text-lg font-medium ${themeClasses.text}`}>Información básica</h3>
@@ -420,11 +421,11 @@ export default function SuperAdminVenueEdit() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={VenueType.RESTAURANT}>Restaurante</SelectItem>
-                          <SelectItem value={VenueType.STUDIO}>Estudio</SelectItem>
-                          <SelectItem value={VenueType.BAR}>Bar</SelectItem>
-                          <SelectItem value={VenueType.CAFE}>Café</SelectItem>
-                          <SelectItem value={VenueType.OTHER}>Otro</SelectItem>
+                          <SelectItem value={VENUE_TYPES.RESTAURANT}>Restaurante</SelectItem>
+                          <SelectItem value={VENUE_TYPES.STUDIO}>Estudio</SelectItem>
+                          <SelectItem value={VENUE_TYPES.BAR}>Bar</SelectItem>
+                          <SelectItem value={VENUE_TYPES.CAFE}>Café</SelectItem>
+                          <SelectItem value={VENUE_TYPES.OTHER}>Otro</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -492,9 +493,9 @@ export default function SuperAdminVenueEdit() {
                 <h3 className={`text-lg font-medium ${themeClasses.text}`}>Características premium (SUPERADMIN)</h3>
                 <Separator />
 
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
-                  <h4 className="font-medium text-yellow-800 dark:text-yellow-300 mb-2">Configuración de características de pago</h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                <div className="p-4 mb-6 border-l-4 border-yellow-500 dark:border-yellow-700 rounded-sm bg-yellow-50/30 dark:bg-yellow-950/20">
+                  <h4 className={`text-base font-medium mb-1 ${themeClasses.text}`}>Configuración de características de pago</h4>
+                  <p className={`text-sm ${themeClasses.textMuted}`}>
                     Estas opciones solo están disponibles para administradores con nivel SUPERADMIN y permiten habilitar/deshabilitar
                     características de pago para este venue.
                   </p>
@@ -504,13 +505,15 @@ export default function SuperAdminVenueEdit() {
                   control={form.control}
                   name="ordering"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md bg-white dark:bg-gray-900">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md hover:bg-muted/50">
                       <FormControl>
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Ordenar desde TPV</FormLabel>
-                        <p className="text-sm text-muted-foreground">Permite ordenar desde el Terminal Punto de Venta (característica premium)</p>
+                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                          Permite ordenar desde el Terminal Punto de Venta (característica premium)
+                        </p>
                       </div>
                     </FormItem>
                   )}
@@ -610,7 +613,7 @@ export default function SuperAdminVenueEdit() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Pago especial</FormLabel>
-                        <p className="text-sm text-muted-foreground">Habilitar pago especial para este venue</p>
+                        <p className={cn(themeClasses.textMuted)}>Habilitar pago especial para este venue</p>
                       </div>
                     </FormItem>
                   )}
@@ -697,9 +700,9 @@ export default function SuperAdminVenueEdit() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={PosNames.WANSOFT}>Wansoft</SelectItem>
-                          <SelectItem value={PosNames.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
-                          <SelectItem value={PosNames.NONE}>Ninguno</SelectItem>
+                          <SelectItem value={POS_NAMES.WANSOFT}>Wansoft</SelectItem>
+                          <SelectItem value={POS_NAMES.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
+                          <SelectItem value={POS_NAMES.NONE}>Ninguno</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
