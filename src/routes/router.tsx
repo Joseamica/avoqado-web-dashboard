@@ -33,6 +33,7 @@ import {
   Bills,
   BillId,
   Venues,
+  SuperAdminVenueEdit,
 } from '@/pages/index'
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
@@ -101,6 +102,10 @@ const router = createBrowserRouter([
                   {
                     index: true,
                     element: <Venues />,
+                  },
+                  {
+                    path: ':venueId',
+                    element: <SuperAdminVenueEdit />,
                   },
                 ],
               },
