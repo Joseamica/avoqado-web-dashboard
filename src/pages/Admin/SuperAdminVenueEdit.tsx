@@ -326,7 +326,12 @@ export default function SuperAdminVenueEdit() {
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
 
   return (
-    <div className={`${themeClasses.pageBg} min-h-screen`}>
+    <div className={`p-4 md:p-6 lg:p-8 ${themeClasses.pageBg} min-h-screen`}>
+      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-6`}>
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Volver al Panel de Administración
+      </Link>
+      {/* Original content starts here */}
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Link to={from} className="flex items-center hover:text-primary">

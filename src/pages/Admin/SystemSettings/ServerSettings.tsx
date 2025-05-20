@@ -5,7 +5,7 @@ import { themeClasses } from '@/lib/theme-utils'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useTheme } from '@/context/ThemeContext'
+
 
 interface MetricData {
   labels: { field: string; value: string }[]
@@ -16,7 +16,6 @@ interface MetricData {
 const UI_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
 
 export default function ServerSettings() {
-  const { isDark } = useTheme()
 
   const { data: cpuUsageData, isLoading: cpuUsageLoading } = useQuery({
     queryKey: ['cpu-usage'],
@@ -104,17 +103,17 @@ export default function ServerSettings() {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#eee'} />
-          <XAxis dataKey="timestamp" stroke={isDark ? '#aaa' : '#666'} tick={{ fontSize: 10 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={themeClasses.border} />
+          <XAxis dataKey="timestamp" stroke={themeClasses.textMuted} tick={{ fontSize: 10 }} />
           <YAxis
-            stroke={isDark ? '#aaa' : '#666'}
+            stroke={themeClasses.textMuted}
             tick={{ fontSize: 10 }}
             tickFormatter={value => `${value}%`}
             domain={[0, Math.max(...chartData.map(d => d.rawValue)) * 1.1 || 5]}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: isDark ? '#1f2937' : '#fff', borderColor: isDark ? '#374151' : '#e5e7eb' }}
-            labelStyle={{ color: isDark ? '#e5e7eb' : '#111827' }}
+            contentStyle={{ backgroundColor: themeClasses.cardBg, borderColor: themeClasses.border }}
+            labelStyle={{ color: themeClasses.text }}
             formatter={value => [`${value}%`, 'CPU']}
             labelFormatter={label => `Hora: ${label}`}
           />
@@ -139,9 +138,9 @@ export default function ServerSettings() {
             <div>
               <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Uso de CPU</h4>
               <div className="flex items-center mb-2">
-                <div className={`h-2 w-full ${isDark ? 'bg-gray-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                <div className={`h-2 w-full ${themeClasses.inputBg} rounded-full overflow-hidden`}>
                   {cpuUsageLoading || cpuLimitLoading ? (
-                    <div className="h-full bg-gray-500 animate-pulse" style={{ width: '100%' }}></div>
+                    <div className={`h-full ${themeClasses.border} animate-pulse`} style={{ width: '100%' }}></div>
                   ) : (
                     <div
                       className="h-full rounded-full"
@@ -167,9 +166,9 @@ export default function ServerSettings() {
             <div>
               <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Memoria RAM</h4>
               <div className="flex items-center mb-2">
-                <div className={`h-2 w-full ${isDark ? 'bg-gray-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                <div className={`h-2 w-full ${themeClasses.inputBg} rounded-full overflow-hidden`}>
                   {memoryUsageLoading || memoryLimitLoading ? (
-                    <div className="h-full bg-gray-500 animate-pulse" style={{ width: '100%' }}></div>
+                    <div className={`h-full ${themeClasses.border} animate-pulse`} style={{ width: '100%' }}></div>
                   ) : (
                     <div
                       className="h-full rounded-full"
@@ -194,15 +193,15 @@ export default function ServerSettings() {
         <CardContent className="px-6 pb-6 pt-0">
           <h4 className={`text-base font-medium ${themeClasses.text} mb-4`}>Historial de CPU (últimos 60 minutos)</h4>
           {cpuUsageLoading || cpuLimitLoading ? (
-            <div className="h-24 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            <div className={`h-24 ${themeClasses.inputBg} rounded-md animate-pulse flex items-center justify-center`}>
+              <Loader2 className={`h-6 w-6 animate-spin ${themeClasses.textMuted}`} />
             </div>
           ) : (
             <div className="h-40 w-full">
               {cpuUsageData && cpuUsageData[0]?.values.length > 0 ? (
                 <CpuUsageChart cpuData={cpuUsageData[0]} />
               ) : (
-                <div className="h-24 bg-gray-100 dark:bg-gray-800 rounded-md flex items-center justify-center">
+                <div className={`h-24 ${themeClasses.inputBg} rounded-md flex items-center justify-center`}>
                   <p className={`text-sm ${themeClasses.textMuted}`}>No hay datos disponibles</p>
                 </div>
               )}
@@ -216,7 +215,6 @@ export default function ServerSettings() {
             onClick={() => {
               // Invalidate queries here
             }}
-            className={`${themeClasses.border}`}
           >
             <RefreshCcw className="h-4 w-4 mr-2" />
             Actualizar Datos

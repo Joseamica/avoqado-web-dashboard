@@ -5,7 +5,7 @@ import { themeClasses } from '@/lib/theme-utils'
 
 export default function DatabaseSettings() {
   return (
-    <div className="space-y-4">
+    <div className="p-4 md:p-6">
       <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de Base de Datos</h3>
 
       <Card className={themeClasses.cardBg}>
@@ -19,7 +19,7 @@ export default function DatabaseSettings() {
             <div>
               <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Cache</h4>
               <p className={`text-sm ${themeClasses.textMuted} mb-4`}>Limpiar la cache de la base de datos para mejorar el rendimiento.</p>
-              <Button variant="outline" size="sm" className={`${themeClasses.border}`}>
+              <Button variant="outline" size="sm">
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Limpiar Cache
               </Button>
@@ -28,7 +28,7 @@ export default function DatabaseSettings() {
             <div>
               <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Respaldo</h4>
               <p className={`text-sm ${themeClasses.textMuted} mb-4`}>Crear un respaldo manual de la base de datos actual.</p>
-              <Button variant="outline" size="sm" className={`${themeClasses.border}`}>
+              <Button variant="outline" size="sm">
                 <Database className="h-4 w-4 mr-2" />
                 Crear Respaldo
               </Button>

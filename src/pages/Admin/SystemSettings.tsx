@@ -2,10 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
 import { themeClasses } from '@/lib/theme-utils'
-import { AlertTriangle, BarChart3, Building, Database, FileText, Globe, Server, Settings, ShieldAlert, Users } from 'lucide-react'
-import { CSSProperties, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { AlertTriangle, ArrowLeft, Database, FileText, Server, ShieldAlert } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
 import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from 'react-router-dom'
 
 // Import new component modules
 import DatabaseSettings from './SystemSettings/DatabaseSettings'
@@ -14,11 +15,7 @@ import ServerSettings from './SystemSettings/ServerSettings'
 
 export default function SystemSettings() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
-
-  // Admin dashboard tab state
-  const [adminTab, setAdminTab] = useState('system')
 
   // System settings tab state
   const [activeTab, setActiveTab] = useState('database')
@@ -28,18 +25,6 @@ export default function SystemSettings() {
   const [serverLoading, setServerLoading] = useState(true)
   const [logsLoading, setLogsLoading] = useState(true)
   const [securityLoading, setSecurityLoading] = useState(true)
-
-  // Custom styles for active tab
-  const activeTabStyle: CSSProperties = {
-    borderBottom: `2px solid #2563eb`,
-    color: '#2563eb',
-  }
-
-  // Handle admin dashboard tab change
-  const handleAdminTabChange = (value: string) => {
-    setAdminTab(value)
-    navigate(`/admin/${value}`)
-  }
 
   // Handle tab change and trigger loading state
   const handleTabChange = (value: string) => {
@@ -70,75 +55,28 @@ export default function SystemSettings() {
   if (!isSuperAdmin) {
     return (
       <div className="py-4">
-        <p className="text-red-500">No tienes permisos para acceder a esta sección.</p>
+        {/* Consider adding a more generic 'access denied' component here */}
+        <Card className={`${themeClasses.border}`}>
+          <CardContent className="pt-6">
+            <div className="flex items-start space-x-2">
+              <AlertTriangle className={`h-5 w-5 ${themeClasses.error.text} mt-0.5`} />
+              <div>
+                <h3 className={`text-lg font-semibold ${themeClasses.text}`}>Acceso restringido</h3>
+                <p className={`${themeClasses.textMuted}`}>Solo los SuperAdministradores pueden acceder a la configuración del sistema.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className={`flex flex-col space-y-6 h-screen ${themeClasses.pageBg}`}>
-      {/* Admin Dashboard Tabs */}
-      <div className="mb-4">
-        <Tabs defaultValue={adminTab} onValueChange={handleAdminTabChange} className="w-full">
-          <div className={`border-b ${themeClasses.border}`}>
-            <TabsList className="mb-0">
-              <TabsTrigger
-                value="general"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                style={adminTab === 'general' ? activeTabStyle : undefined}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                General
-              </TabsTrigger>
-              <TabsTrigger
-                value="users"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                style={adminTab === 'users' ? activeTabStyle : undefined}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Usuarios
-              </TabsTrigger>
-              <TabsTrigger
-                value="venues"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                style={adminTab === 'venues' ? activeTabStyle : undefined}
-              >
-                <Building className="h-4 w-4 mr-2" />
-                Venues
-              </TabsTrigger>
-              {isSuperAdmin && (
-                <>
-                  <TabsTrigger
-                    value="system"
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                    style={adminTab === 'system' ? activeTabStyle : undefined}
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Sistema
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="global"
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                    style={adminTab === 'global' ? activeTabStyle : undefined}
-                  >
-                    <Globe className="h-4 w-4 mr-2" />
-                    Configuración Global
-                  </TabsTrigger>
-                </>
-              )}
-              <TabsTrigger
-                value="settings"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                style={adminTab === 'settings' ? activeTabStyle : undefined}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Configuración
-              </TabsTrigger>
-            </TabsList>
-          </div>
-        </Tabs>
-      </div>
-
+    <div className={`flex flex-col space-y-6 h-screen ${themeClasses.pageBg} p-4 md:p-6`}>
+      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-2`}>
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Volver al Panel de Administración
+      </Link>
       {/* Warning banner */}
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/20 dark:border-yellow-600">
         <div className="flex">
@@ -158,22 +96,22 @@ export default function SystemSettings() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm mb-6`}>
           <TabsList className="w-full grid grid-cols-4 rounded-none">
-            <TabsTrigger value="database" className="rounded-none">
+            <TabsTrigger value="database" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <Database className="h-5 w-5 mr-2" />
               <span>Base de Datos</span>
             </TabsTrigger>
 
-            <TabsTrigger value="system" className="rounded-none">
+            <TabsTrigger value="system" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <Server className="h-5 w-5 mr-2" />
               <span>Servidor</span>
             </TabsTrigger>
 
-            <TabsTrigger value="logs" className="rounded-none">
+            <TabsTrigger value="logs" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <FileText className="h-5 w-5 mr-2" />
               <span>Logs</span>
             </TabsTrigger>
 
-            <TabsTrigger value="security" className="rounded-none">
+            <TabsTrigger value="security" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <ShieldAlert className="h-5 w-5 mr-2" />
               <span>Seguridad</span>
             </TabsTrigger>
