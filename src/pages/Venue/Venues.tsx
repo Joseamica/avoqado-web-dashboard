@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/context/AuthContext'
 import { themeClasses } from '@/lib/theme-utils'
-import { Search } from 'lucide-react'
+import { ArrowLeft, Search } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 // Define the Venue interface
 interface Venue {
@@ -39,7 +39,14 @@ const Venues = () => {
   }
 
   return (
-    <div className={`space-y-6 ${themeClasses.pageBg} h-screen p-4`}>
+    <div className={`  py-8 h-screen ${themeClasses.pageBg}  md:px-6 lg:px-8`}>
+      {/* Conditional Back link for admin context - consider more robust routing if page used elsewhere extensively */}
+      {window.location.pathname.startsWith('/admin/venues') && (
+        <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-4`}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Volver al Panel de Administración
+        </Link>
+      )}
       <div>
         <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Venues</h2>
         <p className={`${themeClasses.textMuted}`}>Administra todos los venues registrados en el sistema</p>

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +17,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDownToLine, ArrowUpToLine, Code, Download, FileText, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { ArrowDownToLine, ArrowUpToLine, Code, Download, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { themeClasses } from '@/lib/theme-utils'
@@ -114,7 +114,7 @@ export default function LogsSettings() {
     },
   })
 
-  const formatLogs = (content: string) => {
+  const formatLogs = useCallback((content: string) => {
     if (!content) {
       setFormattedLogs('No hay logs disponibles.')
       setIsJsonContent(false)
@@ -183,11 +183,11 @@ export default function LogsSettings() {
               const after = line.substring(match.index + jsonString.length)
               line = before + '\n' + formattedJson + '\n' + after
               hasJsonContent = true
-            } catch (jsonError) {
+            } catch {
               // Not valid JSON, keep line as is
             }
           }
-        } catch (e) {
+        } catch {
           // Error in regex or other issue, keep line as is
         }
         formattedLines.push(line)
@@ -218,7 +218,7 @@ export default function LogsSettings() {
       }
       setIsJsonContent(false)
     }
-  }
+  }, [showNewestFirst, useFormatting, toast, setFormattedLogs, setIsJsonContent])
 
   const filterLogs = (content: string, query: string) => {
     if (!query) return content
@@ -236,7 +236,7 @@ export default function LogsSettings() {
       setFormattedLogs('No hay logs disponibles.')
       setIsJsonContent(false)
     }
-  }, [logs, useFormatting, showNewestFirst])
+  }, [logs, useFormatting, showNewestFirst, formatLogs])
 
   useEffect(() => {
     if (formattedLogs) {
@@ -329,7 +329,7 @@ export default function LogsSettings() {
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${themeClasses.textMuted} hover:${themeClasses.text}`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path
@@ -371,7 +371,7 @@ export default function LogsSettings() {
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto sm:self-end ml-auto">
-              <Button variant="outline" onClick={() => refetchLogs()} className={`${themeClasses.border}`}>
+              <Button variant="outline" onClick={() => refetchLogs()}>
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Actualizar
               </Button>
@@ -392,8 +392,8 @@ export default function LogsSettings() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className={`${themeClasses.border}`}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className="bg-red-600 hover:bg-red-700 text-white">
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className={buttonVariants({ variant: "destructive" })}>
                       {clearLogsMutation.isPending ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -454,7 +454,7 @@ export default function LogsSettings() {
                 ) : (
                   <Textarea
                     ref={logsTextAreaRef}
-                    className={`font-mono text-xs h-[400px] p-4 resize-none ${themeClasses.inputBg} ${themeClasses.text}`}
+                    className={`font-mono text-xs h-[400px] p-4 resize-none ${themeClasses.inputBg} ${themeClasses.text} ${themeClasses.border}`}
                     readOnly
                     value={filteredLogs}
                   />
@@ -469,7 +469,7 @@ export default function LogsSettings() {
             {logs?.lastUpdated ? `Última actualización: ${new Date(logs.lastUpdated).toLocaleString()}` : 'Sin datos'}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDownloadLogs} className={`${themeClasses.border}`}>
+            <Button variant="outline" size="sm" onClick={handleDownloadLogs}>
               <Download className="h-4 w-4 mr-2" />
               Descargar Logs
             </Button>

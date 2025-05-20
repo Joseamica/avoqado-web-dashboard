@@ -2,14 +2,16 @@ import api from '@/api'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
-import { CheckCircle, Loader2, PlusCircle, Search, UserCog, X, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Loader2, PlusCircle, Search, UserCog, X, XCircle } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 // Define user interface
 interface User {
@@ -53,7 +55,7 @@ export default function UserManagement() {
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: string }) => {
       return await api.patch(`/v1/admin/users/${userId}/role`, { role: newRole })
     },
-    onSuccess: (response, variables) => {
+    onSuccess: () => {
       toast({
         title: 'Rol actualizado',
         description: 'El rol del usuario ha sido actualizado correctamente.',
@@ -168,11 +170,11 @@ export default function UserManagement() {
       accessorKey: 'status',
       header: 'Estado',
       cell: ({ row }) => (
-        <div className="flex items-center">
+        <div className={`flex items-center ${row.original.status === 'active' ? themeClasses.success.text : themeClasses.error.text}`}>
           {row.original.status === 'active' ? (
-            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+            <CheckCircle className="mr-2 h-4 w-4" />
           ) : (
-            <XCircle className="mr-2 h-4 w-4 text-red-500" />
+            <XCircle className="mr-2 h-4 w-4" />
           )}
           {row.original.status === 'active' ? 'Activo' : 'Inactivo'}
         </div>
@@ -206,7 +208,11 @@ export default function UserManagement() {
   ]
 
   return (
-    <div className="p-6 h-screen space-y-6 bg-zinc-50 dark:bg-zinc-900">
+    <div className={`space-y-4 ${themeClasses.pageBg} p-4 md:p-6 lg:p-8`}>
+      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-4`}>
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Volver al Panel de Administración
+      </Link>
       <div className="flex justify-between items-center mb-6">
         <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Usuarios</h2>
 
@@ -217,28 +223,28 @@ export default function UserManagement() {
               Añadir Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+          <DialogContent className={`sm:max-w-[425px] ${themeClasses.cardBg}`}>
             <DialogHeader>
-              <DialogTitle className={themeClasses.text}>Añadir Nuevo Usuario</DialogTitle>
+              <DialogTitle className={themeClasses.text}>Crear Nuevo Usuario</DialogTitle>
               <DialogDescription className={themeClasses.textMuted}>
-                Completa los datos para crear un nuevo usuario en el sistema
+                Completa los detalles para crear un nuevo usuario.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <form id="createUserForm" onSubmit={handleCreateUser} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="name" className={`text-right ${themeClasses.text}`}>
+                <label htmlFor="name" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
                   Nombre
                 </label>
                 <Input id="name" className={`col-span-3 ${themeClasses.inputBg}`} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="email" className={`text-right ${themeClasses.text}`}>
+                <label htmlFor="email" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
                   Email
                 </label>
                 <Input id="email" type="email" className={`col-span-3 ${themeClasses.inputBg}`} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="role" className={`text-right ${themeClasses.text}`}>
+                <label htmlFor="role" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
                   Rol
                 </label>
                 <Select>
@@ -253,9 +259,9 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </form>
             <DialogFooter>
-              <Button type="submit" onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+              <Button type="submit" disabled={createUserMutation.isPending}>
                 {createUserMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -270,8 +276,9 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
-      <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm p-4">
-        <div className="flex gap-2 mb-4">
+      <Card className={`${themeClasses.cardBg} rounded-xl shadow-sm`}> {/* p-4 will be handled by CardContent */}
+        <CardContent className="p-4">
+          <div className="flex gap-2 mb-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -306,7 +313,8 @@ export default function UserManagement() {
         <div className={`text-xs ${themeClasses.textMuted} mt-2`}>
           Mostrando {filteredUsers.length} de {userData.length} usuarios
         </div>
-      </div>
+      </CardContent>
+    </Card>
     </div>
   )
 }
