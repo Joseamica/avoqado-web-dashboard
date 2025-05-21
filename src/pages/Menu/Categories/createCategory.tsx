@@ -1,6 +1,7 @@
 import api from '@/api'
 import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
+import { LoadingScreen } from '@/components/spinner'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
@@ -86,7 +87,7 @@ export default function CreateCategory() {
   }
 
   if (isLoading) {
-    return <div>Cargando...</div>
+    return <LoadingScreen message="Cargando..." />
   }
 
   if (!data) {
@@ -97,7 +98,7 @@ export default function CreateCategory() {
     <div>
       <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
-          <button type="button" onClick={() => history.back()} className="rounded-full cursor-pointer">
+          <button type="button" onClick={() => history.back()} className="cursor-pointer bg-transparent">
             <ArrowLeft />
           </button>
           <span>{form.watch('name', '')}</span>

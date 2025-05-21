@@ -9,7 +9,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { ArrowUpDown, ChevronLeft } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 
 import api from '@/api'
@@ -127,8 +127,21 @@ export default function Modifiers() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     sortDescFirst: true, // sort by all columns in descending order first
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   })
+
+  // --- Cascade: Added useEffect to reset row selection when table data changes ---
+  // This helps prevent infinite loops when the venue changes and the table's selected state
+  // becomes inconsistent with the new data.
+  useEffect(() => {
+    if (table) {
+      // Resetting row selection when the data (filteredModifierGroups) changes.
+      // This is important when the venueId changes and new data is fetched.
+      table.resetRowSelection(); // Calling with no arguments or `false` clears selection but keeps a ref to the old selection for performance.
+                               // `true` forces a full reset which might be safer here if issues persist.
+    }
+  }, [filteredModifierGroups, table]);
+  // --- End Cascade change ---
 
   // Configuración del formulario
   // const form = useForm<z.infer<typeof FormSchema>>({
