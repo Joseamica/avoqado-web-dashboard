@@ -80,18 +80,8 @@ export default function Products() {
         </div>
       ),
 
-      cell: ({ row, cell }) => {
-        return (
-          <Link
-            to={row.original.id}
-            className="text-links hover:underline"
-            state={{
-              from: location.pathname,
-            }}
-          >
-            {cell.getValue() as string}
-          </Link>
-        )
+      cell: ({ cell }) => {
+        return cell.getValue() as string
       },
     },
     {
@@ -156,6 +146,7 @@ export default function Products() {
             id={`active-switch-${productId}`}
             checked={active}
             onCheckedChange={() => toggleActive.mutate({ productId, status: !active })}
+            onClick={e => e.stopPropagation()} // Prevent row click when switch is clicked
             disabled={toggleActive.isPending}
           />
         )
@@ -202,7 +193,16 @@ export default function Products() {
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
       />
-      <DataTable data={filteredProducts} rowCount={products?.length} columns={columns} isLoading={isLoading} />
+      <DataTable
+        data={filteredProducts}
+        rowCount={products?.length}
+        columns={columns}
+        isLoading={isLoading}
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+      />
     </div>
   )
 }

@@ -38,18 +38,8 @@ export default function Categories() {
         </div>
       ),
 
-      cell: ({ row, cell }) => {
-        return (
-          <Link
-            to={row.original.id}
-            className="text-links hover:underline"
-            state={{
-              from: location.pathname,
-            }}
-          >
-            {cell.getValue() as string}
-          </Link>
-        )
+      cell: ({ cell }) => {
+        return cell.getValue() as string
       },
     },
     {
@@ -106,7 +96,16 @@ export default function Categories() {
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
       />
-      <DataTable data={filteredCategories} rowCount={categories?.length} columns={columns} isLoading={isLoading} />
+      <DataTable
+        data={filteredCategories}
+        rowCount={categories?.length}
+        columns={columns}
+        isLoading={isLoading}
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+      />
     </div>
   )
 }

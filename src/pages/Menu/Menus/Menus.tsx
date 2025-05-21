@@ -1,15 +1,15 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 
 import api from '@/api'
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/hooks/use-toast'
+
 import { AvoqadoMenu } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
 
@@ -18,10 +18,7 @@ export default function Menus() {
 
   const location = useLocation()
 
-  const queryClient = useQueryClient()
-
   const [searchTerm, setSearchTerm] = useState('')
-  const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
     queryKey: ['avoqado-menus', venueId],
@@ -30,7 +27,6 @@ export default function Menus() {
       return response.data
     },
   })
-  const { toast } = useToast()
   const columns: ColumnDef<AvoqadoMenu, unknown>[] = [
     {
       id: 'name',
@@ -43,18 +39,8 @@ export default function Menus() {
         </div>
       ),
 
-      cell: ({ row, cell }) => {
-        return (
-          <Link
-            to={row.original.id}
-            className="text-links hover:underline"
-            state={{
-              from: location.pathname,
-            }}
-          >
-            {cell.getValue() as string}
-          </Link>
-        )
+      cell: ({ cell }) => {
+        return cell.getValue() as string
       },
     },
     {
@@ -120,7 +106,16 @@ export default function Menus() {
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
       />
-      <DataTable data={filteredAvoqadoMenus} rowCount={data?.avoqadoMenus?.length} columns={columns} isLoading={isLoading} />
+      <DataTable
+        data={filteredAvoqadoMenus}
+        rowCount={data?.avoqadoMenus?.length}
+        columns={columns}
+        isLoading={isLoading}
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+      />
     </div>
   )
 }

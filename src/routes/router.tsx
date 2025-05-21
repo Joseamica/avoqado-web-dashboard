@@ -1,53 +1,24 @@
 // src/router.tsx
+
 import { createBrowserRouter } from 'react-router-dom'
 
 import {
-  Login,
-  Home,
-  Categories,
-  CategoryId,
-  CreateCategory,
-  MenuMakerLayout,
-  CreateMenu,
-  Menus,
-  Modifiers,
-  Overview,
-  CreateProduct,
-  ProductId,
-  Products,
-  CreateTpv,
-  Tpv,
-  TpvId,
-  Account,
-  Payments,
-  PaymentId,
-  MenuId,
-  Reviews,
-  Waiters,
-  EditVenue,
-  Shifts,
-  WaiterId,
-  Dashboard,
-  ErrorPage,
-  ShiftId,
-  Bills,
-  BillId,
-  Venues,
-  SuperAdminVenueEdit,
-} from '@/pages/index'
+  Dashboard, ErrorPage, Login, Home, Categories, CategoryId, CreateCategory,
+  MenuMakerLayout, CreateMenu, Menus, Modifiers, Overview, CreateProduct,
+  ProductId, Products, CreateTpv, Tpv, TpvId, Account, Payments, PaymentId,
+  MenuId, Reviews, Waiters, EditVenue, Shifts, WaiterId, ShiftId,
+  Bills, BillId,
+  AdminDashboard, UserManagement, SystemSettings, VenueManagement, GlobalConfig,
+  SuperAdminManagement, SuperAdminVenueEdit, Venues
+} from './lazyComponents';
+
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
 import { Layout } from '@/Layout'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
 
-// Importamos los componentes de administración
-import AdminDashboard from '@/pages/Admin/AdminDashboard'
-import UserManagement from '@/pages/Admin/UserManagement'
-import SystemSettings from '@/pages/Admin/SystemSettings'
-import VenueManagement from '@/pages/Admin/VenueManagement'
-import GlobalConfig from '@/pages/Admin/GlobalConfig'
-import SuperAdminManagement from '@/pages/Admin/SuperAdminManagement'
+
 
 const router = createBrowserRouter([
   {
@@ -101,7 +72,7 @@ const router = createBrowserRouter([
                 children: [
                   {
                     index: true,
-                    element: <Venues />,
+                    element: <VenueManagement />,
                   },
                   {
                     path: ':venueId',

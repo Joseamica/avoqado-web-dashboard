@@ -1,16 +1,15 @@
-import { useState, useMemo, useCallback, useEffect, CSSProperties } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, ChevronDown, Camera, Info, X, Check, Settings, AlertCircle, Plus, GripVertical, ChevronUp } from 'lucide-react'
 import api from '@/api' // Import your API client
-import { useParams, useNavigate } from 'react-router-dom'
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { themeClasses } from '@/lib/theme-utils'
+import { Currency } from '@/utils/currency'
+import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Currency } from '@/utils/currency'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { themeClasses } from '@/lib/theme-utils'
-import { useTheme } from '@/context/ThemeContext'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, Camera, Check, ChevronDown, ChevronUp, GripVertical, Info, Plus, Search, Settings, X } from 'lucide-react'
+import { CSSProperties, useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
 // Helper function to format time from 24h to 12h format
 const formatTime = time => {
@@ -182,18 +181,18 @@ export default function Overview() {
     }),
   )
 
-  // Fetch venue details
-  const {
-    data: venueData,
-    isLoading: venueLoading,
-    error: venueError,
-  } = useQuery({
-    queryKey: ['venue', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/venue`)
-      return response.data
-    },
-  })
+  // // Fetch venue details
+  // const {
+  //   data: venueData,
+  //   isLoading: venueLoading,
+  //   error: venueError,
+  // } = useQuery({
+  //   queryKey: ['venue', venueId],
+  //   queryFn: async () => {
+  //     const response = await api.get(`/v2/dashboard/${venueId}/venue`)
+  //     return response.data
+  //   },
+  // })
 
   // Fetch menus with categories
   const {
@@ -357,7 +356,7 @@ export default function Overview() {
         })
       }, 500)
     },
-    onError: (error, variables) => {
+    onError: (error, _variables) => {
       console.error('Failed to update category order:', error)
       queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
     },
@@ -576,12 +575,12 @@ export default function Overview() {
 
   // Function to create a new category
   const handleAddCategory = menuId => {
-    navigate(`/dashboard/${venueId}/categories/create?menuId=${menuId}`)
+    navigate(`/venues/${venueId}/menumaker/categories/create?menuId=${menuId}`)
   }
 
   // Function to create a new product
   const handleAddProduct = categoryId => {
-    navigate(`/dashboard/${venueId}/products/create?categoryId=${categoryId}`)
+    navigate(`/venues/${venueId}/menumaker/products/create?categoryId=${categoryId}`)
   }
 
   // Add state for tracking price changes
@@ -630,7 +629,7 @@ export default function Overview() {
   }
 
   // Determine if the loading state should be shown
-  const isLoading = menusLoading || venueLoading || productsLoading
+  const isLoading = menusLoading || productsLoading
 
   return (
     <div className={`${themeClasses.pageBg} min-h-screen`}>
