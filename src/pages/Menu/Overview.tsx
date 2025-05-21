@@ -913,14 +913,17 @@ export default function Overview() {
                                         </div>
                                       ))
                                     ) : (
-                                      <div className="flex items-center justify-between py-2 px-4 bg-gray-50 dark:bg-gray-800 rounded-md mb-2">
+                                      <div className="py-2 px-4 bg-gray-50 dark:bg-gray-800 rounded-md mb-2 text-center">
                                         <span className={themeClasses.textMuted}>No hay productos en esta categoría</span>
-                                        <Button onClick={() => handleAddProduct(category.id)} variant="outline">
-                                          <Plus size={12} />
-                                          <span>Añadir producto</span>
-                                        </Button>
                                       </div>
                                     )}
+                                    {/* Always visible "Añadir producto" button, placed after the product list or "no products" message */}
+                                    <div className="mt-4 flex justify-start">
+                                      <Button onClick={() => handleAddProduct(category.id)} variant="outline">
+                                        <Plus size={12} className="mr-2" />
+                                        <span>Añadir producto</span>
+                                      </Button>
+                                    </div>
                                   </div>
                                 </SortableCategory>
                               )

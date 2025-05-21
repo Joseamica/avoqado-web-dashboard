@@ -1,6 +1,7 @@
 import api from '@/api'
 import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
+import { LoadingScreen } from '@/components/spinner'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
@@ -271,7 +272,7 @@ export default function MenuScheduleWithMenuDayModel() {
   const hourOptions = getHourOptions()
 
   if (isLoading) {
-    return <div>Cargando...</div>
+    return <LoadingScreen message="Cargando..." />
   }
 
   return (
