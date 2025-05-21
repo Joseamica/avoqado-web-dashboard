@@ -10,9 +10,10 @@ import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
+import { useEffect } from 'react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function CreateProduct() {
   const { venueId } = useParams()
@@ -71,6 +72,27 @@ export default function CreateProduct() {
     // },
   })
 
+  useEffect(() => {
+    if (data?.categories && data.categories.length > 0 && location.search) {
+      const params = new URLSearchParams(location.search)
+      const categoryIdFromQuery = params.get('categoryId')
+      if (categoryIdFromQuery) {
+        const selectedCategoryFromData = data.categories.find(cat => cat.id === categoryIdFromQuery)
+        if (selectedCategoryFromData) {
+          // Construct the Option object matching the structure for MultipleSelector's value
+          const categoryToSetInForm = [
+            {
+              value: selectedCategoryFromData.id,
+              label: selectedCategoryFromData.name,
+              disabled: false, // Ensure it matches the option structure completely
+            },
+          ]
+          form.setValue('categories', categoryToSetInForm)
+        }
+      }
+    }
+  }, [data, location.search, form])
+
   const {
     uploading,
     imageUrl, // Aquí se guarda la URL de la imagen nueva si se sube correctamente
@@ -124,9 +146,9 @@ export default function CreateProduct() {
       {/* Barra superior */}
       <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
-          <Link to={from}>
+          <button type="button" onClick={() => history.back()} className="rounded-full cursor-pointer">
             <ArrowLeft />
-          </Link>
+          </button>
           <span>{form.watch('name', '')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
@@ -137,7 +159,7 @@ export default function CreateProduct() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
           <h1 className="text-xl font-semibold">Nuevo producto</h1>
 
           <FormField

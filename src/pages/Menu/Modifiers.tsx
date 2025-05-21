@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { ArrowUpDown, ChevronLeft } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 
 import api from '@/api'
 import DnDMultipleSelector from '@/components/draggable-multi-select'
@@ -32,7 +32,6 @@ export default function Modifiers() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
-  const navigate = useNavigate()
   const [createModifier, setCreateModifier] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -47,7 +46,6 @@ export default function Modifiers() {
 
   const {
     data: modifierGroup,
-    isLoading: isModifierGroupLoading,
     isError: isModifierGroupError,
     error: modifierGroupError,
     isSuccess: isModifierGroupSuccess,
@@ -93,18 +91,7 @@ export default function Modifiers() {
         </div>
       ),
 
-      cell: ({ row, cell }) => (
-        <button
-          // Prevent the row's onClick from triggering when clicking the button
-          onClick={e => {
-            e.stopPropagation()
-            setSearchParams({ modifierGroup: row.original.id })
-          }}
-          className="text-links hover:underline"
-        >
-          {cell.getValue() as string}
-        </button>
-      ),
+      cell: ({ cell }) => cell.getValue() as string,
     },
     {
       id: 'modifiers',
@@ -257,7 +244,7 @@ export default function Modifiers() {
           {isLoading ? (
             // Render skeleton rows while loading
             Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index}>
+              <TableRow key={index} className="cursor-pointer" onClick={() => setSearchParams({ modifierGroup: String(index) })}>
                 {columns.map(column => (
                   <TableCell key={column.id} className="p-4">
                     <Skeleton className="w-full h-4" />
@@ -276,16 +263,9 @@ export default function Modifiers() {
             table.getRowModel().rows.map(row => (
               <TableRow
                 key={row.id}
-                className="cursor-pointer hover:bg-gray-100"
-                onClick={() => setSearchParams({ modifierGroup: row.original.id })}
-                tabIndex={0} // Make row focusable
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    setSearchParams({ modifierGroup: row.original.id })
-                  }
-                }}
-                role="button" // Indicate that the row is clickable
-                aria-pressed={searchParams.get('modifierGroup') === row.original.id}
+                data-state={row.getIsSelected() && 'selected'}
+                onClick={() => setSearchParams({ modifierGroup: String(row.original.id) })}
+                className="cursor-pointer"
               >
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id} className="p-4">

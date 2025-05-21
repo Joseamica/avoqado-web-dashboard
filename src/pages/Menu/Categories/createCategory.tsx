@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function CreateCategory() {
   const { venueId } = useParams()
@@ -55,6 +56,27 @@ export default function CreateCategory() {
     },
   })
 
+  useEffect(() => {
+    if (data?.avoqadoMenus && data.avoqadoMenus.length > 0 && location.search) {
+      const params = new URLSearchParams(location.search)
+      const menuIdFromQuery = params.get('menuId')
+      if (menuIdFromQuery) {
+        const selectedMenuFromData = data.avoqadoMenus.find(menu => menu.id === menuIdFromQuery)
+        if (selectedMenuFromData) {
+          // Construct the Option object matching the structure for MultipleSelector's value
+          const menuToSetInForm = [
+            {
+              value: selectedMenuFromData.id,
+              label: selectedMenuFromData.name,
+              disabled: false,
+            },
+          ]
+          form.setValue('avoqadoMenus', menuToSetInForm)
+        }
+      }
+    }
+  }, [data, location.search, form])
+
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues) {
@@ -75,9 +97,9 @@ export default function CreateCategory() {
     <div>
       <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
-          <Link to={from}>
+          <button type="button" onClick={() => history.back()} className="rounded-full cursor-pointer">
             <ArrowLeft />
-          </Link>
+          </button>
           <span>{form.watch('name', '')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
