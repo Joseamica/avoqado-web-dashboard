@@ -122,6 +122,12 @@ const data = {
       url: 'reviews', // Update the URL if necessary
       icon: Star,
     },
+    {
+      title: 'Equipo',
+      isActive: true,
+      url: 'teams', // Teams management page
+      icon: Users,
+    },
     // {
     //   title: 'Operaciones',
     //   url: '#',

@@ -23,6 +23,16 @@
   color: hsl(240 5% 65%);
 }
 
+/* Loading screen */
+.dark .loading-screen {
+  background-color: hsl(240 5.9% 10%);
+  color: hsl(240 4.8% 95.9%);
+}
+
+.dark .loading-screen .spinner {
+  color: hsl(210 100% 66.1%);
+}
+
 /* Dark mode inputs */
 .dark input,
 .dark select,

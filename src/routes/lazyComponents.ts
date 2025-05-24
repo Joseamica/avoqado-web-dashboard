@@ -1,46 +1,49 @@
 // src/routes/lazyComponents.ts
-import React from 'react';
+import React from 'react'
 
-export const Dashboard = React.lazy(() => import('@/dashboard'));
-export const ErrorPage = React.lazy(() => import('@/error-page'));
-export const Login = React.lazy(() => import('@/pages/Auth/Login'));
-export const Home = React.lazy(() => import('@/pages/Home'));
-export const Categories = React.lazy(() => import('@/pages/Menu/Categories/Categories'));
-export const CategoryId = React.lazy(() => import('@/pages/Menu/Categories/categoryId'));
-export const CreateCategory = React.lazy(() => import('@/pages/Menu/Categories/createCategory'));
-export const MenuMakerLayout = React.lazy(() => import('@/pages/Menu/MenuMakerLayout'));
-export const CreateMenu = React.lazy(() => import('@/pages/Menu/Menus/createMenu'));
-export const Menus = React.lazy(() => import('@/pages/Menu/Menus/Menus'));
-export const Modifiers = React.lazy(() => import('@/pages/Menu/Modifiers'));
-export const Overview = React.lazy(() => import('@/pages/Menu/Overview'));
-export const CreateProduct = React.lazy(() => import('@/pages/Menu/Products/createProduct'));
-export const ProductId = React.lazy(() => import('@/pages/Menu/Products/productId'));
-export const Products = React.lazy(() => import('@/pages/Menu/Products/Products'));
-export const CreateTpv = React.lazy(() => import('@/pages/Tpv/createTpv'));
-export const Tpv = React.lazy(() => import('@/pages/Tpv/Tpvs'));
-export const TpvId = React.lazy(() => import('@/pages/Tpv/TpvId'));
-export const Account = React.lazy(() => import('@/pages/Account/Account'));
-export const Payments = React.lazy(() => import('@/pages/Payment/Payments'));
-export const PaymentId = React.lazy(() => import('@/pages/Payment/PaymentId'));
-export const MenuId = React.lazy(() => import('@/pages/Menu/Menus/menuId'));
-export const Reviews = React.lazy(() => import('@/pages/Review/Reviews'));
-export const Waiters = React.lazy(() => import('@/pages/Waiter/Waiters'));
-export const EditVenue = React.lazy(() => import('@/pages/Venue/Venue.edit'));
-export const Shifts = React.lazy(() => import('@/pages/Shift/Shifts'));
-export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'));
-export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'));
+export const Dashboard = React.lazy(() => import('@/dashboard'))
+export const ErrorPage = React.lazy(() => import('@/error-page'))
+export const Login = React.lazy(() => import('@/pages/Auth/Login'))
+export const Home = React.lazy(() => import('@/pages/Home'))
+export const Categories = React.lazy(() => import('@/pages/Menu/Categories/Categories'))
+export const CategoryId = React.lazy(() => import('@/pages/Menu/Categories/categoryId'))
+export const CreateCategory = React.lazy(() => import('@/pages/Menu/Categories/createCategory'))
+export const MenuMakerLayout = React.lazy(() => import('@/pages/Menu/MenuMakerLayout'))
+export const CreateMenu = React.lazy(() => import('@/pages/Menu/Menus/createMenu'))
+export const Menus = React.lazy(() => import('@/pages/Menu/Menus/Menus'))
+export const Modifiers = React.lazy(() => import('@/pages/Menu/Modifiers'))
+export const Overview = React.lazy(() => import('@/pages/Menu/Overview'))
+export const CreateProduct = React.lazy(() => import('@/pages/Menu/Products/createProduct'))
+export const Products = React.lazy(() => import('@/pages/Menu/Products/Products'))
+export const ProductId = React.lazy(() => import('@/pages/Menu/Products/productId'))
+
+export const CreateTpv = React.lazy(() => import('@/pages/Tpv/createTpv'))
+export const Tpv = React.lazy(() => import('@/pages/Tpv/Tpvs'))
+export const TpvId = React.lazy(() => import('@/pages/Tpv/TpvId'))
+export const Account = React.lazy(() => import('@/pages/Account/Account'))
+export const Payments = React.lazy(() => import('@/pages/Payment/Payments'))
+export const PaymentId = React.lazy(() => import('@/pages/Payment/PaymentId'))
+export const MenuId = React.lazy(() => import('@/pages/Menu/Menus/menuId'))
+export const Reviews = React.lazy(() => import('@/pages/Review/Reviews'))
+export const Waiters = React.lazy(() => import('@/pages/Waiter/Waiters'))
+export const Teams = React.lazy(() => import('@/pages/Teams/Teams'))
+export const EditVenue = React.lazy(() => import('@/pages/Venue/Venue.edit'))
+export const Shifts = React.lazy(() => import('@/pages/Shift/Shifts'))
+export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'))
+export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'))
 
 // Bill components
-export const Bills = React.lazy(() => import('@/pages/Bill/Bills'));
-export const BillId = React.lazy(() => import('@/pages/Bill/BillId'));
+export const Bills = React.lazy(() => import('@/pages/Bill/Bills'))
+export const BillId = React.lazy(() => import('@/pages/Bill/BillId'))
 
 // Admin components
-export const AdminDashboard = React.lazy(() => import('@/pages/Admin/AdminDashboard'));
-export const UserManagement = React.lazy(() => import('@/pages/Admin/UserManagement'));
-export const SystemSettings = React.lazy(() => import('@/pages/Admin/SystemSettings'));
-export const VenueManagement = React.lazy(() => import('@/pages/Admin/VenueManagement'));
-export const GlobalConfig = React.lazy(() => import('@/pages/Admin/GlobalConfig'));
-export const SuperAdminManagement = React.lazy(() => import('@/pages/Admin/SuperAdminManagement'));
-export const SuperAdminVenueEdit = React.lazy(() => import('@/pages/Admin/SuperAdminVenueEdit'));
+export const AcceptAdminInvitation = React.lazy(() => import('@/pages/Admin/AcceptAdminInvitation'))
+export const AdminDashboard = React.lazy(() => import('@/pages/Admin/AdminDashboard'))
+export const UserManagement = React.lazy(() => import('@/pages/Admin/UserManagement'))
+export const SystemSettings = React.lazy(() => import('@/pages/Admin/SystemSettings'))
+export const VenueManagement = React.lazy(() => import('@/pages/Admin/VenueManagement'))
+export const GlobalConfig = React.lazy(() => import('@/pages/Admin/GlobalConfig'))
+export const SuperAdminManagement = React.lazy(() => import('@/pages/Admin/SuperAdminManagement'))
+export const SuperAdminVenueEdit = React.lazy(() => import('@/pages/Admin/SuperAdminVenueEdit'))
 
-export const Venues = React.lazy(() => import('@/pages/Venue/Venues'));
+export const Venues = React.lazy(() => import('@/pages/Venue/Venues'))

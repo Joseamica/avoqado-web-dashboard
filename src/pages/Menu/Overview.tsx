@@ -1,5 +1,6 @@
 import api from '@/api' // Import your API client
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
@@ -7,12 +8,25 @@ import { closestCenter, DndContext, DragOverlay, KeyboardSensor, PointerSensor, 
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Camera, Check, ChevronDown, ChevronUp, GripVertical, Info, Plus, Search, Settings, X } from 'lucide-react'
+import {
+  AlertCircle,
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  GripVertical,
+  Info,
+  Plus,
+  Search,
+  Settings,
+  X,
+} from 'lucide-react'
 import { CSSProperties, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 // Helper function to format time from 24h to 12h format
-const formatTime = time => {
+const formatTime = (time: string) => {
   if (!time) return ''
   const [hours, minutes] = time.split(':')
   const hour = parseInt(hours, 10)
@@ -78,8 +92,82 @@ const groupMenuDays = menuDays => {
   })
 }
 
+// Define the product type for better type safety
+interface ProductType {
+  id: string
+  name: string
+  price: number | string
+  sortOrder?: number
+  categories?: Array<{ id: string }>
+  [key: string]: any
+}
+
+// SortableProduct component for draggable products
+function SortableProduct({
+  product,
+  editedPrices,
+  handlePriceChange,
+  handlePriceBlur,
+}: {
+  product: ProductType
+  editedPrices: Record<string, string>
+  handlePriceChange: (productId: string, value: string) => void
+  handlePriceBlur: (productId: string, value: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id })
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 1 : 'auto',
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center py-3 px-3 ${themeClasses.cardBg} border-b ${themeClasses.border} last:border-b-0`}
+    >
+      <div className="flex items-center flex-1">
+        <div className={`${themeClasses.textMuted} mr-3 cursor-grab active:cursor-grabbing`} {...attributes} {...listeners}>
+          <GripVertical size={16} />
+        </div>
+        <div className={`font-medium ${themeClasses.text}`}>{product.name}</div>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <div className="relative w-20">
+          <span className={`absolute inset-y-0 left-0 flex items-center pl-2 ${themeClasses.textSubtle}`}>$</span>
+          <Input
+            type="text"
+            value={
+              editedPrices[product.id] !== undefined
+                ? editedPrices[product.id]
+                : Currency(Number(product.price) || 0).replace('$', '') || ''
+            }
+            onChange={e => handlePriceChange(product.id, e.target.value)}
+            onBlur={e => handlePriceBlur(product.id, e.target.value)}
+            className={`py-1 w-full rounded border ${themeClasses.border} text-right bg-gray-50 dark:bg-gray-800`}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center w-6 h-6 bg-green-50 dark:bg-green-950/60 rounded-full text-green-600 dark:text-green-400">
+            <Check size={14} />
+          </div>
+          <Button variant="ghost" className={themeClasses.textMuted}>
+            <ChevronDown size={16} />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // SortableMenu component for draggable menus
-function SortableMenu({ menu, children, onToggleExpansion, isExpanded, onToggleActive }) {
+function SortableMenu({ menu, children, onToggleExpansion, isExpanded, onToggleActive, onAddCategory }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: menu.id })
 
   const style: CSSProperties = {
@@ -107,7 +195,7 @@ function SortableMenu({ menu, children, onToggleExpansion, isExpanded, onToggleA
               onToggleActive(menu.id, !menu.active)
             }}
             variant="ghost"
-            className={` rounded-full ${
+            className={`rounded-full ${
               menu.active
                 ? 'bg-green-100 text-green-600 dark:bg-green-950/60 dark:text-green-400'
                 : 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400'
@@ -115,6 +203,18 @@ function SortableMenu({ menu, children, onToggleExpansion, isExpanded, onToggleA
           >
             {menu.active ? <Check size={16} /> : <X size={16} />}
             <span className="ml-2">{menu.active ? 'Activo' : 'Inactivo'}</span>
+          </Button>
+          <Button
+            onClick={e => {
+              e.stopPropagation()
+              onAddCategory(menu.id)
+            }}
+            variant="ghost"
+            size="sm"
+            className="text-xs border border-gray-200 dark:border-gray-800"
+          >
+            <Plus size={12} className="mr-1" />
+            <span>Añadir categoría</span>
           </Button>
           <Button variant="ghost" className={themeClasses.textMuted} onClick={() => onToggleExpansion(menu.id)}>
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -126,9 +226,10 @@ function SortableMenu({ menu, children, onToggleExpansion, isExpanded, onToggleA
   )
 }
 
-// SortableCategory component for draggable categories
+// SortableCategory component for draggable and collapsible categories
 function SortableCategory({ category, children, menuId }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `${menuId}-${category.id}` })
+  const [isExpanded, setIsExpanded] = useState(true)
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -144,9 +245,14 @@ function SortableCategory({ category, children, menuId }) {
         <div className={`mr-2 ${themeClasses.textMuted} cursor-grab active:cursor-grabbing`} {...attributes} {...listeners}>
           <GripVertical size={16} />
         </div>
-        <h4 className={`font-medium ${themeClasses.textSubtle}`}>{category.name}</h4>
+        <div className="flex-1 flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} className={themeClasses.textMuted}>
+            {isExpanded ? <ChevronRight size={20} /> : <ChevronDown size={20} />}
+          </Button>
+          <h4 className={`font-medium ${themeClasses.textSubtle} ml-2`}>{category.name}</h4>
+        </div>
       </div>
-      {children}
+      {isExpanded && children}
     </div>
   )
 }
@@ -157,12 +263,16 @@ export default function Overview() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  // State for expanded menu sections
-  const [expandedMenus, setExpandedMenus] = useState({})
+  // State for managing expanded/collapsed state of menus
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
+
+  // State for managing product order during drag operations
+  const [localProductOrder, setLocalProductOrder] = useState<Record<string, string[]>>({})
 
   // State for showing/hiding notification banners
   const [showPhotoBanner, setShowPhotoBanner] = useState(true)
   const [showInfoBanner, setShowInfoBanner] = useState(true)
+  const [showTipsDialog, setShowTipsDialog] = useState(false)
 
   // Drag and drop state
   const [activeId, setActiveId] = useState(null)
@@ -281,6 +391,16 @@ export default function Overview() {
     }
   }
 
+  // Toggle all menus expanded/collapsed
+  const toggleAllMenus = () => {
+    const allExpanded = Object.values(expandedMenus).every(Boolean)
+    const newState = {}
+    menusData?.avoqadoMenus?.forEach(menu => {
+      newState[menu.id] = !allExpanded
+    })
+    setExpandedMenus(newState)
+  }
+
   // Toggle menu active status mutation
   const toggleMenuActiveMutation = useMutation({
     mutationFn: async ({ menuId, active }: { menuId: string; active: boolean }) => {
@@ -308,6 +428,17 @@ export default function Overview() {
       return await api.post(`/v2/dashboard/${venueId}/avoqado-menus/reorder`, { order: orderData })
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+    },
+  })
+
+  // Update product order mutation
+  const updateProductOrderMutation = useMutation({
+    mutationFn: async ({ categoryId, orderData }: { categoryId: string; orderData: string[] }) => {
+      return await api.post(`/v2/dashboard/${venueId}/products/reorder`, { categoryId, order: orderData })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
       queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
     },
   })
@@ -432,9 +563,37 @@ export default function Overview() {
     categoryId => {
       if (!productsData) return []
 
-      return productsData.filter(product => product.categories?.some(cat => cat.id === categoryId))
+      // Get all products for this category
+      const categoryProducts = productsData.filter(product => product.categories?.some(cat => cat.id === categoryId))
+
+      // If we have a local order for this category, use it
+      if (localProductOrder[categoryId]) {
+        const orderedProducts = []
+        const productMap = new Map(categoryProducts.map(p => [p.id, p]))
+        const seenIds = new Set()
+
+        // First, add products in the order specified in localProductOrder
+        for (const productId of localProductOrder[categoryId]) {
+          if (productMap.has(productId)) {
+            orderedProducts.push(productMap.get(productId))
+            seenIds.add(productId)
+          }
+        }
+
+        // Then add any products that weren't in the local order
+        for (const product of categoryProducts) {
+          if (!seenIds.has(product.id)) {
+            orderedProducts.push(product)
+          }
+        }
+
+        return orderedProducts
+      }
+
+      // Default sorting by sortOrder if no local order exists
+      return [...categoryProducts].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
     },
-    [productsData],
+    [productsData, localProductOrder],
   )
 
   // Function to handle menu drag end
@@ -655,7 +814,7 @@ export default function Overview() {
               </Button>
             </div>
             <div className="ml-8 mt-4">
-              <Button variant="outline" onClick={() => navigate(`/dashboard/${venueId}/products`)}>
+              <Button variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/products`)}>
                 <Plus size={12} />
                 <span>Añadir foto</span>
               </Button>
@@ -680,9 +839,56 @@ export default function Overview() {
                 <Button variant="ghost" className={`mr-3 ${themeClasses.textMuted}`} onClick={() => setShowInfoBanner(false)}>
                   <X size={20} />
                 </Button>
-                <Button className="bg-blue-600 text-white dark:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium">
-                  Consultar los consejos
-                </Button>
+                <Dialog open={showTipsDialog} onOpenChange={setShowTipsDialog}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 dark:text-white dark:bg-blue-700 dark:hover:bg-blue-600 px-4 py-2 rounded-md text-sm font-medium">
+                      Consultar los consejos
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-semibold">Consejos para mejorar tu menú</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-lg">1. Fotos de alta calidad</h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Añade fotos profesionales de tus platos. Los menús con fotos tienen un 30% más de pedidos.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-lg">2. Descripciones atractivas</h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Describe los ingredientes y la preparación de tus platos de manera apetitosa.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-lg">3. Organización por categorías</h3>
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Agrupa tus platos en categorías lógicas para facilitar la navegación.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium text-lg">4. Precios actualizados</h3>
+                        <p className="text-gray-600 dark:text-gray-400">Asegúrate de que los precios estén actualizados y sean visibles.</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button variant="outline" onClick={() => setShowTipsDialog(false)}>
+                        Cerrar
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          setShowTipsDialog(false)
+                          // Add any additional action when the user clicks "Aplicar consejos"
+                        }}
+                      >
+                        Aplicar consejos
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
@@ -718,9 +924,9 @@ export default function Overview() {
               onClick={() => {
                 // Navigate to edit schedule page
                 if (menusData?.avoqadoMenus?.length > 0) {
-                  navigate(`/dashboard/${venueId}/avoqado-menus/${menusData.avoqadoMenus[0].id}/edit`)
+                  navigate(`/venues/${venueId}/avoqado-menus/${menusData.avoqadoMenus[0].id}/edit`)
                 } else {
-                  navigate(`/dashboard/${venueId}/avoqado-menus/create`)
+                  navigate(`/venues/${venueId}/avoqado-menus/create`)
                 }
               }}
             >
@@ -746,11 +952,20 @@ export default function Overview() {
               />
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" className={`p-2 ${themeClasses.textMuted} border ${themeClasses.border} rounded-md`}>
+              <Button
+                variant="outline"
+                className={`p-2 ${themeClasses.textMuted} border ${themeClasses.border} rounded-md`}
+                onClick={toggleAllMenus}
+                title={Object.values(expandedMenus).every(Boolean) ? 'Colapsar todo' : 'Expandir todo'}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" className={themeClasses.textMuted}>
                   <path
                     fill="currentColor"
-                    d="M6 20.65v-3.675l6-3.8 6 3.8v3.675l-6-3.875-6 3.875ZM6 7.175V3.5l6 3.875L18 3.5v3.675l-6 3.8-6-3.8Z"
+                    d={
+                      Object.values(expandedMenus).every(Boolean)
+                        ? 'M6 20.65v-3.675l6-3.8 6 3.8v3.675l-6-3.875-6 3.875ZM6 7.175V3.5l6 3.875L18 3.5v3.675l-6 3.8-6-3.8Z'
+                        : 'M6 20.65v-3.675l6-3.8 6 3.8v3.675l-6-3.875-6 3.875ZM6 7.175V3.5l6 3.875L18 3.5v3.675l-6 3.8-6-3.8Z'
+                    }
                   />
                 </svg>
               </Button>
@@ -833,6 +1048,7 @@ export default function Overview() {
                         active,
                       })
                     }}
+                    onAddCategory={handleAddCategory}
                   >
                     {expandedMenus[menu.id] && (
                       <div className="pl-12 pr-4 pb-4">
@@ -848,6 +1064,34 @@ export default function Overview() {
                           >
                             {getSortedCategories(menu).map(category => {
                               const categoryProducts = productsData && getProductsForCategory(category.id)
+                              const productIds: string[] = categoryProducts ? categoryProducts.map(product => product.id as string) : []
+
+                              // Function to handle product drag end for this specific category
+                              const handleProductDragEnd = (event: any) => {
+                                const { active, over } = event
+
+                                if (active.id !== over.id && over) {
+                                  const oldIndex = productIds.indexOf(active.id)
+                                  const newIndex = productIds.indexOf(over.id)
+
+                                  if (oldIndex !== -1 && newIndex !== -1) {
+                                    const newOrder = arrayMove(productIds, oldIndex, newIndex)
+
+                                    // Update local state immediately for smooth UI update
+                                    setLocalProductOrder(prev => ({
+                                      ...prev,
+                                      [category.id]: newOrder,
+                                    }))
+
+                                    // Update the product order in the database
+                                    updateProductOrderMutation.mutate({
+                                      categoryId: category.id,
+                                      orderData: newOrder,
+                                    })
+                                  }
+                                }
+                              }
+
                               return (
                                 <SortableCategory key={`${menu.id}-${category.id}`} category={category} menuId={menu.id}>
                                   <div className="pl-8">
@@ -856,62 +1100,42 @@ export default function Overview() {
                                         <div className="animate-pulse h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
                                       </div>
                                     ) : categoryProducts && categoryProducts.length > 0 ? (
-                                      categoryProducts.map(product => (
-                                        <div
-                                          key={product.id}
-                                          className={`flex items-center py-3 px-3 ${themeClasses.cardBg} border-b ${themeClasses.border} last:border-b-0`}
-                                        >
-                                          <div className="flex items-center flex-1">
-                                            <div className={`${themeClasses.textMuted} mr-3`}>
-                                              <svg
-                                                width="20"
-                                                height="20"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                              >
-                                                <path
-                                                  d="M5 7H19M5 12H19M5 17H19"
-                                                  stroke="currentColor"
-                                                  strokeWidth="1.5"
-                                                  strokeLinecap="round"
-                                                />
-                                              </svg>
-                                            </div>
-                                            <div className={`font-medium ${themeClasses.text}`}>{product.name}</div>
-                                          </div>
+                                      <DndContext
+                                        sensors={sensors}
+                                        collisionDetection={closestCenter}
+                                        onDragStart={event => setActiveId(event.active.id)}
+                                        onDragEnd={handleProductDragEnd}
+                                      >
+                                        <SortableContext items={productIds} strategy={verticalListSortingStrategy}>
+                                          {categoryProducts.map(product => (
+                                            <SortableProduct
+                                              key={product.id}
+                                              product={product}
+                                              editedPrices={editedPrices}
+                                              handlePriceChange={handlePriceChange}
+                                              handlePriceBlur={handlePriceBlur}
+                                            />
+                                          ))}
+                                        </SortableContext>
 
-                                          <div className="flex items-center space-x-4">
-                                            <div className="relative w-20">
-                                              <span
-                                                className={`absolute inset-y-0 left-0 flex items-center pl-2 ${themeClasses.textSubtle}`}
-                                              >
-                                                $
-                                              </span>
-                                              <Input
-                                                type="text"
-                                                value={
-                                                  editedPrices[product.id] !== undefined
-                                                    ? editedPrices[product.id]
-                                                    : Currency(product.price).replace('$', '') || ''
-                                                }
-                                                onChange={e => handlePriceChange(product.id, e.target.value)}
-                                                onBlur={e => handlePriceBlur(product.id, e.target.value)}
-                                                className={`py-1 w-full rounded border ${themeClasses.border} text-right bg-gray-50 dark:bg-gray-800`}
-                                              />
-                                            </div>
-
-                                            <div className="flex items-center space-x-2">
-                                              <div className="flex items-center justify-center w-6 h-6 bg-green-50 dark:bg-green-950/60 rounded-full text-green-600 dark:text-green-400">
-                                                <Check size={14} />
+                                        {/* Drag overlay for products */}
+                                        <DragOverlay>
+                                          {activeId && productIds.includes(activeId) && (
+                                            <div
+                                              className={`flex items-center py-3 px-3 ${themeClasses.cardBg} border-2 shadow-lg rounded-md`}
+                                            >
+                                              <div className="flex items-center flex-1">
+                                                <div className={`${themeClasses.textMuted} mr-3`}>
+                                                  <GripVertical size={16} />
+                                                </div>
+                                                <div className={`font-medium ${themeClasses.text}`}>
+                                                  {productsData?.find(p => p.id === activeId)?.name || 'Producto'}
+                                                </div>
                                               </div>
-                                              <Button variant="ghost" className={themeClasses.textMuted}>
-                                                <ChevronDown size={16} />
-                                              </Button>
                                             </div>
-                                          </div>
-                                        </div>
-                                      ))
+                                          )}
+                                        </DragOverlay>
+                                      </DndContext>
                                     ) : (
                                       <div className="py-2 px-4 bg-gray-50 dark:bg-gray-800 rounded-md mb-2 text-center">
                                         <span className={themeClasses.textMuted}>No hay productos en esta categoría</span>
@@ -959,11 +1183,6 @@ export default function Overview() {
                             )}
                           </DragOverlay>
                         </DndContext>
-
-                        <Button onClick={() => handleAddCategory(menu.id)} variant="outline">
-                          <Plus size={12} className="mr-2" />
-                          <span>Añadir categoría</span>
-                        </Button>
                       </div>
                     )}
                   </SortableMenu>
