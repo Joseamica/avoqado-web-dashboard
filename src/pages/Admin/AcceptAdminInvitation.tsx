@@ -64,7 +64,7 @@ export default function AcceptAdminInvitation() {
   // Mutation for verifying the invitation token
   const verifyInvitationMutation = useMutation({
     mutationFn: async (token: string) => {
-      const response = await api.post('/v2/dashboard/verify-admin-invitation', { token })
+      const response = await api.post('/v1/invitations/admin/verify', { token })
       return response.data
     },
     onSuccess: data => {
@@ -81,7 +81,7 @@ export default function AcceptAdminInvitation() {
   // Mutation for accepting the invitation
   const acceptInvitationMutation = useMutation({
     mutationFn: async (data: { token: string; password?: string }) => {
-      const response = await api.post('/v2/dashboard/accept-admin-invitation', data)
+      const response = await api.post('/v1/invitations/admin/accept', data)
       return response.data
     },
     onSuccess: data => {
