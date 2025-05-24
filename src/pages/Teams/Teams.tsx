@@ -9,15 +9,25 @@ import { useToast } from '@/hooks/use-toast'
 import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
-import { CheckCircle, Loader2, PlusCircle, Search, UserCog, XCircle } from 'lucide-react'
+import { CheckCircle, Loader2, PlusCircle, UserCog, XCircle, PencilIcon, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // Define admin user interface
 interface VenueAdmin {
   id: string
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   role: string
   status: 'active' | 'inactive'
@@ -25,6 +35,7 @@ interface VenueAdmin {
 
 export default function Teams() {
   const { venueId } = useParams()
+  const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
   const [newUser, setNewUser] = useState({
@@ -51,14 +62,12 @@ export default function Teams() {
     adminData && adminData.length > 0
       ? adminData.filter(admin => {
           // If the current user is not a SUPERADMIN, hide SUPERADMIN users
-          const hasPermissionToView = 
-            currentUser?.role === 'SUPERADMIN' || admin.role !== 'SUPERADMIN';
-            
-          const matchesSearch =
-            admin?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            admin?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+          const hasPermissionToView = currentUser?.role === 'SUPERADMIN' || admin.role !== 'SUPERADMIN'
 
-          return hasPermissionToView && matchesSearch;
+          const matchesSearch =
+            admin?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || admin?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+
+          return hasPermissionToView && matchesSearch
         })
       : []
 
@@ -172,18 +181,18 @@ export default function Teams() {
       accessorKey: 'role',
       header: 'Rol',
       cell: ({ row }) => {
-        const isSuperAdmin = row.original.role === 'SUPERADMIN';
+        const isSuperAdmin = row.original.role === 'SUPERADMIN'
         // Only SUPERADMIN users can change roles of other users to SUPERADMIN
-        const canChangeSuperAdmin = currentUser?.role === 'SUPERADMIN';
-        
+        const canChangeSuperAdmin = currentUser?.role === 'SUPERADMIN'
+
         return (
           <Select
             defaultValue={row.original.role}
             onValueChange={value => handleRoleChange(row.original.id, value)}
-            disabled={(
-              roleChangeMutation.isPending && 
-              roleChangeMutation.variables?.userId === row.original.id
-            ) || (isSuperAdmin && !canChangeSuperAdmin) /* Disable editing SUPERADMIN roles for non-SUPERADMIN users */}
+            disabled={
+              (roleChangeMutation.isPending && roleChangeMutation.variables?.userId === row.original.id) ||
+              (isSuperAdmin && !canChangeSuperAdmin) /* Disable editing SUPERADMIN roles for non-SUPERADMIN users */
+            }
           >
             <SelectTrigger className="w-[140px]">
               <SelectValue />
@@ -192,12 +201,10 @@ export default function Teams() {
               <SelectItem value="ADMIN">Administrador</SelectItem>
               <SelectItem value="VENUEADMIN">Admin de Venue</SelectItem>
               {/* Only show SUPERADMIN option if the user already has that role or current user is SUPERADMIN */}
-              {(isSuperAdmin || canChangeSuperAdmin) && (
-                <SelectItem value="SUPERADMIN">SUPERADMIN</SelectItem>
-              )}
+              {(isSuperAdmin || canChangeSuperAdmin) && <SelectItem value="SUPERADMIN">SUPERADMIN</SelectItem>}
             </SelectContent>
           </Select>
-        );
+        )
       },
     },
     {
@@ -214,35 +221,57 @@ export default function Teams() {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => {
-        // Don't show deactivate button for SUPERADMIN users
+        // Don't show actions for SUPERADMIN users unless current user is SUPERADMIN
         const isSuperAdmin = row.original.role === 'SUPERADMIN'
-        // Only show the button if the user is not SUPERADMIN or if the current user is SUPERADMIN
-        const shouldShowButton = !isSuperAdmin || currentUser?.role === 'SUPERADMIN'
-        
-        if (!shouldShowButton) {
+        const canManageSuperAdmin = currentUser?.role === 'SUPERADMIN'
+        const shouldShowActions = !isSuperAdmin || canManageSuperAdmin
+
+        if (!shouldShowActions) {
           return null
         }
-        
+
         return (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleStatusToggle(row.original.id, row.original.status)}
-              disabled={
-                statusToggleMutation.isPending && 
-                statusToggleMutation.variables?.userId === row.original.id ||
-                isSuperAdmin // Disable the button for SUPERADMIN users
-              }
-            >
-              {statusToggleMutation.isPending && statusToggleMutation.variables?.userId === row.original.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : row.original.status === 'active' ? (
-                'Desactivar'
-              ) : (
-                'Activar'
-              )}
-            </Button>
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <span className="sr-only">Abrir menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate(`/dashboard/${venueId}/admins/${row.original.id}`)}>
+                  <PencilIcon className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleStatusToggle(row.original.id, row.original.status)}
+                  disabled={
+                    (statusToggleMutation.isPending && statusToggleMutation.variables?.userId === row.original.id) || isSuperAdmin // Disable for SUPERADMIN users
+                  }
+                  className={isSuperAdmin ? 'text-muted-foreground cursor-not-allowed' : ''}
+                >
+                  {statusToggleMutation.isPending && statusToggleMutation.variables?.userId === row.original.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Procesando...
+                    </>
+                  ) : row.original.status === 'active' ? (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Desactivar
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Activar
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )
       },
@@ -256,7 +285,7 @@ export default function Teams() {
         <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <PlusCircle className="flex items-center space-x-2" />
+              <PlusCircle className="mr-2 h-4 w-4" />
               Añadir Usuario
             </Button>
           </DialogTrigger>

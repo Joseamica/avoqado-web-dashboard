@@ -197,23 +197,23 @@ const data = {
       ],
     },
   ],
-  projects: [
-    {
-      name: 'Design Engineering',
-      url: '#',
-      icon: Frame,
-    },
-    {
-      name: 'Sales & Marketing',
-      url: '#',
-      icon: PieChart,
-    },
-    {
-      name: 'Travel',
-      url: '#',
-      icon: Map,
-    },
-  ],
+  // projects: [
+  //   {
+  //     name: 'Design Engineering',
+  //     url: '#',
+  //     icon: Frame,
+  //   },
+  //   {
+  //     name: 'Sales & Marketing',
+  //     url: '#',
+  //     icon: PieChart,
+  //   },
+  //   {
+  //     name: 'Travel',
+  //     url: '#',
+  //     icon: Map,
+  //   },
+  // ],
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
@@ -267,7 +267,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
       <SidebarContent>
         <NavMain items={user.role === 'SUPERADMIN' ? [...data.navMain, ...superAdminRoutes] : data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
