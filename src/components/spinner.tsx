@@ -44,8 +44,8 @@ export function Spinner({ size, show, children, className }: SpinnerContentProps
 
 export function LoadingScreen({ message }) {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center mt-6">
-      <Spinner>{message}</Spinner>
+    <div className="fixed inset-0 flex flex-col items-center justify-center loading-screen bg-white dark:bg-transparent">
+      <Spinner className="spinner">{message}</Spinner>
     </div>
   )
 }

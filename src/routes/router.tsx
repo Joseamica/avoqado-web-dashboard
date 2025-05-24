@@ -3,22 +3,53 @@
 import { createBrowserRouter } from 'react-router-dom'
 
 import {
-  Dashboard, ErrorPage, Login, Home, Categories, CategoryId, CreateCategory,
-  MenuMakerLayout, CreateMenu, Menus, Modifiers, Overview, CreateProduct,
-  ProductId, Products, CreateTpv, Tpv, TpvId, Account, Payments, PaymentId,
-  MenuId, Reviews, Waiters, EditVenue, Shifts, WaiterId, ShiftId,
-  Bills, BillId,
-  AdminDashboard, UserManagement, SystemSettings, VenueManagement, GlobalConfig,
-  SuperAdminManagement, SuperAdminVenueEdit, Venues
-} from './lazyComponents';
+  Dashboard,
+  ErrorPage,
+  Login,
+  Home,
+  Categories,
+  CategoryId,
+  CreateCategory,
+  MenuMakerLayout,
+  CreateMenu,
+  Menus,
+  Modifiers,
+  Overview,
+  CreateProduct,
+  ProductId,
+  Products,
+  CreateTpv,
+  Tpv,
+  TpvId,
+  Account,
+  Payments,
+  PaymentId,
+  MenuId,
+  Reviews,
+  Waiters,
+  EditVenue,
+  Shifts,
+  WaiterId,
+  ShiftId,
+  Bills,
+  BillId,
+  Teams,
+  AdminDashboard,
+  UserManagement,
+  SystemSettings,
+  VenueManagement,
+  GlobalConfig,
+  SuperAdminManagement,
+  SuperAdminVenueEdit,
+  Venues,
+  AcceptAdminInvitation,
+} from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
 import { Layout } from '@/Layout'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
-
-
 
 const router = createBrowserRouter([
   {
@@ -33,6 +64,10 @@ const router = createBrowserRouter([
       {
         path: '/login',
         element: <Login />,
+      },
+      {
+        path: '/admin/accept-invitation',
+        element: <AcceptAdminInvitation />,
       },
       {
         element: <ProtectedRoute />, // Protected routes
@@ -188,6 +223,7 @@ const router = createBrowserRouter([
               { path: 'waiters', element: <Waiters /> },
               { path: 'waiters/:waiterId', element: <WaiterId /> },
               { path: 'reviews', element: <Reviews /> },
+              { path: 'teams', element: <Teams /> },
 
               // Esta sección pasa a ser parte del nuevo panel de administración
               {

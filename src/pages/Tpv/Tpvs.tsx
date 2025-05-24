@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { themeClasses } from '@/lib/theme-utils'
 import { Tpv } from '@/types'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function Tpvs() {
   const { venueId } = useParams()
@@ -109,19 +110,22 @@ export default function Tpvs() {
         onChange={e => setSearchTerm(e.target.value)}
         className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
-
-      <DataTable
-        data={filteredTpvs}
-        rowCount={totalTpvs}
-        columns={columns}
-        isLoading={isLoading}
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
-        pagination={pagination}
-        setPagination={setPagination}
-      />
+      <Card>
+        <CardContent className="p-0">
+          <DataTable
+            data={filteredTpvs}
+            rowCount={totalTpvs}
+            columns={columns}
+            isLoading={isLoading}
+            clickableRow={row => ({
+              to: row.id,
+              state: { from: location.pathname },
+            })}
+            pagination={pagination}
+            setPagination={setPagination}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }
