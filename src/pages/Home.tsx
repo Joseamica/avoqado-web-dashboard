@@ -9,12 +9,13 @@ import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { useTheme } from '@/context/ThemeContext'
 import { themeClasses } from '@/lib/theme-utils'
 import { useSocketEvents } from '@/hooks/use-socket-events'
+import { unparse } from 'papaparse'
 
 // Translations for payment methods
 const PAYMENT_METHOD_TRANSLATIONS = {
@@ -114,6 +115,7 @@ const MetricCard = ({
   icon,
   percentage = null,
   comparisonLabel = 'período anterior',
+  isPercentageLoading = false,
 }: {
   title: string
   value: string | number | null
@@ -121,6 +123,7 @@ const MetricCard = ({
   icon: React.ReactNode
   percentage?: number | null
   comparisonLabel?: string
+  isPercentageLoading?: boolean
 }) => {
   return (
     <Card>
@@ -134,34 +137,50 @@ const MetricCard = ({
         ) : (
           <div className="space-y-1">
             <div className="text-2xl font-bold">{value || 0}</div>
-            {percentage !== null && (
-              <div
-                className={`text-xs flex items-center ${
-                  percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : themeClasses.textMuted
-                }`}
-              >
-                {percentage > 0 ? (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                    <span>
-                      {percentage}% vs {comparisonLabel}
-                    </span>
-                  </>
-                ) : percentage < 0 ? (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    <span>
-                      {Math.abs(percentage)}% vs {comparisonLabel}
-                    </span>
-                  </>
-                ) : (
-                  <span>Sin cambios vs {comparisonLabel}</span>
-                )}
-              </div>
+            {isPercentageLoading ? (
+              <div className={`h-4 w-24 ${themeClasses.neutral.bg} rounded animate-pulse mt-1`}></div>
+            ) : (
+              percentage !== null && (
+                <div
+                  className={`text-xs flex items-center ${
+                    percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : themeClasses.textMuted
+                  }`}
+                >
+                  {percentage > 0 ? (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      <span>
+                        {percentage}% vs {comparisonLabel}
+                      </span>
+                    </>
+                  ) : percentage < 0 ? (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <span>
+                        {Math.abs(percentage)}% vs {comparisonLabel}
+                      </span>
+                    </>
+                  ) : (
+                    <span>Sin cambios vs {comparisonLabel}</span>
+                  )}
+                </div>
+              )
             )}
           </div>
         )}
@@ -199,7 +218,7 @@ const Home = () => {
   const [activeFilter, setActiveFilter] = useState('7days') // default '7days'
 
   // Handler for "Today" filter
-  const handleToday = () => {
+  const handleToday = useCallback(() => {
     const today = new Date()
     const todayStart = new Date(today.setHours(0, 0, 0, 0))
     const todayEnd = new Date(new Date().setHours(23, 59, 59, 999))
@@ -215,10 +234,10 @@ const Home = () => {
     setCompareType('day')
     setComparisonLabel('ayer')
     setActiveFilter('today')
-  }
+  }, [])
 
   // Handler for "Last 7 days" filter
-  const handleLast7Days = () => {
+  const handleLast7Days = useCallback(() => {
     const today = new Date()
     const end = new Date(today.setHours(23, 59, 59, 999))
     const start = new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000)
@@ -235,10 +254,10 @@ const Home = () => {
     setCompareType('week')
     setComparisonLabel('7 días anteriores')
     setActiveFilter('7days')
-  }
+  }, [])
 
   // Handler for "Last 30 days" filter
-  const handleLast30Days = () => {
+  const handleLast30Days = useCallback(() => {
     const today = new Date()
     const end = new Date(today.setHours(23, 59, 59, 999))
     const start = new Date(new Date().setHours(0, 0, 0, 0) - 30 * 24 * 60 * 60 * 1000)
@@ -255,7 +274,7 @@ const Home = () => {
     setCompareType('month')
     setComparisonLabel('30 días anteriores')
     setActiveFilter('30days')
-  }
+  }, [])
 
   // Fetch main data with date range parameters
   const {
@@ -630,7 +649,7 @@ const Home = () => {
   }, [extraMetrics.prepTimesByCategory])
 
   // Export to JSON
-  const exportToCSV = async () => {
+  const exportToCSV = useCallback(async () => {
     try {
       setExportLoading(true)
 
@@ -677,113 +696,178 @@ const Home = () => {
     } finally {
       setExportLoading(false)
     }
-  }
+  }, [
+    venueId,
+    totalAmount,
+    fiveStarReviews,
+    tipStats,
+    paymentMethodsData,
+    bestSellingProducts,
+    tipsChartData,
+    extraMetrics,
+    setExportLoading,
+  ])
 
   // Export to Excel (CSV)
-  const exportToExcel = async () => {
+  const exportToExcel = useCallback(async () => {
     try {
       setExportLoading(true)
 
-      // Prepare data for CSV
-      let csvContent = 'data:text/csv;charset=utf-8,'
+      const sections = []
 
-      // Sales
-      csvContent += 'Métricas generales\n'
-      csvContent += 'Total ventas,5 estrellas Google,Total propinas,Promedio propinas %\n'
-      csvContent += `${Currency(totalAmount).replace('$', '')},${fiveStarReviews},${Currency(tipStats.totalTips).replace('$', '')},${
-        tipStats.avgTipPercentage
-      }%\n\n`
+      // Helper to remove currency symbols for CSV if needed, Papaparse handles numbers well.
+      const formatCurrencyForCSV = (value: number) => Currency(value).replace('$', '')
 
-      // Payment methods
-      csvContent += 'Métodos de pago\n'
-      csvContent += 'Método,Total\n'
-      paymentMethodsData.forEach(item => {
-        csvContent += `${item.method},${Currency(Number(item.total)).replace('$', '')}\n`
-      })
-      csvContent += '\n'
+      // 1. General Metrics
+      sections.push(
+        unparse(
+          {
+            fields: ['Métricas generales'],
+            data: [['']],
+          },
+          { header: false },
+        ),
+        unparse({
+          fields: ['Total ventas', '5 estrellas Google', 'Total propinas', 'Promedio propinas %'],
+          data: [
+            [formatCurrencyForCSV(totalAmount), fiveStarReviews, formatCurrencyForCSV(tipStats.totalTips), `${tipStats.avgTipPercentage}%`],
+          ],
+        }),
+      )
 
-      // Best selling products
-      csvContent += 'Productos mejor vendidos\n'
-      csvContent += 'Categoría,Producto,Cantidad\n'
+      // 2. Payment Methods
+      sections.push(
+        unparse({ fields: ['Métodos de pago'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Método', 'Total'],
+          data: paymentMethodsData.map(item => [item.method, formatCurrencyForCSV(Number(item.total))]),
+        }),
+      )
 
+      // 3. Best Selling Products
+      const bestSellingData = []
       Object.entries(bestSellingProducts).forEach(([category, products]) => {
         const categoryName = CATEGORY_TRANSLATIONS[category] || category
         products.forEach(item => {
-          csvContent += `${categoryName},${item.name},${item.quantity}\n`
+          bestSellingData.push([categoryName, item.name, item.quantity])
         })
       })
-      csvContent += '\n'
+      sections.push(
+        unparse({ fields: ['Productos mejor vendidos'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Categoría', 'Producto', 'Cantidad'],
+          data: bestSellingData,
+        }),
+      )
 
-      // Tips by date
-      csvContent += 'Propinas por fecha\n'
-      csvContent += 'Fecha,Monto\n'
-      tipsChartData.forEach(item => {
-        csvContent += `${item.date},${item.amount}\n`
-      })
+      // 4. Tips by Date
+      sections.push(
+        unparse({ fields: ['Propinas por fecha'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Fecha', 'Monto'],
+          data: tipsChartData.map(item => [item.date, item.amount]),
+        }),
+      )
 
-      // Peak hours data
-      csvContent += '\nHoras pico\n'
-      csvContent += 'Hora,Ventas,Transacciones\n'
-      extraMetrics.peakHoursData.forEach(item => {
-        csvContent += `${item.hour}:00,${item.sales},${item.transactions}\n`
-      })
+      // 5. Peak Hours Data
+      sections.push(
+        unparse({ fields: ['Horas pico'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Hora', 'Ventas', 'Transacciones'],
+          data: extraMetrics.peakHoursData.map(item => [`${item.hour}:00`, item.sales, item.transactions]),
+        }),
+      )
 
-      // Table performance data
-      csvContent += '\nDesempeño de mesas\n'
-      csvContent += 'Mesa,Capacidad,Ticket Promedio,Rotación,Ingresos Totales\n'
-      extraMetrics.tablePerformance.forEach(table => {
-        csvContent += `${table.tableNumber},${table.capacity},${Currency(table.avgTicket).replace('$', '')},${table.rotationRate.toFixed(
-          1,
-        )}x,${Currency(table.totalRevenue).replace('$', '')}\n`
-      })
+      // 6. Table Performance Data
+      sections.push(
+        unparse({ fields: ['Desempeño de mesas'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Mesa', 'Capacidad', 'Ticket Promedio', 'Rotación', 'Ingresos Totales'],
+          data: extraMetrics.tablePerformance.map(table => [
+            table.tableNumber,
+            table.capacity,
+            formatCurrencyForCSV(table.avgTicket),
+            `${table.rotationRate.toFixed(1)}x`,
+            formatCurrencyForCSV(table.totalRevenue),
+          ]),
+        }),
+      )
 
-      // Product profitability
-      csvContent += '\nRentabilidad de productos\n'
-      csvContent += 'Producto,Tipo,Precio,Costo,Margen,% Margen,Cantidad,Ingresos\n'
-      extraMetrics.productProfitability.forEach(product => {
-        csvContent += `${product.name},${product.type},${Currency(product.price).replace('$', '')},${Currency(product.cost).replace(
-          '$',
-          '',
-        )},${Currency(product.margin).replace('$', '')},${product.marginPercentage.toFixed(1)}%,${product.quantity},${Currency(
-          product.totalRevenue,
-        ).replace('$', '')}\n`
-      })
+      // 7. Product Profitability
+      sections.push(
+        unparse({ fields: ['Rentabilidad de productos'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Producto', 'Tipo', 'Precio', 'Costo', 'Margen', '% Margen', 'Cantidad', 'Ingresos'],
+          data: extraMetrics.productProfitability.map(product => [
+            product.name,
+            product.type,
+            formatCurrencyForCSV(product.price),
+            formatCurrencyForCSV(product.cost),
+            formatCurrencyForCSV(product.margin),
+            `${product.marginPercentage.toFixed(1)}%`,
+            product.quantity,
+            formatCurrencyForCSV(product.totalRevenue),
+          ]),
+        }),
+      )
 
-      // Weekly trends
-      csvContent += '\nTendencias semanales\n'
-      csvContent += 'Día,Semana Actual,Semana Anterior,% Cambio\n'
-      extraMetrics.weeklyTrendsData.forEach(day => {
-        csvContent += `${day.day},${Currency(day.currentWeek).replace('$', '')},${Currency(day.previousWeek).replace(
-          '$',
-          '',
-        )},${day.changePercentage.toFixed(1)}%\n`
-      })
+      // 8. Weekly Trends
+      sections.push(
+        unparse({ fields: ['Tendencias semanales'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Día', 'Semana Actual', 'Semana Anterior', '% Cambio'],
+          data: extraMetrics.weeklyTrendsData.map(day => [
+            day.day,
+            formatCurrencyForCSV(day.currentWeek),
+            formatCurrencyForCSV(day.previousWeek),
+            `${day.changePercentage.toFixed(1)}%`,
+          ]),
+        }),
+      )
 
-      // Staff performance
-      csvContent += '\nDesempeño del personal\n'
-      csvContent += 'Nombre,Rol,Ventas Totales,Cantidad de Órdenes,Tiempo Promedio\n'
-      extraMetrics.staffPerformanceMetrics.forEach(staff => {
-        csvContent += `${staff.name},${staff.role},${Currency(staff.totalSales).replace('$', '')},${
-          staff.orderCount
-        },${staff.avgPrepTime.toFixed(1)} min\n`
-      })
+      // 9. Staff Performance
+      sections.push(
+        unparse({ fields: ['Desempeño del personal'], data: [['']] }, { header: false }),
+        unparse({
+          fields: ['Nombre', 'Rol', 'Ventas Totales', 'Cantidad de Órdenes', 'Tiempo Promedio'],
+          data: extraMetrics.staffPerformanceMetrics.map(staff => [
+            staff.name,
+            staff.role,
+            formatCurrencyForCSV(staff.totalSales),
+            staff.orderCount,
+            `${staff.avgPrepTime.toFixed(1)} min`,
+          ]),
+        }),
+      )
 
-      // Encode and create URL
-      const encodedUri = encodeURI(csvContent)
+      const fullCsvString = sections.join('\n\n') // Add double newline between sections
+      const blob = new Blob([fullCsvString], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
       const filename = `dashboard_${venueId}_${format(new Date(), 'yyyy-MM-dd')}.csv`
 
       const link = document.createElement('a')
-      link.setAttribute('href', encodedUri)
+      link.setAttribute('href', url)
       link.setAttribute('download', filename)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error al exportar a Excel:', error)
     } finally {
       setExportLoading(false)
     }
-  }
+  }, [
+    venueId,
+    totalAmount,
+    fiveStarReviews,
+    tipStats,
+    paymentMethodsData,
+    bestSellingProducts,
+    tipsChartData,
+    extraMetrics,
+    setExportLoading,
+  ])
 
   return (
     <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
@@ -874,7 +958,14 @@ const Home = () => {
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-red-600">Failed to load dashboard data</h2>
               <p className={themeClasses.textMuted}>{error?.message || 'An unknown error occurred'}</p>
-              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Button
+                onClick={() => {
+                  refetchDashboardData()
+                  if (compareType) refetchCompareData()
+                }}
+              >
+                Retry
+              </Button>
             </div>
           </Card>
         ) : (
@@ -888,6 +979,7 @@ const Home = () => {
                 icon={<DollarIcon />}
                 percentage={compareType ? amountChangePercentage : null}
                 comparisonLabel={comparisonLabel}
+                isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
                 title="5 estrellas Google"
@@ -896,6 +988,7 @@ const Home = () => {
                 icon={<StarIcon />}
                 percentage={compareType ? reviewsChangePercentage : null}
                 comparisonLabel={comparisonLabel}
+                isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
                 title="Total propinas"
@@ -904,6 +997,7 @@ const Home = () => {
                 icon={<TipIcon />}
                 percentage={compareType ? tipsChangePercentage : null}
                 comparisonLabel={comparisonLabel}
+                isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
                 title="Promedio propinas %"
@@ -912,6 +1006,7 @@ const Home = () => {
                 icon={<PercentIcon />}
                 percentage={compareType ? tipAvgChangePercentage : null}
                 comparisonLabel={comparisonLabel}
+                isPercentageLoading={compareType ? isCompareLoading : false}
               />
             </div>
 
@@ -963,10 +1058,20 @@ const Home = () => {
                                 if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                                   return (
                                     <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                      <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-lg font-bold">
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        className="text-lg font-bold" // Keep other utility classes
+                                        style={{ fill: 'hsl(var(--foreground))' }}
+                                      >
                                         {Currency(totalAmount)}
                                       </tspan>
-                                      <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground text-sm">
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 24}
+                                        className="text-sm" // Keep other utility classes
+                                        style={{ fill: 'hsl(var(--muted-foreground))' }}
+                                      >
                                         Total
                                       </tspan>
                                     </text>
@@ -1018,9 +1123,7 @@ const Home = () => {
                     <div className="space-y-5">
                       {Object.entries(bestSellingProducts).map(([category, products]) => (
                         <div key={category} className="space-y-2">
-                          <h3 className="font-medium text-sm uppercase text-muted-foreground">
-                            {CATEGORY_TRANSLATIONS[category] || category}
-                          </h3>
+                          <h3 className="font-medium text-sm  text-muted-foreground">{CATEGORY_TRANSLATIONS[category] || category}</h3>
                           {products.length === 0 ? (
                             <p className="text-sm text-gray-500">No hay datos disponibles</p>
                           ) : (

@@ -46,22 +46,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const [user, setUser] = useState<User | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+
   const [allVenues, setAllVenues] = useState<Venue[]>([])
   // Ref to track the last unauthorized venueId to prevent duplicate toasts
   const lastUnauthorizedVenueRef = useRef<string | null>(null)
   // Ref to track when the last toast was shown (to prevent rapid duplicate toasts)
   const lastToastTimeRef = useRef<number>(0)
 
-  const { data, isLoading, error, isError, isSuccess } = useQuery({
+  const statusQuery = useQuery({
+    staleTime: 5 * 60 * 1000, // 5 minutes, prevent refetch on mount if data is fresh
+    gcTime: 10 * 60 * 1000,   // 10 minutes
+    // refetchOnWindowFocus: true, // Keep if desired, but not the primary fix here
     queryKey: ['status'],
     queryFn: async () => {
-      const response = await api.get(`/v1/auth/status-v2`)
-      return response.data
+      const response = await api.get(`/v1/auth/status-v2`);
+      return response.data; // Expected: { authenticated: boolean, user: User | null, ... }
     },
-    // refetchOnWindowFocus: true,
-  })
+  });
+
+  // Derive auth state directly from the query result
+  const isAuthenticated = !!statusQuery.data?.authenticated;
+  const user = statusQuery.data?.user || null;
 
   // Fetch all venues if user is SUPERADMIN
   const { data: allVenuesData, isSuccess: allVenuesSuccess } = useQuery({
@@ -70,19 +75,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.get(`/v2/dashboard/venues`)
       return response.data
     },
-    enabled: !!user && user.role === 'SUPERADMIN',
+    enabled: !!user && user.role === 'SUPERADMIN', // This 'user' will now be the derived one
   })
 
-  // Synchronize local state with fetched data
-  useEffect(() => {
-    if (isSuccess && data) {
-      setIsAuthenticated(data.authenticated)
-      setUser(data.user)
-    } else if (data && !data.authenticated) {
-      setIsAuthenticated(false)
-      setUser(null)
-    }
-  }, [data, isSuccess])
+  // useEffect for setting isAuthenticated and user from statusQuery is no longer needed.
 
   // Update allVenues when data is fetched
   useEffect(() => {
@@ -148,9 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) => api.post(`/v1/auth/login`, { email, password }),
     onSuccess: response => {
-      queryClient.invalidateQueries({ queryKey: ['status'] }) // Refetch status if necessary
-      setIsAuthenticated(true)
-      setUser(response.data.user)
+      // User and isAuthenticated state will be updated automatically when 'status' query refetches
+      queryClient.invalidateQueries({ queryKey: ['status'] });
 
       if (response.data.user.role === 'SUPERADMIN') {
         navigate('/venues', { replace: true })
@@ -174,9 +169,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logoutMutation = useMutation({
     mutationFn: () => api.post('/v1/auth/logout'),
     onSuccess: () => {
-      queryClient.clear()
-      setIsAuthenticated(false)
-      setUser(null)
+      queryClient.clear(); // Clear cache first
+      queryClient.invalidateQueries({ queryKey: ['status'] }); // Then invalidate to refetch and update derived state
 
       Object.keys(localStorage).forEach(key => {
         if (!key.startsWith('persist:')) {
@@ -193,22 +187,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     logoutMutation.mutate()
   }
-  if (isLoading || !data) {
+  // Main loading condition for the auth context provider
+  if (statusQuery.isLoading) {
     return <LoadingScreen message="Partiendo la cuenta y el aguacate…" />
   }
-  if (isError) {
-    return <div>Error: {error.message}</div>
+  if (statusQuery.isError) {
+    // Consider how to handle auth status errors. For now, showing error message.
+    // Alternatively, treat as logged out: isAuthenticated will be false, user null.
+    return <div>Error: {statusQuery.error.message}</div>;
   }
+  // If not loading and not error, statusQuery.data should be available (even if it means user is not authenticated)
+  // If statusQuery.data is undefined (e.g. queryFn returned undefined successfully), 
+  // isAuthenticated will be false and user null, which is a valid logged-out state.
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
+        isAuthenticated, // Directly derived
         login,
         logout,
-        user,
-        isLoading,
-        error,
+        user,            // Directly derived
+        isLoading: loginMutation.isPending || logoutMutation.isPending, // Use isPending for mutations
+        error: loginMutation.error || logoutMutation.error, 
         checkVenueAccess,
         authorizeVenue,
         allVenues,
