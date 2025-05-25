@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 import Logo from '@/assets/logo'
+import CoverLogin from '@/assets/cover-login.png'
 import { UserAuthForm } from './components/UserAuthForm'
 import { themeClasses } from '@/lib/theme-utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -10,8 +11,8 @@ const Login: React.FC = () => {
   return (
     <>
       <div className="md:hidden">
-        <img src="/examples/authentication-light.png" width={1280} height={843} alt="Authentication" className="block dark:hidden" />
-        <img src="/examples/authentication-dark.png" width={1280} height={843} alt="Authentication" className="hidden dark:block" />
+        <img src={CoverLogin} width={1280} height={843} alt="Authentication" className="block dark:hidden" />
+        <img src={CoverLogin} width={1280} height={843} alt="Authentication" className="hidden dark:block" />
       </div>
       <div
         className={`container relative flex-col items-center justify-center h-screen md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 ${themeClasses.pageBg} ${themeClasses.text}`}
