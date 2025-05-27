@@ -36,11 +36,15 @@
 /* Dark mode inputs */
 .dark input,
 .dark select,
+.dark [role='combobox'] input {
+  background-color: transparent !important;
+}
 .dark textarea {
   background-color: hsl(240 3.7% 15.9%);
   border-color: hsl(240 5% 26%);
   color: hsl(240 4.8% 95.9%);
 }
+/* Make input backgrounds transparent inside MultipleSelector and DnDMultipleSelector in dark mode */
 
 /* Dark mode tables */
 .dark table {
@@ -58,10 +62,27 @@
 }
 
 /* Dark mode buttons */
-.dark button:not([class*='bg-']) {
-  background-color: hsl(224.3 76.3% 48%);
-  color: hsl(0 0% 100%);
+.dark button:not([class*='bg-']):not([class*='ml-1']) {
+  background-color: hsl(0, 0%, 100%);
+  color: hsl(0, 0%, 0%);
   border-color: hsl(224.3 70% 40%);
+  border-radius: 8px;
+}
+
+/* Fix badge buttons in dark mode */
+.dark .Badge button {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* Fix MultipleSelector and DnDMultipleSelector badge buttons in dark mode */
+.dark [role='combobox'] button[class*='ml-1'],
+.dark [role='combobox'] button.absolute,
+.dark .Badge button,
+.dark div[style*='cursor: grab'] button {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: inherit;
 }
 
 /* Dashboard cards for dark mode */

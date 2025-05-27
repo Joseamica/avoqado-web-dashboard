@@ -14,6 +14,7 @@ import {
   CreateMenu,
   Menus,
   Modifiers,
+  CreateModifierGroup,
   Overview,
   CreateProduct,
   ProductId,
@@ -43,6 +44,7 @@ import {
   SuperAdminVenueEdit,
   Venues,
   AcceptAdminInvitation,
+  ModifierGroupId,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -208,6 +210,14 @@ const router = createBrowserRouter([
                     element: <CreateProduct />,
                   },
                   { path: 'modifiers', element: <Modifiers /> },
+                  {
+                    path: 'modifiers/:modifierGroupId',
+                    element: <ModifierGroupId />,
+                  },
+                  {
+                    path: 'modifiers/create',
+                    element: <CreateModifierGroup />,
+                  },
                 ],
               },
               { path: 'shifts', element: <Shifts /> },
