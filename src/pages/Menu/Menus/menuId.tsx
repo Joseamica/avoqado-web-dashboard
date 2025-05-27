@@ -1,9 +1,11 @@
 import React from 'react'
 import api from '@/api'
-import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
+import { Button } from '@/components/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
@@ -109,21 +111,12 @@ export default function MenuId() {
   })
 
   // Llamamos a useForm siempre, con defaultValues iniciales
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    setError,
-    clearErrors,
-    getFieldState,
-    reset,
-    formState: { errors },
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       name: '',
       avoqadoMenus: [],
       avoqadoProducts: [],
+      categories: [],
       days: initialDays,
       startTime: '09:00',
       endTime: '19:30',
@@ -144,10 +137,19 @@ export default function MenuId() {
         ...day,
         selected: menuDays.some((menuDay: any) => menuDay.day === dayLabelToEnum(day.label)),
       }))
-      reset({
+      
+      // Map categories for the MultipleSelector
+      const categoriesForForm = menuData.categories?.map((category: any) => ({
+        label: category.name,
+        value: category.id,
+        disabled: false,
+      })) || []
+      
+      form.reset({
         name: menuData.name || '',
         avoqadoMenus: menuData.avoqadoMenus || [],
         avoqadoProducts: menuData.avoqadoProducts || [],
+        categories: categoriesForForm,
         days: formDays,
         startTime: defaultStartTime,
         endTime: defaultEndTime,
@@ -155,7 +157,7 @@ export default function MenuId() {
         isAllDay: isAllDayValue,
       })
     }
-  }, [menuData, reset])
+  }, [menuData, form])
 
   // Mutation para actualizar el menú
   const updateMenu = useMutation({
@@ -185,41 +187,41 @@ export default function MenuId() {
   }
 
   // Obtenemos valores del formulario
-  const days = watch('days')
-  const startTime = watch('startTime')
-  const endTime = watch('endTime')
-  const isAllDay = watch('isAllDay')
-  const isActive = watch('isActive')
+  const days = form.watch('days')
+  const startTime = form.watch('startTime')
+  const endTime = form.watch('endTime')
+  const isAllDay = form.watch('isAllDay')
+  const isActive = form.watch('isActive')
 
   // Funciones para manejar cambios en el formulario
   function toggleDay(dayLabel: string) {
     const updatedDays = days.map((d: DayItem) => (d.label === dayLabel ? { ...d, selected: !d.selected } : d))
-    setValue('days', updatedDays, { shouldDirty: true })
+    form.setValue('days', updatedDays, { shouldDirty: true })
     if (updatedDays.some((d: DayItem) => d.selected)) {
-      clearErrors('days')
+      form.clearErrors('days')
     }
   }
 
   function handleToggle(checked: boolean) {
-    setValue('isActive', checked)
+    form.setValue('isActive', checked)
   }
 
   function handleAllDayChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setValue('isAllDay', e.target.checked)
+    form.setValue('isAllDay', e.target.checked)
     if (e.target.checked) {
-      clearErrors(['startTime', 'endTime'])
+      form.clearErrors(['startTime', 'endTime'])
     }
   }
 
   function onSubmit(formValues: any) {
-    clearErrors()
-    const { name, avoqadoMenus, avoqadoProducts, days, startTime, endTime, isAllDay, isActive } = formValues
+    form.clearErrors()
+    const { name, avoqadoMenus, avoqadoProducts, categories, days, startTime, endTime, isAllDay, isActive } = formValues
 
     if (!name.trim()) {
-      setError('name', { type: 'manual', message: 'El nombre es obligatorio' })
+      form.setError('name', { type: 'manual', message: 'El nombre es obligatorio' })
     }
     if (!days.some((day: DayItem) => day.selected)) {
-      setError('days', {
+      form.setError('days', {
         type: 'manual',
         message: 'Al menos un día tiene que ser seleccionado',
       })
@@ -229,15 +231,15 @@ export default function MenuId() {
       const endMinutes = parseTimeToMinutes(endTime)
       if (endMinutes - startMinutes < 60) {
         const errorMessage = 'Los horarios del menú no pueden tener intervalos inferiores a 60 minutos. Tienes que cambiarlos.'
-        setError('startTime', { type: 'manual', message: errorMessage })
-        setError('endTime', { type: 'manual', message: errorMessage })
+        form.setError('startTime', { type: 'manual', message: errorMessage })
+        form.setError('endTime', { type: 'manual', message: errorMessage })
       }
     }
 
-    const nameErrors = getFieldState('name').error
-    const daysErrors = getFieldState('days').error
-    const startTimeErrors = getFieldState('startTime').error
-    const endTimeErrors = getFieldState('endTime').error
+    const nameErrors = form.getFieldState('name').error
+    const daysErrors = form.getFieldState('days').error
+    const startTimeErrors = form.getFieldState('startTime').error
+    const endTimeErrors = form.getFieldState('endTime').error
     if (nameErrors || daysErrors || startTimeErrors || endTimeErrors) {
       return
     }
@@ -250,10 +252,14 @@ export default function MenuId() {
       endTime: isAllDay ? null : endTime,
     }))
 
+    // Extract just the category IDs from the MultipleSelector value format
+    const categoryIds = categories.map((category: any) => category.value)
+    
     const payload = {
       name,
       avoqadoMenus,
       avoqadoProducts,
+      categories: categoryIds, // Send only the IDs to the API
       menuDays: menuDaysPayload,
       active: isActive,
     }
@@ -275,133 +281,202 @@ export default function MenuId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>{watch('name')}</span>
+          <span>{form.watch('name')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
-          <LoadingButton loading={updateMenu.isPending} onClick={handleSubmit(onSubmit)} variant="default">
+          <Button 
+            disabled={!form.formState.isDirty || updateMenu.isPending} 
+            onClick={form.handleSubmit(onSubmit)}
+            variant="default"
+          >
             {updateMenu.isPending ? 'Guardando...' : 'Guardar'}
-          </LoadingButton>
+          </Button>
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="max-w-2xl p-4 space-y-4 border rounded-md">
-          <div className="flex items-center justify-between mb-4">
-            <span className="mr-2 font-bold">El menú está activo</span>
-            <Switch checked={isActive} onCheckedChange={handleToggle} />
-          </div>
-          <p className="mb-3 text-sm">Los clientes pueden ver este menú y hacer pedidos</p>
-          <div>
-            <label className="block mb-1 text-sm font-medium">Nombre del Menú</label>
-            <input type="text" placeholder="Ej. Desayunos" className="w-full p-2 border rounded-sm" {...register('name')} />
-            {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
-          </div>
-          <div className="flex w-full mb-2">
-            {days.map((day: DayItem) => (
-              <button
-                type="button"
-                key={day.label}
-                onClick={() => toggleDay(day.label)}
-                className={
-                  'px-3 py-1 cursor-pointer transition-colors w-full ' + (day.selected ? 'bg-black text-white' : 'bg-gray-200 text-black')
-                }
-              >
-                {day.label}
-              </button>
-            ))}
-          </div>
-          {errors.days && <p className="text-sm text-red-500">{errors.days.message}</p>}
-          <div className="relative w-full h-6 overflow-hidden bg-gray-100 rounded-sm">
-            {!isAllDay && (
-              <div className="absolute top-0 bottom-0 bg-green-500" style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} />
-            )}
-            {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-green-500" />}
-          </div>
-          <div className="flex justify-between w-full text-xs text-gray-500">
-            <span>00:00</span>
-            <span>03:00</span>
-            <span>06:00</span>
-            <span>09:00</span>
-            <span>12:00</span>
-            <span>15:00</span>
-            <span>18:00</span>
-            <span>21:00</span>
-            <span>24:00</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div>
-              <label className="block mb-1 text-sm font-medium">Hora de inicio</label>
-              <Select
-                disabled={isAllDay}
-                value={startTime}
-                onValueChange={value => {
-                  setValue('startTime', value)
-                  if (errors.startTime) clearErrors('startTime')
-                }}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Selecciona hora</SelectLabel>
-                    {hourOptions.map(time => (
-                      <SelectItem key={time} value={time}>
-                        {convertTo12h(time)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {errors.startTime && <p className="mt-1 text-sm text-red-500">{errors.startTime.message}</p>}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="p-4 space-y-6">
+          <div className="max-w-2xl p-4 space-y-4 border rounded-md">
+            <div className="flex items-center justify-between mb-4">
+              <span className="mr-2 font-bold">El menú está activo</span>
+              <Switch checked={isActive} onCheckedChange={handleToggle} />
             </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">Hora de finalización</label>
-              <Select
-                disabled={isAllDay}
-                value={endTime}
-                onValueChange={value => {
-                  setValue('endTime', value)
-                  if (errors.endTime) clearErrors('endTime')
-                }}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Selecciona hora</SelectLabel>
-                    {hourOptions.map(time => (
-                      <SelectItem key={time} value={time}>
-                        {convertTo12h(time)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {errors.endTime && <p className="mt-1 text-sm text-red-500">{errors.endTime.message}</p>}
+            <p className="mb-3 text-sm">Los clientes pueden ver este menú y hacer pedidos</p>
+            
+            <FormField
+              control={form.control}
+              name="name"
+              rules={{
+                required: { value: true, message: 'El nombre es obligatorio' },
+              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del Menú</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej. Desayunos" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="space-y-2">
+              <FormLabel>Días disponibles</FormLabel>
+              <div className="flex w-full mb-2">
+                {days.map((day: DayItem) => (
+                  <button
+                    type="button"
+                    key={day.label}
+                    onClick={() => toggleDay(day.label)}
+                    className={
+                      'px-3 py-1 cursor-pointer transition-colors w-full ' + 
+                      (day.selected ? 'bg-black text-white' : 'bg-gray-200 text-black')
+                    }
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </div>
+              {form.formState.errors.days && (
+                <p className="text-sm text-red-500">{form.formState.errors.days.message?.toString()}</p>
+              )}
+            </div>
+            
+            <div className="relative w-full h-6 overflow-hidden bg-gray-100 rounded-sm">
+              {!isAllDay && (
+                <div 
+                  className="absolute top-0 bottom-0 bg-green-500" 
+                  style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} 
+                />
+              )}
+              {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-green-500" />}
+            </div>
+            
+            <div className="flex justify-between w-full text-xs text-gray-500">
+              <span>00:00</span>
+              <span>03:00</span>
+              <span>06:00</span>
+              <span>09:00</span>
+              <span>12:00</span>
+              <span>15:00</span>
+              <span>18:00</span>
+              <span>21:00</span>
+              <span>24:00</span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de inicio</FormLabel>
+                    <Select
+                      disabled={isAllDay}
+                      value={field.value}
+                      onValueChange={value => {
+                        field.onChange(value);
+                        if (form.formState.errors.startTime) form.clearErrors('startTime');
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Selecciona hora</SelectLabel>
+                          {hourOptions.map(time => (
+                            <SelectItem key={time} value={time}>
+                              {convertTo12h(time)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hora de finalización</FormLabel>
+                    <Select
+                      disabled={isAllDay}
+                      value={field.value}
+                      onValueChange={value => {
+                        field.onChange(value);
+                        if (form.formState.errors.endTime) form.clearErrors('endTime');
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Selecciona hora</SelectLabel>
+                          {hourOptions.map(time => (
+                            <SelectItem key={time} value={time}>
+                              {convertTo12h(time)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input 
+                id="allDay" 
+                type="checkbox" 
+                className="w-4 h-4" 
+                checked={isAllDay} 
+                onChange={handleAllDayChange} 
+              />
+              <label htmlFor="allDay" className="text-sm font-semibold">
+                Abierto 24 horas
+              </label>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
-            <label htmlFor="allDay" className="text-sm font-semibold">
-              Abierto 24 horas
-            </label>
+          
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">Categorías</h2>
+            <FormField
+              control={form.control}
+              name="categories"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <MultipleSelector
+                      {...field}
+                      options={necessaryData.categories.map((category: any) => ({
+                        label: category.name,
+                        value: category.id,
+                        disabled: false,
+                      }))}
+                      hidePlaceholderWhenSelected
+                      placeholder="Selecciona las categorías"
+                      emptyIndicator="No se han encontrado mas categorías"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
-        </div>
-        {/* title categories */}
-        <h2 className="mt-4 mb-2 text-lg font-semibold">Categorías</h2>
-        <MultipleSelector
-          options={necessaryData.categories.map((category: any) => ({
-            label: category.name,
-            value: category.id,
-            disabled: false,
-          }))}
-          hidePlaceholderWhenSelected
-          placeholder="Selecciona las categorías"
-          emptyIndicator="No se han encontrado mas categorías"
-        />
-      </div>
+        </form>
+      </Form>
     </div>
   )
 }

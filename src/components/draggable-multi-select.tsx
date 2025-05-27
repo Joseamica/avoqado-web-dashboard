@@ -1,14 +1,15 @@
 /** DnDMultipleSelector.tsx */
-import * as React from 'react'
-import { forwardRef, useEffect } from 'react'
-import { Command as CommandPrimitive, useCommandState } from 'cmdk'
-import { Grip, X } from 'lucide-react'
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Command as CommandPrimitive, useCommandState } from 'cmdk'
+import { Eye, GripVertical, X } from 'lucide-react'
+import * as React from 'react'
+import { useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 /* -----------------------------------------
@@ -128,12 +129,16 @@ function SortableBadge({
   disabled,
   badgeClassName,
   handleUnselect,
+  onViewOption,
+  showViewIcon,
 }: {
   option: Option
   index: number
   disabled?: boolean
   badgeClassName?: string
   handleUnselect: (opt: Option) => void
+  onViewOption?: (option: Option) => void
+  showViewIcon?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: option.value })
 
@@ -148,7 +153,7 @@ function SortableBadge({
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Badge
         className={cn(
-          'flex items-center py-2',
+          'flex items-center py-2 h-9',
           'data-disabled:bg-muted-foreground data-disabled:text-muted data-disabled:hover:bg-muted-foreground',
           'data-fixed:bg-muted-foreground data-fixed:text-muted data-fixed:hover:bg-muted-foreground',
           badgeClassName,
@@ -156,11 +161,40 @@ function SortableBadge({
         data-fixed={option.fixed}
         data-disabled={disabled || undefined}
       >
-        <Grip className="w-4 h-4 mr-1 text-muted-foreground hover:text-foreground" />
+        <GripVertical className="w-4 h-4 mr-2 text-muted-foreground hover:text-foreground" />
         {option.label}
+
+        {/* View icon button - only shows if onViewOption is provided and showViewIcon is true */}
+        {showViewIcon && onViewOption && (
+          <button
+            className={cn(
+              'ml-2 rounded-full outline-hidden ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer',
+              disabled && 'hidden',
+            )}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                onViewOption(option)
+              }
+            }}
+            onMouseDown={e => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onClick={e => {
+              e.stopPropagation()
+              onViewOption(option)
+            }}
+            title="View details"
+          >
+            <Eye className="m-1 w-4 h-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+        {showViewIcon && onViewOption && <Separator orientation="vertical" className="h-4 mx-1" />}
+
+        {/* Delete button */}
         <button
           className={cn(
-            'ml-1 rounded-full outline-hidden ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'ml-1 rounded-full outline-hidden ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer',
             (disabled || option.fixed) && 'hidden',
           )}
           onKeyDown={e => {
@@ -172,7 +206,11 @@ function SortableBadge({
             e.preventDefault()
             e.stopPropagation()
           }}
-          onClick={() => handleUnselect(option)}
+          onClick={e => {
+            e.stopPropagation()
+            handleUnselect(option)
+          }}
+          title="Remove"
         >
           <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         </button>
@@ -188,6 +226,14 @@ function SortableBadge({
 export interface DnDMultipleSelectorProps extends MultipleSelectorProps {
   /** Whether to enable reordering of the selected badges by dragging (true by default). */
   enableReordering?: boolean
+  /** Function to handle when eye icon is clicked on a badge. Receives the option that was clicked. */
+  onViewOption?: (option: Option) => void
+  /** Whether to show the eye icon for viewing items (only shows if onViewOption is provided) */
+  showViewIcon?: boolean
+  /** The name of the item type being added, displayed as "Add {itemName}" (e.g., "product" would display "Add product") */
+  itemName?: string
+  /** Whether to show the fixed "Add {itemName}" option in the dropdown (true by default) */
+  showAddItemText?: boolean
 }
 
 const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSelectorProps>(
@@ -217,6 +263,10 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
       inputProps,
       hideClearAllButton = false,
       enableReordering = true,
+      onViewOption,
+      showViewIcon = false,
+      itemName = '',
+      showAddItemText = true,
     },
     ref,
   ) => {
@@ -453,135 +503,178 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
               inputRef.current?.focus()
             }}
           >
-            <div className="relative flex flex-wrap gap-1">
-              <SortableContext items={selected.map(s => s.value)} strategy={verticalListSortingStrategy}>
-                {selected.map((option, index) => (
-                  <SortableBadge
-                    key={option.value ?? index}
-                    option={option}
-                    index={index}
-                    disabled={disabled}
-                    badgeClassName={badgeClassName}
-                    handleUnselect={handleUnselect}
-                  />
-                ))}
-              </SortableContext>
+            <div className="relative flex items-start">
+              {/* Badges container with limited width to prevent extending into clear button area */}
+              <div className="flex-1 flex flex-wrap gap-1 pr-2">
+                <SortableContext items={selected.map(s => s.value)} strategy={verticalListSortingStrategy}>
+                  {selected.map((option, index) => (
+                    <SortableBadge
+                      key={option.value ?? index}
+                      option={option}
+                      index={index}
+                      disabled={disabled}
+                      badgeClassName={badgeClassName}
+                      handleUnselect={handleUnselect}
+                      onViewOption={onViewOption}
+                      showViewIcon={showViewIcon}
+                    />
+                  ))}
+                </SortableContext>
 
-              {/* The search input */}
-              <CommandPrimitive.Input
-                {...inputProps}
-                ref={inputRef}
-                value={inputValue}
-                disabled={disabled}
-                onValueChange={val => {
-                  setInputValue(val)
-                  inputProps?.onValueChange?.(val)
-                }}
-                onBlur={event => {
-                  if (!onScrollbar) {
-                    setOpen(false)
-                  }
-                  inputProps?.onBlur?.(event)
-                }}
-                onFocus={event => {
-                  setOpen(true)
-                  // Possibly trigger an immediate search
-                  if (triggerSearchOnFocus) {
-                    onSearch?.(debouncedSearchTerm)
-                  }
-                  inputProps?.onFocus?.(event)
-                }}
-                placeholder={hidePlaceholderWhenSelected && selected.length ? '' : placeholder}
-                className={cn(
-                  'flex-1 bg-transparent outline-hidden placeholder:text-muted-foreground',
-                  {
-                    'w-full': hidePlaceholderWhenSelected,
-                    'px-3 py-2': selected.length === 0,
-                    'ml-1': selected.length !== 0,
-                  },
-                  inputProps?.className,
-                )}
-              />
+                {/* This section is now handled inside the badges container */}
 
-              {/* Clear-all button (except fixed ones) */}
-              <button
-                type="button"
-                onClick={() => {
-                  const keptFixed = selected.filter(s => s.fixed)
-                  setSelected(keptFixed)
-                  onChange?.(keptFixed)
-                }}
-                className={cn(
-                  'absolute right-0 h-6 w-6 p-0',
-                  (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
-                    'hidden',
-                )}
-              >
-                <X />
-              </button>
+                {/* Input element placed inside the badges container */}
+                <CommandPrimitive.Input
+                  {...inputProps}
+                  ref={inputRef}
+                  value={inputValue}
+                  disabled={disabled}
+                  onValueChange={val => {
+                    setInputValue(val)
+                    inputProps?.onValueChange?.(val)
+                  }}
+                  onBlur={event => {
+                    if (!onScrollbar) {
+                      setOpen(false)
+                    }
+                    inputProps?.onBlur?.(event)
+                  }}
+                  onFocus={event => {
+                    setOpen(true)
+                    // Possibly trigger an immediate search
+                    if (triggerSearchOnFocus) {
+                      onSearch?.(debouncedSearchTerm)
+                    }
+                    inputProps?.onFocus?.(event)
+                  }}
+                  placeholder={hidePlaceholderWhenSelected && selected.length ? '' : placeholder}
+                  className={cn(
+                    'flex-1 bg-transparent outline-hidden placeholder:text-muted-foreground',
+                    {
+                      'w-full': hidePlaceholderWhenSelected,
+                      'px-3 py-2': selected.length === 0,
+                      'ml-1': selected.length !== 0,
+                    },
+                    inputProps?.className,
+                  )}
+                />
+              </div>
+
+              {/* Clear-all button in its own dedicated space */}
+              <div className="flex-shrink-0 flex items-start justify-center w-8 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const keptFixed = selected.filter(s => s.fixed)
+                    setSelected(keptFixed)
+                    onChange?.(keptFixed)
+                  }}
+                  className={cn(
+                    'h-6 w-6 rounded-lg p-1 flex items-center justify-center bg-black/10 dark:bg-black/50 text-foreground hover:bg-black/20 dark:hover:bg-black/70 transition-colors',
+                    (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
+                      'hidden',
+                  )}
+                  title="Clear all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* The dropdown list */}
           <div className="relative">
             {open && (
-              <CommandList
-                className="absolute z-10 w-full border rounded-md shadow-md outline-hidden top-1 bg-popover text-popover-foreground animate-in"
-                onMouseLeave={() => {
-                  setOnScrollbar(false)
-                }}
-                onMouseEnter={() => {
-                  setOnScrollbar(true)
-                }}
-                onMouseUp={() => {
-                  inputRef?.current?.focus()
-                }}
-              >
-                {isLoading ? (
-                  <>{loadingIndicator}</>
-                ) : (
-                  <>
-                    {/* Empty state if no results */}
-                    {EmptyItem()}
+              <div className="absolute z-10 w-full border rounded-md shadow-md top-1 bg-popover text-popover-foreground animate-in overflow-hidden flex flex-col">
+                {/* Scrollable content area */}
+                <CommandList
+                  className="max-h-56 overflow-y-auto overflow-x-hidden outline-hidden flex-grow"
+                  onMouseLeave={() => {
+                    setOnScrollbar(false)
+                  }}
+                  onMouseEnter={() => {
+                    setOnScrollbar(true)
+                  }}
+                  onMouseUp={() => {
+                    inputRef?.current?.focus()
+                  }}
+                >
+                  {isLoading ? (
+                    <>{loadingIndicator}</>
+                  ) : (
+                    <>
+                      {/* Empty state if no results */}
+                      {EmptyItem()}
 
-                    {/* Hide auto-select if selectFirstItem === false */}
-                    {!selectFirstItem && <CommandItem value="-" className="hidden" />}
+                      {/* Hide auto-select if selectFirstItem === false */}
+                      {!selectFirstItem && <CommandItem value="-" className="hidden" />}
 
-                    {/* Render existing groups/options */}
-                    {Object.entries(selectables).map(([key, groupItems]) => (
-                      <CommandGroup key={key} heading={key} className="h-full overflow-auto bg-white">
-                        {groupItems.map(option => (
-                          <CommandItem
-                            key={option.value}
-                            value={option.label}
-                            disabled={option.disable}
-                            onMouseDown={e => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                            }}
-                            onSelect={() => {
-                              if (selected.length >= maxSelected) {
-                                onMaxSelected?.(selected.length)
-                                return
-                              }
-                              setInputValue('')
-                              const newOptions = [...selected, option]
-                              setSelected(newOptions)
-                              onChange?.(newOptions)
-                            }}
-                            className={cn('cursor-pointer', option.disable && 'cursor-default text-muted-foreground')}
-                          >
-                            {option.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    ))}
+                      {/* Render existing groups/options */}
+                      {Object.entries(selectables).map(([key, groupItems]) => (
+                        <CommandGroup key={key} heading={key} className="bg-white">
+                          {groupItems.map(option => (
+                            <CommandItem
+                              key={option.value}
+                              value={option.label}
+                              disabled={option.disable}
+                              onMouseDown={e => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                              }}
+                              onSelect={() => {
+                                if (selected.length >= maxSelected) {
+                                  onMaxSelected?.(selected.length)
+                                  return
+                                }
+                                setInputValue('')
+                                const newOptions = [...selected, option]
+                                setSelected(newOptions)
+                                onChange?.(newOptions)
+                              }}
+                              className={cn('cursor-pointer', option.disable && 'cursor-default text-muted-foreground')}
+                            >
+                              {option.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      ))}
 
-                    {/* Always show the Create button at the bottom if creatable is true */}
-                    {/* {CreatableItem()} */}
-                  </>
+                      {/* Always show the Create button at the bottom if creatable is true */}
+                      {/* {CreatableItem()} */}
+                    </>
+                  )}
+                </CommandList>
+
+                {/* Fixed footer - Add item button at the bottom */}
+                {showAddItemText && (
+                  <div className="w-full border-t bg-white z-50 p-1">
+                    <CommandItem
+                      value="add-item-fixed-option"
+                      className="cursor-pointer font-medium bg-muted/40 hover:bg-muted/60"
+                      onMouseDown={e => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                      }}
+                      onSelect={() => {
+                        // If onViewOption is provided, handle it like a navigation command
+                        if (onViewOption) {
+                          // Using a dummy option since we don't have a specific one
+                          // We use special "_new" value that you can detect in your handler
+                          onViewOption({ 
+                            value: "_new", 
+                            label: `New ${itemName}`,
+                          })
+                        } else {
+                          // Otherwise just focus the input 
+                          inputRef.current?.focus()
+                        }
+                      }}
+                    >
+                      + Agregar {itemName ? itemName : 'opción'}
+                    </CommandItem>
+                  </div>
                 )}
-              </CommandList>
+              </div>
             )}
           </div>
         </Command>

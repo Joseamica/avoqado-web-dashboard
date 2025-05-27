@@ -1,6 +1,7 @@
 import api from '@/api'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -121,19 +122,22 @@ export default function Waiters() {
         onChange={e => setSearchTerm(e.target.value)}
         className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
       />
-
-      <DataTable
-        data={filteredWaiters}
-        rowCount={totalWaiters}
-        columns={columns}
-        isLoading={isLoading}
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
-        pagination={pagination}
-        setPagination={setPagination}
-      />
+      <Card>
+        <CardContent className="p-0">
+          <DataTable
+            data={filteredWaiters}
+            rowCount={totalWaiters}
+            columns={columns}
+            isLoading={isLoading}
+            clickableRow={row => ({
+              to: row.id,
+              state: { from: location.pathname },
+            })}
+            pagination={pagination}
+            setPagination={setPagination}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }
