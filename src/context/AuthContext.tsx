@@ -16,6 +16,7 @@ interface AuthContextType {
   error: any
   checkVenueAccess: (venueId: string) => boolean
   authorizeVenue: (venueId: string) => boolean
+  checkFeatureAccess: (venueId: string, featureName: string) => boolean
   allVenues: Venue[]
 }
 
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   checkVenueAccess: () => false,
   authorizeVenue: () => false,
+  checkFeatureAccess: () => false,
   allVenues: [],
 })
 
@@ -46,7 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-
   const [allVenues, setAllVenues] = useState<Venue[]>([])
   // Ref to track the last unauthorized venueId to prevent duplicate toasts
   const lastUnauthorizedVenueRef = useRef<string | null>(null)
@@ -55,18 +56,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const statusQuery = useQuery({
     staleTime: 5 * 60 * 1000, // 5 minutes, prevent refetch on mount if data is fresh
-    gcTime: 10 * 60 * 1000,   // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     // refetchOnWindowFocus: true, // Keep if desired, but not the primary fix here
     queryKey: ['status'],
     queryFn: async () => {
-      const response = await api.get(`/v1/auth/status-v2`);
-      return response.data; // Expected: { authenticated: boolean, user: User | null, ... }
+      const response = await api.get(`/v1/auth/status-v2`)
+      return response.data // Expected: { authenticated: boolean, user: User | null, ... }
     },
-  });
+  })
 
   // Derive auth state directly from the query result
-  const isAuthenticated = !!statusQuery.data?.authenticated;
-  const user = statusQuery.data?.user || null;
+  const isAuthenticated = !!statusQuery.data?.authenticated
+  const user = statusQuery.data?.user || null
 
   // Fetch all venues if user is SUPERADMIN
   const { data: allVenuesData, isSuccess: allVenuesSuccess } = useQuery({
@@ -145,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     mutationFn: ({ email, password }: { email: string; password: string }) => api.post(`/v1/auth/login`, { email, password }),
     onSuccess: response => {
       // User and isAuthenticated state will be updated automatically when 'status' query refetches
-      queryClient.invalidateQueries({ queryKey: ['status'] });
+      queryClient.invalidateQueries({ queryKey: ['status'] })
 
       if (response.data.user.role === 'SUPERADMIN') {
         navigate('/venues', { replace: true })
@@ -169,8 +170,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logoutMutation = useMutation({
     mutationFn: () => api.post('/v1/auth/logout'),
     onSuccess: () => {
-      queryClient.clear(); // Clear cache first
-      queryClient.invalidateQueries({ queryKey: ['status'] }); // Then invalidate to refetch and update derived state
+      queryClient.clear() // Clear cache first
+      queryClient.invalidateQueries({ queryKey: ['status'] }) // Then invalidate to refetch and update derived state
 
       Object.keys(localStorage).forEach(key => {
         if (!key.startsWith('persist:')) {
@@ -194,23 +195,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   if (statusQuery.isError) {
     // Consider how to handle auth status errors. For now, showing error message.
     // Alternatively, treat as logged out: isAuthenticated will be false, user null.
-    return <div>Error: {statusQuery.error.message}</div>;
+    return <div>Error: {statusQuery.error.message}</div>
   }
   // If not loading and not error, statusQuery.data should be available (even if it means user is not authenticated)
-  // If statusQuery.data is undefined (e.g. queryFn returned undefined successfully), 
+  // If statusQuery.data is undefined (e.g. queryFn returned undefined successfully),
   // isAuthenticated will be false and user null, which is a valid logged-out state.
+
+  // Check if a venue has a specific feature enabled
+  const checkFeatureAccess = (venueId: string, featureName: string): boolean => {
+    if (!venueId) return false
+
+    // Find the venue by ID
+    let venue: any = null
+
+    // For SUPERADMIN, check in allVenues
+    if (user?.role === 'SUPERADMIN') {
+      venue = allVenues.find(v => v.id === venueId)
+    } else {
+      // For regular users, check in user.venues
+      venue = user?.venues.find(v => v.id === venueId)
+    }
+
+    // Return false if venue not found or user has no access
+    if (!venue) return false
+    if (!checkVenueAccess(venueId)) return false
+
+    // Check if the venue has the feature and if it's enabled
+    return !!venue.feature && venue.feature[featureName] === true
+  }
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated, // Directly derived
+        isAuthenticated,
         login,
         logout,
-        user,            // Directly derived
-        isLoading: loginMutation.isPending || logoutMutation.isPending, // Use isPending for mutations
-        error: loginMutation.error || logoutMutation.error, 
+        user,
+        isLoading: statusQuery.isLoading || loginMutation.isPending || logoutMutation.isPending,
+        error: statusQuery.error || loginMutation.error || logoutMutation.error,
         checkVenueAccess,
         authorizeVenue,
+        checkFeatureAccess,
         allVenues,
       }}
     >

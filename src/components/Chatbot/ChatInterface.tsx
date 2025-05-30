@@ -2,13 +2,18 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { X, Send, Loader2 } from 'lucide-react';
-import { sendChatMessage } from '../../services/chatService';
+import { X, Send, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { sendChatMessage, initializeChatSession } from '../../services/chatService';
 import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem } from '../../components/ui/form';
 import { useToast } from '../../hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface ChatMessage {
+  id?: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
@@ -23,6 +28,10 @@ interface ChatFormValues {
 }
 
 export function ChatInterface({ onClose }: ChatInterfaceProps) {
+  const { isDark } = useTheme();
+  const { venueId } = useParams();
+  const { user } = useAuth();
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
@@ -30,7 +39,6 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       timestamp: new Date(),
     },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -39,6 +47,49 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       message: '',
     },
   });
+  
+  // Initialize session
+  const initSessionMutation = useMutation({
+    mutationFn: async () => {
+      if (!venueId) throw new Error('No venue ID provided');
+      return initializeChatSession(
+        user?.id || `anonymous-${Date.now()}`,
+        venueId
+      );
+    },
+    onSuccess: (sid) => {
+      setSessionId(sid);
+      console.log('Chat session initialized with ID:', sid);
+    },
+    onError: (error) => {
+      console.error('Session initialization error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de conexión',
+        description: 'No se pudo inicializar la sesión de chat.',
+      });
+    }
+  });
+  
+  // Use TanStack Query mutation for chat messages
+  const chatMutation = useMutation({
+    mutationFn: sendChatMessage,
+    onError: (error) => {
+      console.error('Chat error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo enviar el mensaje. Intenta de nuevo.',
+      });
+    }
+  });
+  
+  // Initialize chat session when component mounts
+  useEffect(() => {
+    if (venueId && !sessionId) {
+      initSessionMutation.mutate();
+    }
+  }, [venueId, sessionId, initSessionMutation]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,28 +110,51 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
 
     setMessages(prev => [...prev, userMessage]);
     form.reset();
-    setIsLoading(true);
-
-    try {
-      const response = await sendChatMessage(values.message);
-      
-      const botMessage: ChatMessage = {
-        text: response,
-        isUser: false,
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, botMessage]);
-    } catch (err) {
-      console.error('Chat error:', err);
+    
+    if (!venueId) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo enviar el mensaje. Intenta de nuevo.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se puede enviar el mensaje sin un ID de venue.',
       });
-    } finally {
-      setIsLoading(false);
+      return;
     }
+    
+    // Ensure we have a session
+    if (!sessionId) {
+      try {
+        const sid = await initSessionMutation.mutateAsync();
+        setSessionId(sid);
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+        return;
+      }
+    }
+    
+    // Use TanStack Query mutation to send the message with venueId and sessionId
+    chatMutation.mutate(
+      {
+        message: values.message,
+        venueId, // Include the venueId from route params
+        sessionId: sessionId as string
+      },
+      {
+        onSuccess: (response) => {
+          console.log('Chat message received:', response);
+          
+          // Format the response if needed
+          const formattedResponse = response;
+          
+          const botMessage: ChatMessage = {
+            text: formattedResponse,
+            isUser: false,
+            timestamp: new Date(),
+          };
+          
+          setMessages(prev => [...prev, botMessage]);
+        }
+      }
+    );
   };
 
   return (
@@ -118,6 +192,38 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                     minute: '2-digit',
                   })}
                 </p>
+                {!message.isUser && index > 0 && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      aria-label="Feedback positivo"
+                      onClick={() => {
+                        toast({
+                          title: "Gracias por tu feedback",
+                          description: "Tu opinión nos ayuda a mejorar"
+                        });
+                      }}
+                    >
+                      <ThumbsUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      aria-label="Feedback negativo"
+                      onClick={() => {
+                        toast({
+                          title: "Gracias por tu feedback",
+                          description: "Tu opinión nos ayuda a mejorar"
+                        });
+                      }}
+                    >
+                      <ThumbsDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -127,6 +233,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
       <CardFooter className="p-4 pt-0">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
+            {/* You can display session status here if needed */}
             <FormField
               control={form.control}
               name="message"
@@ -135,15 +242,16 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                   <FormControl>
                     <Input
                       placeholder="Escribe tu pregunta..."
+                      className={`${isDark ? 'text-gray-100 border-gray-700' : ''}`}
                       {...field}
-                      disabled={isLoading}
+                      disabled={chatMutation.isPending}
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
-            <Button type="submit" size="icon" disabled={isLoading}>
-              {isLoading ? (
+            <Button type="submit" size="icon" disabled={chatMutation.isPending} className={`${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`}>
+              {chatMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />

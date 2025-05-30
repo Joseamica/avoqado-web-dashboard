@@ -29,7 +29,7 @@ const routeDisplayNames: Record<string, string> = {
 
 export default function Dashboard() {
   const location = useLocation()
-  const { user, authorizeVenue, allVenues } = useAuth()
+  const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venueId } = useParams()
 
   // Check venue authorization on mount and when venueId changes
@@ -115,7 +115,7 @@ export default function Dashboard() {
           </div>
         </div>
         {/* Chatbot component */}
-        <ChatBubble />
+        {checkFeatureAccess(venueId as string, 'chatbot') && <ChatBubble />}
       </SidebarInset>
     </SidebarProvider>
   )
