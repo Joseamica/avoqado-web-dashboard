@@ -7,6 +7,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { useAuth } from './context/AuthContext'
 import { themeClasses } from './lib/theme-utils'
 import { useEffect } from 'react'
+import { ChatBubble } from './components/Chatbot'
 
 // Route path segment to display name mapping
 const routeDisplayNames: Record<string, string> = {
@@ -45,7 +46,7 @@ export default function Dashboard() {
     .slice(1)
 
   // Get the display name for a path segment
-  const getDisplayName = (segment: string, index: number) => {
+  const getDisplayName = (segment: string, _index: number) => {
     // First check if this segment matches any venue ID
     // For superadmin, check in the allVenues list
     if (user?.role === 'SUPERADMIN' && allVenues?.length) {
@@ -113,6 +114,8 @@ export default function Dashboard() {
             <Outlet />
           </div>
         </div>
+        {/* Chatbot component */}
+        <ChatBubble />
       </SidebarInset>
     </SidebarProvider>
   )
