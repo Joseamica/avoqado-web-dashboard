@@ -79,6 +79,7 @@ const superAdminVenueFormSchema = z.object({
 
   // Features (editable for SuperAdmin)
   ordering: z.boolean().default(false),
+  chatbot: z.boolean().default(false),
 
   // Menta fields
   merchantIdA: z.string().nullable().optional(),
@@ -178,6 +179,7 @@ export default function SuperAdminVenueEdit() {
       specialPayment: false,
       specialPaymentRef: '',
       ordering: false,
+      chatbot: false,
       merchantIdA: '',
       merchantIdB: '',
       apiKeyA: '',
@@ -230,6 +232,7 @@ export default function SuperAdminVenueEdit() {
         specialPayment: venue.specialPayment || false,
         specialPaymentRef: venue.specialPaymentRef || '',
         ordering: venue.feature?.ordering || false,
+        chatbot: venue.feature?.chatbot || false,
         merchantIdA: venue.menta?.merchantIdA || '',
         merchantIdB: venue.menta?.merchantIdB || '',
         apiKeyA: venue.menta?.apiKeyA || '',
@@ -259,9 +262,11 @@ export default function SuperAdminVenueEdit() {
         upsert: {
           create: {
             ordering: data.ordering,
+            chatbot: data.chatbot,
           },
           update: {
             ordering: data.ordering,
+            chatbot: data.chatbot,
           },
         },
       }
@@ -518,6 +523,24 @@ export default function SuperAdminVenueEdit() {
                         <FormLabel>Ordenar desde TPV</FormLabel>
                         <p className={`text-sm ${themeClasses.textMuted}`}>
                           Permite ordenar desde el Terminal Punto de Venta (característica premium)
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="chatbot"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md hover:bg-muted/50">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Chatbot de Asistencia</FormLabel>
+                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                          Habilita el chatbot de asistencia en el dashboard (característica premium)
                         </p>
                       </div>
                     </FormItem>
