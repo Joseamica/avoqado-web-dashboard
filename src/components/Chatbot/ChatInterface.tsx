@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
-import { X, Send, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { sendChatMessage, initializeChatSession } from '../../services/chatService';
+import { X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react';
+import { sendChatMessage, initializeChatSession, clearChatHistory } from '../../services/chatService';
 import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem } from '../../components/ui/form';
 import { useToast } from '../../hooks/use-toast';
@@ -161,15 +161,57 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
     <Card className="w-80 sm:w-96 absolute bottom-20 right-0 shadow-lg">
       <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-lg font-medium">Asistente Avoqado</CardTitle>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={onClose}
-          aria-label="Cerrar chat"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={async () => {
+              if (!venueId) return;
+              
+              // Confirm with the user
+              if (window.confirm('¿Estás seguro que quieres borrar el historial de la conversación?')) {
+                const success = await clearChatHistory(venueId);
+                
+                if (success) {
+                  // Reset messages to initial state
+                  setMessages([{
+                    text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
+                    isUser: false,
+                    timestamp: new Date()
+                  }]);
+                  
+                  // Reset session ID
+                  setSessionId(null);
+                  
+                  toast({
+                    title: 'Historial borrado',
+                    description: 'El historial de conversación ha sido borrado.',
+                  });
+                } else {
+                  toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'No se pudo borrar el historial.',
+                  });
+                }
+              }
+            }}
+            aria-label="Borrar historial"
+            title="Borrar historial"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onClose}
+            aria-label="Cerrar chat"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-4 h-80 overflow-y-auto">
         <div className="space-y-4">
