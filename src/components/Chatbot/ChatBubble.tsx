@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '../../components/ui/button'
 import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem } from '../../components/ui/form
 import { Input } from '../../components/ui/input'
 import { useForm } from 'react-hook-form'
 import { useToast } from '../../hooks/use-toast'
-import { sendChatMessage, initializeChatSession } from '../../services/chatService'
+import { sendChatMessage, initializeChatSession, resetChatSession } from '../../services/chatService'
 import { useTheme } from '../../context/ThemeContext'
 import { useMutation } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -256,14 +256,34 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 export function ChatBubble() {
   const [isOpen, setIsOpen] = useState(false)
   const { isDark } = useTheme()
+  const { venueId } = useParams()
 
+  // Track previous venue ID to detect changes
+  const previousVenueIdRef = useRef<string | undefined>(venueId)
+  
+  // Effect to close chat when venue changes
+  useEffect(() => {
+    // If the venue changed and chat is open, close it
+    if (previousVenueIdRef.current !== venueId && isOpen) {
+      setIsOpen(false)
+    }
+    
+    // Update the ref to the current venue
+    previousVenueIdRef.current = venueId
+  }, [venueId, isOpen])
+  
+  // Toggle chat open/closed
   const toggleChat = () => {
+    // If we're opening the chat and venue has changed, reset the session
+    if (!isOpen && previousVenueIdRef.current !== venueId) {
+      resetChatSession()
+    }
     setIsOpen(prev => !prev)
   }
 
   return (
     <div className="fixed bottom-4 right-20 z-50">
-      {isOpen && <ChatInterface onClose={() => setIsOpen(false)} />}
+      {isOpen && <ChatInterface key={`chat-${venueId}`} onClose={() => setIsOpen(false)} />}
 
       <Button
         onClick={toggleChat}
