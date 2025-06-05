@@ -2,26 +2,23 @@ import {
   AudioWaveform,
   Banknote,
   BookOpen,
+  Building,
   Command,
   Frame,
   GalleryVerticalEnd,
+  Globe,
   Home,
-  Map,
-  PieChart,
+  Server,
   Settings2,
+  ShieldAlert,
   Smartphone,
   Star,
   Ungroup,
   Users,
-  Building,
-  Server,
-  Globe,
-  ShieldAlert,
 } from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
-import { NavProjects } from '@/components/Sidebar/nav-projects'
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
