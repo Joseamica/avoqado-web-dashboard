@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import { User, Venue } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 // Define the shape of the auth context
 interface AuthContextType {
@@ -47,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const location = useLocation()
 
   const [allVenues, setAllVenues] = useState<Venue[]>([])
   // Ref to track the last unauthorized venueId to prevent duplicate toasts
@@ -126,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })
 
           // Create updated path by replacing the venue ID
-          const currentPath = window.location.pathname
+          const currentPath = location.pathname
           const updatedPath = currentPath.replace(/venues\/[^/]+/, `venues/${defaultVenue.id}`)
 
           // Navigate to default venue
