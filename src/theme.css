@@ -44,6 +44,30 @@
   border-color: hsl(240 5% 26%);
   color: hsl(240 4.8% 95.9%);
 }
+
+/* Hover states for light and dark mode */
+.hover\:bg-gray-50:hover {
+  background-color: hsl(0 0% 96%);
+}
+
+.dark .hover\:bg-gray-50:hover {
+  background-color: hsl(240 5% 26%) !important; /* Override Tailwind's default */
+}
+
+/* Standardized hover states that should be used app-wide */
+.standard-hover {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.standard-hover:hover {
+  background-color: hsl(0 0% 96%);
+}
+
+.dark .standard-hover:hover {
+  background-color: hsl(240 5% 26%);
+}
 /* Make input backgrounds transparent inside MultipleSelector and DnDMultipleSelector in dark mode */
 
 /* Dark mode tables */

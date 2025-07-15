@@ -1,6 +1,8 @@
 // src/router.tsx
 
 import { createBrowserRouter } from 'react-router-dom'
+import { StaffRole } from '@/types'
+
 
 import {
   Dashboard,
@@ -25,6 +27,7 @@ import {
   Account,
   Payments,
   PaymentId,
+  ReceiptViewer,
   MenuId,
   Reviews,
   Waiters,
@@ -32,8 +35,8 @@ import {
   Shifts,
   WaiterId,
   ShiftId,
-  Bills,
-  BillId,
+  Orders,
+  OrderId,
   Teams,
   AdminDashboard,
   UserManagement,
@@ -74,7 +77,7 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />, // Protected routes
         children: [
-          // Add venues route before venues/:venueId
+          // Add venues route before venues/:slug
           {
             path: '/venues',
             element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
@@ -112,7 +115,7 @@ const router = createBrowserRouter([
                     element: <VenueManagement />,
                   },
                   {
-                    path: ':venueId',
+                    path: ':slug',
                     element: <SuperAdminVenueEdit />,
                   },
                 ],
@@ -156,7 +159,7 @@ const router = createBrowserRouter([
           },
 
           {
-            path: '/venues/:venueId',
+            path: '/venues/:slug',
             element: <Dashboard />,
             errorElement: <ErrorPage />,
             children: [
@@ -224,8 +227,9 @@ const router = createBrowserRouter([
               { path: 'shifts/:shiftId', element: <ShiftId /> },
               { path: 'payments', element: <Payments /> },
               { path: 'payments/:paymentId', element: <PaymentId /> },
-              { path: 'bills', element: <Bills /> },
-              { path: 'bills/:billId', element: <BillId /> },
+              { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
+              { path: 'orders', element: <Orders /> },
+              { path: 'orders/:orderId', element: <OrderId /> },
               { path: 'editVenue', element: <EditVenue /> },
               { path: 'tpv', element: <Tpv /> },
               { path: 'tpv/create', element: <CreateTpv /> },
@@ -238,7 +242,7 @@ const router = createBrowserRouter([
               // Esta sección pasa a ser parte del nuevo panel de administración
               {
                 path: 'superadmin',
-                element: <SuperProtectedRoute allowedRoles={['SUPERADMIN']} />,
+                element: <SuperProtectedRoute allowedRoles={[StaffRole.OWNER]} />,
                 children: [
                   {
                     index: true,
@@ -249,6 +253,12 @@ const router = createBrowserRouter([
             ],
           },
         ],
+      },
+      // Ruta pública para acceder a los recibos digitales
+      {
+        path: '/receipts/public/:accessKey',
+        element: <ReceiptViewer />,
+        errorElement: <ErrorPage />,
       },
       {
         path: '*',

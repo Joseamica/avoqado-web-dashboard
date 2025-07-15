@@ -91,7 +91,7 @@ const data = {
     {
       title: 'Cuentas',
       isActive: true,
-      url: 'bills',
+      url: 'orders',
       icon: Frame,
     },
     {

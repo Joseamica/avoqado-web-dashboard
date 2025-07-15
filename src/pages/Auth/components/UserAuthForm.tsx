@@ -9,11 +9,10 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { LoginDto } from '@/services/auth.service'
 
-type Inputs = {
-  email: string
-  password: string
-}
+// Usando la interfaz LoginDto del servicio de autenticación
+type Inputs = LoginDto
 
 export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const navigate = useNavigate()
@@ -37,10 +36,13 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
 
   const onSubmit: SubmitHandler<Inputs> = async formData => {
     try {
+      // Para el nuevo backend, se puede especificar un venueId específico si es necesario
+      // Si el usuario tiene múltiples venues, idealmente se le daría a escoger
+      // Por ahora enviamos sin venueId y dejamos que el backend/AuthContext decida
       login(formData)
     } catch (error) {
       console.log('error', error)
-      toast({ title: 'Inicio de sesión fallido', description: 'Invalid credentials.' })
+      toast({ title: 'Inicio de sesión fallido', description: 'Credenciales inválidas.' })
     }
   }
   // async function onSubmit(event: React.SyntheticEvent) {
@@ -88,21 +90,21 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
             {errors.password && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.password.message}</span>}
           </div>
           <Button disabled={isLoading}>
-            {isLoading && <Icons.spinner className="w-4 h-4 mr-2 animate-spin" />}
+            {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
             Iniciar sesión
           </Button>
         </div>
       </form>
       <div className="relative">
-        <div className="absolute inset-0 flex items-center">
+        <div className="flex absolute inset-0 items-center">
           <span className="w-full border-t" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
+        <div className="flex relative justify-center text-xs uppercase">
           <span className="px-2 bg-background text-muted-foreground">O continua con</span>
         </div>
       </div>
       <Button variant="outline" type="button" disabled={isLoading}>
-        {isLoading ? <Icons.spinner className="w-4 h-4 mr-2 animate-spin" /> : <Icons.gitHub className="w-4 h-4 mr-2" />} GitHub
+        {isLoading ? <Icons.spinner className="mr-2 w-4 h-4 animate-spin" /> : <Icons.gitHub className="mr-2 w-4 h-4" />} GitHub
       </Button>
       {error && <div style={{ color: 'red' }}>Inicio de sesión fallida. Por favor intente de nuevo.</div>}
     </div>

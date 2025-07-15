@@ -1,246 +1,251 @@
-import api from '@/api'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import * as authService from '@/services/auth.service'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
-import { User, Venue } from '@/types'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { User, Venue, StaffRole } from '@/types'
 
-// Define the shape of the auth context
+// Tipos y la Interfaz del Contexto
+type LoginData = { email: string; password: string; venueSlug?: string }
+
 interface AuthContextType {
   isAuthenticated: boolean
-  login: (data: { email: string; password: string }) => void
-  logout: () => void
   user: User | null
+  activeVenue: Venue | null
   isLoading: boolean
-  error: any
-  checkVenueAccess: (venueId: string) => boolean
-  authorizeVenue: (venueId: string) => boolean
-  checkFeatureAccess: (venueId: string, featureName: string) => boolean
+  login: (data: LoginData) => void
+  logout: () => void
+  switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
+  authorizeVenue: (venueSlug: string) => boolean
+  checkVenueAccess: (venueSlug: string) => boolean
+  checkFeatureAccess: (featureCode: string) => boolean
+  getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
   allVenues: Venue[]
+  staffInfo: any | null
 }
 
-// Create the context with default values
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  login: () => {},
-  logout: () => {},
-  user: null,
-  isLoading: false,
-  error: null,
-  checkVenueAccess: () => false,
-  authorizeVenue: () => false,
-  checkFeatureAccess: () => false,
-  allVenues: [],
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Custom hook to use the auth context
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth debe usarse dentro de un AuthProvider')
   }
   return context
 }
-// Provider component
+
+// Componente Proveedor
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { slug } = useParams<{ slug: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const location = useLocation()
 
-  const [allVenues, setAllVenues] = useState<Venue[]>([])
-  // Ref to track the last unauthorized venueId to prevent duplicate toasts
-  const lastUnauthorizedVenueRef = useRef<string | null>(null)
-  // Ref to track when the last toast was shown (to prevent rapid duplicate toasts)
-  const lastToastTimeRef = useRef<number>(0)
+  const [activeVenue, setActiveVenue] = useState<Venue | null>(null)
 
-  const statusQuery = useQuery({
-    staleTime: 5 * 60 * 1000, // 5 minutes, prevent refetch on mount if data is fresh
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    // refetchOnWindowFocus: true, // Keep if desired, but not the primary fix here
+  const { data: statusData, isLoading: isStatusLoading } = useQuery({
     queryKey: ['status'],
-    queryFn: async () => {
-      const response = await api.get(`/v1/auth/status-v2`)
-      return response.data // Expected: { authenticated: boolean, user: User | null, ... }
-    },
+    queryFn: authService.getAuthStatus,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   })
 
-  // Derive auth state directly from the query result
-  const isAuthenticated = !!statusQuery.data?.authenticated
-  const user = statusQuery.data?.user || null
+  const isAuthenticated = !!statusData?.authenticated
+  const user = statusData?.user || null
 
-  // Fetch all venues if user is SUPERADMIN
-  const { data: allVenuesData, isSuccess: allVenuesSuccess } = useQuery({
-    queryKey: ['allVenues'],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/venues`)
-      return response.data
+  const userRole = useMemo(() => {
+    if (user?.role === StaffRole.SUPERADMIN) return StaffRole.SUPERADMIN
+    return user?.venues?.some(v => v.role === StaffRole.OWNER) ? StaffRole.OWNER : user?.venues?.[0]?.role
+  }, [user?.role, user?.venues])
+
+  const allVenues = useMemo(
+    () => (user?.role === 'SUPERADMIN' || userRole === StaffRole.OWNER ? statusData?.allVenues : user?.venues) ?? [],
+    [user, userRole, statusData?.allVenues],
+  )
+
+  // Función para obtener venue por slug
+  const getVenueBySlug = useCallback(
+    (slug: string): Venue | null => {
+      return allVenues.find(venue => venue.slug === slug) || null
     },
-    enabled: !!user && user.role === 'SUPERADMIN', // This 'user' will now be the derived one
-  })
+    [allVenues],
+  )
 
-  // useEffect for setting isAuthenticated and user from statusQuery is no longer needed.
-
-  // Update allVenues when data is fetched
+  // Efecto para sincronizar el venue activo y manejar redirecciones
   useEffect(() => {
-    if (allVenuesSuccess && allVenuesData) {
-      setAllVenues(allVenuesData)
-    }
-  }, [allVenuesData, allVenuesSuccess])
+    if (isStatusLoading || !isAuthenticated || !user) return
 
-  // Venue authorization functions
-  const checkVenueAccess = (venueId: string): boolean => {
-    if (!user || !venueId) return false
+    const userVenues = user.venues || []
+    if (userVenues.length > 0) {
+      const defaultVenue = userVenues[0]
 
-    // SUPERADMIN can access all venues
-    if (user.role === 'SUPERADMIN') return true
+      // Redirigir desde rutas base a la home del venue por defecto
+      if (location.pathname === '/' || location.pathname === '/login') {
+        navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+        return
+      }
 
-    return user.venues.some(venue => venue.id === venueId)
-  }
+      // Si hay venueSlug en la URL, buscar el venue correspondiente
+      if (slug) {
+        const venueFromSlug = userVenues.find((v: any) => v.slug === slug)
 
-  const authorizeVenue = (venueId: string): boolean => {
-    if (!user || !venueId) return false
-
-    // SUPERADMIN can access all venues
-    if (user.role === 'SUPERADMIN') return true
-
-    const hasAccess = user.venues.some(venue => venue.id === venueId)
-
-    if (!hasAccess) {
-      // Check if we've already shown a toast for this venue recently
-      const now = Date.now()
-      const isDuplicate = lastUnauthorizedVenueRef.current === venueId && now - lastToastTimeRef.current < 2000 // 2 second debounce
-
-      if (!isDuplicate) {
-        // Redirect to default venue if user doesn't have access
-        const defaultVenue = user.venues[0]
-        if (defaultVenue) {
-          // Update refs for debouncing
-          lastUnauthorizedVenueRef.current = venueId
-          lastToastTimeRef.current = now
-
-          toast({
-            title: 'Acceso no autorizado',
-            description: 'No tienes permiso para acceder a esa sucursal.',
-            variant: 'destructive',
-          })
-
-          // Create updated path by replacing the venue ID
-          const currentPath = location.pathname
-          const updatedPath = currentPath.replace(/venues\/[^/]+/, `venues/${defaultVenue.id}`)
-
-          // Navigate to default venue
-          navigate(updatedPath, { replace: true })
+        if (venueFromSlug) {
+          // Si encontramos el venue y no es el activo, actualizarlo
+          if (activeVenue?.id !== venueFromSlug.id) {
+            setActiveVenue(venueFromSlug)
+          }
+        } else {
+          // Si el slug no corresponde a ningún venue del usuario, redirigir al default
+          navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+        }
+      } else if (!slug && activeVenue) {
+        // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
+        const currentPath = location.pathname
+        if (!currentPath.includes('/venues/')) {
+          navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
         }
       }
-      return false
+    } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
+      navigate('/venues/new', { replace: true })
     }
+  }, [slug, user, isAuthenticated, isStatusLoading, location.pathname, navigate, activeVenue?.id, getVenueBySlug])
 
-    // Reset the unauthorized venue tracking when accessing an authorized venue
-    lastUnauthorizedVenueRef.current = null
-
-    return true
-  }
-
+  // --- MUTACIONES ---
   const loginMutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) => api.post(`/v1/auth/login`, { email, password }),
-    onSuccess: response => {
-      // User and isAuthenticated state will be updated automatically when 'status' query refetches
+    mutationFn: (credentials: LoginData) => authService.login(credentials),
+    onSuccess: () => {
+      toast({ title: 'Has iniciado sesión correctamente.' })
       queryClient.invalidateQueries({ queryKey: ['status'] })
-
-      if (response.data.user.role === 'SUPERADMIN') {
-        navigate('/venues', { replace: true })
-      } else {
-        const soleVenueId = response.data.user.userVenues[0].venueId
-        navigate(`/venues/${soleVenueId}/home`, { replace: true })
-      }
-      toast({ title: 'Haz iniciado sesión correctamente.' })
     },
     onError: (error: any) => {
-      console.error('Login failed:', error.response.data.message)
-      toast({ title: 'Login failed', variant: 'destructive', description: error.response.data.message })
-      // Optionally, handle error (e.g., show a toast)
+      toast({
+        title: 'Login failed',
+        variant: 'destructive',
+        description: error.response?.data?.message || 'Credenciales inválidas.',
+      })
     },
   })
-
-  const login = (data: { email: string; password: string }) => {
-    loginMutation.mutate(data)
-  }
 
   const logoutMutation = useMutation({
-    mutationFn: () => api.post('/v1/auth/logout'),
+    mutationFn: authService.logout,
     onSuccess: () => {
-      queryClient.clear() // Clear cache first
-      queryClient.invalidateQueries({ queryKey: ['status'] }) // Then invalidate to refetch and update derived state
-
-      Object.keys(localStorage).forEach(key => {
-        if (!key.startsWith('persist:')) {
-          localStorage.removeItem(key)
-        }
-      })
+      queryClient.clear()
+      setActiveVenue(null)
       navigate('/login', { replace: true })
-      toast({ title: 'Haz cerrado sesión correctamente.' })
-    },
-    onError: error => {
-      console.error('Error al cerrar sesión', error)
     },
   })
-  const logout = () => {
-    logoutMutation.mutate()
-  }
-  // Main loading condition for the auth context provider
-  if (statusQuery.isLoading) {
-    return <LoadingScreen message="Partiendo la cuenta y el aguacate…" />
-  }
-  if (statusQuery.isError) {
-    // Consider how to handle auth status errors. For now, showing error message.
-    // Alternatively, treat as logged out: isAuthenticated will be false, user null.
-    return <div>Error: {statusQuery.error.message}</div>
-  }
-  // If not loading and not error, statusQuery.data should be available (even if it means user is not authenticated)
-  // If statusQuery.data is undefined (e.g. queryFn returned undefined successfully),
-  // isAuthenticated will be false and user null, which is a valid logged-out state.
 
-  // Check if a venue has a specific feature enabled
-  const checkFeatureAccess = (venueId: string, featureName: string): boolean => {
-    if (!venueId) return false
+  const switchVenueMutation = useMutation({
+    mutationFn: (newVenueSlug: string) => {
+      // Obtener el ID del venue por el slug para el servicio
+      const targetVenue = getVenueBySlug(newVenueSlug)
+      if (!targetVenue) {
+        throw new Error(`Venue con slug '${newVenueSlug}' no encontrado`)
+      }
+      return authService.switchVenue(targetVenue.id)
+    },
+    onSuccess: (data, newVenueSlug) => {
+      // Forzar la recarga del estado de autenticación para obtener el nuevo token/sesión
+      queryClient.invalidateQueries({ queryKey: ['status'] }).then(() => {
+        const newVenue = getVenueBySlug(newVenueSlug)
+        if (newVenue) {
+          setActiveVenue(newVenue)
+          toast({ title: `Cambiado a ${newVenue.name}.` })
 
-    // Find the venue by ID
-    let venue: any = null
+          // Navegar a la página correspondiente del nuevo venue
+          const currentPath = location.pathname
+          const newPath = currentPath.replace(/venues\/[^/]+/, `venues/${newVenueSlug}`)
+          navigate(newPath, { replace: true })
+        }
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al cambiar',
+        variant: 'destructive',
+        description: error.response?.data?.message,
+      })
+    },
+  })
 
-    // For SUPERADMIN, check in allVenues
-    if (user?.role === 'SUPERADMIN') {
-      venue = allVenues.find(v => v.id === venueId)
-    } else {
-      // For regular users, check in user.venues
-      venue = user?.venues.find(v => v.id === venueId)
-    }
+  // --- FUNCIONES EXPUESTAS ---
 
-    // Return false if venue not found or user has no access
-    if (!venue) return false
-    if (!checkVenueAccess(venueId)) return false
+  const switchVenue = useCallback(
+    async (newVenueSlug: string): Promise<void> => {
+      if (activeVenue?.slug === newVenueSlug) return // No hacer nada si ya está activo
 
-    // Check if the venue has the feature and if it's enabled
-    return !!venue.feature && venue.feature[featureName] === true
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        login,
-        logout,
-        user,
-        isLoading: statusQuery.isLoading || loginMutation.isPending || logoutMutation.isPending,
-        error: statusQuery.error || loginMutation.error || logoutMutation.error,
-        checkVenueAccess,
-        authorizeVenue,
-        checkFeatureAccess,
-        allVenues,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      try {
+        await switchVenueMutation.mutateAsync(newVenueSlug)
+      } catch (error) {
+        console.error('Fallo en la operación de switchVenue:', error)
+        throw error
+      }
+    },
+    [activeVenue?.slug, switchVenueMutation],
   )
+
+  const checkVenueAccess = useCallback(
+    (slugToCheck: string): boolean => {
+      if (!user) return false
+      if (userRole === StaffRole.SUPERADMIN) return true // SUPERADMIN can access all venues
+      if (userRole === StaffRole.OWNER) return true // OWNER can access all venues in their organization
+      return user.venues.some(venue => venue.slug === slugToCheck)
+    },
+    [user, userRole],
+  )
+
+  const authorizeVenue = useCallback(
+    (slugToCheck: string): boolean => {
+      const hasAccess = checkVenueAccess(slugToCheck)
+
+      // Si tiene acceso y no tenemos un venue activo, o es diferente al actual,
+      // actualizar el venue activo para evitar problemas de sincronización
+      if (hasAccess && (!activeVenue || activeVenue.slug !== slugToCheck)) {
+        const venueToActivate = getVenueBySlug(slugToCheck)
+        if (venueToActivate) {
+          setActiveVenue(venueToActivate)
+        }
+      }
+
+      return hasAccess
+    },
+    [checkVenueAccess, activeVenue, getVenueBySlug, setActiveVenue],
+  )
+
+  // --- FUNCIÓN 'checkFeatureAccess' ---
+  const checkFeatureAccess = useCallback(
+    (featureCode: string): boolean => {
+      if (!activeVenue?.features) {
+        return false // Si no hay 'features' en el venue activo, no hay acceso
+      }
+      // La estructura es un array de { feature: { code: string }, active: boolean }
+      const feature = activeVenue.features.find(f => f.feature.code === featureCode)
+      return feature?.active ?? false // Devuelve true solo si la feature existe Y está activa
+    },
+    [activeVenue],
+  )
+
+  if (isStatusLoading) {
+    return <LoadingScreen message="Verificando sesión..." />
+  }
+
+  const value: AuthContextType = {
+    isAuthenticated,
+    user,
+    activeVenue,
+    isLoading: isStatusLoading || loginMutation.isPending || logoutMutation.isPending || switchVenueMutation.isPending,
+    login: loginMutation.mutate,
+    logout: logoutMutation.mutate,
+    switchVenue,
+    checkVenueAccess,
+    authorizeVenue,
+    checkFeatureAccess,
+    getVenueBySlug,
+    allVenues,
+    staffInfo: { ...user, role: userRole },
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

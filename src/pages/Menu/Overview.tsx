@@ -25,6 +25,9 @@ import {
 import { CSSProperties, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import * as menuService from '@/services/menu.service'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+
 // Helper function to format time from 24h to 12h format
 const formatTime = (time: string) => {
   if (!time) return ''
@@ -259,10 +262,10 @@ function SortableCategory({ category, children, menuId }) {
 
 export default function Overview() {
   const [searchTerm, setSearchTerm] = useState('')
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-
+  console.log('venueId', venueId)
   // State for managing expanded/collapsed state of menus
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
 
@@ -310,24 +313,19 @@ export default function Overview() {
     isLoading: menusLoading,
     error: menusError,
   } = useQuery({
-    queryKey: ['avoqado-menus', venueId],
-    queryFn: async () => {
-      // Add timestamp to prevent 304 Not Modified responses
-      const timestamp = Date.now()
-      const response = await api.get(`/v2/dashboard/${venueId}/avoqado-menus?t=${timestamp}`)
-      return response.data
-    },
+    queryKey: ['menus', venueId],
+    queryFn: menuService.getMenus,
   })
 
   // Initialize ordering when menu data is loaded
   useEffect(() => {
-    if (menusData?.avoqadoMenus && menuOrder.length === 0) {
+    if (menusData?.menus && menuOrder.length === 0 && venueId) {
       // Set menu order
-      setMenuOrder(menusData.avoqadoMenus.map(menu => menu.id))
+      setMenuOrder(menusData.menus.map(menu => menu.id))
 
       // Initialize category orders, but filter out any categories that don't belong to current venue
       const initialCategoryOrders = {}
-      menusData.avoqadoMenus.forEach(menu => {
+      menusData.menus.forEach(menu => {
         if (menu.categories && menu.categories.length > 0) {
           // Make sure each category has the proper venueId to avoid cross-venue issues
           const validCategories = menu.categories.filter(cat => cat.venueId === venueId)
@@ -355,10 +353,10 @@ export default function Overview() {
 
   // Get menu schedule information from active menus
   const menuSchedule = useMemo(() => {
-    if (!menusData?.avoqadoMenus) return []
+    if (!menusData?.menus) return []
 
     // Find the first active menu with menuDays
-    const activeMenus = menusData.avoqadoMenus.filter(menu => menu.active)
+    const activeMenus = menusData.menus.filter(menu => menu.active)
     if (activeMenus.length === 0) return []
 
     // If menuDays is directly on the menu objects
@@ -382,9 +380,9 @@ export default function Overview() {
     // If we're expanding a menu and we don't have its details yet, fetch them
     if (!expandedMenus[menuId]) {
       queryClient.prefetchQuery({
-        queryKey: ['avoqado-menu', venueId, menuId],
+        queryKey: ['menu', venue?.id, menuId],
         queryFn: async () => {
-          const response = await api.get(`/v2/dashboard/${venueId}/avoqado-menus/${menuId}`)
+          const response = await api.get(`/v2/dashboard/${venue?.id}/avoqado-menus/${menuId}`)
           return response.data
         },
       })
@@ -404,42 +402,42 @@ export default function Overview() {
   // Toggle menu active status mutation
   const toggleMenuActiveMutation = useMutation({
     mutationFn: async ({ menuId, active }: { menuId: string; active: boolean }) => {
-      return await api.patch(`/v2/dashboard/${venueId}/avoqado-menus/${menuId}`, { active })
+      return await api.patch(`/v2/dashboard/${venue?.id}/menus/${menuId}`, { active })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['menus', venue?.id] })
     },
   })
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
-      return await api.delete(`/v2/dashboard/${venueId}/products/${productId}`)
+      return await api.delete(`/v2/dashboard/${venue?.id}/products/${productId}`)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['products', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['menus', venue?.id] })
     },
   })
 
   // Update menu order mutation
   const updateMenuOrderMutation = useMutation({
     mutationFn: async (orderData: string[]) => {
-      return await api.post(`/v2/dashboard/${venueId}/avoqado-menus/reorder`, { order: orderData })
+      return await api.post(`/v2/dashboard/${venue?.id}/menus/reorder`, { order: orderData })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['menus', venue?.id] })
     },
   })
 
   // Update product order mutation
   const updateProductOrderMutation = useMutation({
     mutationFn: async ({ categoryId, orderData }: { categoryId: string; orderData: string[] }) => {
-      return await api.post(`/v2/dashboard/${venueId}/products/reorder`, { categoryId, order: orderData })
+      return await api.post(`/v2/dashboard/${venue?.id}/products/reorder`, { categoryId, order: orderData })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['products', venue?.id] })
+      queryClient.invalidateQueries({ queryKey: ['menus', venue?.id] })
     },
   })
 
@@ -450,7 +448,7 @@ export default function Overview() {
       console.log('SENDING TO SERVER - Menu ID:', menuId)
       console.log('SENDING TO SERVER - Order Data:', JSON.stringify(orderData))
 
-      const response = await api.post(`/v2/dashboard/${venueId}/categories/reorder`, {
+      const response = await api.post(`/v2/dashboard/${venue?.id}/categories/reorder`, {
         menuId,
         orderData,
       })
@@ -478,10 +476,10 @@ export default function Overview() {
       setTimeout(() => {
         const timestamp = Date.now()
         queryClient.fetchQuery({
-          queryKey: ['avoqado-menus', venueId],
+          queryKey: ['menus', venue?.id],
           queryFn: async () => {
             console.log('REFETCHING MENUS')
-            const response = await api.get(`/v2/dashboard/${venueId}/avoqado-menus?t=${timestamp}`)
+            const response = await api.get(`/v2/dashboard/${venue?.id}/avoqado-menus?t=${timestamp}`)
             return response.data
           },
         })
@@ -489,7 +487,7 @@ export default function Overview() {
     },
     onError: (error, _variables) => {
       console.error('Failed to update category order:', error)
-      queryClient.invalidateQueries({ queryKey: ['avoqado-menus', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['menus', venue?.id] })
     },
   })
 
@@ -729,17 +727,17 @@ export default function Overview() {
 
   // Function to create a new menu
   const handleAddMenu = () => {
-    navigate(`/dashboard/${venueId}/avoqado-menus/create`)
+    navigate(`/dashboard/${venue?.id}/menus/create`)
   }
 
   // Function to create a new category
   const handleAddCategory = menuId => {
-    navigate(`/venues/${venueId}/menumaker/categories/create?menuId=${menuId}`)
+    navigate(`/venues/${venue?.id}/menumaker/categories/create?menuId=${menuId}`)
   }
 
   // Function to create a new product
   const handleAddProduct = categoryId => {
-    navigate(`/venues/${venueId}/menumaker/products/create?categoryId=${categoryId}`)
+    navigate(`/venues/${venue?.id}/menumaker/products/create?categoryId=${categoryId}`)
   }
 
   // Add state for tracking price changes
@@ -748,10 +746,10 @@ export default function Overview() {
   // Add mutation for updating product price
   const updateProductPriceMutation = useMutation({
     mutationFn: async ({ productId, price }: { productId: string; price: number }) => {
-      return await api.patch(`/v2/dashboard/${venueId}/products/${productId}`, { price: price * 100 })
+      return await api.patch(`/v2/dashboard/${venue?.id}/products/${productId}`, { price: price * 100 })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['products', venue?.id] })
     },
     onError: error => {
       console.error('Failed to update product price:', error)
@@ -814,7 +812,7 @@ export default function Overview() {
               </Button>
             </div>
             <div className="ml-8 mt-4">
-              <Button variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/products`)}>
+              <Button variant="outline" onClick={() => navigate(`/venues/${venue?.id}/menumaker/products`)}>
                 <Plus size={12} />
                 <span>Añadir foto</span>
               </Button>
@@ -924,9 +922,9 @@ export default function Overview() {
               onClick={() => {
                 // Navigate to edit schedule page
                 if (menusData?.avoqadoMenus?.length > 0) {
-                  navigate(`/venues/${venueId}/avoqado-menus/${menusData.avoqadoMenus[0].id}/edit`)
+                  navigate(`/venues/${venue?.id}/avoqado-menus/${menusData.avoqadoMenus[0].id}/edit`)
                 } else {
-                  navigate(`/venues/${venueId}/avoqado-menus/create`)
+                  navigate(`/venues/${venue?.id}/avoqado-menus/create`)
                 }
               }}
             >

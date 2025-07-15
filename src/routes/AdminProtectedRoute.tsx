@@ -4,9 +4,11 @@ import { AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { themeClasses } from '@/lib/theme-utils'
+import { StaffRole } from '@/types'
 
 export enum AdminAccessLevel {
-  ADMIN = 'ADMIN', // Para roles ADMIN y SUPERADMIN
+  ADMIN = 'ADMIN', // Para roles ADMIN, OWNER y SUPERADMIN
+  OWNER = 'OWNER', // Solo para OWNER y SUPERADMIN
   SUPERADMIN = 'SUPERADMIN', // Solo para SUPERADMIN
 }
 
@@ -23,16 +25,17 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
-  // Verificar si es ADMIN o SUPERADMIN (ambos pueden acceder a rutas básicas de admin)
-  const isAdmin = user.role === 'ADMIN' || user.role === 'SUPERADMIN'
-  const isSuperAdmin = user.role === 'SUPERADMIN'
+  // Verificar roles para diferentes niveles de acceso
+  const isAdmin = user.role === StaffRole.ADMIN || user.role === StaffRole.OWNER || user.role === StaffRole.SUPERADMIN
+  const isOwner = user.role === StaffRole.OWNER || user.role === StaffRole.SUPERADMIN
+  const isSuperAdmin = user.role === StaffRole.SUPERADMIN
 
   // Si no es admin, mostrar mensaje de acceso denegado
   if (!isAdmin) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container py-8 mx-auto">
         <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="w-4 h-4" />
           <AlertTitle>Acceso denegado</AlertTitle>
           <AlertDescription>No tienes permisos de administrador para acceder a esta página.</AlertDescription>
         </Alert>
@@ -43,18 +46,34 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
     )
   }
 
-  // Si se requiere SUPERADMIN pero el usuario es solo ADMIN, mostrar mensaje específico
+  // Si se requiere OWNER pero el usuario es solo ADMIN, mostrar mensaje específico
+  if (requiredRole === AdminAccessLevel.OWNER && !isOwner) {
+    return (
+      <div className={`p-6 h-screen ${themeClasses.pageBg}`}>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="w-4 h-4" />
+          <AlertTitle>Acceso restringido</AlertTitle>
+          <AlertDescription className={`${themeClasses.textMuted}`}>
+            Esta sección está disponible solo para Propietarios (OWNER) y Administradores de Sistema (SUPERADMIN).
+          </AlertDescription>
+        </Alert>
+        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).</p>
+      </div>
+    )
+  }
+
+  // Si se requiere SUPERADMIN pero el usuario no es SUPERADMIN, mostrar mensaje específico
   if (requiredRole === AdminAccessLevel.SUPERADMIN && !isSuperAdmin) {
     return (
       <div className={`p-6 h-screen ${themeClasses.pageBg}`}>
         <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="w-4 h-4" />
           <AlertTitle>Acceso restringido</AlertTitle>
           <AlertDescription className={`${themeClasses.textMuted}`}>
-            Esta sección está disponible solo para SuperAdministradores.
+            Esta sección está disponible solo para Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un SuperAdmin.</p>
+        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).</p>
       </div>
     )
   }
