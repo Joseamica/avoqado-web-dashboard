@@ -18,6 +18,8 @@ export const Overview = React.lazy(() => import('@/pages/Menu/Overview'))
 export const CreateProduct = React.lazy(() => import('@/pages/Menu/Products/createProduct'))
 export const Products = React.lazy(() => import('@/pages/Menu/Products/Products'))
 export const ProductId = React.lazy(() => import('@/pages/Menu/Products/productId'))
+export const ReceiptViewer = React.lazy(() => import('@/pages/Payment/ReceiptViewer'))
+export const ReceiptPreview = React.lazy(() => import('@/components/receipts/ReceiptPreview'))
 
 export const CreateTpv = React.lazy(() => import('@/pages/Tpv/createTpv'))
 export const Tpv = React.lazy(() => import('@/pages/Tpv/Tpvs'))
@@ -35,8 +37,8 @@ export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'))
 export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'))
 
 // Bill components
-export const Bills = React.lazy(() => import('@/pages/Bill/Bills'))
-export const BillId = React.lazy(() => import('@/pages/Bill/BillId'))
+export const Orders = React.lazy(() => import('@/pages/Order/Orders'))
+export const OrderId = React.lazy(() => import('@/pages/Order/OrderId'))
 
 // Admin components
 export const AcceptAdminInvitation = React.lazy(() => import('@/pages/Admin/AcceptAdminInvitation'))

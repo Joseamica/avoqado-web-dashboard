@@ -19,6 +19,7 @@ export { default as TpvId } from '@/pages/Tpv/TpvId'
 export { default as Account } from '@/pages/Account/Account'
 export { default as Payments } from '@/pages/Payment/Payments'
 export { default as PaymentId } from '@/pages/Payment/PaymentId'
+export { default as ReceiptViewer } from '@/pages/Payment/ReceiptViewer'
 export { default as MenuId } from '@/pages/Menu/Menus/menuId'
 export { default as Reviews } from '@/pages/Review/Reviews'
 export { default as Waiters } from '@/pages/Waiter/Waiters'
@@ -28,8 +29,8 @@ export { default as WaiterId } from '@/pages/Waiter/waiterId'
 export { default as ShiftId } from '@/pages/Shift/ShiftId'
 
 // Bill
-export { default as Bills } from './Bill/Bills'
-export { default as BillId } from './Bill/BillId'
+export { default as Orders } from './Order/Orders'
+export { default as OrderId } from './Order/OrderId'
 
 // Admin
 export { default as AdminDashboard } from '@/pages/Admin/AdminDashboard'

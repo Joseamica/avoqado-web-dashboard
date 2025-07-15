@@ -1,19 +1,20 @@
-import api from '@/api'
+import { getTpvs } from '@/services/tpv.service'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { themeClasses } from '@/lib/theme-utils'
-import { Tpv } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { themeClasses } from '@/lib/theme-utils'
+import { Terminal } from '@/types'
 
 export default function Tpvs() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
@@ -23,20 +24,12 @@ export default function Tpvs() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['tpvs', venueId, pagination.pageIndex, pagination.pageSize],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/tpvs`, {
-        params: {
-          page: pagination.pageIndex + 1,
-          pageSize: pagination.pageSize,
-        },
-      })
-      return response.data
-    },
+    queryFn: () => getTpvs(venueId, pagination),
   })
 
   const totalTpvs = data?.meta?.total || 0
 
-  const columns: ColumnDef<Tpv, unknown>[] = [
+  const columns: ColumnDef<Terminal, unknown>[] = [
     {
       id: 'name',
       accessorKey: 'name',
@@ -50,8 +43,8 @@ export default function Tpvs() {
       cell: ({ cell }) => <span>{cell.getValue() as string}</span>,
     },
     {
-      id: 'serial',
-      accessorKey: 'serial',
+      id: 'serialNumber',
+      accessorKey: 'serialNumber',
       sortDescFirst: true,
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -80,7 +73,7 @@ export default function Tpvs() {
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return currentTpvs.filter((tpv: Tpv) => {
+    return currentTpvs.filter((tpv: Terminal) => {
       // Buscar en el name del tpv
       const nameMatches = tpv.name.toLowerCase().includes(lowerSearchTerm)
       return nameMatches
