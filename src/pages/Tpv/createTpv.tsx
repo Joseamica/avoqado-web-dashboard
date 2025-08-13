@@ -6,10 +6,11 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function CreateTpv() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
 
   const location = useLocation()

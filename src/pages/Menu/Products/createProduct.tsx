@@ -1,4 +1,3 @@
-import api from '@/api'
 import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
 import { LoadingScreen } from '@/components/spinner'
@@ -7,37 +6,48 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
+import { createProduct as createProductService, getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useEffect } from 'react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useForm } from 'react-hook-form'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function CreateProduct() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
 
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['necessary-product-creation-data', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/necessary-product-creation-data`)
-      return response.data
-    },
+  const {
+    data: categories,
+    isLoading: isCategoriesLoading,
+  } = useQuery({
+    queryKey: ['menu-categories', venueId],
+    queryFn: () => getMenuCategories(venueId!),
+    enabled: !!venueId,
+  })
+
+  const {
+    data: modifierGroups,
+    isLoading: isModifierGroupsLoading,
+  } = useQuery({
+    queryKey: ['modifier-groups', venueId],
+    queryFn: () => getModifierGroups(venueId!),
+    enabled: !!venueId,
   })
 
   const from = (location.state as any)?.from || '/'
 
-  const createProduct = useMutation({
+  const createProductMutation = useMutation({
     mutationFn: async formValues => {
-      const response = await api.post(`/v2/dashboard/${venueId}/product`, formValues)
-      return response.data
+      return await createProductService(venueId!, formValues)
     },
     onSuccess: (_, data: any) => {
       toast({
@@ -74,11 +84,11 @@ export default function CreateProduct() {
   })
 
   useEffect(() => {
-    if (data?.categories && data.categories.length > 0 && location.search) {
+    if (categories && categories.length > 0 && location.search) {
       const params = new URLSearchParams(location.search)
       const categoryIdFromQuery = params.get('categoryId')
       if (categoryIdFromQuery) {
-        const selectedCategoryFromData = data.categories.find(cat => cat.id === categoryIdFromQuery)
+        const selectedCategoryFromData = categories.find(cat => cat.id === categoryIdFromQuery)
         if (selectedCategoryFromData) {
           // Construct the Option object matching the structure for MultipleSelector's value
           const categoryToSetInForm = [
@@ -92,7 +102,7 @@ export default function CreateProduct() {
         }
       }
     }
-  }, [data, location.search, form])
+  }, [categories, location.search, form])
 
   const {
     uploading,
@@ -109,7 +119,7 @@ export default function CreateProduct() {
     setZoom,
   } = useImageUploader(
     `venues/${venueId}/productos`,
-    `${data?.avoqadoProduct?.name}`,
+    form.watch('name') || '',
     { minWidth: 320, minHeight: 320 }, // Aquí pasas tu configuración
   )
   const handleDeleteImage = async () => {
@@ -128,19 +138,23 @@ export default function CreateProduct() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues) {
-    createProduct.mutate({
+    const categoryIds = Array.isArray(formValues.categories)
+      ? formValues.categories.map((c: any) => c.value)
+      : []
+    const modifierGroupIds = Array.isArray(formValues.modifierGroups)
+      ? formValues.modifierGroups.map((m: any) => m.value)
+      : []
+
+    createProductMutation.mutate({
       ...formValues,
-      // categories: selectedCategories.map(category => category.value),
+      categories: categoryIds,
+      modifierGroups: modifierGroupIds,
       imageUrl: imageUrl,
     })
   }
 
-  if (isLoading) {
+  if (isCategoriesLoading || isModifierGroupsLoading) {
     return <LoadingScreen message="Cargando..." />
-  }
-
-  if (!data) {
-    return <div>Producto no encontrado</div>
   }
   return (
     <div className="">
@@ -153,8 +167,8 @@ export default function CreateProduct() {
           <span>{form.watch('name', '')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
-          <LoadingButton loading={createProduct.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createProduct.isPending ? 'Guardando...' : 'Guardar'}
+          <LoadingButton loading={createProductMutation.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
+            {createProductMutation.isPending ? 'Guardando...' : 'Guardar'}
           </LoadingButton>
         </div>
       </div>
@@ -420,7 +434,7 @@ export default function CreateProduct() {
                 <FormControl>
                   <MultipleSelector
                     {...field}
-                    options={data.categories.map(category => ({
+                    options={(categories ?? []).map(category => ({
                       label: category.name,
                       value: category.id,
                       disabled: false,
@@ -442,7 +456,7 @@ export default function CreateProduct() {
                 <FormControl>
                   <MultipleSelector
                     {...field}
-                    options={data.modifierGroups.map(modifierGroup => ({
+                    options={(modifierGroups ?? []).map(modifierGroup => ({
                       label: modifierGroup.name,
                       value: modifierGroup.id,
                       disabled: false,

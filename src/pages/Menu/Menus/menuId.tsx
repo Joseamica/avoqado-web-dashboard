@@ -1,5 +1,5 @@
 import React from 'react'
-import api from '@/api'
+import { getMenu, updateMenu, getMenuCategories } from '@/services/menu.service'
 import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // ----------------------------
 // Helpers y datos iniciales
@@ -85,8 +86,9 @@ function timeToPercentage(time: string) {
 // Componente para editar el menú
 // ----------------------------
 export default function MenuId() {
-  const { venueId, menuId } = useParams()
-  const queryClient = useQueryClient()
+  const { menuId } = useParams()
+  const { venueId } = useCurrentVenue()
+
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -95,19 +97,14 @@ export default function MenuId() {
   // Consulta del menú a editar
   const { data: menuData, isLoading: isMenuLoading } = useQuery({
     queryKey: ['menus', menuId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/avoqado-menus/${menuId}`)
-      return response.data
-    },
+    queryFn: () => getMenu(venueId, menuId),
   })
 
-  // Consulta de datos necesarios (por ejemplo, categorías)
-  const { data: necessaryData, isLoading: isNecessaryLoading } = useQuery({
-    queryKey: ['necessary-avoqado-menu-creation-data', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/necessary-avoqado-menu-creation-data`)
-      return response.data
-    },
+  // Consulta de categorías del venue
+  const { data: categories, isLoading: isCategoriesLoading } = useQuery({
+    queryKey: ['menu-categories', venueId],
+    queryFn: () => getMenuCategories(venueId!),
+    enabled: !!venueId,
   })
 
   // Llamamos a useForm siempre, con defaultValues iniciales
@@ -129,26 +126,27 @@ export default function MenuId() {
   // Actualizamos el formulario cuando ya llegan los datos del menú
   React.useEffect(() => {
     if (menuData) {
-      const menuDays = menuData.menuDays || []
-      const isAllDayValue = menuDays.length > 0 ? menuDays[0].isFixed : false
-      const defaultStartTime = menuDays.length > 0 && menuDays[0].startTime ? menuDays[0].startTime : '09:00'
-      const defaultEndTime = menuDays.length > 0 && menuDays[0].endTime ? menuDays[0].endTime : '19:30'
+      const availableDays = menuData.availableDays || []
+      const isAllDayValue = !menuData.availableFrom && !menuData.availableUntil
+      const defaultStartTime = menuData.availableFrom || '09:00'
+      const defaultEndTime = menuData.availableUntil || '19:30'
       const formDays = initialDays.map(day => ({
         ...day,
-        selected: menuDays.some((menuDay: any) => menuDay.day === dayLabelToEnum(day.label)),
+        selected: availableDays.includes(dayLabelToEnum(day.label)),
       }))
-      
+
       // Map categories for the MultipleSelector
-      const categoriesForForm = menuData.categories?.map((category: any) => ({
-        label: category.name,
-        value: category.id,
-        disabled: false,
-      })) || []
-      
+      const categoriesForForm =
+        menuData.categories?.map((categoryAssignment: any) => ({
+          label: categoryAssignment.category?.name || '',
+          value: categoryAssignment.categoryId,
+          disabled: false,
+        })) || []
+
       form.reset({
         name: menuData.name || '',
-        avoqadoMenus: menuData.avoqadoMenus || [],
-        avoqadoProducts: menuData.avoqadoProducts || [],
+        avoqadoMenus: [], // Legacy property, no longer used
+        avoqadoProducts: [], // Legacy property, no longer used
         categories: categoriesForForm,
         days: formDays,
         startTime: defaultStartTime,
@@ -160,10 +158,9 @@ export default function MenuId() {
   }, [menuData, form])
 
   // Mutation para actualizar el menú
-  const updateMenu = useMutation({
+  const updateMenuMutation = useMutation({
     mutationFn: async (formValues: any) => {
-      const response = await api.put(`/v2/dashboard/${venueId}/avoqado-menus/${menuId}`, formValues)
-      return response.data
+      return await updateMenu(venueId, menuId, formValues)
     },
     onSuccess: (data: any) => {
       toast({
@@ -182,7 +179,7 @@ export default function MenuId() {
   })
 
   // Si aún se están cargando datos, mostramos el loading.
-  if (isMenuLoading || isNecessaryLoading) {
+  if (isMenuLoading || isCategoriesLoading) {
     return <div>Cargando...</div>
   }
 
@@ -254,7 +251,7 @@ export default function MenuId() {
 
     // Extract just the category IDs from the MultipleSelector value format
     const categoryIds = categories.map((category: any) => category.value)
-    
+
     const payload = {
       name,
       avoqadoMenus,
@@ -264,7 +261,7 @@ export default function MenuId() {
       active: isActive,
     }
 
-    updateMenu.mutate(payload)
+    updateMenuMutation.mutate(payload)
   }
 
   // Cálculo para la barra de horas
@@ -284,12 +281,12 @@ export default function MenuId() {
           <span>{form.watch('name')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
-          <Button 
-            disabled={!form.formState.isDirty || updateMenu.isPending} 
+          <Button
+            disabled={!form.formState.isDirty || updateMenuMutation.isPending}
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
           >
-            {updateMenu.isPending ? 'Guardando...' : 'Guardar'}
+            {updateMenuMutation.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
         </div>
       </div>
@@ -302,7 +299,7 @@ export default function MenuId() {
               <Switch checked={isActive} onCheckedChange={handleToggle} />
             </div>
             <p className="mb-3 text-sm">Los clientes pueden ver este menú y hacer pedidos</p>
-            
+
             <FormField
               control={form.control}
               name="name"
@@ -319,7 +316,7 @@ export default function MenuId() {
                 </FormItem>
               )}
             />
-            
+
             <div className="space-y-2">
               <FormLabel>Días disponibles</FormLabel>
               <div className="flex w-full mb-2">
@@ -329,7 +326,7 @@ export default function MenuId() {
                     key={day.label}
                     onClick={() => toggleDay(day.label)}
                     className={
-                      'px-3 py-1 cursor-pointer transition-colors w-full ' + 
+                      'px-3 py-1 cursor-pointer transition-colors w-full ' +
                       (day.selected ? 'bg-black text-white' : 'bg-gray-200 text-black')
                     }
                   >
@@ -337,21 +334,16 @@ export default function MenuId() {
                   </button>
                 ))}
               </div>
-              {form.formState.errors.days && (
-                <p className="text-sm text-red-500">{form.formState.errors.days.message?.toString()}</p>
-              )}
+              {form.formState.errors.days && <p className="text-sm text-red-500">{form.formState.errors.days.message?.toString()}</p>}
             </div>
-            
+
             <div className="relative w-full h-6 overflow-hidden bg-gray-100 rounded-sm">
               {!isAllDay && (
-                <div 
-                  className="absolute top-0 bottom-0 bg-green-500" 
-                  style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} 
-                />
+                <div className="absolute top-0 bottom-0 bg-green-500" style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} />
               )}
               {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-green-500" />}
             </div>
-            
+
             <div className="flex justify-between w-full text-xs text-gray-500">
               <span>00:00</span>
               <span>03:00</span>
@@ -363,7 +355,7 @@ export default function MenuId() {
               <span>21:00</span>
               <span>24:00</span>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <FormField
                 control={form.control}
@@ -375,8 +367,8 @@ export default function MenuId() {
                       disabled={isAllDay}
                       value={field.value}
                       onValueChange={value => {
-                        field.onChange(value);
-                        if (form.formState.errors.startTime) form.clearErrors('startTime');
+                        field.onChange(value)
+                        if (form.formState.errors.startTime) form.clearErrors('startTime')
                       }}
                     >
                       <FormControl>
@@ -399,7 +391,7 @@ export default function MenuId() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="endTime"
@@ -410,8 +402,8 @@ export default function MenuId() {
                       disabled={isAllDay}
                       value={field.value}
                       onValueChange={value => {
-                        field.onChange(value);
-                        if (form.formState.errors.endTime) form.clearErrors('endTime');
+                        field.onChange(value)
+                        if (form.formState.errors.endTime) form.clearErrors('endTime')
                       }}
                     >
                       <FormControl>
@@ -435,21 +427,14 @@ export default function MenuId() {
                 )}
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
-              <input 
-                id="allDay" 
-                type="checkbox" 
-                className="w-4 h-4" 
-                checked={isAllDay} 
-                onChange={handleAllDayChange} 
-              />
+              <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
               <label htmlFor="allDay" className="text-sm font-semibold">
                 Abierto 24 horas
               </label>
             </div>
           </div>
-          
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Categorías</h2>
             <FormField
@@ -460,7 +445,7 @@ export default function MenuId() {
                   <FormControl>
                     <MultipleSelector
                       {...field}
-                      options={necessaryData.categories.map((category: any) => ({
+                      options={(categories ?? []).map((category: any) => ({
                         label: category.name,
                         value: category.id,
                         disabled: false,

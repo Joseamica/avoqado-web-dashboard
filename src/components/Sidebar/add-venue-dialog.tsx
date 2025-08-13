@@ -9,11 +9,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Input } from '../ui/input'
 import { getCroppedImg } from '@/utils/cropImage'
-import { useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import api from '@/api'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 interface AddVenueDialogProps {
   onClose: () => void
   navigate: (path: string) => void
@@ -28,7 +28,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
       pos: 'SOFTRESTAURANT',
     },
   })
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuth()

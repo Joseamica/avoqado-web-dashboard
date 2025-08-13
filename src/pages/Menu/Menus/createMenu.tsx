@@ -1,4 +1,4 @@
-import api from '@/api'
+import { createMenu, getMenuCategories } from '@/services/menu.service'
 import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
 import { LoadingScreen } from '@/components/spinner'
@@ -10,7 +10,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // --------------------------------------------------
 // Tipos y datos iniciales
@@ -103,16 +104,14 @@ function timeToPercentage(time: string) {
 // --------------------------------------------------
 export default function MenuScheduleWithMenuDayModel() {
   const navigate = useNavigate()
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const location = useLocation()
   const { toast } = useToast()
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['necessary-avoqado-menu-creation-data', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/necessary-avoqado-menu-creation-data`)
-      return response.data
-    },
+  const { data: categories, isLoading } = useQuery({
+    queryKey: ['menu-categories', venueId],
+    queryFn: () => getMenuCategories(venueId!),
+    enabled: !!venueId,
   })
 
   // 1) useForm con valores por defecto
@@ -149,10 +148,9 @@ export default function MenuScheduleWithMenuDayModel() {
   const from = (location.state as any)?.from || '/'
 
   // 2) Mutación con react-query
-  const createMenu = useMutation({
+  const createMenuMutation = useMutation({
     mutationFn: async (formValues: any) => {
-      const response = await api.post(`/v2/dashboard/${venueId}/avoqado-menus`, formValues)
-      return response.data
+      return await createMenu(venueId, formValues)
     },
     onSuccess: (data: any) => {
       toast({
@@ -259,7 +257,7 @@ export default function MenuScheduleWithMenuDayModel() {
       active: isActive,
     }
 
-    createMenu.mutate(payload)
+    createMenuMutation.mutate(payload)
   }
 
   // Para la barra verde de horas
@@ -285,8 +283,8 @@ export default function MenuScheduleWithMenuDayModel() {
           <span>{watch('name')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
-          <LoadingButton loading={createMenu.isPending} onClick={handleSubmit(onSubmit)} variant="default">
-            {createMenu.isPending ? 'Guardando...' : 'Guardar'}
+          <LoadingButton loading={createMenuMutation.isPending} onClick={handleSubmit(onSubmit)} variant="default">
+            {createMenuMutation.isPending ? 'Guardando...' : 'Guardar'}
           </LoadingButton>
         </div>
       </div>
@@ -418,7 +416,7 @@ export default function MenuScheduleWithMenuDayModel() {
         <h2 className="mt-4 mb-2 text-lg font-semibold">Categorías</h2>
 
         <MultipleSelector
-          options={data.categories.map(category => ({
+          options={(categories ?? []).map(category => ({
             label: category.name,
             value: category.id,
             disabled: false,

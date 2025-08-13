@@ -6,7 +6,7 @@ import { ChevronLeft } from 'lucide-react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import api from '@/api'
+import { createModifierGroup as createModifierGroupService } from '@/services/menu.service'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // Schema for the form validation
 const formSchema = z.object({
@@ -45,7 +46,7 @@ const formSchema = z.object({
 })
 
 export default function CreateModifierGroup() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const navigate = useNavigate()
   const { toast } = useToast()
   const [showNewModifierForm, setShowNewModifierForm] = useState(false)
@@ -76,10 +77,9 @@ export default function CreateModifierGroup() {
   })
 
   // For creating the modifier group
-  const createModifierGroup = useMutation({
+  const createModifierGroupMutation = useMutation({
     mutationFn: async formValues => {
-      const response = await api.post(`/v2/dashboard/${venueId}/modifier-groups`, formValues)
-      return response.data
+      return await createModifierGroupService(venueId!, formValues)
     },
     onSuccess: () => {
       toast({

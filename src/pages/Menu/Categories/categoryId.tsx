@@ -1,18 +1,36 @@
-import api from '@/api'
+import { getMenuCategory, updateMenuCategory, deleteMenuCategory, getMenus, getProducts } from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import { LoadingButton } from '@/components/loading-button'
 import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Skeleton } from '@/components/ui/skeleton'
+import TimePicker from '@/components/time-picker'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useEffect } from 'react'
+
+const getDayLabel = (day: string) => {
+  const dayLabels: Record<string, string> = {
+    MON: 'Lunes',
+    TUE: 'Martes',
+    WED: 'Miércoles',
+    THU: 'Jueves',
+    FRI: 'Viernes',
+    SAT: 'Sábado',
+    SUN: 'Domingo',
+  }
+  return dayLabels[day] || day
+}
 
 export default function CategoryId() {
-  const { venueId, categoryId } = useParams()
+  const { categoryId } = useParams()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
@@ -20,17 +38,25 @@ export default function CategoryId() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['category', categoryId],
-    queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/categories/${categoryId}`)
-      return response.data
-    },
+    queryFn: () => getMenuCategory(venueId!, categoryId!),
+  })
+
+  const { data: menus, isLoading: isMenusLoading } = useQuery({
+    queryKey: ['menus', venueId],
+    queryFn: () => getMenus(venueId!),
+    enabled: !!venueId,
+  })
+
+  const { data: products, isLoading: isProductsLoading } = useQuery({
+    queryKey: ['products', venueId],
+    queryFn: () => getProducts(venueId!),
+    enabled: !!venueId,
   })
   const from = (location.state as any)?.from || '/'
 
   const saveCategory = useMutation({
     mutationFn: async formValues => {
-      const response = await api.patch(`/v2/dashboard/${venueId}/categories/${categoryId}`, formValues)
-      return response.data
+      return await updateMenuCategory(venueId!, categoryId!, formValues)
     },
     onSuccess: () => {
       toast({
@@ -48,9 +74,32 @@ export default function CategoryId() {
     },
   })
 
+  const toggleActive = useMutation({
+    mutationFn: async (active: boolean) => {
+      return await updateMenuCategory(venueId!, categoryId!, { active })
+    },
+    onSuccess: (_, newActiveState) => {
+      toast({
+        title: newActiveState ? 'Categoría activada' : 'Categoría pausada',
+        description: newActiveState ? 'La categoría está ahora activa.' : 'La categoría ha sido pausada.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
+      form.setValue('active', newActiveState) // Update form state
+    },
+    onError: (error: any) => {
+      const currentActive = form.getValues('active')
+      form.setValue('active', currentActive) // Revert on error
+      toast({
+        title: 'Error al cambiar estado',
+        description: error.message || 'Hubo un problema al cambiar el estado de la categoría.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const deleteCategory = useMutation({
     mutationFn: async () => {
-      await api.delete(`/v2/dashboard/${venueId}/categories/${categoryId}`)
+      await deleteMenuCategory(venueId!, categoryId!)
     },
     onSuccess: () => {
       toast({
@@ -63,13 +112,120 @@ export default function CategoryId() {
 
   const form = useForm({})
 
-  function onSubmit(formValues) {
-    saveCategory.mutate({
+  // Initialize form with server data when it loads
+  useEffect(() => {
+    if (data) {
+      form.setValue('active', data.active ?? true)
+    }
+  }, [data, form])
+
+  function onSubmit(formValues: any) {
+    // Transform the data to match server expectations
+    const transformedData = {
       ...formValues,
-    })
+      // Transform availableDays from MultiSelector format to server format
+      availableDays: formValues.availableDays?.map((day: any) => day.value || day) || [],
+      // Transform avoqadoMenus from MultiSelector format to server format
+      avoqadoMenus:
+        formValues.avoqadoMenus?.map((menu: any) => ({
+          value: menu.value || menu.id,
+          label: menu.label || menu.name,
+          disabled: menu.disabled || false,
+        })) || [],
+      // Transform avoqadoProducts from MultiSelector format to server format
+      avoqadoProducts:
+        formValues.avoqadoProducts?.map((product: any) => ({
+          value: product.value || product.id,
+          label: product.label || product.name,
+          disabled: product.disabled || false,
+        })) || [],
+    }
+
+    // Debug logging
+    console.log('Original formValues:', formValues)
+    console.log('Transformed data before time cleanup:', transformedData)
+
+    // Handle time values: send null for empty values, keep valid times
+    if (!transformedData.availableFrom || transformedData.availableFrom.trim() === '') {
+      console.log('Setting availableFrom to null:', transformedData.availableFrom)
+      transformedData.availableFrom = null
+    } else {
+      console.log('Keeping availableFrom:', transformedData.availableFrom)
+    }
+    if (!transformedData.availableUntil || transformedData.availableUntil.trim() === '') {
+      console.log('Setting availableUntil to null:', transformedData.availableUntil)
+      transformedData.availableUntil = null
+    } else {
+      console.log('Keeping availableUntil:', transformedData.availableUntil)
+    }
+
+    // Validate time range - availableFrom should be before availableUntil
+    if (transformedData.availableFrom && transformedData.availableUntil) {
+      const fromTime = transformedData.availableFrom.split(':').map(Number)
+      const untilTime = transformedData.availableUntil.split(':').map(Number)
+
+      const fromMinutes = fromTime[0] * 60 + fromTime[1]
+      const untilMinutes = untilTime[0] * 60 + untilTime[1]
+
+      if (fromMinutes >= untilMinutes) {
+        toast({
+          title: 'Horario inválido',
+          description: 'La hora de inicio debe ser anterior a la hora de cierre.',
+          variant: 'destructive',
+        })
+        return // Don't submit if time range is invalid
+      }
+    }
+
+    console.log('Final data being sent to server:', transformedData)
+    saveCategory.mutate(transformedData)
   }
 
-  if (isLoading) return <div className="p-4">Loading...</div>
+  if (isLoading || isMenusLoading || isProductsLoading) {
+    return (
+      <div className="p-4">
+        <div className="flex flex-row justify-between">
+          <div className="space-x-4 flex-row-center">
+            <Link to={from}>
+              <ArrowLeft />
+            </Link>
+            <Skeleton className="h-6 w-32" />
+          </div>
+          <div className="space-x-3 flex-row-center">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+        </div>
+        <Separator marginBottom="4" marginTop="2" />
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-4 w-64 mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div>
+            <Skeleton className="h-4 w-56 mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+          <div>
+            <Skeleton className="h-4 w-36 mb-2" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4">
@@ -78,9 +234,22 @@ export default function CategoryId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>{data.category.name}</span>
+          <span>{data.name}</span>
         </div>
         <div className="space-x-3 flex-row-center ">
+          <Button
+            variant={form.watch('active') ? 'default' : 'secondary'}
+            size="sm"
+            disabled={toggleActive.isPending}
+            onClick={() => {
+              const currentActive = form.getValues('active')
+              const newActiveState = !currentActive
+              form.setValue('active', newActiveState) // Optimistic update
+              toggleActive.mutate(newActiveState)
+            }}
+          >
+            {toggleActive.isPending ? '...' : form.watch('active') ? '✓ Activa' : '✗ Inactiva'}
+          </Button>
           <AlertDialogWrapper
             triggerTitle="Eliminar"
             title="Eliminar categoría"
@@ -108,20 +277,22 @@ export default function CategoryId() {
             <FormField
               control={form.control}
               name="avoqadoMenus"
-              defaultValue={data.category.avoqadoMenus.map(avoqadoMenu => ({
-                label: avoqadoMenu.name,
-                value: avoqadoMenu.id,
-                disabled: false,
-              }))}
+              defaultValue={
+                data.menus?.map(m => ({
+                  label: m.menu.name,
+                  value: m.menu.id,
+                  disabled: false,
+                })) || []
+              }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Menús en los que aparececerá la categoría</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
-                      options={data.avoqadoMenus.map(avoqadoMenu => ({
-                        label: avoqadoMenu.name,
-                        value: avoqadoMenu.id,
+                      options={(menus ?? []).map(menu => ({
+                        label: menu.name,
+                        value: menu.id,
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
@@ -136,25 +307,116 @@ export default function CategoryId() {
             <FormField
               control={form.control}
               name="avoqadoProducts"
-              defaultValue={data.category.avoqadoProducts.map(avoqadoProduct => ({
-                label: avoqadoProduct.name,
-                value: avoqadoProduct.id,
-                disabled: false,
-              }))}
+              defaultValue={
+                data.products?.map(product => ({
+                  label: product.name,
+                  value: product.id,
+                  disabled: false,
+                })) || []
+              }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Agregar productos a esta categoría</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
-                      options={data.avoqadoProducts.map(avoqadoProduct => ({
-                        label: avoqadoProduct.name,
-                        value: avoqadoProduct.id,
+                      options={(products ?? []).map(product => ({
+                        label: product.name,
+                        value: product.id,
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
                       placeholder="Selecciona los productos"
                       emptyIndicator="No se han encontrado mas productos"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="availableFrom"
+                defaultValue={data.availableFrom || ''}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Disponible desde</FormLabel>
+                    <FormControl>
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de inicio" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="availableUntil"
+                defaultValue={data.availableUntil || ''}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Disponible hasta</FormLabel>
+                    <FormControl>
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de cierre" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Time range validation message */}
+            {(() => {
+              const fromValue = form.watch('availableFrom')
+              const untilValue = form.watch('availableUntil')
+
+              if (fromValue && untilValue) {
+                const fromTime = fromValue.split(':').map(Number)
+                const untilTime = untilValue.split(':').map(Number)
+                const fromMinutes = fromTime[0] * 60 + fromTime[1]
+                const untilMinutes = untilTime[0] * 60 + untilTime[1]
+
+                if (fromMinutes >= untilMinutes) {
+                  return (
+                    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                      ⚠️ La hora de inicio debe ser anterior a la hora de cierre
+                    </div>
+                  )
+                }
+              }
+              return null
+            })()}
+
+            <FormField
+              control={form.control}
+              name="availableDays"
+              defaultValue={
+                data.availableDays?.map(day => ({
+                  label: getDayLabel(day),
+                  value: day,
+                  disabled: false,
+                })) || []
+              }
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Días disponibles</FormLabel>
+                  <FormControl>
+                    <MultipleSelector
+                      {...field}
+                      options={[
+                        { label: 'Lunes', value: 'MON', disabled: false },
+                        { label: 'Martes', value: 'TUE', disabled: false },
+                        { label: 'Miércoles', value: 'WED', disabled: false },
+                        { label: 'Jueves', value: 'THU', disabled: false },
+                        { label: 'Viernes', value: 'FRI', disabled: false },
+                        { label: 'Sábado', value: 'SAT', disabled: false },
+                        { label: 'Domingo', value: 'SUN', disabled: false },
+                      ]}
+                      hidePlaceholderWhenSelected
+                      placeholder="Selecciona los días"
+                      emptyIndicator="No se han encontrado más días"
                     />
                   </FormControl>
                   <FormMessage />
