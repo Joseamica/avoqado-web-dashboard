@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import api from '@/api'
+import { getModifier, updateModifier } from '@/services/menu.service'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -72,7 +72,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
   }, [modifierDetails, form])
 
   // Mutation for updating the modifier
-  const updateModifier = useMutation<unknown, Error, FormValues>({
+  const updateModifierMutation = useMutation<unknown, Error, FormValues>({
     mutationFn: async formValues => {
       const payload = {
         name: formValues.name,
@@ -80,8 +80,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
         available: formValues.available,
         active: formValues.active,
       }
-      const response = await api.patch(`/v1/dashboard/${venueId}/modifiers/${modifierId}`, payload)
-      return response.data
+      return await updateModifier(venueId, modifierGroupId, modifierId, payload)
     },
     onSuccess: () => {
       toast({

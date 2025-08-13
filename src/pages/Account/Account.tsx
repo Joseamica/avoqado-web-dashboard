@@ -9,10 +9,10 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useParams } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function Account() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { toast } = useToast()

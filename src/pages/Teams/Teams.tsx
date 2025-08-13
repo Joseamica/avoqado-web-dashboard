@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { CheckCircle, Loader2, PlusCircle, UserCog, XCircle, PencilIcon, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // Define admin user interface
 interface VenueAdmin {
@@ -34,7 +35,7 @@ interface VenueAdmin {
 }
 
 export default function Teams() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)

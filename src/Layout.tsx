@@ -26,7 +26,7 @@ export function Layout() {
           <div className="absolute top-4 right-4">
             <ThemeToggle />
           </div>
-          <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">¡No Tienes Suscursales Asignados!</h1>
+          <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">¡No Tienes Sucursales Asignados!</h1>
           <p className="mb-6 text-gray-600 dark:text-gray-300">
             Para comenzar a usar la plataforma, crea un venue o contacta al administrador para que te asigne uno.
           </p>

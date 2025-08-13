@@ -10,9 +10,9 @@ import {
 } from '@tanstack/react-table'
 import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
-import api from '@/api'
+// Legacy api removed; use typed services instead
 import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { DataTablePagination } from '@/components/pagination'
@@ -31,13 +31,22 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { ModifierGroup } from '@/types'
+import {
+  getModifierGroups,
+  getProducts,
+  getModifierGroup,
+  assignModifierGroupToProduct,
+  removeModifierGroupFromProduct,
+  deleteModifierGroup,
+} from '@/services/menu.service'
 import { useForm } from 'react-hook-form'
 import CreateModifier from './createModifier'
+import { ModifierGroup } from '@/types'
 
 export default function Modifiers() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -49,33 +58,27 @@ export default function Modifiers() {
 
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Query to fetch all modifiers to use in the selector
-  const { data: allModifiers } = useQuery({
-    queryKey: ['modifiers', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifiers`)
-      return response.data
-    },
-    enabled: !!venueId,
-  })
+  // Aggregate all modifiers from fetched modifier groups (backend has no venue-level modifiers endpoint)
+  // Moved below modifierGroups query to avoid TDZ
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
     queryKey: ['products', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/products`)
-      return response.data
-    },
+    queryFn: () => getProducts(venueId!),
     enabled: !!venueId,
   })
 
   const { data: modifierGroups, isLoading } = useQuery({
     queryKey: ['modifier-groups', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifier-groups`)
-      return response.data
-    },
+    queryFn: () => getModifierGroups(venueId!),
   })
+
+  const allModifierOptions = useMemo(
+    () =>
+      (modifierGroups || [])
+        .flatMap(group => group.modifiers?.map(m => ({ label: m.name, value: m.id, disabled: false })) || []),
+    [modifierGroups],
+  )
 
   const {
     data: modifierGroup,
@@ -85,18 +88,37 @@ export default function Modifiers() {
     refetch: refetchModifierGroup,
   } = useQuery({
     queryKey: ['modifier-group', searchParams.get('modifierGroup'), venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifier-group/${searchParams.get('modifierGroup')}`)
-      return response.data
-    },
-    enabled: searchParams.has('modifierGroup') && !!modifierGroups,
+    queryFn: () => getModifierGroup(venueId!, searchParams.get('modifierGroup') as string),
+    enabled: searchParams.has('modifierGroup') && !!venueId,
   })
 
   // Mutation for saving modifiers and products assignments
   const saveModifierGroup = useMutation<any, Error, any>({
-    mutationFn: async formValues => {
-      const response = await api.patch(`/v2/dashboard/${venueId}/modifier-group/${searchParams.get('modifierGroup')}`, formValues)
-      return response.data
+    mutationFn: async (formValues: FormValues) => {
+      const groupId = searchParams.get('modifierGroup') as string
+      if (!venueId || !groupId) return
+
+      // Compute selected product IDs from form
+      const selectedProductIds = (formValues.avoqadoProduct || []).map(p => p.value)
+
+      // Derive current assignments from products that include this group
+      const currentAssignedIds = (allProducts || [])
+        .filter(p => p.modifierGroups?.some(mg => mg.groupId === groupId))
+        .map(p => p.id)
+
+      const toAssign = selectedProductIds.filter(id => !currentAssignedIds.includes(id))
+      const toRemove = currentAssignedIds.filter(id => !selectedProductIds.includes(id))
+
+      // Perform assignments/removals in parallel
+      await Promise.all([
+        ...toAssign.map(productId =>
+          assignModifierGroupToProduct(venueId, productId, {
+            modifierGroupId: groupId,
+            displayOrder: selectedProductIds.indexOf(productId),
+          }),
+        ),
+        ...toRemove.map(productId => removeModifierGroupFromProduct(venueId, productId, groupId)),
+      ])
     },
     onSuccess: () => {
       toast({
@@ -106,7 +128,7 @@ export default function Modifiers() {
       // Invalidate all relevant queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
       queryClient.invalidateQueries({ queryKey: ['modifier-group', searchParams.get('modifierGroup'), venueId] })
-      queryClient.invalidateQueries({ queryKey: ['modifiers', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
       // Close the sheet after success
       setSearchParams({})
     },
@@ -122,7 +144,7 @@ export default function Modifiers() {
   // Mutation to delete a modifier group
   const deleteModifierGroupMutation = useMutation({
     mutationFn: async (modifierGroupId: string) => {
-      return await api.delete(`/v2/dashboard/${venueId}/modifier-group/${modifierGroupId}`)
+      return await deleteModifierGroup(venueId!, modifierGroupId)
     },
     onSuccess: () => {
       toast({
@@ -218,7 +240,7 @@ export default function Modifiers() {
 
     return modifierGroups?.filter(modifierGroup => {
       const nameMatches = modifierGroup.name.toLowerCase().includes(lowerSearchTerm)
-      const modifiersMatches = modifierGroup.modifiers.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm))
+      const modifiersMatches = modifierGroup.modifiers?.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm)) ?? false
       return nameMatches || modifiersMatches
     })
   }, [searchTerm, modifierGroups])
@@ -262,7 +284,7 @@ export default function Modifiers() {
 
   // Update form values when modifierGroup data changes
   useEffect(() => {
-    if (isModifierGroupSuccess && modifierGroup) {
+    if (isModifierGroupSuccess && modifierGroup && allProducts) {
       const selectedModifierIds = modifierGroup.modifiers.map(mod => mod.id)
 
       form.reset({
@@ -274,39 +296,22 @@ export default function Modifiers() {
             disabled: false,
           }
         }),
-        avoqadoProduct: modifierGroup.avoqadoProducts.map(product => ({
-          label: typeof product?.name === 'string' ? product.name : '',
-          value: product?.id || '',
-          disabled: false,
-        })),
+        // Selected products are those currently assigned to this modifier group
+        avoqadoProduct: (allProducts
+          .filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroup.id))
+          .map(product => ({
+            label: typeof product?.name === 'string' ? product.name : '',
+            value: product?.id || '',
+            disabled: false,
+          })) || []),
       })
     }
-  }, [isModifierGroupSuccess, modifierGroup, form])
+  }, [isModifierGroupSuccess, modifierGroup, allProducts, form])
 
   // Submit handler for assignments
   function onSubmit(formValues: FormValues) {
-    // Process the products - add an order index to each item
-    const processedProducts =
-      formValues.avoqadoProduct?.map((item, idx) => ({
-        ...item,
-        order: idx,
-      })) || []
-
-    // Process the modifiers - also add an order index
-    const processedModifiers =
-      formValues.modifiers?.map((item, idx) => ({
-        ...item,
-        order: idx,
-      })) || []
-
-    // Create the payload with both processed arrays
-    const payload = {
-      avoqadoProduct: processedProducts,
-      modifiers: processedModifiers,
-    }
-
-    // Send to API
-    saveModifierGroup.mutate(payload)
+    // Send to API with form values (mutation computes diffs and syncs assignments)
+    saveModifierGroup.mutate(formValues)
   }
   return (
     <div className="p-4">
@@ -423,17 +428,14 @@ export default function Modifiers() {
           <SheetContent className="w-1/2">
             {createModifier ? (
               <CreateModifier
-                venueId={venueId}
-                modifierGroupId={searchParams.get('modifierGroup')}
+                venueId={venueId!}
+                modifierGroupId={searchParams.get('modifierGroup')!}
                 onBack={() => setCreateModifier(false)}
                 onSuccess={() => {
                   // Invalidate and refetch both queries
                   Promise.all([
                     // Refetch all modifiers to update the available options
-                    queryClient.invalidateQueries({
-                      queryKey: ['modifiers', venueId],
-                      refetchType: 'all',
-                    }),
+                    queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId], refetchType: 'all' }),
                     // Refetch the specific modifier group to update the selected modifiers
                     refetchModifierGroup(),
                   ]).then(([_, modifierGroupResult]) => {
@@ -452,12 +454,8 @@ export default function Modifiers() {
                             disabled: false,
                           }
                         }),
-                        // For products, same as before
-                        avoqadoProduct: modifierGroupResult.data.avoqadoProducts.map(product => ({
-                          label: product.name,
-                          value: product.id,
-                          disabled: false,
-                        })),
+                        // Keep products selection as-is; modifier creation doesn't change product assignments
+                        avoqadoProduct: form.getValues('avoqadoProduct'),
                       })
                     }
                     // Hide the create form only after data is refreshed
@@ -491,15 +489,7 @@ export default function Modifiers() {
                             {field.value && field.value.length > 0 ? (
                               <DnDMultipleSelector
                                 placeholder="Seleccionar modificadores..."
-                                options={
-                                  allModifiers
-                                    ? allModifiers.map(modifier => ({
-                                        label: modifier.name,
-                                        value: modifier.id,
-                                        disabled: false,
-                                      }))
-                                    : []
-                                }
+                                options={allModifierOptions}
                                 value={field.value}
                                 onChange={field.onChange}
                               />

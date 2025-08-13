@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useTheme } from '@/context/ThemeContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useSocketEvents } from '@/hooks/use-socket-events'
+import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
-import { useMemo, useState, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import { useTheme } from '@/context/ThemeContext'
-import { themeClasses } from '@/lib/theme-utils'
-import { useSocketEvents } from '@/hooks/use-socket-events'
 import { unparse } from 'papaparse'
+import { useCallback, useMemo, useState } from 'react'
+import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 
 // Translations for payment methods
 const PAYMENT_METHOD_TRANSLATIONS = {
@@ -198,7 +198,8 @@ const LoadingSkeleton = () => (
 )
 
 const Home = () => {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue() // Hook actualizado
+
   const { isDark } = useTheme()
   const [exportLoading, setExportLoading] = useState(false)
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
@@ -287,7 +288,7 @@ const Home = () => {
     queryKey: ['general_stats', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
     queryFn: async () => {
       // Add date params to the API call
-      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/general-stats`, {
         params: {
           fromDate: selectedRange.from.toISOString(),
           toDate: selectedRange.to.toISOString(),
@@ -374,7 +375,7 @@ const Home = () => {
 
     return {
       totalTips,
-      avgTipPercentage: avgTipPercentage.toFixed(1),
+      avgTipPercentage: (avgTipPercentage || 0).toFixed(1),
     }
   }, [filteredPayments])
 
@@ -499,7 +500,7 @@ const Home = () => {
       if (!compareType) return null
 
       // Only fetch comparison data when a comparison type is selected
-      const response = await api.get(`/v2/dashboard/${venueId}/general-stats`, {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/general-stats`, {
         params: {
           fromDate: compareRange.from.toISOString(),
           toDate: compareRange.to.toISOString(),
@@ -555,7 +556,7 @@ const Home = () => {
 
     return {
       totalTips,
-      avgTipPercentage: avgTipPercentage.toFixed(1),
+      avgTipPercentage: (avgTipPercentage || 0).toFixed(1),
     }
   }, [comparePayments])
 
@@ -787,7 +788,7 @@ const Home = () => {
             table.tableNumber,
             table.capacity,
             formatCurrencyForCSV(table.avgTicket),
-            `${table.rotationRate.toFixed(1)}x`,
+            `${(table.rotationRate || 0).toFixed(1)}x`,
             formatCurrencyForCSV(table.totalRevenue),
           ]),
         }),
@@ -804,7 +805,7 @@ const Home = () => {
             formatCurrencyForCSV(product.price),
             formatCurrencyForCSV(product.cost),
             formatCurrencyForCSV(product.margin),
-            `${product.marginPercentage.toFixed(1)}%`,
+            `${(product.marginPercentage || 0).toFixed(1)}%`,
             product.quantity,
             formatCurrencyForCSV(product.totalRevenue),
           ]),
@@ -820,7 +821,7 @@ const Home = () => {
             day.day,
             formatCurrencyForCSV(day.currentWeek),
             formatCurrencyForCSV(day.previousWeek),
-            `${day.changePercentage.toFixed(1)}%`,
+            `${(day.changePercentage || 0).toFixed(1)}%`,
           ]),
         }),
       )
@@ -835,7 +836,7 @@ const Home = () => {
             staff.role,
             formatCurrencyForCSV(staff.totalSales),
             staff.orderCount,
-            `${staff.avgPrepTime.toFixed(1)} min`,
+            `${(staff.avgPrepTime || 0).toFixed(1)} min`,
           ]),
         }),
       )
@@ -1440,7 +1441,7 @@ const Home = () => {
                           <div className="text-sm font-medium">Ticket promedio:</div>
                           <div className="text-lg font-bold mb-2">{Currency(table.avgTicket)}</div>
                           <div className="text-sm font-medium">Rotación diaria:</div>
-                          <div className="text-lg font-bold">{table.rotationRate.toFixed(1)}x</div>
+                          <div className="text-lg font-bold">{(table.rotationRate || 0).toFixed(1)}x</div>
                         </div>
                       ))}
                     </div>
@@ -1510,7 +1511,7 @@ const Home = () => {
                                   product.marginPercentage > 60 ? 'text-green-600' : product.marginPercentage < 35 ? 'text-red-600' : ''
                                 }`}
                               >
-                                {product.marginPercentage.toFixed(0)}%
+                                {(product.marginPercentage || 0).toFixed(0)}%
                               </td>
                             </tr>
                           ))}
@@ -1522,9 +1523,10 @@ const Home = () => {
                 <CardFooter className="flex-col items-start gap-2 text-sm">
                   {mostProfitableProduct && leastProfitableProduct && (
                     <div className="leading-none text-muted-foreground">
-                      Recomendación: Promociona más {mostProfitableProduct.name} (margen {mostProfitableProduct.marginPercentage.toFixed(0)}
+                      Recomendación: Promociona más {mostProfitableProduct.name} (margen{' '}
+                      {(mostProfitableProduct.marginPercentage || 0).toFixed(0)}
                       %) y considera ajustar el precio de {leastProfitableProduct.name} (margen{' '}
-                      {leastProfitableProduct.marginPercentage.toFixed(0)}%)
+                      {(leastProfitableProduct.marginPercentage || 0).toFixed(0)}%)
                     </div>
                   )}
                 </CardFooter>
@@ -1586,14 +1588,14 @@ const Home = () => {
                           <>
                             <TrendingUp className="h-4 w-4 text-green-600" />
                             <span className="text-green-600">
-                              Incremento de {weeklyTrendsChangePercentage.toFixed(1)}% respecto a la semana anterior
+                              Incremento de {(weeklyTrendsChangePercentage || 0).toFixed(1)}% respecto a la semana anterior
                             </span>
                           </>
                         ) : weeklyTrendsChangePercentage < 0 ? (
                           <>
                             <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
                             <span className="text-red-600">
-                              Disminución de {Math.abs(weeklyTrendsChangePercentage).toFixed(1)}% respecto a la semana anterior
+                              Disminución de {Math.abs(weeklyTrendsChangePercentage || 0).toFixed(1)}% respecto a la semana anterior
                             </span>
                           </>
                         ) : (
@@ -1620,7 +1622,7 @@ const Home = () => {
                                 El {bestDay.day.toLowerCase()} es tu día más ocupado
                                 {biggestDrop.changePercentage < -5 && biggestDrop.day === bestDay.day && (
                                   <>
-                                    , pero has tenido una caída del {Math.abs(biggestDrop.changePercentage).toFixed(1)}% respecto a la
+                                    , pero has tenido una caída del {Math.abs(biggestDrop.changePercentage || 0).toFixed(1)}% respecto a la
                                     semana anterior
                                   </>
                                 )}
@@ -1673,7 +1675,7 @@ const Home = () => {
                                       <span className="ml-2 text-sm">{Currency(employee.totalSales)}</span>
                                     </div>
                                     <div className="text-xs text-gray-500">
-                                      {employee.orderCount} órdenes • Tiempo promedio: {employee.avgPrepTime.toFixed(0)} min
+                                      {employee.orderCount} órdenes • Tiempo promedio: {(employee.avgPrepTime || 0).toFixed(0)} min
                                     </div>
                                   </div>
                                 </div>
@@ -1706,7 +1708,7 @@ const Home = () => {
                                       style={{ width: `${(data.avg / 20) * 100}%` }}
                                     ></div>
                                   </div>
-                                  <span className="ml-2 text-sm">{data.avg.toFixed(0)} min</span>
+                                  <span className="ml-2 text-sm">{(data.avg || 0).toFixed(0)} min</span>
                                   <span className="ml-2 text-xs text-gray-500">Meta: {data.target} min</span>
                                 </div>
                               </div>
@@ -1724,7 +1726,7 @@ const Home = () => {
                       {prepTimeOverrun.overrun > 0
                         ? ` Los ${
                             prepTimeOverrun.category === 'principales' ? 'platos principales' : prepTimeOverrun.category
-                          } están tomando ${prepTimeOverrun.overrun.toFixed(0)} min más que el objetivo`
+                          } están tomando ${(prepTimeOverrun.overrun || 0).toFixed(0)} min más que el objetivo`
                         : ` Todos los tiempos de preparación están dentro de los objetivos`}
                     </div>
                   )}

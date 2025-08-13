@@ -1,12 +1,4 @@
 import api from '@/api'
-import AlertDialogWrapper from '@/components/alert-dialog'
-import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/hooks/use-toast'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +9,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
-import countryList from 'react-select-country-list'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import countryList from 'react-select-country-list'
+import { z } from 'zod'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // Add VenueType enum to match Prisma schema
 enum VenueType {
@@ -159,7 +159,7 @@ function VenueSkeleton() {
 }
 
 export default function EditVenue() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
 
   // Get the list of countries - moved to top of component
   const countries = useMemo(() => {
@@ -305,12 +305,12 @@ export default function EditVenue() {
       venueData.feature = {
         upsert: {
           create: {
-            ordering: data.ordering
+            ordering: data.ordering,
           },
           update: {
-            ordering: data.ordering
-          }
-        }
+            ordering: data.ordering,
+          },
+        },
       }
 
       // Only add the menta object if at least one of the fields has a value

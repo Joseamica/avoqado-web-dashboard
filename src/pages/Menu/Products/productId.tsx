@@ -1,11 +1,10 @@
-import api from '@/api'
+import { getProduct, updateProduct, getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
@@ -14,6 +13,7 @@ import { ArrowLeft } from 'lucide-react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import api from '@/api'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -39,18 +39,26 @@ export default function ProductId() {
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
     queryKey: ['product', productId],
-    queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/products/${productId}`)
-      return response.data
-    },
+    queryFn: () => getProduct(venueId!, productId!),
+  })
+
+  // Traemos las categorías disponibles para el selector
+  const { data: categories } = useQuery({
+    queryKey: ['categories', venueId],
+    queryFn: () => getMenuCategories(venueId!),
+  })
+
+  // Traemos los grupos de modificadores disponibles para el selector
+  const { data: modifierGroups } = useQuery({
+    queryKey: ['modifierGroups', venueId],
+    queryFn: () => getModifierGroups(venueId!),
   })
 
   const from = (location.state as any)?.from || '/'
 
   const saveProduct = useMutation({
     mutationFn: async formValues => {
-      const response = await api.patch(`/v1/dashboard/${venueId}/products/${productId}`, formValues)
-      return response.data
+      return await updateProduct(venueId!, productId!, formValues)
     },
     onSuccess: () => {
       toast({
@@ -126,7 +134,7 @@ export default function ProductId() {
     setZoom,
   } = useImageUploader(
     `venues/${venueId}/productos`,
-    `${data?.avoqadoProduct?.name}`,
+    `${data?.name}`,
     { minWidth: 320, minHeight: 320 }, // Aquí pasas tu configuración
   )
 
@@ -151,7 +159,7 @@ export default function ProductId() {
     saveProduct.mutate({
       ...formValues,
       // categories: selectedCategories.map(category => category.value),
-      imageUrl: imageUrl || data.avoqadoProduct.imageUrl,
+      imageUrl: imageUrl || data.imageUrl,
     })
   }
 
@@ -164,7 +172,7 @@ export default function ProductId() {
     return <div>Producto no encontrado</div>
   }
 
-  const displayedImageUrl = imageUrl || data.avoqadoProduct.imageUrl
+  const displayedImageUrl = imageUrl || data.imageUrl
   return (
     <div className="">
       {/* Barra superior */}
@@ -173,7 +181,7 @@ export default function ProductId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>{data.avoqadoProduct.name}</span>
+          <span>{data.name}</span>
         </div>
         <div className="space-x-3 flex-row-center ">
           <AlertDialogWrapper
@@ -202,7 +210,7 @@ export default function ProductId() {
               minLength: { value: 3, message: 'El nombre debe tener al menos 3 caracteres.' },
               maxLength: { value: 30, message: 'El nombre no debe tener más de 30 caracteres.' },
             }}
-            defaultValue={data.avoqadoProduct.name}
+            defaultValue={data.name}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -228,8 +236,8 @@ export default function ProductId() {
                     placeholder="Introduce una descripción"
                     className="max-w-96"
                     {...field}
-                    // value={field.value || data.avoqadoProduct.description || ''}
-                    defaultValue={data.avoqadoProduct.description || ''}
+                    // value={field.value || data.description || ''}
+                    defaultValue={data.description || ''}
                     onChange={e => field.onChange(e.target.value)}
                   />
                 </FormControl>
@@ -251,7 +259,7 @@ export default function ProductId() {
                 //   parseFloat(value) <= 10000 || 'El precio no debe exceder $10,000.'
               },
             }}
-            defaultValue={data.avoqadoProduct.price}
+            defaultValue={data.price}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -270,7 +278,7 @@ export default function ProductId() {
             rules={{
               required: 'El tipo es requerido.',
             }}
-            defaultValue={data.avoqadoProduct.type}
+            defaultValue={data.type}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
@@ -303,7 +311,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="imageUrl"
-            defaultValue={data.avoqadoProduct.imageUrl}
+            defaultValue={data.imageUrl}
             render={() => (
               <FormItem>
                 <FormLabel>Foto</FormLabel>
@@ -456,11 +464,17 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="categories"
-            defaultValue={data.avoqadoProduct.categories.map(category => ({
-              label: category.name,
-              value: category.id,
-              disabled: false,
-            }))}
+            defaultValue={
+              data.category
+                ? [
+                    {
+                      label: data.category.name,
+                      value: data.category.id,
+                      disabled: false,
+                    },
+                  ]
+                : []
+            }
             rules={{
               required: { value: true, message: 'Selecciona al menos una categoría.' },
             }}
@@ -470,11 +484,11 @@ export default function ProductId() {
                 <FormControl>
                   <MultipleSelector
                     {...field}
-                    options={data.categories.map(category => ({
+                    options={categories?.map(category => ({
                       label: category.name,
                       value: category.id,
                       disabled: false,
-                    }))}
+                    })) || []}
                     hidePlaceholderWhenSelected
                     placeholder="Selecciona las categorías"
                   />
@@ -486,22 +500,26 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="modifierGroups"
-            defaultValue={data.avoqadoProduct.modifierGroups.map(modifierGroup => ({
-              label: modifierGroup.name,
-              value: modifierGroup.id,
-              disabled: false,
-            }))}
+            defaultValue={
+              data.modifierGroups
+                ? data.modifierGroups.map(modifierGroup => ({
+                    label: modifierGroup.group?.name || '',
+                    value: modifierGroup.id,
+                    disabled: false,
+                  }))
+                : []
+            }
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Grupos Modificadores</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
-                    options={data.modifierGroups.map(modifierGroup => ({
+                    options={modifierGroups?.map(modifierGroup => ({
                       label: modifierGroup.name,
                       value: modifierGroup.id,
                       disabled: false,
-                    }))}
+                    })) || []}
                     hidePlaceholderWhenSelected
                     placeholder="Selecciona las categorías"
                   />

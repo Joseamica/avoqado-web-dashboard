@@ -1,21 +1,21 @@
-import api from '@/api'
+import { getProducts, updateProduct } from '@/services/menu.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, UploadCloud } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
-
+import { Link, useLocation } from 'react-router-dom'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { Category } from '@/types'
+import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 
 export default function Products() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
 
   const location = useLocation()
 
@@ -25,18 +25,12 @@ export default function Products() {
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/products`)
-      return response.data
-    },
+    queryFn: () => getProducts(venueId!),
   })
 
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
-      await api.patch(`/v1/dashboard/${venueId}/products/toggle-status`, {
-        productId,
-        status,
-      })
+      await updateProduct(venueId!, productId, { active: status })
     },
     onSuccess: (_, data) => {
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
@@ -48,7 +42,7 @@ export default function Products() {
     },
   })
 
-  const columns: ColumnDef<Category, unknown>[] = [
+  const columns: ColumnDef<Product, unknown>[] = [
     {
       id: 'imageUrl',
       accessorKey: 'imageUrl',
@@ -160,10 +154,11 @@ export default function Products() {
     const lowerSearchTerm = searchTerm.toLowerCase()
 
     return products?.filter(product => {
-      // Buscar en el name del category o en los menús (avoqadoMenus.name)
+      // Buscar en el name del producto, grupos de modificadores y categoría
       const nameMatches = product.name.toLowerCase().includes(lowerSearchTerm)
-      const modifierGroupMatches = product.modifierGroups.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm))
-      const categoryMatches = product.categories.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm))
+      const modifierGroupMatches =
+        product.modifierGroups?.some(modifierGroup => modifierGroup.group?.name.toLowerCase().includes(lowerSearchTerm)) || false
+      const categoryMatches = product.category?.name.toLowerCase().includes(lowerSearchTerm) || false
       return nameMatches || modifierGroupMatches || categoryMatches
     })
   }, [searchTerm, products])

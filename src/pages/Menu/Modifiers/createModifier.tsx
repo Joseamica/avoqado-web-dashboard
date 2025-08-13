@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import api from '@/api'
+import { createModifier as createModifierService } from '@/services/menu.service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -50,7 +50,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
   })
 
   // For creating the modifier
-  const createModifier = useMutation<unknown, Error, FormValues>({
+  const createModifierMutation = useMutation<unknown, Error, FormValues>({
     mutationFn: async formValues => {
       // Create the modifier with the modifierGroupId included
       const payload = {
@@ -58,11 +58,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
         extraPrice: formValues.extraPrice,
         available: formValues.available,
         active: formValues.active,
-        modifierGroupId, // Include the modifierGroupId directly in the creation payload
       }
-      const response = await api.post(`/v1/dashboard/${venueId}/modifiers`, payload)
-
-      return response.data
+      return await createModifierService(venueId, modifierGroupId, payload)
     },
     onSuccess: _data => {
       toast({
@@ -100,7 +97,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
 
   // Handle form submission
   function onSubmit(values: FormValues) {
-    createModifier.mutate(values)
+    createModifierMutation.mutate(values)
   }
 
   return (

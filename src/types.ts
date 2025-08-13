@@ -1198,5 +1198,76 @@ export interface SessionVenue {
 // OBSOLETO: Reemplazado por `User` o `Staff[]`.
 // export interface Users { ... }
 
+// TODO: Migrar componentes que usen estos tipos legados.
+
+// ==========================================
+// MENU SYSTEM DTOs (Data Transfer Objects)
+// ==========================================
+
+// DTOs para operaciones de menús
+export interface CreateMenuDto {
+  name: string
+  description?: string | null
+  type: MenuType
+  displayOrder?: number
+  active?: boolean
+  startDate?: string | null
+  endDate?: string | null
+  availableFrom?: string | null
+  availableUntil?: string | null
+  availableDays?: string[]
+}
+
+export interface UpdateMenuDto {
+  name?: string
+  description?: string | null
+  type?: MenuType
+  displayOrder?: number
+  active?: boolean
+  startDate?: string | null
+  endDate?: string | null
+  availableFrom?: string | null
+  availableUntil?: string | null
+  availableDays?: string[]
+}
+
+export interface CloneMenuDto {
+  name: string
+  copyCategories?: boolean
+  copyProducts?: boolean
+  copyModifiers?: boolean
+}
+
+// DTOs para operaciones de categorías de menú
+export interface CreateMenuCategoryDto {
+  name: string
+  description?: string | null
+  slug?: string
+  displayOrder?: number
+  imageUrl?: string | null
+  color?: string | null
+  icon?: string | null
+  parentId?: string | null
+  active?: boolean
+  availableFrom?: string | null
+  availableUntil?: string | null
+  availableDays?: string[]
+}
+
+export interface UpdateMenuCategoryDto {
+  name?: string
+  description?: string | null
+  slug?: string
+  displayOrder?: number
+  imageUrl?: string | null
+  color?: string | null
+  icon?: string | null
+  parentId?: string | null
+  active?: boolean
+  availableFrom?: string | null
+  availableUntil?: string | null
+  availableDays?: string[]
+}
+
 // OBSOLETO: Reemplazado por `ModifierGroup` y el nuevo `Modifier`
 // export interface ModifierGroup { ... }

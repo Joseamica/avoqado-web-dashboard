@@ -5,14 +5,14 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
 // import { Shift } from '@/types'
 import { Currency } from '@/utils/currency'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 export default function Shifts() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
   const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
     pageIndex: 0,

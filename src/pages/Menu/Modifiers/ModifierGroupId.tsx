@@ -1,4 +1,5 @@
 import api from '@/api'
+import { getModifierGroup } from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { Button } from '@/components/ui/button'
@@ -31,10 +32,7 @@ export default function ModifierGroupId() {
   // Fetch modifier group data
   const { data, isLoading, isError } = useQuery({
     queryKey: ['modifier-group', modifierGroupId, venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifier-group/${modifierGroupId}`)
-      return response.data
-    },
+    queryFn: () => getModifierGroup(venueId!, modifierGroupId!),
     enabled: !!modifierGroupId && !!venueId,
   })
 

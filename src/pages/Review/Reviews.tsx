@@ -5,11 +5,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Star, ArrowRight } from 'lucide-react'
 import api from '@/api'
-import { useParams } from 'react-router-dom'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+
 export default function ReviewSummary() {
-  const { venueId } = useParams()
+  const { venueId } = useCurrentVenue()
 
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>(null)
 
