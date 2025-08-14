@@ -8,7 +8,7 @@ export { default as CreateCategory } from '@/pages/Menu/Categories/createCategor
 export { default as MenuMakerLayout } from '@/pages/Menu/MenuMakerLayout'
 export { default as CreateMenu } from '@/pages/Menu/Menus/createMenu'
 export { default as Menus } from '@/pages/Menu/Menus/Menus'
-export { default as Modifiers } from '@/pages/Menu/Modifiers/Modifiers'
+export { default as ModifierGroups } from '@/pages/Menu/Modifiers/ModifierGroups'
 export { default as Overview } from '@/pages/Menu/Overview'
 export { default as CreateProduct } from '@/pages/Menu/Products/createProduct'
 export { default as ProductId } from '@/pages/Menu/Products/productId'

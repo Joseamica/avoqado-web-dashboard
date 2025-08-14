@@ -1,24 +1,20 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 
-import { getModifier, updateModifier } from '@/services/menu.service'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { updateModifier } from '@/services/menu.service'
 
-// Define form schema for validation
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  price: z.number().min(0, 'Price must be a positive number'),
-  available: z.boolean().default(true),
-  active: z.boolean().default(true),
-})
-
-type FormValues = z.infer<typeof formSchema>
+// Define form values type
+type FormValues = {
+  name: string
+  price: number
+  active: boolean
+}
 
 // Props for the EditModifier component
 interface EditModifierProps {
@@ -30,7 +26,6 @@ interface EditModifierProps {
   initialValues: {
     name: string
     price: number
-    available: boolean
     active: boolean
   }
 }
@@ -44,32 +39,18 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     defaultValues: {
       name: initialValues.name,
       price: initialValues.price,
-      available: initialValues.available,
       active: initialValues.active,
     },
   })
 
-  // Query to fetch modifier details if needed
-  const { data: modifierDetails } = useQuery({
-    queryKey: ['modifier', modifierId, venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v1/dashboard/${venueId}/${modifierId}`)
-      return response.data
-    },
-    enabled: !!modifierId && !initialValues.name, // Only fetch if we don't have initial values
-  })
-
-  // Update the form when we get modifier details (if needed)
+  // Initialize form with the provided initial values
   useEffect(() => {
-    if (modifierDetails) {
-      form.reset({
-        name: modifierDetails.name,
-        price: modifierDetails.price,
-        available: modifierDetails.available,
-        active: modifierDetails.active,
-      })
-    }
-  }, [modifierDetails, form])
+    form.reset({
+      name: initialValues.name,
+      price: initialValues.price,
+      active: initialValues.active,
+    })
+  }, [initialValues, form])
 
   // Mutation for updating the modifier
   const updateModifierMutation = useMutation<unknown, Error, FormValues>({
@@ -77,7 +58,6 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
       const payload = {
         name: formValues.name,
         price: formValues.price,
-        available: formValues.available,
         active: formValues.active,
       }
       return await updateModifier(venueId, modifierGroupId, modifierId, payload)
@@ -118,7 +98,7 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
   // Submit handler
   function onSubmit(values: FormValues) {
-    updateModifier.mutate(values)
+    updateModifierMutation.mutate(values)
   }
 
   return (
@@ -175,24 +155,6 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
           <FormField
             control={form.control}
-            name="available"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Disponible</FormLabel>
-                  <FormDescription>Indica si este modificador está disponible para ser añadido a productos.</FormDescription>
-                </div>
-                <FormControl>
-                  <div>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} name={field.name} ref={field.ref} />
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="active"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -213,8 +175,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
             <Button type="button" variant="outline" onClick={onBack}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={updateModifier.isPending || !form.formState.isDirty}>
-              {updateModifier.isPending ? 'Guardando...' : 'Guardar cambios'}
+            <Button type="submit" disabled={updateModifierMutation.isPending || !form.formState.isDirty}>
+              {updateModifierMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </div>
         </form>

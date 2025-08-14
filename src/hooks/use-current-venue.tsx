@@ -11,20 +11,21 @@ interface UseCurrentVenueReturn {
 }
 
 export const useCurrentVenue = (): UseCurrentVenueReturn => {
-  const { venueSlug } = useParams<{ venueSlug: string }>()
+  const params = useParams<{ slug?: string; venueSlug?: string }>()
+  const venueSlugParam = params.venueSlug ?? params.slug ?? null
   const { activeVenue, getVenueBySlug, checkVenueAccess, isAuthenticated } = useAuth()
 
   // Si no hay activeVenue en el contexto, intentar obtenerlo por slug
-  const venue = activeVenue || (venueSlug ? getVenueBySlug(venueSlug) : null)
+  const venue = activeVenue || (venueSlugParam ? getVenueBySlug(venueSlugParam) : null)
 
   // Verificar si el usuario tiene acceso al venue actual
-  const hasVenueAccess = venueSlug && isAuthenticated ? checkVenueAccess(venueSlug) : false
+  const hasVenueAccess = !!venueSlugParam && isAuthenticated ? checkVenueAccess(venueSlugParam) : false
 
   return {
     venue,
     venueId: venue?.id || null,
     venueSlug: venue?.slug || null,
-    isLoading: !venue && !!venueSlug, // Está cargando si hay slug pero no venue
+    isLoading: !venue && !!venueSlugParam, // Está cargando si hay slug pero no venue
     hasVenueAccess,
   }
 }

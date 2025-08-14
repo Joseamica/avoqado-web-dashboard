@@ -33,7 +33,7 @@ export const createMenu = async (venueId: string, menuData: CreateMenuDto): Prom
  * Update an existing menu
  */
 export const updateMenu = async (venueId: string, menuId: string, menuData: UpdateMenuDto): Promise<Menu> => {
-  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/menus/${menuId}`, menuData)
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/menus/${menuId}`, menuData)
   return response.data
 }
 
@@ -55,8 +55,8 @@ export const cloneMenu = async (venueId: string, menuId: string, cloneData: Clon
 /**
  * Reorder menus by display order
  */
-export const reorderMenus = async (venueId: string, menuIds: string[]): Promise<void> => {
-  await api.put(`/api/v1/dashboard/venues/${venueId}/menus/reorder`, { menuIds })
+export const reorderMenus = async (venueId: string, menus: { id: string; displayOrder: number }[]): Promise<void> => {
+  await api.post(`/api/v1/dashboard/venues/${venueId}/menus/reorder`, menus)
 }
 
 /**
@@ -120,7 +120,7 @@ export const deleteMenuCategory = async (venueId: string, categoryId: string): P
  * Reorder menu categories
  */
 export const reorderMenuCategories = async (venueId: string, categories: { id: string; displayOrder: number }[]): Promise<void> => {
-  await api.put(`/api/v1/dashboard/venues/${venueId}/menucategories/reorder`, { categories })
+  await api.post(`/api/v1/dashboard/venues/${venueId}/menucategories/reorder`, categories)
 }
 
 // ===========================
@@ -131,7 +131,7 @@ export const reorderMenuCategories = async (venueId: string, categories: { id: s
  * Get all products for a venue
  */
 export const getProducts = async (venueId: string): Promise<Product[]> => {
-  const response = await api.get(`/api/v1/venues/${venueId}/products`)
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`)
   return (response.data?.data ?? response.data) as Product[]
 }
 
@@ -139,7 +139,7 @@ export const getProducts = async (venueId: string): Promise<Product[]> => {
  * Get a specific product by ID
  */
 export const getProduct = async (venueId: string, productId: string): Promise<Product> => {
-  const response = await api.get(`/api/v1/venues/${venueId}/products/${productId}`)
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products/${productId}`)
   return (response.data?.data ?? response.data) as Product
 }
 
@@ -147,7 +147,7 @@ export const getProduct = async (venueId: string, productId: string): Promise<Pr
  * Create a new product
  */
 export const createProduct = async (venueId: string, productData: any): Promise<Product> => {
-  const response = await api.post(`/api/v1/venues/${venueId}/products`, productData)
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/products`, productData)
   return (response.data?.data ?? response.data) as Product
 }
 
@@ -155,7 +155,7 @@ export const createProduct = async (venueId: string, productData: any): Promise<
  * Update an existing product
  */
 export const updateProduct = async (venueId: string, productId: string, productData: any): Promise<Product> => {
-  const response = await api.put(`/api/v1/venues/${venueId}/products/${productId}`, productData)
+  const response = await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, productData)
   return (response.data?.data ?? response.data) as Product
 }
 
@@ -163,14 +163,14 @@ export const updateProduct = async (venueId: string, productId: string, productD
  * Delete a product
  */
 export const deleteProduct = async (venueId: string, productId: string): Promise<void> => {
-  await api.delete(`/api/v1/venues/${venueId}/products/${productId}`)
+  await api.delete(`/api/v1/dashboard/venues/${venueId}/products/${productId}`)
 }
 
 /**
  * Reorder products
  */
 export const reorderProducts = async (venueId: string, products: { id: string; displayOrder: number }[]): Promise<void> => {
-  await api.put(`/api/v1/dashboard/venues/${venueId}/products/reorder`, { products })
+  await api.put(`/api/v1/dashboard/venues/${venueId}/products/reorder`, products)
 }
 
 // ===========================

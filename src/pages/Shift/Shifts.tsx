@@ -22,7 +22,7 @@ export default function Shifts() {
   const { data, isLoading } = useQuery({
     queryKey: ['shifts', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/shifts`, {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts`, {
         params: {
           page: pagination.pageIndex + 1,
           pageSize: pagination.pageSize,
@@ -269,7 +269,7 @@ export default function Shifts() {
   return (
     <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-xl font-semibold">Turnos (CORREGIR)</h1>
+        <h1 className="text-xl font-semibold">Turnos</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}

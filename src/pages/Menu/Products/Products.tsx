@@ -2,7 +2,7 @@ import { getProducts, updateProduct } from '@/services/menu.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud } from 'lucide-react'
+import { ArrowUpDown, UploadCloud, ImageIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -22,6 +22,7 @@ export default function Products() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', venueId],
@@ -31,10 +32,35 @@ export default function Products() {
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
       await updateProduct(venueId!, productId, { active: status })
+      return { productId, status }
     },
-    onSuccess: (_, data) => {
-      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    onMutate: async ({ productId, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['products', venueId] })
 
+      // Snapshot the previous value
+      const previousProducts = queryClient.getQueryData<Product[]>(['products', venueId])
+
+      // Optimistically update the cache
+      queryClient.setQueryData<Product[]>(['products', venueId], old => {
+        if (!old) return old
+        return old.map(product => 
+          product.id === productId 
+            ? { ...product, active: status }
+            : product
+        )
+      })
+
+      // Return a context object with the snapshotted value
+      return { previousProducts }
+    },
+    onError: (_, __, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousProducts) {
+        queryClient.setQueryData(['products', venueId], context.previousProducts)
+      }
+    },
+    onSuccess: (data) => {
       toast({
         title: `Producto ${data.status ? 'activado' : 'desactivado'}`,
         description: 'Los cambios se han guardado correctamente.',
@@ -49,14 +75,27 @@ export default function Products() {
       sortDescFirst: true,
       header: () => <div className=" flex-row-center">Foto</div>,
 
-      cell: ({ cell }) => {
+      cell: ({ cell, row }) => {
+        const imageUrl = cell.getValue() as string
+        const productId = row.original.id
+        const hasError = imageErrors[productId]
+
         return (
-          <div className="w-12 h-12 overflow-hidden bg-gray-200">
-            {cell.getValue() ? (
-              <img src={cell.getValue() as string} alt="product" className="object-fill h-14 w-14" />
+          <div className="w-12 h-12 overflow-hidden bg-gray-200 rounded">
+            {imageUrl && !hasError ? (
+              <img 
+                src={imageUrl} 
+                alt="product" 
+                className="object-cover h-12 w-12" 
+                onError={() => setImageErrors(prev => ({ ...prev, [productId]: true }))}
+              />
+            ) : imageUrl && hasError ? (
+              <div className="flex items-center justify-center w-full h-full bg-gray-100">
+                <ImageIcon className="w-4 h-4 text-gray-400" />
+              </div>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <UploadCloud className="w-4 h-4" />
+                <UploadCloud className="w-4 h-4 text-gray-400" />
               </div>
             )}
           </div>

@@ -16,6 +16,18 @@ import { useEffect } from 'react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
+import type { Product, ProductType } from '@/types'
+
+type CreateProductPayload = {
+  sku: string
+  name: string
+  description?: string | null
+  categoryId: string
+  type: ProductType
+  price: number
+  imageUrl?: string | null
+  modifierGroupIds?: string[]
+}
 
 export default function CreateProduct() {
   const { venueId } = useCurrentVenue()
@@ -45,13 +57,13 @@ export default function CreateProduct() {
 
   const from = (location.state as any)?.from || '/'
 
-  const createProductMutation = useMutation({
-    mutationFn: async formValues => {
-      return await createProductService(venueId!, formValues)
+  const createProductMutation = useMutation<Product, unknown, CreateProductPayload>({
+    mutationFn: async (payload: CreateProductPayload) => {
+      return await createProductService(venueId!, payload)
     },
-    onSuccess: (_, data: any) => {
+    onSuccess: (product: Product) => {
       toast({
-        title: `Producto ${data.name} creado`,
+        title: `Producto ${product.name} creado`,
         description: 'El producto se ha creado correctamente.',
       })
       navigate(from)
@@ -67,12 +79,13 @@ export default function CreateProduct() {
 
   const form = useForm({
     defaultValues: {
+      sku: '',
       name: '',
       description: '',
       price: '',
-      type: '',
+      type: 'FOOD',
       imageUrl: '',
-      categories: [],
+      categoryId: '',
       modifierGroups: [],
     },
     // values: {
@@ -87,19 +100,8 @@ export default function CreateProduct() {
     if (categories && categories.length > 0 && location.search) {
       const params = new URLSearchParams(location.search)
       const categoryIdFromQuery = params.get('categoryId')
-      if (categoryIdFromQuery) {
-        const selectedCategoryFromData = categories.find(cat => cat.id === categoryIdFromQuery)
-        if (selectedCategoryFromData) {
-          // Construct the Option object matching the structure for MultipleSelector's value
-          const categoryToSetInForm = [
-            {
-              value: selectedCategoryFromData.id,
-              label: selectedCategoryFromData.name,
-              disabled: false, // Ensure it matches the option structure completely
-            },
-          ]
-          form.setValue('categories', categoryToSetInForm)
-        }
+      if (categoryIdFromQuery && categories.some(cat => cat.id === categoryIdFromQuery)) {
+        form.setValue('categoryId', categoryIdFromQuery)
       }
     }
   }, [categories, location.search, form])
@@ -138,18 +140,21 @@ export default function CreateProduct() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues) {
-    const categoryIds = Array.isArray(formValues.categories)
-      ? formValues.categories.map((c: any) => c.value)
-      : []
     const modifierGroupIds = Array.isArray(formValues.modifierGroups)
       ? formValues.modifierGroups.map((m: any) => m.value)
       : []
 
+    const priceNumber = typeof formValues.price === 'string' ? parseFloat(formValues.price) : formValues.price
+
     createProductMutation.mutate({
-      ...formValues,
-      categories: categoryIds,
-      modifierGroups: modifierGroupIds,
-      imageUrl: imageUrl,
+      sku: formValues.sku,
+      name: formValues.name,
+      description: formValues.description,
+      categoryId: formValues.categoryId,
+      type: formValues.type,
+      price: priceNumber,
+      imageUrl: imageUrl || formValues.imageUrl || undefined,
+      modifierGroupIds,
     })
   }
 
@@ -167,7 +172,12 @@ export default function CreateProduct() {
           <span>{form.watch('name', '')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
-          <LoadingButton loading={createProductMutation.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
+          <LoadingButton
+            loading={createProductMutation.isPending}
+            onClick={form.handleSubmit(onSubmit)}
+            variant="default"
+            disabled={!form.formState.isDirty || createProductMutation.isPending}
+          >
             {createProductMutation.isPending ? 'Guardando...' : 'Guardar'}
           </LoadingButton>
         </div>
@@ -176,6 +186,35 @@ export default function CreateProduct() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
           <h1 className="text-xl font-semibold">Nuevo producto</h1>
+
+          {/* SKU */}
+          <FormField
+            control={form.control}
+            name="sku"
+            rules={{
+              required: { value: true, message: 'El SKU es requerido.' },
+              pattern: {
+                value: /^[A-Z0-9_-]+$/,
+                message: 'El SKU solo puede contener letras mayúsculas, números, guiones y guiones bajos.',
+              },
+            }}
+            render={({ field }) => {
+              return (
+                <FormItem>
+                  <FormLabel>SKU</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="SKU (p.ej., TACO-001)"
+                      className="max-w-96 uppercase"
+                      {...field}
+                      onChange={e => field.onChange(e.target.value.toUpperCase())}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
+          />
 
           <FormField
             control={form.control}
@@ -228,7 +267,7 @@ export default function CreateProduct() {
                 <FormItem>
                   <FormLabel>Precio</FormLabel>
                   <FormControl>
-                    <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
+                    <Input placeholder="Introduce un precio" className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -254,11 +293,11 @@ export default function CreateProduct() {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>Selecciona un tipo</SelectLabel>
-                        <SelectItem value="BEVERAGE">Bebida</SelectItem>
-                        <SelectItem value="MERCH">Mercancia</SelectItem>
                         <SelectItem value="FOOD">Comida</SelectItem>
-                        <SelectItem value="MEMBERSHIP">Membresía</SelectItem>
-                        <SelectItem value="SESSION">Sesión</SelectItem>
+                        <SelectItem value="BEVERAGE">Bebida</SelectItem>
+                        <SelectItem value="ALCOHOL">Alcohol</SelectItem>
+                        <SelectItem value="RETAIL">Retail</SelectItem>
+                        <SelectItem value="SERVICE">Servicio</SelectItem>
                         <SelectItem value="OTHER">Otro</SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -424,24 +463,29 @@ export default function CreateProduct() {
           />
           <FormField
             control={form.control}
-            name="categories"
+            name="categoryId"
             rules={{
-              required: { value: true, message: 'Selecciona al menos una categoría.' },
+              required: { value: true, message: 'Selecciona una categoría.' },
             }}
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Categorías</FormLabel>
+              <FormItem className="max-w-96">
+                <FormLabel>Categoría</FormLabel>
                 <FormControl>
-                  <MultipleSelector
-                    {...field}
-                    options={(categories ?? []).map(category => ({
-                      label: category.name,
-                      value: category.id,
-                      disabled: false,
-                    }))}
-                    hidePlaceholderWhenSelected
-                    placeholder="Selecciona las categorías"
-                  />
+                  <Select onValueChange={value => { field.onChange(value); form.clearErrors('categoryId') }} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona la categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Selecciona una categoría</SelectLabel>
+                        {(categories ?? []).map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -462,7 +506,7 @@ export default function CreateProduct() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder="Selecciona las categorías"
+                    placeholder="Selecciona los grupos"
                   />
                 </FormControl>
                 <FormMessage />

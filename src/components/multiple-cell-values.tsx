@@ -1,12 +1,14 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-export const ItemsCell = ({ cell, max_visible_items }) => {
-  const items = cell.getValue() // Assuming AvoqadoMenu[] type
-  const visibleItems = items.slice(0, max_visible_items)
-  const remainingCount = items.length - max_visible_items
+export const ItemsCell = ({ cell, max_visible_items = 3 }) => {
+  const raw = typeof cell?.getValue === 'function' ? cell.getValue() : cell?.value
+  const items = Array.isArray(raw) ? raw.filter(Boolean) : [] // Ensure array to avoid runtime errors
+  const limit = typeof max_visible_items === 'number' && max_visible_items > 0 ? max_visible_items : 3
   if (items.length === 0) {
     return <span className="text-gray-500">-</span>
   }
+  const visibleItems = items.slice(0, limit)
+  const remainingCount = Math.max(0, items.length - limit)
   // Function to join category names with commas
   const joinWithCommas = items => {
     return items.map((item, index) => (
@@ -27,7 +29,7 @@ export const ItemsCell = ({ cell, max_visible_items }) => {
           </span>
         </div>
       </TooltipTrigger>
-      {items.length > max_visible_items && (
+      {items.length > limit && (
         <TooltipContent className="p-2 border border-gray-200 rounded shadow-lg">
           <span>{joinWithCommas(items)}</span>
         </TooltipContent>

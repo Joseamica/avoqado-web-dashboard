@@ -1,9 +1,8 @@
 import React from 'react'
 
-import { cn } from '@/lib/utils'
-import { TimerReset } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
 import { themeClasses } from '@/lib/theme-utils'
+import { cn } from '@/lib/utils'
+import { NavLink, Outlet } from 'react-router-dom'
 
 export default function MenuMakerLayout() {
   return (
@@ -25,7 +24,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Resumen <TimerReset className="w-3 h-3" />
+        Resumen
       </NavLink>
       <NavLink
         to="menus"
@@ -35,7 +34,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Menús <TimerReset className="w-3 h-3" />
+        Menús
       </NavLink>
       <NavLink
         to="categories"
@@ -58,14 +57,14 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
         Productos
       </NavLink>
       <NavLink
-        to="modifiers"
+        to="modifier-groups"
         className={({ isActive }) =>
           `text-sm font-medium transition-colors ${
             isActive ? themeClasses.text : `${themeClasses.textMuted} hover:text-primary dark:hover:text-primary-foreground`
           }`
         }
       >
-        Modificadores <TimerReset className="w-3 h-3" />
+        Grupos Modificadores
       </NavLink>
       <NavLink
         to="/examples/dashboard"
@@ -75,7 +74,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Customers <TimerReset className="w-3 h-3" />
+        Customers
       </NavLink>
     </nav>
   )
