@@ -11,7 +11,7 @@ export const CreateCategory = React.lazy(() => import('@/pages/Menu/Categories/c
 export const MenuMakerLayout = React.lazy(() => import('@/pages/Menu/MenuMakerLayout'))
 export const CreateMenu = React.lazy(() => import('@/pages/Menu/Menus/createMenu'))
 export const Menus = React.lazy(() => import('@/pages/Menu/Menus/Menus'))
-export const Modifiers = React.lazy(() => import('@/pages/Menu/Modifiers/Modifiers'))
+export const ModifierGroups = React.lazy(() => import('@/pages/Menu/Modifiers/ModifierGroups'))
 export const ModifierGroupId = React.lazy(() => import('@/pages/Menu/Modifiers/ModifierGroupId'))
 export const CreateModifierGroup = React.lazy(() => import('@/pages/Menu/Modifiers/createModifierGroup'))
 export const Overview = React.lazy(() => import('@/pages/Menu/Overview'))

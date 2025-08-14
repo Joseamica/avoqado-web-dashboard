@@ -1,16 +1,25 @@
-import { getProduct, updateProduct, getMenuCategories, getModifierGroups } from '@/services/menu.service'
+import {
+  getProduct,
+  updateProduct,
+  getMenuCategories,
+  getModifierGroups,
+  deleteProduct as deleteProductService,
+} from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
+import { LoadingButton } from '@/components/loading-button'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useImageUploader } from '@/hooks/use-image-uploader'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ImageIcon } from 'lucide-react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import api from '@/api'
@@ -30,42 +39,59 @@ import api from '@/api'
 // })
 
 export default function ProductId() {
-  const { venueId, productId } = useParams()
+  const { productId } = useParams()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
+  
+  // State to handle broken images
+  const [imageError, setImageError] = useState(false)
 
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: ['product', venueId, productId],
     queryFn: () => getProduct(venueId!, productId!),
+    enabled: !!venueId && !!productId,
   })
 
   // Traemos las categorías disponibles para el selector
   const { data: categories } = useQuery({
-    queryKey: ['categories', venueId],
+    queryKey: ['menu-categories', venueId],
     queryFn: () => getMenuCategories(venueId!),
+    enabled: !!venueId,
   })
 
   // Traemos los grupos de modificadores disponibles para el selector
   const { data: modifierGroups } = useQuery({
-    queryKey: ['modifierGroups', venueId],
+    queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
+    enabled: !!venueId,
   })
 
   const from = (location.state as any)?.from || '/'
 
   const saveProduct = useMutation({
-    mutationFn: async formValues => {
-      return await updateProduct(venueId!, productId!, formValues)
+    mutationFn: async (formValues: any) => {
+      const payload = {
+        name: formValues.name,
+        description: formValues.description || undefined,
+        price: Number(formValues.price),
+        type: formValues.type,
+        imageUrl: imageUrl || formValues.imageUrl || data?.imageUrl || undefined,
+        sku: formValues.sku,
+        categoryId: formValues.categoryId,
+        modifierGroupIds: Array.isArray(formValues.modifierGroups) ? formValues.modifierGroups.map((o: any) => o?.value ?? o) : [],
+      }
+      return await updateProduct(venueId!, productId!, payload)
     },
     onSuccess: () => {
       toast({
         title: 'Producto guardado',
         description: 'Los cambios se han guardado correctamente.',
       })
-      queryClient.invalidateQueries({ queryKey: ['product', productId] }) // Refetch product data
+      queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] }) // Refetch product data
     },
     onError: (error: any) => {
       toast({
@@ -78,19 +104,19 @@ export default function ProductId() {
 
   const deleteImage = useMutation({
     mutationFn: async () => {
-      await api.patch(`/v2/dashboard/${venueId}/products/${productId}/image`)
+      await api.patch(`/api/v1/dashboard/venues/${venueId}/products/${productId}/image`)
     },
     onSuccess: () => {
       toast({
         title: 'Imagen eliminada',
         description: 'La imagen se ha eliminado correctamente.',
       })
-      queryClient.invalidateQueries({ queryKey: ['product', productId] })
+      queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
     },
   })
   const deleteProduct = useMutation({
     mutationFn: async () => {
-      await api.delete(`/v2/dashboard/${venueId}/products/${productId}`)
+      await deleteProductService(venueId!, productId!)
     },
     onSuccess: () => {
       toast({
@@ -102,21 +128,17 @@ export default function ProductId() {
   })
 
   // Configuración del formulario
-  // const form = useForm<z.infer<typeof FormSchema>>({
-  // resolver: zodResolver(FormSchema),
   const form = useForm({
-    // defaultValues: {
-    //   name: '',
-    //   description: '',
-    //   imageUrl: '',
-    //   categories: [],
-    // },
-    // values: {
-    //   name: data?.avoqadoProduct.name || '',
-    //   description: data?.avoqadoProduct.description || '',
-    //   imageUrl: data?.avoqadoProduct.imageUrl || '',
-    //   categories: [],
-    // },
+    defaultValues: {
+      sku: '',
+      name: '',
+      description: '',
+      price: '',
+      type: 'FOOD',
+      imageUrl: '',
+      categoryId: '',
+      modifierGroups: [],
+    },
   })
 
   const {
@@ -134,9 +156,43 @@ export default function ProductId() {
     setZoom,
   } = useImageUploader(
     `venues/${venueId}/productos`,
-    `${data?.name}`,
+    form.watch('name') || '',
     { minWidth: 320, minHeight: 320 }, // Aquí pasas tu configuración
   )
+
+  // Reset image error when product data changes
+  useEffect(() => {
+    setImageError(false)
+  }, [data?.imageUrl])
+
+  // Sincronizar datos del producto con el formulario cuando carguen
+  useEffect(() => {
+    // Only proceed if we have both product data AND categories loaded
+    if (!data || !categories) return
+    
+    const mappedModifierGroups = Array.isArray(data.modifierGroups)
+      ? data.modifierGroups
+          .map((mg: any) => ({
+            label: mg?.name || mg?.group?.name || '',
+            value: mg?.id || mg?.groupId || mg?.group?.id,
+            disabled: false,
+          }))
+          .filter((opt: any) => !!opt.value)
+      : []
+
+    const categoryId = data.categoryId ?? data.category?.id ?? ''
+
+    form.reset({
+      sku: data.sku || '',
+      name: data.name || '',
+      description: data.description || '',
+      price: (data.price ?? '').toString(),
+      type: data.type || 'FOOD',
+      imageUrl: data.imageUrl || '',
+      categoryId: categoryId,
+      modifierGroups: mappedModifierGroups,
+    })
+  }, [data, categories, form])
 
   // Esta función podría ser para borrar la imagen en el servidor.
   // Por simplicidad, aquí solo se hace el "remove" localmente.
@@ -155,16 +211,12 @@ export default function ProductId() {
 
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
-  function onSubmit(formValues) {
-    saveProduct.mutate({
-      ...formValues,
-      // categories: selectedCategories.map(category => category.value),
-      imageUrl: imageUrl || data.imageUrl,
-    })
+  function onSubmit(formValues: any) {
+    saveProduct.mutate(formValues)
   }
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD
-  if (isLoading) {
+  if (!venueId || !productId || isLoading) {
     return <div>Cargando...</div>
   }
 
@@ -181,7 +233,7 @@ export default function ProductId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>{data.name}</span>
+          <span>{form.watch('name') || data.name}</span>
         </div>
         <div className="space-x-3 flex-row-center ">
           <AlertDialogWrapper
@@ -194,14 +246,47 @@ export default function ProductId() {
             onRightButtonClick={() => deleteProduct.mutate()}
           />
           <Button variant="outline">Duplicar</Button>
-          <Button disabled={!form.formState.isDirty || saveProduct.isPending} onClick={form.handleSubmit(onSubmit)}>
+          <LoadingButton
+            loading={saveProduct.isPending}
+            onClick={form.handleSubmit(onSubmit)}
+            variant="default"
+            disabled={!form.formState.isDirty || saveProduct.isPending}
+          >
             {saveProduct.isPending ? 'Guardando...' : 'Guardar'}
-          </Button>
+          </LoadingButton>
         </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
+          <FormField
+            control={form.control}
+            name="sku"
+            rules={{
+              required: { value: true, message: 'El SKU es requerido.' },
+              pattern: {
+                value: /^[A-Za-z0-9_-]+$/,
+                message: 'El SKU solo puede contener letras, números, guiones y guiones bajos.',
+              },
+            }}
+            render={({ field }) => {
+              return (
+                <FormItem>
+                  <FormLabel>SKU</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="SKU (p.ej., TACO-001 or Prod-abc123)"
+                      className="max-w-96"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
+          />
+
+          {/* Nombre */}
           <FormField
             control={form.control}
             name="name"
@@ -210,20 +295,16 @@ export default function ProductId() {
               minLength: { value: 3, message: 'El nombre debe tener al menos 3 caracteres.' },
               maxLength: { value: 30, message: 'El nombre no debe tener más de 30 caracteres.' },
             }}
-            defaultValue={data.name}
-            render={({ field }) => {
-              return (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )
-            }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nombre</FormLabel>
+                <FormControl>
+                  <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-
           {/* Campo Descripción */}
           <FormField
             control={form.control}
@@ -232,19 +313,13 @@ export default function ProductId() {
               <FormItem>
                 <FormLabel>Descripción (opcional)</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Introduce una descripción"
-                    className="max-w-96"
-                    {...field}
-                    // value={field.value || data.description || ''}
-                    defaultValue={data.description || ''}
-                    onChange={e => field.onChange(e.target.value)}
-                  />
+                  <Textarea placeholder="Introduce una descripción" className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="price"
@@ -259,13 +334,12 @@ export default function ProductId() {
                 //   parseFloat(value) <= 10000 || 'El precio no debe exceder $10,000.'
               },
             }}
-            defaultValue={data.price}
             render={({ field }) => {
               return (
                 <FormItem>
                   <FormLabel>Precio</FormLabel>
                   <FormControl>
-                    <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
+                    <Input placeholder="Introduce un precio" className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -278,12 +352,11 @@ export default function ProductId() {
             rules={{
               required: 'El tipo es requerido.',
             }}
-            defaultValue={data.type}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
                   <FormLabel>Tipo</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona el tipo de producto" />
@@ -292,11 +365,11 @@ export default function ProductId() {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>Selecciona un tipo</SelectLabel>
-                        <SelectItem value="BEVERAGE">Bebida</SelectItem>
-                        <SelectItem value="MERCH">Mercancia</SelectItem>
                         <SelectItem value="FOOD">Comida</SelectItem>
-                        <SelectItem value="MEMBERSHIP">Membresía</SelectItem>
-                        <SelectItem value="SESSION">Sesión</SelectItem>
+                        <SelectItem value="BEVERAGE">Bebida</SelectItem>
+                        <SelectItem value="ALCOHOL">Alcohol</SelectItem>
+                        <SelectItem value="RETAIL">Retail</SelectItem>
+                        <SelectItem value="SERVICE">Servicio</SelectItem>
                         <SelectItem value="OTHER">Otro</SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -311,7 +384,6 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="imageUrl"
-            defaultValue={data.imageUrl}
             render={() => (
               <FormItem>
                 <FormLabel>Foto</FormLabel>
@@ -348,12 +420,17 @@ export default function ProductId() {
                           </Button>
                         </div>
                       </div>
-                    ) : displayedImageUrl ? (
+                    ) : displayedImageUrl && !imageError ? (
                       // 2) Si ya hay una imagen (de la BD o subida) y NO estamos recortando:
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: Imagen */}
                         <div className="w-1/3">
-                          <img src={displayedImageUrl} alt="Product" className="object-cover w-full h-auto rounded-md" />
+                          <img 
+                            src={displayedImageUrl} 
+                            alt="Product" 
+                            className="object-cover w-full h-auto rounded-md" 
+                            onError={() => setImageError(true)}
+                          />
                         </div>
 
                         {/* Sección Derecha: Texto y Botones */}
@@ -385,6 +462,60 @@ export default function ProductId() {
                                   const file = e.target.files?.[0]
                                   if (file) {
                                     handleFileUpload(file)
+                                    setImageError(false) // Reset error state when uploading new image
+                                  }
+                                }
+                                fileInput.click()
+                              }}
+                            >
+                              Sustituir
+                            </Button>
+                            <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
+                              Eliminar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : displayedImageUrl && imageError ? (
+                      // 2b) Si hay una imagen pero falló al cargar, mostrar placeholder elegante
+                      <div className="relative flex space-x-4">
+                        {/* Sección Izquierda: Placeholder para imagen rota */}
+                        <div className="w-64 h-64 flex flex-col items-center justify-center bg-gray-100 border-2 border-gray-200 rounded-md">
+                          <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500 text-center">Imagen no disponible</p>
+                          <p className="text-xs text-gray-400 text-center mt-1">La imagen no pudo cargarse</p>
+                        </div>
+
+                        {/* Sección Derecha: Texto y Botones */}
+                        <div className="flex-1 space-y-2">
+                          <p className="text-base">Los clientes pueden ver esta foto en la app de Avoqado.</p>
+                          <p className="text-sm text-green-600">
+                            <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
+                              Consulta las directrices completas sobre fotografía
+                            </a>
+                            .
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Número mínimo de píxeles obligatorio: 320 de ancho y
+                            alto.
+                          </p>
+
+                          <div className="absolute bottom-0 flex mt-2 space-x-2">
+                            <Button
+                              variant="outline"
+                              type="button"
+                              disabled={uploading}
+                              onClick={() => {
+                                // Simulamos un click en un input "file" invisible
+                                // o podrías usar un <Input type="file" hidden /> con ref
+                                const fileInput = document.createElement('input')
+                                fileInput.type = 'file'
+                                fileInput.accept = 'image/*'
+                                fileInput.onchange = (e: any) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) {
+                                    handleFileUpload(file)
+                                    setImageError(false) // Reset error state when uploading new image
                                   }
                                 }
                                 fileInput.click()
@@ -410,7 +541,13 @@ export default function ProductId() {
                           <Input
                             type="file"
                             accept="image/*"
-                            onChange={e => handleFileUpload(e.target.files?.[0])}
+                            onChange={e => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                handleFileUpload(file)
+                                setImageError(false) // Reset error state when uploading new image
+                              }
+                            }}
                             className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer "
                             disabled={uploading}
                           />
@@ -444,6 +581,7 @@ export default function ProductId() {
                                   const file = e.target.files?.[0]
                                   if (file) {
                                     handleFileUpload(file)
+                                    setImageError(false) // Reset error state when uploading new image
                                   }
                                 }
                                 fileInput.click()
@@ -463,35 +601,35 @@ export default function ProductId() {
           />
           <FormField
             control={form.control}
-            name="categories"
-            defaultValue={
-              data.category
-                ? [
-                    {
-                      label: data.category.name,
-                      value: data.category.id,
-                      disabled: false,
-                    },
-                  ]
-                : []
-            }
+            name="categoryId"
             rules={{
-              required: { value: true, message: 'Selecciona al menos una categoría.' },
+              required: { value: true, message: 'Selecciona una categoría.' },
             }}
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Categorías</FormLabel>
+              <FormItem className="max-w-96">
+                <FormLabel>Categoría</FormLabel>
                 <FormControl>
-                  <MultipleSelector
-                    {...field}
-                    options={categories?.map(category => ({
-                      label: category.name,
-                      value: category.id,
-                      disabled: false,
-                    })) || []}
-                    hidePlaceholderWhenSelected
-                    placeholder="Selecciona las categorías"
-                  />
+                  <Select
+                    onValueChange={value => {
+                      field.onChange(value)
+                      form.clearErrors('categoryId')
+                    }}
+                    value={field.value || ''}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona la categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Selecciona una categoría</SelectLabel>
+                        {(categories || []).map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -500,28 +638,15 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="modifierGroups"
-            defaultValue={
-              data.modifierGroups
-                ? data.modifierGroups.map(modifierGroup => ({
-                    label: modifierGroup.group?.name || '',
-                    value: modifierGroup.id,
-                    disabled: false,
-                  }))
-                : []
-            }
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Grupos Modificadores</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
-                    options={modifierGroups?.map(modifierGroup => ({
-                      label: modifierGroup.name,
-                      value: modifierGroup.id,
-                      disabled: false,
-                    })) || []}
+                    options={modifierGroups?.map(mg => ({ label: mg.name, value: mg.id, disabled: false })) || []}
                     hidePlaceholderWhenSelected
-                    placeholder="Selecciona las categorías"
+                    placeholder="Selecciona los grupos"
                   />
                 </FormControl>
                 <FormMessage />

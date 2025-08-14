@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { useAuth } from './AuthContext'
 
 interface SocketContextType {
   socket: Socket | null
@@ -24,11 +25,23 @@ interface SocketProviderProps {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const { isAuthenticated, isLoading } = useAuth()
 
   // Determine the appropriate backend URL
   const socketUrl = import.meta.env.VITE_API_URL || 'https://api.avoqado.io'
 
   useEffect(() => {
+    // Only connect if authenticated and not loading
+    if (!isAuthenticated || isLoading) {
+      // If not authenticated, make sure socket is disconnected
+      if (socket) {
+        socket.disconnect()
+        setSocket(null)
+        setIsConnected(false)
+      }
+      return
+    }
+
     // Initialize socket connection
     const socketInstance = io(socketUrl, {
       transports: ['websocket'],
@@ -58,7 +71,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     return () => {
       socketInstance.disconnect()
     }
-  }, [socketUrl])
+  }, [socketUrl, isAuthenticated, isLoading])
 
   // Join a venue-specific room
   const joinVenueRoom = (venueId: string) => {

@@ -4,11 +4,16 @@ import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Calendar as CalendarIcon, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -21,8 +26,6 @@ type DayItem = {
   selected: boolean
 }
 
-type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
-
 const initialDays: DayItem[] = [
   { label: 'Lun', selected: false },
   { label: 'Mar', selected: false },
@@ -33,24 +36,24 @@ const initialDays: DayItem[] = [
   { label: 'Dom', selected: false },
 ]
 
-function dayLabelToEnum(label: string): DayOfWeek {
+function dayLabelToEnum(label: string): string {
   switch (label) {
     case 'Lun':
-      return 'MONDAY'
+      return 'MON'
     case 'Mar':
-      return 'TUESDAY'
+      return 'TUE'
     case 'Mié':
-      return 'WEDNESDAY'
+      return 'WED'
     case 'Jue':
-      return 'THURSDAY'
+      return 'THU'
     case 'Vie':
-      return 'FRIDAY'
+      return 'FRI'
     case 'Sáb':
-      return 'SATURDAY'
+      return 'SAT'
     case 'Dom':
-      return 'SUNDAY'
+      return 'SUN'
     default:
-      return 'MONDAY'
+      return 'MON'
   }
 }
 
@@ -119,6 +122,9 @@ export default function MenuId() {
       endTime: '19:30',
       isActive: true,
       isAllDay: false,
+      startDate: null as Date | null,
+      endDate: null as Date | null,
+      type: 'REGULAR' as 'REGULAR' | 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SEASONAL',
     },
     mode: 'onSubmit',
   })
@@ -153,6 +159,9 @@ export default function MenuId() {
         endTime: defaultEndTime,
         isActive: menuData.active,
         isAllDay: isAllDayValue,
+        startDate: menuData.startDate ? new Date(menuData.startDate) : null,
+        endDate: menuData.endDate ? new Date(menuData.endDate) : null,
+        type: menuData.type || 'REGULAR',
       })
     }
   }, [menuData, form])
@@ -178,6 +187,28 @@ export default function MenuId() {
     },
   })
 
+  // Mutation para toggle inmediato del estado activo
+  const toggleActiveMutation = useMutation({
+    mutationFn: async (active: boolean) => {
+      return await updateMenu(venueId, menuId, { active })
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: `Menú ${data.active ? 'activado' : 'desactivado'}.`,
+        description: `El menú ahora está ${data.active ? 'visible para los clientes' : 'oculto de los clientes'}.`,
+      })
+    },
+    onError: (error: any) => {
+      // Revert the form state on error
+      form.setValue('isActive', !form.getValues('isActive'))
+      toast({
+        title: 'Error al cambiar estado',
+        description: error.message || 'Hubo un problema al cambiar el estado del menú.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Si aún se están cargando datos, mostramos el loading.
   if (isMenuLoading || isCategoriesLoading) {
     return <div>Cargando...</div>
@@ -189,6 +220,9 @@ export default function MenuId() {
   const endTime = form.watch('endTime')
   const isAllDay = form.watch('isAllDay')
   const isActive = form.watch('isActive')
+  const startDate = form.watch('startDate')
+  const endDate = form.watch('endDate')
+  const menuType = form.watch('type')
 
   // Funciones para manejar cambios en el formulario
   function toggleDay(dayLabel: string) {
@@ -201,6 +235,7 @@ export default function MenuId() {
 
   function handleToggle(checked: boolean) {
     form.setValue('isActive', checked)
+    toggleActiveMutation.mutate(checked)
   }
 
   function handleAllDayChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -212,7 +247,7 @@ export default function MenuId() {
 
   function onSubmit(formValues: any) {
     form.clearErrors()
-    const { name, avoqadoMenus, avoqadoProducts, categories, days, startTime, endTime, isAllDay, isActive } = formValues
+    const { name, categories, days, startTime, endTime, isAllDay, isActive, startDate, endDate, type } = formValues
 
     if (!name.trim()) {
       form.setError('name', { type: 'manual', message: 'El nombre es obligatorio' })
@@ -222,6 +257,19 @@ export default function MenuId() {
         type: 'manual',
         message: 'Al menos un día tiene que ser seleccionado',
       })
+    }
+    
+    // Validación para menús de temporada
+    if (type === 'SEASONAL') {
+      if (!startDate) {
+        form.setError('startDate', { type: 'manual', message: 'La fecha de inicio es obligatoria para menús de temporada' })
+      }
+      if (!endDate) {
+        form.setError('endDate', { type: 'manual', message: 'La fecha de fin es obligatoria para menús de temporada' })
+      }
+      if (startDate && endDate && startDate >= endDate) {
+        form.setError('endDate', { type: 'manual', message: 'La fecha de fin debe ser posterior a la fecha de inicio' })
+      }
     }
     if (!isAllDay) {
       const startMinutes = parseTimeToMinutes(startTime)
@@ -237,28 +285,28 @@ export default function MenuId() {
     const daysErrors = form.getFieldState('days').error
     const startTimeErrors = form.getFieldState('startTime').error
     const endTimeErrors = form.getFieldState('endTime').error
-    if (nameErrors || daysErrors || startTimeErrors || endTimeErrors) {
+    const startDateErrors = form.getFieldState('startDate').error
+    const endDateErrors = form.getFieldState('endDate').error
+    if (nameErrors || daysErrors || startTimeErrors || endTimeErrors || startDateErrors || endDateErrors) {
       return
     }
 
     const selectedDays = days.filter((day: DayItem) => day.selected)
-    const menuDaysPayload = selectedDays.map((day: DayItem) => ({
-      day: dayLabelToEnum(day.label),
-      isFixed: isAllDay,
-      startTime: isAllDay ? null : startTime,
-      endTime: isAllDay ? null : endTime,
-    }))
+    const availableDaysPayload = selectedDays.map((day: DayItem) => dayLabelToEnum(day.label))
 
     // Extract just the category IDs from the MultipleSelector value format
     const categoryIds = categories.map((category: any) => category.value)
 
     const payload = {
       name,
-      avoqadoMenus,
-      avoqadoProducts,
-      categories: categoryIds, // Send only the IDs to the API
-      menuDays: menuDaysPayload,
+      type,
       active: isActive,
+      availableFrom: isAllDay ? null : startTime,
+      availableUntil: isAllDay ? null : endTime,
+      availableDays: availableDaysPayload,
+      startDate: startDate ? startDate.toISOString() : null,
+      endDate: endDate ? endDate.toISOString() : null,
+      categoryIds: categoryIds, // Backend expects categoryIds, not categories
     }
 
     updateMenuMutation.mutate(payload)
@@ -296,9 +344,11 @@ export default function MenuId() {
           <div className="max-w-2xl p-4 space-y-4 border rounded-md">
             <div className="flex items-center justify-between mb-4">
               <span className="mr-2 font-bold">El menú está activo</span>
-              <Switch checked={isActive} onCheckedChange={handleToggle} />
+              <Switch checked={isActive} onCheckedChange={handleToggle} disabled={toggleActiveMutation.isPending} />
             </div>
-            <p className="mb-3 text-sm">Los clientes pueden ver este menú y hacer pedidos</p>
+            <p className="mb-3 text-sm">
+              {isActive ? 'Los clientes pueden ver este menú y hacer pedidos' : 'Los clientes no pueden ver este menú ni hacer pedidos'}
+            </p>
 
             <FormField
               control={form.control}
@@ -316,6 +366,133 @@ export default function MenuId() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Menú</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="REGULAR">Regular</SelectItem>
+                      <SelectItem value="BREAKFAST">Desayuno</SelectItem>
+                      <SelectItem value="LUNCH">Comida</SelectItem>
+                      <SelectItem value="DINNER">Cena</SelectItem>
+                      <SelectItem value="SEASONAL">Temporada/Promoción</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {menuType === 'SEASONAL' && (
+              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                <h3 className="font-medium mb-3 text-blue-900">Configuración de Temporada</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de Inicio</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: es })
+                                ) : (
+                                  <span>Seleccionar fecha</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => {
+                                const today = new Date()
+                                today.setHours(0, 0, 0, 0)
+                                return date < today
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Fecha de Fin</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: es })
+                                ) : (
+                                  <span>Seleccionar fecha</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => {
+                                const today = new Date()
+                                today.setHours(0, 0, 0, 0)
+                                const startDate = form.getValues('startDate')
+                                return date < today || (startDate && date <= startDate)
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {startDate && endDate && (
+                  <div className="mt-3 p-2 bg-blue-100 rounded text-sm text-blue-800">
+                    <strong>Vista previa:</strong> Este menú estará activo desde el {format(startDate, 'PPP', { locale: es })} hasta el {format(endDate, 'PPP', { locale: es })}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <FormLabel>Días disponibles</FormLabel>

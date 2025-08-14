@@ -1,5 +1,4 @@
-import api from '@/api'
-import { getModifierGroup } from '@/services/menu.service'
+import { getModifierGroup, getModifierGroups, getProducts, updateModifierGroup, deleteModifierGroup } from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { Button } from '@/components/ui/button'
@@ -15,10 +14,12 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CreateModifier from './createModifier'
-import EditModifier from './EditModifier'
+import EditModifier from './editModifier'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function ModifierGroupId() {
-  const { venueId, modifierGroupId } = useParams()
+  const { modifierGroupId } = useParams()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
@@ -27,40 +28,46 @@ export default function ModifierGroupId() {
   const [editingModifierId, setEditingModifierId] = useState<string | null>(null)
   const [isCreateModifierSheetOpen, setIsCreateModifierSheetOpen] = useState(false)
 
-  const from = (location.state as any)?.from || `/venues/${venueId}/menumaker/modifiers`
+  const from = (location.state as any)?.from || `/venues/${venueId}/menumaker/modifier-groups`
 
   // Fetch modifier group data
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['modifier-group', modifierGroupId, venueId],
-    queryFn: () => getModifierGroup(venueId!, modifierGroupId!),
+    queryFn: async () => {
+      console.log('Fetching modifier group:', { venueId, modifierGroupId })
+      try {
+        const result = await getModifierGroup(venueId!, modifierGroupId!)
+        console.log('Modifier group result:', result)
+        return result
+      } catch (err) {
+        console.error('Error fetching modifier group:', err)
+        throw err
+      }
+    },
     enabled: !!modifierGroupId && !!venueId,
   })
 
-  // Query to fetch all modifiers to use in the selector
-  const { data: allModifiers } = useQuery({
-    queryKey: ['modifiers', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifiers`)
-      return response.data
-    },
+  // Query to fetch all modifier groups to get all modifiers
+  const { data: allModifierGroups } = useQuery({
+    queryKey: ['modifier-groups', venueId],
+    queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
   })
+
+  // Extract all modifiers from modifier groups
+  const allModifiers = allModifierGroups?.flatMap(group => group.modifiers || []) || []
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
     queryKey: ['products', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/products`)
-      return response.data
-    },
+    queryFn: () => getProducts(venueId!),
     enabled: !!venueId,
   })
 
   // Mutation to update the modifier group details
   const updateModifierGroupDetails = useMutation({
     mutationFn: async (details: { name: string; description?: string }) => {
-      const response = await api.patch(`/v2/dashboard/${venueId}/modifier-group/${modifierGroupId}`, details)
-      return response.data
+      return await updateModifierGroup(venueId!, modifierGroupId!, details)
     },
     onSuccess: () => {
       toast({
@@ -83,8 +90,7 @@ export default function ModifierGroupId() {
   // Mutation to update modifiers and products for the group
   const saveModifierGroup = useMutation({
     mutationFn: async (formValues: FormValues) => {
-      const response = await api.patch(`/v2/dashboard/${venueId}/modifier-group/${modifierGroupId}`, formValues)
-      return response.data
+      return await updateModifierGroup(venueId!, modifierGroupId!, formValues)
     },
     onSuccess: () => {
       toast({
@@ -106,9 +112,9 @@ export default function ModifierGroupId() {
   })
 
   // Mutation to delete the modifier group
-  const deleteModifierGroup = useMutation({
+  const deleteModifierGroupMutation = useMutation({
     mutationFn: async () => {
-      return await api.delete(`/v2/dashboard/${venueId}/modifier-group/${modifierGroupId}`)
+      return await deleteModifierGroup(venueId!, modifierGroupId!)
     },
     onSuccess: () => {
       toast({
@@ -143,19 +149,21 @@ export default function ModifierGroupId() {
       form.reset({
         groupName: data.name,
         description: data.description,
-        modifiers: data.modifiers.map(modifier => ({
+        modifiers: (data.modifiers || []).map(modifier => ({
           label: modifier.name,
           value: modifier.id,
           disabled: false,
         })),
-        avoqadoProduct: data.avoqadoProducts.map(product => ({
-          label: product.name,
-          value: product.id,
-          disabled: false,
-        })),
+        avoqadoProduct: (allProducts || [])
+          .filter(product => product.modifierGroups?.some(mg => mg.groupId === data.id))
+          .map(product => ({
+            label: product.name,
+            value: product.id,
+            disabled: false,
+          })),
       })
     }
-  }, [data, form])
+  }, [data, form, allProducts])
 
   // Close the create modifier sheet when we're done
   const handleCloseCreateModifierSheet = () => {
@@ -204,7 +212,20 @@ export default function ModifierGroupId() {
   }
 
   if (isError || !data) {
-    return <div className="p-4">Grupo modificador no encontrado</div>
+    return (
+      <div className="p-4">
+        <div className="text-red-500 mb-2">Error loading modifier group</div>
+        <div className="text-sm text-gray-600 mb-2">{isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}</div>
+        {error && (
+          <div className="text-xs text-red-400 bg-red-50 p-2 rounded mb-4">{error instanceof Error ? error.message : 'Unknown error'}</div>
+        )}
+        <div className="mt-4">
+          <Link to={from} className="text-blue-500 hover:underline">
+            ← Back to Modifier Groups
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -224,7 +245,7 @@ export default function ModifierGroupId() {
             message="¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer."
             rightButtonLabel="Eliminar"
             rightButtonVariant="destructive"
-            onRightButtonClick={() => deleteModifierGroup.mutate()}
+            onRightButtonClick={() => deleteModifierGroupMutation.mutate()}
           />
           <Button
             disabled={!form.formState.isDirty || updateModifierGroupDetails.isPending || saveModifierGroup.isPending}
@@ -254,7 +275,7 @@ export default function ModifierGroupId() {
           </div>
         </SheetContent>
       </Sheet>
-      
+
       {editingModifierId ? (
         <EditModifier
           venueId={venueId}
@@ -268,7 +289,6 @@ export default function ModifierGroupId() {
           initialValues={{
             name: data.modifiers.find(m => m.id === editingModifierId)?.name || '',
             price: data.modifiers.find(m => m.id === editingModifierId)?.price || 0,
-            available: data.modifiers.find(m => m.id === editingModifierId)?.available ?? true,
             active: data.modifiers.find(m => m.id === editingModifierId)?.active ?? true,
           }}
         />
@@ -369,7 +389,7 @@ export default function ModifierGroupId() {
                           setIsCreateModifierSheetOpen(true)
                         } else {
                           // Handle view existing modifier click
-                          navigate(`/venues/${venueId}/menumaker/modifiers/${option.value}`)
+                          navigate(`/venues/${venueId}/menumaker/modifier-groups/${option.value}`)
                         }
                       }}
                       placeholder="Seleccionar modificadores..."

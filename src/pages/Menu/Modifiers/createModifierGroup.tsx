@@ -86,7 +86,7 @@ export default function CreateModifierGroup() {
         title: 'Grupo modificador creado',
         description: 'El grupo modificador se ha creado correctamente.',
       })
-      navigate(`/venues/${venueId}/menumaker/modifiers`)
+      navigate(`/venues/${venueId}/menumaker/modifier-groups`)
     },
     onError: error => {
       toast({
@@ -149,7 +149,7 @@ export default function CreateModifierGroup() {
     <div className="p-4 space-y-4">
       <div className="flex flex-row items-center space-x-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={`/venues/${venueId}/menumaker/modifiers`}>
+          <Link to={`/venues/${venueId}/menumaker/modifier-groups`}>
             <ChevronLeft className="w-4 h-4" />
             <span>Volver</span>
           </Link>
@@ -368,7 +368,7 @@ export default function CreateModifierGroup() {
           </Card>
 
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/modifiers`)}>
+            <Button type="button" variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/modifier-groups`)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>

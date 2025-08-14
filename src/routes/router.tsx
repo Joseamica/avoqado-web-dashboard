@@ -15,7 +15,7 @@ import {
   MenuMakerLayout,
   CreateMenu,
   Menus,
-  Modifiers,
+  ModifierGroups,
   CreateModifierGroup,
   Overview,
   CreateProduct,
@@ -212,13 +212,13 @@ const router = createBrowserRouter([
                     path: 'products/create',
                     element: <CreateProduct />,
                   },
-                  { path: 'modifiers', element: <Modifiers /> },
+                  { path: 'modifier-groups', element: <ModifierGroups /> },
                   {
-                    path: 'modifiers/:modifierGroupId',
+                    path: 'modifier-groups/:modifierGroupId',
                     element: <ModifierGroupId />,
                   },
                   {
-                    path: 'modifiers/create',
+                    path: 'modifier-groups/create',
                     element: <CreateModifierGroup />,
                   },
                 ],
@@ -266,6 +266,15 @@ const router = createBrowserRouter([
       },
     ],
   },
-])
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+    v7_fetcherPersist: true,
+    v7_normalizeFormMethod: true,
+    v7_partialHydration: true,
+    v7_skipActionErrorRevalidation: true,
+  } as any,
+})
 
 export default router

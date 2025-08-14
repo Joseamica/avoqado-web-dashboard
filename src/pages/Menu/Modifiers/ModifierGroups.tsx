@@ -45,7 +45,7 @@ import { useForm } from 'react-hook-form'
 import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
 
-export default function Modifiers() {
+export default function ModifierGroups() {
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const navigate = useNavigate()
