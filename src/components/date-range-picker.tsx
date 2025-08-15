@@ -115,6 +115,10 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 
   const [isSmallScreen, setIsSmallScreen] = useState(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
 
+  // Refs for focus management
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
+
   useEffect(() => {
     const handleResize = (): void => {
       setIsSmallScreen(window.innerWidth < 960)
@@ -301,6 +305,14 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
   }, [isOpen])
 
+  // Helper to focus the first focusable element within the popover
+  const focusFirstInPopover = (): void => {
+    const el = contentRef.current?.querySelector<HTMLElement>('input, button, [tabindex]:not([tabindex="-1"])')
+    if (el) {
+      el.focus({ preventScroll: true })
+    }
+  }
+
   return (
     <Popover
       modal={true}
@@ -313,7 +325,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       }}
     >
       <PopoverTrigger asChild>
-        <Button size={'lg'} variant="outline">
+        <Button ref={triggerRef} size={'lg'} variant="outline">
           <div className="text-right">
             <div className="py-1">
               <div>{`${formatDate(range.from, locale)}${range.to != null ? ' - ' + formatDate(range.to, locale) : ''}`}</div>
@@ -330,7 +342,25 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
           <div className="pl-1 opacity-60 -mr-2 scale-125">{isOpen ? <ChevronUpIcon width={24} /> : <ChevronDownIcon width={24} />}</div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align={align} className="w-auto">
+      <PopoverContent
+        ref={contentRef}
+        align={align}
+        className="w-auto"
+        onOpenAutoFocus={e => {
+          // Prevent Radix default focusing to avoid retaining focus on trigger during aria-hidden application
+          e.preventDefault()
+          // Defer to ensure content is fully mounted before focusing
+          setTimeout(() => {
+            focusFirstInPopover()
+          }, 0)
+        }}
+        onCloseAutoFocus={e => {
+          // Prevent default to control where focus returns
+          e.preventDefault()
+          // Restore focus back to the trigger button
+          triggerRef.current?.focus({ preventScroll: true })
+        }}
+      >
         <div className="flex py-2">
           <div className="flex">
             <div className="flex flex-col">

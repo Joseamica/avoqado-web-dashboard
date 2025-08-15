@@ -173,7 +173,7 @@ export default function TeamMemberDetails() {
         
         <div className="flex items-center space-x-2">
           {canEdit && (
-            <Button variant="outline" onClick={() => setShowEditDialog(true)}>
+            <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
               <Edit3 className="h-4 w-4 mr-2" />
               Editar
             </Button>
@@ -364,7 +364,15 @@ export default function TeamMemberDetails() {
       {/* Edit Dialog */}
       {showEditDialog && (
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent
+            className="max-w-md"
+            onCloseAutoFocus={(e) => {
+              // Restore focus to the Edit button for accessibility
+              e.preventDefault()
+              const el = document.getElementById('member-edit-button') as HTMLButtonElement | null
+              el?.focus()
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Editar Miembro del Equipo</DialogTitle>
               <DialogDescription>

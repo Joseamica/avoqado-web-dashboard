@@ -189,7 +189,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           value={selectedRole}
           disabled={teamMember.role === StaffRole.OWNER || teamMember.role === StaffRole.SUPERADMIN}
         >
-          <SelectTrigger>
+          <SelectTrigger data-autofocus>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

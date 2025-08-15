@@ -336,12 +336,20 @@ export default function Teams() {
         
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button id="invite-member-button">
               <UserPlus className="h-4 w-4 mr-2" />
               Invitar Miembro
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent
+            className="max-w-md"
+            onCloseAutoFocus={(e) => {
+              // Restore focus to the invite button for seamless keyboard flow
+              e.preventDefault()
+              const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
+              el?.focus()
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Invitar Nuevo Miembro</DialogTitle>
               <DialogDescription>
@@ -373,6 +381,7 @@ export default function Teams() {
         <TabsContent value="members" className="space-y-4">
           <div className="flex items-center space-x-2">
             <Input
+              id="team-search-input"
               placeholder="Buscar miembros..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -422,7 +431,15 @@ export default function Teams() {
       {/* Edit Team Member Dialog */}
       {editingMember && (
         <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent
+            className="max-w-md"
+            onCloseAutoFocus={(e) => {
+              // Restore focus to the team search input for quick keyboard navigation
+              e.preventDefault()
+              const el = document.getElementById('team-search-input') as HTMLInputElement | null
+              el?.focus()
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Editar Miembro</DialogTitle>
               <DialogDescription>
