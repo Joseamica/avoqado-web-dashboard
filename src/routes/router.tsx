@@ -8,6 +8,7 @@ import {
   Dashboard,
   ErrorPage,
   Login,
+  GoogleOAuthCallback,
   Home,
   Categories,
   CategoryId,
@@ -50,6 +51,10 @@ import {
   AcceptAdminInvitation,
   InviteAccept,
   ModifierGroupId,
+  SuperadminLayout,
+  SuperadminDashboard,
+  SuperadminFeatureManagement,
+  SuperadminVenueManagement,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -71,6 +76,10 @@ const router = createBrowserRouter([
       {
         path: '/login',
         element: <Login />,
+      },
+      {
+        path: '/auth/google/callback',
+        element: <GoogleOAuthCallback />,
       },
       {
         path: '/admin/accept-invitation',
@@ -158,6 +167,67 @@ const router = createBrowserRouter([
                   {
                     index: true,
                     element: <SuperAdminManagement />,
+                  },
+                ],
+              },
+            ],
+          },
+
+          // New Superadmin System Routes
+          {
+            path: '/superadmin',
+            element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+            children: [
+              {
+                element: <SuperadminLayout />,
+                children: [
+                  {
+                    index: true,
+                    element: <SuperadminDashboard />,
+                  },
+                  {
+                    path: 'venues',
+                    element: <SuperadminVenueManagement />,
+                  },
+                  {
+                    path: 'features',
+                    element: <SuperadminFeatureManagement />,
+                  },
+                  {
+                    path: 'analytics',
+                    element: <div>Analytics Dashboard (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'alerts',
+                    element: <div>Alerts Dashboard (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'revenue',
+                    element: <div>Revenue Dashboard (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'customers',
+                    element: <div>Customer Management (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'growth',
+                    element: <div>Growth Analytics (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'system',
+                    element: <div>System Health (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'reports',
+                    element: <div>Reports (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'support',
+                    element: <div>Support Dashboard (Coming Soon)</div>,
+                  },
+                  {
+                    path: 'settings',
+                    element: <div>Superadmin Settings (Coming Soon)</div>,
                   },
                 ],
               },

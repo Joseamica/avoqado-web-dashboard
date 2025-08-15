@@ -4,6 +4,7 @@ import React from 'react'
 export const Dashboard = React.lazy(() => import('@/dashboard'))
 export const ErrorPage = React.lazy(() => import('@/error-page'))
 export const Login = React.lazy(() => import('@/pages/Auth/Login'))
+export const GoogleOAuthCallback = React.lazy(() => import('@/pages/Auth/GoogleOAuthCallback'))
 export const Home = React.lazy(() => import('@/pages/Home'))
 export const Categories = React.lazy(() => import('@/pages/Menu/Categories/Categories'))
 export const CategoryId = React.lazy(() => import('@/pages/Menu/Categories/categoryId'))
@@ -53,3 +54,9 @@ export const SuperAdminManagement = React.lazy(() => import('@/pages/Admin/Super
 export const SuperAdminVenueEdit = React.lazy(() => import('@/pages/Admin/SuperAdminVenueEdit'))
 
 export const Venues = React.lazy(() => import('@/pages/Venue/Venues'))
+
+// New Superadmin System Components
+export const SuperadminLayout = React.lazy(() => import('@/pages/Superadmin/SuperadminLayout'))
+export const SuperadminDashboard = React.lazy(() => import('@/pages/Superadmin/SuperadminDashboard'))
+export const SuperadminFeatureManagement = React.lazy(() => import('@/pages/Superadmin/FeatureManagement'))
+export const SuperadminVenueManagement = React.lazy(() => import('@/pages/Superadmin/VenueManagement'))

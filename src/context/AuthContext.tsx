@@ -15,6 +15,7 @@ interface AuthContextType {
   activeVenue: Venue | null
   isLoading: boolean
   login: (data: LoginData) => void
+  loginWithGoogle: () => Promise<void>
   logout: () => void
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
   authorizeVenue: (venueSlug: string) => boolean
@@ -121,9 +122,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     onError: (error: any) => {
       toast({
-        title: 'Login failed',
+        title: 'Error de inicio de sesión',
         variant: 'destructive',
-        description: error.response?.data?.message || 'Credenciales inválidas.',
+        description: error.response?.data?.message || 'Credenciales inválidas. Verifica tu email y contraseña.',
       })
     },
   })
@@ -169,6 +170,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
     },
   })
+
+  // Google OAuth login
+  const loginWithGoogle = useCallback(async (): Promise<void> => {
+    try {
+      // Get Google auth URL
+      const { authUrl } = await authService.getGoogleAuthUrl()
+      
+      // Redirect to Google OAuth
+      window.location.href = authUrl
+    } catch (error: any) {
+      toast({
+        title: 'Error de autenticación',
+        variant: 'destructive',
+        description: error.response?.data?.message || 'Error al iniciar sesión con Google',
+      })
+      throw error
+    }
+  }, [toast])
 
   // --- FUNCIONES EXPUESTAS ---
 
@@ -237,6 +256,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     activeVenue,
     isLoading: isStatusLoading || loginMutation.isPending || logoutMutation.isPending || switchVenueMutation.isPending,
     login: loginMutation.mutate,
+    loginWithGoogle,
     logout: logoutMutation.mutate,
     switchVenue,
     checkVenueAccess,

@@ -9,8 +9,10 @@ import { themeClasses } from '@/lib/theme-utils'
 import DataTable from '@/components/data-table'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
 import { TeamMember, StaffRole } from '@/types'
 import teamService, { type Invitation } from '@/services/team.service'
+import { filterSuperadminFromTeam, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
 
 import {
   Dialog,
@@ -47,6 +49,7 @@ import EditTeamMemberForm from './components/EditTeamMemberForm'
 export default function Teams() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
+  const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -128,35 +131,9 @@ export default function Teams() {
     },
   })
 
-  const getRoleBadgeColor = (role: StaffRole) => {
-    const colors = {
-      SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200',
-      OWNER: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200',
-      ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200',
-      MANAGER: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200',
-      WAITER: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200',
-      CASHIER: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200',
-      KITCHEN: 'bg-pink-100 text-pink-800 dark:bg-pink-500/20 dark:text-pink-200',
-      HOST: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200',
-      VIEWER: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100',
-    }
-    return colors[role] || colors.VIEWER
-  }
-
-  const getRoleDisplayName = (role: StaffRole) => {
-    const names = {
-      SUPERADMIN: 'Super Admin',
-      OWNER: 'Propietario',
-      ADMIN: 'Administrador',
-      MANAGER: 'Gerente',
-      WAITER: 'Mesero',
-      CASHIER: 'Cajero',
-      KITCHEN: 'Cocina',
-      HOST: 'Anfitrión',
-      VIEWER: 'Visualizador',
-    }
-    return names[role] || role
-  }
+  // Filter team members to hide superadmins from non-superadmin users
+  const filteredTeamMembers = filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role)
+  const filteredInvitations = filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role)
 
   const teamColumns: ColumnDef<TeamMember>[] = [
     {
@@ -182,8 +159,8 @@ export default function Teams() {
       accessorKey: 'role',
       header: 'Rol',
       cell: ({ row }) => (
-        <Badge className={getRoleBadgeColor(row.original.role)}>
-          {getRoleDisplayName(row.original.role)}
+        <Badge className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+          {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
     },
@@ -265,8 +242,8 @@ export default function Teams() {
       accessorKey: 'role',
       header: 'Rol',
       cell: ({ row }) => (
-        <Badge className={getRoleBadgeColor(row.original.role)}>
-          {getRoleDisplayName(row.original.role)}
+        <Badge className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+          {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
     },
@@ -392,7 +369,7 @@ export default function Teams() {
           <Card>
             <CardContent className="p-0">
               <DataTable
-                data={teamData?.data || []}
+                data={filteredTeamMembers}
                 columns={teamColumns}
                 isLoading={isLoadingTeam}
                 pagination={pagination}
@@ -416,7 +393,7 @@ export default function Teams() {
             </CardHeader>
             <CardContent className="p-0">
               <DataTable
-                data={invitationsData?.data || []}
+                data={filteredInvitations}
                 columns={invitationColumns}
                 isLoading={isLoadingInvitations}
                 pagination={{ pageIndex: 0, pageSize: 50 }}

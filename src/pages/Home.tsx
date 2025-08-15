@@ -1,4 +1,3 @@
-import api from '@/api'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,30 +5,27 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useTheme } from '@/context/ThemeContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useProgressiveLoader } from '@/hooks/use-intersection-observer'
+import { useSocketEvents } from '@/hooks/use-socket-events'
 import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
-import { unparse } from 'papaparse'
 import { useCallback, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Cell, Label, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 
 // Import progressive loading components
 import {
-  MetricCardSkeleton,
   ChartSkeleton,
-  PieChartSkeleton,
   ProductListSkeleton,
+  ProgressiveSection,
+  StaffPerformanceSkeleton,
   TablePerformanceSkeleton,
   TableSkeleton,
-  StaffPerformanceSkeleton,
-  ProgressiveSection,
 } from '@/components/skeleton/DashboardSkeleton'
-import { DashboardProgressiveService, CHART_TYPES, METRIC_TYPES } from '@/services/dashboard.progressive.service'
+import { CHART_TYPES, DashboardProgressiveService, METRIC_TYPES } from '@/services/dashboard.progressive.service'
 
 // Translations for payment methods
 const PAYMENT_METHOD_TRANSLATIONS = {
@@ -437,11 +433,16 @@ const Home = () => {
               align="start"
               locale="es-ES"
             />
-            
+
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" disabled={isBasicLoading || exportLoading || isBasicError} className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isBasicLoading || exportLoading || isBasicError}
+                    className="flex items-center gap-2"
+                  >
                     {exportLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -637,7 +638,7 @@ const Home = () => {
             </div>
 
             {/* Strategic Analytics Sections */}
-            
+
             {/* Revenue Trends - Priority Chart */}
             <ProgressiveChartSection
               venueId={venueId}
@@ -648,32 +649,16 @@ const Home = () => {
 
             {/* Operational Performance Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveChartSection
-                venueId={venueId}
-                chartType="aov-trends"
-                selectedRange={selectedRange}
-              />
-              
-              <ProgressiveChartSection
-                venueId={venueId}
-                chartType="order-frequency"
-                selectedRange={selectedRange}
-              />
+              <ProgressiveChartSection venueId={venueId} chartType="aov-trends" selectedRange={selectedRange} />
+
+              <ProgressiveChartSection venueId={venueId} chartType="order-frequency" selectedRange={selectedRange} />
             </div>
 
             {/* Staff & Table Performance */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveMetricSection
-                venueId={venueId}
-                metricType="staff-efficiency"
-                selectedRange={selectedRange}
-              />
+              <ProgressiveMetricSection venueId={venueId} metricType="staff-efficiency" selectedRange={selectedRange} />
 
-              <ProgressiveMetricSection
-                venueId={venueId}
-                metricType="table-efficiency"
-                selectedRange={selectedRange}
-              />
+              <ProgressiveMetricSection venueId={venueId} metricType="table-efficiency" selectedRange={selectedRange} />
             </div>
 
             {/* Customer Experience Analytics */}
@@ -686,17 +671,9 @@ const Home = () => {
 
             {/* Operational Efficiency */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveChartSection
-                venueId={venueId}
-                chartType={CHART_TYPES.PEAK_HOURS}
-                selectedRange={selectedRange}
-              />
+              <ProgressiveChartSection venueId={venueId} chartType={CHART_TYPES.PEAK_HOURS} selectedRange={selectedRange} />
 
-              <ProgressiveChartSection
-                venueId={venueId}
-                chartType="kitchen-performance"
-                selectedRange={selectedRange}
-              />
+              <ProgressiveChartSection venueId={venueId} chartType="kitchen-performance" selectedRange={selectedRange} />
             </div>
 
             {/* Additional Analytics */}
@@ -722,12 +699,12 @@ const Home = () => {
 }
 
 // Progressive chart section component
-const ProgressiveChartSection = ({ 
-  venueId, 
-  chartType, 
-  selectedRange, 
-  className = "" 
-}: { 
+const ProgressiveChartSection = ({
+  venueId,
+  chartType,
+  selectedRange,
+  className = '',
+}: {
   venueId: string
   chartType: string
   selectedRange: { from: Date; to: Date }
@@ -749,13 +726,7 @@ const ProgressiveChartSection = ({
     <div ref={ref} className={className}>
       <ProgressiveSection
         isLoading={!isVisible || isLoading}
-        skeleton={
-          chartType === CHART_TYPES.BEST_SELLING_PRODUCTS ? (
-            <ProductListSkeleton />
-          ) : (
-            <ChartSkeleton />
-          )
-        }
+        skeleton={chartType === CHART_TYPES.BEST_SELLING_PRODUCTS ? <ProductListSkeleton /> : <ChartSkeleton />}
       >
         {/* Render the specific chart based on chartType and data */}
         {renderChartContent(chartType, data)}
@@ -765,12 +736,12 @@ const ProgressiveChartSection = ({
 }
 
 // Progressive metric section component
-const ProgressiveMetricSection = ({ 
-  venueId, 
-  metricType, 
-  selectedRange, 
-  className = "" 
-}: { 
+const ProgressiveMetricSection = ({
+  venueId,
+  metricType,
+  selectedRange,
+  className = '',
+}: {
   venueId: string
   metricType: string
   selectedRange: { from: Date; to: Date }
@@ -812,33 +783,33 @@ const ProgressiveMetricSection = ({
 // Helper function to render chart content
 const renderChartContent = (chartType: string, data: any) => {
   if (!data) return <div>No data available</div>
-  
+
   switch (chartType) {
     case CHART_TYPES.BEST_SELLING_PRODUCTS:
       return <BestSellingProductsChart data={data} />
-    
+
     case CHART_TYPES.PEAK_HOURS:
       return <PeakHoursChart data={data} />
-    
+
     case CHART_TYPES.TIPS_OVER_TIME:
       return <TipsOverTimeChart data={data} />
-    
+
     // Strategic Analytics Charts
     case 'revenue-trends':
       return <RevenueTrendsChart data={data} />
-    
+
     case 'aov-trends':
       return <AOVTrendsChart data={data} />
-    
+
     case 'order-frequency':
       return <OrderFrequencyChart data={data} />
-    
+
     case 'customer-satisfaction':
       return <CustomerSatisfactionChart data={data} />
-    
+
     case 'kitchen-performance':
       return <KitchenPerformanceChart data={data} />
-    
+
     default:
       return (
         <Card>
@@ -846,29 +817,27 @@ const renderChartContent = (chartType: string, data: any) => {
             <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-gray-500">
-              Chart content for {chartType} would be rendered here
-            </div>
+            <div className="p-8 text-center text-gray-500">Chart content for {chartType} would be rendered here</div>
           </CardContent>
         </Card>
       )
   }
 }
 
-// Helper function to render metric content 
+// Helper function to render metric content
 const renderMetricContent = (metricType: string, data: any) => {
   if (!data) return <div>No data available</div>
-  
+
   switch (metricType) {
     case 'staff-efficiency':
       return <StaffEfficiencyMetrics data={data} />
-    
+
     case 'table-efficiency':
       return <TableEfficiencyMetrics data={data} />
-    
+
     case 'product-analytics':
       return <ProductAnalyticsMetrics data={data} />
-    
+
     default:
       return (
         <Card>
@@ -876,9 +845,7 @@ const renderMetricContent = (metricType: string, data: any) => {
             <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-gray-500">
-              Metric content for {metricType} would be rendered here
-            </div>
+            <div className="p-8 text-center text-gray-500">Metric content for {metricType} would be rendered here</div>
           </CardContent>
         </Card>
       )
@@ -889,7 +856,6 @@ const renderMetricContent = (metricType: string, data: any) => {
 
 // Best Selling Products Chart
 const BestSellingProductsChart = ({ data }: { data: any }) => {
-  
   // Process products data for best sellers by category
   const bestSellingProducts = useMemo(() => {
     const productsData = data?.products || []
@@ -910,7 +876,7 @@ const BestSellingProductsChart = ({ data }: { data: any }) => {
         categories.OTHER.push({ ...product })
       }
     })
-    
+
     // Sort by quantity and limit top 3
     Object.keys(categories).forEach(type => {
       categories[type].sort((a: any, b: any) => b.quantity - a.quantity)
@@ -1023,14 +989,14 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
     if (!payments || payments.length === 0) return []
-    
+
     const tipsByDate = new Map()
-    
+
     payments.forEach((payment: any) => {
       if (payment.tips && payment.tips.length > 0) {
         const date = new Date(payment.createdAt).toISOString().split('T')[0]
         const tipAmount = payment.tips.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0)
-        
+
         if (tipsByDate.has(date)) {
           tipsByDate.set(date, tipsByDate.get(date) + tipAmount)
         } else {
@@ -1038,12 +1004,14 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
         }
       }
     })
-    
-    return Array.from(tipsByDate.entries()).map(([date, amount]) => ({
-      date,
-      tips: amount,
-      formattedDate: new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })
-    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    return Array.from(tipsByDate.entries())
+      .map(([date, amount]) => ({
+        date,
+        tips: amount,
+        formattedDate: new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }),
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [data?.payments])
 
   return (
@@ -1079,19 +1047,8 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value: any) => Currency(Number(value))}
-                  />
-                }
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
               <Bar dataKey="tips" fill="var(--color-tips)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1104,7 +1061,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 // Revenue Trends Chart
 const RevenueTrendsChart = ({ data }: { data: any }) => {
   const revenueData = data?.revenue || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1138,19 +1095,8 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value: any) => Currency(Number(value))}
-                  />
-                }
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
               <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1163,7 +1109,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
 // Average Order Value Trends Chart
 const AOVTrendsChart = ({ data }: { data: any }) => {
   const aovData = data?.aov || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1197,19 +1143,8 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value: any) => Currency(Number(value))}
-                  />
-                }
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
               <Bar dataKey="aov" fill="var(--color-aov)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1222,7 +1157,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
 // Order Frequency Chart
 const OrderFrequencyChart = ({ data }: { data: any }) => {
   const frequencyData = data?.frequency || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1256,19 +1191,8 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="hour"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value: any) => `${value} órdenes`}
-                  />
-                }
-              />
+              <XAxis dataKey="hour" tickLine={false} tickMargin={10} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} órdenes`} />} />
               <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1281,7 +1205,7 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
 // Customer Satisfaction Chart
 const CustomerSatisfactionChart = ({ data }: { data: any }) => {
   const satisfactionData = data?.satisfaction || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1319,12 +1243,7 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
@@ -1346,7 +1265,7 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
 // Kitchen Performance Chart
 const KitchenPerformanceChart = ({ data }: { data: any }) => {
   const kitchenData = data?.kitchen || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1384,19 +1303,8 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
               height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="category"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value: any) => `${value} min`}
-                  />
-                }
-              />
+              <XAxis dataKey="category" tickLine={false} tickMargin={10} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} min`} />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="prepTime" fill="var(--color-prepTime)" radius={4} maxBarSize={30} />
               <Bar dataKey="target" fill="var(--color-target)" radius={4} maxBarSize={30} />
@@ -1411,7 +1319,7 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
 // Strategic Metric Components
 const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
   const staffData = data?.staffPerformance || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1429,9 +1337,7 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                      {index + 1}
-                    </span>
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">{index + 1}</span>
                   </div>
                   <div>
                     <p className="font-medium">{staff.name}</p>
@@ -1453,7 +1359,7 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
 
 const TableEfficiencyMetrics = ({ data }: { data: any }) => {
   const tableData = data?.tablePerformance || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1471,9 +1377,7 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                      {table.tableNumber}
-                    </span>
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">{table.tableNumber}</span>
                   </div>
                   <div>
                     <p className="font-medium">Mesa {table.tableNumber}</p>
@@ -1495,7 +1399,7 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
 
 const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
   const productData = data?.productProfitability || []
-  
+
   return (
     <Card>
       <CardHeader className="border-b pb-3">
@@ -1513,9 +1417,7 @@ const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                      {index + 1}
-                    </span>
+                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">{index + 1}</span>
                   </div>
                   <div>
                     <p className="font-medium">{product.name}</p>

@@ -19,8 +19,10 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import teamService, { TeamMember, UpdateTeamMemberRequest } from '@/services/team.service'
+import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
 
 const editTeamMemberSchema = z.object({
   role: z.nativeEnum(StaffRole).optional(),
@@ -50,41 +52,18 @@ const ROLE_OPTIONS = [
   { value: StaffRole.VIEWER, label: 'Visualizador', description: 'Solo lectura de reportes' },
 ]
 
-const getRoleBadgeColor = (role: StaffRole) => {
-  const colors = {
-    SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200',
-    OWNER: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200',
-    MANAGER: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200',
-    WAITER: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200',
-    CASHIER: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200',
-    KITCHEN: 'bg-pink-100 text-pink-800 dark:bg-pink-500/20 dark:text-pink-200',
-    HOST: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200',
-    VIEWER: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100',
-  }
-  return colors[role] || colors.VIEWER
-}
-
-const getRoleDisplayName = (role: StaffRole) => {
-  const names = {
-    SUPERADMIN: 'Super Admin',
-    OWNER: 'Propietario',
-    ADMIN: 'Administrador',
-    MANAGER: 'Gerente',
-    WAITER: 'Mesero',
-    CASHIER: 'Cajero',
-    KITCHEN: 'Cocina',
-    HOST: 'Anfitrión',
-    VIEWER: 'Visualizador',
-  }
-  return names[role] || role
-}
 
 export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: EditTeamMemberFormProps) {
   const { toast } = useToast()
+  const { staffInfo } = useAuth()
   const [showPin, setShowPin] = useState(false)
   const [selectedRole, setSelectedRole] = useState<StaffRole>(teamMember.role)
   const [isActive, setIsActive] = useState(teamMember.active)
+
+  // Filter role options to hide SUPERADMIN from non-superadmin users
+  const filteredRoleOptions = ROLE_OPTIONS.filter(option => 
+    option.value !== StaffRole.SUPERADMIN || canViewSuperadminInfo(staffInfo?.role)
+  )
 
   const {
     register,
@@ -161,7 +140,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
     updateMutation.mutate(updateData)
   }
 
-  const selectedRoleInfo = ROLE_OPTIONS.find(option => option.value === selectedRole)
+  const selectedRoleInfo = filteredRoleOptions.find(option => option.value === selectedRole)
 
   // Check if user can be deactivated (prevent last admin from being deactivated)
   const canDeactivate = teamMember.role !== StaffRole.OWNER
@@ -176,8 +155,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           </h3>
           <p className="text-sm text-gray-600">{teamMember.email}</p>
         </div>
-        <Badge className={getRoleBadgeColor(teamMember.role)}>
-          {getRoleDisplayName(teamMember.role)}
+        <Badge className={getRoleBadgeColor(teamMember.role, staffInfo?.role)}>
+          {getRoleDisplayName(teamMember.role, staffInfo?.role)}
         </Badge>
       </div>
 
@@ -193,7 +172,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {ROLE_OPTIONS.map((option) => (
+            {filteredRoleOptions.map((option) => (
               <SelectItem 
                 key={option.value} 
                 value={option.value}
