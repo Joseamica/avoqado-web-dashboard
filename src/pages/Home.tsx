@@ -140,7 +140,7 @@ const MetricCard = ({
   )
 }
 
-const HomeProgressive = () => {
+const Home = () => {
   const { venueId } = useCurrentVenue()
   const { isDark } = useTheme()
   const [exportLoading, setExportLoading] = useState(false)
@@ -636,7 +636,70 @@ const HomeProgressive = () => {
               />
             </div>
 
-            {/* Additional progressive sections */}
+            {/* Strategic Analytics Sections */}
+            
+            {/* Revenue Trends - Priority Chart */}
+            <ProgressiveChartSection
+              venueId={venueId}
+              chartType="revenue-trends"
+              selectedRange={selectedRange}
+              className="grid grid-cols-1"
+            />
+
+            {/* Operational Performance Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType="aov-trends"
+                selectedRange={selectedRange}
+              />
+              
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType="order-frequency"
+                selectedRange={selectedRange}
+              />
+            </div>
+
+            {/* Staff & Table Performance */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ProgressiveMetricSection
+                venueId={venueId}
+                metricType="staff-efficiency"
+                selectedRange={selectedRange}
+              />
+
+              <ProgressiveMetricSection
+                venueId={venueId}
+                metricType="table-efficiency"
+                selectedRange={selectedRange}
+              />
+            </div>
+
+            {/* Customer Experience Analytics */}
+            <ProgressiveChartSection
+              venueId={venueId}
+              chartType="customer-satisfaction"
+              selectedRange={selectedRange}
+              className="grid grid-cols-1"
+            />
+
+            {/* Operational Efficiency */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType={CHART_TYPES.PEAK_HOURS}
+                selectedRange={selectedRange}
+              />
+
+              <ProgressiveChartSection
+                venueId={venueId}
+                chartType="kitchen-performance"
+                selectedRange={selectedRange}
+              />
+            </div>
+
+            {/* Additional Analytics */}
             <ProgressiveChartSection
               venueId={venueId}
               chartType={CHART_TYPES.TIPS_OVER_TIME}
@@ -644,44 +707,10 @@ const HomeProgressive = () => {
               className="grid grid-cols-1"
             />
 
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType={CHART_TYPES.SALES_BY_PAYMENT_METHOD}
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
-
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType={CHART_TYPES.PEAK_HOURS}
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ProgressiveMetricSection
-                venueId={venueId}
-                metricType={METRIC_TYPES.TABLE_PERFORMANCE}
-                selectedRange={selectedRange}
-              />
-
-              <ProgressiveMetricSection
-                venueId={venueId}
-                metricType={METRIC_TYPES.PRODUCT_PROFITABILITY}
-                selectedRange={selectedRange}
-              />
-            </div>
-
-            <ProgressiveChartSection
-              venueId={venueId}
-              chartType={CHART_TYPES.WEEKLY_TRENDS}
-              selectedRange={selectedRange}
-              className="grid grid-cols-1"
-            />
-
+            {/* Product & Financial Analytics */}
             <ProgressiveMetricSection
               venueId={venueId}
-              metricType={METRIC_TYPES.STAFF_PERFORMANCE}
+              metricType="product-analytics"
               selectedRange={selectedRange}
               className="grid grid-cols-1"
             />
@@ -780,42 +809,730 @@ const ProgressiveMetricSection = ({
   )
 }
 
-// Helper function to render chart content (simplified for now)
+// Helper function to render chart content
 const renderChartContent = (chartType: string, data: any) => {
   if (!data) return <div>No data available</div>
   
-  // This would be expanded to render the actual charts
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="p-8 text-center text-gray-500">
-          Chart content for {chartType} would be rendered here
-        </div>
-      </CardContent>
-    </Card>
-  )
+  switch (chartType) {
+    case CHART_TYPES.BEST_SELLING_PRODUCTS:
+      return <BestSellingProductsChart data={data} />
+    
+    case CHART_TYPES.PEAK_HOURS:
+      return <PeakHoursChart data={data} />
+    
+    case CHART_TYPES.TIPS_OVER_TIME:
+      return <TipsOverTimeChart data={data} />
+    
+    // Strategic Analytics Charts
+    case 'revenue-trends':
+      return <RevenueTrendsChart data={data} />
+    
+    case 'aov-trends':
+      return <AOVTrendsChart data={data} />
+    
+    case 'order-frequency':
+      return <OrderFrequencyChart data={data} />
+    
+    case 'customer-satisfaction':
+      return <CustomerSatisfactionChart data={data} />
+    
+    case 'kitchen-performance':
+      return <KitchenPerformanceChart data={data} />
+    
+    default:
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-8 text-center text-gray-500">
+              Chart content for {chartType} would be rendered here
+            </div>
+          </CardContent>
+        </Card>
+      )
+  }
 }
 
-// Helper function to render metric content (simplified for now)
+// Helper function to render metric content 
 const renderMetricContent = (metricType: string, data: any) => {
   if (!data) return <div>No data available</div>
   
-  // This would be expanded to render the actual metrics
+  switch (metricType) {
+    case 'staff-efficiency':
+      return <StaffEfficiencyMetrics data={data} />
+    
+    case 'table-efficiency':
+      return <TableEfficiencyMetrics data={data} />
+    
+    case 'product-analytics':
+      return <ProductAnalyticsMetrics data={data} />
+    
+    default:
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-8 text-center text-gray-500">
+              Metric content for {metricType} would be rendered here
+            </div>
+          </CardContent>
+        </Card>
+      )
+  }
+}
+
+// Strategic Analytics Components with original Recharts styling
+
+// Best Selling Products Chart
+const BestSellingProductsChart = ({ data }: { data: any }) => {
+  
+  // Process products data for best sellers by category
+  const bestSellingProducts = useMemo(() => {
+    const productsData = data?.products || []
+    if (!productsData) return { FOOD: [], BEVERAGE: [], OTHER: [] }
+
+    const categories = { FOOD: [], BEVERAGE: [], OTHER: [] }
+
+    productsData.forEach((product: any) => {
+      const productType = product.type || 'OTHER'
+      if (categories[productType]) {
+        const existing = categories[productType].find((p: any) => p.name === product.name)
+        if (existing) {
+          existing.quantity = Number(existing.quantity) + Number(product.quantity)
+        } else {
+          categories[productType].push({ ...product })
+        }
+      } else {
+        categories.OTHER.push({ ...product })
+      }
+    })
+    
+    // Sort by quantity and limit top 3
+    Object.keys(categories).forEach(type => {
+      categories[type].sort((a: any, b: any) => b.quantity - a.quantity)
+      categories[type] = categories[type].slice(0, 3)
+    })
+
+    return categories
+  }, [data?.products])
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Productos mejor vendidos</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="p-8 text-center text-gray-500">
-          Metric content for {metricType} would be rendered here
+      <CardContent className="pt-4">
+        <div className="space-y-5">
+          {Object.entries(bestSellingProducts).map(([category, products]) => (
+            <div key={category} className="space-y-2">
+              <h3 className="font-medium text-sm text-muted-foreground">{CATEGORY_TRANSLATIONS[category] || category}</h3>
+              {products.length === 0 ? (
+                <p className="text-sm text-gray-500">No hay datos disponibles</p>
+              ) : (
+                <ul className="space-y-1">
+                  {products.map((product: any, idx: number) => (
+                    <li key={idx} className="flex justify-between items-center text-sm py-1">
+                      <span>{product.name}</span>
+                      <span className="font-medium">{product.quantity}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
   )
 }
 
-export default HomeProgressive
+// Peak Hours Chart
+const PeakHoursChart = ({ data }: { data: any }) => {
+  const peakHoursData = data || []
+
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Horas Pico de Ventas</CardTitle>
+        <CardDescription>Actividad de ventas por hora del día</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!peakHoursData || peakHoursData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              sales: {
+                label: 'Ventas',
+                color: CHART_COLORS[0],
+              },
+              transactions: {
+                label: 'N° Transacciones',
+                color: CHART_COLORS[1],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={peakHoursData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="hour"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                tickFormatter={value => `${value}:00`}
+                label={{ value: 'Hora del día', position: 'insideBottomRight', offset: -10 }}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any, name: any) => (name === 'sales' ? Currency(Number(value)) : `${value} transacciones`)}
+                  />
+                }
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="sales" fill="var(--color-sales)" radius={4} maxBarSize={30} />
+              <Bar dataKey="transactions" fill="var(--color-transactions)" radius={4} maxBarSize={30} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Tips Over Time Chart
+const TipsOverTimeChart = ({ data }: { data: any }) => {
+  // Process tips data over time
+  const tipsOverTime = useMemo(() => {
+    const payments = data?.payments || []
+    if (!payments || payments.length === 0) return []
+    
+    const tipsByDate = new Map()
+    
+    payments.forEach((payment: any) => {
+      if (payment.tips && payment.tips.length > 0) {
+        const date = new Date(payment.createdAt).toISOString().split('T')[0]
+        const tipAmount = payment.tips.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0)
+        
+        if (tipsByDate.has(date)) {
+          tipsByDate.set(date, tipsByDate.get(date) + tipAmount)
+        } else {
+          tipsByDate.set(date, tipAmount)
+        }
+      }
+    })
+    
+    return Array.from(tipsByDate.entries()).map(([date, amount]) => ({
+      date,
+      tips: amount,
+      formattedDate: new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [data?.payments])
+
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Propinas a lo largo del tiempo</CardTitle>
+        <CardDescription>Evolución de las propinas recibidas</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!tipsOverTime || tipsOverTime.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              tips: {
+                label: 'Propinas',
+                color: CHART_COLORS[2],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={tipsOverTime}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any) => Currency(Number(value))}
+                  />
+                }
+              />
+              <Bar dataKey="tips" fill="var(--color-tips)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Revenue Trends Chart
+const RevenueTrendsChart = ({ data }: { data: any }) => {
+  const revenueData = data?.revenue || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Tendencias de Ingresos</CardTitle>
+        <CardDescription>Ingresos diarios y crecimiento</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!revenueData || revenueData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              revenue: {
+                label: 'Ingresos',
+                color: CHART_COLORS[0],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={revenueData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any) => Currency(Number(value))}
+                  />
+                }
+              />
+              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Average Order Value Trends Chart
+const AOVTrendsChart = ({ data }: { data: any }) => {
+  const aovData = data?.aov || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Ticket Promedio</CardTitle>
+        <CardDescription>Valor promedio por orden</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!aovData || aovData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              aov: {
+                label: 'Ticket Promedio',
+                color: CHART_COLORS[1],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={aovData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any) => Currency(Number(value))}
+                  />
+                }
+              />
+              <Bar dataKey="aov" fill="var(--color-aov)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Order Frequency Chart
+const OrderFrequencyChart = ({ data }: { data: any }) => {
+  const frequencyData = data?.frequency || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Frecuencia de Órdenes</CardTitle>
+        <CardDescription>Número de órdenes por hora</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!frequencyData || frequencyData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              orders: {
+                label: 'Órdenes',
+                color: CHART_COLORS[3],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={frequencyData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="hour"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any) => `${value} órdenes`}
+                  />
+                }
+              />
+              <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Customer Satisfaction Chart
+const CustomerSatisfactionChart = ({ data }: { data: any }) => {
+  const satisfactionData = data?.satisfaction || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Satisfacción del Cliente</CardTitle>
+        <CardDescription>Calificaciones promedio y tendencias de reviews</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!satisfactionData || satisfactionData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              rating: {
+                label: 'Calificación',
+                color: CHART_COLORS[4],
+              },
+              reviewCount: {
+                label: 'N° Reviews',
+                color: CHART_COLORS[5],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={satisfactionData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any, name: any) => (name === 'rating' ? `${value} estrellas` : `${value} reviews`)}
+                  />
+                }
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="rating" fill="var(--color-rating)" radius={4} maxBarSize={30} />
+              <Bar dataKey="reviewCount" fill="var(--color-reviewCount)" radius={4} maxBarSize={30} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Kitchen Performance Chart
+const KitchenPerformanceChart = ({ data }: { data: any }) => {
+  const kitchenData = data?.kitchen || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Rendimiento de Cocina</CardTitle>
+        <CardDescription>Tiempos de preparación vs metas</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6" style={{ height: '360px' }}>
+        {!kitchenData || kitchenData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <ChartContainer
+            className="h-full"
+            config={{
+              prepTime: {
+                label: 'Tiempo Real',
+                color: CHART_COLORS[0],
+              },
+              target: {
+                label: 'Meta',
+                color: CHART_COLORS[2],
+              },
+            }}
+          >
+            <BarChart
+              accessibilityLayer
+              data={kitchenData}
+              margin={{
+                top: 30,
+                right: 30,
+                left: 20,
+                bottom: 20,
+              }}
+              height={280}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="category"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any) => `${value} min`}
+                  />
+                }
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              <Bar dataKey="prepTime" fill="var(--color-prepTime)" radius={4} maxBarSize={30} />
+              <Bar dataKey="target" fill="var(--color-target)" radius={4} maxBarSize={30} />
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// Strategic Metric Components
+const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
+  const staffData = data?.staffPerformance || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Eficiencia del Personal</CardTitle>
+        <CardDescription>Top 5 miembros del equipo por ventas</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {!staffData || staffData.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {staffData.slice(0, 5).map((staff: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{staff.name}</p>
+                    <p className="text-sm text-gray-500">{staff.role}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{Currency(staff.totalSales || 0)}</p>
+                  <p className="text-xs text-gray-500">{staff.orderCount || 0} órdenes</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+const TableEfficiencyMetrics = ({ data }: { data: any }) => {
+  const tableData = data?.tablePerformance || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Eficiencia de Mesas</CardTitle>
+        <CardDescription>Top 5 mesas por ingresos</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {!tableData || tableData.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {tableData.slice(0, 5).map((table: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                      {table.tableNumber}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Mesa {table.tableNumber}</p>
+                    <p className="text-sm text-gray-500">{table.orderCount || 0} órdenes</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{Currency(table.totalRevenue || 0)}</p>
+                  <p className="text-xs text-gray-500">{Currency(table.avgTicket || 0)} promedio</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
+  const productData = data?.productProfitability || []
+  
+  return (
+    <Card>
+      <CardHeader className="border-b pb-3">
+        <CardTitle>Análisis de Productos</CardTitle>
+        <CardDescription>Top 5 productos más rentables</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {!productData || productData.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {productData.slice(0, 5).map((product: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                    <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-gray-500">{product.quantity || 0} vendidos</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium">{Currency(product.totalRevenue || 0)}</p>
+                  <p className="text-xs text-gray-500">{(product.marginPercentage || 0).toFixed(1)}% margen</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default Home

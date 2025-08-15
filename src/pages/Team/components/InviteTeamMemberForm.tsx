@@ -117,6 +117,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
             type="email"
             placeholder="ejemplo@empresa.com"
             className="pl-10"
+            data-autofocus
             {...register('email')}
           />
         </div>
