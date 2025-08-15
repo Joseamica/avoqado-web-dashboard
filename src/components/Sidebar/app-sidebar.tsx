@@ -23,7 +23,7 @@ import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
-import { User } from '@/types'
+import { User, SessionVenue, Venue } from '@/types'
 
 // This is sample data.
 const data = {
@@ -108,12 +108,6 @@ const data = {
     },
 
     {
-      title: 'Meseros',
-      isActive: true,
-      url: 'waiters', // Update the URL if necessary
-      icon: Users,
-    },
-    {
       title: 'Reseñas',
       isActive: true,
       url: 'reviews', // Update the URL if necessary
@@ -122,9 +116,10 @@ const data = {
     {
       title: 'Equipo',
       isActive: true,
-      url: 'teams', // Teams management page
+      url: 'teams',
       icon: Users,
     },
+
     // {
     //   title: 'Operaciones',
     //   url: '#',
@@ -181,7 +176,7 @@ const data = {
         },
         {
           title: 'Team',
-          url: '#',
+          url: 'teams',
         },
         {
           title: 'Billing',
@@ -256,18 +251,31 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   ]
 
   // Use all venues for SUPERADMIN, otherwise use user's assigned venues
-  const venuesToShow = user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
-  const defaultVenue = venuesToShow.length > 0 ? venuesToShow[0] : null
+  const venuesToShow: Array<Venue | SessionVenue> =
+    user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
+  const defaultVenue: Venue | SessionVenue | null = venuesToShow.length > 0 ? venuesToShow[0] : null
+
+  // Map app User -> NavUser expected shape
+  const navUser = React.useMemo(
+    () => ({
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      email: user.email,
+      image: user.photoUrl ?? '',
+    }),
+    [user.firstName, user.lastName, user.email, user.photoUrl],
+  )
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
+      <SidebarHeader>
+        {defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}
+      </SidebarHeader>
       <SidebarContent>
         <NavMain items={user.role === 'SUPERADMIN' ? [...data.navMain, ...superAdminRoutes] : data.navMain} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser user={navUser} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

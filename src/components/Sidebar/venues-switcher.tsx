@@ -12,7 +12,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 
-import { Venue, StaffRole } from '@/types'
+import { Venue, StaffRole, SessionVenue } from '@/types'
 import { ChevronsUpDown, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -20,8 +20,8 @@ import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 interface VenuesSwitcherProps {
-  venues: Venue[]
-  defaultVenue: Venue
+  venues: Array<Venue | SessionVenue>
+  defaultVenue: Venue | SessionVenue
 }
 
 export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
@@ -35,14 +35,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // Usar el venue actual del contexto, url, o fallback al default
-  const currentVenueSlug = location.pathname.split('/')[2] || ''; // Obtener slug de la URL actual
+  const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
   
   // Buscar el venue primero en los venues disponibles por slug, luego por activeVenue, y por último por defaultVenue
-  const venueFromSlug = currentVenueSlug ? 
-    venues.find(v => v.slug === currentVenueSlug) : null;
-  const currentVenue = venueFromSlug || activeVenue || defaultVenue
+  const venueFromSlug = currentVenueSlug ? venues.find(v => v.slug === currentVenueSlug) : null
+  const currentVenue = (venueFromSlug || activeVenue || defaultVenue) as Venue | SessionVenue
 
-  const handleVenueChange = async (venue: Venue) => {
+  const handleVenueChange = async (venue: Venue | SessionVenue) => {
     if (venue.slug === currentVenue.slug) return // Evitar cambio innecesario
 
     // Omitir verificación de acceso para usuarios OWNER y SUPERADMIN
@@ -90,7 +89,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                 </Avatar>
                 <div className="grid flex-1 text-sm leading-tight text-left">
                   <span className="font-semibold truncate">{currentVenue?.name || 'Seleccionar venue'}</span>
-                  <span className="text-xs truncate">{currentVenue?.plan || 'Sin plan'}</span>
+                  <span className="text-xs truncate">{currentVenue?.city || ''}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
               </SidebarMenuButton>
