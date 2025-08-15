@@ -32,8 +32,7 @@ export default function Shifts() {
     },
   })
 
-  // const shifts = data?.data || []
-  const totalShifts = data?.meta?.total || 0
+  const totalShifts = data?.meta?.totalCount || 0
 
   const columns: ColumnDef<any, unknown>[] = [
     {
@@ -65,15 +64,19 @@ export default function Shifts() {
       },
     },
     {
-      accessorKey: 'turnId',
+      accessorKey: 'id',
       sortDescFirst: true,
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Turno
+            ID Turno
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
+      },
+      cell: ({ cell }) => {
+        const value = cell.getValue() as string
+        return value.slice(-8) // Show last 8 characters of ID
       },
     },
     {
@@ -145,11 +148,8 @@ export default function Shifts() {
     },
 
     {
-      accessorFn: row => {
-        const totalTip = row.tips?.reduce((sum, tip) => sum + parseFloat(tip.amount), 0) || 0
-        return totalTip / 100
-      },
-      id: 'payments',
+      accessorKey: 'totalTips',
+      id: 'totalTips',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
           Propina Total
@@ -157,15 +157,9 @@ export default function Shifts() {
         </Button>
       ),
       cell: ({ row }) => {
-        const payments = row.original.payments
-
-        const totalTips = payments.reduce((acc, payment) => {
-          const tipsSum = payment.tips.reduce((tipAcc, tip) => tipAcc + parseFloat(tip.amount), 0)
-          return acc + tipsSum
-        }, 0)
-
-        const total = payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
-        const tipPercentage = total !== 0 ? (totalTips / total) * 100 : 0
+        const totalTips = row.original.totalTips || 0
+        const totalSales = row.original.totalSales || 0
+        const tipPercentage = totalSales !== 0 ? (totalTips / totalSales) * 100 : 0
 
         let tipClasses = {
           bg: themeClasses.success.bg,
@@ -196,12 +190,8 @@ export default function Shifts() {
     },
 
     {
-      accessorFn: row => {
-        const payments = row.payments
-        const total = payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
-        return total
-      },
-      id: 'payments.total',
+      accessorKey: 'totalSales',
+      id: 'totalSales',
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -220,14 +210,9 @@ export default function Shifts() {
 
     {
       accessorFn: row => {
-        const payments = row.payments
-
-        const totalTips = payments.reduce((acc, payment) => {
-          const tipsSum = payment.tips.reduce((tipAcc, tip) => tipAcc + parseFloat(tip.amount), 0)
-          return acc + tipsSum
-        }, 0)
-        const totalAmount = payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
-        return totalAmount + totalTips
+        const totalSales = row.totalSales || 0
+        const totalTips = row.totalTips || 0
+        return totalSales + totalTips
       },
       id: 'totalAmount',
       header: ({ column }) => {
@@ -248,21 +233,20 @@ export default function Shifts() {
   ]
 
   const filteredShifts = useMemo(() => {
-    const currentShifts = data || []
+    const currentShifts = data?.data || []
 
     if (!searchTerm) return currentShifts
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
     return currentShifts.filter(shift => {
-      // Convertimos turnId a string para poder usar includes
-      const turnIdMatch = shift.turnId.toString().includes(lowerSearchTerm)
-      const amountMatch = shift.payments
-        .reduce((acc, payment) => acc + Number(payment.amount), 0)
-        .toString()
-        .includes(lowerSearchTerm)
+      // Search by shift ID or staff name
+      const shiftIdMatch = shift.id.toString().includes(lowerSearchTerm)
+      const staffNameMatch = shift.staff ? 
+        `${shift.staff.firstName} ${shift.staff.lastName}`.toLowerCase().includes(lowerSearchTerm) : false
+      const totalSalesMatch = shift.totalSales.toString().includes(lowerSearchTerm)
 
-      return turnIdMatch || amountMatch
+      return shiftIdMatch || staffNameMatch || totalSalesMatch
     })
   }, [searchTerm, data])
 

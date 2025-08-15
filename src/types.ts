@@ -1176,6 +1176,64 @@ export interface SessionVenue {
 }
 
 // ==========================================
+// TEAM MANAGEMENT TYPES
+// ==========================================
+
+export interface TeamMember {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  role: StaffRole
+  active: boolean
+  startDate: string
+  endDate: string | null
+  pin: string | null
+  totalSales: number
+  totalTips: number
+  totalOrders: number
+  averageRating: number
+}
+
+export interface TeamMemberDetails extends TeamMember {
+  staffId: string
+  venue: {
+    id: string
+    name: string
+    organization: {
+      name: string
+    }
+  }
+}
+
+export interface TeamInvitation {
+  id: string
+  email: string
+  role: StaffRole
+  status: InvitationStatus
+  expiresAt: string
+  createdAt: string
+  message?: string
+  invitedBy: {
+    name: string
+  }
+}
+
+export interface InviteTeamMemberRequest {
+  email: string
+  firstName: string
+  lastName: string
+  role: StaffRole
+  message?: string
+}
+
+export interface UpdateTeamMemberRequest {
+  role?: StaffRole
+  active?: boolean
+  pin?: string | null
+}
+
+// ==========================================
 // TIPOS COMPATIBLES CON CÓDIGO FRONTEND ACTUAL
 // Estos tipos están siendo reemplazados gradualmente por las versiones
 // completas del schema Prisma arriba. Mantener hasta completar migración.

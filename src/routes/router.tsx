@@ -30,14 +30,15 @@ import {
   ReceiptViewer,
   MenuId,
   Reviews,
-  Waiters,
+  // Waiters,
   EditVenue,
   Shifts,
-  WaiterId,
+  // WaiterId,
   ShiftId,
   Orders,
   OrderId,
   Teams,
+  TeamMemberDetails,
   AdminDashboard,
   UserManagement,
   SystemSettings,
@@ -47,6 +48,7 @@ import {
   SuperAdminVenueEdit,
   Venues,
   AcceptAdminInvitation,
+  InviteAccept,
   ModifierGroupId,
 } from './lazyComponents'
 
@@ -73,6 +75,10 @@ const router = createBrowserRouter([
       {
         path: '/admin/accept-invitation',
         element: <AcceptAdminInvitation />,
+      },
+      {
+        path: '/invite/:token',
+        element: <InviteAccept />,
       },
       {
         element: <ProtectedRoute />, // Protected routes
@@ -234,10 +240,11 @@ const router = createBrowserRouter([
               { path: 'tpv', element: <Tpv /> },
               { path: 'tpv/create', element: <CreateTpv /> },
               { path: 'tpv/:tpvId', element: <TpvId /> },
-              { path: 'waiters', element: <Waiters /> },
-              { path: 'waiters/:waiterId', element: <WaiterId /> },
+              // { path: 'waiters', element: <Waiters /> },
+              // { path: 'waiters/:waiterId', element: <WaiterId /> },
               { path: 'reviews', element: <Reviews /> },
               { path: 'teams', element: <Teams /> },
+              { path: 'teams/:memberId', element: <TeamMemberDetails /> },
 
               // Esta sección pasa a ser parte del nuevo panel de administración
               {
