@@ -38,46 +38,20 @@ import {
 import { themeClasses } from '@/lib/theme-utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import teamService from '@/services/team.service'
+import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 
-const getRoleBadgeColor = (role: StaffRole) => {
-  const colors = {
-    SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200',
-    OWNER: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200',
-    ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200',
-    MANAGER: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200',
-    WAITER: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200',
-    CASHIER: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200',
-    KITCHEN: 'bg-pink-100 text-pink-800 dark:bg-pink-500/20 dark:text-pink-200',
-    HOST: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200',
-    VIEWER: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100',
-  }
-  return colors[role] || colors.VIEWER
-}
-
-const getRoleDisplayName = (role: StaffRole) => {
-  const names = {
-    SUPERADMIN: 'Super Admin',
-    OWNER: 'Propietario',
-    ADMIN: 'Administrador',
-    MANAGER: 'Gerente',
-    WAITER: 'Mesero',
-    CASHIER: 'Cajero',
-    KITCHEN: 'Cocina',
-    HOST: 'Anfitrión',
-    VIEWER: 'Visualizador',
-  }
-  return names[role] || role
-}
 
 export default function TeamMemberDetails() {
   const { venueId } = useCurrentVenue()
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -152,6 +126,21 @@ export default function TeamMemberDetails() {
     )
   }
 
+  // Hide superadmin members from non-superadmin users
+  if (memberDetails.role === StaffRole.SUPERADMIN && !canViewSuperadminInfo(staffInfo?.role)) {
+    return (
+      <div className={`p-6 ${themeClasses.pageBg} ${themeClasses.text}`}>
+        <div className="text-center py-12">
+          <h1 className="text-xl font-semibold text-gray-900">Acceso denegado</h1>
+          <p className="text-gray-600 mt-2">No tienes permisos para ver este miembro del equipo.</p>
+          <Button onClick={handleGoBack} className="mt-4">
+            Volver al Equipo
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   const canEdit = memberDetails.role !== StaffRole.SUPERADMIN
   const canRemove = memberDetails.role !== StaffRole.OWNER && memberDetails.role !== StaffRole.SUPERADMIN
 
@@ -204,8 +193,8 @@ export default function TeamMemberDetails() {
                   <CardTitle className="text-lg">
                     {memberDetails.firstName} {memberDetails.lastName}
                   </CardTitle>
-                  <Badge className={getRoleBadgeColor(memberDetails.role)}>
-                    {getRoleDisplayName(memberDetails.role)}
+                  <Badge className={getRoleBadgeColor(memberDetails.role, staffInfo?.role)}>
+                    {getRoleDisplayName(memberDetails.role, staffInfo?.role)}
                   </Badge>
                 </div>
               </div>

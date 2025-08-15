@@ -70,3 +70,27 @@ export const switchVenue = async (newVenueId: string) => {
   const response = await api.post('/api/v1/dashboard/auth/switch-venue', { venueId: newVenueId })
   return response.data
 }
+
+// Google OAuth functions
+export const getGoogleAuthUrl = async (): Promise<{ authUrl: string }> => {
+  const response = await api.get('/api/v1/dashboard/auth/google/url')
+  return response.data
+}
+
+export const googleOAuthCallback = async (code: string): Promise<AuthResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/google/callback', { code })
+  return response.data
+}
+
+export const checkGoogleInvitation = async (email: string): Promise<{
+  hasInvitation: boolean
+  venue?: {
+    id: string
+    name: string
+    slug: string
+  }
+  role?: StaffRole
+}> => {
+  const response = await api.get(`/api/v1/dashboard/auth/google/check-invitation?email=${encodeURIComponent(email)}`)
+  return response.data
+}

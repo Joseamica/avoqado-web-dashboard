@@ -14,7 +14,11 @@ api.interceptors.response.use(
   error => {
     if (error.response?.status === 401) {
       // Token expirado o inválido
-      window.location.href = '/login'
+      // Don't redirect if already on login page or auth callback
+      const currentPath = window.location.pathname
+      if (!currentPath.includes('/login') && !currentPath.includes('/auth/google/callback')) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

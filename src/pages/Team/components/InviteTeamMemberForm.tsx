@@ -41,7 +41,7 @@ const inviteTeamMemberSchema = z.object({
     .optional(),
 })
 
-type InviteTeamMemberFormData = z.infer<typeof inviteTeamMemberSchema>
+type InviteTeamMemberFormData = InviteTeamMemberRequest
 
 interface InviteTeamMemberFormProps {
   venueId: string
@@ -202,6 +202,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           El invitado recibirá un email con un enlace para crear su cuenta y unirse al equipo.
+          Puede iniciar sesión con su cuenta de Google o crear una contraseña.
           La invitación expira automáticamente en 7 días.
         </AlertDescription>
       </Alert>
