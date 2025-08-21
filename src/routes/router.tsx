@@ -48,6 +48,8 @@ import {
   SuperAdminManagement,
   SuperAdminVenueEdit,
   Venues,
+  Notifications,
+  NotificationPreferences,
   AcceptAdminInvitation,
   InviteAccept,
   ModifierGroupId,
@@ -55,6 +57,7 @@ import {
   SuperadminDashboard,
   SuperadminFeatureManagement,
   SuperadminVenueManagement,
+  RevenueDashboard,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -67,12 +70,6 @@ const router = createBrowserRouter([
   {
     element: <Root />, // Root element wraps all routes
     children: [
-      {
-        path: '/',
-        element: <Layout />,
-        index: true,
-      },
-
       {
         path: '/login',
         element: <Login />,
@@ -203,7 +200,7 @@ const router = createBrowserRouter([
                   },
                   {
                     path: 'revenue',
-                    element: <div>Revenue Dashboard (Coming Soon)</div>,
+                    element: <RevenueDashboard />,
                   },
                   {
                     path: 'customers',
@@ -315,6 +312,8 @@ const router = createBrowserRouter([
               { path: 'reviews', element: <Reviews /> },
               { path: 'teams', element: <Teams /> },
               { path: 'teams/:memberId', element: <TeamMemberDetails /> },
+              { path: 'notifications', element: <Notifications /> },
+              { path: 'notifications/preferences', element: <NotificationPreferences /> },
 
               // Esta sección pasa a ser parte del nuevo panel de administración
               {
@@ -330,6 +329,11 @@ const router = createBrowserRouter([
             ],
           },
         ],
+      },
+      // Root route for home page redirects
+      {
+        path: '/',
+        element: <Layout />,
       },
       // Ruta pública para acceder a los recibos digitales
       {

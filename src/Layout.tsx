@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LogOut } from 'lucide-react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 
 export function Layout() {
   const { isAuthenticated, logout, user, isLoading } = useAuth()
@@ -15,8 +15,15 @@ export function Layout() {
     return <Navigate to="/login" />
   }
 
-  if (isAuthenticated && user.venues.length >= 1) {
-    return <Navigate to={`/venues/${user.venues[0].id}/home`} />
+  // This component is only used for the root "/" path now
+  // Always redirect authenticated users to their first venue (unless SUPERADMIN)
+  if (isAuthenticated && user.venues.length >= 1 && user.role !== 'SUPERADMIN') {
+    return <Navigate to={`/venues/${user.venues[0].slug}/home`} />
+  }
+
+  // SUPERADMIN users should go to superadmin dashboard by default
+  if (isAuthenticated && user.role === 'SUPERADMIN') {
+    return <Navigate to="/superadmin" />
   }
 
   if (user.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {

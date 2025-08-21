@@ -1,6 +1,6 @@
 import api from '@/api'
 import type {
-  SuperadminDashboardData,
+  SuperadminDashboard,
   PlatformFeature,
   SuperadminVenue
 } from '@/types/superadmin'
@@ -8,7 +8,7 @@ import type {
 // Dashboard API
 export const superadminAPI = {
   // Dashboard data
-  getDashboardData: async (): Promise<SuperadminDashboardData> => {
+  getDashboardData: async (): Promise<SuperadminDashboard> => {
     const response = await api.get('/api/v2/dashboard/superadmin/dashboard')
     return response.data.data
   },

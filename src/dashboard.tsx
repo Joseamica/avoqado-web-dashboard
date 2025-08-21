@@ -10,6 +10,9 @@ import { useEffect, useState, useRef } from 'react'
 import { ChatBubble } from './components/Chatbot'
 import { StaffRole } from './types'
 import { useCurrentVenue } from './hooks/use-current-venue'
+import { Button } from './components/ui/button'
+import { Shield, ArrowLeft } from 'lucide-react'
+import NotificationBell from './components/notifications/NotificationBell'
 
 // Route path segment to display name mapping
 const routeDisplayNames: Record<string, string> = {
@@ -210,7 +213,21 @@ export default function Dashboard() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            {/* Superadmin Navigation Button - only show for SUPERADMIN users */}
+            {user?.role === StaffRole.SUPERADMIN && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/superadmin')}
+                className="flex items-center space-x-2"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Superadmin</span>
+                <ArrowLeft className="w-3 h-3" />
+              </Button>
+            )}
+            <NotificationBell />
             <ThemeToggle />
           </div>
         </header>

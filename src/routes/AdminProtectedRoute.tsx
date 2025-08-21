@@ -57,7 +57,9 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
             Esta sección está disponible solo para Propietarios (OWNER) y Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).</p>
+        <p className={`${themeClasses.textMuted} text-sm mt-4`}>
+          Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).
+        </p>
       </div>
     )
   }
@@ -73,7 +75,9 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
             Esta sección está disponible solo para Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className={`${themeClasses.textMuted} text-sm mt-4`}>Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).</p>
+        <p className={`${themeClasses.textMuted} text-sm mt-4`}>
+          Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).
+        </p>
       </div>
     )
   }

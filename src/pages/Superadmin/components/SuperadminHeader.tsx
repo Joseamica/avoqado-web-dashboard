@@ -1,5 +1,5 @@
 import React from 'react'
-import { Bell, Search, Settings, LogOut } from 'lucide-react'
+import { Bell, Search, Settings, LogOut, Building2, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -13,9 +13,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
 import { themeClasses } from '@/lib/theme-utils'
+import { useNavigate } from 'react-router-dom'
 
 const SuperadminHeader: React.FC = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, allVenues } = useAuth()
+  const navigate = useNavigate()
+
+  const goToVenueDashboard = () => {
+    if (allVenues && allVenues.length > 0) {
+      // Navigate to the first available venue
+      navigate(`/venues/${allVenues[0].slug}/home`)
+    }
+  }
 
   return (
     <header className={`border-b px-6 py-4 ${themeClasses.cardBg} ${themeClasses.border}`}>
@@ -33,6 +42,19 @@ const SuperadminHeader: React.FC = () => {
 
         {/* Right side */}
         <div className="flex items-center space-x-4">
+          {/* Go to Venue Dashboard Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToVenueDashboard}
+            className="flex items-center space-x-2"
+            disabled={!allVenues || allVenues.length === 0}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Venue Dashboard</span>
+            <ArrowRight className="w-3 h-3" />
+          </Button>
+
           {/* System Status */}
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>

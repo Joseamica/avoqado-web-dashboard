@@ -79,12 +79,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isStatusLoading || !isAuthenticated || !user) return
 
     const userVenues = user.venues || []
-    if (userVenues.length > 0) {
-      const defaultVenue = userVenues[0]
+    // SUPERADMIN users should have access to all venues and superadmin routes
+    if (userVenues.length > 0 || user.role === 'SUPERADMIN') {
+      const defaultVenue = userVenues[0] || allVenues[0] // Use first available venue for SUPERADMIN
 
-      // Redirigir desde rutas base a la home del venue por defecto
+      // Redirigir desde rutas base a la home del venue por defecto (unless SUPERADMIN going to /superadmin)
       if (location.pathname === '/' || location.pathname === '/login') {
-        navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+        if (user.role === 'SUPERADMIN') {
+          navigate('/superadmin', { replace: true })
+        } else {
+          navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+        }
         return
       }
 
@@ -104,7 +109,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (!slug && activeVenue) {
         // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
         const currentPath = location.pathname
-        if (!currentPath.includes('/venues/')) {
+        // Don't redirect if user is on superadmin or admin routes
+        const isOnAdminRoute = currentPath.startsWith('/superadmin') || currentPath.startsWith('/admin')
+        if (!currentPath.includes('/venues/') && !isOnAdminRoute) {
           navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
         }
       }
