@@ -5,6 +5,7 @@ import {
   formatNotificationTime,
   getNotificationPriorityColor,
   formatNotificationType,
+  formatNotificationPriority,
   groupNotificationsByDate,
   NotificationType,
   NotificationPriority
@@ -250,7 +251,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectItem value="all">Todas las prioridades</SelectItem>
                       {Object.values(NotificationPriority).map((priority) => (
                         <SelectItem key={priority} value={priority}>
-                          {priority}
+                          {formatNotificationPriority(priority)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -384,7 +385,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                                 variant="outline"
                                 className={getNotificationPriorityColor(notification.priority)}
                               >
-                                {notification.priority}
+                                {formatNotificationPriority(notification.priority)}
                               </Badge>
                               <Badge variant="secondary">
                                 {formatNotificationType(notification.type)}

@@ -1,14 +1,13 @@
 import React, { useState } from 'react'
 import { Bell, X, Check, CheckCheck, MoreVertical } from 'lucide-react'
 import { useNotificationBadge, useNotifications } from '@/contexts/NotificationContext'
-import { formatNotificationTime, getNotificationPriorityColor, groupNotificationsByDate } from '@/services/notification.service'
+import { formatNotificationTime, getNotificationPriorityColor, formatNotificationPriority, groupNotificationsByDate } from '@/services/notification.service'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -134,7 +133,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                       key={notification.id}
                       className={`
                         border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors
-                        ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-950/50 border-l-4 border-l-blue-500 dark:border-l-blue-400' : ''}
+                        ${!notification.isRead ? 'bg-accent/50 border-l-4 border-l-primary' : ''}
                       `}
                       onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
                     >
@@ -150,7 +149,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                                 variant="outline"
                                 className={`text-xs ${getNotificationPriorityColor(notification.priority)}`}
                               >
-                                {notification.priority}
+                                {formatNotificationPriority(notification.priority)}
                               </Badge>
                             </div>
                             
@@ -215,25 +214,23 @@ export function NotificationBell({ className }: NotificationBellProps) {
         </ScrollArea>
 
         {/* Footer */}
-        {notifications.length > 0 && (
-          <div className="p-3 border-t border-border">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                setIsOpen(false)
-                // Navigate to full notifications page - use current venue slug
-                const currentPath = window.location.pathname
-                const venueSlugMatch = currentPath.match(/\/venues\/([^\/]+)/)
-                const venueSlug = venueSlugMatch ? venueSlugMatch[1] : ''
-                window.location.href = venueSlug ? `/venues/${venueSlug}/notifications` : '/notifications'
-              }}
-            >
-              Ver todas las notificaciones
-            </Button>
-          </div>
-        )}
+        <div className="p-3 border-t border-border">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              setIsOpen(false)
+              // Navigate to full notifications page - use current venue slug
+              const currentPath = window.location.pathname
+              const venueSlugMatch = currentPath.match(/\/venues\/([^/]+)/)
+              const venueSlug = venueSlugMatch ? venueSlugMatch[1] : ''
+              window.location.href = venueSlug ? `/venues/${venueSlug}/notifications` : '/notifications'
+            }}
+          >
+            Ver todas las notificaciones
+          </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

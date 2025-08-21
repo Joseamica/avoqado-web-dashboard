@@ -284,10 +284,65 @@ export async function sendVenueNotification(
 // ===== UTILITY FUNCTIONS =====
 
 /**
- * Format notification type for display
+ * Format notification type for display (Spanish)
  */
 export function formatNotificationType(type: NotificationType): string {
-  return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+  const translations = {
+    // Order notifications
+    [NotificationType.NEW_ORDER]: 'Nuevo Pedido',
+    [NotificationType.ORDER_UPDATED]: 'Pedido Actualizado',
+    [NotificationType.ORDER_READY]: 'Pedido Listo',
+    [NotificationType.ORDER_CANCELLED]: 'Pedido Cancelado',
+    
+    // Payment notifications
+    [NotificationType.PAYMENT_RECEIVED]: 'Pago Recibido',
+    [NotificationType.PAYMENT_FAILED]: 'Pago Fallido',
+    [NotificationType.REFUND_PROCESSED]: 'Reembolso Procesado',
+    
+    // Review notifications
+    [NotificationType.NEW_REVIEW]: 'Nueva Reseña',
+    [NotificationType.BAD_REVIEW]: 'Reseña Negativa',
+    [NotificationType.REVIEW_RESPONSE_NEEDED]: 'Respuesta de Reseña Requerida',
+    
+    // Staff notifications
+    [NotificationType.SHIFT_REMINDER]: 'Recordatorio de Turno',
+    [NotificationType.SHIFT_ENDED]: 'Turno Finalizado',
+    [NotificationType.NEW_STAFF_JOINED]: 'Nuevo Personal Unido',
+    
+    // System notifications
+    [NotificationType.POS_DISCONNECTED]: 'POS Desconectado',
+    [NotificationType.POS_RECONNECTED]: 'POS Reconectado',
+    [NotificationType.LOW_INVENTORY]: 'Inventario Bajo',
+    [NotificationType.SYSTEM_MAINTENANCE]: 'Mantenimiento del Sistema',
+    [NotificationType.FEATURE_UPDATED]: 'Función Actualizada',
+    
+    // Admin notifications
+    [NotificationType.VENUE_APPROVAL_NEEDED]: 'Aprobación de Venue Requerida',
+    [NotificationType.VENUE_SUSPENDED]: 'Venue Suspendido',
+    [NotificationType.HIGH_COMMISSION_ALERT]: 'Alerta de Comisión Alta',
+    [NotificationType.REVENUE_MILESTONE]: 'Hito de Ingresos',
+    
+    // General
+    [NotificationType.ANNOUNCEMENT]: 'Anuncio',
+    [NotificationType.REMINDER]: 'Recordatorio',
+    [NotificationType.ALERT]: 'Alerta'
+  }
+  
+  return translations[type] || type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+}
+
+/**
+ * Format notification priority for display (Spanish)
+ */
+export function formatNotificationPriority(priority: NotificationPriority): string {
+  const translations = {
+    [NotificationPriority.LOW]: 'Baja',
+    [NotificationPriority.NORMAL]: 'Normal', 
+    [NotificationPriority.HIGH]: 'Alta',
+    [NotificationPriority.URGENT]: 'Urgente'
+  }
+  
+  return translations[priority] || priority
 }
 
 /**
@@ -336,25 +391,25 @@ export function formatNotificationTime(dateString: string): string {
 
   // Less than 1 minute
   if (diff < 60000) {
-    return 'Just now'
+    return 'Justo ahora'
   }
 
   // Less than 1 hour
   if (diff < 3600000) {
     const minutes = Math.floor(diff / 60000)
-    return `${minutes}m ago`
+    return `hace ${minutes} min`
   }
 
   // Less than 24 hours
   if (diff < 86400000) {
     const hours = Math.floor(diff / 3600000)
-    return `${hours}h ago`
+    return `hace ${hours} h`
   }
 
   // Less than 7 days
   if (diff < 604800000) {
     const days = Math.floor(diff / 86400000)
-    return `${days}d ago`
+    return `hace ${days} ${days === 1 ? 'día' : 'días'}`
   }
 
   // More than 7 days - show date
@@ -376,9 +431,9 @@ export function groupNotificationsByDate(notifications: Notification[]): Record<
     let groupKey: string
 
     if (date.toDateString() === today.toDateString()) {
-      groupKey = 'Today'
+      groupKey = 'Hoy'
     } else if (date.toDateString() === yesterday.toDateString()) {
-      groupKey = 'Yesterday'
+      groupKey = 'Ayer'
     } else {
       groupKey = date.toLocaleDateString()
     }
