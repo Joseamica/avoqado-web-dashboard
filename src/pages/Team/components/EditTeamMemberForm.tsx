@@ -148,12 +148,12 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Member Info Header */}
-      <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">
+          <h3 className="font-semibold text-foreground">
             {teamMember.firstName} {teamMember.lastName}
           </h3>
-          <p className="text-sm text-gray-600">{teamMember.email}</p>
+          <p className="text-sm text-muted-foreground">{teamMember.email}</p>
         </div>
         <Badge className={getRoleBadgeColor(teamMember.role, staffInfo?.role)}>
           {getRoleDisplayName(teamMember.role, staffInfo?.role)}
@@ -180,18 +180,18 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
               >
                 <div>
                   <div className="font-medium">{option.label}</div>
-                  <div className="text-sm text-gray-500">{option.description}</div>
+                  <div className="text-sm text-muted-foreground">{option.description}</div>
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors.role && (
-          <p className="text-sm text-red-600">{errors.role.message}</p>
+          <p className="text-sm text-destructive">{errors.role.message}</p>
         )}
         {selectedRoleInfo && selectedRole !== teamMember.role && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Nuevo rol:</strong> {selectedRoleInfo.description}
             </p>
           </div>
@@ -207,10 +207,10 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       </div>
 
       {/* Status Toggle */}
-      <div className="flex items-center justify-between p-4 border rounded-lg">
+      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
         <div className="space-y-1">
           <Label className="text-base font-medium">Estado del miembro</Label>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             {isActive ? 'El miembro puede acceder al sistema' : 'El miembro no puede acceder al sistema'}
           </p>
         </div>
@@ -243,35 +243,35 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           />
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPin(!showPin)}
           >
             {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
         {errors.pin && (
-          <p className="text-sm text-red-600">{errors.pin.message}</p>
+          <p className="text-sm text-destructive">{errors.pin.message}</p>
         )}
         {watchedPin && (
-          <p className="text-sm text-blue-600">
+          <p className="text-sm text-blue-600 dark:text-blue-400">
             Se establecerá un nuevo PIN para el miembro
           </p>
         )}
       </div>
 
       {/* Performance Summary */}
-      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
         <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             ${teamMember.totalSales.toLocaleString()}
           </div>
-          <div className="text-sm text-gray-600">Ventas Totales</div>
+          <div className="text-sm text-muted-foreground">Ventas Totales</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             {teamMember.totalOrders}
           </div>
-          <div className="text-sm text-gray-600">Órdenes</div>
+          <div className="text-sm text-muted-foreground">Órdenes</div>
         </div>
       </div>
 

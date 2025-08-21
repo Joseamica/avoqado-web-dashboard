@@ -1,5 +1,5 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react'
-import { Link, NavLink, useLocation } from 'react-router-dom' // Import Link
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom' // Import Link
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
 import {
   SidebarGroup,
@@ -26,6 +26,7 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const navigate = useNavigate()
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Plataforma</SidebarGroupLabel>
@@ -60,7 +61,17 @@ export function NavMain({
             // Render direct link for items without sub-items
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild tooltip={item.title}>
-                <NavLink to={item.url} className="flex items-center">
+                <NavLink 
+                  to={item.url} 
+                  className="flex items-center"
+                  onClick={(e) => {
+                    // For superadmin routes, prevent default and navigate manually
+                    if (item.url.startsWith('/superadmin')) {
+                      e.preventDefault()
+                      navigate(item.url)
+                    }
+                  }}
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </NavLink>

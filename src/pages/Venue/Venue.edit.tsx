@@ -182,9 +182,10 @@ export default function EditVenue() {
   const { data: venue, isLoading } = useQuery({
     queryKey: ['get-venue-data', venueId],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/venue`)
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
       return response.data
     },
+    enabled: !!venueId,
   })
 
   const form = useForm<VenueFormValues>({
@@ -239,38 +240,38 @@ export default function EditVenue() {
       form.reset({
         name: venue.name || '',
         posName: (venue.posName as PosNames) || null,
-        posUniqueId: venue.posUniqueId || '',
-        address: venue.address || '',
-        city: venue.city || '',
+        posUniqueId: venue.posUniqueId || null,
+        address: venue.address || null,
+        city: venue.city || null,
         type: (venue.type as VenueType) || null,
-        country: countryValue, // Usamos el valor tal como viene
+        country: countryValue || null, // Usamos el valor tal como viene
         utc: venue.utc || 'America/Mexico_City',
-        instagram: venue.instagram || '',
-        phone: venue.phone || '',
-        email: venue.email || '',
-        website: venue.website || '',
+        instagram: venue.instagram || null,
+        phone: venue.phone || null,
+        email: venue.email || null,
+        website: venue.website || null,
         language: venue.language || 'es',
-        image: venue.image || '',
-        logo: venue.logo || '',
-        cuisine: venue.cuisine || '',
-        dynamicMenu: venue.dynamicMenu || false,
-        wifiName: venue.wifiName || '',
-        wifiPassword: venue.wifiPassword || '',
-        softRestaurantVenueId: venue.softRestaurantVenueId || '',
+        image: venue.image || null,
+        logo: venue.logo || null,
+        cuisine: venue.cuisine || null,
+        dynamicMenu: Boolean(venue.dynamicMenu),
+        wifiName: venue.wifiName || null,
+        wifiPassword: venue.wifiPassword || null,
+        softRestaurantVenueId: venue.softRestaurantVenueId || null,
         tipPercentage1: venue.tipPercentage1 || '0.10',
         tipPercentage2: venue.tipPercentage2 || '0.15',
         tipPercentage3: venue.tipPercentage3 || '0.20',
         tipPercentages: venue.tipPercentages || [0.1, 0.15, 0.2],
-        askNameOrdering: venue.askNameOrdering || false,
-        googleBusinessId: venue.googleBusinessId || '',
-        stripeAccountId: venue.stripeAccountId || '',
-        specialPayment: venue.specialPayment || false,
-        specialPaymentRef: venue.specialPaymentRef || '',
-        ordering: venue.feature?.ordering || false,
-        merchantIdA: venue.menta?.merchantIdA || '',
-        merchantIdB: venue.menta?.merchantIdB || '',
-        apiKeyA: venue.menta?.apiKeyA || '',
-        apiKeyB: venue.menta?.apiKeyB || '',
+        askNameOrdering: Boolean(venue.askNameOrdering),
+        googleBusinessId: venue.googleBusinessId || null,
+        stripeAccountId: venue.stripeAccountId || null,
+        specialPayment: Boolean(venue.specialPayment),
+        specialPaymentRef: venue.specialPaymentRef || null,
+        ordering: Boolean(venue.feature?.ordering),
+        merchantIdA: venue.menta?.merchantIdA || null,
+        merchantIdB: venue.menta?.merchantIdB || null,
+        apiKeyA: venue.menta?.apiKeyA || null,
+        apiKeyB: venue.menta?.apiKeyB || null,
       })
 
       // Después de reiniciar el formulario, verificar el valor establecido
@@ -323,7 +324,7 @@ export default function EditVenue() {
         }
       }
 
-      return await api.put(`/v2/dashboard/venues/${venueId}`, venueData)
+      return await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
     },
     onSuccess: () => {
       toast({
@@ -332,10 +333,11 @@ export default function EditVenue() {
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
     },
-    onError: error => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Hubo un error al actualizar el venue.'
       toast({
         title: 'Error al actualizar venue',
-        description: 'Hubo un error al actualizar el venue.',
+        description: errorMessage,
         variant: 'destructive',
       })
       console.error('Error updating venue:', error)
@@ -351,7 +353,7 @@ export default function EditVenue() {
 
   const deleteVenue = useMutation({
     mutationFn: async () => {
-      await api.delete(`/v2/dashboard/venues/${venueId}`)
+      await api.delete(`/api/v1/dashboard/venues/${venueId}`)
     },
     onSuccess: () => {
       toast({
@@ -359,7 +361,17 @@ export default function EditVenue() {
         description: 'El venue se ha eliminado correctamente.',
       })
       queryClient.invalidateQueries({ queryKey: ['status'] })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data'] })
       navigate(from)
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Hubo un error al eliminar el venue.'
+      toast({
+        title: 'Error al eliminar venue',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      console.error('Error deleting venue:', error)
     },
   })
 
@@ -368,6 +380,21 @@ export default function EditVenue() {
   }
 
   if (isLoading) return <VenueSkeleton />
+  
+  if (!venue) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Venue no encontrado</h2>
+          <p className="text-gray-600 mb-4">El venue que buscas no existe o no tienes permisos para editarlo.</p>
+          <Button onClick={() => navigate(from)}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const expectedDeleteText = `delete ${venue.name}`
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
@@ -454,7 +481,7 @@ export default function EditVenue() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un tipo" />
@@ -525,7 +552,7 @@ export default function EditVenue() {
                       return (
                         <FormItem>
                           <FormLabel>País</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Selecciona un país" />
@@ -743,7 +770,7 @@ export default function EditVenue() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Idioma por defecto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || 'es'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un idioma" />
@@ -873,7 +900,7 @@ export default function EditVenue() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Sistema POS</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona un sistema POS" />

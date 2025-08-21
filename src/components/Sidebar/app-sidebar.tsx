@@ -6,15 +6,17 @@ import {
   Command,
   Frame,
   GalleryVerticalEnd,
-  Globe,
   Home,
-  Server,
   Settings2,
-  ShieldAlert,
   Smartphone,
   Star,
   Ungroup,
   Users,
+  BarChart3,
+  DollarSign,
+  Zap,
+  AlertTriangle,
+  TrendingUp,
 } from 'lucide-react'
 import * as React from 'react'
 
@@ -213,46 +215,51 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const superAdminRoutes = [
     {
-      title: 'Admin Dashboard',
+      title: 'Platform Overview',
       isActive: true,
-      url: '/admin',
-      icon: Settings2,
-    },
-    {
-      title: 'User Management',
-      isActive: true,
-      url: '/admin/users',
-      icon: Users,
+      url: '/superadmin',
+      icon: BarChart3,
     },
     {
       title: 'Venue Management',
       isActive: true,
-      url: '/admin/venues',
+      url: '/superadmin/venues',
       icon: Building,
     },
     {
-      title: 'System Settings',
+      title: 'Feature Management',
       isActive: true,
-      url: '/admin/system',
-      icon: Server,
+      url: '/superadmin/features',
+      icon: Zap,
     },
     {
-      title: 'Global Config',
+      title: 'Revenue Dashboard',
       isActive: true,
-      url: '/admin/global',
-      icon: Globe,
+      url: '/superadmin/revenue',
+      icon: DollarSign,
     },
     {
-      title: 'SuperAdmin Management',
+      title: 'Analytics',
       isActive: true,
-      url: '/admin/superadmins',
-      icon: ShieldAlert,
+      url: '/superadmin/analytics',
+      icon: TrendingUp,
+    },
+    {
+      title: 'System Alerts',
+      isActive: true,
+      url: '/superadmin/alerts',
+      icon: AlertTriangle,
+    },
+    {
+      title: 'Legacy Admin',
+      isActive: true,
+      url: '/admin',
+      icon: Settings2,
     },
   ]
 
   // Use all venues for SUPERADMIN, otherwise use user's assigned venues
-  const venuesToShow: Array<Venue | SessionVenue> =
-    user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
+  const venuesToShow: Array<Venue | SessionVenue> = user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
   const defaultVenue: Venue | SessionVenue | null = venuesToShow.length > 0 ? venuesToShow[0] : null
 
   // Map app User -> NavUser expected shape
@@ -267,9 +274,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        {defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}
-      </SidebarHeader>
+      <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
       <SidebarContent>
         <NavMain items={user.role === 'SUPERADMIN' ? [...data.navMain, ...superAdminRoutes] : data.navMain} />
         {/* <NavProjects projects={data.projects} /> */}

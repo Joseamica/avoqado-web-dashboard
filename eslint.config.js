@@ -24,6 +24,23 @@ export default tseslint.config(
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'off',
+
+      // Prevent hardcoded gray colors in className
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/.*(?:text-gray-|bg-gray-|border-gray-).*/]',
+          message: '🚨 THEME VIOLATION: Use theme-aware colors instead of hardcoded gray colors. See THEME-GUIDELINES.md'
+        },
+        {
+          selector: 'TemplateElement[value.raw=/.*(?:text-gray-|bg-gray-|border-gray-).*/]',
+          message: '🚨 THEME VIOLATION: Use theme-aware colors instead of hardcoded gray colors. See THEME-GUIDELINES.md'
+        },
+        {
+          selector: 'Literal[value=/.*(?:text-black|text-white|bg-black|bg-white).*/]',
+          message: '🚨 THEME VIOLATION: Use text-foreground/bg-background instead of hardcoded black/white colors. See THEME-GUIDELINES.md'
+        }
+      ]
     },
   },
 )

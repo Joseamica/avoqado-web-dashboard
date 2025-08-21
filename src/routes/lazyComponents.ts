@@ -54,9 +54,12 @@ export const SuperAdminManagement = React.lazy(() => import('@/pages/Admin/Super
 export const SuperAdminVenueEdit = React.lazy(() => import('@/pages/Admin/SuperAdminVenueEdit'))
 
 export const Venues = React.lazy(() => import('@/pages/Venue/Venues'))
+export const Notifications = React.lazy(() => import('@/pages/Notifications/Notifications'))
+export const NotificationPreferences = React.lazy(() => import('@/pages/Notifications/NotificationPreferences'))
 
-// New Superadmin System Components
-export const SuperadminLayout = React.lazy(() => import('@/pages/Superadmin/SuperadminLayout'))
-export const SuperadminDashboard = React.lazy(() => import('@/pages/Superadmin/SuperadminDashboard'))
-export const SuperadminFeatureManagement = React.lazy(() => import('@/pages/Superadmin/FeatureManagement'))
-export const SuperadminVenueManagement = React.lazy(() => import('@/pages/Superadmin/VenueManagement'))
+// New Superadmin System Components (temporary direct imports for debugging)
+export { default as SuperadminLayout } from '@/pages/Superadmin/SuperadminLayout'
+export { default as SuperadminDashboard } from '@/pages/Superadmin/SuperadminDashboard'
+export { default as SuperadminFeatureManagement } from '@/pages/Superadmin/FeatureManagement'
+export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueManagement'
+export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'

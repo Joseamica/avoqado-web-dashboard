@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,78 +31,16 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FeatureCategory, FeatureStatus, PricingModel, type PlatformFeature } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
+import { superadminAPI } from '@/services/superadmin'
+import { useToast } from '@/hooks/use-toast'
 
-// Mock data for platform features
-const mockFeatures: PlatformFeature[] = [
-  {
-    id: '1',
-    code: 'ai_chatbot',
-    name: 'AI Chatbot',
-    description: 'Intelligent customer support chatbot powered by AI',
-    category: FeatureCategory.AI,
-    status: FeatureStatus.ACTIVE,
-    pricingModel: PricingModel.FIXED,
-    basePrice: 49.99,
-    isCore: false,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: '2',
-    code: 'advanced_analytics',
-    name: 'Advanced Analytics',
-    description: 'Deep insights and custom reports for business intelligence',
-    category: FeatureCategory.ANALYTICS,
-    status: FeatureStatus.ACTIVE,
-    pricingModel: PricingModel.TIERED,
-    basePrice: 29.99,
-    isCore: false,
-    createdAt: '2024-01-10T10:00:00Z',
-    updatedAt: '2024-01-10T10:00:00Z',
-  },
-  {
-    id: '3',
-    code: 'pos_integration',
-    name: 'POS Integration',
-    description: 'Core point-of-sale system integration',
-    category: FeatureCategory.CORE,
-    status: FeatureStatus.ACTIVE,
-    pricingModel: PricingModel.FREE,
-    isCore: true,
-    createdAt: '2024-01-01T10:00:00Z',
-    updatedAt: '2024-01-01T10:00:00Z',
-  },
-  {
-    id: '4',
-    code: 'inventory_ai',
-    name: 'AI Inventory Management',
-    description: 'Predictive inventory management using machine learning',
-    category: FeatureCategory.AI,
-    status: FeatureStatus.BETA,
-    pricingModel: PricingModel.USAGE_BASED,
-    usagePrice: 0.1,
-    usageUnit: 'prediction',
-    isCore: false,
-    createdAt: '2024-02-01T10:00:00Z',
-    updatedAt: '2024-02-01T10:00:00Z',
-  },
-  {
-    id: '5',
-    code: 'multi_venue',
-    name: 'Multi-Venue Management',
-    description: 'Manage multiple restaurant locations from one dashboard',
-    category: FeatureCategory.PREMIUM,
-    status: FeatureStatus.ACTIVE,
-    pricingModel: PricingModel.FIXED,
-    basePrice: 99.99,
-    isCore: false,
-    createdAt: '2024-01-20T10:00:00Z',
-    updatedAt: '2024-01-20T10:00:00Z',
-  },
-]
+// Data now fetched from API via React Query
 
 const FeatureManagement: React.FC = () => {
-  const [features] = useState<PlatformFeature[]>(mockFeatures)
+  const { data: features = [], isLoading } = useQuery({
+    queryKey: ['superadmin-features'],
+    queryFn: superadminAPI.getAllFeatures,
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -327,13 +265,17 @@ const FeatureManagement: React.FC = () => {
             </Select>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={filteredFeatures}
-            pagination={{ pageIndex: 0, pageSize: 10 }}
-            setPagination={() => {}}
-            rowCount={filteredFeatures.length}
-          />
+          {isLoading ? (
+            <div className="py-8 text-sm text-muted-foreground">Loading features...</div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filteredFeatures}
+              pagination={{ pageIndex: 0, pageSize: 10 }}
+              setPagination={() => {}}
+              rowCount={filteredFeatures.length}
+            />
+          )}
         </CardContent>
       </Card>
     </div>
@@ -342,28 +284,67 @@ const FeatureManagement: React.FC = () => {
 
 // Create Feature Form Component
 const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const [name, setName] = useState('')
+  const [code, setCode] = useState('')
+  const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<FeatureCategory | ''>('')
+  const [pricingModel, setPricingModel] = useState<PricingModel | ''>('')
+  const [basePrice, setBasePrice] = useState('')
+  const [isCore, setIsCore] = useState(false)
+
+  const createFeature = useMutation({
+    mutationFn: superadminAPI.createFeature,
+    onSuccess: data => {
+      toast({ title: 'Feature created', description: `${data.name} has been created.` })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-features'] })
+      onClose()
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to create feature',
+        description: error?.response?.data?.message || error.message,
+        variant: 'destructive' as any,
+      })
+    },
+  })
+
+  const onSubmit = () => {
+    createFeature.mutate({
+      name,
+      code,
+      description,
+      category: category || undefined,
+      pricingModel: pricingModel || undefined,
+      basePrice: basePrice ? Number(basePrice) : undefined,
+      isCore,
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="name">Feature Name</Label>
-          <Input id="name" placeholder="AI Chatbot" />
+          <Input id="name" placeholder="AI Chatbot" value={name} onChange={e => setName(e.target.value)} />
         </div>
         <div>
           <Label htmlFor="code">Feature Code</Label>
-          <Input id="code" placeholder="ai_chatbot" />
+          <Input id="code" placeholder="ai_chatbot" value={code} onChange={e => setCode(e.target.value)} />
         </div>
       </div>
 
       <div>
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" placeholder="Describe what this feature does..." />
+        <Textarea id="description" placeholder="Describe what this feature does..." value={description} onChange={e => setDescription(e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="category">Category</Label>
-          <Select>
+          <Select value={category} onValueChange={value => setCategory(value as FeatureCategory)}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
@@ -372,12 +353,13 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <SelectItem value={FeatureCategory.ANALYTICS}>Analytics</SelectItem>
               <SelectItem value={FeatureCategory.INTEGRATIONS}>Integrations</SelectItem>
               <SelectItem value={FeatureCategory.PREMIUM}>Premium</SelectItem>
+              <SelectItem value={FeatureCategory.CORE}>Core</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="pricing">Pricing Model</Label>
-          <Select>
+          <Select value={pricingModel} onValueChange={value => setPricingModel(value as PricingModel)}>
             <SelectTrigger>
               <SelectValue placeholder="Select pricing" />
             </SelectTrigger>
@@ -394,10 +376,10 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="price">Base Price ($)</Label>
-          <Input id="price" type="number" placeholder="49.99" />
+          <Input id="price" type="number" placeholder="49.99" value={basePrice} onChange={e => setBasePrice(e.target.value)} />
         </div>
         <div className="flex items-center space-x-2 pt-6">
-          <Switch id="core" />
+          <Switch id="core" checked={isCore} onCheckedChange={setIsCore} />
           <Label htmlFor="core">Core Feature</Label>
         </div>
       </div>
@@ -406,7 +388,9 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <Button variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={onClose}>Create Feature</Button>
+        <Button onClick={onSubmit} disabled={createFeature.isPending}>
+          {createFeature.isPending ? 'Creating...' : 'Create Feature'}
+        </Button>
       </DialogFooter>
     </div>
   )

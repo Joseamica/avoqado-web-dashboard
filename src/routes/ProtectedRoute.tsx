@@ -7,6 +7,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 export const ProtectedRoute = () => {
   const { user, isAuthenticated, logout } = useAuth() || {}
   const location = useLocation()
+
   if (user?.role !== StaffRole.OWNER && user?.role !== StaffRole.SUPERADMIN && isAuthenticated && user?.venues.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center p-6 h-screen text-center bg-gray-100">

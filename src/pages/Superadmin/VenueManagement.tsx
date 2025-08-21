@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,18 +25,15 @@ import { type ColumnDef } from '@tanstack/react-table'
 import {
   Building2,
   Search,
-  Filter,
   CheckCircle,
   XCircle,
   Clock,
   TrendingUp,
   DollarSign,
-  Users,
   Settings,
   Eye,
   MoreHorizontal,
   AlertTriangle,
-  Crown,
   Zap
 } from 'lucide-react'
 import {
@@ -45,145 +43,29 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { VenueStatus, SubscriptionPlan, type SuperadminVenue } from '@/types/superadmin'
-import Currency from '@/utils/currency'
+import { Currency } from '@/utils/currency'
+import { superadminAPI } from '@/services/superadmin'
+import { useToast } from '@/hooks/use-toast'
+import { useNavigate } from 'react-router-dom'
+import { Label } from '@/components/ui/label'
 
-// Mock data for venues
-const mockVenues: SuperadminVenue[] = [
-  {
-    id: '1',
-    name: 'Restaurante El Patrón',
-    slug: 'el-patron',
-    status: VenueStatus.ACTIVE,
-    subscriptionPlan: SubscriptionPlan.PROFESSIONAL,
-    monthlyRevenue: 45000,
-    commissionRate: 15,
-    totalTransactions: 2847,
-    totalRevenue: 540000,
-    organizationId: 'org1',
-    organization: {
-      id: 'org1',
-      name: 'Grupo Restaurantero SA',
-      email: 'admin@gruporestaurantero.com',
-      phone: '+1234567890'
-    },
-    owner: {
-      id: 'user1',
-      firstName: 'Carlos',
-      lastName: 'Mendoza',
-      email: 'carlos@elpatron.com',
-      phone: '+1234567891'
-    },
-    features: [],
-    analytics: {
-      monthlyTransactions: 2847,
-      monthlyRevenue: 45000,
-      averageOrderValue: 15.82,
-      activeUsers: 124,
-      lastActivityAt: '2024-08-15T14:30:00Z'
-    },
-    billing: {
-      nextBillingDate: '2024-09-01T00:00:00Z',
-      monthlySubscriptionFee: 299,
-      additionalFeaturesCost: 149,
-      totalMonthlyBill: 448,
-      paymentStatus: 'PAID'
-    },
-    approvedAt: '2024-01-15T10:00:00Z',
-    approvedBy: 'superadmin1',
-    createdAt: '2024-01-10T10:00:00Z',
-    updatedAt: '2024-08-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Sushi Zen',
-    slug: 'sushi-zen',
-    status: VenueStatus.PENDING,
-    subscriptionPlan: SubscriptionPlan.STARTER,
-    monthlyRevenue: 0,
-    commissionRate: 12,
-    totalTransactions: 0,
-    totalRevenue: 0,
-    organizationId: 'org2',
-    organization: {
-      id: 'org2',
-      name: 'Zen Foods LLC',
-      email: 'info@zenfoods.com'
-    },
-    owner: {
-      id: 'user2',
-      firstName: 'Akira',
-      lastName: 'Tanaka',
-      email: 'akira@sushizen.com'
-    },
-    features: [],
-    analytics: {
-      monthlyTransactions: 0,
-      monthlyRevenue: 0,
-      averageOrderValue: 0,
-      activeUsers: 1,
-      lastActivityAt: '2024-08-14T09:15:00Z'
-    },
-    billing: {
-      nextBillingDate: '2024-09-01T00:00:00Z',
-      monthlySubscriptionFee: 99,
-      additionalFeaturesCost: 0,
-      totalMonthlyBill: 99,
-      paymentStatus: 'PENDING'
-    },
-    createdAt: '2024-08-10T10:00:00Z',
-    updatedAt: '2024-08-14T10:00:00Z'
-  },
-  {
-    id: '3',
-    name: 'Pizza Corner',
-    slug: 'pizza-corner',
-    status: VenueStatus.SUSPENDED,
-    subscriptionPlan: SubscriptionPlan.PROFESSIONAL,
-    monthlyRevenue: 32000,
-    commissionRate: 15,
-    totalTransactions: 1956,
-    totalRevenue: 384000,
-    organizationId: 'org3',
-    organization: {
-      id: 'org3',
-      name: 'Corner Foods Inc',
-      email: 'billing@cornerfoods.com'
-    },
-    owner: {
-      id: 'user3',
-      firstName: 'Mario',
-      lastName: 'Rossi',
-      email: 'mario@pizzacorner.com'
-    },
-    features: [],
-    analytics: {
-      monthlyTransactions: 1956,
-      monthlyRevenue: 32000,
-      averageOrderValue: 16.37,
-      activeUsers: 89,
-      lastActivityAt: '2024-08-10T18:45:00Z'
-    },
-    billing: {
-      nextBillingDate: '2024-09-01T00:00:00Z',
-      monthlySubscriptionFee: 299,
-      additionalFeaturesCost: 49,
-      totalMonthlyBill: 348,
-      paymentStatus: 'OVERDUE'
-    },
-    approvedAt: '2024-02-01T10:00:00Z',
-    approvedBy: 'superadmin1',
-    createdAt: '2024-01-25T10:00:00Z',
-    updatedAt: '2024-08-10T10:00:00Z'
-  }
-]
+// Data now fetched from API via React Query
 
 const VenueManagement: React.FC = () => {
-  const [venues] = useState<SuperadminVenue[]>(mockVenues)
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { data: venues = [], isLoading } = useQuery({
+    queryKey: ['superadmin-venues'],
+    queryFn: superadminAPI.getAllVenues,
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedVenue, setSelectedVenue] = useState<SuperadminVenue | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
+  const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
+  const [reason, setReason] = useState('')
 
   // Filter venues
   const filteredVenues = venues.filter(venue => {
@@ -232,6 +114,40 @@ const VenueManagement: React.FC = () => {
     setSelectedVenue(venue)
     setIsDetailsOpen(true)
   }
+
+  const approveMutation = useMutation({
+    mutationFn: (venueId: string) => superadminAPI.approveVenue(venueId, reason || undefined),
+    onSuccess: () => {
+      toast({ title: 'Venue approved', description: `${selectedVenue?.name} has been approved.` })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      setIsApprovalDialogOpen(false)
+      setReason('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to approve venue',
+        description: error?.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const suspendMutation = useMutation({
+    mutationFn: (venueId: string) => superadminAPI.suspendVenue(venueId, reason || 'No reason provided'),
+    onSuccess: () => {
+      toast({ title: 'Venue suspended', description: `${selectedVenue?.name} has been suspended.` })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      setIsSuspendDialogOpen(false)
+      setReason('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to suspend venue',
+        description: error?.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
 
   const columns: ColumnDef<SuperadminVenue>[] = [
     {
@@ -312,7 +228,7 @@ const VenueManagement: React.FC = () => {
                 Approve Venue
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(`/admin/venues/${row.original.id}`)}>
               <Settings className="mr-2 h-4 w-4" />
               Manage Features
             </DropdownMenuItem>
@@ -321,7 +237,7 @@ const VenueManagement: React.FC = () => {
               View Analytics
             </DropdownMenuItem>
             {row.original.status === VenueStatus.ACTIVE && (
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedVenue(row.original); setIsSuspendDialogOpen(true) }}>
                 <XCircle className="mr-2 h-4 w-4" />
                 Suspend Venue
               </DropdownMenuItem>
@@ -333,10 +249,13 @@ const VenueManagement: React.FC = () => {
   ]
 
   // Calculate stats
-  const totalRevenue = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
-  const totalCommission = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate / 100), 0)
-  const pendingApprovals = venues.filter(v => v.status === VenueStatus.PENDING).length
-  const activeVenues = venues.filter(v => v.status === VenueStatus.ACTIVE).length
+  const { totalRevenue, totalCommission, pendingApprovals, activeVenues } = useMemo(() => {
+    const tr = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
+    const tc = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate / 100), 0)
+    const pa = venues.filter(v => v.status === VenueStatus.PENDING).length
+    const av = venues.filter(v => v.status === VenueStatus.ACTIVE).length
+    return { totalRevenue: tr, totalCommission: tc, pendingApprovals: pa, activeVenues: av }
+  }, [venues])
 
   return (
     <div className="space-y-6">
@@ -443,13 +362,17 @@ const VenueManagement: React.FC = () => {
             </Select>
           </div>
 
-          <DataTable
-            columns={columns}
-            data={filteredVenues}
-            pagination={{ pageIndex: 0, pageSize: 10 }}
-            setPagination={() => {}}
-            rowCount={filteredVenues.length}
-          />
+          {isLoading ? (
+            <div className="py-8 text-sm text-muted-foreground">Loading venues...</div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filteredVenues}
+              pagination={{ pageIndex: 0, pageSize: 10 }}
+              setPagination={() => {}}
+              rowCount={filteredVenues.length}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -475,12 +398,40 @@ const VenueManagement: React.FC = () => {
               Are you sure you want to approve {selectedVenue?.name}?
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="approve-reason">Reason (optional)</Label>
+            <Input id="approve-reason" placeholder="Optional reason" value={reason} onChange={e => setReason(e.target.value)} />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setIsApprovalDialogOpen(false)}>
-              Approve Venue
+            <Button onClick={() => selectedVenue && approveMutation.mutate(selectedVenue.id)} disabled={approveMutation.isPending}>
+              {approveMutation.isPending ? 'Approving...' : 'Approve Venue'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend Dialog */}
+      <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suspend Venue</DialogTitle>
+            <DialogDescription>
+              Please provide a reason to suspend {selectedVenue?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="suspend-reason">Reason</Label>
+            <Input id="suspend-reason" placeholder="Reason for suspension" value={reason} onChange={e => setReason(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => selectedVenue && suspendMutation.mutate(selectedVenue.id)} disabled={suspendMutation.isPending || !reason}>
+              {suspendMutation.isPending ? 'Suspending...' : 'Suspend Venue'}
             </Button>
           </DialogFooter>
         </DialogContent>
