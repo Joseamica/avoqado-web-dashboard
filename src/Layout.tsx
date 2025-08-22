@@ -28,19 +28,19 @@ export function Layout() {
 
   if (user.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-gray-100 dark:bg-gray-900">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg dark:bg-gray-800 dark:text-white">
+      <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-background">
+        <div className="w-full max-w-md p-8 bg-card rounded-lg shadow-lg text-card-foreground">
           <div className="absolute top-4 right-4">
             <ThemeToggle />
           </div>
-          <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">¡No Tienes Sucursales Asignados!</h1>
-          <p className="mb-6 text-gray-600 dark:text-gray-300">
+          <h1 className="mb-4 text-2xl font-semibold text-foreground">¡No Tienes Sucursales Asignados!</h1>
+          <p className="mb-6 text-muted-foreground">
             Para comenzar a usar la plataforma, crea un venue o contacta al administrador para que te asigne uno.
           </p>
 
-          <p className="mt-4 mb-4 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-4 mb-4 text-sm text-muted-foreground">
             ¿Necesitas ayuda?{' '}
-            <a href="/support" className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+            <a href="/support" className="text-primary underline hover:text-primary/80">
               Contáctanos
             </a>
           </p>
@@ -54,7 +54,7 @@ export function Layout() {
   }
 
   return (
-    <div className="p-4 dark:bg-gray-900 dark:text-white">
+    <div className="p-4 bg-background text-foreground">
       <div className="flex justify-between items-center mb-4">
         <h1>Test Page</h1>
         <ThemeToggle />

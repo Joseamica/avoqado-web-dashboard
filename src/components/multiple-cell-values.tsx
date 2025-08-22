@@ -5,7 +5,7 @@ export const ItemsCell = ({ cell, max_visible_items = 3 }) => {
   const items = Array.isArray(raw) ? raw.filter(Boolean) : [] // Ensure array to avoid runtime errors
   const limit = typeof max_visible_items === 'number' && max_visible_items > 0 ? max_visible_items : 3
   if (items.length === 0) {
-    return <span className="text-gray-500">-</span>
+    return <span className="text-muted-foreground">-</span>
   }
   const visibleItems = items.slice(0, limit)
   const remainingCount = Math.max(0, items.length - limit)
@@ -25,12 +25,12 @@ export const ItemsCell = ({ cell, max_visible_items = 3 }) => {
         <div className="max-w-sm truncate cursor-pointer">
           <span>
             {joinWithCommas(visibleItems)}
-            {remainingCount > 0 && <span className="text-gray-500"> +{remainingCount} más</span>}
+            {remainingCount > 0 && <span className="text-muted-foreground"> +{remainingCount} más</span>}
           </span>
         </div>
       </TooltipTrigger>
       {items.length > limit && (
-        <TooltipContent className="p-2 border border-gray-200 rounded shadow-lg">
+        <TooltipContent className="p-2 border border-muted rounded shadow-lg">
           <span>{joinWithCommas(items)}</span>
         </TooltipContent>
       )}

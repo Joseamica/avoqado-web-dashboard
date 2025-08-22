@@ -127,7 +127,7 @@ export default function Account() {
                   <FormItem>
                     <FormLabel>Correo electrónico</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" readOnly className="text-gray-500" />
+                      <Input {...field} type="email" readOnly className="text-muted-foreground" />
                     </FormControl>
                   </FormItem>
                 )}

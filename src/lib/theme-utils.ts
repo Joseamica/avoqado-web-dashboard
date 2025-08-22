@@ -2,18 +2,18 @@
 
 export const themeClasses = {
   // Backgrounds
-  pageBg: 'bg-gray-50 dark:bg-[hsl(240_5.9%_10%)]',
-  cardBg: 'bg-white dark:bg-[hsl(240_3.7%_15.9%)]',
-  inputBg: 'bg-bg-input dark:bg-gray-800',
+  pageBg: 'bg-muted dark:bg-[hsl(240_5.9%_10%)]',
+  cardBg: 'bg-card dark:bg-[hsl(240_3.7%_15.9%)]',
+  inputBg: 'bg-input dark:bg-muted',
   contentBg: 'bg-muted/50 dark:bg-[hsl(240_5.9%_10%)]',
 
   // Text
-  text: 'text-gray-900 dark:text-white',
-  textMuted: 'text-gray-500 dark:text-gray-400',
-  textSubtle: 'text-gray-700 dark:text-gray-300',
+  text: 'text-foreground',
+  textMuted: 'text-muted-foreground',
+  textSubtle: 'text-foreground/80',
 
   // Borders
-  border: 'border-gray-200 dark:border-gray-700',
+  border: 'border-border',
 
   // Status colors
   success: {
@@ -37,20 +37,20 @@ export const themeClasses = {
     border: 'border-blue-200 dark:border-blue-800',
   },
   neutral: {
-    bg: 'bg-gray-100 dark:bg-gray-800',
-    text: 'text-gray-700 dark:text-gray-300',
-    border: 'border-gray-200 dark:border-gray-700',
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    border: 'border-border',
   },
 
   // Interactive elements
-  hover: 'hover:bg-gray-100 dark:hover:bg-gray-800',
+  hover: 'hover:bg-muted/50',
 
   // Tables
   table: {
-    bg: 'bg-white dark:bg-[hsl(240_3.7%_15.9%)]',
-    border: 'border-gray-200 dark:border-gray-700',
-    headerBg: 'bg-gray-50 dark:bg-gray-800',
-    rowHover: 'hover:bg-gray-50 dark:hover:bg-gray-800',
-    cell: 'text-gray-900 dark:text-white',
+    bg: 'bg-card',
+    border: 'border-border',
+    headerBg: 'bg-muted',
+    rowHover: 'hover:bg-muted/50',
+    cell: 'text-foreground',
   },
 }

@@ -544,7 +544,7 @@ const HomeProgressive = () => {
                     </div>
                   ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <div className="mx-auto aspect-square max-h-[250px]">
@@ -790,7 +790,7 @@ const renderChartContent = (chartType: string, data: any) => {
         <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="p-8 text-center text-gray-500">
+        <div className="p-8 text-center text-muted-foreground">
           Chart content for {chartType} would be rendered here
         </div>
       </CardContent>
@@ -809,7 +809,7 @@ const renderMetricContent = (metricType: string, data: any) => {
         <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="p-8 text-center text-gray-500">
+        <div className="p-8 text-center text-muted-foreground">
           Metric content for {metricType} would be rendered here
         </div>
       </CardContent>

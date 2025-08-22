@@ -321,7 +321,7 @@ export default function MenuId() {
 
   return (
     <div>
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
           <Link to={from}>
             <ArrowLeft />
@@ -504,7 +504,7 @@ export default function MenuId() {
                     onClick={() => toggleDay(day.label)}
                     className={
                       'px-3 py-1 cursor-pointer transition-colors w-full ' +
-                      (day.selected ? 'bg-black text-white' : 'bg-gray-200 text-black')
+                      (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
                     }
                   >
                     {day.label}
@@ -514,14 +514,14 @@ export default function MenuId() {
               {form.formState.errors.days && <p className="text-sm text-red-500">{form.formState.errors.days.message?.toString()}</p>}
             </div>
 
-            <div className="relative w-full h-6 overflow-hidden bg-gray-100 rounded-sm">
+            <div className="relative w-full h-6 overflow-hidden bg-muted rounded-sm">
               {!isAllDay && (
                 <div className="absolute top-0 bottom-0 bg-green-500" style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} />
               )}
               {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-green-500" />}
             </div>
 
-            <div className="flex justify-between w-full text-xs text-gray-500">
+            <div className="flex justify-between w-full text-xs text-muted-foreground">
               <span>00:00</span>
               <span>03:00</span>
               <span>06:00</span>

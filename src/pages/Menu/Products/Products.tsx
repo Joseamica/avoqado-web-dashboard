@@ -81,7 +81,7 @@ export default function Products() {
         const hasError = imageErrors[productId]
 
         return (
-          <div className="w-12 h-12 overflow-hidden bg-gray-200 rounded">
+          <div className="w-12 h-12 overflow-hidden bg-muted rounded">
             {imageUrl && !hasError ? (
               <img 
                 src={imageUrl} 
@@ -90,12 +90,12 @@ export default function Products() {
                 onError={() => setImageErrors(prev => ({ ...prev, [productId]: true }))}
               />
             ) : imageUrl && hasError ? (
-              <div className="flex items-center justify-center w-full h-full bg-gray-100">
-                <ImageIcon className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center justify-center w-full h-full bg-muted">
+                <ImageIcon className="w-4 h-4 text-muted-foreground" />
               </div>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <UploadCloud className="w-4 h-4 text-gray-400" />
+                <UploadCloud className="w-4 h-4 text-muted-foreground" />
               </div>
             )}
           </div>

@@ -226,7 +226,7 @@ export default function ReceiptPreview({ receipt, open, onClose }: ReceiptPrevie
                   <td className="py-2">
                     <div>{item?.name || item?.productId || 'Producto'}</div>
                     {Array.isArray(item?.modifiers) && item.modifiers.length > 0 && (
-                      <ul className="pl-4 text-xs text-gray-600">
+                      <ul className="pl-4 text-xs text-muted-foreground">
                         {item.modifiers.map((mod, idx) => (
                           <li key={idx}>{mod?.name || 'Modificador'} (+{Currency(mod?.price || 0)})</li>
                         ))}
@@ -264,7 +264,7 @@ export default function ReceiptPreview({ receipt, open, onClose }: ReceiptPrevie
             </div>
           </div>
 
-          <div className="pt-4 text-sm text-center text-gray-600 border-t">
+          <div className="pt-4 text-sm text-center text-muted-foreground border-t">
             <p>¡Gracias por su visita!</p>
             <p>Recibo generado por Avoqado</p>
             {receipt?.recipientEmail && (

@@ -284,7 +284,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                   <FormControl>
                     <Input
                       placeholder="Escribe tu pregunta..."
-                      className={`${isDark ? 'text-gray-100 border-gray-700' : ''}`}
+                      className={`${isDark ? 'text-foreground border-border' : ''}`}
                       {...field}
                       disabled={chatMutation.isPending}
                     />
@@ -292,7 +292,7 @@ export function ChatInterface({ onClose }: ChatInterfaceProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" size="icon" disabled={chatMutation.isPending} className={`${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`}>
+            <Button type="submit" size="icon" disabled={chatMutation.isPending} className={`${isDark ? 'bg-accent hover:bg-accent/80' : ''}`}>
               {chatMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
