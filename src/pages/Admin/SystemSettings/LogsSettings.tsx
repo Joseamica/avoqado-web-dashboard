@@ -1,5 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button, buttonVariants } from '@/components/ui/button'
+import api from '@/api'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,19 +10,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownToLine, ArrowUpToLine, Code, Download, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { themeClasses } from '@/lib/theme-utils'
-import { useTheme } from '@/context/ThemeContext'
-import api from '@/api'
 
 export default function LogsSettings() {
   const { toast } = useToast()
@@ -114,111 +113,114 @@ export default function LogsSettings() {
     },
   })
 
-  const formatLogs = useCallback((content: string) => {
-    if (!content) {
-      setFormattedLogs('No hay logs disponibles.')
-      setIsJsonContent(false)
-      return
-    }
+  const formatLogs = useCallback(
+    (content: string) => {
+      if (!content) {
+        setFormattedLogs('No hay logs disponibles.')
+        setIsJsonContent(false)
+        return
+      }
 
-    if (!useFormatting) {
-      if (showNewestFirst) {
-        const lines = content.split('\n')
-        if (lines.length < 10000) {
-          setFormattedLogs(lines.reverse().join('\n'))
+      if (!useFormatting) {
+        if (showNewestFirst) {
+          const lines = content.split('\n')
+          if (lines.length < 10000) {
+            setFormattedLogs(lines.reverse().join('\n'))
+          } else {
+            const lastNLines = lines.slice(-5000)
+            setFormattedLogs(lastNLines.reverse().join('\n'))
+            toast({
+              title: 'Archivo de logs muy grande',
+              description: 'Mostrando solo las últimas 5000 líneas para mejorar el rendimiento.',
+            })
+          }
         } else {
-          const lastNLines = lines.slice(-5000)
-          setFormattedLogs(lastNLines.reverse().join('\n'))
+          if (content.length > 500000) {
+            setFormattedLogs(content.substring(content.length - 500000))
+            toast({
+              title: 'Archivo de logs muy grande',
+              description: 'Mostrando solo la parte final del archivo para mejorar el rendimiento.',
+            })
+          } else {
+            setFormattedLogs(content)
+          }
+        }
+        setIsJsonContent(false)
+        return
+      }
+
+      try {
+        let lines = content.split('\n')
+        const maxLinesToProcess = 2000
+        let truncatedLines = false
+
+        if (lines.length > maxLinesToProcess) {
+          truncatedLines = true
+          if (showNewestFirst) {
+            lines = lines.slice(-maxLinesToProcess)
+          } else {
+            lines = lines.slice(0, maxLinesToProcess)
+          }
+        }
+
+        if (showNewestFirst) {
+          lines = lines.reverse()
+        }
+
+        let hasJsonContent = false
+        const formattedLines = []
+        const jsonRegex = /({[\s\S]*}|\[[\s\S]*\])/
+
+        for (let line of lines) {
+          try {
+            const match = line.match(jsonRegex)
+            if (match && match[0].length < 10000) {
+              const jsonString = match[0]
+              try {
+                const jsonObj = JSON.parse(jsonString)
+                const formattedJson = JSON.stringify(jsonObj, null, 2)
+                const before = line.substring(0, match.index)
+                const after = line.substring(match.index + jsonString.length)
+                line = before + '\n' + formattedJson + '\n' + after
+                hasJsonContent = true
+              } catch {
+                // Not valid JSON, keep line as is
+              }
+            }
+          } catch {
+            // Error in regex or other issue, keep line as is
+          }
+          formattedLines.push(line)
+        }
+
+        setIsJsonContent(hasJsonContent)
+        const result = formattedLines.join('\n')
+
+        if (truncatedLines) {
           toast({
             title: 'Archivo de logs muy grande',
-            description: 'Mostrando solo las últimas 5000 líneas para mejorar el rendimiento.',
+            description: `Mostrando solo ${maxLinesToProcess} líneas para mejorar el rendimiento.`,
           })
         }
-      } else {
-        if (content.length > 500000) {
-          setFormattedLogs(content.substring(content.length - 500000))
-          toast({
-            title: 'Archivo de logs muy grande',
-            description: 'Mostrando solo la parte final del archivo para mejorar el rendimiento.',
-          })
+
+        setFormattedLogs(result)
+      } catch (error) {
+        console.error('Error formatting logs:', error)
+        if (showNewestFirst) {
+          const lines = content.split('\n')
+          if (lines.length > 5000) {
+            setFormattedLogs(lines.slice(-5000).reverse().join('\n'))
+          } else {
+            setFormattedLogs(lines.reverse().join('\n'))
+          }
         } else {
           setFormattedLogs(content)
         }
+        setIsJsonContent(false)
       }
-      setIsJsonContent(false)
-      return
-    }
-
-    try {
-      let lines = content.split('\n')
-      const maxLinesToProcess = 2000
-      let truncatedLines = false
-
-      if (lines.length > maxLinesToProcess) {
-        truncatedLines = true
-        if (showNewestFirst) {
-          lines = lines.slice(-maxLinesToProcess)
-        } else {
-          lines = lines.slice(0, maxLinesToProcess)
-        }
-      }
-
-      if (showNewestFirst) {
-        lines = lines.reverse()
-      }
-
-      let hasJsonContent = false
-      const formattedLines = []
-      const jsonRegex = /({[\s\S]*}|\[[\s\S]*\])/
-
-      for (let line of lines) {
-        try {
-          const match = line.match(jsonRegex)
-          if (match && match[0].length < 10000) {
-            const jsonString = match[0]
-            try {
-              const jsonObj = JSON.parse(jsonString)
-              const formattedJson = JSON.stringify(jsonObj, null, 2)
-              const before = line.substring(0, match.index)
-              const after = line.substring(match.index + jsonString.length)
-              line = before + '\n' + formattedJson + '\n' + after
-              hasJsonContent = true
-            } catch {
-              // Not valid JSON, keep line as is
-            }
-          }
-        } catch {
-          // Error in regex or other issue, keep line as is
-        }
-        formattedLines.push(line)
-      }
-
-      setIsJsonContent(hasJsonContent)
-      const result = formattedLines.join('\n')
-
-      if (truncatedLines) {
-        toast({
-          title: 'Archivo de logs muy grande',
-          description: `Mostrando solo ${maxLinesToProcess} líneas para mejorar el rendimiento.`,
-        })
-      }
-
-      setFormattedLogs(result)
-    } catch (error) {
-      console.error('Error formatting logs:', error)
-      if (showNewestFirst) {
-        const lines = content.split('\n')
-        if (lines.length > 5000) {
-          setFormattedLogs(lines.slice(-5000).reverse().join('\n'))
-        } else {
-          setFormattedLogs(lines.reverse().join('\n'))
-        }
-      } else {
-        setFormattedLogs(content)
-      }
-      setIsJsonContent(false)
-    }
-  }, [showNewestFirst, useFormatting, toast, setFormattedLogs, setIsJsonContent])
+    },
+    [showNewestFirst, useFormatting, toast, setFormattedLogs, setIsJsonContent],
+  )
 
   const filterLogs = (content: string, query: string) => {
     if (!query) return content
@@ -274,12 +276,12 @@ export default function LogsSettings() {
 
   return (
     <div className="space-y-4">
-      <h3 className={`text-lg font-medium ${themeClasses.text}`}>Visualizador de Logs</h3>
+      <h3 className={`text-lg font-medium text-foreground`}>Visualizador de Logs</h3>
 
-      <Card className={themeClasses.cardBg}>
-        <CardHeader className={`border-b ${themeClasses.border}`}>
-          <CardTitle className={themeClasses.text}>Logs del Sistema</CardTitle>
-          <CardDescription className={themeClasses.textMuted}>
+      <Card className="bg-card">
+        <CardHeader className={`border-b border-border`}>
+          <CardTitle className="text-foreground">Logs del Sistema</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Visualiza los logs del backend para diagnóstico y solución de problemas
           </CardDescription>
         </CardHeader>
@@ -287,12 +289,12 @@ export default function LogsSettings() {
         <CardContent className="p-6">
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium ${themeClasses.text} mb-2 block`}>Tipo de Log</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>Tipo de Log</label>
               <Select value={logType} onValueChange={setLogType}>
-                <SelectTrigger className={`w-full sm:w-[200px] ${themeClasses.inputBg} ${themeClasses.border}`}>
+                <SelectTrigger className={`w-full sm:w-[200px] bg-input border-border`}>
                   <SelectValue placeholder="Seleccionar tipo" />
                 </SelectTrigger>
-                <SelectContent className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="application">Aplicación</SelectItem>
                   <SelectItem value="error">Errores</SelectItem>
                   <SelectItem value="access">Acceso</SelectItem>
@@ -302,12 +304,12 @@ export default function LogsSettings() {
             </div>
 
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium ${themeClasses.text} mb-2 block`}>Número de líneas</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>Número de líneas</label>
               <Select value={linesCount} onValueChange={setLinesCount}>
-                <SelectTrigger className={`w-full sm:w-[200px] ${themeClasses.inputBg} ${themeClasses.border}`}>
+                <SelectTrigger className={`w-full sm:w-[200px] bg-input border-border`}>
                   <SelectValue placeholder="Número de líneas" />
                 </SelectTrigger>
-                <SelectContent className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="50">50 líneas</SelectItem>
                   <SelectItem value="100">100 líneas</SelectItem>
                   <SelectItem value="200">200 líneas</SelectItem>
@@ -317,19 +319,19 @@ export default function LogsSettings() {
             </div>
 
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium ${themeClasses.text} mb-2 block`}>Buscar en logs</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>Buscar en logs</label>
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Buscar texto o clave..."
-                  className={`w-full sm:w-[300px] h-10 px-4 py-2 rounded-md ${themeClasses.inputBg} ${themeClasses.border} ${themeClasses.text} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  className={`w-full sm:w-[300px] h-10 px-4 py-2 rounded-md bg-input border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${themeClasses.textMuted} hover:${themeClasses.text}`}
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-foregroundMuted hover:text-foreground`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path
@@ -351,7 +353,7 @@ export default function LogsSettings() {
             <div className="flex items-center gap-2 w-full mt-2 sm:mt-0 sm:w-auto sm:self-end">
               <div className="flex items-center space-x-2">
                 <Switch id="format-json" checked={useFormatting} onCheckedChange={setUseFormatting} />
-                <label htmlFor="format-json" className={`text-sm font-medium ${themeClasses.text}`}>
+                <label htmlFor="format-json" className={`text-sm font-medium text-foreground`}>
                   <Code className="h-4 w-4 inline mr-1" />
                   Formatear JSON
                 </label>
@@ -359,7 +361,7 @@ export default function LogsSettings() {
 
               <div className="flex items-center space-x-2 ml-4">
                 <Switch id="newest-first" checked={showNewestFirst} onCheckedChange={setShowNewestFirst} />
-                <label htmlFor="newest-first" className={`text-sm font-medium ${themeClasses.text}`}>
+                <label htmlFor="newest-first" className={`text-sm font-medium text-foreground`}>
                   {showNewestFirst ? (
                     <ArrowDownToLine className="h-4 w-4 inline mr-1" />
                   ) : (
@@ -383,17 +385,17 @@ export default function LogsSettings() {
                     Borrar Logs
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+                <AlertDialogContent className="bg-card border-border">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className={themeClasses.text}>¿Estás seguro?</AlertDialogTitle>
-                    <AlertDialogDescription className={themeClasses.textMuted}>
+                    <AlertDialogTitle className="text-foreground">¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-foregroundMuted">
                       Esta acción borrará el archivo de logs de {getLogTypeName(logType)} y no se puede deshacer. Se creará un nuevo archivo
                       de logs vacío.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className={buttonVariants({ variant: "destructive" })}>
+                    <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className={buttonVariants({ variant: 'destructive' })}>
                       {clearLogsMutation.isPending ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -409,7 +411,7 @@ export default function LogsSettings() {
             </div>
           </div>
 
-          <div className={`border ${themeClasses.border} rounded-md overflow-hidden`}>
+          <div className={`border border-border rounded-md overflow-hidden`}>
             {logsLoading ? (
               <div className="p-4 space-y-2">
                 <Skeleton className="h-4 w-full" />
@@ -454,7 +456,7 @@ export default function LogsSettings() {
                 ) : (
                   <Textarea
                     ref={logsTextAreaRef}
-                    className={`font-mono text-xs h-[400px] p-4 resize-none ${themeClasses.inputBg} ${themeClasses.text} ${themeClasses.border}`}
+                    className={`font-mono text-xs h-[400px] p-4 resize-none bg-input border-border text-foreground`}
                     readOnly
                     value={filteredLogs}
                   />
@@ -464,8 +466,8 @@ export default function LogsSettings() {
           </div>
         </CardContent>
 
-        <div className={`border-t ${themeClasses.border} p-4 flex justify-between items-center`}>
-          <p className={`text-xs ${themeClasses.textMuted}`}>
+        <div className={`border-t border-border p-4 flex justify-between items-center`}>
+          <p className={`text-xs text-muted-foreground`}>
             {logs?.lastUpdated ? `Última actualización: ${new Date(logs.lastUpdated).toLocaleString()}` : 'Sin datos'}
           </p>
           <div className="flex gap-2">

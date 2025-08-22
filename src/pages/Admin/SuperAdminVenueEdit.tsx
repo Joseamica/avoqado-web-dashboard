@@ -26,7 +26,6 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import countryList from 'react-select-country-list'
 import { Skeleton } from '@/components/ui/skeleton'
-import { themeClasses } from '@/lib/theme-utils'
 import { cn } from '@/lib/utils'
 
 // Define venue types as string literals instead of enums to avoid linting errors
@@ -93,8 +92,8 @@ type SuperAdminVenueFormValues = z.infer<typeof superAdminVenueFormSchema>
 // Skeleton component for loading state
 function VenueSkeleton() {
   return (
-    <div className={`space-y-6 ${themeClasses.pageBg} h-screen p-4`}>
-      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
+    <div className={`space-y-6 bg-background h-screen p-4`}>
+      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Skeleton className="h-5 w-5" />
           <Skeleton className="h-6 w-40" />
@@ -331,19 +330,19 @@ export default function SuperAdminVenueEdit() {
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
 
   return (
-    <div className={`p-4 md:p-6 lg:p-8 ${themeClasses.pageBg} min-h-screen`}>
-      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-6`}>
+    <div className={`p-4 md:p-6 lg:p-8 bg-background min-h-screen`}>
+      <Link to="/admin" className={`inline-flex items-center text-sm text-foregroundMuted hover:text-foreground mb-6`}>
         <ArrowLeft className="h-4 w-4 mr-1" />
         Volver al Panel de Administración
       </Link>
       {/* Original content starts here */}
-      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
+      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Link to={from} className="flex items-center hover:text-primary">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className={`font-medium truncate max-w-[200px] md:max-w-none ${themeClasses.text}`}>
-            {venue?.name} <span className={`text-xs ${themeClasses.textMuted}`}>(SUPERADMIN)</span>
+          <span className={`font-medium truncate max-w-[200px] md:max-w-none text-foreground`}>
+            {venue?.name} <span className={`text-xs text-foregroundMuted`}>(SUPERADMIN)</span>
           </span>
         </div>
         <div className="space-x-2 flex items-center">
@@ -393,15 +392,15 @@ export default function SuperAdminVenueEdit() {
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         <div>
-          <h2 className={`text-3xl font-semibold ${themeClasses.text}`}>Gestión de Venue - SUPERADMIN</h2>
-          <p className={`${themeClasses.textMuted}`}>Edición avanzada con acceso a características premium</p>
+          <h2 className={`text-3xl font-semibold text-foreground`}>Gestión de Venue - SUPERADMIN</h2>
+          <p className={`text-foregroundMuted`}>Edición avanzada con acceso a características premium</p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Información básica</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Información básica</h3>
                 <Separator />
 
                 <FormField
@@ -500,12 +499,12 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Características premium (SUPERADMIN)</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Características premium (SUPERADMIN)</h3>
                 <Separator />
 
                 <div className="p-4 mb-6 border-l-4 border-yellow-500 dark:border-yellow-700 rounded-sm bg-yellow-50/30 dark:bg-yellow-950/20">
-                  <h4 className={`text-base font-medium mb-1 ${themeClasses.text}`}>Configuración de características de pago</h4>
-                  <p className={`text-sm ${themeClasses.textMuted}`}>
+                  <h4 className={`text-base font-medium mb-1 text-foreground`}>Configuración de características de pago</h4>
+                  <p className={`text-sm text-foregroundMuted`}>
                     Estas opciones solo están disponibles para administradores con nivel SUPERADMIN y permiten habilitar/deshabilitar
                     características de pago para este venue.
                   </p>
@@ -521,7 +520,7 @@ export default function SuperAdminVenueEdit() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Ordenar desde TPV</FormLabel>
-                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                        <p className={`text-sm text-foregroundMuted`}>
                           Permite ordenar desde el Terminal Punto de Venta (característica premium)
                         </p>
                       </div>
@@ -539,7 +538,7 @@ export default function SuperAdminVenueEdit() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Chatbot de Asistencia</FormLabel>
-                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                        <p className={`text-sm text-foregroundMuted`}>
                           Habilita el chatbot de asistencia en el dashboard (característica premium)
                         </p>
                       </div>
@@ -553,7 +552,7 @@ export default function SuperAdminVenueEdit() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Contacto e imágenes</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Contacto e imágenes</h3>
                 <Separator />
 
                 <FormField
@@ -614,7 +613,7 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de pagos</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Configuración de pagos</h3>
                 <Separator />
 
                 <FormField
@@ -641,7 +640,7 @@ export default function SuperAdminVenueEdit() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Pago especial</FormLabel>
-                        <p className={cn(themeClasses.textMuted)}>Habilitar pago especial para este venue</p>
+                        <p className={cn('text-foregroundMuted')}>Habilitar pago especial para este venue</p>
                       </div>
                     </FormItem>
                   )}
@@ -651,7 +650,7 @@ export default function SuperAdminVenueEdit() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Integración con Menta (Pasarela de pagos)</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Integración con Menta (Pasarela de pagos)</h3>
                 <Separator />
 
                 <FormField
@@ -712,7 +711,7 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración del sistema</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>Configuración del sistema</h3>
                 <Separator />
 
                 <FormField

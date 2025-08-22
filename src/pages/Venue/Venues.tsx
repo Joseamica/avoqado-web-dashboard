@@ -13,7 +13,7 @@ const Venues = () => {
   const navigate = useNavigate()
 
   // Filter venues based on search
-  const filteredVenues = allVenues.filter((venue) => {
+  const filteredVenues = allVenues.filter(venue => {
     return (
       venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (venue.address && venue.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -70,14 +70,16 @@ const Venues = () => {
             </TableHeader>
             <TableBody>
               {filteredVenues.map(venue => (
-                <TableRow key={venue.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleVenueClick(venue.id)}>
+                <TableRow
+                  key={venue.id}
+                  className="cursor-pointer hover:bg-muted/50 border-b border-border"
+                  onClick={() => handleVenueClick(venue.id)}
+                >
                   <TableCell className="font-medium">{venue.name}</TableCell>
                   <TableCell className="text-muted-foreground">{venue.id}</TableCell>
                   <TableCell>{venue.address || 'No especificada'}</TableCell>
                   <TableCell>
-                    <Badge variant={venue.active ? 'default' : 'secondary'}>
-                      {venue.active ? 'Activo' : 'Inactivo'}
-                    </Badge>
+                    <Badge variant={venue.active ? 'default' : 'secondary'}>{venue.active ? 'Activo' : 'Inactivo'}</Badge>
                   </TableCell>
                   <TableCell>-</TableCell>
                 </TableRow>
