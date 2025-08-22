@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
 
 import { Separator } from '@/components/ui/separator'
 import { AlertTriangle, ArrowLeft, Save, Settings, ShieldCheck, MailCheck, Cloud, CreditCard, Loader2, RefreshCcw } from 'lucide-react'
@@ -119,13 +118,13 @@ export default function GlobalConfig() {
   if (!isSuperAdmin) {
     return (
       <div className="py-4">
-        <Card className={`${themeClasses.border}`}>
+        <Card className="border-border">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className={`h-5 w-5 ${themeClasses.error.text} mt-0.5`} />
+              <AlertTriangle className="h-5 w-5 text-red-700 dark:text-red-400 mt-0.5" />
               <div>
-                <h3 className={`text-lg font-semibold ${themeClasses.text}`}>Acceso restringido</h3>
-                <p className={`${themeClasses.textMuted}`}>Solo los SuperAdministradores pueden acceder a la configuración global.</p>
+                <h3 className="text-lg font-semibold text-foreground">Acceso restringido</h3>
+                <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a la configuración global.</p>
               </div>
             </div>
           </CardContent>
@@ -135,24 +134,24 @@ export default function GlobalConfig() {
   }
 
   return (
-    <div className={`space-y-6 px-4 md:px-6 lg:px-8 py-6 ${themeClasses.pageBg} min-h-screen`}>
-      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-4`}>
+    <div className="space-y-6 px-4 md:px-6 lg:px-8 py-6 bg-background min-h-screen">
+      <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Volver al Panel de Administración
       </Link>
       <div>
-        <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Configuración Global</h2>
-        <p className={`${themeClasses.textMuted}`}>Administra la configuración global del sistema</p>
+        <h2 className="text-2xl font-bold text-foreground">Configuración Global</h2>
+        <p className="text-muted-foreground">Administra la configuración global del sistema</p>
       </div>
 
       {/* Warning banner */}
-      <div className={`${themeClasses.warning.bg} border-l-4 ${themeClasses.warning.border} p-4`}>
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <AlertTriangle className={`h-5 w-5 ${themeClasses.warning.text}`} />
+            <AlertTriangle className="h-5 w-5 text-yellow-700 dark:text-yellow-400" />
           </div>
           <div className="ml-3">
-            <p className={`text-sm ${themeClasses.text}`}>
+            <p className="text-sm text-foreground">
               Esta sección contiene configuraciones globales que afectan a todo el sistema. Manipular estos valores incorrectamente puede
               afectar el funcionamiento de la plataforma para todos los usuarios.
             </p>
@@ -160,7 +159,7 @@ export default function GlobalConfig() {
         </div>
       </div>
 
-      <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm`}>
+      <div className="bg-card rounded-md overflow-hidden shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-5">
             <TabsTrigger value="app" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
@@ -188,14 +187,14 @@ export default function GlobalConfig() {
           {/* App Settings Tab */}
           <TabsContent value="app" className="p-6 space-y-6">
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Configuración General</h3>
+              <h3 className="text-lg font-semibold text-foreground">Configuración de la aplicación</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Nombre de la Aplicación</label>
+                  <label className="text-sm font-medium text-foreground">Nombre de la aplicación</label>
                   <Input value={config.appSettings.appName} onChange={e => updateConfig('appSettings', 'appName', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Versión</label>
+                  <label className="text-sm font-medium text-foreground">Versión</label>
                   <div className="flex items-center">
                     <Input
                       value={config.appSettings.appVersion}
@@ -207,7 +206,7 @@ export default function GlobalConfig() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Tema Por Defecto</label>
+                  <label className="text-sm font-medium text-foreground">Tema por defecto</label>
                   <Select
                     value={config.appSettings.defaultTheme}
                     onValueChange={value => updateConfig('appSettings', 'defaultTheme', value)}
@@ -223,7 +222,7 @@ export default function GlobalConfig() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Idioma Por Defecto</label>
+                  <label className="text-sm font-medium text-foreground">Idioma por defecto</label>
                   <Select
                     value={config.appSettings.defaultLanguage}
                     onValueChange={value => updateConfig('appSettings', 'defaultLanguage', value)}
@@ -240,7 +239,7 @@ export default function GlobalConfig() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Tiempo de Sesión (minutos)</label>
+                  <label className="text-sm font-medium text-foreground">Tiempo de Sesión (minutos)</label>
                   <Input
                     type="number"
                     value={config.appSettings.sessionTimeout}
@@ -251,8 +250,8 @@ export default function GlobalConfig() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Modo Mantenimiento</label>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Si está activado, solo los administradores podrán acceder</p>
+                    <label className="text-sm font-medium text-foreground">Modo Mantenimiento</label>
+                    <p className="text-xs text-muted-foreground">Si está activado, solo los administradores podrán acceder</p>
                   </div>
                   <Switch
                     checked={config.appSettings.maintenanceMode}
@@ -265,11 +264,11 @@ export default function GlobalConfig() {
             <Separator />
 
             <div className="space-y-2">
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Acciones del Sistema</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Acciones del Sistema</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className={`${themeClasses.border}`}>
+                <Card className="border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className={`text-base ${themeClasses.text}`}>Reiniciar Aplicación</CardTitle>
+                    <CardTitle className="text-base text-foreground">Reiniciar Aplicación</CardTitle>
                     <CardDescription>Reinicia los servicios de aplicación</CardDescription>
                   </CardHeader>
                   <CardFooter>
@@ -305,9 +304,9 @@ export default function GlobalConfig() {
                   </CardFooter>
                 </Card>
 
-                <Card className={`${themeClasses.border}`}>
+                <Card className="border-border">
                   <CardHeader className="pb-2">
-                    <CardTitle className={`text-base ${themeClasses.text}`}>Limpiar Cache</CardTitle>
+                    <CardTitle className="text-base text-foreground">Limpiar Cache</CardTitle>
                     <CardDescription>Limpia la cache del sistema</CardDescription>
                   </CardHeader>
                   <CardFooter>
@@ -323,10 +322,10 @@ export default function GlobalConfig() {
           {/* Security Tab */}
           <TabsContent value="security" className="p-6 space-y-6">
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Políticas de Contraseñas</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Políticas de Contraseñas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Longitud Mínima</label>
+                  <label className="text-sm font-medium text-foreground">Longitud Mínima</label>
                   <Input
                     type="number"
                     value={config.security.passwordPolicyMinLength}
@@ -336,7 +335,7 @@ export default function GlobalConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Caducidad (días)</label>
+                  <label className="text-sm font-medium text-foreground">Caducidad (días)</label>
                   <Input
                     type="number"
                     value={config.security.passwordExpiryDays}
@@ -344,11 +343,11 @@ export default function GlobalConfig() {
                     min="0"
                     max="365"
                   />
-                  <p className={`text-xs ${themeClasses.textMuted}`}>0 = No caduca nunca</p>
+                  <p className="text-xs text-muted-foreground">0 = No caduca nunca</p>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Requerir Mayúsculas</label>
+                    <label className="text-sm font-medium text-foreground">Requerir Mayúsculas</label>
                   </div>
                   <Switch
                     checked={config.security.passwordRequireUppercase}
@@ -357,7 +356,7 @@ export default function GlobalConfig() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Requerir Números</label>
+                    <label className="text-sm font-medium text-foreground">Requerir Números</label>
                   </div>
                   <Switch
                     checked={config.security.passwordRequireNumbers}
@@ -366,7 +365,7 @@ export default function GlobalConfig() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Requerir Caracteres Especiales</label>
+                    <label className="text-sm font-medium text-foreground">Requerir Caracteres Especiales</label>
                   </div>
                   <Switch
                     checked={config.security.passwordRequireSpecialChars}
@@ -379,12 +378,12 @@ export default function GlobalConfig() {
             <Separator />
 
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Autenticación</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Autenticación</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Autenticación de Dos Factores</label>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Habilitar 2FA para todos los usuarios</p>
+                    <label className="text-sm font-medium text-foreground">Autenticación de Dos Factores</label>
+                    <p className="text-xs text-muted-foreground">Habilitar 2FA para todos los usuarios</p>
                   </div>
                   <Switch
                     checked={config.security.twoFactorAuthEnabled}
@@ -393,8 +392,8 @@ export default function GlobalConfig() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Múltiples Dispositivos</label>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Permitir sesiones simultáneas</p>
+                    <label className="text-sm font-medium text-foreground">Múltiples Dispositivos</label>
+                    <p className="text-xs text-muted-foreground">Permitir sesiones simultáneas</p>
                   </div>
                   <Switch
                     checked={config.security.allowMultipleDevices}
@@ -402,7 +401,7 @@ export default function GlobalConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Tiempo de Sesión (minutos)</label>
+                  <label className="text-sm font-medium text-foreground">Tiempo de Sesión (minutos)</label>
                   <Input
                     type="number"
                     value={config.security.sessionTimeoutMinutes}
@@ -418,18 +417,18 @@ export default function GlobalConfig() {
           {/* Email Tab */}
           <TabsContent value="email" className="p-6 space-y-6">
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Configuración de Email</h3>
+              <h3 className="text-lg font-semibold text-foreground">Configuración de Email</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Email de Remitente</label>
+                  <label className="text-sm font-medium text-foreground">Email de Remitente</label>
                   <Input type="email" value={config.email.fromEmail} onChange={e => updateConfig('email', 'fromEmail', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Servidor SMTP</label>
+                  <label className="text-sm font-medium text-foreground">Servidor SMTP</label>
                   <Input value={config.email.smtpServer} onChange={e => updateConfig('email', 'smtpServer', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Puerto SMTP</label>
+                  <label className="text-sm font-medium text-foreground">Puerto SMTP</label>
                   <Input
                     type="number"
                     value={config.email.smtpPort}
@@ -437,11 +436,11 @@ export default function GlobalConfig() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Usuario SMTP</label>
+                  <label className="text-sm font-medium text-foreground">Usuario SMTP</label>
                   <Input value={config.email.smtpUsername} onChange={e => updateConfig('email', 'smtpUsername', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Contraseña SMTP</label>
+                  <label className="text-sm font-medium text-foreground">Contraseña SMTP</label>
                   <Input
                     type="password"
                     value="••••••••••••"
@@ -451,7 +450,7 @@ export default function GlobalConfig() {
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Ruta de Plantillas</label>
+                  <label className="text-sm font-medium text-foreground">Ruta de Plantillas</label>
                   <Input
                     value={config.email.emailTemplatesPath}
                     onChange={e => updateConfig('email', 'emailTemplatesPath', e.target.value)}
@@ -459,8 +458,8 @@ export default function GlobalConfig() {
                 </div>
                 <div className="flex items-center justify-between md:col-span-2">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Verificación de Email</label>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Requerir verificación de email para nuevos usuarios</p>
+                    <label className="text-sm font-medium text-foreground">Verificación de Email</label>
+                    <p className="text-xs text-muted-foreground">Requerir verificación de email para nuevos usuarios</p>
                   </div>
                   <Switch
                     checked={config.email.enableEmailVerification}
@@ -478,13 +477,13 @@ export default function GlobalConfig() {
           {/* Payment Tab */}
           <TabsContent value="payment" className="p-6 space-y-6">
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Configuración de Pagos</h3>
+              <h3 className="text-lg font-semibold text-foreground">Configuración de Pagos</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className={`text-sm font-medium ${themeClasses.text}`}>Stripe</label>
-                      <p className={`text-xs ${themeClasses.textMuted}`}>Habilitar pagos con Stripe</p>
+                      <label className="text-sm font-medium text-foreground">Stripe</label>
+                      <p className="text-xs text-muted-foreground">Habilitar pagos con Stripe</p>
                     </div>
                     <Switch
                       checked={config.payment.stripeEnabled}
@@ -495,7 +494,7 @@ export default function GlobalConfig() {
 
                 {config.payment.stripeEnabled && (
                   <div className="space-y-2 md:col-span-2">
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Stripe Public Key</label>
+                    <label className="text-sm font-medium text-foreground">Stripe Public Key</label>
                     <Input
                       value={config.payment.stripePublicKey}
                       onChange={e => updateConfig('payment', 'stripePublicKey', e.target.value)}
@@ -506,8 +505,8 @@ export default function GlobalConfig() {
                 <div className="space-y-2 md:col-span-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className={`text-sm font-medium ${themeClasses.text}`}>PayPal</label>
-                      <p className={`text-xs ${themeClasses.textMuted}`}>Habilitar pagos con PayPal</p>
+                      <label className="text-sm font-medium text-foreground">PayPal</label>
+                      <p className="text-xs text-muted-foreground">Habilitar pagos con PayPal</p>
                     </div>
                     <Switch
                       checked={config.payment.paypalEnabled}
@@ -518,7 +517,7 @@ export default function GlobalConfig() {
 
                 {config.payment.paypalEnabled && (
                   <div className="space-y-2 md:col-span-2">
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>PayPal Client ID</label>
+                    <label className="text-sm font-medium text-foreground">PayPal Client ID</label>
                     <Input
                       value={config.payment.paypalClientId}
                       onChange={e => updateConfig('payment', 'paypalClientId', e.target.value)}
@@ -527,7 +526,7 @@ export default function GlobalConfig() {
                 )}
 
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Moneda Predeterminada</label>
+                  <label className="text-sm font-medium text-foreground">Moneda Predeterminada</label>
                   <Select value={config.payment.defaultCurrency} onValueChange={value => updateConfig('payment', 'defaultCurrency', value)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -546,22 +545,22 @@ export default function GlobalConfig() {
           {/* API Tab */}
           <TabsContent value="api" className="p-6 space-y-6">
             <div>
-              <h3 className={`text-lg font-semibold ${themeClasses.text} mb-4`}>Configuración de APIs Externas</h3>
+              <h3 className="text-lg font-semibold text-foreground">Configuración de APIs Externas</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Google Maps API Key</label>
+                  <label className="text-sm font-medium text-foreground">Google Maps API Key</label>
                   <Input value={config.apis.googleMapsApiKey} onChange={e => updateConfig('apis', 'googleMapsApiKey', e.target.value)} />
                 </div>
 
                 <div className="space-y-2">
-                  <label className={`text-sm font-medium ${themeClasses.text}`}>Weather API Key</label>
+                  <label className="text-sm font-medium text-foreground">Weather API Key</label>
                   <Input value={config.apis.weatherApiKey} onChange={e => updateConfig('apis', 'weatherApiKey', e.target.value)} />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className={`text-sm font-medium ${themeClasses.text}`}>Geocoding</label>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Habilitar servicios de geocodificación</p>
+                    <label className="text-sm font-medium text-foreground">Geocoding</label>
+                    <p className="text-sm text-muted-foreground">Configuración general de la aplicación</p>
                   </div>
                   <Switch
                     checked={config.apis.geocodingEnabled}

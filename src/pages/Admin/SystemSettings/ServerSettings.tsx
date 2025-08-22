@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, RefreshCcw } from 'lucide-react'
-import { themeClasses } from '@/lib/theme-utils'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -103,17 +102,17 @@ export default function ServerSettings() {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={themeClasses.border} />
-          <XAxis dataKey="timestamp" stroke={themeClasses.textMuted} tick={{ fontSize: 10 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="timestamp" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
           <YAxis
-            stroke={themeClasses.textMuted}
+            stroke="hsl(var(--muted-foreground))"
             tick={{ fontSize: 10 }}
             tickFormatter={value => `${value}%`}
             domain={[0, Math.max(...chartData.map(d => d.rawValue)) * 1.1 || 5]}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: themeClasses.cardBg, borderColor: themeClasses.border }}
-            labelStyle={{ color: themeClasses.text }}
+            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))' }}
+            labelStyle={{ color: 'hsl(var(--foreground))' }}
             formatter={value => [`${value}%`, 'CPU']}
             labelFormatter={label => `Hora: ${label}`}
           />
@@ -125,22 +124,22 @@ export default function ServerSettings() {
 
   return (
     <div className="space-y-4">
-      <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración del Servidor</h3>
+      <h3 className="text-lg font-medium text-foreground">Configuración del Servidor</h3>
 
-      <Card className={themeClasses.cardBg}>
-        <CardHeader className={`border-b ${themeClasses.border}`}>
-          <CardTitle className={themeClasses.text}>Estado del Sistema</CardTitle>
-          <CardDescription className={themeClasses.textMuted}>Estado actual del servidor y opciones de mantenimiento</CardDescription>
+      <Card className="bg-card">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="text-foreground">Estado del Sistema</CardTitle>
+          <CardDescription className="text-muted-foreground">Estado actual del servidor y opciones de mantenimiento</CardDescription>
         </CardHeader>
 
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Uso de CPU</h4>
+              <h4 className="text-base font-medium text-foreground mb-2">Uso de CPU</h4>
               <div className="flex items-center mb-2">
-                <div className={`h-2 w-full ${themeClasses.inputBg} rounded-full overflow-hidden`}>
+                <div className="h-2 w-full bg-input rounded-full overflow-hidden">
                   {cpuUsageLoading || cpuLimitLoading ? (
-                    <div className={`h-full ${themeClasses.border} animate-pulse`} style={{ width: '100%' }}></div>
+                    <div className="h-full bg-muted animate-pulse" style={{ width: '100%' }}></div>
                   ) : (
                     <div
                       className="h-full rounded-full"
@@ -151,24 +150,24 @@ export default function ServerSettings() {
                     ></div>
                   )}
                 </div>
-                <span className={`ml-2 text-xs ${themeClasses.text} w-16 text-right`}>
+                <span className="ml-2 text-xs text-foreground w-16 text-right">
                   {cpuUsageLoading || cpuLimitLoading ? 'Cargando...' : `${calculateCpuUsagePercentage().toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex justify-between mt-1">
-                <p className={`text-xs ${themeClasses.textMuted}`}>
+                <p className="text-xs text-muted-foreground">
                   Promedio: {cpuUsageLoading ? '...' : `${calculateAverageCpuUsage().toFixed(2)}%`}
                 </p>
-                <p className={`text-xs ${themeClasses.textMuted}`}>Límite: {cpuLimitLoading ? '...' : '100%'}</p>
+                <p className="text-xs text-muted-foreground">Límite: {cpuLimitLoading ? '...' : '100%'}</p>
               </div>
             </div>
 
             <div>
-              <h4 className={`text-base font-medium ${themeClasses.text} mb-2`}>Memoria RAM</h4>
+              <h4 className="text-base font-medium text-foreground mb-2">Memoria RAM</h4>
               <div className="flex items-center mb-2">
-                <div className={`h-2 w-full ${themeClasses.inputBg} rounded-full overflow-hidden`}>
+                <div className="h-2 w-full bg-input rounded-full overflow-hidden">
                   {memoryUsageLoading || memoryLimitLoading ? (
-                    <div className={`h-full ${themeClasses.border} animate-pulse`} style={{ width: '100%' }}></div>
+                    <div className="h-full bg-muted animate-pulse" style={{ width: '100%' }}></div>
                   ) : (
                     <div
                       className="h-full rounded-full"
@@ -179,11 +178,11 @@ export default function ServerSettings() {
                     ></div>
                   )}
                 </div>
-                <span className={`ml-2 text-xs ${themeClasses.text} w-16 text-right`}>
+                <span className="ml-2 text-xs text-foreground w-16 text-right">
                   {memoryUsageLoading || memoryLimitLoading ? 'Cargando...' : `${calculateMemoryUsagePercentage().toFixed(2)}%`}
                 </span>
               </div>
-              <p className={`text-xs ${themeClasses.textMuted} mt-1`}>
+              <p className="text-xs text-muted-foreground mt-1">
                 {memoryUsageLoading || memoryLimitLoading ? 'Cargando datos de memoria...' : 'Uso actual de memoria RAM'}
               </p>
             </div>
@@ -191,25 +190,25 @@ export default function ServerSettings() {
         </CardContent>
 
         <CardContent className="px-6 pb-6 pt-0">
-          <h4 className={`text-base font-medium ${themeClasses.text} mb-4`}>Historial de CPU (últimos 60 minutos)</h4>
+          <h4 className="text-base font-medium text-foreground mb-4">Historial de CPU (últimos 60 minutos)</h4>
           {cpuUsageLoading || cpuLimitLoading ? (
-            <div className={`h-24 ${themeClasses.inputBg} rounded-md animate-pulse flex items-center justify-center`}>
-              <Loader2 className={`h-6 w-6 animate-spin ${themeClasses.textMuted}`} />
+            <div className="h-24 bg-input rounded-md animate-pulse flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="h-40 w-full">
               {cpuUsageData && cpuUsageData[0]?.values.length > 0 ? (
                 <CpuUsageChart cpuData={cpuUsageData[0]} />
               ) : (
-                <div className={`h-24 ${themeClasses.inputBg} rounded-md flex items-center justify-center`}>
-                  <p className={`text-sm ${themeClasses.textMuted}`}>No hay datos disponibles</p>
+                <div className="h-24 bg-input rounded-md flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
                 </div>
               )}
             </div>
           )}
         </CardContent>
 
-        <div className={`border-t ${themeClasses.border} p-4`}>
+        <div className="border-t border-border p-4">
           <Button
             variant="outline"
             onClick={() => {

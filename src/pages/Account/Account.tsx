@@ -1,6 +1,6 @@
 import api from '@/api'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -83,11 +83,14 @@ export default function Account() {
           {/* Botón para abrir el diálogo de contraseña */}
           <div className="flex flex-row items-center space-x-4">
             <FormLabel>Contraseña</FormLabel>
-            <DialogTrigger asChild>
-              <Button ref={triggerRef} type="button" variant="outline">
-                Cambiar contraseña
-              </Button>
-            </DialogTrigger>
+            <Button 
+              ref={triggerRef} 
+              type="button" 
+              variant="outline"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              Cambiar contraseña
+            </Button>
           </div>
         </form>
       </Form>

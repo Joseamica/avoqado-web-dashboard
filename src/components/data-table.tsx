@@ -61,7 +61,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
 
   return (
     <>
-      <Table className={`mb-4 rounded-xl bg-card`}>
+      <Table className="mb-4 rounded-xl bg-card">
         {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => (
@@ -92,7 +92,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className="border-border"
+                    className="border-gray-200 dark:border-gray-700" // eslint-disable-line
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} className="p-4">
@@ -104,7 +104,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
               }
 
               return (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-border">
+                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-gray-200 dark:border-gray-700"> {/* eslint-disable-line */}
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="p-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

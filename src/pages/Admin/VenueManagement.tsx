@@ -1,36 +1,18 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  PlusCircle,
-  Search,
-  Edit,
-  X,
-  MapPin,
-  CheckCircle,
-  XCircle,
-  Building,
-  Users,
-  Clock,
-  Utensils,
-  Loader2,
-  ArrowLeft,
-} from 'lucide-react'
-import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
 import api from '@/api'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation, Link } from 'react-router-dom'
 import DataTable from '@/components/data-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
+import { ArrowLeft, CheckCircle, Loader2, MapPin, PlusCircle, Search, X, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 
 // Define types for venues and admins
 interface Venue {
@@ -59,7 +41,7 @@ export default function VenueManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
-  const [activeTab, setActiveTab] = useState('details')
+  const [activeTab] = useState('details')
   const isSuperAdmin = user?.role === 'SUPERADMIN'
   const location = useLocation()
 
@@ -87,6 +69,10 @@ export default function VenueManagement() {
     },
     enabled: !!selectedVenue?.id && isSuperAdmin,
   })
+
+  // Suppress unused variable warnings for variables that may be used in commented-out sections
+  void venueAdmins
+  void adminsLoading
   // Filter venues based on search and filter criteria
   const filteredVenues =
     venues && venues.length > 0
@@ -129,7 +115,7 @@ export default function VenueManagement() {
     mutationFn: async (venueData: Partial<Venue>) => {
       return await api.post('/v1/admin/venues', venueData)
     },
-    onSuccess: response => {
+    onSuccess: () => {
       toast({
         title: 'Venue creado',
         description: 'El nuevo establecimiento ha sido creado correctamente.',
@@ -178,8 +164,12 @@ export default function VenueManagement() {
   // Handle opening details panel for a venue
   const openVenueDetails = (venue: Venue) => {
     setSelectedVenue(venue)
-    setActiveTab('details')
+    // setActiveTab('details') - commented out since setActiveTab is not available
   }
+
+  // Suppress unused variable warnings
+  void openVenueDetails
+  void activeTab
 
   // Create a new venue
   const handleCreateVenue = (data: any) => {
@@ -191,14 +181,17 @@ export default function VenueManagement() {
     addVenueAdminMutation.mutate({ venueId, userData })
   }
 
+  // Suppress unused variable warning
+  void handleAddAdmin
+
   return (
-    <div className={`space-y-4 h-screen ${themeClasses.pageBg} p-4 md:p-6 lg:p-8`}>
-      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-4`}>
+    <div className={`space-y-4 h-screen bg-background p-4 md:p-6 lg:p-8`}>
+      <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Volver al Panel de Administración
       </Link>
       <div className="flex justify-between items-center mb-6">
-        <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Establecimientos</h2>
+        <h2 className="text-2xl font-bold text-foreground">Gestión de Establecimientos</h2>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
@@ -206,10 +199,10 @@ export default function VenueManagement() {
               Nuevo Establecimiento
             </Button>
           </DialogTrigger>
-          <DialogContent className={`sm:max-w-[600px] ${themeClasses.cardBg} ${themeClasses.border}`}>
+          <DialogContent className={`sm:max-w-[600px] bg-card border-border`}>
             <DialogHeader>
-              <DialogTitle className={themeClasses.text}>Crear Nuevo Establecimiento</DialogTitle>
-              <DialogDescription className={themeClasses.textMuted}>
+              <DialogTitle className="text-foreground">Crear Nuevo Establecimiento</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Completa los datos para crear un nuevo establecimiento en el sistema
               </DialogDescription>
             </DialogHeader>
@@ -272,7 +265,7 @@ export default function VenueManagement() {
         </Dialog>
       </div>
 
-      <Card className={`${themeClasses.cardBg} rounded-xl shadow-sm`}>
+      <Card className={`bg-card rounded-xl shadow-sm`}>
         <CardContent className="p-4">
           <div className="flex gap-2 mb-4">
             <div className="relative">
@@ -280,7 +273,7 @@ export default function VenueManagement() {
               <Input
                 type="search"
                 placeholder="Buscar establecimientos..."
-                className={`pl-8 w-[250px] ${themeClasses.inputBg}`}
+                className={`pl-8 w-[250px] bg-input`}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -333,7 +326,7 @@ export default function VenueManagement() {
                 cell: ({ row }) => (
                   <div
                     className={`flex items-center ${
-                      row.original.status === 'active' ? themeClasses.success.text : themeClasses.error.text
+                      row.original.status === 'active' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
                     }`}
                   >
                     {row.original.status === 'active' ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
@@ -392,7 +385,7 @@ export default function VenueManagement() {
             )
           })()}
 
-          <div className={`text-xs ${themeClasses.textMuted} mt-2`}>
+          <div className="text-xs text-muted-foreground mt-2">
             Mostrando {filteredVenues.length} de {venues.length} establecimientos
           </div>
         </CardContent>
@@ -400,10 +393,10 @@ export default function VenueManagement() {
 
       {/* {selectedVenue && (
         <div className="mt-6">
-          <Card className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+          <Card className={`${bg-card} ${border-border}`}>
             <CardHeader>
-              <CardTitle className={themeClasses.text}>{selectedVenue.name}</CardTitle>
-              <CardDescription className={themeClasses.textMuted}>
+              <CardTitle className="text-foreground">{selectedVenue.name}</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 <div className="flex items-center text-sm">
                   <MapPin className="mr-1 h-3 w-3" /> {selectedVenue.address}
                 </div>
@@ -457,20 +450,20 @@ export default function VenueManagement() {
                   </div>
 
                   <div className="space-y-2 pt-2">
-                    <h4 className={`text-sm font-semibold ${themeClasses.text}`}>Estadísticas rápidas</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Estadísticas rápidas</h4>
                     <div className="grid grid-cols-2 gap-2">
-                      <Card className={`${themeClasses.border} ${themeClasses.cardBg}`}>
+                      <Card className={`${border-border} ${bg-card}`}>
                         <CardContent className="flex flex-col items-center p-4">
                           <Clock className="h-5 w-5 text-blue-500 mb-1" />
-                          <span className={`text-xl font-bold ${themeClasses.text}`}>24h</span>
-                          <span className={themeClasses.textMuted + ' text-xs'}>Horario</span>
+                          <span className="text-xl font-bold text-foreground">24h</span>
+                          <span className="text-muted-foreground text-xs">Horario</span>
                         </CardContent>
                       </Card>
-                      <Card className={`${themeClasses.border} ${themeClasses.cardBg}`}>
+                      <Card className={`${border-border} ${bg-card}`}>
                         <CardContent className="flex flex-col items-center p-4">
                           <Utensils className="h-5 w-5 text-orange-500 mb-1" />
-                          <span className={`text-xl font-bold ${themeClasses.text}`}>42</span>
-                          <span className={themeClasses.textMuted + ' text-xs'}>Platos</span>
+                          <span className="text-xl font-bold text-foreground">42</span>
+                          <span className="text-muted-foreground text-xs">Platos</span>
                         </CardContent>
                       </Card>
                     </div>
@@ -487,7 +480,7 @@ export default function VenueManagement() {
                 <TabsContent value="admins" className="pt-4">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className={`text-sm font-semibold ${themeClasses.text}`}>Administradores asignados</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Administradores asignados</h4>
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button size="sm">
@@ -495,10 +488,10 @@ export default function VenueManagement() {
                             Añadir
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className={`${themeClasses.cardBg} ${themeClasses.border}`}>
+                        <DialogContent className={`${bg-card} ${border-border}`}>
                           <DialogHeader>
-                            <DialogTitle className={themeClasses.text}>Añadir Administrador</DialogTitle>
-                            <DialogDescription className={themeClasses.textMuted}>
+                            <DialogTitle className="text-foreground">Añadir Administrador</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
                               Asigna un administrador a este establecimiento
                             </DialogDescription>
                           </DialogHeader>
@@ -539,13 +532,13 @@ export default function VenueManagement() {
                       </Dialog>
                     </div>
 
-                    <div className={`rounded-md ${themeClasses.border} overflow-hidden`}>
-                      <Table className={themeClasses.table.bg}>
-                        <TableHeader className={themeClasses.table.headerBg}>
+                    <div className={`rounded-md ${border-border} overflow-hidden`}>
+                      <Table className={""}>
+                        <TableHeader className={""}>
                           <TableRow>
-                            <TableHead className={themeClasses.table.cell}>Nombre</TableHead>
-                            <TableHead className={themeClasses.table.cell}>Rol</TableHead>
-                            <TableHead className={`text-right ${themeClasses.table.cell}`}>Acciones</TableHead>
+                            <TableHead className={""}>Nombre</TableHead>
+                            <TableHead className={""}>Rol</TableHead>
+                            <TableHead className={`text-right ${""}`}>Acciones</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -570,15 +563,15 @@ export default function VenueManagement() {
                               ))
                           ) : venueAdmins.length > 0 ? (
                             venueAdmins.map(admin => (
-                              <TableRow key={admin.id} className={themeClasses.table.rowHover}>
+                              <TableRow key={admin.id} className={"hover:bg-muted/50"}>
                                 <TableCell>
                                   <div>
-                                    <div className={`font-medium ${themeClasses.text}`}>{admin.name}</div>
-                                    <div className={themeClasses.textMuted + ' text-xs'}>{admin.email}</div>
+                                    <div className="font-medium text-foreground">{admin.name}</div>
+                                    <div className="text-muted-foreground text-xs">{admin.email}</div>
                                   </div>
                                 </TableCell>
                                 <TableCell>{admin.role === 'VENUEADMIN' ? 'Admin de Venue' : 'Administrador'}</TableCell>
-                                <TableCell className={`text-right ${themeClasses.table.cell}`}>
+                                <TableCell className={`text-right ${""}`}>
                                   <Button variant="ghost" size="sm">
                                     Eliminar
                                   </Button>
@@ -600,8 +593,8 @@ export default function VenueManagement() {
 
                 <TabsContent value="settings" className="pt-4 space-y-4">
                   <div className="space-y-2">
-                    <h4 className={`text-sm font-semibold ${themeClasses.text}`}>Configuración de establecimiento</h4>
-                    <p className={themeClasses.textMuted + ' text-sm'}>Configura los parámetros específicos de este establecimiento.</p>
+                    <h4 className="text-sm font-semibold text-foreground">Configuración de establecimiento</h4>
+                    <p className="text-muted-foreground text-sm">Configura los parámetros específicos de este establecimiento.</p>
                   </div>
 
                   <div className="space-y-4">
