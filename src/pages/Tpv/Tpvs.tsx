@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { themeClasses } from '@/lib/theme-utils'
 import { Terminal } from '@/types'
 
 export default function Tpvs() {
@@ -81,7 +80,7 @@ export default function Tpvs() {
   }, [searchTerm, data])
 
   return (
-    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Terminales punto de venta</h1>
         <Button asChild>
@@ -101,7 +100,7 @@ export default function Tpvs() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
+        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-72`}
       />
       <Card>
         <CardContent className="p-0">

@@ -5,7 +5,6 @@ import { Controller, ControllerProps, FieldPath, FieldValues, FormProvider, useF
 
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
-import { themeClasses } from '@/lib/theme-utils'
 
 const Form = FormProvider
 
@@ -78,8 +77,8 @@ const FormLabel = React.forwardRef<
     <Label
       ref={ref}
       className={cn(
-        themeClasses.text,
-        error && "text-red-500 dark:text-red-900", 
+        "text-foreground",
+        error && "text-destructive", 
         className
       )}
       htmlFor={formItemId}
@@ -108,7 +107,7 @@ const FormDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className, ...props }, ref) => {
     const { formDescriptionId } = useFormField()
 
-    return <p ref={ref} id={formDescriptionId} className={cn('text-[0.8rem] text-zinc-500 dark:text-zinc-400', className)} {...props} />
+    return <p ref={ref} id={formDescriptionId} className={cn('text-[0.8rem] text-muted-foreground', className)} {...props} />
   },
 )
 FormDescription.displayName = 'FormDescription'
@@ -123,7 +122,7 @@ const FormMessage = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<
     }
 
     return (
-      <p ref={ref} id={formMessageId} className={cn('text-[0.8rem] font-medium text-red-500 dark:text-red-900', className)} {...props}>
+      <p ref={ref} id={formMessageId} className={cn('text-[0.8rem] font-medium text-destructive', className)} {...props}>
         {body}
       </p>
     )

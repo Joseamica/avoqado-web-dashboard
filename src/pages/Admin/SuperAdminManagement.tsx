@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
 import {
   AlertTriangle,
   CheckCircle,
@@ -267,8 +266,8 @@ export default function SuperAdminManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de SuperAdministradores</h2>
-        <p className={`${themeClasses.textMuted}`}>Administra los usuarios con privilegios de superadministrador</p>
+        <h2 className="text-2xl font-bold text-foreground">Gestión de SuperAdministradores</h2>
+        <p className="text-muted-foreground">Administra los usuarios con privilegios de superadministrador</p>
       </div>
 
       {/* Warning banner */}
@@ -278,7 +277,7 @@ export default function SuperAdminManagement() {
             <AlertTriangle className="h-5 w-5 text-yellow-400" />
           </div>
           <div className="ml-3">
-            <p className={`text-sm ${themeClasses.text}`}>
+            <p className="text-sm text-foreground">
               Esta sección permite gestionar usuarios con acceso completo al sistema. Los superadministradores tienen permisos para realizar
               cualquier acción, incluyendo cambios críticos en la configuración y acceso a todos los datos.
             </p>

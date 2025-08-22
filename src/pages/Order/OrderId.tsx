@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
-import { themeClasses } from '@/lib/theme-utils'
 import { Order as OrderType, OrderStatus, StaffRole } from '@/types' // CAMBIO: Usar tipos Order y OrderStatus
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -175,28 +174,28 @@ export default function OrderId() {
   const getStatusClasses = (status: string) => {
     if (status === 'PAID' || status === 'CLOSED') {
       return {
-        bg: themeClasses.success.bg,
+        bg: 'bg-green-100',
 
-        text: themeClasses.success.text,
+        text: 'text-green-800',
       }
     } else if (status === 'OPEN' || status === 'PENDING') {
       return {
-        bg: themeClasses.warning.bg,
+        bg: 'bg-yellow-100',
 
-        text: themeClasses.warning.text,
+        text: 'text-yellow-800',
       }
     } else if (status === 'CANCELED' || status === 'DELETED') {
       return {
-        bg: themeClasses.error.bg,
+        bg: 'bg-red-100',
 
-        text: themeClasses.error.text,
+        text: 'text-red-800',
       }
     }
 
     return {
-      bg: themeClasses.neutral.bg,
+      bg: 'bg-secondary',
 
-      text: themeClasses.neutral.text,
+      text: 'text-secondary-foreground',
     }
   }
   const statusClasses = getStatusClasses(order.status)
@@ -204,7 +203,7 @@ export default function OrderId() {
   return (
     <div>
       {/* --- CABECERA --- */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex items-center">
           <Link to={from}>
             <ArrowLeft />

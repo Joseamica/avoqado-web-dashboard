@@ -4,7 +4,6 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { ArrowLeft, Receipt, Mail, Eye, ExternalLink } from 'lucide-react'
@@ -123,8 +122,8 @@ export default function PaymentId() {
         </div>
         <div>
           <span
-            className={`px-3 py-1 ${payment?.status === 'ACCEPTED' ? themeClasses.success.bg : themeClasses.neutral.bg} ${
-              payment?.status === 'ACCEPTED' ? themeClasses.success.text : themeClasses.neutral.text
+            className={`px-3 py-1 ${payment?.status === 'ACCEPTED' ? bg-green-100 : bg-secondary} ${
+              payment?.status === 'ACCEPTED' ? text-green-800 : text-secondary-foreground
             } rounded-full font-medium`}
           >
             {payment?.status === 'ACCEPTED' ? 'Aceptado' : payment?.status}

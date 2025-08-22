@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
 import { useNavigate } from 'react-router-dom'
 
 const SuperadminHeader: React.FC = () => {
@@ -27,12 +26,12 @@ const SuperadminHeader: React.FC = () => {
   }
 
   return (
-    <header className={`border-b px-6 py-4 ${themeClasses.cardBg} ${themeClasses.border}`}>
+    <header className="border-b border-border px-6 py-4 bg-card">
       <div className="flex items-center justify-between">
         {/* Search */}
         <div className="flex items-center space-x-4 flex-1 max-w-md">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search venues, features, users..."
               className="pl-10"
@@ -58,13 +57,13 @@ const SuperadminHeader: React.FC = () => {
           {/* System Status */}
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-sm text-gray-600">All Systems Operational</span>
+            <span className="text-sm text-muted-foreground">All Systems Operational</span>
           </div>
 
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="w-4 h-4" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 text-xs bg-red-500 text-white">
+            <Badge className="absolute -top-1 -right-1 w-5 h-5 text-xs bg-red-500 text-red-50 dark:text-red-50">
               3
             </Badge>
           </Button>
@@ -74,7 +73,7 @@ const SuperadminHeader: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
+                  <span className="text-red-50 dark:text-red-50 text-sm font-medium">
                     {user?.firstName?.charAt(0) || 'A'}
                   </span>
                 </div>

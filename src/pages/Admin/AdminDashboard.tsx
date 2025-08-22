@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
 import { BarChart3, Building, Database, Globe, Lock, Settings, Shield, Users } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { useState } from 'react'
@@ -23,13 +22,13 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
+    <div className="flex flex-col min-h-screen bg-background">
       <div
-        className={`sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 ${themeClasses.cardBg} ${themeClasses.border} border-b shadow-md backdrop-blur-sm`}
+        className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-card border-border border-b shadow-md backdrop-blur-sm"
       >
         <div className="flex items-center space-x-2">
           <Shield className="h-5 w-5 text-primary" />
-          <h1 className={`text-lg font-medium ${themeClasses.text}`}>Panel de Administración</h1>
+          <h1 className="text-lg font-medium text-foreground">Panel de Administración</h1>
         </div>
         <div className="flex items-center space-x-2">
           {isSuperAdmin && (
@@ -37,14 +36,14 @@ export default function AdminDashboard() {
               SuperAdmin
             </span>
           )}
-          <span className={`text-sm ${themeClasses.textMuted}`}>{user?.email}</span>
+          <span className="text-sm text-muted-foreground">{user?.email}</span>
           <ThemeToggle />
         </div>
       </div>
 
       <div className={`container mx-auto py-6 flex-grow`}>
         <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
-          <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm mb-6`}>
+          <div className="bg-card rounded-md overflow-hidden shadow-sm mb-6">
             <TabsList className={`w-full grid ${isSuperAdmin ? 'grid-cols-6' : 'grid-cols-4'} rounded-none`}>
               <TabsTrigger
                 value="general"
@@ -103,84 +102,84 @@ export default function AdminDashboard() {
 
           <TabsContent value="general" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className={themeClasses.cardBg}>
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className={themeClasses.text}>Resumen</CardTitle>
-                  <CardDescription className={themeClasses.textMuted}>Vista general del sistema</CardDescription>
+                  <CardTitle className="text-foreground">Resumen</CardTitle>
+                  <CardDescription className="text-muted-foreground">Vista general del sistema</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className={themeClasses.text}>Contenido del panel general</p>
+                  <p className="text-foreground">Contenido del panel general</p>
                 </CardContent>
               </Card>
-              <Card className={themeClasses.cardBg}>
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className={themeClasses.text}>Actividad Reciente</CardTitle>
-                  <CardDescription className={themeClasses.textMuted}>Últimas acciones realizadas</CardDescription>
+                  <CardTitle className="text-foreground">Actividad Reciente</CardTitle>
+                  <CardDescription className="text-muted-foreground">Últimas acciones realizadas</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className={themeClasses.text}>Contenido de actividad reciente</p>
+                  <p className="text-foreground">Contenido de actividad reciente</p>
                 </CardContent>
               </Card>
-              <Card className={themeClasses.cardBg}>
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className={themeClasses.text}>Rendimiento</CardTitle>
-                  <CardDescription className={themeClasses.textMuted}>Métricas del sistema</CardDescription>
+                  <CardTitle className="text-foreground">Rendimiento</CardTitle>
+                  <CardDescription className="text-muted-foreground">Métricas del sistema</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className={themeClasses.text}>Contenido de rendimiento</p>
+                  <p className="text-foreground">Contenido de rendimiento</p>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="users" className="mt-6">
-            <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>Gestión de Usuarios</h2>
-            <Separator className={`mb-6 ${themeClasses.border}`} />
-            <p className={themeClasses.textMuted}>Administra los usuarios del sistema</p>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Gestión de Usuarios</h2>
+            <Separator className="mb-6 border-border" />
+            <p className="text-muted-foreground">Administra los usuarios del sistema</p>
             <Outlet />
           </TabsContent>
 
           <TabsContent value="venues" className="mt-6">
-            <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>Gestión de Venues</h2>
-            <Separator className={`mb-6 ${themeClasses.border}`} />
-            <p className={themeClasses.textMuted}>Administra los venues registrados</p>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Gestión de Venues</h2>
+            <Separator className="mb-6 border-border" />
+            <p className="text-muted-foreground">Administra los venues registrados</p>
             <Outlet />
           </TabsContent>
 
           {isSuperAdmin && (
             <>
               <TabsContent value="system" className="mt-6">
-                <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>Configuración del Sistema</h2>
-                <Separator className={`mb-6 ${themeClasses.border}`} />
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración del Sistema</h2>
+                <Separator className="mb-6 border-border" />
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 dark:bg-yellow-900/20 dark:border-yellow-600">
                   <div className="flex">
                     <div className="flex-shrink-0">
                       <Lock className="h-5 w-5 text-yellow-400" />
                     </div>
                     <div className="ml-3">
-                      <p className={`text-sm ${themeClasses.text}`}>
+                      <p className="text-sm text-foreground">
                         Esta sección está restringida solo para SuperAdmins y contiene configuraciones sensibles del sistema.
                       </p>
                     </div>
                   </div>
                 </div>
-                <p className={themeClasses.textMuted}>Administra las configuraciones a nivel de sistema</p>
+                <p className="text-muted-foreground">Administra las configuraciones a nivel de sistema</p>
                 <Outlet />
               </TabsContent>
 
               <TabsContent value="global" className="mt-6">
-                <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>Configuración Global</h2>
-                <Separator className={`mb-6 ${themeClasses.border}`} />
-                <p className={themeClasses.textMuted}>Administra las configuraciones globales de la plataforma</p>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración Global</h2>
+                <Separator className="mb-6 border-border" />
+                <p className="text-muted-foreground">Administra las configuraciones globales de la plataforma</p>
                 <Outlet />
               </TabsContent>
             </>
           )}
 
           <TabsContent value="settings" className="mt-6">
-            <h2 className={`text-xl font-semibold mb-4 ${themeClasses.text}`}>Configuración de Cuenta</h2>
-            <Separator className={`mb-6 ${themeClasses.border}`} />
-            <p className={themeClasses.textMuted}>Administra tu cuenta y preferencias</p>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración de Cuenta</h2>
+            <Separator className="mb-6 border-border" />
+            <p className="text-muted-foreground">Administra tu cuenta y preferencias</p>
             <Outlet />
           </TabsContent>
         </Tabs>

@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
-import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, PencilIcon, SaveIcon, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -162,8 +161,8 @@ export default function TpvId() {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 ${tpv?.status === 'ACTIVE' ? themeClasses.success.bg : themeClasses.neutral.bg} ${
-              tpv?.status === 'ACTIVE' ? themeClasses.success.text : themeClasses.neutral.text
+            className={`px-3 py-1 ${tpv?.status === 'ACTIVE' ? bg-green-100 : bg-secondary} ${
+              tpv?.status === 'ACTIVE' ? text-green-800 : text-secondary-foreground
             } rounded-full font-medium`}
           >
             {tpv?.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}

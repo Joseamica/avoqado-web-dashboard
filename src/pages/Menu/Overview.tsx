@@ -3,7 +3,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { themeClasses } from '@/lib/theme-utils'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -46,14 +45,14 @@ function SortableProduct({
       style={style}
       {...attributes}
       {...listeners}
-      className={`flex items-center p-2 my-1 rounded-md ${themeClasses.hover} ${
+      className={`flex items-center p-2 my-1 rounded-md hover:bg-muted ${
         isDragging ? 'shadow-lg z-30' : 'z-20'
       } cursor-grab active:cursor-grabbing relative pointer-events-auto`}
     >
-      <div className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+      <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
         <GripVertical size={18} />
       </div>
-      <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-md mr-4 flex items-center justify-center">
+      <div className="w-12 h-12 bg-muted rounded-md mr-4 flex items-center justify-center">
         {product.imageUrl && !imageErrors[product.id] ? (
           <img 
             src={product.imageUrl} 
@@ -62,10 +61,10 @@ function SortableProduct({
             onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
           />
         ) : (
-          <ImageIcon className={`${themeClasses.textMuted}`} size={24} />
+          <ImageIcon className="text-muted-foreground" size={24} />
         )}
       </div>
-      <div className={`font-medium ${themeClasses.text} flex-grow`}>{product.name}</div>
+      <div className="font-medium text-foreground flex-grow">{product.name}</div>
       <div className="ml-auto flex items-center space-x-4 pointer-events-auto">
         <Input
           type="text"
@@ -94,9 +93,9 @@ function SortableCategory({ menuId, category, children }: { menuId: string; cate
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={`p-2 rounded-lg ${themeClasses.contentBg} ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}>
+    <div ref={setNodeRef} style={style} className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}>
       <div {...attributes} {...listeners} className="flex items-center cursor-grab active:cursor-grabbing relative z-20">
-        <div className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+        <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
           <GripVertical size={20} />
         </div>
         <h3 className="font-semibold text-lg flex-grow pointer-events-none">{category.name}</h3>
@@ -133,14 +132,14 @@ function SortableMenu({
     <div
       ref={setNodeRef}
       style={style}
-      className={`mb-8 rounded-xl ${themeClasses.border} ${themeClasses.cardBg} ${isDragging ? 'shadow-lg z-50' : 'z-0'} relative`}
+      className={`mb-8 rounded-xl border-border bg-card ${isDragging ? 'shadow-lg z-50' : 'z-0'} relative`}
     >
       <header
         {...attributes}
         {...listeners}
-        className={`flex items-center p-4 rounded-t-xl ${themeClasses.cardBg} cursor-grab active:cursor-grabbing relative z-10`}
+        className="flex items-center p-4 rounded-t-xl bg-card cursor-grab active:cursor-grabbing relative z-10"
       >
-        <div className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+        <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
           <GripVertical size={24} />
         </div>
         <h2 className="text-xl font-bold flex-grow pointer-events-none">{menu.name}</h2>
@@ -446,7 +445,7 @@ export default function Overview() {
 
       <div className="flex items-center space-x-4 mb-6">
         <div className="relative flex-grow">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <Input
             type="text"
             placeholder="Search menus or categories..."
@@ -510,10 +509,10 @@ export default function Overview() {
         <DragOverlay>
           {activeId && activeItem && (
             <div
-              className={`p-4 rounded-lg shadow-2xl ${themeClasses.cardBg} ${themeClasses.border} border-2 border-blue-200 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm`}
+              className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 border-blue-200 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm"
             >
               <div className="flex items-center space-x-3">
-                <GripVertical className="text-gray-400" size={20} />
+                <GripVertical className="text-muted-foreground" size={20} />
                 <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : 'Item'}</p>
               </div>
             </div>

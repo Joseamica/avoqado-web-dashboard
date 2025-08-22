@@ -1,7 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { themeClasses } from '@/lib/theme-utils'
 import {
   LayoutDashboard,
   Building2,
@@ -54,16 +53,16 @@ const SuperadminSidebar: React.FC = () => {
   ]
 
   return (
-    <div className={cn('h-full border-r', themeClasses.cardBg, themeClasses.border)}>
+    <div className={cn('h-full border-r bg-card border-border')}>
       {/* Logo */}
       <div className="p-6 border-b">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
+            <Shield className="w-4 h-4 text-green-50 dark:text-green-50" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-green-600">Avoqado</h1>
-            <p className="text-xs text-gray-500">Admin Panel</p>
+            <p className="text-xs text-muted-foreground">Admin Panel</p>
           </div>
         </div>
       </div>
@@ -72,7 +71,7 @@ const SuperadminSidebar: React.FC = () => {
       <nav className="p-4 space-y-6">
         {navigationItems.map((section) => (
           <div key={section.title}>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               {section.title}
             </h2>
             <ul className="space-y-1">
@@ -86,7 +85,7 @@ const SuperadminSidebar: React.FC = () => {
                         'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                         isActive
                           ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-muted'
                       )
                     }
                   >

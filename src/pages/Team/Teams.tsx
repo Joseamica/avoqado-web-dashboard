@@ -5,7 +5,6 @@ import { ArrowUpDown, UserPlus, MoreHorizontal, Pencil, Trash2, Mail, Clock } fr
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { themeClasses } from '@/lib/theme-utils'
 import DataTable from '@/components/data-table'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -150,7 +149,7 @@ export default function Teams() {
             <div className="font-medium">
               {row.original.firstName} {row.original.lastName}
             </div>
-            <div className="text-sm text-gray-500">{row.original.email}</div>
+            <div className="text-sm text-muted-foreground">{row.original.email}</div>
           </div>
         </div>
       ),
@@ -232,7 +231,7 @@ export default function Teams() {
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.email}</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Invitado por {row.original.invitedBy.name}
           </div>
         </div>
@@ -304,11 +303,11 @@ export default function Teams() {
   ]
 
   return (
-    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className={`p-4 bg-background text-foreground`}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Equipo</h1>
-          <p className="text-gray-600">Gestiona los miembros de tu equipo e invitaciones</p>
+          <p className="text-muted-foreground">Gestiona los miembros de tu equipo e invitaciones</p>
         </div>
         
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>

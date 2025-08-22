@@ -1,5 +1,4 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
-import { themeClasses } from '@/lib/theme-utils'
 import {
   ColumnDef,
   flexRender,
@@ -62,7 +61,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
 
   return (
     <>
-      <Table className={`mb-4 rounded-xl ${themeClasses.table.bg}`}>
+      <Table className={`mb-4 rounded-xl bg-card`}>
         {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => (
@@ -93,7 +92,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className={themeClasses.table.border}
+                    className="border-border"
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} className="p-4">
@@ -105,7 +104,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
               }
 
               return (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className={themeClasses.table.border}>
+                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-border">
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="p-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -116,7 +115,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className={`h-10 text-center ${themeClasses.textMuted}`}>
+              <TableCell colSpan={columns.length} className={`h-10 text-center text-muted-foreground`}>
                 Sin resultados.
               </TableCell>
             </TableRow>

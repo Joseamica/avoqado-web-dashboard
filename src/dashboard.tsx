@@ -5,7 +5,6 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useAuth } from './context/AuthContext'
-import { themeClasses } from './lib/theme-utils'
 import { useEffect, useState, useRef } from 'react'
 import { ChatBubble } from './components/Chatbot'
 import { StaffRole } from './types'
@@ -100,8 +99,8 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando venue...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando venue...</p>
         </div>
       </div>
     )
@@ -124,8 +123,8 @@ export default function Dashboard() {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Restaurando acceso al venue...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Restaurando acceso al venue...</p>
           </div>
         </div>
       )
@@ -135,8 +134,8 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acceso Denegado</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Acceso Denegado</h2>
+          <p className="text-muted-foreground">
             {isPrivilegedUser ? 'Procesando cambio de venue...' : 'No tienes permisos para acceder a este venue.'}
           </p>
         </div>
@@ -183,7 +182,7 @@ export default function Dashboard() {
       <AppSidebar user={user} />
       <SidebarInset>
         <header
-          className={`flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 ${themeClasses.text}`}
+          className={`flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 text-foreground`}
         >
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
@@ -233,7 +232,7 @@ export default function Dashboard() {
         </header>
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
-          <div className={`min-h-[100vh] flex-1 rounded-xl ${themeClasses.contentBg} md:min-h-min transition-colors duration-200`}>
+          <div className={`min-h-[100vh] flex-1 rounded-xl bg-muted md:min-h-min transition-colors duration-200`}>
             <Outlet />
           </div>
         </div>

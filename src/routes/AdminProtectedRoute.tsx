@@ -3,7 +3,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { themeClasses } from '@/lib/theme-utils'
 import { StaffRole } from '@/types'
 
 export enum AdminAccessLevel {
@@ -49,15 +48,15 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
   // Si se requiere OWNER pero el usuario es solo ADMIN, mostrar mensaje específico
   if (requiredRole === AdminAccessLevel.OWNER && !isOwner) {
     return (
-      <div className={`p-6 h-screen ${themeClasses.pageBg}`}>
+      <div className="p-6 h-screen bg-background">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="w-4 h-4" />
           <AlertTitle>Acceso restringido</AlertTitle>
-          <AlertDescription className={`${themeClasses.textMuted}`}>
+          <AlertDescription className="text-muted-foreground">
             Esta sección está disponible solo para Propietarios (OWNER) y Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className={`${themeClasses.textMuted} text-sm mt-4`}>
+        <p className="text-muted-foreground text-sm mt-4">
           Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).
         </p>
       </div>
@@ -67,15 +66,15 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
   // Si se requiere SUPERADMIN pero el usuario no es SUPERADMIN, mostrar mensaje específico
   if (requiredRole === AdminAccessLevel.SUPERADMIN && !isSuperAdmin) {
     return (
-      <div className={`p-6 h-screen ${themeClasses.pageBg}`}>
+      <div className="p-6 h-screen bg-background">
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="w-4 h-4" />
           <AlertTitle>Acceso restringido</AlertTitle>
-          <AlertDescription className={`${themeClasses.textMuted}`}>
+          <AlertDescription className="text-muted-foreground">
             Esta sección está disponible solo para Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className={`${themeClasses.textMuted} text-sm mt-4`}>
+        <p className="text-muted-foreground text-sm mt-4">
           Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).
         </p>
       </div>

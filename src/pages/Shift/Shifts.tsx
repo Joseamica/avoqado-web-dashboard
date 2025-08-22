@@ -1,6 +1,5 @@
 import api from '@/api'
 import { Button } from '@/components/ui/button'
-import { themeClasses } from '@/lib/theme-utils'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
@@ -54,11 +53,11 @@ export default function Shifts() {
 
         if (value === 'Abierto') {
           return (
-            <span className={`px-3 py-1 ${themeClasses.success.bg} ${themeClasses.success.text} rounded-full font-medium`}>Abierto</span>
+            <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">Abierto</span>
           )
         } else {
           return (
-            <span className={`px-3 py-1 ${themeClasses.neutral.bg} ${themeClasses.neutral.text} rounded-full font-medium`}>Cerrado</span>
+            <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">Cerrado</span>
           )
         }
       },
@@ -162,25 +161,25 @@ export default function Shifts() {
         const tipPercentage = totalSales !== 0 ? (totalTips / totalSales) * 100 : 0
 
         let tipClasses = {
-          bg: themeClasses.success.bg,
-          text: themeClasses.success.text,
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          text: 'text-green-700 dark:text-green-400',
         }
 
         if (tipPercentage < 7) {
           tipClasses = {
-            bg: themeClasses.error.bg,
-            text: themeClasses.error.text,
+            bg: 'bg-red-100 dark:bg-red-900/30',
+            text: 'text-red-700 dark:text-red-400',
           }
         } else if (tipPercentage >= 7 && tipPercentage < 10) {
           tipClasses = {
-            bg: themeClasses.warning.bg,
-            text: themeClasses.warning.text,
+            bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+            text: 'text-yellow-700 dark:text-yellow-400',
           }
         }
 
         return (
           <div className="flex flex-col space-y-1 items-center">
-            <span className={`text-[12px] font-semibold ${themeClasses.textSubtle}`}>{tipPercentage.toFixed(1)}%</span>
+            <span className="text-[12px] font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
             <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTips)}</p>
           </div>
         )
@@ -251,7 +250,7 @@ export default function Shifts() {
   }, [searchTerm, data])
 
   return (
-    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className="p-4 bg-background text-foreground">
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Turnos</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
@@ -274,7 +273,7 @@ export default function Shifts() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-72`}
+        className="p-2 mt-4 mb-4 border rounded bg-input border-border max-w-72"
       />
 
       <DataTable

@@ -96,18 +96,20 @@ export default function CreateCategory() {
       ...formValues,
       // Transform availableDays from MultiSelector format to server format
       availableDays: formValues.availableDays?.map((day: any) => day.value || day) || [],
-      // Transform avoqadoMenus from MultiSelector format to server format  
-      avoqadoMenus: formValues.avoqadoMenus?.map((menu: any) => ({
-        value: menu.value || menu.id,
-        label: menu.label || menu.name,
-        disabled: menu.disabled || false,
-      })) || [],
+      // Transform avoqadoMenus from MultiSelector format to server format
+      avoqadoMenus:
+        formValues.avoqadoMenus?.map((menu: any) => ({
+          value: menu.value || menu.id,
+          label: menu.label || menu.name,
+          disabled: menu.disabled || false,
+        })) || [],
       // Transform avoqadoProducts from MultiSelector format to server format
-      avoqadoProducts: formValues.avoqadoProducts?.map((product: any) => ({
-        value: product.value || product.id,
-        label: product.label || product.name,
-        disabled: product.disabled || false,
-      })) || [],
+      avoqadoProducts:
+        formValues.avoqadoProducts?.map((product: any) => ({
+          value: product.value || product.id,
+          label: product.label || product.name,
+          disabled: product.disabled || false,
+        })) || [],
     }
 
     // Handle time values: send null for empty values, keep valid times
@@ -122,10 +124,10 @@ export default function CreateCategory() {
     if (transformedData.availableFrom && transformedData.availableUntil) {
       const fromTime = transformedData.availableFrom.split(':').map(Number)
       const untilTime = transformedData.availableUntil.split(':').map(Number)
-      
+
       const fromMinutes = fromTime[0] * 60 + fromTime[1]
       const untilMinutes = untilTime[0] * 60 + untilTime[1]
-      
+
       if (fromMinutes >= untilMinutes) {
         toast({
           title: 'Horario inválido',
@@ -135,7 +137,7 @@ export default function CreateCategory() {
         return // Don't submit if time range is invalid
       }
     }
-    
+
     createCategory.mutate(transformedData)
   }
 
@@ -145,7 +147,7 @@ export default function CreateCategory() {
 
   return (
     <div>
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
           <button type="button" onClick={() => history.back()} className="cursor-pointer bg-transparent">
             <ArrowLeft />
@@ -154,7 +156,7 @@ export default function CreateCategory() {
         </div>
         <div className="space-x-3 flex-row-center">
           <Button
-            variant={form.watch('active') ? "default" : "secondary"}
+            variant={form.watch('active') ? 'default' : 'secondary'}
             size="sm"
             onClick={() => {
               const currentActive = form.getValues('active')
@@ -238,7 +240,7 @@ export default function CreateCategory() {
               </FormItem>
             )}
           />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -247,17 +249,13 @@ export default function CreateCategory() {
                 <FormItem>
                   <FormLabel>Disponible desde</FormLabel>
                   <FormControl>
-                    <TimePicker
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Seleccionar hora de inicio"
-                    />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de inicio" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="availableUntil"
@@ -265,29 +263,25 @@ export default function CreateCategory() {
                 <FormItem>
                   <FormLabel>Disponible hasta</FormLabel>
                   <FormControl>
-                    <TimePicker
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder="Seleccionar hora de cierre"
-                    />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de cierre" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-          
+
           {/* Time range validation message */}
           {(() => {
             const fromValue = form.watch('availableFrom')
             const untilValue = form.watch('availableUntil')
-            
+
             if (fromValue && untilValue) {
               const fromTime = fromValue.split(':').map(Number)
               const untilTime = untilValue.split(':').map(Number)
               const fromMinutes = fromTime[0] * 60 + fromTime[1]
               const untilMinutes = untilTime[0] * 60 + untilTime[1]
-              
+
               if (fromMinutes >= untilMinutes) {
                 return (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
@@ -298,7 +292,7 @@ export default function CreateCategory() {
             }
             return null
           })()}
-          
+
           <FormField
             control={form.control}
             name="availableDays"
