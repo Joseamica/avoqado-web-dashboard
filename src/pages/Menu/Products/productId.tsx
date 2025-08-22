@@ -228,7 +228,7 @@ export default function ProductId() {
   return (
     <div className="">
       {/* Barra superior */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
           <Link to={from}>
             <ArrowLeft />
@@ -392,7 +392,7 @@ export default function ProductId() {
                     {/* 1) Si el usuario ya seleccionó una imagen pero todavía no la recorta, mostramos el Cropper */}
                     {imageForCrop ? (
                       <div>
-                        <div className="relative w-full h-64 bg-gray-100">
+                        <div className="relative w-full h-64 bg-muted">
                           <Cropper
                             image={imageForCrop}
                             crop={crop}
@@ -442,7 +442,7 @@ export default function ProductId() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Número mínimo de píxeles obligatorio: 320 de ancho y
                             alto.
                           </p>
@@ -480,10 +480,10 @@ export default function ProductId() {
                       // 2b) Si hay una imagen pero falló al cargar, mostrar placeholder elegante
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: Placeholder para imagen rota */}
-                        <div className="w-64 h-64 flex flex-col items-center justify-center bg-gray-100 border-2 border-gray-200 rounded-md">
-                          <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-500 text-center">Imagen no disponible</p>
-                          <p className="text-xs text-gray-400 text-center mt-1">La imagen no pudo cargarse</p>
+                        <div className="w-64 h-64 flex flex-col items-center justify-center bg-muted border-2 border-border rounded-md">
+                          <ImageIcon className="w-12 h-12 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground text-center">Imagen no disponible</p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">La imagen no pudo cargarse</p>
                         </div>
 
                         {/* Sección Derecha: Texto y Botones */}
@@ -495,7 +495,7 @@ export default function ProductId() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Número mínimo de píxeles obligatorio: 320 de ancho y
                             alto.
                           </p>
@@ -533,9 +533,9 @@ export default function ProductId() {
                       // 3) Si no hay nada de imagen y no estamos recortando, mostramos input normal
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: recuadro para subir imagen */}
-                        <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-gray-300 border-dashed rounded-md ">
-                          <p className="text-sm text-center text-gray-600">Suelta la imagen aquí para cargarla</p>
-                          <p className="text-gray-600">o</p>
+                        <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-border border-dashed rounded-md ">
+                          <p className="text-sm text-center text-muted-foreground">Suelta la imagen aquí para cargarla</p>
+                          <p className="text-muted-foreground">o</p>
 
                           {/* Input "invisible" sobre la zona de drag & drop para que sea clickeable */}
                           <Input
@@ -564,7 +564,7 @@ export default function ProductId() {
                               Consulta las directrices completas sobre fotografía.
                             </a>
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Mínimo de 320 px de ancho y alto.
                           </p>
 

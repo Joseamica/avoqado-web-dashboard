@@ -88,7 +88,7 @@ type VenueFormValues = z.infer<typeof venueFormSchema>
 function VenueSkeleton() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
+      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Skeleton className="h-5 w-5" />
           <Skeleton className="h-6 w-40" />
@@ -385,8 +385,8 @@ export default function EditVenue() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Venue no encontrado</h2>
-          <p className="text-gray-600 mb-4">El venue que buscas no existe o no tienes permisos para editarlo.</p>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Venue no encontrado</h2>
+          <p className="text-muted-foreground mb-4">El venue que buscas no existe o no tienes permisos para editarlo.</p>
           <Button onClick={() => navigate(from)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
@@ -401,7 +401,7 @@ export default function EditVenue() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-white/95 dark:bg-gray-950/95 border-b shadow-md backdrop-blur-sm">
+      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
         <div className="space-x-3 flex items-center">
           <Link to={from} className="flex items-center hover:text-primary">
             <ArrowLeft className="h-5 w-5" />

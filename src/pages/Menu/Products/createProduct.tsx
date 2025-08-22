@@ -164,7 +164,7 @@ export default function CreateProduct() {
   return (
     <div className="">
       {/* Barra superior */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
           <button type="button" onClick={() => history.back()} className="cursor-pointer bg-transparent">
             <ArrowLeft />
@@ -320,7 +320,7 @@ export default function CreateProduct() {
                     {/* 1) Si el usuario ya seleccionó una imagen pero todavía no la recorta, mostramos el Cropper */}
                     {imageForCrop ? (
                       <div>
-                        <div className="relative w-full h-64 bg-gray-100">
+                        <div className="relative w-full h-64 bg-muted">
                           <Cropper
                             image={imageForCrop}
                             crop={crop}
@@ -365,7 +365,7 @@ export default function CreateProduct() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Número mínimo de píxeles obligatorio: 320 de ancho y
                             alto.
                           </p>
@@ -402,9 +402,9 @@ export default function CreateProduct() {
                       // 3) Si no hay nada de imagen y no estamos recortando, mostramos input normal
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: recuadro para subir imagen */}
-                        <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-gray-300 border-dashed rounded-md ">
-                          <p className="text-sm text-center text-gray-600">Suelta la imagen aquí para cargarla</p>
-                          <p className="text-gray-600">o</p>
+                        <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-border border-dashed rounded-md ">
+                          <p className="text-sm text-center text-muted-foreground">Suelta la imagen aquí para cargarla</p>
+                          <p className="text-muted-foreground">o</p>
 
                           {/* Input "invisible" sobre la zona de drag & drop para que sea clickeable */}
                           <Input
@@ -427,7 +427,7 @@ export default function CreateProduct() {
                               Consulta las directrices completas sobre fotografía.
                             </a>
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Mínimo de 320 px de ancho y alto.
                           </p>
 

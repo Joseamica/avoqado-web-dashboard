@@ -75,11 +75,11 @@ const FeatureManagement: React.FC = () => {
       case FeatureStatus.BETA:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
       case FeatureStatus.INACTIVE:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-200'
+        return 'bg-muted text-muted-foreground'
       case FeatureStatus.DEPRECATED:
         return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-200'
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -104,10 +104,10 @@ const FeatureManagement: React.FC = () => {
       header: 'Feature',
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">{getCategoryIcon(row.original.category)}</div>
+          <div className="p-2 rounded-lg bg-muted">{getCategoryIcon(row.original.category)}</div>
           <div>
             <div className="font-medium">{row.original.name}</div>
-            <div className="text-sm text-gray-500">{row.original.code}</div>
+            <div className="text-sm text-muted-foreground">{row.original.code}</div>
           </div>
         </div>
       ),
@@ -172,8 +172,8 @@ const FeatureManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Feature Management</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage platform features and venue access controls</p>
+          <h1 className="text-3xl font-bold text-foreground">Feature Management</h1>
+          <p className="text-muted-foreground">Manage platform features and venue access controls</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>

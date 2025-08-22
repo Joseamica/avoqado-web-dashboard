@@ -35,9 +35,9 @@ const CATEGORY_TRANSLATIONS = {
 const CHART_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
 
 // Simple icon components
-const DollarIcon = () => <DollarSign className="h-5 w-5 text-blue-500" />
-const StarIcon = () => <Star className="h-5 w-5 text-yellow-500" />
-const TipIcon = () => <Gift className="h-5 w-5 text-green-500" />
+const DollarIcon = () => <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+const StarIcon = () => <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+const TipIcon = () => <Gift className="h-5 w-5 text-green-600 dark:text-green-400" />
 const PercentIcon = () => <Percent className="h-5 w-5 text-purple-500" />
 
 // Type for comparison period
@@ -142,7 +142,7 @@ const MetricCard = ({
               percentage !== null && (
                 <div
                   className={`text-xs flex items-center ${
-                    percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : 'text-muted-foreground'
+                    percentage > 0 ? 'text-green-600 dark:text-green-400' : percentage < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
                   }`}
                 >
                   {percentage > 0 ? (
@@ -956,7 +956,7 @@ const Home = () => {
         {isError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
-              <h2 className="text-xl font-semibold text-red-600">Failed to load dashboard data</h2>
+              <h2 className="text-xl font-semibold text-destructive">Failed to load dashboard data</h2>
               <p className="text-muted-foreground">{error?.message || 'An unknown error occurred'}</p>
               <Button
                 onClick={() => {
@@ -1029,7 +1029,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <div className="mx-auto aspect-square max-h-[250px]">
@@ -1091,15 +1091,15 @@ const Home = () => {
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {amountChangePercentage > 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">
+                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-green-600 dark:text-green-400">
                             Incremento de {amountChangePercentage}% vs {comparisonLabel}
                           </span>
                         </>
                       ) : amountChangePercentage < 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                          <span className="text-red-600">
+                          <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400 rotate-180" />
+                          <span className="text-red-600 dark:text-red-400">
                             Disminución de {Math.abs(amountChangePercentage)}% vs {comparisonLabel}
                           </span>
                         </>
@@ -1125,7 +1125,7 @@ const Home = () => {
                         <div key={category} className="space-y-2">
                           <h3 className="font-medium text-sm  text-muted-foreground">{CATEGORY_TRANSLATIONS[category] || category}</h3>
                           {products.length === 0 ? (
-                            <p className="text-sm text-gray-500">No hay datos disponibles</p>
+                            <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
                           ) : (
                             <ul className="space-y-1">
                               {products.map((product, idx) => (
@@ -1160,7 +1160,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !tipsChartData || tipsChartData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <ChartContainer
@@ -1207,15 +1207,15 @@ const Home = () => {
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {tipsChangePercentage > 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">
+                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-green-600 dark:text-green-400">
                             Incremento de {tipsChangePercentage}% vs {comparisonLabel}
                           </span>
                         </>
                       ) : tipsChangePercentage < 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                          <span className="text-red-600">
+                          <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400 rotate-180" />
+                          <span className="text-red-600 dark:text-red-400">
                             Disminución de {Math.abs(tipsChangePercentage)}% vs {comparisonLabel}
                           </span>
                         </>
@@ -1254,7 +1254,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !filteredPayments || filteredPayments.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <ChartContainer
@@ -1302,15 +1302,15 @@ const Home = () => {
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {amountChangePercentage > 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">
+                          <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-green-600 dark:text-green-400">
                             Incremento de {amountChangePercentage}% vs {comparisonLabel}
                           </span>
                         </>
                       ) : amountChangePercentage < 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                          <span className="text-red-600">
+                          <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400 rotate-180" />
+                          <span className="text-red-600 dark:text-red-400">
                             Disminución de {Math.abs(amountChangePercentage)}% vs {comparisonLabel}
                           </span>
                         </>
@@ -1343,7 +1343,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !extraMetrics.peakHoursData || extraMetrics.peakHoursData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <ChartContainer
@@ -1414,7 +1414,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !extraMetrics.tablePerformance || extraMetrics.tablePerformance.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -1449,8 +1449,8 @@ const Home = () => {
                 <CardFooter className="flex-col items-start gap-2 text-sm">
                   {bestTable && worstTable && (
                     <div className="leading-none text-muted-foreground">
-                      <span className="font-bold text-green-600">Mesa {bestTable.tableNumber}</span> tiene el ticket promedio más alto •
-                      <span className="font-bold text-red-600"> Mesa {worstTable.tableNumber}</span> tiene el ticket promedio más bajo
+                      <span className="font-bold text-green-600 dark:text-green-400">Mesa {bestTable.tableNumber}</span> tiene el ticket promedio más alto •
+                      <span className="font-bold text-red-600 dark:text-red-400"> Mesa {worstTable.tableNumber}</span> tiene el ticket promedio más bajo
                     </div>
                   )}
                 </CardFooter>
@@ -1469,7 +1469,7 @@ const Home = () => {
                     </div>
                   ) : !extraMetrics.productProfitability || extraMetrics.productProfitability.length === 0 ? (
                     <div className="flex items-center justify-center h-32 p-4">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -1507,7 +1507,7 @@ const Home = () => {
                               <td className="p-4 text-right font-bold">{Currency(product.margin)}</td>
                               <td
                                 className={`p-4 text-right font-bold ${
-                                  product.marginPercentage > 60 ? 'text-green-600' : product.marginPercentage < 35 ? 'text-red-600' : ''
+                                  product.marginPercentage > 60 ? 'text-green-600 dark:text-green-400' : product.marginPercentage < 35 ? 'text-red-600 dark:text-red-400' : ''
                                 }`}
                               >
                                 {(product.marginPercentage || 0).toFixed(0)}%
@@ -1542,7 +1542,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !extraMetrics.weeklyTrendsData || extraMetrics.weeklyTrendsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <ChartContainer
@@ -1585,15 +1585,15 @@ const Home = () => {
                       <div className="flex items-center gap-2 font-medium leading-none">
                         {weeklyTrendsChangePercentage > 0 ? (
                           <>
-                            <TrendingUp className="h-4 w-4 text-green-600" />
-                            <span className="text-green-600">
+                            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <span className="text-green-600 dark:text-green-400">
                               Incremento de {(weeklyTrendsChangePercentage || 0).toFixed(1)}% respecto a la semana anterior
                             </span>
                           </>
                         ) : weeklyTrendsChangePercentage < 0 ? (
                           <>
-                            <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                            <span className="text-red-600">
+                            <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400 rotate-180" />
+                            <span className="text-red-600 dark:text-red-400">
                               Disminución de {Math.abs(weeklyTrendsChangePercentage || 0).toFixed(1)}% respecto a la semana anterior
                             </span>
                           </>
@@ -1646,7 +1646,7 @@ const Home = () => {
                     <LoadingSkeleton />
                   ) : !extraMetrics.staffPerformanceMetrics || extraMetrics.staffPerformanceMetrics.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -1673,7 +1673,7 @@ const Home = () => {
                                       ></div>
                                       <span className="ml-2 text-sm">{Currency(employee.totalSales)}</span>
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-muted-foreground">
                                       {employee.orderCount} órdenes • Tiempo promedio: {(employee.avgPrepTime || 0).toFixed(0)} min
                                     </div>
                                   </div>
@@ -1701,14 +1701,14 @@ const Home = () => {
                               </div>
                               <div className="flex-1">
                                 <div className="flex items-center">
-                                  <div className="flex-1 bg-gray-200 h-2 rounded overflow-hidden">
+                                  <div className="flex-1 bg-muted h-2 rounded overflow-hidden">
                                     <div
                                       className={`h-full rounded ${data.avg <= data.target ? 'bg-green-500' : 'bg-amber-500'}`}
                                       style={{ width: `${(data.avg / 20) * 100}%` }}
                                     ></div>
                                   </div>
                                   <span className="ml-2 text-sm">{(data.avg || 0).toFixed(0)} min</span>
-                                  <span className="ml-2 text-xs text-gray-500">Meta: {data.target} min</span>
+                                  <span className="ml-2 text-xs text-muted-foreground">Meta: {data.target} min</span>
                                 </div>
                               </div>
                             </div>

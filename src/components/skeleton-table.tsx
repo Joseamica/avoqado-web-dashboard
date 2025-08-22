@@ -16,7 +16,7 @@ const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 4 }) => {
         <thead>
           <tr>
             {Array.from({ length: columns }).map((_, idx) => (
-              <th key={idx} className="p-4 bg-gray-200">
+              <th key={idx} className="p-4 bg-muted">
                 <Skeleton className="w-3/4 h-4" />
               </th>
             ))}

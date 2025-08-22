@@ -101,10 +101,10 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+          <div className="h-8 bg-muted rounded w-1/3 mb-6"></div>
           <div className="space-y-4">
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-48 bg-gray-200 rounded"></div>
+            <div className="h-32 bg-muted rounded"></div>
+            <div className="h-48 bg-muted rounded"></div>
           </div>
         </div>
       </div>
@@ -115,8 +115,8 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-gray-900">Miembro no encontrado</h1>
-          <p className="text-gray-600 mt-2">El miembro del equipo que buscas no existe o ha sido eliminado.</p>
+          <h1 className="text-xl font-semibold text-foreground">Miembro no encontrado</h1>
+          <p className="text-muted-foreground mt-2">El miembro del equipo que buscas no existe o ha sido eliminado.</p>
           <Button onClick={handleGoBack} className="mt-4">
             Volver al Equipo
           </Button>
@@ -130,8 +130,8 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-gray-900">Acceso denegado</h1>
-          <p className="text-gray-600 mt-2">No tienes permisos para ver este miembro del equipo.</p>
+          <h1 className="text-xl font-semibold text-foreground">Acceso denegado</h1>
+          <p className="text-muted-foreground mt-2">No tienes permisos para ver este miembro del equipo.</p>
           <Button onClick={handleGoBack} className="mt-4">
             Volver al Equipo
           </Button>
@@ -155,7 +155,7 @@ export default function TeamMemberDetails() {
             <h1 className="text-2xl font-bold">
               {memberDetails.firstName} {memberDetails.lastName}
             </h1>
-            <p className="text-gray-600">Detalles del miembro del equipo</p>
+            <p className="text-muted-foreground">Detalles del miembro del equipo</p>
           </div>
         </div>
         
@@ -170,7 +170,7 @@ export default function TeamMemberDetails() {
             <Button
               variant="outline"
               onClick={() => setShowRemoveDialog(true)}
-              className="text-red-600 hover:text-red-700"
+              className="text-destructive hover:text-destructive/80"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Eliminar
@@ -185,7 +185,7 @@ export default function TeamMemberDetails() {
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
                   {memberDetails.firstName[0]}{memberDetails.lastName[0]}
                 </div>
                 <div className="flex-1">
@@ -200,22 +200,22 @@ export default function TeamMemberDetails() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-3">
-                <Mail className="h-4 w-4 text-gray-400" />
+                <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{memberDetails.email}</span>
               </div>
               
               <div className="flex items-center space-x-3">
-                <Calendar className="h-4 w-4 text-gray-400" />
+                <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div className="text-sm">Fecha de inicio</div>
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-muted-foreground">
                     {new Date(memberDetails.startDate).toLocaleDateString('es-ES')}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <Shield className="h-4 w-4 text-gray-400" />
+                <Shield className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div className="text-sm">Estado</div>
                   <Badge variant={memberDetails.active ? 'default' : 'secondary'}>
@@ -226,10 +226,10 @@ export default function TeamMemberDetails() {
 
               {memberDetails.pin && (
                 <div className="flex items-center space-x-3">
-                  <Clock className="h-4 w-4 text-gray-400" />
+                  <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="text-sm">PIN configurado</div>
-                    <div className="text-xs text-gray-600">••••</div>
+                    <div className="text-xs text-muted-foreground">••••</div>
                   </div>
                 </div>
               )}
@@ -245,12 +245,12 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Ventas Totales</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-sm font-medium text-muted-foreground">Ventas Totales</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                       ${memberDetails.totalSales.toLocaleString()}
                     </p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-green-500" />
+                  <DollarSign className="h-8 w-8 text-green-500 dark:text-green-400" />
                 </div>
               </CardContent>
             </Card>
@@ -259,12 +259,12 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Órdenes Totales</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-sm font-medium text-muted-foreground">Órdenes Totales</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {memberDetails.totalOrders.toLocaleString()}
                     </p>
                   </div>
-                  <ShoppingCart className="h-8 w-8 text-blue-500" />
+                  <ShoppingCart className="h-8 w-8 text-blue-500 dark:text-blue-400" />
                 </div>
               </CardContent>
             </Card>
@@ -273,12 +273,12 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Calificación Promedio</p>
-                    <p className="text-2xl font-bold text-yellow-600">
+                    <p className="text-sm font-medium text-muted-foreground">Calificación Promedio</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                       {memberDetails.averageRating.toFixed(1)}
                     </p>
                   </div>
-                  <Star className="h-8 w-8 text-yellow-500" />
+                  <Star className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
                 </div>
               </CardContent>
             </Card>
@@ -299,11 +299,11 @@ export default function TeamMemberDetails() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Propinas Totales:</span>
+                    <span className="text-sm text-muted-foreground">Propinas Totales:</span>
                     <span className="font-medium">${memberDetails.totalTips.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Promedio por Orden:</span>
+                    <span className="text-sm text-muted-foreground">Promedio por Orden:</span>
                     <span className="font-medium">
                       ${memberDetails.totalOrders > 0 
                         ? (memberDetails.totalSales / memberDetails.totalOrders).toFixed(2) 
@@ -314,13 +314,13 @@ export default function TeamMemberDetails() {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Días Activos:</span>
+                    <span className="text-sm text-muted-foreground">Días Activos:</span>
                     <span className="font-medium">
                       {Math.floor((Date.now() - new Date(memberDetails.startDate).getTime()) / (1000 * 60 * 60 * 24))} días
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Venue:</span>
+                    <span className="text-sm text-muted-foreground">Venue:</span>
                     <span className="font-medium">{memberDetails.venue.name}</span>
                   </div>
                 </div>
@@ -336,11 +336,11 @@ export default function TeamMemberDetails() {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Organización:</span>
+                  <span className="text-sm text-muted-foreground">Organización:</span>
                   <span className="font-medium">{memberDetails.venue.organization.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Establecimiento:</span>
+                  <span className="text-sm text-muted-foreground">Establecimiento:</span>
                   <span className="font-medium">{memberDetails.venue.name}</span>
                 </div>
               </div>
@@ -392,7 +392,7 @@ export default function TeamMemberDetails() {
               <AlertDialogAction
                 onClick={handleRemoveConfirm}
                 disabled={removeTeamMemberMutation.isPending}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/90"
               >
                 {removeTeamMemberMutation.isPending ? 'Eliminando...' : 'Eliminar'}
               </AlertDialogAction>

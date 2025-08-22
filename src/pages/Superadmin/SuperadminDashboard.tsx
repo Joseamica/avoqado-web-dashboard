@@ -61,8 +61,8 @@ const SuperadminDashboard: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Platform Overview</h1>
-          <p className="text-gray-600 dark:text-gray-400">Monitor and manage the entire Avoqado ecosystem</p>
+          <h1 className="text-3xl font-bold text-foreground">Platform Overview</h1>
+          <p className="text-muted-foreground">Monitor and manage the entire Avoqado ecosystem</p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -179,11 +179,11 @@ const SuperadminDashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">{revenueMetrics.transactionCount.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Transactions</div>
+                  <div className="text-xs text-muted-foreground">Transactions</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">{kpis.totalUsers.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Total Users</div>
+                  <div className="text-xs text-muted-foreground">Total Users</div>
                 </div>
               </div>
             </div>
@@ -215,7 +215,7 @@ const SuperadminDashboard: React.FC = () => {
                   ></div>
                   <div className="flex-1">
                     <p className="text-sm">{activity.description}</p>
-                    <p className="text-xs text-gray-500">{activity.timestamp}</p>
+                    <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
                   </div>
                   {activity.amount && <span className="text-sm font-medium text-green-600">+{Currency(activity.amount)}</span>}
                 </div>
@@ -247,7 +247,7 @@ const SuperadminDashboard: React.FC = () => {
                   {alert.type === 'info' && <Clock className="w-4 h-4 text-blue-500 mt-0.5" />}
                   <div className="flex-1">
                     <p className="text-sm font-medium">{alert.title}</p>
-                    <p className="text-xs text-gray-600">{alert.message}</p>
+                    <p className="text-xs text-muted-foreground">{alert.message}</p>
                   </div>
                   {!alert.isRead && <div className="w-2 h-2 bg-red-500 rounded-full"></div>}
                 </div>
@@ -268,12 +268,12 @@ const SuperadminDashboard: React.FC = () => {
             {topVenues.map((venue, index) => (
               <div key={venue.name} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
                     {index + 1}
                   </div>
                   <div>
                     <p className="font-medium">{venue.name}</p>
-                    <p className="text-sm text-gray-500">Revenue: {Currency(venue.revenue)}</p>
+                    <p className="text-sm text-muted-foreground">Revenue: {Currency(venue.revenue)}</p>
                   </div>
                 </div>
                 <div className="text-right">

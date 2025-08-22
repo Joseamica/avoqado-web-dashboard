@@ -232,17 +232,17 @@ export default function SuperAdminManagement() {
   // Get audit action label and icon
   const getAuditInfo = action => {
     const actionMap = {
-      user_update: { label: 'Actualización de Usuario', icon: <User className="h-4 w-4 text-blue-500" /> },
-      user_create: { label: 'Creación de Usuario', icon: <UserPlus className="h-4 w-4 text-green-500" /> },
-      user_delete: { label: 'Eliminación de Usuario', icon: <XCircle className="h-4 w-4 text-red-500" /> },
-      venue_create: { label: 'Creación de Venue', icon: <PlusCircle className="h-4 w-4 text-green-500" /> },
-      venue_update: { label: 'Actualización de Venue', icon: <UserCog className="h-4 w-4 text-blue-500" /> },
-      config_update: { label: 'Actualización de Config', icon: <Key className="h-4 w-4 text-yellow-500" /> },
+      user_update: { label: 'Actualización de Usuario', icon: <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> },
+      user_create: { label: 'Creación de Usuario', icon: <UserPlus className="h-4 w-4 text-green-600 dark:text-green-400" /> },
+      user_delete: { label: 'Eliminación de Usuario', icon: <XCircle className="h-4 w-4 text-destructive" /> },
+      venue_create: { label: 'Creación de Venue', icon: <PlusCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> },
+      venue_update: { label: 'Actualización de Venue', icon: <UserCog className="h-4 w-4 text-blue-600 dark:text-blue-400" /> },
+      config_update: { label: 'Actualización de Config', icon: <Key className="h-4 w-4 text-yellow-600 dark:text-yellow-400" /> },
       superadmin_create: { label: 'Creación de SuperAdmin', icon: <ShieldAlert className="h-4 w-4 text-purple-500" /> },
-      superadmin_login: { label: 'Login de SuperAdmin', icon: <Lock className="h-4 w-4 text-gray-500" /> },
+      superadmin_login: { label: 'Login de SuperAdmin', icon: <Lock className="h-4 w-4 text-muted-foreground" /> },
     }
 
-    return actionMap[action] || { label: action, icon: <Eye className="h-4 w-4 text-gray-500" /> }
+    return actionMap[action] || { label: action, icon: <Eye className="h-4 w-4 text-muted-foreground" /> }
   }
 
   if (!isSuperAdmin) {
@@ -251,7 +251,7 @@ export default function SuperAdminManagement() {
         <Card className="border-red-200 dark:border-red-800">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
               <div>
                 <h3 className="text-lg font-semibold">Acceso restringido</h3>
                 <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a esta sección.</p>
@@ -274,7 +274,7 @@ export default function SuperAdminManagement() {
       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/20 dark:border-yellow-600">
         <div className="flex">
           <div className="flex-shrink-0">
-            <AlertTriangle className="h-5 w-5 text-yellow-400" />
+            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
           </div>
           <div className="ml-3">
             <p className="text-sm text-foreground">
@@ -389,9 +389,9 @@ export default function SuperAdminManagement() {
                         <TableCell>
                           <div className="flex items-center">
                             {admin.status === 'active' ? (
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
                             ) : (
-                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                              <XCircle className="mr-2 h-4 w-4 text-destructive" />
                             )}
                             {admin.status === 'active' ? 'Activo' : 'Inactivo'}
                           </div>
@@ -454,9 +454,9 @@ export default function SuperAdminManagement() {
                       <h4 className="text-sm font-medium">Estado</h4>
                       <div className="flex items-center mt-1">
                         {selectedAdmin.status === 'active' ? (
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
                         ) : (
-                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                          <XCircle className="mr-2 h-4 w-4 text-destructive" />
                         )}
                         {selectedAdmin.status === 'active' ? 'Activo' : 'Inactivo'}
                       </div>
@@ -479,7 +479,7 @@ export default function SuperAdminManagement() {
                           </>
                         ) : (
                           <>
-                            <ShieldAlert className="mr-2 h-4 w-4 text-blue-500" />
+                            <ShieldAlert className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
                             SuperAdmin
                           </>
                         )}

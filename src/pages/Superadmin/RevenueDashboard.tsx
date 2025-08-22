@@ -64,8 +64,8 @@ const RevenueDashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading revenue data...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading revenue data...</p>
         </div>
       </div>
     )
@@ -77,7 +77,7 @@ const RevenueDashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Revenue Dashboard</h1>
-          <p className="text-gray-600">Track revenue, commissions, and financial performance across all venues</p>
+          <p className="text-muted-foreground">Track revenue, commissions, and financial performance across all venues</p>
         </div>
         <Button variant="outline" className="flex items-center space-x-2">
           <Download className="w-4 h-4" />
@@ -143,11 +143,11 @@ const RevenueDashboard: React.FC = () => {
               {metrics?.growthRate !== undefined && (
                 <>
                   {metrics.growthRate >= 0 ? (
-                    <TrendingUp className="w-3 h-3 mr-1 text-green-500" />
+                    <TrendingUp className="w-3 h-3 mr-1 text-green-500 dark:text-green-400" />
                   ) : (
-                    <TrendingDown className="w-3 h-3 mr-1 text-red-500" />
+                    <TrendingDown className="w-3 h-3 mr-1 text-red-500 dark:text-red-400" />
                   )}
-                  <span className={metrics.growthRate >= 0 ? 'text-green-500' : 'text-red-500'}>
+                  <span className={metrics.growthRate >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}>
                     {formatPercentage(metrics.growthRate)}
                   </span>
                   <span className="ml-1">from previous period</span>
@@ -236,20 +236,20 @@ const RevenueDashboard: React.FC = () => {
                 {breakdown?.byVenue?.slice(0, 10).map((venue, index) => (
                   <div key={venue.venueId} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-semibold text-blue-600">#{index + 1}</span>
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-950/50 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">#{index + 1}</span>
                       </div>
                       <div>
                         <p className="font-medium">{venue.venueName}</p>
-                        <p className="text-sm text-gray-500">{venue.transactionCount} transactions</p>
+                        <p className="text-sm text-muted-foreground">{venue.transactionCount} transactions</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(venue.revenue)}</p>
-                      <p className="text-sm text-gray-500">Commission: {formatCurrency(venue.commission)}</p>
+                      <p className="text-sm text-muted-foreground">Commission: {formatCurrency(venue.commission)}</p>
                     </div>
                   </div>
-                )) || <p className="text-center text-gray-500 py-8">No venue data available</p>}
+                )) || <p className="text-center text-muted-foreground py-8">No venue data available</p>}
               </div>
             </CardContent>
           </Card>
@@ -267,7 +267,7 @@ const RevenueDashboard: React.FC = () => {
                   <div key={feature.featureCode} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{feature.featureName}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {feature.activeVenues} venues • {formatCurrency(feature.monthlyRevenue)}/month
                       </p>
                     </div>
@@ -276,7 +276,7 @@ const RevenueDashboard: React.FC = () => {
                       <Badge variant="secondary">{feature.featureCode}</Badge>
                     </div>
                   </div>
-                )) || <p className="text-center text-gray-500 py-8">No feature data available</p>}
+                )) || <p className="text-center text-muted-foreground py-8">No feature data available</p>}
               </div>
             </CardContent>
           </Card>
@@ -291,17 +291,17 @@ const RevenueDashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-2">
                 {breakdown?.byPeriod?.map(period => (
-                  <div key={period.date} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
+                  <div key={period.date} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded">
                     <div>
                       <p className="font-medium">{format(new Date(period.date), 'MMM dd, yyyy')}</p>
-                      <p className="text-sm text-gray-500">{period.transactionCount} transactions</p>
+                      <p className="text-sm text-muted-foreground">{period.transactionCount} transactions</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(period.revenue)}</p>
-                      <p className="text-sm text-gray-500">Commission: {formatCurrency(period.commission)}</p>
+                      <p className="text-sm text-muted-foreground">Commission: {formatCurrency(period.commission)}</p>
                     </div>
                   </div>
-                )) || <p className="text-center text-gray-500 py-8">No timeline data available</p>}
+                )) || <p className="text-center text-muted-foreground py-8">No timeline data available</p>}
               </div>
             </CardContent>
           </Card>
@@ -316,23 +316,23 @@ const RevenueDashboard: React.FC = () => {
             <CardContent>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {formatCurrency(breakdown?.commissionAnalysis?.totalCommission || 0)}
                     </p>
-                    <p className="text-sm text-gray-600">Total Commission</p>
+                    <p className="text-sm text-muted-foreground">Total Commission</p>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-950/50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {breakdown?.commissionAnalysis?.averageCommissionRate?.toFixed(1) || 0}%
                     </p>
-                    <p className="text-sm text-gray-600">Average Rate</p>
+                    <p className="text-sm text-muted-foreground">Average Rate</p>
                   </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">
+                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/50 rounded-lg">
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {formatCurrency(breakdown?.commissionAnalysis?.projectedMonthlyCommission || 0)}
                     </p>
-                    <p className="text-sm text-gray-600">Projected Monthly</p>
+                    <p className="text-sm text-muted-foreground">Projected Monthly</p>
                   </div>
                 </div>
 
@@ -343,7 +343,7 @@ const RevenueDashboard: React.FC = () => {
                       <p className="font-medium">{venue.venueName}</p>
                       <p className="font-semibold">{formatCurrency(venue.commission)}</p>
                     </div>
-                  )) || <p className="text-center text-gray-500 py-4">No commission data available</p>}
+                  )) || <p className="text-center text-muted-foreground py-4">No commission data available</p>}
                 </div>
               </div>
             </CardContent>

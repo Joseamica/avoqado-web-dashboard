@@ -81,9 +81,9 @@ const VenueManagement: React.FC = () => {
       case VenueStatus.ACTIVE: return 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
       case VenueStatus.PENDING: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200'
       case VenueStatus.SUSPENDED: return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
-      case VenueStatus.CANCELLED: return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-200'
+      case VenueStatus.CANCELLED: return 'bg-muted text-muted-foreground'
       case VenueStatus.TRIAL: return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-200'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -92,7 +92,7 @@ const VenueManagement: React.FC = () => {
       case SubscriptionPlan.STARTER: return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
       case SubscriptionPlan.PROFESSIONAL: return 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200'
       case SubscriptionPlan.ENTERPRISE: return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-500/20 dark:text-gray-200'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -101,7 +101,7 @@ const VenueManagement: React.FC = () => {
       case 'PAID': return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'PENDING': return <Clock className="w-4 h-4 text-yellow-500" />
       case 'OVERDUE': return <AlertTriangle className="w-4 h-4 text-red-500" />
-      default: return <XCircle className="w-4 h-4 text-gray-500" />
+      default: return <XCircle className="w-4 h-4 text-muted-foreground" />
     }
   }
 
@@ -156,11 +156,11 @@ const VenueManagement: React.FC = () => {
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-white" />
+            <Building2 className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
             <div className="font-medium">{row.original.name}</div>
-            <div className="text-sm text-gray-500">{row.original.owner.email}</div>
+            <div className="text-sm text-muted-foreground">{row.original.owner.email}</div>
           </div>
         </div>
       ),
@@ -262,10 +262,10 @@ const VenueManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             Venue Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             Monitor and manage all venues on the platform
           </p>
         </div>
@@ -340,7 +340,7 @@ const VenueManagement: React.FC = () => {
           {/* Filters */}
           <div className="flex items-center space-x-4 mb-6">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search venues, owners, or organizations..."
                 value={searchTerm}
@@ -498,7 +498,7 @@ const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
       
       <TabsContent value="features">
         <div className="text-center py-8">
-          <p className="text-gray-500">Feature management coming soon...</p>
+          <p className="text-muted-foreground">Feature management coming soon...</p>
         </div>
       </TabsContent>
       

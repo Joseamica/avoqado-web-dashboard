@@ -152,7 +152,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         <Button
           variant="ghost"
           size="icon"
-          className={`h-8 w-8 ${isDark ? 'hover:bg-gray-800' : ''}`}
+          className={`h-8 w-8 ${isDark ? 'hover:bg-accent/80' : ''}`}
           onClick={onClose}
           aria-label="Cerrar chat"
         >
@@ -167,10 +167,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                 className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
                   message.isUser
                     ? isDark
-                      ? 'bg-gray-700 text-gray-100'
+                      ? 'bg-accent text-accent-foreground'
                       : 'bg-primary text-primary-foreground'
                     : isDark
-                    ? 'bg-gray-800 text-gray-200'
+                    ? 'bg-muted text-muted-foreground'
                     : 'bg-muted'
                 }`}
               >
@@ -230,7 +230,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                   <FormControl>
                     <Input
                       placeholder="Escribe tu pregunta..."
-                      className={`${isDark ? 'text-gray-100 border-gray-700' : ''}`}
+                      className={`${isDark ? 'text-foreground border-border' : ''}`}
                       {...field}
                       disabled={chatMutation.isPending}
                     />
@@ -242,7 +242,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
               type="submit"
               size="icon"
               disabled={chatMutation.isPending}
-              className={`${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`}
+              className={`${isDark ? 'bg-accent hover:bg-accent/80' : ''}`}
             >
               {chatMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
@@ -290,7 +290,7 @@ export function ChatBubble() {
         size="icon"
         variant="secondary"
         className={`h-14 w-14 rounded-full shadow-lg theme-transition
-          // ${isDark ? 'bg-gray-800 hover:bg-gray-700 text-gray-100' : 'bg-primary hover:bg-primary/90 text-white'}`}
+          // ${isDark ? 'bg-accent hover:bg-accent/80 text-accent-foreground' : 'bg-primary hover:bg-primary/90 text-white'}`}
         aria-label={isOpen ? 'Cerrar chat' : 'Abrir chat'}
       >
         <MessageSquare className={`h-6 w-6 ${isDark ? 'text-white' : 'text-black'}`} />

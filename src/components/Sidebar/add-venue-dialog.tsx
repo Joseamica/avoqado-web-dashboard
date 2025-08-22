@@ -218,7 +218,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
                           </div>
                         ) : imageForCrop ? (
                           <div>
-                            <div className="relative w-full h-64 bg-gray-100">
+                            <div className="relative w-full h-64 bg-muted">
                               <Cropper
                                 image={imageForCrop}
                                 crop={crop}

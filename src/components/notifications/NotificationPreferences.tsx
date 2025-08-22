@@ -153,10 +153,10 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
     return (
       <div className={`p-6 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-8 bg-muted rounded w-1/4 mb-4"></div>
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-muted rounded"></div>
             ))}
           </div>
         </div>
@@ -168,11 +168,11 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
     <div className={`max-w-4xl mx-auto p-6 ${className}`}>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+        <h1 className="text-2xl font-bold text-foreground flex items-center">
           <Settings className="h-6 w-6 mr-2" />
           Notification Preferences
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Configure how and when you receive notifications
         </p>
       </div>
@@ -213,7 +213,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                           </div>
                           
                           {preference.enabled && (
-                            <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
+                            <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
                               <div className="flex items-center space-x-1">
                                 <span>Channels:</span>
                                 {preference.channels.map(channel => (
@@ -289,7 +289,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Permission Status</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {browserPermission === 'granted' && 'Browser notifications are enabled'}
                       {browserPermission === 'denied' && 'Browser notifications are blocked'}
                       {browserPermission === 'default' && 'Browser notification permission not set'}
@@ -327,7 +327,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Always Enabled</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       In-app notifications are always active and cannot be disabled
                     </p>
                   </div>
@@ -376,7 +376,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   During quiet hours, only urgent notifications will be shown
                 </p>
               </CardContent>
