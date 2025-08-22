@@ -6,7 +6,6 @@ import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
-import { themeClasses } from '@/lib/theme-utils'
 import { Payment as PaymentType } from '@/types' // Asumiendo que actualizas este tipo
 import { Currency } from '@/utils/currency'
 import getIcon from '@/utils/getIcon'
@@ -81,7 +80,7 @@ export default function Payments() {
           return (
             <div className="flex flex-col space-y-2">
               <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="font-[400] text-dashboard-gray_darker text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="font-[400] text-muted-foreground text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
             </div>
           )
         },
@@ -116,18 +115,18 @@ export default function Payments() {
 
           // La lógica de colores no necesita cambios
           let tipClasses = {
-            bg: themeClasses.success.bg,
-            text: themeClasses.success.text,
+            bg: 'bg-green-100',
+            text: 'text-green-800',
           }
           if (tipPercentage < 7) {
-            tipClasses = { bg: themeClasses.error.bg, text: themeClasses.error.text }
+            tipClasses = { bg: 'bg-red-100', text: 'text-red-800' }
           } else if (tipPercentage >= 7 && tipPercentage < 10) {
-            tipClasses = { bg: themeClasses.warning.bg, text: themeClasses.warning.text }
+            tipClasses = { bg: 'bg-yellow-100', text: 'text-yellow-800' }
           }
 
           return (
             <div className="flex flex-col space-y-1 items-center">
-              <span className={`text-[12px] font-semibold ${themeClasses.textSubtle}`}>{tipPercentage.toFixed(1)}%</span>
+              <span className="text-[12px] font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
               {/* CAMBIO: `Currency` espera centavos, y `totalTip` es un valor decimal. */}
               <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTip * 100)}</p>
             </div>
@@ -152,21 +151,21 @@ export default function Payments() {
           if (source === 'POS') {
             return (
               <div className="space-x-2 flex flex-row items-center">
-                <Computer className="h-4 w-4 text-gray-500" />
-                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>POS</span>
+                <Computer className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[12px] font-[600] text-muted-foreground">POS</span>
               </div>
             )
           } else if (source === 'TPV') {
             // ANTERIOR: 'AVOQADO_TPV'
             return (
               <div className="space-x-2 flex flex-row items-center">
-                <Smartphone className="h-4 w-4 text-gray-500" />
-                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>TPV</span>
+                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                <span className="text-[12px] font-[600] text-muted-foreground">TPV</span>
               </div>
             )
           }
 
-          return <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{source}</span>
+          return <span className="text-[12px] font-[600] text-muted-foreground">{source}</span>
         },
       },
       {
@@ -188,10 +187,10 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <span>{getIcon(cardBrand)}</span>
-                  <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{last4 ? `**** ${last4}` : 'Tarjeta'}</span>
+                  <span className="text-[12px] font-[600] text-muted-foreground">{last4 ? `**** ${last4}` : 'Tarjeta'}</span>
                 </>
               ) : (
-                <span className={`text-[12px] font-[600] ${themeClasses.textSubtle}`}>{methodDisplay}</span>
+                <span className="text-[12px] font-[600] text-muted-foreground">{methodDisplay}</span>
               )}
             </div>
           )
@@ -256,7 +255,7 @@ export default function Payments() {
   }, [searchTerm, data])
 
   return (
-    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between">
         <h1 className="text-xl font-semibold">Pagos</h1>
       </div>
@@ -266,14 +265,10 @@ export default function Payments() {
         placeholder="Buscar por mesero, total o método..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-sm`}
+        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
       />
 
-      {error && (
-        <div className={`p-4 mb-4 rounded ${themeClasses.error.bg} ${themeClasses.error.text}`}>
-          Error al cargar pagos: {(error as Error).message}
-        </div>
-      )}
+      {error && <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>Error al cargar pagos: {(error as Error).message}</div>}
 
       <DataTable
         data={filteredPayments}

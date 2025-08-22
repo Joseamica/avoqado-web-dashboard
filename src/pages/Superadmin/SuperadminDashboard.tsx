@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { themeClasses } from '@/lib/theme-utils'
 import { TrendingUp, TrendingDown, Building2, DollarSign, Users, AlertTriangle, CheckCircle, Clock, Zap, BarChart3 } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 

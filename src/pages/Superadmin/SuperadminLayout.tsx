@@ -1,7 +1,6 @@
 import React from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { themeClasses } from '@/lib/theme-utils'
 import SuperadminSidebar from './components/SuperadminSidebar'
 import SuperadminHeader from './components/SuperadminHeader'
 
@@ -9,7 +8,7 @@ const SuperadminLayout: React.FC = () => {
   const location = useLocation()
 
   return (
-    <div className={cn('min-h-screen', themeClasses.pageBg)}>
+    <div className={cn('min-h-screen bg-background')}>
       <div className="flex h-screen">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0">

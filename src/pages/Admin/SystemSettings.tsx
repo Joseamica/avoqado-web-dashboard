@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
-import { themeClasses } from '@/lib/theme-utils'
 import { AlertTriangle, ArrowLeft, Database, FileText, Server, ShieldAlert } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -56,13 +55,13 @@ export default function SystemSettings() {
     return (
       <div className="py-4">
         {/* Consider adding a more generic 'access denied' component here */}
-        <Card className={`${themeClasses.border}`}>
+        <Card className="border-border">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className={`h-5 w-5 ${themeClasses.error.text} mt-0.5`} />
+              <AlertTriangle className="h-5 w-5 text-red-700 dark:text-red-400 mt-0.5" />
               <div>
-                <h3 className={`text-lg font-semibold ${themeClasses.text}`}>Acceso restringido</h3>
-                <p className={`${themeClasses.textMuted}`}>Solo los SuperAdministradores pueden acceder a la configuración del sistema.</p>
+                <h3 className="text-lg font-semibold text-foreground">Acceso restringido</h3>
+                <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a la configuración del sistema.</p>
               </div>
             </div>
           </CardContent>
@@ -72,8 +71,8 @@ export default function SystemSettings() {
   }
 
   return (
-    <div className={`flex flex-col space-y-6 h-screen ${themeClasses.pageBg} p-4 md:p-6`}>
-      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-2`}>
+    <div className="flex flex-col space-y-6 h-screen bg-background p-4 md:p-6">
+      <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Volver al Panel de Administración
       </Link>
@@ -84,7 +83,7 @@ export default function SystemSettings() {
             <AlertTriangle className="h-5 w-5 text-yellow-400" />
           </div>
           <div className="ml-3">
-            <p className={`text-sm ${themeClasses.text}`}>
+            <p className="text-sm text-foreground">
               Esta sección contiene configuraciones avanzadas del sistema. Manipular estos valores incorrectamente puede afectar el
               funcionamiento de la plataforma.
             </p>
@@ -94,7 +93,7 @@ export default function SystemSettings() {
 
       {/* System Settings Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className={`${themeClasses.cardBg} rounded-md overflow-hidden shadow-sm mb-6`}>
+        <div className="bg-card rounded-md overflow-hidden shadow-sm mb-6">
           <TabsList className="w-full grid grid-cols-4 rounded-none">
             <TabsTrigger value="database" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <Database className="h-5 w-5 mr-2" />
@@ -123,8 +122,8 @@ export default function SystemSettings() {
           {databaseLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-64 mb-6" />
-              <Card className={themeClasses.cardBg}>
-                <CardHeader className={`border-b ${themeClasses.border}`}>
+              <Card className="bg-card">
+                <CardHeader className="border-b border-border">
                   <Skeleton className="h-6 w-48 mb-2" />
                   <Skeleton className="h-4 w-96" />
                 </CardHeader>
@@ -142,7 +141,7 @@ export default function SystemSettings() {
                     </div>
                   </div>
                 </CardContent>
-                <div className={`border-t ${themeClasses.border} p-4 flex justify-between items-center`}>
+                <div className="border-t border-border p-4 flex justify-between items-center">
                   <Skeleton className="h-4 w-48" />
                   <Skeleton className="h-10 w-56" />
                 </div>
@@ -158,8 +157,8 @@ export default function SystemSettings() {
           {serverLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-64 mb-6" />
-              <Card className={themeClasses.cardBg}>
-                <CardHeader className={`border-b ${themeClasses.border}`}>
+              <Card className="bg-card">
+                <CardHeader className="border-b border-border">
                   <Skeleton className="h-6 w-48 mb-2" />
                   <Skeleton className="h-4 w-96" />
                 </CardHeader>
@@ -190,7 +189,7 @@ export default function SystemSettings() {
                   <Skeleton className="h-6 w-64 mb-4" />
                   <Skeleton className="h-40 w-full rounded-md" />
                 </CardContent>
-                <div className={`border-t ${themeClasses.border} p-4`}>
+                <div className="border-t border-border p-4">
                   <Skeleton className="h-10 w-40" />
                 </div>
               </Card>
@@ -205,8 +204,8 @@ export default function SystemSettings() {
           {logsLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-64 mb-6" />
-              <Card className={themeClasses.cardBg}>
-                <CardHeader className={`border-b ${themeClasses.border}`}>
+              <Card className="bg-card">
+                <CardHeader className="border-b border-border">
                   <Skeleton className="h-6 w-48 mb-2" />
                   <Skeleton className="h-4 w-96" />
                 </CardHeader>
@@ -231,7 +230,7 @@ export default function SystemSettings() {
                   </div>
                   <Skeleton className="h-[400px] w-full rounded-md" />
                 </CardContent>
-                <div className={`border-t ${themeClasses.border} p-4 flex justify-between items-center`}>
+                <div className="border-t border-border p-4 flex justify-between items-center">
                   <Skeleton className="h-4 w-48" />
                   <Skeleton className="h-8 w-40" />
                 </div>
@@ -247,8 +246,8 @@ export default function SystemSettings() {
           {securityLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-64 mb-6" />
-              <Card className={themeClasses.cardBg}>
-                <CardHeader className={`border-b ${themeClasses.border}`}>
+              <Card className="bg-card">
+                <CardHeader className="border-b border-border">
                   <Skeleton className="h-6 w-48 mb-2" />
                   <Skeleton className="h-4 w-96" />
                 </CardHeader>
@@ -262,16 +261,16 @@ export default function SystemSettings() {
             </div>
           ) : (
             <div className="space-y-4">
-              <h3 className={`text-lg font-medium ${themeClasses.text}`}>Configuración de Seguridad</h3>
+              <h3 className="text-lg font-medium text-foreground">Configuración de Seguridad</h3>
 
-              <Card className={themeClasses.cardBg}>
-                <CardHeader className={`border-b ${themeClasses.border}`}>
-                  <CardTitle className={themeClasses.text}>Opciones de Seguridad</CardTitle>
-                  <CardDescription className={themeClasses.textMuted}>Configuración de seguridad de la plataforma</CardDescription>
+              <Card className="bg-card">
+                <CardHeader className="border-b border-border">
+                  <CardTitle className="text-foreground">Opciones de Seguridad</CardTitle>
+                  <CardDescription className="text-muted-foreground">Configuración de seguridad de la plataforma</CardDescription>
                 </CardHeader>
 
                 <CardContent className="p-6">
-                  <p className={themeClasses.text}>Contenido de configuración de seguridad</p>
+                  <p className="text-foreground">Contenido de configuración de seguridad</p>
                 </CardContent>
               </Card>
             </div>

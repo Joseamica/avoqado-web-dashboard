@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import Logo from '@/assets/logo'
 import CoverLogin from '@/assets/cover-login.png'
 import { UserAuthForm } from './components/UserAuthForm'
-import { themeClasses } from '@/lib/theme-utils'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 const Login: React.FC = () => {
@@ -15,13 +14,13 @@ const Login: React.FC = () => {
         <img src={CoverLogin} width={1280} height={843} alt="Authentication" className="hidden dark:block" />
       </div>
       <div
-        className={`container relative flex-col items-center justify-center h-screen md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 ${themeClasses.pageBg} ${themeClasses.text}`}
+        className={`container relative flex-col items-center justify-center h-screen md:grid lg:max-w-none lg:grid-cols-2 lg:px-0 bg-background text-foreground`}
       >
         <div className="absolute top-4 right-4 md:top-8 md:right-8">
           <ThemeToggle />
         </div>
-        <div className="relative flex-col hidden h-full p-10 text-white bg-muted dark:border-r lg:flex">
-          <div className="absolute inset-0 bg-zinc-900" />
+        <div className="relative flex-col hidden h-full p-10 text-foreground bg-muted dark:border-r lg:flex">
+          <div className="absolute inset-0 bg-background" />
           <div className="relative z-20 flex items-center text-lg font-medium">
             <Logo className="w-8 h-8 mr-2" />
             Avoqado
@@ -37,7 +36,7 @@ const Login: React.FC = () => {
           </div>
         </div>
         <div className="lg:p-8">
-          <div className={`mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] ${themeClasses.contentBg} p-6 rounded-xl`}>
+          <div className={`mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] bg-muted p-6 rounded-xl`}>
             <div className="flex flex-col space-y-2 text-center">
               <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
               <p className="text-sm text-muted-foreground">Ingresa tu email y contraseña para ingresar.</p>

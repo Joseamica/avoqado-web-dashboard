@@ -39,6 +39,14 @@ export default tseslint.config(
         {
           selector: 'Literal[value=/.*(?:text-black|text-white|bg-black|bg-white).*/]',
           message: '🚨 THEME VIOLATION: Use text-foreground/bg-background instead of hardcoded black/white colors. See THEME-GUIDELINES.md'
+        },
+        {
+          selector: 'ImportDeclaration[source.value="@/lib/theme-utils"]',
+          message: '🚨 THEME VIOLATION: Do not use old themeClasses from theme-utils. Use CSS variables (text-foreground, bg-card, etc.) or useThemeClasses() hook. See THEME-GUIDELINES.md'
+        },
+        {
+          selector: 'MemberExpression[object.name="themeClasses"]',
+          message: '🚨 THEME VIOLATION: Do not use old themeClasses. Use CSS variables (text-foreground, bg-card, etc.) or useThemeClasses() hook. See THEME-GUIDELINES.md'
         }
       ]
     },

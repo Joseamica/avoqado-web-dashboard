@@ -35,7 +35,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { themeClasses } from '@/lib/theme-utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
@@ -100,7 +99,7 @@ export default function TeamMemberDetails() {
 
   if (isLoading) {
     return (
-      <div className={`p-6 ${themeClasses.pageBg} ${themeClasses.text}`}>
+      <div className="p-6 bg-background text-foreground">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
           <div className="space-y-4">
@@ -114,7 +113,7 @@ export default function TeamMemberDetails() {
 
   if (!memberDetails) {
     return (
-      <div className={`p-6 ${themeClasses.pageBg} ${themeClasses.text}`}>
+      <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
           <h1 className="text-xl font-semibold text-gray-900">Miembro no encontrado</h1>
           <p className="text-gray-600 mt-2">El miembro del equipo que buscas no existe o ha sido eliminado.</p>
@@ -129,7 +128,7 @@ export default function TeamMemberDetails() {
   // Hide superadmin members from non-superadmin users
   if (memberDetails.role === StaffRole.SUPERADMIN && !canViewSuperadminInfo(staffInfo?.role)) {
     return (
-      <div className={`p-6 ${themeClasses.pageBg} ${themeClasses.text}`}>
+      <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
           <h1 className="text-xl font-semibold text-gray-900">Acceso denegado</h1>
           <p className="text-gray-600 mt-2">No tienes permisos para ver este miembro del equipo.</p>
@@ -145,7 +144,7 @@ export default function TeamMemberDetails() {
   const canRemove = memberDetails.role !== StaffRole.OWNER && memberDetails.role !== StaffRole.SUPERADMIN
 
   return (
-    <div className={`p-6 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className="p-6 bg-background text-foreground">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">

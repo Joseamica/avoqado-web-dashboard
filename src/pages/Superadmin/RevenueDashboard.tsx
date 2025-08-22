@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { themeClasses } from '@/lib/theme-utils'
 import * as superadminAPI from '@/services/superadmin.service'
 import { useQuery } from '@tanstack/react-query'
 import { endOfMonth, format, startOfMonth, subDays } from 'date-fns'
@@ -73,7 +72,7 @@ const RevenueDashboard: React.FC = () => {
   }
 
   return (
-    <div className={`space-y-6 ${themeClasses.pageBg}`}>
+    <div className="space-y-6 bg-background">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

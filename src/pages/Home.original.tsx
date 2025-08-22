@@ -7,7 +7,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useTheme } from '@/context/ThemeContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
-import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
@@ -133,17 +132,17 @@ const MetricCard = ({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className={`h-7 w-20 ${themeClasses.neutral.bg} rounded animate-pulse`}></div>
+          <div className="h-7 w-20 bg-muted rounded animate-pulse"></div>
         ) : (
           <div className="space-y-1">
             <div className="text-2xl font-bold">{value || 0}</div>
             {isPercentageLoading ? (
-              <div className={`h-4 w-24 ${themeClasses.neutral.bg} rounded animate-pulse mt-1`}></div>
+              <div className="h-4 w-24 bg-muted rounded animate-pulse mt-1"></div>
             ) : (
               percentage !== null && (
                 <div
                   className={`text-xs flex items-center ${
-                    percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : themeClasses.textMuted
+                    percentage > 0 ? 'text-green-600' : percentage < 0 ? 'text-red-600' : 'text-muted-foreground'
                   }`}
                 >
                   {percentage > 0 ? (
@@ -192,8 +191,8 @@ const MetricCard = ({
 // Simple loading skeleton component
 const LoadingSkeleton = () => (
   <div className="animate-pulse flex h-full w-full flex-col space-y-4">
-    <div className={`h-6 ${themeClasses.neutral.bg} rounded w-1/2`}></div>
-    <div className={`h-24 ${themeClasses.neutral.bg} rounded w-full`}></div>
+    <div className="h-6 bg-muted rounded w-1/2"></div>
+    <div className="h-24 bg-muted rounded w-full"></div>
   </div>
 )
 
@@ -871,9 +870,9 @@ const Home = () => {
   ])
 
   return (
-    <div className={`flex flex-col min-h-screen ${themeClasses.pageBg}`}>
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header with date range buttons */}
-      <div className={`sticky top-0 z-10 ${themeClasses.cardBg} ${themeClasses.border} border-b shadow-sm p-4`}>
+      <div className="sticky top-0 z-10 bg-card border-border border-b shadow-sm p-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
@@ -958,7 +957,7 @@ const Home = () => {
           <Card className="p-6">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-red-600">Failed to load dashboard data</h2>
-              <p className={themeClasses.textMuted}>{error?.message || 'An unknown error occurred'}</p>
+              <p className="text-muted-foreground">{error?.message || 'An unknown error occurred'}</p>
               <Button
                 onClick={() => {
                   refetchDashboardData()

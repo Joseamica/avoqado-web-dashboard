@@ -2,7 +2,6 @@ import api from '@/api'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { themeClasses } from '@/lib/theme-utils'
 import { Currency } from '@/utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Trash2, PencilIcon, Save, X } from 'lucide-react'
@@ -177,8 +176,8 @@ export default function ShiftId() {
             </Select>
           ) : (
             <span
-              className={`px-3 py-1 ${getShiftStatus() === 'CLOSED' ? themeClasses.neutral.bg : themeClasses.success.bg} ${
-                getShiftStatus() === 'CLOSED' ? themeClasses.neutral.text : themeClasses.success.text
+              className={`px-3 py-1 ${getShiftStatus() === 'CLOSED' ? bg-secondary : bg-green-100} ${
+                getShiftStatus() === 'CLOSED' ? text-secondary-foreground : text-green-800
               } rounded-full font-medium`}
             >
               {getShiftStatus() === 'CLOSED' ? 'Cerrado' : 'Abierto'}

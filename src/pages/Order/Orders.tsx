@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue' // Hook actualizado
 import { useSocketEvents } from '@/hooks/use-socket-events'
-import { themeClasses } from '@/lib/theme-utils'
 import * as orderService from '@/services/order.service'
 import { Order as OrderType } from '@/types' // CAMBIO: Usar el tipo Order
 import { Currency } from '@/utils/currency'
@@ -58,7 +57,7 @@ export default function Orders() {
           return (
             <div className="flex flex-col space-y-2">
               <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="font-[400] text-dashboard-gray_darker text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="font-[400] text-muted-foreground text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
             </div>
           )
         },
@@ -89,13 +88,13 @@ export default function Orders() {
           const status = cell.getValue() as string
 
           // Lógica de clases adaptada a los nuevos estados
-          let statusClasses = { bg: themeClasses.neutral.bg, text: themeClasses.neutral.text }
+          let statusClasses = { bg: 'bg-secondary', text: 'text-secondary-foreground' }
           if (status === 'COMPLETED') {
-            statusClasses = { bg: themeClasses.success.bg, text: themeClasses.success.text }
+            statusClasses = { bg: 'bg-green-100', text: 'text-green-800' }
           } else if (status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING') {
-            statusClasses = { bg: themeClasses.warning.bg, text: themeClasses.warning.text }
+            statusClasses = { bg: 'bg-yellow-100', text: 'text-yellow-800' }
           } else if (status === 'CANCELLED') {
-            statusClasses = { bg: themeClasses.error.bg, text: themeClasses.error.text }
+            statusClasses = { bg: 'bg-red-100', text: 'text-red-800' }
           }
 
           // Mapa de traducción para los nuevos estados
@@ -155,7 +154,7 @@ export default function Orders() {
   }, [searchTerm, data])
 
   return (
-    <div className={`p-4 ${themeClasses.pageBg} ${themeClasses.text}`}>
+    <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between">
         {/* CAMBIO: El título ahora es Órdenes */}
         <h1 className="text-xl font-semibold">Órdenes</h1>
@@ -166,11 +165,11 @@ export default function Orders() {
         placeholder="Buscar por folio, cliente o mesero..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded ${themeClasses.inputBg} ${themeClasses.border} max-w-sm`}
+        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
       />
 
       {error && (
-        <div className={`p-4 mb-4 rounded ${themeClasses.error.bg} ${themeClasses.error.text}`}>
+        <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
           Error al cargar órdenes: {(error as Error).message}
         </div>
       )}

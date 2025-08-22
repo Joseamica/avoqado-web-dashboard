@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, XCircle, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { themeClasses } from '@/lib/theme-utils'
 import { useMutation } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -165,7 +164,7 @@ export default function AcceptAdminInvitation() {
   const needsPassword = invitationData.needsPassword
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+    <div className="flex items-center justify-center min-h-screen bg-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">Invitación para Administrador</CardTitle>
@@ -179,15 +178,15 @@ export default function AcceptAdminInvitation() {
               <p>{isVerifying ? 'Verificando invitación...' : 'Procesando solicitud...'}</p>
             </div>
           ) : hasError ? (
-            <div className={`flex flex-col items-center justify-center py-8 ${themeClasses.error.text}`}>
+            <div className="flex flex-col items-center justify-center py-8 text-red-700 dark:text-red-400">
               <XCircle className="h-12 w-12 mb-4" />
               <p className="text-center">{errorMessage}</p>
             </div>
           ) : isSuccess ? (
-            <div className={`flex flex-col items-center justify-center py-8 ${themeClasses.success.text}`}>
+            <div className="flex flex-col items-center justify-center py-8 text-green-700 dark:text-green-400">
               <CheckCircle className="h-12 w-12 mb-4" />
               <p className="text-center">¡Tu cuenta ha sido activada exitosamente!</p>
-              <p className="text-center text-sm text-gray-500 mt-2">Serás redirigido en un momento...</p>
+              <p className="text-center text-sm text-muted-foreground mt-2">Serás redirigido en un momento...</p>
             </div>
           ) : (
             <div className="py-4">
@@ -200,7 +199,7 @@ export default function AcceptAdminInvitation() {
                   </span>
                 )}
               </p>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Al aceptar esta invitación, tendrás acceso a gestionar este lugar en la plataforma Avoqado.
               </p>
 

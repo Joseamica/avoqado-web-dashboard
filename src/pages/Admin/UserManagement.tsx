@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { themeClasses } from '@/lib/theme-utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import {
@@ -273,7 +272,7 @@ export default function UserManagement() {
       accessorKey: 'status',
       header: 'Estado',
       cell: ({ row }) => (
-        <div className={`flex items-center ${row.original.status === 'active' ? themeClasses.success.text : themeClasses.error.text}`}>
+        <div className={`flex items-center ${row.original.status === 'active' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
           {row.original.status === 'active' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
           {row.original.status === 'active' ? 'Activo' : 'Inactivo'}
         </div>
@@ -325,13 +324,13 @@ export default function UserManagement() {
   }
   console.log(userToDelete)
   return (
-    <div className={`space-y-4 ${themeClasses.pageBg} p-4 md:p-6 lg:p-8`}>
-      <Link to="/admin" className={`inline-flex items-center text-sm ${themeClasses.textMuted} hover:${themeClasses.text} mb-4`}>
+    <div className="space-y-4 bg-background p-4 md:p-6 lg:p-8">
+      <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4 mr-1" />
         Volver al Panel de Administración
       </Link>
       <div className="flex justify-between items-center mb-6">
-        <h2 className={`text-2xl font-bold ${themeClasses.text}`}>Gestión de Usuarios</h2>
+        <h2 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h2>
 
         <Dialog>
           <DialogTrigger asChild>
@@ -340,26 +339,26 @@ export default function UserManagement() {
               Añadir Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent className={`sm:max-w-[425px] ${themeClasses.cardBg}`}>
+          <DialogContent className="sm:max-w-[425px] bg-card">
             <DialogHeader>
-              <DialogTitle className={themeClasses.text}>Crear Nuevo Usuario</DialogTitle>
-              <DialogDescription className={themeClasses.textMuted}>Completa los detalles para crear un nuevo usuario.</DialogDescription>
+              <DialogTitle className="text-foreground">Crear Nuevo Usuario</DialogTitle>
+              <DialogDescription className="text-muted-foreground">Completa los detalles para crear un nuevo usuario.</DialogDescription>
             </DialogHeader>
             <form id="createUserForm" onSubmit={handleCreateUser} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="name" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
+                <label htmlFor="name" className="text-right text-sm font-medium text-muted-foreground">
                   Nombre
                 </label>
-                <Input id="name" className={`col-span-3 ${themeClasses.inputBg}`} />
+                <Input id="name" className="col-span-3 bg-input" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="email" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
+                <label htmlFor="email" className="text-right text-sm font-medium text-muted-foreground">
                   Email
                 </label>
-                <Input id="email" type="email" className={`col-span-3 ${themeClasses.inputBg}`} />
+                <Input id="email" type="email" className="col-span-3 bg-input" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="role" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
+                <label htmlFor="role" className="text-right text-sm font-medium text-muted-foreground">
                   Rol
                 </label>
                 <Select>
@@ -377,7 +376,7 @@ export default function UserManagement() {
               </div>
               {isSuperAdmin && (
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="venue" className={`text-right text-sm font-medium ${themeClasses.textMuted}`}>
+                  <label htmlFor="venue" className="text-right text-sm font-medium text-muted-foreground">
                     Venue
                   </label>
                   <Select>
@@ -413,17 +412,17 @@ export default function UserManagement() {
 
       {/* Alert Dialog for Delete Confirmation */}
       <AlertDialog open={!!userToDelete} onOpenChange={open => !open && setUserToDelete(null)}>
-        <AlertDialogContent className={themeClasses.cardBg}>
+        <AlertDialogContent className="bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className={themeClasses.text}>Confirmar Eliminación</AlertDialogTitle>
-            <AlertDialogDescription className={themeClasses.textMuted}>
+            <AlertDialogTitle className="text-foreground">Confirmar Eliminación</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               ¿Estás seguro de que deseas eliminar a {userToDelete?.name}? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className={themeClasses.text}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="text-foreground">Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-red-500 text-red-50 hover:bg-red-600 dark:text-red-50"
               onClick={() => userToDelete && handleDeleteUser(userToDelete.id)}
               disabled={deleteUserMutation.isPending}
             >
@@ -442,10 +441,10 @@ export default function UserManagement() {
 
       {/* Dialog for Venue Assignment */}
       <Dialog open={!!userToAssignVenue} onOpenChange={open => !open && setUserToAssignVenue(null)}>
-        <DialogContent className={`sm:max-w-[425px] ${themeClasses.cardBg}`}>
+        <DialogContent className="sm:max-w-[425px] bg-card">
           <DialogHeader>
-            <DialogTitle className={themeClasses.text}>Asignar a Venue</DialogTitle>
-            <DialogDescription className={themeClasses.textMuted}>
+            <DialogTitle className="text-foreground">Asignar a Venue</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Selecciona un venue para asignar a {userToAssignVenue?.name}.
             </DialogDescription>
           </DialogHeader>
@@ -481,7 +480,7 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      <Card className={`${themeClasses.cardBg} rounded-xl shadow-sm`}>
+      <Card className="bg-card rounded-xl shadow-sm">
         {' '}
         {/* p-4 will be handled by CardContent */}
         <CardContent className="p-4">
@@ -491,7 +490,7 @@ export default function UserManagement() {
               <Input
                 type="search"
                 placeholder="Buscar usuarios..."
-                className={`pl-8 w-[250px] ${themeClasses.inputBg}`}
+                className="pl-8 w-[250px] bg-input"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -517,7 +516,7 @@ export default function UserManagement() {
 
           <DataTable columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} />
 
-          <div className={`text-xs ${themeClasses.textMuted} mt-2`}>
+          <div className="text-xs text-muted-foreground mt-2">
             Mostrando {filteredUsers.length} de {userData.length} usuarios
           </div>
         </CardContent>
