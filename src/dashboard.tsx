@@ -215,12 +215,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {/* Superadmin Navigation Button - only show for SUPERADMIN users */}
             {user?.role === StaffRole.SUPERADMIN && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/superadmin')}
-                className="flex items-center space-x-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-2">
                 <Shield className="w-4 h-4" />
                 <span>Superadmin</span>
                 <ArrowLeft className="w-3 h-3" />
@@ -237,7 +232,7 @@ export default function Dashboard() {
           </div>
         </div>
         {/* Chatbot component - solo mostrar si hay venue y la feature está activa */}
-        {venue && checkFeatureAccess('chatbot') && <ChatBubble />}
+        {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && <ChatBubble />}
       </SidebarInset>
     </SidebarProvider>
   )

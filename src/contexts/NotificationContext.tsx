@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import * as notificationService from '@/services/notification.service'
 import { Notification, NotificationFilters, PaginationOptions } from '@/services/notification.service'
 import { useSocket } from '@/context/SocketContext'
@@ -25,7 +25,6 @@ interface NotificationContextType extends NotificationState {
   setFilters: (filters: NotificationFilters) => void
   setPagination: (pagination: PaginationOptions) => void
   refreshNotifications: () => void
-  refreshUnreadCount: () => void
 }
 
 // ===== ACTION TYPES =====
@@ -125,7 +124,6 @@ interface NotificationProviderProps {
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const [state, dispatch] = useReducer(notificationReducer, initialState)
-  const queryClient = useQueryClient()
   const { socket, isConnected } = useSocket()
   const { isAuthenticated } = useAuth()
 
@@ -133,9 +131,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const notificationsQuery = useQuery({
     queryKey: ['notifications', state.filters, state.pagination],
     queryFn: () => notificationService.getNotifications(state.filters, state.pagination),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    enabled: isAuthenticated, // Only fetch when authenticated
+    enabled: isAuthenticated,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
+  const { refetch } = notificationsQuery
 
   // Sync query results with local reducer state (v5-compatible)
   useEffect(() => {
@@ -153,33 +154,18 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, [notificationsQuery.error])
 
-  // Fetch unread count separately for real-time updates
-  const { refetch: refetchUnreadCount, data: unreadCountData, error: unreadCountError } = useQuery({
-    queryKey: ['notifications-unread-count'],
-    queryFn: notificationService.getUnreadCount,
-    refetchInterval: 10000, // Refetch every 10 seconds
-    enabled: isAuthenticated, // Only fetch when authenticated
-  })
-
+  // Refetch once when socket connects or reconnects to sync any missed data
   useEffect(() => {
-    if (unreadCountData) {
-      dispatch({ type: 'SET_UNREAD_COUNT', payload: unreadCountData.count })
+    if (isAuthenticated && isConnected) {
+      refetch()
     }
-  }, [unreadCountData])
-
-  useEffect(() => {
-    if (unreadCountError) {
-      const err = unreadCountError as any
-      dispatch({ type: 'SET_ERROR', payload: err?.message || 'Failed to fetch unread count' })
-    }
-  }, [unreadCountError])
+  }, [isAuthenticated, isConnected, refetch])
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: notificationService.markAsRead,
     onSuccess: (_, notificationId) => {
       dispatch({ type: 'MARK_AS_READ', payload: notificationId })
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
     },
     onError: (error: any) => {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to mark notification as read' })
@@ -195,7 +181,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         payload: state.notifications.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       })
       dispatch({ type: 'SET_UNREAD_COUNT', payload: 0 })
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
     },
     onError: (error: any) => {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to mark all notifications as read' })
@@ -207,7 +192,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     mutationFn: notificationService.deleteNotification,
     onSuccess: (_, notificationId) => {
       dispatch({ type: 'DELETE_NOTIFICATION', payload: notificationId })
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
     },
     onError: (error: any) => {
       dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to delete notification' })
@@ -239,10 +223,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     notificationsQuery.refetch()
   }
 
-  const refreshUnreadCount = () => {
-    refetchUnreadCount()
-  }
-
   // (Real-time additions are handled via socket effect below)
 
   // Context value
@@ -253,8 +233,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     deleteNotification,
     setFilters,
     setPagination,
-    refreshNotifications,
-    refreshUnreadCount
+    refreshNotifications
   }
 
   // Listen for real-time notifications (Socket.IO integration)
@@ -316,12 +295,11 @@ export function useNotifications(): NotificationContextType {
  * Hook for notification bell icon with unread count
  */
 export function useNotificationBadge() {
-  const { unreadCount, refreshUnreadCount } = useNotifications()
+  const { unreadCount } = useNotifications()
 
   return {
     unreadCount,
-    hasUnread: unreadCount > 0,
-    refreshUnreadCount
+    hasUnread: unreadCount > 0
   }
 }
 

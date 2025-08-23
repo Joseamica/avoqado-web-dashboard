@@ -25,7 +25,6 @@ import {
 } from '@/components/skeleton/DashboardSkeleton'
 import { CHART_TYPES, DashboardProgressiveService, METRIC_TYPES } from '@/services/dashboard.progressive.service'
 
-
 // Translations for product categories
 const CATEGORY_TRANSLATIONS = {
   FOOD: 'Comida',
@@ -81,7 +80,11 @@ const MetricCard = ({
               percentage !== null && (
                 <div
                   className={`text-xs flex items-center ${
-                    percentage > 0 ? 'text-green-600 dark:text-green-400' : percentage < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
+                    percentage > 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : percentage < 0
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-muted-foreground'
                   }`}
                 >
                   {percentage > 0 ? (
@@ -497,7 +500,7 @@ const Home = () => {
               />
               <MetricCard
                 title="Total propinas"
-                value={isBasicLoading ? null : Currency(tipStats.totalTips)}
+                value={isBasicLoading ? null : Currency(tipStats.totalTips, false)}
                 isLoading={isBasicLoading}
                 icon={<TipIcon />}
                 percentage={compareType ? tipsChangePercentage : null}
@@ -543,7 +546,7 @@ const Home = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Tooltip
-                            formatter={value => `${Currency(Number(value))}`}
+                            formatter={value => `${Currency(Number(value), false)}`}
                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                           />
                           <Pie
@@ -571,7 +574,7 @@ const Home = () => {
                                         className="text-lg font-bold"
                                         style={{ fill: 'hsl(var(--foreground))' }}
                                       >
-                                        {Currency(totalAmount)}
+                                        {Currency(totalAmount, false)}
                                       </tspan>
                                       <tspan
                                         x={viewBox.cx}
@@ -958,7 +961,7 @@ const PeakHoursChart = ({ data }: { data: any }) => {
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value: any, name: any) => (name === 'sales' ? Currency(Number(value)) : `${value} transacciones`)}
+                    formatter={(value: any, name: any) => (name === 'sales' ? Currency(Number(value), false) : `${value} transacciones`)}
                   />
                 }
               />
@@ -1335,7 +1338,7 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-foreground">{Currency(staff.totalSales || 0)}</p>
+                  <p className="font-medium text-foreground">{Currency(staff.totalSales || 0, false)}</p>
                   <p className="text-xs text-muted-foreground">{staff.orderCount || 0} órdenes</p>
                 </div>
               </div>
@@ -1375,8 +1378,8 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-foreground">{Currency(table.totalRevenue || 0)}</p>
-                  <p className="text-xs text-muted-foreground">{Currency(table.avgTicket || 0)} promedio</p>
+                  <p className="font-medium text-foreground">{Currency(table.totalRevenue || 0, false)}</p>
+                  <p className="text-xs text-muted-foreground">{Currency(table.avgTicket || 0, false)} promedio</p>
                 </div>
               </div>
             ))}
@@ -1415,7 +1418,7 @@ const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">{Currency(product.totalRevenue || 0)}</p>
+                  <p className="font-medium">{Currency(product.totalRevenue || 0, false)}</p>
                   <p className="text-xs text-muted-foreground">{(product.marginPercentage || 0).toFixed(1)}% margen</p>
                 </div>
               </div>

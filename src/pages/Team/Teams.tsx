@@ -1,33 +1,18 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UserPlus, MoreHorizontal, Pencil, Trash2, Mail, Clock } from 'lucide-react'
+import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 
+import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import DataTable from '@/components/data-table'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
-import { TeamMember, StaffRole } from '@/types'
 import teamService, { type Invitation } from '@/services/team.service'
-import { filterSuperadminFromTeam, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
+import { TeamMember } from '@/types'
+import { filterSuperadminFromTeam, getRoleBadgeColor, getRoleDisplayName } from '@/utils/role-permissions'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,11 +24,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import InviteTeamMemberForm from './components/InviteTeamMemberForm'
 import EditTeamMemberForm from './components/EditTeamMemberForm'
+import InviteTeamMemberForm from './components/InviteTeamMemberForm'
 
 export default function Teams() {
   const { venueId } = useCurrentVenue()
@@ -167,9 +160,7 @@ export default function Teams() {
       accessorKey: 'active',
       header: 'Estado',
       cell: ({ row }) => (
-        <Badge variant={row.original.active ? 'default' : 'secondary'}>
-          {row.original.active ? 'Activo' : 'Inactivo'}
-        </Badge>
+        <Badge variant={row.original.active ? 'default' : 'secondary'}>{row.original.active ? 'Activo' : 'Inactivo'}</Badge>
       ),
     },
     {
@@ -180,20 +171,12 @@ export default function Teams() {
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          ${row.original.totalSales.toLocaleString()}
-        </div>
-      ),
+      cell: ({ row }) => <div className="text-right font-medium">${row.original.totalSales.toLocaleString()}</div>,
     },
     {
       accessorKey: 'totalOrders',
       header: 'Órdenes',
-      cell: ({ row }) => (
-        <div className="text-right">
-          {row.original.totalOrders}
-        </div>
-      ),
+      cell: ({ row }) => <div className="text-right">{row.original.totalOrders}</div>,
     },
     {
       id: 'actions',
@@ -211,10 +194,7 @@ export default function Teams() {
               Editar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => setRemovingMember(row.original)}
-              className="text-red-600"
-            >
+            <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
               <Trash2 className="h-4 w-4 mr-2" />
               Eliminar
             </DropdownMenuItem>
@@ -231,9 +211,7 @@ export default function Teams() {
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.email}</div>
-          <div className="text-sm text-muted-foreground">
-            Invitado por {row.original.invitedBy.name}
-          </div>
+          <div className="text-sm text-muted-foreground">Invitado por {row.original.invitedBy.name}</div>
         </div>
       ),
     },
@@ -249,11 +227,7 @@ export default function Teams() {
     {
       accessorKey: 'createdAt',
       header: 'Enviado',
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {new Date(row.original.createdAt).toLocaleDateString('es-ES')}
-        </div>
-      ),
+      cell: ({ row }) => <div className="text-sm">{new Date(row.original.createdAt).toLocaleDateString('es-ES')}</div>,
     },
     {
       accessorKey: 'expiresAt',
@@ -274,7 +248,7 @@ export default function Teams() {
       header: 'Acciones',
       cell: ({ row }) => {
         const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
-        
+
         if (isExpired) {
           return (
             <Button
@@ -287,7 +261,7 @@ export default function Teams() {
             </Button>
           )
         }
-        
+
         return (
           <Button
             variant="outline"
@@ -309,7 +283,7 @@ export default function Teams() {
           <h1 className="text-2xl font-bold">Equipo</h1>
           <p className="text-muted-foreground">Gestiona los miembros de tu equipo e invitaciones</p>
         </div>
-        
+
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
           <DialogTrigger asChild>
             <Button id="invite-member-button">
@@ -319,7 +293,7 @@ export default function Teams() {
           </DialogTrigger>
           <DialogContent
             className="max-w-md"
-            onCloseAutoFocus={(e) => {
+            onCloseAutoFocus={e => {
               // Restore focus to the invite button for seamless keyboard flow
               e.preventDefault()
               const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
@@ -328,9 +302,7 @@ export default function Teams() {
           >
             <DialogHeader>
               <DialogTitle>Invitar Nuevo Miembro</DialogTitle>
-              <DialogDescription>
-                Envía una invitación por email para que se una a tu equipo.
-              </DialogDescription>
+              <DialogDescription>Envía una invitación por email para que se una a tu equipo.</DialogDescription>
             </DialogHeader>
             <InviteTeamMemberForm
               venueId={venueId}
@@ -346,12 +318,8 @@ export default function Teams() {
 
       <Tabs defaultValue="members" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="members">
-            Miembros del Equipo ({teamData?.meta.totalCount || 0})
-          </TabsTrigger>
-          <TabsTrigger value="invitations">
-            Invitaciones Pendientes ({invitationsData?.data.length || 0})
-          </TabsTrigger>
+          <TabsTrigger value="members">Miembros del Equipo ({teamData?.meta.totalCount || 0})</TabsTrigger>
+          <TabsTrigger value="invitations">Invitaciones Pendientes ({invitationsData?.data.length || 0})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
@@ -360,7 +328,7 @@ export default function Teams() {
               id="team-search-input"
               placeholder="Buscar miembros..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
           </div>
@@ -386,9 +354,7 @@ export default function Teams() {
                 <Mail className="h-5 w-5 mr-2" />
                 Invitaciones Pendientes
               </CardTitle>
-              <CardDescription>
-                Estas invitaciones están esperando respuesta. Expiran automáticamente después de 7 días.
-              </CardDescription>
+              <CardDescription>Estas invitaciones están esperando respuesta. Expiran automáticamente después de 7 días.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <DataTable
@@ -409,7 +375,7 @@ export default function Teams() {
         <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
           <DialogContent
             className="max-w-md"
-            onCloseAutoFocus={(e) => {
+            onCloseAutoFocus={e => {
               // Restore focus to the team search input for quick keyboard navigation
               e.preventDefault()
               const el = document.getElementById('team-search-input') as HTMLInputElement | null
@@ -441,8 +407,8 @@ export default function Teams() {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar miembro del equipo?</AlertDialogTitle>
               <AlertDialogDescription>
-                ¿Estás seguro de que deseas eliminar a {removingMember.firstName} {removingMember.lastName} del equipo?
-                Esta acción no se puede deshacer y el miembro perderá acceso al dashboard.
+                ¿Estás seguro de que deseas eliminar a {removingMember.firstName} {removingMember.lastName} del equipo? Esta acción no se
+                puede deshacer y el miembro perderá acceso al dashboard.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

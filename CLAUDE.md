@@ -144,3 +144,37 @@ Currently no automated test suite is configured. Code quality is maintained thro
 - Static assets served from `public/`
 - Production build requires environment variables
 - Firebase authentication requires proper domain configuration
+
+### Theme System Guidelines (Summary)
+
+Follow the design-token based theme system to ensure light/dark mode compatibility. See full details in `THEME-GUIDELINES.md`.
+
+- Rule #1: Never use hardcoded Tailwind grays (e.g., `bg-gray-*`, `text-gray-*`) or raw color values.
+- Use semantic, theme-aware classes:
+  - Backgrounds: `bg-background`, `bg-card`, `bg-muted`, `bg-accent`
+  - Text: `text-foreground`, `text-muted-foreground`, `text-card-foreground`, `text-accent-foreground`
+  - Borders/Inputs: `border-border`, `border-input`
+  - States: `text-destructive`, `bg-destructive`, `text-primary`, `bg-primary`, `text-secondary`, `bg-secondary`
+  - Rings: `ring` color derives from `--ring`
+
+Common replacements:
+- `bg-white` → `bg-background` or `bg-card`
+- `bg-gray-50` → `bg-muted`
+- `text-gray-900` → `text-foreground`
+- `text-gray-600/500/400` → `text-muted-foreground`
+- `border-gray-200/300` → `border-border`
+- `text-red-600` → `text-destructive`
+
+Status/feedback examples:
+- Error: `bg-destructive/10 border border-destructive/20 text-destructive`
+- Success: `bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200`
+- Info: `bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200`
+
+Forms:
+- Inputs should use `border-input bg-background text-foreground`
+- Labels/text should use `text-foreground` or `text-muted-foreground`
+
+Checklist:
+- Use only theme-aware classes
+- Test in both light and dark modes
+- Provide dark variants for custom colored elements (blue/green/orange)

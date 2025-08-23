@@ -8,8 +8,9 @@ import {
   getSortedRowModel,
   useReactTable,
   PaginationState,
+  RowSelectionState,
 } from '@tanstack/react-table'
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useState } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -30,14 +31,19 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
     pageSize: 10,
   }
 
+  // Row selection state to prevent React Table errors
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+
   const table = useReactTable({
     data: data || [],
     columns,
     pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : Math.ceil(rowCount / defaultPagination.pageSize),
     state: {
       pagination: pagination || defaultPagination,
+      rowSelection,
     },
     onPaginationChange: setPagination,
+    onRowSelectionChange: setRowSelection,
     manualPagination: !!pagination, // Enable server-side pagination when pagination prop is provided
     rowCount: rowCount || 0,
     getCoreRowModel: getCoreRowModel(),
@@ -45,11 +51,12 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
       size: 10,
       minSize: 200, //enforced during column resizing
     },
-    debugTable: true,
+    debugTable: false, // Disable debug mode to prevent console errors
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     sortDescFirst: true, //sort by all columns in descending order first (default is ascending for string columns and descending for number columns)
     getPaginationRowModel: getPaginationRowModel(),
+    enableRowSelection: false, // Explicitly disable row selection to prevent errors
   })
 
   if (isLoading) {
@@ -104,7 +111,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
               }
 
               return (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-gray-200 dark:border-gray-700"> {/* eslint-disable-line */}
+                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-gray-200 dark:border-gray-700">
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="p-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
