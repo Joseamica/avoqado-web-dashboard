@@ -323,17 +323,17 @@ export interface Organization {
   phone: string
   taxId: string | null
   type: BusinessType
-  
+
   // Billing
   billingEmail: string | null
   billingAddress: any | null // Json type
-  
+
   // Relations
   venues?: Venue[]
   staff?: Staff[]
   invitations?: Invitation[]
   invoices?: Invoice[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -343,14 +343,14 @@ export interface Venue {
   id: string
   organizationId: string
   organization?: Organization
-  
+
   // Basic info
   name: string
   slug: string
   type: VenueType
   timezone: string
   currency: string
-  
+
   // Location
   address: string
   city: string
@@ -359,39 +359,39 @@ export interface Venue {
   zipCode: string
   latitude: number | null
   longitude: number | null
-  
+
   // Contact
   phone: string
   email: string
   website: string | null
-  
+
   // Branding
   logo: string | null
   primaryColor: string | null
   secondaryColor: string | null
-  
+
   // Status
   active: boolean
   operationalSince: string | null
-  
+
   // POS Integration
   posType: PosType | null
   posConfig: any | null // Json type
   posStatus: PosStatus
-  
+
   // Avoqado Fees
   feeType: FeeType
   feeValue: number
   feeScheduleId: string | null
   feeSchedule?: FeeSchedule | null
-  
+
   // Features & Settings
   features: VenueFeature[]
   settings?: VenueSettings | null
-  
+
   // Otros campos que necesites...
   role?: StaffRole // Campo adicional para el frontend
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -401,33 +401,33 @@ export interface VenueSettings {
   id: string
   venueId: string
   venue?: Venue
-  
+
   // Operations
   autoCloseShifts: boolean
   shiftDuration: number
   requirePinLogin: boolean
-  
+
   // Reviews
   autoReplyReviews: boolean
   notifyBadReviews: boolean
   badReviewThreshold: number
-  
+
   // Inventory
   trackInventory: boolean
   lowStockAlert: boolean
   lowStockThreshold: number
-  
+
   // Customer features
   allowReservations: boolean
   allowTakeout: boolean
   allowDelivery: boolean
-  
+
   // Payment
   acceptCash: boolean
   acceptCard: boolean
   acceptDigitalWallet: boolean
   tipSuggestions: any | null // Json type
-  
+
   updatedAt: string
 }
 
@@ -437,12 +437,12 @@ export interface Feature {
   code: string
   name: string
   description: string | null
-  
+
   category: FeatureCategory
   monthlyPrice: number
-  
+
   active: boolean
-  
+
   venues?: VenueFeature[]
 }
 
@@ -453,10 +453,10 @@ export interface VenueFeature {
   venue?: Venue
   featureId: string
   feature: Feature
-  
+
   active: boolean
   monthlyPrice: number
-  
+
   startDate: string
   endDate: string | null
 }
@@ -467,26 +467,26 @@ export interface Staff {
   id: string
   organizationId: string
   organization?: Organization
-  
+
   // Authentication
   email: string
   password?: string // No se incluye en respuestas API
   pin?: string // No se incluye en respuestas API
-  
+
   // Profile
   firstName: string
   lastName: string
   phone: string | null
   employeeCode: string | null
   photoUrl: string | null
-  
+
   // Status
   active: boolean
   emailVerified: boolean
-  
+
   // Relations
   venues?: StaffVenue[]
-  
+
   createdAt: string
   updatedAt: string
   lastLoginAt: string | null
@@ -500,16 +500,16 @@ export interface StaffVenue {
   posStaffId?: string | null
   venueId: string
   venue?: Venue
-  
+
   role: StaffRole
   permissions: any | null // Json type
-  
+
   // Performance tracking
   totalSales: number
   totalTips: number
   averageRating: number
   totalOrders: number
-  
+
   active: boolean
   startDate: string
   endDate: string | null
@@ -520,37 +520,37 @@ export interface Invitation {
   id: string
   email: string
   role: StaffRole
-  
+
   type: InvitationType
-  
+
   // Organization (siempre requerida)
   organizationId: string
   organization?: Organization
-  
+
   // Venue (opcional)
   venueId: string | null
   venue?: Venue | null
-  
+
   // Token y seguridad
   token: string
   expiresAt: string
-  
+
   // Estado
   status: InvitationStatus
   acceptedAt: string | null
   declinedAt: string | null
-  
+
   // Metadata
   message: string | null
   permissions: any | null // Json type
-  
+
   invitedById: string
   invitedBy?: Staff
   acceptedById: string | null
-  
+
   attemptCount: number
   lastAttemptAt: string | null
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -561,58 +561,58 @@ export interface Product {
   id: string
   venueId: string
   venue?: Venue
-  
+
   // Basic info
   sku: string
   name: string
   description: string | null
-  
+
   // Category
   categoryId: string
   category?: MenuCategory
-  
+
   // Type para reportes/analytics
   type: ProductType
-  
+
   // Pricing
   price: number
   cost: number | null
   taxRate: number
-  
+
   // Display
   imageUrl: string | null
   displayOrder: number
   featured: boolean
-  
+
   // Dietary info
   tags: string[]
   allergens: string[]
   calories: number | null
-  
+
   // Preparation
   prepTime: number | null
   cookingNotes: string | null
-  
+
   // Inventory tracking
   trackInventory: boolean
   unit: string | null
-  
+
   // Status
   active: boolean
   availableFrom: string | null
   availableUntil: string | null
-  
+
   // POS Integration
   externalId: string | null
   externalData: any | null // Json type
   fromPOS: boolean
   syncStatus: SyncStatus
   lastSyncAt: string | null
-  
+
   // Relations
   inventory?: Inventory | null
   modifierGroups?: ProductModifierGroup[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -623,33 +623,33 @@ export interface MenuCategory {
   id: string
   venueId: string
   venue?: Venue
-  
+
   // Basic info
   name: string
   description: string | null
   slug: string
-  
+
   // Display
   displayOrder: number
   imageUrl: string | null
   color: string | null
   icon: string | null
-  
+
   // Hierarchy
   parentId: string | null
   parent?: MenuCategory | null
   children?: MenuCategory[]
-  
+
   // Scheduling
   active: boolean
   availableFrom: string | null
   availableUntil: string | null
   availableDays: string[]
-  
+
   // Relations
   products?: Product[]
   menus?: MenuCategoryAssignment[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -660,16 +660,16 @@ export interface Menu {
   id: string
   venueId: string
   venue?: Venue
-  
+
   // Basic info
   name: string
   description: string | null
   type: MenuType
-  
+
   // Display
   displayOrder: number
   isDefault: boolean
-  
+
   // Scheduling
   active: boolean
   startDate: string | null
@@ -677,10 +677,10 @@ export interface Menu {
   availableFrom: string | null
   availableUntil: string | null
   availableDays: string[]
-  
+
   // Relations
   categories?: MenuCategoryAssignment[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -691,7 +691,7 @@ export interface MenuCategoryAssignment {
   menu?: Menu
   categoryId: string
   category?: MenuCategory
-  
+
   displayOrder: number
 }
 
@@ -746,30 +746,30 @@ export interface Payment {
   shift?: Shift | null
   staffId: string | null
   staff?: Staff | null
-  
+
   // Amounts
   amount: number
   tipAmount: number
   total: number
-  
+
   // Payment details
   method: PaymentMethod
   status: PaymentStatus
   processorName: string | null
   processorPaymentId: string | null
   processorData: any | null
-  
+
   // Receipt
   receiptEmailSent: boolean
   receiptPhoneSent: boolean
   receiptEmailStatus: ReceiptStatus | null
   receiptPhoneStatus: ReceiptStatus | null
-  
+
   transactions?: VenueTransaction[]
-  
+
   createdAt: string
   updatedAt: string
-  
+
   // Campos adicionales para compatibilidad
   processedBy?: Staff | null
   cardBrand?: string
@@ -818,12 +818,12 @@ export interface Inventory {
   reservedStock: number
   minimumStock: number
   maximumStock: number | null
-  
+
   lastRestockedAt: string | null
   lastCountedAt: string | null
-  
+
   movements?: InventoryMovement[]
-  
+
   updatedAt: string
 }
 
@@ -831,15 +831,15 @@ export interface InventoryMovement {
   id: string
   inventoryId: string
   inventory?: Inventory
-  
+
   type: MovementType
   quantity: number
   previousStock: number
   newStock: number
-  
+
   reason: string | null
   reference: string | null
-  
+
   createdBy: string | null
   createdAt: string
 }
@@ -849,21 +849,21 @@ export interface ModifierGroup {
   id: string
   venueId: string
   venue?: Venue
-  
+
   name: string
   description: string | null
-  
+
   required: boolean
   allowMultiple: boolean
   minSelections: number
   maxSelections: number | null
-  
+
   displayOrder: number
   active: boolean
-  
+
   modifiers?: Modifier[]
   products?: ProductModifierGroup[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -872,12 +872,12 @@ export interface Modifier {
   id: string
   groupId: string
   group?: ModifierGroup
-  
+
   name: string
   price: number
-  
+
   active: boolean
-  
+
   orderItems?: OrderItemModifier[]
 }
 
@@ -887,7 +887,7 @@ export interface ProductModifierGroup {
   product?: Product
   groupId: string
   group?: ModifierGroup
-  
+
   displayOrder: number
 }
 
@@ -897,7 +897,7 @@ export interface OrderItemModifier {
   orderItem?: OrderItem
   modifierId: string
   modifier?: Modifier
-  
+
   quantity: number
   price: number
 }
@@ -907,14 +907,14 @@ export interface Table {
   id: string
   venueId: string
   venue?: Venue
-  
+
   number: string
   section: string | null
   capacity: number
   qrCode: string
-  
+
   active: boolean
-  
+
   orders?: Order[]
 }
 
@@ -924,26 +924,26 @@ export interface Shift {
   venue?: Venue
   staffId: string
   staff?: Staff
-  
+
   startTime: string
   endTime: string | null
-  
+
   // Cash management
   startingCash: number
   endingCash: number | null
   cashDifference: number | null
-  
+
   // Summary
   totalSales: number
   totalTips: number
   totalOrders: number
-  
+
   status: ShiftStatus
   notes: string | null
-  
+
   orders?: Order[]
   payments?: Payment[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -953,10 +953,10 @@ export interface FeeSchedule {
   id: string
   name: string
   description: string | null
-  
+
   tiers?: FeeTier[]
   venues?: Venue[]
-  
+
   active: boolean
 }
 
@@ -964,7 +964,7 @@ export interface FeeTier {
   id: string
   scheduleId: string
   schedule?: FeeSchedule
-  
+
   minVolume: number
   maxVolume: number | null
   percentage: number
@@ -974,22 +974,22 @@ export interface Invoice {
   id: string
   organizationId: string
   organization?: Organization
-  
+
   invoiceNumber: string
   periodStart: string
   periodEnd: string
   dueDate: string
-  
+
   // Amounts
   subtotal: number
   taxAmount: number
   total: number
-  
+
   status: InvoiceStatus
   paidAt: string | null
-  
+
   items?: InvoiceItem[]
-  
+
   createdAt: string
 }
 
@@ -997,11 +997,11 @@ export interface InvoiceItem {
   id: string
   invoiceId: string
   invoice?: Invoice
-  
+
   type: ChargeType
   description: string
   venueId: string | null
-  
+
   quantity: number
   unitPrice: number
   amount: number
@@ -1014,19 +1014,19 @@ export interface VenueTransaction {
   venue?: Venue
   paymentId: string
   payment?: Payment
-  
+
   type: TransactionType
-  
+
   // Amounts
   grossAmount: number
   feeAmount: number
   netAmount: number
-  
+
   // Settlement
   status: SettlementStatus
   settledAt: string | null
   settlementId: string | null
-  
+
   createdAt: string
 }
 
@@ -1034,37 +1034,37 @@ export interface Review {
   id: string
   venueId: string
   venue?: Venue
-  
+
   // Rating
   overallRating: number
   foodRating: number | null
   serviceRating: number | null
   ambienceRating: number | null
-  
+
   comment: string | null
-  
+
   // Customer info
   customerName: string | null
   customerEmail: string | null
-  
+
   // Source
   source: ReviewSource
   externalId: string | null
-  
+
   terminalId: string | null
   terminal?: Terminal | null
-  
+
   paymentId: string | null
   payment?: Payment | null
-  
+
   servedById: string | null
   servedBy?: Staff | null
-  
+
   // Response
   responseText: string | null
   respondedAt: string | null
   responseAutomated: boolean
-  
+
   createdAt: string
 }
 
@@ -1073,20 +1073,20 @@ export interface Terminal {
   id: string
   venueId: string
   venue?: Venue
-  
+
   serialNumber: string
   name: string
   type: TerminalType
-  
+
   // Status
   status: TerminalStatus
   lastHeartbeat: string | null
-  
+
   // Configuration
   config: any | null
-  
+
   reviews?: Review[]
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -1096,15 +1096,15 @@ export interface ActivityLog {
   staffId: string | null
   staff?: Staff | null
   venueId: string
-  
+
   action: string
   entity: string | null
   entityId: string | null
-  
+
   data: any | null
   ipAddress: string | null
   userAgent: string | null
-  
+
   createdAt: string
 }
 
@@ -1112,23 +1112,23 @@ export interface Customer {
   id: string
   email: string | null
   phone: string | null
-  
+
   firstName: string | null
   lastName: string | null
   birthDate: string | null
   gender: string | null
-  
+
   // Auth
   password: string | null
   provider: AuthProvider
   providerId: string | null
-  
+
   // Preferences
   language: string
   marketingConsent: boolean
-  
+
   active: boolean
-  
+
   createdAt: string
   updatedAt: string
 }
@@ -1170,7 +1170,7 @@ export interface SessionVenue {
       id: string
       code: string
       name: string
-    },
+    }
     active: boolean
   }>
 }

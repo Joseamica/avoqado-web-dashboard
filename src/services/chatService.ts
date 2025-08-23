@@ -1,451 +1,399 @@
-// Get the appropriate API URL based on environment
-const API_URL = import.meta.env.MODE === 'production' 
-  ? import.meta.env.VITE_API_URL 
-  : import.meta.env.VITE_API_DEV_URL
+import api from '@/api'
 
-// Track session initialization to prevent duplicate calls
-let sessionInitializationPromise: Promise<string> | null = null;
-
-// Generic JSON-RPC 2.0 interface definitions
-interface JsonRpcRequest<T = unknown> {
-  id: string;
-  jsonrpc: string;
-  method: string;
-  params: T;
+// Configuración del chat
+export const CHAT_CONFIG = {
+  MAX_HISTORY_LENGTH: 10, // Máximo 10 mensajes en historial para reducir tokens
+  MAX_DAILY_REQUESTS: 50, // Límite diario por usuario
 }
 
-interface JsonRpcResponse<T = unknown> {
-  id: string;
-  jsonrpc: string;
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-  };
+// Tipos para el chat
+export interface ChatMessage {
+  id: string
+  text: string
+  isUser: boolean
+  timestamp: Date
+  cached?: boolean
 }
 
-// Session management interfaces
-interface InitSessionParams {
-  userId: string;
-  venueId: string;
+interface ConversationEntry {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
 }
 
-interface InitSessionResult {
-  sessionId: string;
+interface DailyUsage {
+  date: string
+  count: number
 }
 
-// Message interfaces
-interface SendMessageParams {
-  sessionId: string;
-  message: string;
+interface SavedConversation {
+  id: string
+  title: string
+  lastMessage: string
+  timestamp: Date
+  history: ConversationEntry[]
 }
 
-interface SendMessageResult {
-  answer?: string;
-  response?: string;
-  messageId?: string;
+interface ConversationsList {
+  conversations: SavedConversation[]
+  currentId: string | null
 }
 
-// Feedback interfaces
-interface ProvideFeedbackParams {
-  sessionId: string;
-  messageId: string;
-  rating: number;
-  comment?: string;
+interface ChatResponse {
+  response: string
+  suggestions?: string[]
+  cached?: boolean
 }
 
-interface ProvideFeedbackResult {
-  success: boolean;
+// Funciones de utilidad para localStorage
+const STORAGE_KEYS = {
+  CONVERSATION: 'avoqado_chat_history',
+  DAILY_USAGE: 'avoqado_chat_daily_usage',
+  CONVERSATIONS_LIST: 'avoqado_chat_conversations',
+  CURRENT_CONVERSATION: 'avoqado_current_conversation_id',
 }
 
-// Exported service interfaces
-export interface SendChatMessageParams {
-  message: string;
-  venueId: string;
-  sessionId?: string;
-}
-
-export interface ChatSession {
-  sessionId: string;
-  userId: string;
-  venueId: string;
-}
-
-// Helper functions for localStorage persistence
-const getSessionStorageKey = (venueId: string) => `avoqado_chat_session_${venueId}`;
-
-// Save session to localStorage
-const saveSessionToStorage = (session: ChatSession): void => {
-  if (!session || !session.venueId) return;
-  localStorage.setItem(getSessionStorageKey(session.venueId), JSON.stringify(session));
-  console.log('Chat session saved to localStorage:', session.sessionId);
-};
-
-// Retrieve session from localStorage
-const getSessionFromStorage = (venueId: string): ChatSession | null => {
-  if (!venueId) return null;
+// Gestión del historial de conversación
+export const getConversationHistory = (): ConversationEntry[] => {
   try {
-    const stored = localStorage.getItem(getSessionStorageKey(venueId));
-    if (!stored) return null;
-    const session = JSON.parse(stored) as ChatSession;
-    console.log('Chat session retrieved from localStorage:', session.sessionId);
-    return session;
-  } catch (e) {
-    console.error('Error parsing stored chat session:', e);
-    return null;
-  }
-};
-
-// Store the current session in memory and localStorage
-let currentSession: ChatSession | null = null;
-
-/**
- * Reset the current chat session
- * Use this when switching venues or when you need to start a fresh session
- * @param venueId Optional venueId to specifically clear that venue's session
- */
-export function resetChatSession(venueId?: string): void {
-  if (venueId) {
-    // Clear specific venue session
-    localStorage.removeItem(getSessionStorageKey(venueId));
-    // Only reset current session if it's for this venue
-    if (currentSession?.venueId === venueId) {
-      currentSession = null;
+    const stored = localStorage.getItem(STORAGE_KEYS.CONVERSATION)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return parsed.map((entry: any) => ({
+        ...entry,
+        timestamp: new Date(entry.timestamp),
+      }))
     }
-  } else if (currentSession?.venueId) {
-    // Clear current session
-    localStorage.removeItem(getSessionStorageKey(currentSession.venueId));
-    currentSession = null;
-  }
-  
-  sessionInitializationPromise = null;
-  console.log('Chat session reset');
-}
-
-/**
- * Clears the chat history and session for a specific venue
- * Use this to explicitly let the user reset their conversation
- * @param venueId The venue ID to clear the chat history for
- * @returns Promise that resolves when the history is cleared
- */
-export async function clearChatHistory(venueId: string): Promise<boolean> {
-  try {
-    // Clear local storage and session
-    resetChatSession(venueId);
-    
-    // Could also send a request to the backend to clear any server-side history
-    // For example:
-    // await fetch(`${API_URL}/api/mcp`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     id: Date.now().toString(),
-    //     jsonrpc: "2.0",
-    //     method: "chatbot.clearHistory",
-    //     params: { venueId }
-    //   }),
-    // });
-    
-    return true;
   } catch (error) {
-    console.error('Failed to clear chat history:', error);
-    return false;
+    console.warn('Error loading conversation history:', error)
+  }
+  return []
+}
+
+const saveConversationHistory = (history: ConversationEntry[]) => {
+  try {
+    // Mantener solo los últimos mensajes para reducir tokens
+    const recentHistory = history.slice(-CHAT_CONFIG.MAX_HISTORY_LENGTH)
+    localStorage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(recentHistory))
+    console.log('💾 Chat history saved:', {
+      totalEntries: recentHistory.length,
+      lastEntry: recentHistory[recentHistory.length - 1],
+    })
+    return recentHistory
+  } catch (error) {
+    console.warn('Error saving conversation history:', error)
+    return history
   }
 }
 
-/**
- * Initialize a new chat session
- * @param userId The user ID
- * @param venueId The venue ID
- * @returns Promise with the session ID
- */
-export async function initializeChatSession(userId: string, venueId: string): Promise<string> {
-  // If we already have a session for this venue, return it immediately
-  if (currentSession && currentSession.venueId === venueId) {
-    console.log('Using existing session:', currentSession.sessionId);
-    return currentSession.sessionId;
-  }
-  
-  // Check if we have a saved session in localStorage
-  const savedSession = getSessionFromStorage(venueId);
-  if (savedSession?.sessionId) {
-    currentSession = savedSession;
-    console.log('Using session from localStorage:', savedSession.sessionId);
-    return savedSession.sessionId;
-  }
-  
-  // If there's already a session initialization in progress, return that promise
-  if (sessionInitializationPromise) {
-    console.log('Session initialization already in progress, reusing promise');
-    return sessionInitializationPromise;
-  }
-  
-  // Create a new initialization promise
+// Nueva función para agregar mensajes individuales al historial
+export const addMessageToHistory = (role: 'user' | 'assistant', content: string) => {
   try {
-    sessionInitializationPromise = (async () => {
-      console.log('Starting new session initialization for venue:', venueId);
-      const request: JsonRpcRequest<InitSessionParams> = {
-        id: Date.now().toString(),
-        jsonrpc: "2.0",
-        method: "chatbot.initializeSession",
-        params: {
-          userId,
-          venueId
-        }
-      };
+    const currentHistory = getConversationHistory()
+    const newEntry: ConversationEntry = {
+      role,
+      content,
+      timestamp: new Date(),
+    }
+    
+    const updatedHistory = [...currentHistory, newEntry]
+    saveConversationHistory(updatedHistory)
+    
+    console.log('➕ Message added to history:', {
+      role,
+      contentPreview: content.substring(0, 50) + '...',
+      historyLength: updatedHistory.length,
+    })
+    
+    return updatedHistory
+  } catch (error) {
+    console.error('Error adding message to history:', error)
+    return getConversationHistory()
+  }
+}
 
-      const response = await fetch(`${API_URL}/api/mcp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json() as JsonRpcResponse<InitSessionResult>;
-
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
-
-      if (!data.result?.sessionId) {
-        throw new Error('No session ID returned');
-      }
-
-      // Store the session
-      currentSession = {
-        sessionId: data.result.sessionId,
-        userId,
-        venueId
-      };
+// Gestión de uso diario
+const getDailyUsage = (): DailyUsage => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.DAILY_USAGE)
+    if (stored) {
+      const usage = JSON.parse(stored) as DailyUsage
+      const today = new Date().toDateString()
       
-      // Save to localStorage for persistence
-      saveSessionToStorage(currentSession);
-
-      console.log('Session initialized successfully:', data.result.sessionId);
-      return data.result.sessionId;
-    })();
-    
-    // Handle completion of the promise
-    sessionInitializationPromise
-      .catch(error => {
-        console.error('Session initialization failed:', error);
-      })
-      .finally(() => {
-        // Clear the promise when done (success or failure)
-        sessionInitializationPromise = null;
-      });
-    
-    return await sessionInitializationPromise;
+      if (usage.date === today) {
+        return usage
+      }
+    }
   } catch (error) {
-    sessionInitializationPromise = null;
-    console.error('Chat session initialization error:', error);
-    throw error;
-  }
-}
-
-/**
- * Get the current chat session or initialize a new one if needed
- * @param userId The user ID
- * @param venueId The venue ID
- * @returns Promise with the session ID
- */
-export async function getOrCreateChatSession(userId: string, venueId: string): Promise<string> {
-  if (currentSession && currentSession.venueId === venueId) {
-    return currentSession.sessionId;
+    console.warn('Error loading daily usage:', error)
   }
   
-  return initializeChatSession(userId, venueId);
+  return { date: new Date().toDateString(), count: 0 }
 }
 
-/**
- * Sends a chat message to the MCP API
- * @param params Object containing the message, venueId, and optional sessionId
- * @returns Promise with the chat response string
- */
-/**
- * Checks if a session is valid by sending a simple ping request to the server
- * @param sessionId The session ID to check
- * @returns Promise that resolves to true if valid, false if not
- */
-async function isSessionValid(sessionId: string): Promise<boolean> {
+const incrementDailyUsage = () => {
+  const usage = getDailyUsage()
+  usage.count++
+  localStorage.setItem(STORAGE_KEYS.DAILY_USAGE, JSON.stringify(usage))
+  return usage
+}
+
+const checkDailyLimit = (): boolean => {
+  const usage = getDailyUsage()
+  return usage.count < CHAT_CONFIG.MAX_DAILY_REQUESTS
+}
+
+// Sugerencias predefinidas para consultas comunes
+const PREDEFINED_SUGGESTIONS = [
+  '¿Cuáles fueron las ventas de hoy?',
+  '¿Qué mesero generó más propinas esta semana?',
+  '¿Cuáles son los productos más vendidos del mes?',
+  '¿Hay alguna alerta que deba revisar?',
+  '¿Cómo van las calificaciones de clientes?',
+  'Muéstrame el resumen del día de ayer',
+  '¿Qué productos tienen stock bajo?',
+  '¿Cómo puedo mejorar las ventas de productos lentos?',
+]
+
+// Función principal para enviar mensajes usando API directamente
+export const sendChatMessage = async (message: string): Promise<ChatResponse> => {
+  // Validaciones
+  if (!message.trim()) {
+    throw new Error('El mensaje no puede estar vacío')
+  }
+  
+  if (message.length > 2000) {
+    throw new Error('El mensaje es demasiado largo (máximo 2000 caracteres)')
+  }
+  
+  // Verificar límite diario
+  if (!checkDailyLimit()) {
+    throw new Error(`Has alcanzado el límite diario de ${CHAT_CONFIG.MAX_DAILY_REQUESTS} consultas. Intenta mañana.`)
+  }
+  
   try {
-    // Simple ping request to check if session exists
-    const pingRequest: JsonRpcRequest<{sessionId: string}> = {
-      id: Date.now().toString(),
-      jsonrpc: "2.0",
-      method: "chatbot.pingSession", // Adjust method name based on your API
-      params: {
-        sessionId
-      }
-    };
-
-    const response = await fetch(`${API_URL}/api/mcp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(pingRequest),
-    });
-
-    if (!response.ok) return false;
+    // Preparar historial de conversación
+    const history = getConversationHistory()
     
-    const data = await response.json();
+    // Llamar a la API usando axios (que ya tiene la configuración correcta)
+    const response = await api.post('/api/v1/dashboard/assistant/query', {
+      message,
+      conversationHistory: history,
+    })
     
-    // If we get an error about session not found or invalid session
-    if (data.error && (
-      data.error.message?.toLowerCase().includes('session') || 
-      data.error.message?.toLowerCase().includes('not found') ||
-      data.error.code === 404 ||
-      data.error.code === 400
-    )) {
-      console.warn('Session invalid or expired:', sessionId);
-      return false;
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Error en la respuesta del servidor')
     }
     
-    return true;
-  } catch (error) {
-    console.error('Error checking session validity:', error);
-    return false;
+    const result = response.data.data
+    const aiResponse = result.response || 'No se pudo obtener una respuesta.'
+    const suggestions = result.suggestions || []
+    
+    // NOTA: El historial ahora se maneja desde ChatBubble.tsx para evitar duplicados
+    // const newHistory = [
+    //   ...history,
+    //   { role: 'user' as const, content: message, timestamp: new Date() },
+    //   { role: 'assistant' as const, content: aiResponse, timestamp: new Date() }
+    // ]
+    // saveConversationHistory(newHistory)
+    
+    // Incrementar contador de uso
+    incrementDailyUsage()
+    
+    console.log('Respuesta obtenida de la API')
+    return {
+      response: aiResponse,
+      suggestions,
+      cached: false,
+    }
+    
+  } catch (error: any) {
+    console.error('Error sending chat message:', error)
+    
+    // Manejo específico de errores
+    if (error.response?.status === 401) {
+      throw new Error('No estás autenticado. Por favor, recarga la página e inicia sesión nuevamente.')
+    } else if (error.response?.status === 403) {
+      throw new Error('No tienes permisos para usar el asistente IA.')
+    } else if (error.response?.status >= 500) {
+      throw new Error('Error del servidor. Por favor, intenta más tarde.')
+    } else if (error instanceof Error) {
+      throw new Error(error.message)
+    } else {
+      throw new Error('Error desconocido al enviar el mensaje')
+    }
   }
 }
 
-export async function sendChatMessage({ message, venueId, sessionId }: SendChatMessageParams): Promise<string> {
+// Función para obtener sugerencias
+export const getSuggestions = async (): Promise<string[]> => {
   try {
-    // Ensure we have a session ID
-    let currentSessionId = sessionId || currentSession?.sessionId;
-    
-    // If we have a session ID, verify it's still valid after server restarts
-    if (currentSessionId) {
-      // This is a lightweight way to check if the session is still valid on the server
-      const isValid = await isSessionValid(currentSessionId);
-      
-      if (!isValid) {
-        console.log('Stored session is invalid, creating a new one');
-        // Clear stored session
-        resetChatSession(venueId);
-        currentSessionId = null;
-      }
-    }
-    
-    // If no valid session exists, create one
-    if (!currentSessionId) {
-      currentSessionId = await initializeChatSession(`user-${Date.now()}`, venueId);
-    }
-    
-    // Create the JSONRPC request object for sending a message
-    const request: JsonRpcRequest<SendMessageParams> = {
-      id: Date.now().toString(),
-      jsonrpc: "2.0",
-      method: "chatbot.sendMessage",
-      params: {
-        sessionId: currentSessionId,
-        message
-      }
-    };
-
-    const response = await fetch(`${API_URL}/api/mcp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json() as JsonRpcResponse<SendMessageResult>;
-    
-    // Log the response for debugging
-    console.log('Chat response received:', data);
-
-    if (data.error) {
-      // Check if error is related to session not found
-      if (data.error.message?.toLowerCase().includes('session') || 
-          data.error.code === 404) {
-        console.warn('Session error detected, trying with a new session');
-        
-        // Clear stored session and try again with a new session
-        resetChatSession(venueId);
-        
-        // Recursive call with no session ID to force creation of a new one
-        return sendChatMessage({ message, venueId });
-      }
-      
-      throw new Error(data.error.message);
-    }
-    
-    // Check for different possible response fields
-    const responseText = data.result?.answer || data.result?.response || '';
-    
-    if (!responseText) {
-      console.warn('No response text found in result:', data.result);
-      return 'No se encontró una respuesta.';
-    }
-    
-    return responseText;
+    const response = await api.get('/api/v1/dashboard/assistant/suggestions')
+    return response.data?.data?.suggestions || PREDEFINED_SUGGESTIONS
   } catch (error) {
-    console.error('Chat service error:', error);
-    return 'Lo siento, ocurrió un error al procesar tu consulta.';
+    console.warn('Error fetching suggestions, using predefined ones:', error)
+    return PREDEFINED_SUGGESTIONS
   }
 }
 
-/**
- * Provide feedback for a chat message
- * @param sessionId The session ID
- * @param messageId The message ID to provide feedback for
- * @param rating The rating (1-5)
- * @param comment Optional comment
- * @returns Promise with success status
- */
-export async function provideChatFeedback(
-  sessionId: string,
-  messageId: string,
-  rating: number,
-  comment?: string
-): Promise<boolean> {
-  try {
-    const request: JsonRpcRequest<ProvideFeedbackParams> = {
-      id: Date.now().toString(),
-      jsonrpc: "2.0",
-      method: "chatbot.provideFeedback",
-      params: {
-        sessionId,
-        messageId,
-        rating,
-        comment
-      }
-    };
+// Función para limpiar el historial
+export const clearConversationHistory = () => {
+  localStorage.removeItem(STORAGE_KEYS.CONVERSATION)
+  console.log('Historial de conversación limpiado')
+}
 
-    const response = await fetch(`${API_URL}/api/mcp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json() as JsonRpcResponse<ProvideFeedbackResult>;
-
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-
-    return data.result?.success || false;
-  } catch (error) {
-    console.error('Chat feedback error:', error);
-    throw error;
+// Función para obtener estadísticas de uso
+export const getUsageStats = () => {
+  const dailyUsage = getDailyUsage()
+  const historyLength = getConversationHistory().length
+  
+  return {
+    dailyRequests: dailyUsage.count,
+    maxDailyRequests: CHAT_CONFIG.MAX_DAILY_REQUESTS,
+    remainingRequests: Math.max(0, CHAT_CONFIG.MAX_DAILY_REQUESTS - dailyUsage.count),
+    conversationLength: historyLength,
   }
+}
+
+// Función para debugging
+export const debugInfo = () => {
+  console.log('=== Chat Service Debug Info ===')
+  console.log('Usage Stats:', getUsageStats())
+  console.log('Conversation History:', getConversationHistory())
+  console.log('===============================')
+}
+
+// Legacy functions para compatibilidad (si son necesarias)
+export const initializeChatSession = async (userId: string, venueId: string): Promise<string> => {
+  return `session-${userId}-${venueId}-${Date.now()}`
+}
+
+export const clearChatHistory = async (venueId?: string): Promise<boolean> => {
+  clearConversationHistory()
+  return true
+}
+
+// === GESTIÓN DE CONVERSACIONES MÚLTIPLES ===
+
+// Obtener lista de conversaciones guardadas
+export const getSavedConversations = (): SavedConversation[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS_LIST)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return parsed.map((conv: any) => ({
+        ...conv,
+        timestamp: new Date(conv.timestamp),
+        history: conv.history.map((entry: any) => ({
+          ...entry,
+          timestamp: new Date(entry.timestamp),
+        })),
+      }))
+    }
+  } catch (error) {
+    console.warn('Error loading saved conversations:', error)
+  }
+  return []
+}
+
+// Guardar una conversación
+export const saveConversation = (title?: string): string => {
+  const currentHistory = getConversationHistory()
+  if (currentHistory.length === 0) return ''
+
+  const conversations = getSavedConversations()
+  const conversationId = `conv_${Date.now()}`
+  
+  // Generar título automático si no se proporciona
+  const autoTitle = title || generateConversationTitle(currentHistory)
+  const lastMessage = currentHistory[currentHistory.length - 1]?.content || ''
+
+  const newConversation: SavedConversation = {
+    id: conversationId,
+    title: autoTitle,
+    lastMessage: lastMessage.substring(0, 100) + (lastMessage.length > 100 ? '...' : ''),
+    timestamp: new Date(),
+    history: [...currentHistory],
+  }
+
+  const updatedConversations = [newConversation, ...conversations].slice(0, 10) // Mantener solo las 10 más recientes
+  
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS_LIST, JSON.stringify(updatedConversations))
+    console.log(`💾 Conversación guardada: ${autoTitle}`)
+  } catch (error) {
+    console.error('Error saving conversation:', error)
+  }
+
+  return conversationId
+}
+
+// Cargar una conversación específica
+export const loadConversation = (conversationId: string): boolean => {
+  const conversations = getSavedConversations()
+  const conversation = conversations.find(conv => conv.id === conversationId)
+  
+  if (conversation) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(conversation.history))
+      localStorage.setItem(STORAGE_KEYS.CURRENT_CONVERSATION, conversationId)
+      console.log(`📖 Conversación cargada: ${conversation.title}`)
+      return true
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    }
+  }
+  
+  return false
+}
+
+// Eliminar una conversación guardada
+export const deleteConversation = (conversationId: string): boolean => {
+  try {
+    const conversations = getSavedConversations()
+    const updatedConversations = conversations.filter(conv => conv.id !== conversationId)
+    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS_LIST, JSON.stringify(updatedConversations))
+    
+    // Si es la conversación actual, limpiar
+    const currentId = localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION)
+    if (currentId === conversationId) {
+      clearConversationHistory()
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION)
+    }
+    
+    console.log(`🗑️ Conversación eliminada: ${conversationId}`)
+    return true
+  } catch (error) {
+    console.error('Error deleting conversation:', error)
+    return false
+  }
+}
+
+// Generar título automático basado en el primer mensaje del usuario
+const generateConversationTitle = (history: ConversationEntry[]): string => {
+  const firstUserMessage = history.find(entry => entry.role === 'user')
+  if (firstUserMessage) {
+    const title = firstUserMessage.content.substring(0, 50)
+    return title.length < firstUserMessage.content.length ? title + '...' : title
+  }
+  return `Conversación del ${new Date().toLocaleDateString()}`
+}
+
+// Crear nueva conversación (limpiar la actual)
+export const createNewConversation = (): void => {
+  // Guardar automáticamente la conversación actual si tiene contenido
+  const currentHistory = getConversationHistory()
+  if (currentHistory.length > 1) { // Más de solo el mensaje de bienvenida
+    saveConversation()
+  }
+  
+  // Limpiar la conversación actual
+  clearConversationHistory()
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION)
+  console.log('✨ Nueva conversación creada')
+}
+
+// Obtener ID de la conversación actual
+export const getCurrentConversationId = (): string | null => {
+  return localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION)
 }
