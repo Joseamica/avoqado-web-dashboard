@@ -6,25 +6,24 @@ import { Separator } from '@/components/ui/separator'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, PencilIcon, SaveIcon, XIcon } from 'lucide-react'
+import { ArrowLeft, PencilIcon, SaveIcon, XIcon, AlertCircle, Home } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
-// Define the schema for validation
+// Define the schema for validation (based on actual database schema)
 const tpvFormSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido' }),
-  version: z.string().optional(),
-  serial: z.string().min(1, { message: 'El número de serie es requerido' }),
-  tradeMark: z.string().optional(),
-  model: z.string().optional(),
-  idMenta: z.string().optional(),
-  customerId: z.string().optional(),
-  configuration: z.string().optional(),
+  serialNumber: z.string().min(1, { message: 'El número de serie es requerido' }),
+  type: z.string().optional(),
   status: z.string().optional(),
+  config: z.string().optional(), // JSON configuration
 })
 
 // Type for the form values
@@ -33,23 +32,20 @@ type TpvFormValues = z.infer<typeof tpvFormSchema>
 interface TpvData {
   id: string
   name: string
-  version?: string
-  serial: string
-  tradeMark?: string
-  model?: string
-  idMenta?: string
-  customerId?: string
-  configuration?: string
+  serialNumber: string
+  type?: string
   status?: string
+  lastHeartbeat?: string
+  config?: any // JSON field
   venueId: string
   createdAt?: string
   updatedAt?: string
 }
 
 export default function TpvId() {
-  const { venueId, tpvId } = useParams()
+  const { tpvId } = useParams()
   const location = useLocation()
-  const navigate = useNavigate()
+  const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
@@ -59,23 +55,30 @@ export default function TpvId() {
     resolver: zodResolver(tpvFormSchema),
     defaultValues: {
       name: '',
-      version: '',
-      serial: '',
-      tradeMark: '',
-      model: '',
-      idMenta: '',
-      customerId: '',
-      configuration: '',
+      serialNumber: '',
+      type: '',
       status: '',
+      config: '',
     },
   })
 
+  const navigate = useNavigate()
+
   // Fetch the TPV data
-  const { data: tpv, isLoading } = useQuery<TpvData>({
+  const { data: tpv, isLoading, error, isError } = useQuery<TpvData>({
     queryKey: ['tpv', venueId, tpvId],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/tpv/${tpvId}`)
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
       return response.data
+    },
+    enabled: Boolean(venueId && tpvId),
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's a 404 error
+      if (error?.response?.status === 404) {
+        return false
+      }
+      // Retry up to 3 times for other errors
+      return failureCount < 3
     },
   })
 
@@ -83,14 +86,10 @@ export default function TpvId() {
     if (tpv) {
       form.reset({
         name: tpv.name || '',
-        version: tpv.version || '',
-        serial: tpv.serial || '',
-        tradeMark: tpv.tradeMark || '',
-        model: tpv.model || '',
-        idMenta: tpv.idMenta || '',
-        customerId: tpv.customerId || '',
-        configuration: tpv.configuration || '',
+        serialNumber: tpv.serialNumber || '',
+        type: tpv.type || '',
         status: tpv.status || '',
+        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
   }, [tpv, form])
@@ -98,7 +97,10 @@ export default function TpvId() {
   // Mutation for updating the TPV
   const updateTpvMutation = useMutation({
     mutationFn: async (updatedData: TpvFormValues) => {
-      const response = await api.put(`/v2/dashboard/${venueId}/tpv/${tpvId}`, updatedData)
+      if (!venueId || !tpvId) {
+        throw new Error('Venue o TPV no definido')
+      }
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, updatedData)
       return response.data
     },
     onSuccess: () => {
@@ -131,14 +133,10 @@ export default function TpvId() {
     if (tpv) {
       form.reset({
         name: tpv.name || '',
-        version: tpv.version || '',
-        serial: tpv.serial || '',
-        tradeMark: tpv.tradeMark || '',
-        model: tpv.model || '',
-        idMenta: tpv.idMenta || '',
-        customerId: tpv.customerId || '',
-        configuration: tpv.configuration || '',
+        serialNumber: tpv.serialNumber || '',
+        type: tpv.type || '',
         status: tpv.status || '',
+        config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
     }
     setIsEditing(false)
@@ -147,12 +145,84 @@ export default function TpvId() {
   const from = (location.state as any)?.from || `/venues/${venueId}/tpv`
 
   if (isLoading) {
-    return <div className="p-8 text-center">Cargando información del terminal...</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Cargando información del terminal...</p>
+      </div>
+    )
+  }
+
+  // Handle 404 error - TPV not found
+  if (isError && (error as any)?.response?.status === 404) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <CardTitle className="text-xl">Terminal no encontrado</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              El terminal con ID <code className="bg-muted px-2 py-1 rounded text-sm">{tpvId}</code> no existe o no tienes permisos para acceder a él.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button variant="outline" onClick={() => navigate(-1)} className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Volver atrás
+              </Button>
+              <Button onClick={() => navigate(`/venues/${venueId}/tpv`)} className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Ir a Terminales
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Handle other errors
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error al cargar el terminal. Por favor intenta de nuevo o contacta al soporte técnico.
+          </AlertDescription>
+        </Alert>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver atrás
+          </Button>
+          <Button onClick={() => window.location.reload()}>
+            Intentar de nuevo
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // If no TPV data and not loading/error, show not found
+  if (!tpv) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <p className="text-muted-foreground">No se encontraron datos del terminal.</p>
+        <Button onClick={() => navigate(`/venues/${venueId}/tpv`)}>
+          <Home className="h-4 w-4 mr-2" />
+          Volver a Terminales
+        </Button>
+      </div>
+    )
   }
 
   return (
     <div>
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex items-center">
           <Link to={from}>
             <ArrowLeft />
@@ -161,8 +231,8 @@ export default function TpvId() {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`px-3 py-1 ${tpv?.status === 'ACTIVE' ? bg-green-100 : bg-secondary} ${
-              tpv?.status === 'ACTIVE' ? text-green-800 : text-secondary-foreground
+            className={`px-3 py-1 ${tpv?.status === 'ACTIVE' ? 'bg-green-100 dark:bg-green-900/50' : 'bg-secondary'} ${
+              tpv?.status === 'ACTIVE' ? 'text-green-800 dark:text-green-200' : 'text-secondary-foreground'
             } rounded-full font-medium`}
           >
             {tpv?.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
@@ -221,7 +291,7 @@ export default function TpvId() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="serial"
+                  name="serialNumber"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Número de Serie</FormLabel>
@@ -234,10 +304,10 @@ export default function TpvId() {
                 />
                 <FormField
                   control={form.control}
-                  name="version"
+                  name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Versión</FormLabel>
+                      <FormLabel>Tipo de Terminal</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={!isEditing} className={isEditing ? 'border-primary' : ''} />
                       </FormControl>
@@ -250,10 +320,10 @@ export default function TpvId() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="tradeMark"
+                  name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Marca</FormLabel>
+                      <FormLabel>Estado</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={!isEditing} className={isEditing ? 'border-primary' : ''} />
                       </FormControl>
@@ -261,67 +331,17 @@ export default function TpvId() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Modelo</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={!isEditing} className={isEditing ? 'border-primary' : ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Información de conexión</h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="p-4 border rounded-md">
-                  <FormField
-                    control={form.control}
-                    name="idMenta"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm text-muted-foreground">ID de Menta</FormLabel>
-                        <FormControl>
-                          {isEditing ? (
-                            <Input {...field} className="mt-2 border-primary" />
-                          ) : (
-                            <p className="font-medium">{tpv?.idMenta || '-'}</p>
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="p-4 border rounded-md">
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm text-muted-foreground">ID de Cliente</FormLabel>
-                        <FormControl>
-                          {isEditing ? (
-                            <Input {...field} className="mt-2 border-primary" />
-                          ) : (
-                            <p className="font-medium">{tpv?.customerId || '-'}</p>
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div>
+                  <Label htmlFor="lastHeartbeat">Último Heartbeat</Label>
+                  <Input 
+                    id="lastHeartbeat" 
+                    value={tpv?.lastHeartbeat ? new Date(tpv.lastHeartbeat).toLocaleString('es-ES') : 'Nunca'} 
+                    disabled 
                   />
                 </div>
               </div>
             </div>
+
 
             <Separator className="my-6" />
 
@@ -329,17 +349,17 @@ export default function TpvId() {
               <h3 className="text-lg font-medium">Configuración</h3>
               <FormField
                 control={form.control}
-                name="configuration"
+                name="config"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
                       {isEditing ? (
                         <div className="p-4 border rounded-md">
-                          <Textarea {...field} className="w-full h-32 p-2 text-sm font-mono resize-y border-primary" />
+                          <Textarea {...field} className="w-full h-32 p-2 text-sm font-mono resize-y border-primary" placeholder='Configuración en formato JSON (ej: {"setting": "value"})' />
                         </div>
-                      ) : tpv?.configuration ? (
+                      ) : tpv?.config ? (
                         <div className="p-4 border rounded-md">
-                          <pre className="whitespace-pre-wrap text-sm">{tpv.configuration}</pre>
+                          <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(tpv.config, null, 2)}</pre>
                         </div>
                       ) : (
                         <p className="text-muted-foreground">No hay configuración registrada para este terminal.</p>
@@ -361,12 +381,16 @@ export default function TpvId() {
                   <p className="text-sm">{tpv?.venueId}</p>
                 </div>
                 <div className="p-4 border rounded-md">
+                  <Label className="text-sm text-muted-foreground">Tipo de Terminal</Label>
+                  <p className="text-sm">{tpv?.type || '-'}</p>
+                </div>
+                <div className="p-4 border rounded-md">
                   <Label className="text-sm text-muted-foreground">Creado</Label>
-                  <p className="text-sm">{tpv?.createdAt ? new Date(tpv.createdAt).toLocaleString() : '-'}</p>
+                  <p className="text-sm">{tpv?.createdAt ? new Date(tpv.createdAt).toLocaleString('es-ES') : '-'}</p>
                 </div>
                 <div className="p-4 border rounded-md">
                   <Label className="text-sm text-muted-foreground">Última actualización</Label>
-                  <p className="text-sm">{tpv?.updatedAt ? new Date(tpv.updatedAt).toLocaleString() : '-'}</p>
+                  <p className="text-sm">{tpv?.updatedAt ? new Date(tpv.updatedAt).toLocaleString('es-ES') : '-'}</p>
                 </div>
               </div>
             </div>
