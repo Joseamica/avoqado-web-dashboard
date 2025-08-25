@@ -66,16 +66,18 @@ export default function Payments() {
           </Button>
         ),
         cell: ({ cell }) => {
-          // La lógica de formato de fecha no necesita cambios
           const value = cell.getValue() as string
           const date = new Date(value)
-          const monthName = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
-          const year = date.getUTCFullYear()
+
+          // Usar toLocaleString con zona horaria local para consistencia
+          const localDate = new Date(date.getTime())
+          const monthName = localDate.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+          const year = localDate.getFullYear()
           const last2Year = year.toString().slice(-2)
-          const day = date.getDate()
-          const hour = date.getHours()
-          const minutes = date.getMinutes().toString().padStart(2, '0')
-          const ampm = date.getHours() >= 12 ? 'pm' : 'am'
+          const day = localDate.getDate()
+          const hour = localDate.getHours()
+          const minutes = localDate.getMinutes().toString().padStart(2, '0')
+          const ampm = localDate.getHours() >= 12 ? 'pm' : 'am'
 
           return (
             <div className="flex flex-col space-y-2">
@@ -99,7 +101,8 @@ export default function Payments() {
       },
       {
         // CAMBIO: La propina ahora es un campo numérico directo `tipAmount`
-        accessorFn: row => row.tipAmount || 0,
+        // Usamos número para poder calcular porcentajes y ordenar correctamente
+        accessorFn: row => Number(row.tipAmount) || 0,
         id: 'totalTipAmount',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -108,9 +111,9 @@ export default function Payments() {
           </Button>
         ),
         cell: ({ cell, row }) => {
-          const totalTip = cell.getValue() as number
-          // CAMBIO: El subtotal ahora es el campo `amount`
-          const subtotal = row.original.amount || 0
+          const totalTip = (cell.getValue() as number) || 0
+          // CAMBIO: El subtotal ahora es el campo `amount` (numérico)
+          const subtotal = Number(row.original.amount) || 0
           const tipPercentage = subtotal > 0 ? (totalTip / subtotal) * 100 : 0
 
           // La lógica de colores no necesita cambios
@@ -127,8 +130,8 @@ export default function Payments() {
           return (
             <div className="flex flex-col space-y-1 items-center">
               <span className="text-[12px] font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
-              {/* CAMBIO: `Currency` espera centavos, y `totalTip` es un valor decimal. */}
-              <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTip * 100)}</p>
+              {/* Formatear propina en unidades (Currency ya maneja decimales) */}
+              <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTip)}</p>
             </div>
           )
         },
@@ -206,14 +209,20 @@ export default function Payments() {
           </Button>
         ),
         cell: ({ cell }) => {
-          const value = (cell.getValue() as number) || 0
-          // `Currency` espera centavos.
-          return Currency(value * 100)
+          const value = cell.getValue()
+          // Convertir string a número si es necesario
+          const numericValue = typeof value === 'string' ? parseFloat(value) || 0 : typeof value === 'number' && !isNaN(value) ? value : 0
+          // Formatear directamente
+          return Currency(numericValue)
         },
       },
       {
         // CAMBIO: El total es la suma de `amount` y `tipAmount`.
-        accessorFn: row => (row.amount || 0) + (row.tipAmount || 0),
+        accessorFn: row => {
+          const amount = Number(row.amount) || 0
+          const tipAmount = Number(row.tipAmount) || 0
+          return amount + tipAmount
+        },
         id: 'totalAmount',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -222,9 +231,11 @@ export default function Payments() {
           </Button>
         ),
         cell: ({ cell }) => {
-          const value = (cell.getValue() as number) || 0
-          // `Currency` espera centavos.
-          return Currency(value * 100)
+          const value = cell.getValue()
+          // Asegurar que el valor sea numérico y válido
+          const numericValue = typeof value === 'number' && !isNaN(value) ? value : 0
+          // Formatear directamente
+          return Currency(numericValue)
         },
       },
     ],
@@ -238,13 +249,15 @@ export default function Payments() {
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return payments.filter(payment => {
+    return payments.filter((payment: PaymentType) => {
       // Búsqueda por nombre de mesero
       const waiterName = payment.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : ''
       const waiterMatches = waiterName.toLowerCase().includes(lowerSearchTerm)
 
-      // Búsqueda por total
-      const total = (payment.amount || 0) + (payment.tipAmount || 0)
+      // Búsqueda por total - usando Number para strings
+      const amount = Number(payment.amount) || 0
+      const tipAmount = Number(payment.tipAmount) || 0
+      const total = amount + tipAmount
       const totalMatch = total.toString().includes(lowerSearchTerm)
 
       // Búsqueda por método de pago

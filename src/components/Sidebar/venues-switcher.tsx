@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
+import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
 import { ChevronsUpDown, Plus } from 'lucide-react'
@@ -56,6 +57,10 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     try {
       // Usar la función switchVenue del contexto que maneja toda la lógica
       await switchVenue(venue.slug)
+      
+      // Notificar al chatService sobre el cambio de venue
+      notifyVenueChange(venue.slug)
+      
       setDropdownOpen(false) // Cerrar el dropdown después del cambio
     } catch (error) {
       console.error('Error switching venue:', error)
@@ -100,7 +105,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               side={isMobile ? 'bottom' : 'right'}
               sideOffset={4}
             >
-              <DropdownMenuLabel className="text-xs text-zinc-500 dark:text-zinc-400">Sucursales</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Sucursales</DropdownMenuLabel>
               {venues.map((venue, index) => {
                 const isActive = venue.slug === currentVenue?.slug
                 const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
@@ -120,7 +125,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                     </Avatar>
                     <span className="flex-1 truncate">
                       {venue?.name}
-                      {isActive && <span className="ml-2 text-xs text-zinc-500">(actual)</span>}
+                      {isActive && <span className="ml-2 text-xs text-muted-foreground">(actual)</span>}
                     </span>
                     <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                   </DropdownMenuItem>
@@ -130,10 +135,10 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
 
               {/* Dialog Trigger for "Agregar sucursal" */}
               <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={handleAddVenueClick} disabled={isLoading}>
-                <div className="flex justify-center items-center bg-white rounded-md border size-6 border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="flex justify-center items-center bg-background rounded-md border size-6 border-border">
                   <Plus className="size-4" />
                 </div>
-                <div className="font-medium text-zinc-500 dark:text-zinc-400">Agregar sucursal</div>
+                <div className="font-medium text-muted-foreground">Agregar sucursal</div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

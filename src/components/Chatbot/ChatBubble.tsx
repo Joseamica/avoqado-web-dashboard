@@ -1,14 +1,34 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Button } from '../../components/ui/button'
-import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save, Archive } from 'lucide-react'
+import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
 import { Form, FormControl, FormField, FormItem } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
+import { ConfirmDialog } from '../../components/ui/confirm-dialog'
 import { useForm } from 'react-hook-form'
 import { useToast } from '../../hooks/use-toast'
-import { sendChatMessage, clearConversationHistory, getUsageStats, getConversationHistory, addMessageToHistory, getSavedConversations, loadConversation, deleteConversation, createNewConversation, saveConversation, getCurrentConversationId } from '../../services/chatService'
+import {
+  sendChatMessage,
+  clearConversationHistory,
+  getUsageStats,
+  getConversationHistory,
+  addMessageToHistory,
+  getSavedConversations,
+  loadConversation,
+  deleteConversation,
+  createNewConversation,
+  saveConversation,
+  getCurrentConversationId,
+} from '../../services/chatService'
 import { useMutation } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+
+// Global flag used to debounce cache toast notifications
+declare global {
+  interface Window {
+    __cache_toast_shown?: boolean
+  }
+}
 
 // Define types for chat messages
 interface ChatMessage {
@@ -22,12 +42,12 @@ interface ChatMessage {
 // Helper function to convert conversation history to chat messages
 function convertHistoryToMessages(history: any[]): ChatMessage[] {
   const messages: ChatMessage[] = []
-  
+
   console.log('🔄 Converting history to messages:', {
     historyLength: history.length,
     historyPreview: history.slice(0, 3),
   })
-  
+
   // Add welcome message if no history exists
   if (history.length === 0) {
     const welcomeMessage = {
@@ -46,7 +66,7 @@ function convertHistoryToMessages(history: any[]): ChatMessage[] {
       isUser: false,
       timestamp: new Date(Date.now() - (history.length + 1) * 1000), // Make it older
     })
-    
+
     // Convert history entries to chat messages
     history.forEach((entry, index) => {
       if (entry && entry.content && entry.role) {
@@ -59,10 +79,10 @@ function convertHistoryToMessages(history: any[]): ChatMessage[] {
         })
       }
     })
-    
+
     console.log('✅ History converted, total messages:', messages.length)
   }
-  
+
   return messages
 }
 
@@ -90,10 +110,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   })
   const [messagesEndRef, setMessagesEndRef] = useState<HTMLDivElement | null>(null)
   const [isClearing, setIsClearing] = useState(false) // Prevent multiple clear operations
+
+  // Estados para diálogos de confirmación
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
+
   const { toast } = useToast()
 
-  // Memoize usage stats to prevent constant re-renders
-  const usageStats = useMemo(() => getUsageStats(), [messages.length])
+  // Memoize usage stats; function reads external store, not component state
+  const usageStats = useMemo(() => getUsageStats(), [])
 
   const form = useForm({
     defaultValues: {
@@ -111,7 +137,6 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     onError: (error: Error) => {
       console.error('Chat error:', error)
       // Debounce toast errors to prevent spam
-      const debounceKey = `chat_error_${Date.now()}`
       if (!window[`__chat_error_${error.message}`]) {
         window[`__chat_error_${error.message}`] = true
         toast({
@@ -135,42 +160,43 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const clearingRef = useRef(false)
 
   // === FUNCIONES DE GESTIÓN DE CONVERSACIONES ===
-  
+
   const handleClearHistory = useCallback(() => {
     if (clearingRef.current) {
       console.log('🚫 Clear operation already in progress')
       return
     }
 
+    // Mostrar diálogo de confirmación
+    setShowClearConfirm(true)
+  }, [])
+
+  const confirmClearHistory = useCallback(() => {
     try {
       clearingRef.current = true
       setIsClearing(true)
-      
-      const confirmed = window.confirm('¿Estás seguro que quieres borrar el historial de la conversación?')
-      
-      if (confirmed) {
-        console.log('🗑️ Starting chat history clear operation')
-        
-        clearConversationHistory()
-        setCurrentConversationId(null)
-        
-        // Reset to welcome message only
-        const welcomeMessage = {
-          id: 'welcome',
-          text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
-          isUser: false,
-          timestamp: new Date(),
-        }
-        
-        setMessages([welcomeMessage])
-        
-        console.log('✅ Chat history cleared successfully')
-        
-        toast({
-          title: 'Historial borrado',
-          description: 'El historial de conversación ha sido borrado.',
-        })
+
+      console.log('🗑️ Starting chat history clear operation')
+
+      clearConversationHistory()
+      setCurrentConversationId(null)
+
+      // Reset to welcome message only
+      const welcomeMessage = {
+        id: 'welcome',
+        text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
+        isUser: false,
+        timestamp: new Date(),
       }
+
+      setMessages([welcomeMessage])
+
+      console.log('✅ Chat history cleared successfully')
+
+      toast({
+        title: 'Historial borrado',
+        description: 'El historial de conversación ha sido borrado.',
+      })
     } catch (error) {
       console.error('❌ Error clearing chat history:', error)
       toast({
@@ -186,7 +212,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       }, 100)
     }
   }, [toast])
-  
+
   const handleSaveConversation = useCallback(() => {
     const currentHistory = getConversationHistory()
     if (currentHistory.length <= 1) {
@@ -197,7 +223,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       })
       return
     }
-    
+
     const conversationId = saveConversation()
     if (conversationId) {
       setCurrentConversationId(conversationId)
@@ -208,12 +234,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       })
     }
   }, [toast])
-  
+
   const handleNewConversation = useCallback(() => {
     createNewConversation()
     setCurrentConversationId(null)
     setSavedConversations(getSavedConversations())
-    
+
     // Reload messages
     const welcomeMessage = {
       id: 'welcome',
@@ -222,38 +248,47 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       timestamp: new Date(),
     }
     setMessages([welcomeMessage])
-    
+
     toast({
       title: 'Nueva conversación',
       description: 'Se ha creado una nueva conversación.',
     })
   }, [toast])
-  
-  const handleLoadConversation = useCallback((conversationId: string) => {
-    if (loadConversation(conversationId)) {
-      const history = getConversationHistory()
-      const convertedMessages = convertHistoryToMessages(history)
-      setMessages(convertedMessages)
-      setCurrentConversationId(conversationId)
-      setShowConversations(false)
-      
-      const conversation = savedConversations.find(conv => conv.id === conversationId)
-      toast({
-        title: 'Conversación cargada',
-        description: `Se ha cargado: ${conversation?.title}`,
-      })
-    }
-  }, [savedConversations, toast])
-  
+
+  const handleLoadConversation = useCallback(
+    (conversationId: string) => {
+      if (loadConversation(conversationId)) {
+        const history = getConversationHistory()
+        const convertedMessages = convertHistoryToMessages(history)
+        setMessages(convertedMessages)
+        setCurrentConversationId(conversationId)
+        setShowConversations(false)
+
+        const conversation = savedConversations.find(conv => conv.id === conversationId)
+        toast({
+          title: 'Conversación cargada',
+          description: `Se ha cargado: ${conversation?.title}`,
+        })
+      }
+    },
+    [savedConversations, toast],
+  )
+
   const handleDeleteConversation = useCallback((conversationId: string) => {
-    const conversation = savedConversations.find(conv => conv.id === conversationId)
-    const confirmed = window.confirm(`¿Estás seguro que quieres eliminar "${conversation?.title}"?`)
-    
-    if (confirmed && deleteConversation(conversationId)) {
+    setConversationToDelete(conversationId)
+    setShowDeleteConfirm(true)
+  }, [])
+
+  const confirmDeleteConversation = useCallback(() => {
+    if (!conversationToDelete) return
+
+    const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
+
+    if (deleteConversation(conversationToDelete)) {
       setSavedConversations(getSavedConversations())
-      
+
       // Si es la conversación actual, resetear
-      if (conversationId === currentConversationId) {
+      if (conversationToDelete === currentConversationId) {
         const welcomeMessage = {
           id: 'welcome',
           text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
@@ -263,13 +298,15 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setMessages([welcomeMessage])
         setCurrentConversationId(null)
       }
-      
+
       toast({
         title: 'Conversación eliminada',
         description: `Se ha eliminado: ${conversation?.title}`,
       })
     }
-  }, [savedConversations, currentConversationId, toast])
+
+    setConversationToDelete(null)
+  }, [conversationToDelete, savedConversations, currentConversationId, toast])
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -285,12 +322,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       lastHistoryEntry: history[history.length - 1],
       lastMessage: messages[messages.length - 1],
     })
-    
+
     // Additional logging for troubleshooting
     if (history.length > 0) {
       console.log('💾 Current localStorage history:', history)
     }
-  }, [messages.length])
+  }, [messages])
 
   const onSubmit = async (values: { message: string }) => {
     if (!values.message.trim()) return
@@ -340,8 +377,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     })
   }
   return (
-    <Card className={`w-80 sm:w-96 absolute bottom-20 right-0 shadow-lg theme-transition bg-card`}>
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
+    <Card
+      className={`w-80 sm:w-96 fixed bottom-20 right-20 z-[9999] shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
+    >
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background">
         <CardTitle className="text-lg font-medium">
           Asistente Avoqado
           <span className="text-xs text-muted-foreground ml-2">({usageStats.remainingRequests} consultas restantes)</span>
@@ -386,42 +425,26 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             aria-label="Borrar historial"
             title="Borrar historial"
           >
-            {isClearing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
+            {isClearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={onClose}
-            aria-label="Cerrar chat"
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label="Cerrar chat">
             <X className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-4 h-80 overflow-y-auto">
+      <CardContent className="p-4 h-80 overflow-y-auto bg-background">
         {showConversations ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium">Conversaciones Guardadas</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowConversations(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setShowConversations(false)}>
                 Volver al Chat
               </Button>
             </div>
             {savedConversations.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No hay conversaciones guardadas aún.
-              </p>
+              <p className="text-sm text-muted-foreground text-center py-8">No hay conversaciones guardadas aún.</p>
             ) : (
-              savedConversations.map((conversation) => (
+              savedConversations.map(conversation => (
                 <div
                   key={conversation.id}
                   className={`p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
@@ -432,11 +455,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium truncate">{conversation.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {conversation.lastMessage}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{conversation.lastMessage}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {conversation.timestamp.toLocaleDateString()} {conversation.timestamp.toLocaleTimeString([], {
+                        {conversation.timestamp.toLocaleDateString()}{' '}
+                        {conversation.timestamp.toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -446,7 +468,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0 ml-2 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
                         handleDeleteConversation(conversation.id)
                       }}
@@ -459,68 +481,68 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             )}
           </div>
         ) : (
-        <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
-                  message.isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                <p className="text-sm">{message.text}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs opacity-70">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                  {message.cached && (
-                    <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
-                      Cache
-                    </span>
+          <div className="space-y-4 bg-background">
+            {messages.map((message, index) => (
+              <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[80%] px-3 py-2 rounded-lg theme-transition ${
+                    message.isUser ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'
+                  }`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs opacity-70">
+                      {message.timestamp.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                    {message.cached && (
+                      <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
+                        Cache
+                      </span>
+                    )}
+                  </div>
+                  {!message.isUser && index > 0 && (
+                    <div className="flex items-center space-x-2 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        aria-label="Feedback positivo"
+                        onClick={() => {
+                          toast({
+                            title: 'Gracias por tu feedback',
+                            description: 'Tu opinión nos ayuda a mejorar',
+                          })
+                        }}
+                      >
+                        <ThumbsUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        aria-label="Feedback negativo"
+                        onClick={() => {
+                          toast({
+                            title: 'Gracias por tu feedback',
+                            description: 'Tu opinión nos ayuda a mejorar',
+                          })
+                        }}
+                      >
+                        <ThumbsDown className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
-                {!message.isUser && index > 0 && (
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      aria-label="Feedback positivo"
-                      onClick={() => {
-                        toast({
-                          title: 'Gracias por tu feedback',
-                          description: 'Tu opinión nos ayuda a mejorar',
-                        })
-                      }}
-                    >
-                      <ThumbsUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      aria-label="Feedback negativo"
-                      onClick={() => {
-                        toast({
-                          title: 'Gracias por tu feedback',
-                          description: 'Tu opinión nos ayuda a mejorar',
-                        })
-                      }}
-                    >
-                      <ThumbsDown className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
-          <div ref={setMessagesEndRef} />
-        </div>
+            ))}
+            <div ref={setMessagesEndRef} />
+          </div>
         )}
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 bg-background">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
             <FormField
@@ -545,6 +567,32 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           </form>
         </Form>
       </CardFooter>
+
+      {/* Diálogos de confirmación */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Borrar historial"
+        description="¿Estás seguro que quieres borrar el historial de la conversación? Esta acción no se puede deshacer."
+        confirmText="Sí, borrar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmClearHistory}
+      />
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Eliminar conversación"
+        description={`¿Estás seguro que quieres eliminar "${
+          savedConversations.find(conv => conv.id === conversationToDelete)?.title
+        }"? Esta acción no se puede deshacer.`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmDeleteConversation}
+        onCancel={() => setConversationToDelete(null)}
+      />
     </Card>
   )
 }

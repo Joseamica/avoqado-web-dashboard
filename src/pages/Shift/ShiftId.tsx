@@ -153,7 +153,7 @@ export default function ShiftId() {
 
   return (
     <div>
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex items-center">
           <Link to={from}>
             <ArrowLeft />
@@ -176,8 +176,8 @@ export default function ShiftId() {
             </Select>
           ) : (
             <span
-              className={`px-3 py-1 ${getShiftStatus() === 'CLOSED' ? bg-secondary : bg-green-100} ${
-                getShiftStatus() === 'CLOSED' ? text-secondary-foreground : text-green-800
+              className={`px-3 py-1 ${getShiftStatus() === 'CLOSED' ? 'bg-secondary' : 'bg-green-100'} ${
+                getShiftStatus() === 'CLOSED' ? 'text-secondary-foreground' : 'text-green-800'
               } rounded-full font-medium`}
             >
               {getShiftStatus() === 'CLOSED' ? 'Cerrado' : 'Abierto'}
@@ -283,7 +283,7 @@ export default function ShiftId() {
           <h3 className="text-lg font-medium">Pagos</h3>
           {payments.length > 0 ? (
             <div className="space-y-4">
-              {payments.map((payment, index) => (
+              {payments.map(payment => (
                 <div key={payment.id} className="p-4 border rounded-md">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
