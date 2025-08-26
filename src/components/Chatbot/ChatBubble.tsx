@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Button } from '../../components/ui/button'
-import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save } from 'lucide-react'
+import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save, Maximize2, Minimize2 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
-import { Form, FormControl, FormField, FormItem } from '../../components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
+import { Textarea } from '../../components/ui/textarea'
 import { ConfirmDialog } from '../../components/ui/confirm-dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { useForm } from 'react-hook-form'
 import { useToast } from '../../hooks/use-toast'
 import {
@@ -19,6 +21,8 @@ import {
   createNewConversation,
   saveConversation,
   getCurrentConversationId,
+  submitFeedback,
+  submitFeedbackWithCorrection,
 } from '../../services/chatService'
 import { useMutation } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -37,6 +41,8 @@ interface ChatMessage {
   isUser: boolean
   timestamp: Date
   cached?: boolean
+  trainingDataId?: string
+  feedbackGiven?: 'CORRECT' | 'INCORRECT' | null
 }
 
 // Helper function to convert conversation history to chat messages
@@ -55,6 +61,7 @@ function convertHistoryToMessages(history: any[]): ChatMessage[] {
       text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
       isUser: false,
       timestamp: new Date(),
+      feedbackGiven: null, // Initialize feedback state
     }
     messages.push(welcomeMessage)
     console.log('👋 No history found, adding welcome message')
@@ -65,6 +72,7 @@ function convertHistoryToMessages(history: any[]): ChatMessage[] {
       text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
       isUser: false,
       timestamp: new Date(Date.now() - (history.length + 1) * 1000), // Make it older
+      feedbackGiven: null, // Initialize feedback state
     })
 
     // Convert history entries to chat messages
@@ -76,6 +84,8 @@ function convertHistoryToMessages(history: any[]): ChatMessage[] {
           isUser: entry.role === 'user',
           timestamp: new Date(entry.timestamp),
           cached: false,
+          trainingDataId: entry.trainingDataId, // Cargar el ID para el feedback
+          feedbackGiven: null, // Initialize feedback state
         })
       }
     })
@@ -91,6 +101,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [showConversations, setShowConversations] = useState(false)
   const [savedConversations, setSavedConversations] = useState(() => getSavedConversations())
   const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId())
+  const [isExpanded, setIsExpanded] = useState(true)
   // Initialize messages with conversation history
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -104,6 +115,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
           isUser: false,
           timestamp: new Date(),
+          feedbackGiven: null, // Initialize feedback state
         },
       ]
     }
@@ -116,6 +128,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
 
+  // Estados para feedback dialog
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false)
+  const [feedbackMessage, setFeedbackMessage] = useState<ChatMessage | null>(null)
+
   const { toast } = useToast()
 
   // Memoize usage stats; function reads external store, not component state
@@ -124,6 +140,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const form = useForm({
     defaultValues: {
       message: '',
+    },
+  })
+
+  const feedbackForm = useForm({
+    defaultValues: {
+      problemDescription: '',
     },
   })
 
@@ -149,6 +171,83 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           delete window[`__chat_error_${error.message}`]
         }, 2000)
       }
+    },
+  })
+
+  // Simple positive feedback mutation
+  const positiveFeedbackMutation = useMutation({
+    mutationFn: ({ trainingDataId, messageId }: { trainingDataId: string; messageId: string }) => submitFeedback(trainingDataId, 'CORRECT'),
+    onSuccess: (_, variables) => {
+      // Update the message to show feedback was given
+      setMessages(prev => prev.map(msg => (msg.id === variables.messageId ? { ...msg, feedbackGiven: 'CORRECT' } : msg)))
+
+      toast({
+        title: 'Gracias por tu feedback',
+        description: 'Tu opinión nos ayuda a mejorar el asistente de IA',
+      })
+    },
+    onError: error => {
+      console.error('❌ Error submitting positive feedback:', error)
+      toast({
+        title: 'Error',
+        description: 'No se pudo enviar el feedback. Inténtalo de nuevo.',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Detailed negative feedback mutation with correction
+  const negativeFeedbackMutation = useMutation({
+    mutationFn: ({
+      trainingDataId,
+      problemDescription,
+      originalQuestion,
+      messageId,
+    }: {
+      trainingDataId: string
+      problemDescription: string
+      originalQuestion: string
+      messageId: string
+    }) => submitFeedbackWithCorrection(trainingDataId, problemDescription, originalQuestion),
+    onSuccess: (result, variables) => {
+      // Mark original message as having negative feedback
+      setMessages(prev => prev.map(msg => (msg.id === variables.messageId ? { ...msg, feedbackGiven: 'INCORRECT' } : msg)))
+
+      // Add corrected response if we got one
+      if (result.correctedResponse) {
+        const correctedMessage: ChatMessage = {
+          id: `corrected-${Date.now()}`,
+          text: result.correctedResponse,
+          isUser: false,
+          timestamp: new Date(),
+          cached: false,
+          trainingDataId: result.trainingDataId,
+          feedbackGiven: null,
+        }
+
+        setMessages(prev => [...prev, correctedMessage])
+        addMessageToHistory('assistant', result.correctedResponse, undefined, result.trainingDataId)
+      }
+
+      // Close dialog
+      setShowFeedbackDialog(false)
+      setFeedbackMessage(null)
+      feedbackForm.reset()
+
+      toast({
+        title: 'Feedback enviado',
+        description: result.correctedResponse
+          ? 'He proporcionado una respuesta corregida basada en tu feedback'
+          : 'Tu feedback ha sido registrado para mejorar el asistente',
+      })
+    },
+    onError: error => {
+      console.error('❌ Error submitting negative feedback:', error)
+      toast({
+        title: 'Error',
+        description: 'No se pudo procesar el feedback. Inténtalo de nuevo.',
+        variant: 'destructive',
+      })
     },
   })
 
@@ -187,6 +286,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
         isUser: false,
         timestamp: new Date(),
+        feedbackGiven: null, // Initialize feedback state
       }
 
       setMessages([welcomeMessage])
@@ -246,6 +346,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
       isUser: false,
       timestamp: new Date(),
+      feedbackGiven: null, // Initialize feedback state
     }
     setMessages([welcomeMessage])
 
@@ -294,6 +395,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           text: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
           isUser: false,
           timestamp: new Date(),
+          feedbackGiven: null, // Initialize feedback state
         }
         setMessages([welcomeMessage])
         setCurrentConversationId(null)
@@ -307,6 +409,26 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     setConversationToDelete(null)
   }, [conversationToDelete, savedConversations, currentConversationId, toast])
+
+  // Handle feedback dialog submission
+  const handleFeedbackSubmit = useCallback(
+    (values: { problemDescription: string }) => {
+      if (!feedbackMessage?.trainingDataId) return
+
+      // Find the user question that corresponds to this AI message
+      const messageIndex = messages.findIndex(msg => msg.id === feedbackMessage.id)
+      const userMessage = messageIndex > 0 ? messages[messageIndex - 1] : null
+      const originalQuestion = userMessage?.isUser ? userMessage.text : 'Pregunta anterior'
+
+      negativeFeedbackMutation.mutate({
+        trainingDataId: feedbackMessage.trainingDataId,
+        problemDescription: values.problemDescription,
+        originalQuestion,
+        messageId: feedbackMessage.id,
+      })
+    },
+    [feedbackMessage, messages, negativeFeedbackMutation],
+  )
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -337,6 +459,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       text: values.message,
       isUser: true,
       timestamp: new Date(),
+      feedbackGiven: null, // Initialize feedback state
     }
 
     // Add user message to UI and localStorage immediately
@@ -353,11 +476,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           isUser: false,
           timestamp: new Date(),
           cached: result.cached,
+          trainingDataId: result.trainingDataId,
+          feedbackGiven: null, // Initialize feedback state
         }
+
+        // Debug: Log trainingDataId to console
+        console.log('🔍 Bot message trainingDataId:', result.trainingDataId)
 
         // Add bot message to UI and localStorage
         setMessages(prev => [...prev, botMessage])
-        addMessageToHistory('assistant', result.response)
+        addMessageToHistory('assistant', result.response, undefined, result.trainingDataId)
 
         // Show cache indicator if response was cached (debounced)
         if (result.cached && !window.__cache_toast_shown) {
@@ -378,7 +506,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   }
   return (
     <Card
-      className={`w-80 sm:w-96 fixed bottom-20 right-20 z-[9999] shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
+      className={`${
+        isExpanded ? 'w-[600px] sm:w-[700px] h-[600px]' : 'w-80 sm:w-96'
+      } fixed bottom-20 right-20 z-[9999] shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
     >
       <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background">
         <CardTitle className="text-lg font-medium">
@@ -386,6 +516,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           <span className="text-xs text-muted-foreground ml-2">({usageStats.remainingRequests} consultas restantes)</span>
         </CardTitle>
         <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-label={isExpanded ? 'Contraer chat' : 'Expandir chat'}
+            title={isExpanded ? 'Contraer chat' : 'Expandir chat'}
+          >
+            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -432,7 +572,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-4 h-80 overflow-y-auto bg-background">
+      <CardContent className={`p-4 ${isExpanded ? 'h-[480px]' : 'h-80'} overflow-y-auto bg-background`}>
         {showConversations ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-4">
@@ -508,28 +648,56 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
+                        className={`h-6 w-6 p-0 ${
+                          message.feedbackGiven === 'CORRECT'
+                            ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50'
+                            : ''
+                        }`}
                         aria-label="Feedback positivo"
                         onClick={() => {
-                          toast({
-                            title: 'Gracias por tu feedback',
-                            description: 'Tu opinión nos ayuda a mejorar',
-                          })
+                          console.log('👍 Thumbs up clicked, trainingDataId:', message.trainingDataId)
+                          if (message.trainingDataId) {
+                            positiveFeedbackMutation.mutate({
+                              trainingDataId: message.trainingDataId,
+                              messageId: message.id,
+                            })
+                          } else {
+                            console.log('❌ No trainingDataId found for message:', message)
+                            toast({
+                              title: 'Feedback no disponible',
+                              description: 'No se puede enviar feedback para este mensaje',
+                              variant: 'destructive',
+                            })
+                          }
                         }}
+                        disabled={positiveFeedbackMutation.isPending || message.feedbackGiven !== null}
                       >
                         <ThumbsUp className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0"
+                        className={`h-6 w-6 p-0 ${
+                          message.feedbackGiven === 'INCORRECT'
+                            ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50'
+                            : ''
+                        }`}
                         aria-label="Feedback negativo"
                         onClick={() => {
-                          toast({
-                            title: 'Gracias por tu feedback',
-                            description: 'Tu opinión nos ayuda a mejorar',
-                          })
+                          console.log('👎 Thumbs down clicked, trainingDataId:', message.trainingDataId)
+                          if (message.trainingDataId) {
+                            setFeedbackMessage(message)
+                            setShowFeedbackDialog(true)
+                          } else {
+                            console.log('❌ No trainingDataId found for message:', message)
+                            toast({
+                              title: 'Feedback no disponible',
+                              description: 'No se puede enviar feedback para este mensaje',
+                              variant: 'destructive',
+                            })
+                          }
                         }}
+                        disabled={negativeFeedbackMutation.isPending || message.feedbackGiven !== null}
                       >
                         <ThumbsDown className="h-3 w-3" />
                       </Button>
@@ -593,6 +761,55 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         onConfirm={confirmDeleteConversation}
         onCancel={() => setConversationToDelete(null)}
       />
+
+      {/* Feedback Dialog */}
+      <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Qué estuvo mal?</DialogTitle>
+            <DialogDescription>Describe el problema con la respuesta para que pueda proporcionarte una mejor respuesta.</DialogDescription>
+          </DialogHeader>
+          <Form {...feedbackForm}>
+            <form onSubmit={feedbackForm.handleSubmit(handleFeedbackSubmit)} className="space-y-4">
+              <FormField
+                control={feedbackForm.control}
+                name="problemDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Describe el problema</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Ej: La respuesta no es correcta porque..." className="min-h-[100px]" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowFeedbackDialog(false)
+                    setFeedbackMessage(null)
+                    feedbackForm.reset()
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={negativeFeedbackMutation.isPending} className="min-w-[120px]">
+                  {negativeFeedbackMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Enviar Feedback'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

@@ -3,10 +3,9 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/context/AuthContext'
 import { BarChart3, Building, Database, Globe, Lock, Settings, Shield, Users } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-
 
 export default function AdminDashboard() {
   const { user } = useAuth()
@@ -23,9 +22,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <div
-        className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-card border-border border-b shadow-md backdrop-blur-sm"
-      >
+      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-card border-border border-b shadow-md backdrop-blur-sm">
         <div className="flex items-center space-x-2">
           <Shield className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-medium text-foreground">Panel de Administración</h1>
@@ -45,55 +42,31 @@ export default function AdminDashboard() {
         <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="bg-card rounded-md overflow-hidden shadow-sm mb-6">
             <TabsList className={`w-full grid ${isSuperAdmin ? 'grid-cols-6' : 'grid-cols-4'} rounded-none`}>
-              <TabsTrigger
-                value="general"
-                className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                
-              >
+              <TabsTrigger value="general" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 General
               </TabsTrigger>
-              <TabsTrigger
-                value="users"
-                className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                
-              >
+              <TabsTrigger value="users" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Users className="h-4 w-4 mr-2" />
                 Usuarios
               </TabsTrigger>
-              <TabsTrigger
-                value="venues"
-                className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                
-              >
+              <TabsTrigger value="venues" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Building className="h-4 w-4 mr-2" />
                 Venues
               </TabsTrigger>
               {isSuperAdmin && (
                 <>
-                  <TabsTrigger
-                    value="system"
-                    className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                    
-                  >
+                  <TabsTrigger value="system" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                     <Database className="h-4 w-4 mr-2" />
                     Sistema
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="global"
-                    className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                    
-                  >
+                  <TabsTrigger value="global" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                     <Globe className="h-4 w-4 mr-2" />
                     Configuración Global
                   </TabsTrigger>
                 </>
               )}
-              <TabsTrigger
-                value="settings"
-                className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary"
-                
-              >
+              <TabsTrigger value="settings" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración
               </TabsTrigger>

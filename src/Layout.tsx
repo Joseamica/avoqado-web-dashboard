@@ -1,8 +1,8 @@
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { LogOut } from 'lucide-react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 
 export function Layout() {
   const { isAuthenticated, logout, user, isLoading } = useAuth()

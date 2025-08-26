@@ -25,6 +25,25 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'off',
 
+      // Enforce canonical service import path
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/services/superadmin',
+              message: "Use '@/services/superadmin.service' instead of the compatibility wrapper.",
+            },
+          ],
+          patterns: [
+            {
+              group: ['@/contexts/*'],
+              message: "Use '@/context/*' (singular) for context modules.",
+            },
+          ],
+        },
+      ],
+
       // Prevent hardcoded gray colors in className
       'no-restricted-syntax': [
         'error',

@@ -1,22 +1,23 @@
-import React from 'react'
-import { getMenu, updateMenu, getMenuCategories } from '@/services/menu.service'
 import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { Switch } from '@/components/ui/switch'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar as CalendarIcon, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
+import { MenuType } from '@/types'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react'
+import React from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // ----------------------------
 // Helpers y datos iniciales
@@ -124,7 +125,7 @@ export default function MenuId() {
       isAllDay: false,
       startDate: null as Date | null,
       endDate: null as Date | null,
-      type: 'REGULAR' as 'REGULAR' | 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SEASONAL',
+      type: MenuType.REGULAR as MenuType,
     },
     mode: 'onSubmit',
   })
@@ -161,7 +162,7 @@ export default function MenuId() {
         isAllDay: isAllDayValue,
         startDate: menuData.startDate ? new Date(menuData.startDate) : null,
         endDate: menuData.endDate ? new Date(menuData.endDate) : null,
-        type: menuData.type || 'REGULAR',
+        type: (menuData.type as MenuType) || MenuType.REGULAR,
       })
     }
   }, [menuData, form])
@@ -258,7 +259,7 @@ export default function MenuId() {
         message: 'Al menos un día tiene que ser seleccionado',
       })
     }
-    
+
     // Validación para menús de temporada
     if (type === 'SEASONAL') {
       if (!startDate) {
@@ -407,16 +408,9 @@ export default function MenuId() {
                             <FormControl>
                               <Button
                                 variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
+                                className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: es })
-                                ) : (
-                                  <span>Seleccionar fecha</span>
-                                )}
+                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -426,7 +420,7 @@ export default function MenuId() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => {
+                              disabled={date => {
                                 const today = new Date()
                                 today.setHours(0, 0, 0, 0)
                                 return date < today
@@ -439,7 +433,7 @@ export default function MenuId() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="endDate"
@@ -451,16 +445,9 @@ export default function MenuId() {
                             <FormControl>
                               <Button
                                 variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
+                                className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: es })
-                                ) : (
-                                  <span>Seleccionar fecha</span>
-                                )}
+                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -470,7 +457,7 @@ export default function MenuId() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => {
+                              disabled={date => {
                                 const today = new Date()
                                 today.setHours(0, 0, 0, 0)
                                 const startDate = form.getValues('startDate')
@@ -485,10 +472,11 @@ export default function MenuId() {
                     )}
                   />
                 </div>
-                
+
                 {startDate && endDate && (
                   <div className="mt-3 p-2 bg-blue-100 rounded text-sm text-blue-800">
-                    <strong>Vista previa:</strong> Este menú estará activo desde el {format(startDate, 'PPP', { locale: es })} hasta el {format(endDate, 'PPP', { locale: es })}
+                    <strong>Vista previa:</strong> Este menú estará activo desde el {format(startDate, 'PPP', { locale: es })} hasta el{' '}
+                    {format(endDate, 'PPP', { locale: es })}
                   </div>
                 )}
               </div>

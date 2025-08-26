@@ -1,4 +1,5 @@
 import api from '@/api'
+import type { PlatformFeature as SAPlatformFeature, SuperadminVenue as SASuperadminVenue, SuperadminDashboardData as SASuperadminDashboardData } from '@/types/superadmin'
 
 // ===== TYPES =====
 
@@ -60,14 +61,28 @@ export interface SuperadminDashboardData {
     activeVenues: number
     totalUsers: number
     averageRevenuePerUser: number
+    churnRate: number
+    growthRate: number
+    systemUptime: number
+    // Platform earnings
     totalCommissionRevenue: number
     subscriptionRevenue: number
     featureRevenue: number
-    growthRate: number
+  }
+  revenueMetrics: {
+    totalPlatformRevenue: number // Total money Avoqado actually earns
+    totalCommissionRevenue: number // Fees from transactions
+    subscriptionRevenue: number // Monthly subscription fees from venues
+    featureRevenue: number // Premium feature fees
+    invoicedRevenue: number // Formally billed revenue
+    settledRevenue: number // Actually received revenue
+    transactionCount: number
+    newVenues: number
+    churnedVenues: number
   }
   recentActivity: Activity[]
-  topPerformingVenues: TopVenue[]
-  systemAlerts: SystemAlert[]
+  alerts: SystemAlert[]
+  topVenues: TopVenue[]
 }
 
 export interface Activity {
@@ -234,4 +249,45 @@ export async function getRevenueBreakdown(params?: {
 }): Promise<RevenueBreakdown> {
   const response = await api.get('/api/v1/dashboard/superadmin/revenue/breakdown', { params })
   return response.data.data
+}
+
+// Convenience API object (canonical import target for components expecting superadminAPI)
+export const superadminAPI = {
+  getDashboardData: async (): Promise<SASuperadminDashboardData> => {
+    return (await getDashboardData()) as unknown as SASuperadminDashboardData
+  },
+  getAllVenues: async (): Promise<SASuperadminVenue[]> => {
+    return (await getAllVenues()) as unknown as SASuperadminVenue[]
+  },
+  getVenueDetails: async (venueId: string): Promise<SASuperadminVenue> => {
+    return (await getVenueDetails(venueId)) as unknown as SASuperadminVenue
+  },
+  approveVenue: async (venueId: string, reason?: string): Promise<void> => {
+    await approveVenue(venueId, reason)
+  },
+  suspendVenue: async (venueId: string, reason: string): Promise<void> => {
+    await suspendVenue(venueId, reason)
+  },
+  getAllFeatures: async (): Promise<SAPlatformFeature[]> => {
+    return (await getAllFeatures()) as unknown as SAPlatformFeature[]
+  },
+  createFeature: async (featureData: {
+    name: string
+    code: string
+    description: string
+    category: string
+    pricingModel: string
+    basePrice?: number
+    usagePrice?: number
+    usageUnit?: string
+    isCore?: boolean
+  }): Promise<SAPlatformFeature> => {
+    return (await createFeature(featureData)) as unknown as SAPlatformFeature
+  },
+  enableFeatureForVenue: async (venueId: string, featureCode: string): Promise<void> => {
+    await enableFeatureForVenue(venueId, featureCode)
+  },
+  disableFeatureForVenue: async (venueId: string, featureCode: string): Promise<void> => {
+    await disableFeatureForVenue(venueId, featureCode)
+  },
 }

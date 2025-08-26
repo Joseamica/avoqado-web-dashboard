@@ -19,35 +19,35 @@ import {
 const SuperadminSidebar: React.FC = () => {
   const navigationItems = [
     {
-      title: 'Overview',
+      title: 'Resumen',
       items: [
-        { name: 'Dashboard', href: '/superadmin', icon: LayoutDashboard },
-        { name: 'Analytics', href: '/superadmin/analytics', icon: BarChart3 },
-        { name: 'Alerts', href: '/superadmin/alerts', icon: AlertTriangle },
+        { name: 'Panel Principal', href: '/superadmin', icon: LayoutDashboard },
+        { name: 'Analíticas', href: '/superadmin/analytics', icon: BarChart3 },
+        { name: 'Alertas', href: '/superadmin/alerts', icon: AlertTriangle },
       ]
     },
     {
-      title: 'Business Management',
+      title: 'Gestión de Negocio',
       items: [
-        { name: 'Venues', href: '/superadmin/venues', icon: Building2 },
-        { name: 'Revenue', href: '/superadmin/revenue', icon: DollarSign },
-        { name: 'Customers', href: '/superadmin/customers', icon: Users },
-        { name: 'Growth', href: '/superadmin/growth', icon: TrendingUp },
+        { name: 'Locales', href: '/superadmin/venues', icon: Building2 },
+        { name: 'Ingresos', href: '/superadmin/revenue', icon: DollarSign },
+        { name: 'Clientes', href: '/superadmin/customers', icon: Users },
+        { name: 'Crecimiento', href: '/superadmin/growth', icon: TrendingUp },
       ]
     },
     {
-      title: 'Platform',
+      title: 'Plataforma',
       items: [
-        { name: 'Features', href: '/superadmin/features', icon: Zap },
-        { name: 'System Health', href: '/superadmin/system', icon: Shield },
-        { name: 'Reports', href: '/superadmin/reports', icon: FileText },
-        { name: 'Support', href: '/superadmin/support', icon: Headphones },
+        { name: 'Funcionalidades', href: '/superadmin/features', icon: Zap },
+        { name: 'Estado del Sistema', href: '/superadmin/system', icon: Shield },
+        { name: 'Reportes', href: '/superadmin/reports', icon: FileText },
+        { name: 'Soporte', href: '/superadmin/support', icon: Headphones },
       ]
     },
     {
-      title: 'Administration',
+      title: 'Administración',
       items: [
-        { name: 'Settings', href: '/superadmin/settings', icon: Settings },
+        { name: 'Configuración', href: '/superadmin/settings', icon: Settings },
       ]
     }
   ]
@@ -55,14 +55,14 @@ const SuperadminSidebar: React.FC = () => {
   return (
     <div className={cn('h-full border-r bg-card border-border')}>
       {/* Logo */}
-      <div className="p-6 border-b">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-green-50 dark:text-green-50" />
+      <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Shield className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-green-600">Avoqado</h1>
-            <p className="text-xs text-muted-foreground">Admin Panel</p>
+            <h1 className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Avoqado</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Panel de Superadmin</p>
           </div>
         </div>
       </div>
@@ -71,7 +71,7 @@ const SuperadminSidebar: React.FC = () => {
       <nav className="p-4 space-y-6">
         {navigationItems.map((section) => (
           <div key={section.title}>
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
               {section.title}
             </h2>
             <ul className="space-y-1">
@@ -82,14 +82,14 @@ const SuperadminSidebar: React.FC = () => {
                     end={item.href === '/superadmin'}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                        'flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                         isActive
-                          ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-muted'
+                          ? 'bg-emerald-50 text-emerald-700 border-r-2 border-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-400'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800'
                       )
                     }
                   >
-                    <item.icon className="w-4 h-4" />
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
                     <span>{item.name}</span>
                   </NavLink>
                 </li>

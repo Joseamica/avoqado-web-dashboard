@@ -35,7 +35,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
   const updatePreferenceMutation = useMutation({
     mutationFn: notificationService.updatePreferences,
     onSuccess: () => {
-      queryClient.invalidateQueries(['notification-preferences'])
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] })
       toast({
         title: 'Preferences updated',
         description: 'Your notification preferences have been saved.'

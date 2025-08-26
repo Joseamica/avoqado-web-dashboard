@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import api from '@/api'
 import { createModifierGroup as createModifierGroupService } from '@/services/menu.service'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -142,7 +143,7 @@ export default function CreateModifierGroup() {
     }
 
     // Submit the data
-    createModifierGroup.mutate(formData)
+    createModifierGroupMutation.mutate(formData)
   }
 
   return (
