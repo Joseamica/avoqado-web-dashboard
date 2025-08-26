@@ -42,9 +42,10 @@ const GoogleOAuthCallback: React.FC = () => {
         // Success! Invalidate queries to refresh user state
         await queryClient.invalidateQueries({ queryKey: ['status'] })
         
+        const isNewUser = (result as any)?.isNewUser
         toast({
-          title: result.message || 'Inicio de sesión exitoso',
-          description: result.isNewUser ? 'Bienvenido! Tu cuenta ha sido creada.' : undefined,
+          title: (result as any)?.message || 'Inicio de sesión exitoso',
+          description: isNewUser ? 'Bienvenido! Tu cuenta ha sido creada.' : undefined,
         })
 
         // Navigate to home - AuthContext will handle the redirect

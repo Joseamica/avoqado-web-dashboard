@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
-import { useNotifications } from '@/contexts/NotificationContext'
+import { useNotifications } from '@/context/NotificationContext'
 import {
   formatNotificationTime,
   getNotificationPriorityColor,

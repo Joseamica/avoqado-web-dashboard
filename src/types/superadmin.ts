@@ -127,46 +127,32 @@ export interface SuperadminVenue {
 
 // Revenue and commission tracking
 export interface RevenueMetrics {
-  period: 'daily' | 'weekly' | 'monthly' | 'yearly'
-  totalPlatformRevenue: number
-  totalCommissionRevenue: number
-  subscriptionRevenue: number
-  featureRevenue: number
+  totalPlatformRevenue: number // Total money Avoqado actually earns
+  totalCommissionRevenue: number // Fees from transactions
+  subscriptionRevenue: number // Monthly subscription fees from venues
+  featureRevenue: number // Premium feature fees
+  invoicedRevenue: number // Formally billed revenue
+  settledRevenue: number // Actually received revenue
   transactionCount: number
-  activeVenues: number
   newVenues: number
   churnedVenues: number
-  averageRevenuePerVenue: number
-  topPerformingVenues: Array<{
-    venueId: string
-    venueName: string
-    revenue: number
-    commission: number
-  }>
-  revenueByPlan: Record<SubscriptionPlan, number>
-  revenueByFeature: Record<string, number>
 }
 
 // System-wide KPIs
 export interface PlatformKPIs {
-  totalVenues: number
-  activeVenues: number
   totalRevenue: number
   monthlyRecurringRevenue: number
+  totalVenues: number
+  activeVenues: number
+  totalUsers: number
   averageRevenuePerUser: number
-  customerLifetimeValue: number
   churnRate: number
   growthRate: number
-  totalTransactions: number
-  totalUsers: number
   systemUptime: number
-  averageResponseTime: number
-  errorRate: number
-  supportTickets: {
-    open: number
-    resolved: number
-    averageResolutionTime: number
-  }
+  // Platform earnings
+  totalCommissionRevenue: number
+  subscriptionRevenue: number
+  featureRevenue: number
 }
 
 // Feature usage analytics
@@ -192,30 +178,32 @@ export interface FeatureUsageAnalytics {
   }>
 }
 
-// Superadmin dashboard summary
+// Superadmin dashboard summary (matching backend SuperadminDashboardData)
 export interface SuperadminDashboard {
   kpis: PlatformKPIs
   revenueMetrics: RevenueMetrics
   recentActivity: Array<{
     id: string
-    type: 'venue_approved' | 'feature_enabled' | 'payment_received' | 'venue_suspended'
+    type: string
     description: string
-    venueId?: string
     venueName?: string
     amount?: number
     timestamp: string
   }>
-  alertsAndNotifications: Array<{
+  alerts: Array<{
     id: string
-    type: 'warning' | 'error' | 'info'
+    type: 'error' | 'warning' | 'info'
     title: string
     message: string
     isRead: boolean
-    createdAt: string
   }>
-  pendingApprovals: {
-    venues: number
-    features: number
-    payouts: number
-  }
+  topVenues: Array<{
+    name: string
+    revenue: number
+    commission: number
+    growth: number
+  }>
 }
+
+// Alias for consistency with backend naming
+export type SuperadminDashboardData = SuperadminDashboard

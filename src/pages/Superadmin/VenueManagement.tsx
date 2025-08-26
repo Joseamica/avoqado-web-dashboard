@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { VenueStatus, SubscriptionPlan, type SuperadminVenue } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
-import { superadminAPI } from '@/services/superadmin'
+import { superadminAPI } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 import { Label } from '@/components/ui/label'

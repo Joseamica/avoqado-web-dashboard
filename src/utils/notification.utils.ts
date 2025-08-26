@@ -34,6 +34,8 @@ export function canShowNotifications(): boolean {
 /**
  * Show a browser notification
  */
+type BrowserNotificationAction = { action: string; title: string; icon?: string }
+
 export function showBrowserNotification(
   title: string,
   options?: {
@@ -42,7 +44,7 @@ export function showBrowserNotification(
     tag?: string
     silent?: boolean
     requireInteraction?: boolean
-    actions?: NotificationAction[]
+    actions?: BrowserNotificationAction[]
   }
 ): Notification | null {
   if (!canShowNotifications()) {

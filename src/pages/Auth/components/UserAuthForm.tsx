@@ -18,7 +18,7 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
-  const { login, loginWithGoogle, isAuthenticated, isLoading, error } = useAuth()
+  const { login, loginWithGoogle, isAuthenticated, isLoading } = useAuth()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
   const from = (location.state as any)?.from?.pathname || '/'
@@ -131,13 +131,7 @@ export function UserAuthForm({ className, ...props }: React.HTMLAttributes<HTMLD
         )}
         Continuar con Google
       </Button>
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-600">
-            Error de inicio de sesión. Por favor verifica tus credenciales e intenta de nuevo.
-          </p>
-        </div>
-      )}
+      {/* Auth errors are surfaced via toasts in AuthContext */}
     </div>
   )
 }

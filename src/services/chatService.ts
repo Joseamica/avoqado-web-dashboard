@@ -13,6 +13,7 @@ export interface ChatMessage {
   isUser: boolean
   timestamp: Date
   cached?: boolean
+  trainingDataId?: string
   metadata?: {
     confidence?: number
     queryGenerated?: boolean
@@ -28,6 +29,7 @@ interface ConversationEntry {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  trainingDataId?: string
 }
 
 interface DailyUsage {
@@ -52,6 +54,7 @@ interface ChatResponse {
   response: string
   suggestions?: string[]
   cached?: boolean
+  trainingDataId?: string
   metadata?: {
     confidence: number
     queryGenerated?: boolean
@@ -123,7 +126,12 @@ const saveConversationHistory = (history: ConversationEntry[], venueSlug?: strin
 }
 
 // Nueva función para agregar mensajes individuales al historial por venue
-export const addMessageToHistory = (role: 'user' | 'assistant', content: string, venueSlug?: string | null) => {
+export const addMessageToHistory = (
+  role: 'user' | 'assistant',
+  content: string,
+  venueSlug?: string | null,
+  trainingDataId?: string,
+) => {
   try {
     const currentVenue = venueSlug || getCurrentVenueSlug()
     const currentHistory = getConversationHistory(currentVenue)
@@ -132,17 +140,22 @@ export const addMessageToHistory = (role: 'user' | 'assistant', content: string,
       content,
       timestamp: new Date(),
     }
-    
+
+    if (role === 'assistant' && trainingDataId) {
+      newEntry.trainingDataId = trainingDataId
+    }
+
     const updatedHistory = [...currentHistory, newEntry]
     saveConversationHistory(updatedHistory, currentVenue)
-    
+
     console.log('➕ Message added to history:', {
       venue: currentVenue,
       role,
       contentPreview: content.substring(0, 50) + '...',
       historyLength: updatedHistory.length,
+      hasTrainingId: !!trainingDataId,
     })
-    
+
     return updatedHistory
   } catch (error) {
     console.error('Error adding message to history:', error)
@@ -287,6 +300,10 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     const suggestions = result.suggestions || []
     const metadata = result.metadata || {}
     
+    // Debug: Log the complete backend response
+    console.log('🔍 Backend response data:', result)
+    console.log('🔍 TrainingDataId from backend:', result.trainingDataId)
+    
     // NOTA: El historial ahora se maneja desde ChatBubble.tsx para evitar duplicados
     // Pero aseguramos que se guarde en el venue correcto
     // const newHistory = [
@@ -315,6 +332,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       suggestions,
       cached: false,
       metadata,
+      trainingDataId: result.trainingDataId,
     }
     
   } catch (error: any) {
@@ -522,7 +540,62 @@ export const createNewConversation = (venueSlug?: string | null): void => {
 
 // Obtener ID de la conversación actual
 export const getCurrentConversationId = (): string | null => {
-  return localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION)
+  return localStorage.getItem('currentConversationId')
+}
+
+// Submit feedback for AI assistant responses
+export const submitFeedback = async (
+  trainingDataId: string,
+  feedbackType: 'CORRECT' | 'INCORRECT' | 'PARTIALLY_CORRECT',
+  correctedResponse?: string,
+  correctedSql?: string,
+  userNotes?: string
+) => {
+  try {
+    const response = await api.post('/api/v1/dashboard/assistant/feedback', {
+      trainingDataId,
+      feedbackType,
+      correctedResponse,
+      correctedSql,
+      userNotes,
+    })
+
+    return response.data
+  } catch (error) {
+    console.error('Error submitting feedback:', error)
+    throw error
+  }
+}
+
+// Submit negative feedback and get corrected response
+export const submitFeedbackWithCorrection = async (
+  trainingDataId: string,
+  problemDescription: string,
+  originalQuestion: string
+): Promise<{
+  success: boolean
+  correctedResponse?: string
+  trainingDataId?: string
+}> => {
+  try {
+    // First submit the feedback
+    await submitFeedback(trainingDataId, 'INCORRECT', undefined, undefined, problemDescription)
+    
+    // Then request a corrected response based on the feedback
+    const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', {
+      message: `${originalQuestion}\n\nFeedback del usuario: ${problemDescription}`,
+      conversationHistory: getConversationHistory(),
+    })
+
+    return {
+      success: true,
+      correctedResponse: response.data.data.response,
+      trainingDataId: response.data.data.trainingDataId,
+    }
+  } catch (error) {
+    console.error('Error submitting feedback with correction:', error)
+    throw error
+  }
 }
 
 // === FUNCIONES PARA MANEJO DE VENUE-SPECIFIC CHAT ===

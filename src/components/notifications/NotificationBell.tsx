@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Bell, X, Check, CheckCheck, MoreVertical } from 'lucide-react'
-import { useNotificationBadge, useNotifications } from '@/contexts/NotificationContext'
+import { useNotificationBadge, useNotifications } from '@/context/NotificationContext'
 import { formatNotificationTime, getNotificationPriorityColor, formatNotificationPriority, groupNotificationsByDate } from '@/services/notification.service'
 import { Button } from '@/components/ui/button'
 import {

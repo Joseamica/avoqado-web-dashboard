@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import Logo from '@/assets/logo'
 import CoverLogin from '@/assets/cover-login.png'
 import { UserAuthForm } from './components/UserAuthForm'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const Login: React.FC = () => {
   return (

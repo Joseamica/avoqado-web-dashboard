@@ -31,7 +31,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FeatureCategory, FeatureStatus, PricingModel, type PlatformFeature } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
-import { superadminAPI } from '@/services/superadmin'
+import { superadminAPI } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 
 // Data now fetched from API via React Query

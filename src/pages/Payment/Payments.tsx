@@ -210,10 +210,8 @@ export default function Payments() {
         ),
         cell: ({ cell }) => {
           const value = cell.getValue()
-          // Convertir string a número si es necesario
-          const numericValue = typeof value === 'string' ? parseFloat(value) || 0 : typeof value === 'number' && !isNaN(value) ? value : 0
-          // Formatear directamente
-          return Currency(numericValue)
+          // Convert to number, Currency function handles null/undefined
+          return Currency(Number(value) || 0)
         },
       },
       {
@@ -232,10 +230,8 @@ export default function Payments() {
         ),
         cell: ({ cell }) => {
           const value = cell.getValue()
-          // Asegurar que el valor sea numérico y válido
-          const numericValue = typeof value === 'number' && !isNaN(value) ? value : 0
-          // Formatear directamente
-          return Currency(numericValue)
+          // Convert to number, Currency function handles null/undefined
+          return Currency(Number(value) || 0)
         },
       },
     ],
