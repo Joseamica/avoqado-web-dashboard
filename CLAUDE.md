@@ -179,9 +179,9 @@ Checklist:
 - Test in both light and dark modes
 - Provide dark variants for custom colored elements (blue/green/orange)
 
-### Internationalization (i18n) Policy
+### ⚠️ MANDATORY: Internationalization (i18n) Policy - NO EXCEPTIONS
 
-All user‑facing text must be internationalized. When adding or modifying any UI, ensure the following:
+**EVERY user‑facing change requires complete i18n implementation.** This is not optional - it's a core requirement for ANY UI work. When creating, modifying, or updating any user interface element, i18n support MUST be included before the task is considered complete.
 
 - Use `react-i18next` with `useTranslation()` and `t('...')` for every user‑visible string. Do not hardcode copy in components.
 - Add translation keys for both English (`en`) and Spanish (`es`) in `src/i18n.ts` under the appropriate group (e.g., `header`, `sidebar`, `dashboard`, `revenue`, `featureMgmt`, `venueMgmt`, `detailsView`, `categories`, `featureStatuses`).
@@ -190,9 +190,13 @@ All user‑facing text must be internationalized. When adding or modifying any U
 - Format dates, numbers, and currency using locale‑aware APIs (`Intl.*`, `date-fns` with the selected locale) based on `i18n.language`.
 - Respect the existing language selector (`src/components/language-switcher.tsx`). Do not duplicate this control.
 
-Pull request checklist (i18n):
-- [ ] All new/changed strings use `t('...')`
-- [ ] Keys added for both `en` and `es` in `src/i18n.ts`
-- [ ] Interpolation/pluralization used where needed
-- [ ] No raw enum or category codes shown to users
-- [ ] Locale‑aware formatting for dates/numbers/currency
+**Task completion requirements (i18n) - ALL must be verified:**
+- [ ] **No hardcoded text**: All strings use `t('...')` - zero exceptions
+- [ ] **Bilingual support**: Keys added for both `en` and `es` in `src/i18n.ts`
+- [ ] **Quality translations**: Spanish versions are culturally appropriate
+- [ ] **Dynamic content**: Interpolation/pluralization used instead of concatenation
+- [ ] **Proper formatting**: Locale‑aware display for dates/numbers/currency
+- [ ] **User testing**: Interface verified in both languages
+- [ ] **Clean enums**: No raw status/category codes displayed to users
+
+**CRITICAL**: When asked to create ANY UI element (component, dialog, form, button, etc.), i18n implementation is automatically part of that request. Never deliver UI work without complete translation support.

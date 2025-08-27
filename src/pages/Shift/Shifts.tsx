@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
@@ -11,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Currency } from '@/utils/currency'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 export default function Shifts() {
+  const { t, i18n } = useTranslation()
+  const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
   const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
@@ -36,14 +40,14 @@ export default function Shifts() {
   const columns: ColumnDef<any, unknown>[] = [
     {
       accessorFn: row => {
-        return row.endTime ? 'Cerrado' : 'Abierto'
+        return row.endTime ? t('shifts.closed') : t('shifts.open')
       },
       id: 'active',
       sortDescFirst: true,
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Estado
+            {t('shifts.columns.status')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
@@ -51,14 +55,14 @@ export default function Shifts() {
       cell: ({ cell }) => {
         const value = cell.getValue() as string
 
-        if (value === 'Abierto') {
+        if (value === t('shifts.open')) {
           return (
-            <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">Abierto</span>
+            <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
+              {t('shifts.open')}
+            </span>
           )
         } else {
-          return (
-            <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">Cerrado</span>
-          )
+          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('shifts.closed')}</span>
         }
       },
     },
@@ -68,7 +72,7 @@ export default function Shifts() {
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            ID Turno
+            {t('shifts.columns.shiftId')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
@@ -84,7 +88,7 @@ export default function Shifts() {
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Apertura
+            {t('shifts.columns.openTime')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
@@ -92,7 +96,7 @@ export default function Shifts() {
       cell: ({ cell }) => {
         const value = cell.getValue() as string
         const date = new Date(value)
-        const monthName = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+        const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
         const year = date.getUTCFullYear()
         const last2Year = year.toString().slice(-2)
 
@@ -117,7 +121,7 @@ export default function Shifts() {
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Cierre
+            {t('shifts.columns.closeTime')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
@@ -126,7 +130,8 @@ export default function Shifts() {
         if (!cell.getValue()) return '-'
         const value = cell.getValue() as string
         const date = new Date(value)
-        const monthName = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+        const localeCode = getIntlLocale(i18n.language)
+        const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
         const year = date.getUTCFullYear()
         const last2Year = year.toString().slice(-2)
 
@@ -151,7 +156,7 @@ export default function Shifts() {
       id: 'totalTips',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          Propina Total
+          {t('shifts.columns.totalTip')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
@@ -194,14 +199,14 @@ export default function Shifts() {
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Subtotal
+            {t('shifts.columns.subtotal')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
       },
       cell: ({ cell }) => {
         const value = cell.getValue() as number
-        return value ? Currency(value) : '0.00'
+        return value ? Currency(value) : Currency(0)
       },
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
@@ -217,14 +222,14 @@ export default function Shifts() {
       header: ({ column }) => {
         return (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Total
+            {t('shifts.columns.total')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         )
       },
       cell: ({ cell }) => {
         const value = cell.getValue() as number
-        return value ? Currency(value) : '0.00'
+        return value ? Currency(value) : Currency(0)
       },
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
@@ -241,8 +246,9 @@ export default function Shifts() {
     return currentShifts.filter(shift => {
       // Search by shift ID or staff name
       const shiftIdMatch = shift.id.toString().includes(lowerSearchTerm)
-      const staffNameMatch = shift.staff ? 
-        `${shift.staff.firstName} ${shift.staff.lastName}`.toLowerCase().includes(lowerSearchTerm) : false
+      const staffNameMatch = shift.staff
+        ? `${shift.staff.firstName} ${shift.staff.lastName}`.toLowerCase().includes(lowerSearchTerm)
+        : false
       const totalSalesMatch = shift.totalSales.toString().includes(lowerSearchTerm)
 
       return shiftIdMatch || staffNameMatch || totalSalesMatch
@@ -252,25 +258,15 @@ export default function Shifts() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-xl font-semibold">Turnos</h1>
+        <h1 className="text-xl font-semibold">{t('shifts.title')}</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}
-        {/* <Button asChild>
-      <Link
-        to={`create`}
-        state={{
-          from: location.pathname,
-        }}
-        className="flex items-center space-x-2"
-      >
-        <span>Nuevo mesero</span>
-      </Link>
-    </Button> */}
+        {/* TODO: Add create waiter CTA if needed */}
       </div>
       <Input
         type="text"
-        placeholder="Buscar..."
+        placeholder={t('common.search')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-input border-border max-w-72"

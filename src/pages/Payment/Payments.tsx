@@ -13,9 +13,12 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Computer, Smartphone } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useLocation } from 'react-router-dom'
 
 export default function Payments() {
+  const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
@@ -44,6 +47,7 @@ export default function Payments() {
   })
 
   const totalPayments = data?.meta?.total || 0
+  const localeCode = getIntlLocale(i18n.language)
 
   // --- SIN CAMBIOS EN useSocketEvents ---
   // La lógica de refetch al recibir un evento sigue siendo correcta.
@@ -61,7 +65,7 @@ export default function Payments() {
         accessorKey: 'createdAt', // Sin cambios
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Fecha
+            {t('payments.columns.date')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -71,7 +75,7 @@ export default function Payments() {
 
           // Usar toLocaleString con zona horaria local para consistencia
           const localDate = new Date(date.getTime())
-          const monthName = localDate.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+          const monthName = localDate.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
           const year = localDate.getFullYear()
           const last2Year = year.toString().slice(-2)
           const day = localDate.getDate()
@@ -93,7 +97,7 @@ export default function Payments() {
         id: 'waiterName', // Es buena práctica dar un ID único al usar accessorFn
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Mesero
+            {t('payments.columns.waiter')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -106,7 +110,7 @@ export default function Payments() {
         id: 'totalTipAmount',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Propina
+            {t('payments.columns.tip')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -143,7 +147,7 @@ export default function Payments() {
         id: 'source',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Origen
+            {t('payments.columns.source')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -173,12 +177,12 @@ export default function Payments() {
       },
       {
         accessorKey: 'method',
-        header: 'Método',
+        header: t('payments.columns.method'),
         cell: ({ row }) => {
           const payment = row.original
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
-          const methodDisplay = payment.method === 'CASH' ? 'Efectivo' : 'Tarjeta'
+          const methodDisplay = payment.method === 'CASH' ? t('payments.methods.cash') : t('payments.methods.card')
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
@@ -190,7 +194,7 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <span>{getIcon(cardBrand)}</span>
-                  <span className="text-[12px] font-[600] text-muted-foreground">{last4 ? `**** ${last4}` : 'Tarjeta'}</span>
+                  <span className="text-[12px] font-[600] text-muted-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
                 </>
               ) : (
                 <span className="text-[12px] font-[600] text-muted-foreground">{methodDisplay}</span>
@@ -204,7 +208,7 @@ export default function Payments() {
         accessorKey: 'amount',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Subtotal
+            {t('payments.columns.subtotal')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -224,7 +228,7 @@ export default function Payments() {
         id: 'totalAmount',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Total
+            {t('payments.columns.total')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -235,7 +239,7 @@ export default function Payments() {
         },
       },
     ],
-    [], // Dependencias del useMemo, vacío está bien si no depende de props/state
+    [t, localeCode],
   )
 
   // CAMBIO: Actualizar la lógica de filtrado/búsqueda
@@ -266,18 +270,18 @@ export default function Payments() {
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-xl font-semibold">Pagos</h1>
+        <h1 className="text-xl font-semibold">{t('payments.title')}</h1>
       </div>
 
       <Input
         type="text"
-        placeholder="Buscar por mesero, total o método..."
+        placeholder={t('payments.searchPlaceholder')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
         className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
       />
 
-      {error && <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>Error al cargar pagos: {(error as Error).message}</div>}
+      {error && <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>{t('payments.errorPrefix')}: {(error as Error).message}</div>}
 
       <DataTable
         data={filteredPayments}

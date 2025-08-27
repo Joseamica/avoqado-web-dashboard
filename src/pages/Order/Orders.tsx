@@ -12,9 +12,12 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useLocation } from 'react-router-dom'
 
 export default function Orders() {
+  const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue() // Hook actualizado
   const location = useLocation()
   const [searchTerm, setSearchTerm] = useState('')
@@ -38,16 +41,18 @@ export default function Orders() {
     refetch()
   })
 
+  const localeCode = getIntlLocale(i18n.language)
+
   const columns = useMemo<ColumnDef<OrderType, unknown>[]>(
     () => [
       {
         accessorKey: 'createdAt', // Sin cambios
-        header: 'Fecha',
+        header: t('orders.columns.date'),
         cell: ({ cell }) => {
           // Lógica de formato de fecha sin cambios
           const value = cell.getValue() as string
           const date = new Date(value)
-          const monthName = date.toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+          const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
           const year = date.getUTCFullYear()
           const last2Year = year.toString().slice(-2)
           const day = date.getDate()
@@ -65,25 +70,25 @@ export default function Orders() {
       {
         // CAMBIO: `folio` ahora es `orderNumber`
         accessorKey: 'orderNumber',
-        header: 'Folio',
+        header: t('orders.columns.orderNumber'),
         cell: info => <>{(info.getValue() as string) || '-'}</>,
       },
       {
         // CAMBIO: `billName` ahora es `customerName`
         accessorKey: 'customerName',
-        header: 'Cliente',
-        cell: info => <>{(info.getValue() as string) || 'Mostrador'}</>,
+        header: t('orders.columns.customer'),
+        cell: info => <>{(info.getValue() as string) || t('orders.counter')}</>,
       },
       {
         // CAMBIO: `waiterName` ahora se obtiene del objeto anidado `createdBy`
         accessorFn: row => (row.createdBy ? `${row.createdBy.firstName}` : '-'),
         id: 'waiterName',
-        header: 'Mesero',
+        header: t('orders.columns.waiter'),
       },
       {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
         accessorKey: 'status',
-        header: 'Estado',
+        header: t('orders.columns.status'),
         cell: ({ cell }) => {
           const status = cell.getValue() as string
 
@@ -99,12 +104,12 @@ export default function Orders() {
 
           // Mapa de traducción para los nuevos estados
           const statusMap: Record<string, string> = {
-            PENDING: 'Pendiente',
-            CONFIRMED: 'Confirmada',
-            PREPARING: 'En Preparación',
-            READY: 'Lista',
-            COMPLETED: 'Completada',
-            CANCELLED: 'Cancelada',
+            PENDING: t('orders.statuses.PENDING'),
+            CONFIRMED: t('orders.statuses.CONFIRMED'),
+            PREPARING: t('orders.statuses.PREPARING'),
+            READY: t('orders.statuses.READY'),
+            COMPLETED: t('orders.statuses.COMPLETED'),
+            CANCELLED: t('orders.statuses.CANCELLED'),
           }
 
           return (
@@ -121,7 +126,7 @@ export default function Orders() {
         accessorKey: 'total',
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            Total
+            {t('orders.columns.total')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -132,7 +137,7 @@ export default function Orders() {
         },
       },
     ],
-    [],
+    [t, localeCode],
   )
 
   const filteredOrders = useMemo(() => {
@@ -157,12 +162,12 @@ export default function Orders() {
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between">
         {/* CAMBIO: El título ahora es Órdenes */}
-        <h1 className="text-xl font-semibold">Órdenes</h1>
+        <h1 className="text-xl font-semibold">{t('orders.title')}</h1>
       </div>
 
       <Input
         type="text"
-        placeholder="Buscar por folio, cliente o mesero..."
+        placeholder={t('orders.searchPlaceholder')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
         className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
@@ -170,7 +175,7 @@ export default function Orders() {
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
-          Error al cargar órdenes: {(error as Error).message}
+          {t('orders.errorPrefix')}: {(error as Error).message}
         </div>
       )}
 

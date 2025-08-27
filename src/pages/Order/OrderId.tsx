@@ -1,19 +1,5 @@
 // src/pages/OrderId.tsx
 
-import api from '@/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { useAuth } from '@/context/AuthContext'
-import { useToast } from '@/hooks/use-toast'
-import { Order as OrderType, OrderStatus, StaffRole } from '@/types' // CAMBIO: Usar tipos Order y OrderStatus
-import { Currency } from '@/utils/currency'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, PencilIcon, Receipt, Save, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,10 +11,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useToast } from '@/hooks/use-toast'
 import * as orderService from '@/services/order.service'
+import { OrderStatus, Order as OrderType, StaffRole } from '@/types' // CAMBIO: Usar tipos Order y OrderStatus
+import { Currency } from '@/utils/currency'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, PencilIcon, Save, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function OrderId() {
+  const { t } = useTranslation()
   // CAMBIO: billId ahora es orderId
   const { orderId } = useParams()
   const location = useLocation()
@@ -119,8 +120,8 @@ export default function OrderId() {
   // CAMBIO: la ruta de retorno ahora es a /orders
   const from = (location.state as any)?.from || `/venues/${venueId}/orders`
 
-  if (isLoading) return <div className="p-8 text-center">Cargando detalles de la orden...</div>
-  if (!order) return <div className="p-8 text-center">No se encontró la orden.</div>
+  if (isLoading) return <div className="p-8 text-center">{t('orders.detail.loading')}</div>
+  if (!order) return <div className="p-8 text-center">{t('orders.detail.notFound')}</div>
 
   // Format date for display
 
@@ -208,7 +209,7 @@ export default function OrderId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>Detalles de la Orden #{order.orderNumber}</span>
+          <span>{t('orders.detail.title', { number: order.orderNumber })}</span>
         </div>
         <div className="flex items-center gap-2">
           {isEditing ? (
@@ -236,18 +237,18 @@ export default function OrderId() {
                   <>
                     <Button variant="default" size="sm" onClick={handleSave}>
                       <Save className="h-4 w-4 mr-2" />
-                      Guardar
+                      {t('common.save', { defaultValue: 'Guardar' })}
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleCancel}>
                       <X className="h-4 w-4 mr-2" />
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                   </>
                 ) : (
                   /* Botón Editar */
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <PencilIcon className="h-4 w-4 mr-2" />
-                    Editar
+                    {t('common.edit', { defaultValue: 'Editar' })}
                   </Button>
                 )}
                 {/* Botón Eliminar */}
@@ -255,19 +256,19 @@ export default function OrderId() {
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm">
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Eliminar
+                      {t('common.delete', { defaultValue: 'Eliminar' })}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.
-                      </AlertDialogDescription>
+                      <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
+                      <AlertDialogDescription>{t('orders.detail.deleteWarning')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>Eliminar</AlertDialogAction>
+                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>
+                        {t('common.delete', { defaultValue: 'Eliminar' })}
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -285,23 +286,23 @@ export default function OrderId() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label>ID de la Orden</Label>
+              <Label>{t('orders.detail.fields.orderId')}</Label>
               <Input value={order.id} disabled />
             </div>
             <div>
-              <Label>Fecha de Creación</Label>
+              <Label>{t('orders.detail.fields.createdAt')}</Label>
               <Input value={formatDate(order.createdAt)} disabled />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label>Folio</Label>
+              <Label>{t('orders.detail.fields.orderNumber')}</Label>
               <Input value={order.orderNumber} disabled />
             </div>
             <div>
-              <Label>Nombre del Cliente</Label>
+              <Label>{t('orders.detail.fields.customerName')}</Label>
               <Input
-                value={isEditing ? editedOrder?.customerName || '' : order.customerName || 'Mostrador'}
+                value={isEditing ? editedOrder?.customerName || '' : order.customerName || t('orders.counter')}
                 disabled={!isEditing}
                 onChange={e => handleInputChange('customerName', e.target.value)}
               />
@@ -309,11 +310,11 @@ export default function OrderId() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label>Mesa</Label>
-              <Input value={order.table?.number || 'Sin Mesa'} disabled />
+              <Label>{t('orders.detail.fields.table')}</Label>
+              <Input value={order.table?.number || t('orders.detail.noTable')} disabled />
             </div>
             <div>
-              <Label>Mesero</Label>
+              <Label>{t('orders.detail.fields.waiter')}</Label>
               <Input value={order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : '-'} disabled />
             </div>
           </div>
@@ -323,18 +324,18 @@ export default function OrderId() {
 
         {/* --- RESUMEN FINANCIERO --- */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Resumen Financiero</h3>
+          <h3 className="text-lg font-medium">{t('orders.detail.financialSummary.title')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Subtotal</Label>
+              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.subtotal')}</Label>
               <p className="text-xl font-semibold">{Currency(order.subtotal * 100)}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Propinas</Label>
+              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.tips')}</Label>
               <p className="text-xl font-semibold">{Currency(order.tipAmount * 100)}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Total</Label>
+              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.total')}</Label>
               <p className="text-xl font-semibold">{Currency(order.total * 100)}</p>
             </div>
           </div>
@@ -347,23 +348,23 @@ export default function OrderId() {
           <>
             <Separator className="my-8" />
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Pagos Asociados</h3>
+              <h3 className="text-lg font-medium">{t('orders.detail.associatedPayments.title')}</h3>
               {order.payments.map(payment => (
                 <div key={payment.id} className="p-4 border rounded-md grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <Label className="text-sm text-muted-foreground">ID del Pago</Label>
+                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.paymentId')}</Label>
                     <p className="font-medium truncate">{payment.id}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Monto</Label>
+                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.amount')}</Label>
                     <p className="font-medium">{Currency(payment.amount * 100)}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Propina</Label>
+                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.tip')}</Label>
                     <p className="font-medium">{Currency(payment.tipAmount * 100)}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Método</Label>
+                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.method')}</Label>
                     <p className="font-medium">{payment.method}</p>
                   </div>
                 </div>

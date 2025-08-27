@@ -12,6 +12,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,16 +33,16 @@ export default function ShiftId() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
+  const { t, i18n } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editedShift, setEditedShift] = useState<any>(null)
 
   // Status options
   const statusOptions = [
-    { value: 'OPEN', label: 'Abierto' },
-    { value: 'CLOSED', label: 'Cerrado' },
+    { value: 'OPEN', label: t('shifts.detail.statusOpen', { defaultValue: 'Abierto' }) },
+    { value: 'CLOSED', label: t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' }) },
   ]
-
-  // Fetch the shift data
+// Fetch the shift data
   const { data: shift, isLoading } = useQuery({
     queryKey: ['shift', venueId, shiftId],
     queryFn: async () => {
@@ -121,7 +123,7 @@ export default function ShiftId() {
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center">Cargando información del turno...</div>
+    return <div className="p-8 text-center">{t('shifts.detail.loading', { defaultValue: 'Cargando información del turno...' })}</div>
   }
 
   // Calculate total payments and tips
@@ -158,13 +160,13 @@ export default function ShiftId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>Detalles del Turno {shift?.turnId || ''}</span>
+          <span>{t('shifts.detail.headerTitle', { defaultValue: 'Detalles del Turno {{turnId}}', turnId: shift?.turnId || '' })}</span>
         </div>
         <div className="flex items-center space-x-4">
           {isEditing ? (
             <Select value={editedShift?.status || getShiftStatus()} onValueChange={value => handleInputChange('status', value)}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Seleccionar estado" />
+                <SelectValue placeholder={t('shifts.detail.selectStatus', { defaultValue: 'Seleccionar estado' })} />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map(option => (
@@ -180,7 +182,7 @@ export default function ShiftId() {
                 getShiftStatus() === 'CLOSED' ? 'text-secondary-foreground' : 'text-green-800'
               } rounded-full font-medium`}
             >
-              {getShiftStatus() === 'CLOSED' ? 'Cerrado' : 'Abierto'}
+              {getShiftStatus() === 'CLOSED' ? t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' }) : t('shifts.detail.statusOpen', { defaultValue: 'Abierto' })}
             </span>
           )}
 
@@ -189,19 +191,13 @@ export default function ShiftId() {
               {isEditing ? (
                 <>
                   <Button variant="default" size="sm" onClick={handleSave}>
-                    <Save className="size-4 mr-1" />
-                    Guardar
-                  </Button>
+                    <Save className="size-4 mr-1" />{t('common.save', { defaultValue: 'Guardar' })}</Button>
                   <Button variant="outline" size="sm" onClick={handleCancel}>
-                    <X className="size-4 mr-1" />
-                    Cancelar
-                  </Button>
+                    <X className="size-4 mr-1" />{t('common.cancel', { defaultValue: 'Cancelar' })}</Button>
                 </>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <PencilIcon className="size-4 mr-1" />
-                  Editar
-                </Button>
+                  <PencilIcon className="size-4 mr-1" />{t('common.edit', { defaultValue: 'Editar' })}</Button>
               )}
             </>
           )}
@@ -210,21 +206,19 @@ export default function ShiftId() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
                 <Trash2 className="size-4 mr-1" />
-                Eliminar
+                {t('common.delete', { defaultValue: 'Eliminar' })}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Eliminar turno</AlertDialogTitle>
+                <AlertDialogTitle>{t('shifts.detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  ¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.
+                  {t('shifts.detail.deleteConfirm', { defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.' })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">
-                  Eliminar
-                </AlertDialogAction>
+                <AlertDialogCancel>{t('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">{t('common.delete', { defaultValue: 'Eliminar' })}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -259,19 +253,19 @@ export default function ShiftId() {
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Resumen Financiero</h3>
+          <h3 className="text-lg font-medium">{t('shifts.detail.financialSummary', { defaultValue: 'Resumen Financiero' })}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Subtotal</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.subtotal', { defaultValue: 'Subtotal' })}/Label>
               <p className="text-xl font-semibold">{Currency(totalAmount)}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Propinas</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.tips', { defaultValue: 'Propinas' })}/Label>
               <p className="text-xl font-semibold">{Currency(totalTips)}</p>
               <p className="text-sm text-muted-foreground">{tipPercentage.toFixed(1)}% del subtotal</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Total</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.total', { defaultValue: 'Total' })}/Label>
               <p className="text-xl font-semibold">{Currency(totalAmount + totalTips)}</p>
             </div>
           </div>
@@ -280,22 +274,22 @@ export default function ShiftId() {
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Pagos</h3>
+          <h3 className="text-lg font-medium">{t('shifts.detail.payments', { defaultValue: 'Pagos' })}</h3>
           {payments.length > 0 ? (
             <div className="space-y-4">
               {payments.map(payment => (
                 <div key={payment.id} className="p-4 border rounded-md">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                      <Label className="text-sm text-muted-foreground">Método de Pago</Label>
+                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.paymentMethod', { defaultValue: 'Método de Pago' })}</Label>
                       <p className="font-medium">{payment.paymentType}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-muted-foreground">Monto</Label>
+                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.amount', { defaultValue: 'Monto' })}</Label>
                       <p className="font-medium">{Currency(Number(payment.amount))}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-muted-foreground">Propina</Label>
+                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.tip', { defaultValue: 'Propina' })}</Label>
                       <p className="font-medium">{Currency(payment.tips.reduce((acc, tip) => acc + parseFloat(tip.amount), 0))}</p>
                     </div>
                   </div>
@@ -303,25 +297,25 @@ export default function ShiftId() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">No hay pagos registrados para este turno.</p>
+            <p className="text-muted-foreground">{t('shifts.detail.noPayments', { defaultValue: 'No hay pagos registrados para este turno.' })}</p>
           )}
         </div>
 
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Información adicional</h3>
+          <h3 className="text-lg font-medium">{t('shifts.detail.additionalInfo', { defaultValue: 'Información adicional' })}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Venue ID</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.venueId', { defaultValue: 'Venue ID' })}</Label>
               <p className="text-sm">{shift?.venueId}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Creado</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.created', { defaultValue: 'Creado' })}</Label>
               <p className="text-sm">{shift?.createdAt ? new Date(shift.createdAt).toLocaleString() : '-'}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">Última actualización</Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.updated', { defaultValue: 'Última actualización' })}</Label>
               <p className="text-sm">{shift?.updatedAt ? new Date(shift.updatedAt).toLocaleString() : '-'}</p>
             </div>
           </div>
