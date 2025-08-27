@@ -15,7 +15,7 @@ const Separator = React.forwardRef<React.ElementRef<typeof SeparatorPrimitive.Ro
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        'shrink-0 bg-zinc-200 dark:bg-zinc-800',
+        'shrink-0 bg-border',
         orientation === 'horizontal' ? 'h-[1px] w-full' : 'h-full w-[1px]',
         `mt-${marginTop} mb-${marginBottom}`, // Apply custom margins
         className,

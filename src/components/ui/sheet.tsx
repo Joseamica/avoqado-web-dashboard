@@ -6,6 +6,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import { VisuallyHidden } from './visually-hidden'
 
 const Sheet = SheetPrimitive.Root
@@ -32,7 +33,7 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-white p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out dark:bg-zinc-950',
+  'fixed z-50 gap-4 bg-background text-foreground p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out',
   {
     variants: {
       side: {
@@ -55,6 +56,7 @@ interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof SheetP
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = 'right', className, children, hasTitle, defaultTitle = 'Sheet', ...props }, ref) => {
+    const { t } = useTranslation()
     // Check if any child is a SheetTitle
     const hasExplicitTitle = React.Children.toArray(children).some(child => React.isValidElement(child) && child.type === SheetTitle)
 
@@ -64,12 +66,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
           {!hasExplicitTitle && !hasTitle && (
             <VisuallyHidden>
-              <SheetTitle>{defaultTitle}</SheetTitle>
+              <SheetTitle>{t('common.sheet_title_default')}</SheetTitle>
             </VisuallyHidden>
           )}
-          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-zinc-100 dark:ring-offset-zinc-950 dark:focus:ring-zinc-300 dark:data-[state=open]:bg-zinc-800">
+          <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent">
             <X className="w-4 h-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('common.close')}</span>
           </SheetPrimitive.Close>
           {children}
         </SheetPrimitive.Content>
@@ -93,7 +95,7 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title ref={ref} className={cn('text-lg font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
+  <SheetPrimitive.Title ref={ref} className={cn('text-lg font-semibold', className)} {...props} />
 ))
 SheetTitle.displayName = SheetPrimitive.Title.displayName
 
@@ -101,7 +103,7 @@ const SheetDescription = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Description ref={ref} className={cn('text-sm text-zinc-500 dark:text-zinc-400', className)} {...props} />
+  <SheetPrimitive.Description ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
 ))
 SheetDescription.displayName = SheetPrimitive.Description.displayName
 

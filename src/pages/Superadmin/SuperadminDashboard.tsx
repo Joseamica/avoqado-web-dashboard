@@ -14,9 +14,9 @@ const DashboardError: React.FC<{ error: Error | null; refetch: () => void }> = (
   return (
     <div className="flex items-center justify-center min-h-96">
       <div className="text-center">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-2">{t('common.errorLoading') || 'Error al Cargar Datos'}</h3>
-        <p className="text-slate-600 dark:text-slate-400 mb-4">
+        <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">{t('common.errorLoading') || 'Error al Cargar Datos'}</h3>
+        <p className="text-muted-foreground mb-4">
           {error?.message || t('common.errorLoadingDashboard') || 'Error al cargar los datos del dashboard'}
         </p>
         <Button onClick={refetch}>{t('header.retry')}</Button>
@@ -115,8 +115,8 @@ const SuperadminDashboard: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">{t('dashboard.title')}</h1>
-          <p className="text-slate-600 dark:text-slate-400">{t('dashboard.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
@@ -156,7 +156,7 @@ const SuperadminDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Currency(kpis?.monthlyRecurringRevenue || 0)}</div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />
               {t('dashboard.kpis.mrrChangeText')}
             </p>
@@ -170,7 +170,7 @@ const SuperadminDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(kpis?.activeVenues || 0).toLocaleString()}</div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{(kpis?.totalVenues || 0).toLocaleString()} {t('dashboard.kpis.totalVenuesSuffix')}</p>
+            <p className="text-xs text-muted-foreground">{(kpis?.totalVenues || 0).toLocaleString()} {t('dashboard.kpis.totalVenuesSuffix')}</p>
           </CardContent>
         </Card>
 
@@ -181,7 +181,7 @@ const SuperadminDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis?.averageRevenuePerUser ? Currency(kpis.averageRevenuePerUser) : 'N/A'}</div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />
               {t('dashboard.kpis.arpuSubtitle')}
             </p>
@@ -201,23 +201,23 @@ const SuperadminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.subs')}</span>
+                  <span className="text-sm text-foreground/80">{t('dashboard.revenueBreakdown.subs')}</span>
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.subscriptionRevenue || 0)}</span>
+                <span className="font-medium text-foreground">{Currency(kpis?.subscriptionRevenue || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.features')}</span>
+                  <span className="text-sm text-foreground/80">{t('dashboard.revenueBreakdown.features')}</span>
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.featureRevenue || 0)}</span>
+                <span className="font-medium text-foreground">{Currency(kpis?.featureRevenue || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.commissions')}</span>
+                  <span className="text-sm text-foreground/80">{t('dashboard.revenueBreakdown.commissions')}</span>
                 </div>
-                <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.totalCommissionRevenue || 0)}</span>
+                <span className="font-medium text-foreground">{Currency(kpis?.totalCommissionRevenue || 0)}</span>
               </div>
             </div>
           </CardContent>
@@ -237,17 +237,17 @@ const SuperadminDashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.allServices')}</span>
+                  <span className="text-xs text-muted-foreground">{t('dashboard.system.allServices')}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{(kpis?.activeVenues || 0).toLocaleString()}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.activeVenues')}</div>
+                  <div className="text-2xl font-bold text-emerald-600">{(kpis?.activeVenues || 0).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">{t('dashboard.system.activeVenues')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(kpis?.totalUsers || 0).toLocaleString()}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.totalUsers')}</div>
+                  <div className="text-2xl font-bold text-blue-600">{(kpis?.totalUsers || 0).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">{t('dashboard.system.totalUsers')}</div>
                 </div>
               </div>
             </div>
@@ -317,25 +317,25 @@ const SuperadminDashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <h4 className="font-medium text-slate-700 dark:text-slate-300">{t('dashboard.platformRevenueAnalytics.financialMetrics')}</h4>
+              <h4 className="font-medium text-foreground/80">{t('dashboard.platformRevenueAnalytics.financialMetrics')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.invoicedRevenue')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.invoicedRevenue')}:</span>
                   <span className="font-medium">{Currency(dashboardData.revenueMetrics?.invoicedRevenue || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.settledRevenue')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.settledRevenue')}:</span>
                   <span className="font-medium">{Currency(dashboardData.revenueMetrics?.settledRevenue || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.processedTransactions')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.processedTransactions')}:</span>
                   <span className="font-medium">{(dashboardData.revenueMetrics?.transactionCount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
             
             <div className="space-y-3">
-              <h4 className="font-medium text-slate-700 dark:text-slate-300">{t('dashboard.platformRevenueAnalytics.projections')}</h4>
+              <h4 className="font-medium text-foreground/80">{t('dashboard.platformRevenueAnalytics.projections')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.avgPerVenue')}:</span>
@@ -388,7 +388,7 @@ const SuperadminDashboard: React.FC = () => {
                 </div>
               )) : (
                 <div className="text-center py-8">
-                  <p className="text-slate-500 dark:text-slate-400">{t('dashboard.recentActivity.empty')}</p>
+                  <p className="text-muted-foreground">{t('dashboard.recentActivity.empty')}</p>
                 </div>
               )}
             </div>
@@ -425,7 +425,7 @@ const SuperadminDashboard: React.FC = () => {
               )) : (
                 <div className="text-center py-8">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-slate-500 dark:text-slate-400">{t('dashboard.alerts.empty')}</p>
+                  <p className="text-muted-foreground">{t('dashboard.alerts.empty')}</p>
                 </div>
               )}
             </div>
@@ -442,18 +442,18 @@ const SuperadminDashboard: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {topVenues && topVenues.length > 0 ? topVenues.map((venue: any, index: number) => (
-              <div key={venue.name} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+              <div key={venue.name} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
                     {index + 1}
                   </div>
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-slate-50">{venue.name}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.topVenues.revenue')} {Currency(venue.revenue)}</p>
+                    <p className="font-medium text-foreground">{venue.name}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.topVenues.revenue')} {Currency(venue.revenue)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{t('dashboard.topVenues.commission')} {Currency(venue.commission)}</p>
+                  <p className="font-medium text-foreground">{t('dashboard.topVenues.commission')} {Currency(venue.commission)}</p>
                   <p className={`text-sm font-medium ${venue.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {venue.growth >= 0 ? '+' : ''}
                     {venue.growth}%
