@@ -1256,9 +1256,7 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     formatter={(value: any, name: any) =>
-                      name === 'rating'
-                        ? `${value} ${t('home.tooltips.starsSuffix')}`
-                        : `${value} ${t('home.tooltips.reviewsSuffix')}`
+                      name === 'rating' ? `${value} ${t('home.tooltips.starsSuffix')}` : `${value} ${t('home.tooltips.reviewsSuffix')}`
                     }
                   />
                 }

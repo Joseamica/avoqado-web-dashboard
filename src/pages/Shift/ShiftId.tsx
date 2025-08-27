@@ -1,19 +1,19 @@
 import api from '@/api'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Currency } from '@/utils/currency'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Trash2, PencilIcon, Save, X } from 'lucide-react'
-import { Link, useLocation, useParams, useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/context/AuthContext'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
+import { Separator } from '@/components/ui/separator'
+import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+import { Currency } from '@/utils/currency'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, PencilIcon, Save, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +33,7 @@ export default function ShiftId() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editedShift, setEditedShift] = useState<any>(null)
 
@@ -42,7 +42,7 @@ export default function ShiftId() {
     { value: 'OPEN', label: t('shifts.detail.statusOpen', { defaultValue: 'Abierto' }) },
     { value: 'CLOSED', label: t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' }) },
   ]
-// Fetch the shift data
+  // Fetch the shift data
   const { data: shift, isLoading } = useQuery({
     queryKey: ['shift', venueId, shiftId],
     queryFn: async () => {
@@ -182,7 +182,9 @@ export default function ShiftId() {
                 getShiftStatus() === 'CLOSED' ? 'text-secondary-foreground' : 'text-green-800'
               } rounded-full font-medium`}
             >
-              {getShiftStatus() === 'CLOSED' ? t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' }) : t('shifts.detail.statusOpen', { defaultValue: 'Abierto' })}
+              {getShiftStatus() === 'CLOSED'
+                ? t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' })
+                : t('shifts.detail.statusOpen', { defaultValue: 'Abierto' })}
             </span>
           )}
 
@@ -191,13 +193,19 @@ export default function ShiftId() {
               {isEditing ? (
                 <>
                   <Button variant="default" size="sm" onClick={handleSave}>
-                    <Save className="size-4 mr-1" />{t('common.save', { defaultValue: 'Guardar' })}</Button>
+                    <Save className="size-4 mr-1" />
+                    {t('common.save', { defaultValue: 'Guardar' })}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleCancel}>
-                    <X className="size-4 mr-1" />{t('common.cancel', { defaultValue: 'Cancelar' })}</Button>
+                    <X className="size-4 mr-1" />
+                    {t('common.cancel', { defaultValue: 'Cancelar' })}
+                  </Button>
                 </>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <PencilIcon className="size-4 mr-1" />{t('common.edit', { defaultValue: 'Editar' })}</Button>
+                  <PencilIcon className="size-4 mr-1" />
+                  {t('common.edit', { defaultValue: 'Editar' })}
+                </Button>
               )}
             </>
           )}
@@ -213,12 +221,16 @@ export default function ShiftId() {
               <AlertDialogHeader>
                 <AlertDialogTitle>{t('shifts.detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t('shifts.detail.deleteConfirm', { defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.' })}
+                  {t('shifts.detail.deleteConfirm', {
+                    defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.',
+                  })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{t('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">{t('common.delete', { defaultValue: 'Eliminar' })}</AlertDialogAction>
+                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">
+                  {t('common.delete', { defaultValue: 'Eliminar' })}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -256,16 +268,16 @@ export default function ShiftId() {
           <h3 className="text-lg font-medium">{t('shifts.detail.financialSummary', { defaultValue: 'Resumen Financiero' })}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.subtotal', { defaultValue: 'Subtotal' })}/Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.subtotal', { defaultValue: 'Subtotal' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalAmount)}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.tips', { defaultValue: 'Propinas' })}/Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.tips', { defaultValue: 'Propinas' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalTips)}</p>
               <p className="text-sm text-muted-foreground">{tipPercentage.toFixed(1)}% del subtotal</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.total', { defaultValue: 'Total' })}/Label>
+              <Label className="text-sm text-muted-foreground">{t('shifts.detail.total', { defaultValue: 'Total' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalAmount + totalTips)}</p>
             </div>
           </div>
@@ -281,7 +293,9 @@ export default function ShiftId() {
                 <div key={payment.id} className="p-4 border rounded-md">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.paymentMethod', { defaultValue: 'Método de Pago' })}</Label>
+                      <Label className="text-sm text-muted-foreground">
+                        {t('shifts.detail.paymentMethod', { defaultValue: 'Método de Pago' })}
+                      </Label>
                       <p className="font-medium">{payment.paymentType}</p>
                     </div>
                     <div>
@@ -297,7 +311,9 @@ export default function ShiftId() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">{t('shifts.detail.noPayments', { defaultValue: 'No hay pagos registrados para este turno.' })}</p>
+            <p className="text-muted-foreground">
+              {t('shifts.detail.noPayments', { defaultValue: 'No hay pagos registrados para este turno.' })}
+            </p>
           )}
         </div>
 
@@ -315,7 +331,9 @@ export default function ShiftId() {
               <p className="text-sm">{shift?.createdAt ? new Date(shift.createdAt).toLocaleString() : '-'}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.updated', { defaultValue: 'Última actualización' })}</Label>
+              <Label className="text-sm text-muted-foreground">
+                {t('shifts.detail.updated', { defaultValue: 'Última actualización' })}
+              </Label>
               <p className="text-sm">{shift?.updatedAt ? new Date(shift.updatedAt).toLocaleString() : '-'}</p>
             </div>
           </div>
