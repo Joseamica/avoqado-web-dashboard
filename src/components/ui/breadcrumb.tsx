@@ -2,6 +2,7 @@ import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 const Breadcrumb = React.forwardRef<
@@ -13,11 +14,7 @@ const Breadcrumb = React.forwardRef<
 Breadcrumb.displayName = 'Breadcrumb'
 
 const BreadcrumbList = React.forwardRef<HTMLOListElement, React.ComponentPropsWithoutRef<'ol'>>(({ className, ...props }, ref) => (
-  <ol
-    ref={ref}
-    className={cn('flex flex-wrap items-center gap-1.5 break-words text-sm text-zinc-500 sm:gap-2.5 dark:text-zinc-400', className)}
-    {...props}
-  />
+  <ol ref={ref} className={cn('flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5', className)} {...props} />
 ))
 BreadcrumbList.displayName = 'BreadcrumbList'
 
@@ -32,7 +29,7 @@ interface BreadcrumbLinkProps extends React.ComponentPropsWithoutRef<'a'> {
 }
 
 const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(({ as: Component = Link, className, ...props }, ref) => {
-  return <Component ref={ref} className={cn('transition-colors hover:text-zinc-950 dark:hover:text-zinc-50', className)} {...props} />
+  return <Component ref={ref} className={cn('transition-colors hover:text-foreground', className)} {...props} />
 })
 
 BreadcrumbLink.displayName = 'BreadcrumbLink'
@@ -43,7 +40,7 @@ const BreadcrumbPage = React.forwardRef<HTMLSpanElement, React.ComponentPropsWit
     role="link"
     aria-disabled="true"
     aria-current="page"
-    className={cn('font-normal text-zinc-950 dark:text-zinc-50', className)}
+    className={cn('font-normal text-foreground', className)}
     {...props}
   />
 ))
@@ -56,12 +53,15 @@ const BreadcrumbSeparator = ({ children, className, ...props }: React.ComponentP
 )
 BreadcrumbSeparator.displayName = 'BreadcrumbSeparator'
 
-const BreadcrumbEllipsis = ({ className, ...props }: React.ComponentProps<'span'>) => (
-  <span role="presentation" aria-hidden="true" className={cn('flex h-9 w-9 items-center justify-center', className)} {...props}>
-    <MoreHorizontal className="w-4 h-4" />
-    <span className="sr-only">More</span>
-  </span>
-)
+const BreadcrumbEllipsis = ({ className, ...props }: React.ComponentProps<'span'>) => {
+  const { t } = useTranslation()
+  return (
+    <span role="presentation" aria-hidden="true" className={cn('flex h-9 w-9 items-center justify-center', className)} {...props}>
+      <MoreHorizontal className="w-4 h-4" />
+      <span className="sr-only">{t('common.more')}</span>
+    </span>
+  )
+}
 BreadcrumbEllipsis.displayName = 'BreadcrumbElipssis'
 
 export { Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator }

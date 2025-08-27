@@ -2,10 +2,10 @@
 
 export const themeClasses = {
   // Backgrounds
-  pageBg: 'bg-muted dark:bg-[hsl(240_5.9%_10%)]',
-  cardBg: 'bg-card dark:bg-[hsl(240_3.7%_15.9%)]',
-  inputBg: 'bg-input dark:bg-muted',
-  contentBg: 'bg-muted/50 dark:bg-[hsl(240_5.9%_10%)]',
+  pageBg: 'bg-background',
+  cardBg: 'bg-card',
+  inputBg: 'bg-input',
+  contentBg: 'bg-muted/50',
 
   // Text
   text: 'text-foreground',
@@ -17,24 +17,24 @@ export const themeClasses = {
 
   // Status colors
   success: {
-    bg: 'bg-green-100 dark:bg-green-950/60',
-    text: 'text-green-700 dark:text-green-400',
-    border: 'border-green-200 dark:border-green-800',
+    bg: 'bg-green-100',
+    text: 'text-green-700',
+    border: 'border-green-200',
   },
   warning: {
-    bg: 'bg-[#FAF5D4] dark:bg-yellow-950/60',
-    text: 'text-[#DDB082] dark:text-yellow-400',
-    border: 'border-yellow-200 dark:border-yellow-800',
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    border: 'border-yellow-200',
   },
   error: {
-    bg: 'bg-[#FDE2E2] dark:bg-red-950/60',
-    text: 'text-[#D64545] dark:text-red-400',
-    border: 'border-red-200 dark:border-red-800',
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    border: 'border-destructive/30',
   },
   info: {
-    bg: 'bg-blue-100 dark:bg-blue-950/60',
-    text: 'text-blue-700 dark:text-blue-400',
-    border: 'border-blue-200 dark:border-blue-800',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
   },
   neutral: {
     bg: 'bg-muted',

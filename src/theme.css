@@ -1,12 +1,6 @@
 /* Custom theme styles */
 
-/* Dark mode card styling */
-.dark .card,
-.dark [class*='bg-white'] {
-  background-color: hsl(240 5.9% 10%);
-  color: hsl(240 4.8% 95.9%);
-  border-color: hsl(240 3.7% 15.9%);
-}
+/* Deprecated: broad overrides of bg-white removed to align with token-based theming */
 
 /* Dark mode text */
 .dark [class*='text-gray-800'],
@@ -33,17 +27,7 @@
   color: hsl(210 100% 66.1%);
 }
 
-/* Dark mode inputs */
-.dark input,
-.dark select,
-.dark [role='combobox'] input {
-  background-color: transparent !important;
-}
-.dark textarea {
-  background-color: hsl(240 3.7% 15.9%);
-  border-color: hsl(240 5% 26%);
-  color: hsl(240 4.8% 95.9%);
-}
+/* Inputs and textareas follow token-based backgrounds; avoid global overrides */
 
 /* Hover states for light and dark mode */
 .hover\:bg-gray-50:hover {
@@ -54,20 +38,7 @@
   background-color: hsl(240 5% 26%) !important; /* Override Tailwind's default */
 }
 
-/* Standardized hover states that should be used app-wide */
-.standard-hover {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.standard-hover:hover {
-  background-color: hsl(0 0% 96%);
-}
-
-.dark .standard-hover:hover {
-  background-color: hsl(240 5% 26%);
-}
+/* standard-hover moved to Tailwind utilities in src/index.css */
 /* Make input backgrounds transparent inside MultipleSelector and DnDMultipleSelector in dark mode */
 
 /* Dark mode tables */
@@ -85,13 +56,7 @@
   background-color: hsl(240 3.7% 15.9%);
 }
 
-/* Dark mode buttons */
-.dark button:not([class*='bg-']):not([class*='ml-1']) {
-  background-color: hsl(0, 0%, 100%);
-  color: hsl(0, 0%, 0%);
-  border-color: hsl(224.3 70% 40%);
-  border-radius: 8px;
-}
+/* Deprecated: global button overrides removed to avoid conflicts with token-based components */
 
 /* Fix badge buttons in dark mode */
 .dark .Badge button {
