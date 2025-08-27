@@ -9,9 +9,10 @@ import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Currency } from '@/utils/currency'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/locale'
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 
 // Import progressive loading components
@@ -25,12 +26,7 @@ import {
 } from '@/components/skeleton/DashboardSkeleton'
 import { CHART_TYPES, DashboardProgressiveService, METRIC_TYPES } from '@/services/dashboard.progressive.service'
 
-// Translations for product categories
-const CATEGORY_TRANSLATIONS = {
-  FOOD: 'Comida',
-  BEVERAGE: 'Bebida',
-  OTHER: 'Otros',
-}
+// i18n keys are used instead of a local map
 
 // Enhanced color palette for charts
 const CHART_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
@@ -51,7 +47,7 @@ const MetricCard = ({
   isLoading,
   icon,
   percentage = null,
-  comparisonLabel = 'período anterior',
+  comparisonLabel = '',
   isPercentageLoading = false,
 }: {
   title: string
@@ -62,6 +58,7 @@ const MetricCard = ({
   comparisonLabel?: string
   isPercentageLoading?: boolean
 }) => {
+  const { t } = useTranslation()
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -118,7 +115,9 @@ const MetricCard = ({
                       </span>
                     </>
                   ) : (
-                    <span>Sin cambios vs {comparisonLabel}</span>
+                    <span>
+                      {t('home.noChange', { defaultValue: 'Sin cambios' })} vs {comparisonLabel}
+                    </span>
                   )}
                 </div>
               )
@@ -132,9 +131,12 @@ const MetricCard = ({
 
 const Home = () => {
   const { venueId } = useCurrentVenue()
+  const { t, i18n } = useTranslation()
+  const localeCode = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-ES'
+  const dateLocale = i18n.language?.startsWith('fr') ? localeFr : i18n.language?.startsWith('en') ? localeEn : localeEs
   const [exportLoading, setExportLoading] = useState(false)
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
-  const [comparisonLabel, setComparisonLabel] = useState('período anterior')
+  const [comparisonLabel, setComparisonLabel] = useState(t('home.comparison.previousPeriod'))
 
   // Define ranges
   const [selectedRange, setSelectedRange] = useState({
@@ -166,9 +168,9 @@ const Home = () => {
     setSelectedRange({ from: todayStart, to: todayEnd })
     setCompareRange({ from: yesterdayStart, to: yesterdayEnd })
     setCompareType('day')
-    setComparisonLabel('ayer')
+    setComparisonLabel(t('home.comparison.yesterday'))
     setActiveFilter('today')
-  }, [])
+  }, [t])
 
   // Handler for "Last 7 days" filter
   const handleLast7Days = useCallback(() => {
@@ -185,9 +187,9 @@ const Home = () => {
     setSelectedRange({ from: start, to: end })
     setCompareRange({ from: compareStart, to: compareEnd })
     setCompareType('week')
-    setComparisonLabel('7 días anteriores')
+    setComparisonLabel(t('home.comparison.prev7days'))
     setActiveFilter('7days')
-  }, [])
+  }, [t])
 
   // Handler for "Last 30 days" filter
   const handleLast30Days = useCallback(() => {
@@ -204,9 +206,9 @@ const Home = () => {
     setSelectedRange({ from: start, to: end })
     setCompareRange({ from: compareStart, to: compareEnd })
     setCompareType('month')
-    setComparisonLabel('30 días anteriores')
+    setComparisonLabel(t('home.comparison.prev30days'))
     setActiveFilter('30days')
-  }, [])
+  }, [t])
 
   // Basic metrics query (priority load)
   const {
@@ -395,7 +397,7 @@ const Home = () => {
                 onClick={handleLast7Days}
                 className="whitespace-nowrap"
               >
-                Últimos 7 días
+                {t('home.filters.last7')}
               </Button>
               <Button
                 size="sm"
@@ -403,7 +405,7 @@ const Home = () => {
                 onClick={handleLast30Days}
                 className="whitespace-nowrap"
               >
-                Últimos 30 días
+                {t('home.filters.last30')}
               </Button>
             </div>
 
@@ -424,7 +426,7 @@ const Home = () => {
               initialDateFrom={selectedRange.from}
               initialDateTo={selectedRange.to}
               align="start"
-              locale="es-ES"
+              locale={localeCode}
             />
 
             <div className="relative">
@@ -439,19 +441,19 @@ const Home = () => {
                     {exportLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Exportando...</span>
+                        <span>{t('home.export.exporting')}</span>
                       </>
                     ) : (
                       <>
                         <Download className="h-4 w-4" />
-                        <span>Exportar</span>
+                        <span>{t('home.export.export')}</span>
                       </>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={exportToCSV}>Exportar como JSON</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportToExcel}>Exportar como CSV (Excel)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToCSV}>{t('home.export.json')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToExcel}>{t('home.export.csv')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -464,15 +466,15 @@ const Home = () => {
         {isBasicError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
-              <h2 className="text-xl font-semibold text-destructive">Failed to load dashboard data</h2>
-              <p className="text-muted-foreground">{basicError?.message || 'An unknown error occurred'}</p>
+              <h2 className="text-xl font-semibold text-destructive">{t('home.error.failedTitle')}</h2>
+              <p className="text-muted-foreground">{basicError?.message || t('home.error.unknown')}</p>
               <Button
                 onClick={() => {
                   refetchBasicData()
                   if (compareType) refetchCompareData()
                 }}
               >
-                Retry
+                {t('header.retry')}
               </Button>
             </div>
           </Card>
@@ -522,13 +524,13 @@ const Home = () => {
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
               <Card className="lg:col-span-4 flex flex-col">
                 <CardHeader className="border-b pb-3">
-                  <CardTitle>Métodos de pago</CardTitle>
+                  <CardTitle>{t('home.sections.paymentMethods')}</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
-                      ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: es })} - ${format(selectedRange.to, 'dd MMM yyyy', {
-                          locale: es,
+                      ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: dateLocale })} - ${format(selectedRange.to, 'dd MMM yyyy', {
+                          locale: dateLocale,
                         })}`
-                      : 'Periodo actual'}
+                      : t('home.currentPeriod')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pt-6 pb-0">
@@ -539,7 +541,7 @@ const Home = () => {
                     </div>
                   ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">No hay datos disponibles</p>
+                      <p className="text-muted-foreground">{t('home.noData')}</p>
                     </div>
                   ) : (
                     <div className="mx-auto aspect-square max-h-[250px]">
@@ -582,7 +584,7 @@ const Home = () => {
                                         className="text-sm"
                                         style={{ fill: 'hsl(var(--muted-foreground))' }}
                                       >
-                                        Total
+                                        {t('home.total')}
                                       </tspan>
                                     </text>
                                   )
@@ -849,6 +851,7 @@ const renderMetricContent = (metricType: string, data: any) => {
 
 // Best Selling Products Chart
 const BestSellingProductsChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   // Process products data for best sellers by category
   const bestSellingProducts = useMemo(() => {
     const productsData = data?.products || []
@@ -882,15 +885,15 @@ const BestSellingProductsChart = ({ data }: { data: any }) => {
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Productos mejor vendidos</CardTitle>
+        <CardTitle>{t('home.sections.bestSellers')}</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-5">
           {Object.entries(bestSellingProducts).map(([category, products]) => (
             <div key={category} className="space-y-2">
-              <h3 className="font-medium text-sm text-muted-foreground">{CATEGORY_TRANSLATIONS[category] || category}</h3>
+              <h3 className="font-medium text-sm text-muted-foreground">{t(`home.categories.${String(category)}`)}</h3>
               {products.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
+                <p className="text-sm text-muted-foreground">{t('home.noData')}</p>
               ) : (
                 <ul className="space-y-1">
                   {products.map((product: any, idx: number) => (
@@ -911,29 +914,30 @@ const BestSellingProductsChart = ({ data }: { data: any }) => {
 
 // Peak Hours Chart
 const PeakHoursChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const peakHoursData = data || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Horas Pico de Ventas</CardTitle>
-        <CardDescription>Actividad de ventas por hora del día</CardDescription>
+        <CardTitle>{t('home.sections.peakHours')}</CardTitle>
+        <CardDescription>{t('home.sections.peakHoursDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!peakHoursData || peakHoursData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               sales: {
-                label: 'Ventas',
+                label: t('home.charts.sales'),
                 color: CHART_COLORS[0],
               },
               transactions: {
-                label: 'N° Transacciones',
+                label: t('home.charts.transactions'),
                 color: CHART_COLORS[1],
               },
             }}
@@ -956,12 +960,14 @@ const PeakHoursChart = ({ data }: { data: any }) => {
                 tickMargin={10}
                 axisLine={false}
                 tickFormatter={value => `${value}:00`}
-                label={{ value: 'Hora del día', position: 'insideBottomRight', offset: -10 }}
+                label={{ value: t('home.charts.hourOfDay'), position: 'insideBottomRight', offset: -10 }}
               />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value: any, name: any) => (name === 'sales' ? Currency(Number(value), false) : `${value} transacciones`)}
+                    formatter={(value: any, name: any) =>
+                      name === 'sales' ? Currency(Number(value), false) : `${value} ${t('home.charts.transactionsSuffix')}`
+                    }
                   />
                 }
               />
@@ -978,6 +984,8 @@ const PeakHoursChart = ({ data }: { data: any }) => {
 
 // Tips Over Time Chart
 const TipsOverTimeChart = ({ data }: { data: any }) => {
+  const { t, i18n } = useTranslation()
+  const localeCode = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-ES'
   // Process tips data over time
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
@@ -1002,7 +1010,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
       .map(([date, amount]) => ({
         date,
         tips: amount,
-        formattedDate: new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }),
+        formattedDate: new Date(date).toLocaleDateString(localeCode, { month: 'short', day: 'numeric' }),
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [data?.payments])
@@ -1010,20 +1018,20 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Propinas a lo largo del tiempo</CardTitle>
-        <CardDescription>Evolución de las propinas recibidas</CardDescription>
+        <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
+        <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!tipsOverTime || tipsOverTime.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               tips: {
-                label: 'Propinas',
+                label: t('home.charts.tips'),
                 color: CHART_COLORS[2],
               },
             }}
@@ -1053,25 +1061,26 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 
 // Revenue Trends Chart
 const RevenueTrendsChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const revenueData = data?.revenue || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Tendencias de Ingresos</CardTitle>
-        <CardDescription>Ingresos diarios y crecimiento</CardDescription>
+        <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
+        <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!revenueData || revenueData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               revenue: {
-                label: 'Ingresos',
+                label: t('home.charts.revenue'),
                 color: CHART_COLORS[0],
               },
             }}
@@ -1311,18 +1320,19 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
 
 // Strategic Metric Components
 const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const staffData = data?.staffPerformance || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Eficiencia del Personal</CardTitle>
-        <CardDescription>Top 5 miembros del equipo por ventas</CardDescription>
+        <CardTitle>{t('home.sections.staffEfficiency')}</CardTitle>
+        <CardDescription>{t('home.sections.staffEfficiencyDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!staffData || staffData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1339,7 +1349,9 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-foreground">{Currency(staff.totalSales || 0, false)}</p>
-                  <p className="text-xs text-muted-foreground">{staff.orderCount || 0} órdenes</p>
+                  <p className="text-xs text-muted-foreground">
+                    {staff.orderCount || 0} {t('home.charts.orders')}
+                  </p>
                 </div>
               </div>
             ))}
@@ -1351,18 +1363,19 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
 }
 
 const TableEfficiencyMetrics = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const tableData = data?.tablePerformance || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Eficiencia de Mesas</CardTitle>
-        <CardDescription>Top 5 mesas por ingresos</CardDescription>
+        <CardTitle>{t('home.sections.tableEfficiency')}</CardTitle>
+        <CardDescription>{t('home.sections.tableEfficiencyDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!tableData || tableData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1373,13 +1386,19 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
                     <span className="text-xs font-medium text-green-600 dark:text-green-400">{table.tableNumber}</span>
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">Mesa {table.tableNumber}</p>
-                    <p className="text-sm text-muted-foreground">{table.orderCount || 0} órdenes</p>
+                    <p className="font-medium text-foreground">
+                      {t('home.table', { defaultValue: 'Mesa' })} {table.tableNumber}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {table.orderCount || 0} {t('home.charts.orders')}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-foreground">{Currency(table.totalRevenue || 0, false)}</p>
-                  <p className="text-xs text-muted-foreground">{Currency(table.avgTicket || 0, false)} promedio</p>
+                  <p className="text-xs text-muted-foreground">
+                    {Currency(table.avgTicket || 0, false)} {t('home.charts.avg')}
+                  </p>
                 </div>
               </div>
             ))}
@@ -1391,18 +1410,19 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
 }
 
 const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const productData = data?.productProfitability || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Análisis de Productos</CardTitle>
-        <CardDescription>Top 5 productos más rentables</CardDescription>
+        <CardTitle>{t('home.sections.productAnalytics')}</CardTitle>
+        <CardDescription>{t('home.sections.productAnalyticsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!productData || productData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1414,12 +1434,16 @@ const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
                   </div>
                   <div>
                     <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{product.quantity || 0} vendidos</p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.quantity || 0} {t('home.charts.sold')}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{Currency(product.totalRevenue || 0, false)}</p>
-                  <p className="text-xs text-muted-foreground">{(product.marginPercentage || 0).toFixed(1)}% margen</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(product.marginPercentage || 0).toFixed(1)}% {t('home.charts.margin')}
+                  </p>
                 </div>
               </div>
             ))}

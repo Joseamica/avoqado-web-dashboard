@@ -33,10 +33,12 @@ import { FeatureCategory, FeatureStatus, PricingModel, type PlatformFeature } fr
 import { Currency } from '@/utils/currency'
 import { superadminAPI } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from 'react-i18next'
 
 // Data now fetched from API via React Query
 
 const FeatureManagement: React.FC = () => {
+  const { t } = useTranslation()
   const { data: features = [], isLoading } = useQuery({
     queryKey: ['superadmin-features'],
     queryFn: superadminAPI.getAllFeatures,
@@ -86,22 +88,26 @@ const FeatureManagement: React.FC = () => {
   const getPricingDisplay = (feature: PlatformFeature) => {
     switch (feature.pricingModel) {
       case PricingModel.FREE:
-        return 'Free'
+        return t('featureMgmt.pricing.free')
       case PricingModel.FIXED:
         return Currency(feature.basePrice || 0)
       case PricingModel.USAGE_BASED:
         return `${Currency(feature.usagePrice || 0)}/${feature.usageUnit}`
       case PricingModel.TIERED:
-        return `From ${Currency(feature.basePrice || 0)}`
+        return `${t('featureMgmt.pricing.from')} ${Currency(feature.basePrice || 0)}`
       default:
-        return 'Contact Sales'
+        return t('featureMgmt.pricing.contactSales')
     }
   }
+
+  const getCategoryLabel = (category: FeatureCategory) => t(`categories.${category}`)
+
+  const getStatusLabel = (status: FeatureStatus) => t(`featureStatuses.${status}`)
 
   const columns: ColumnDef<PlatformFeature>[] = [
     {
       accessorKey: 'name',
-      header: 'Feature',
+      header: t('featureMgmt.columns.feature'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-lg bg-muted">{getCategoryIcon(row.original.category)}</div>
@@ -114,27 +120,27 @@ const FeatureManagement: React.FC = () => {
     },
     {
       accessorKey: 'category',
-      header: 'Category',
-      cell: ({ row }) => <Badge variant="secondary">{row.original.category}</Badge>,
+      header: t('featureMgmt.columns.category'),
+      cell: ({ row }) => <Badge variant="secondary">{getCategoryLabel(row.original.category)}</Badge>,
     },
     {
       accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => <Badge className={getStatusColor(row.original.status)}>{row.original.status}</Badge>,
+      header: t('featureMgmt.columns.status'),
+      cell: ({ row }) => <Badge className={getStatusColor(row.original.status)}>{getStatusLabel(row.original.status)}</Badge>,
     },
     {
       accessorKey: 'pricing',
-      header: 'Pricing',
+      header: t('featureMgmt.columns.pricing'),
       cell: ({ row }) => <span className="font-medium">{getPricingDisplay(row.original)}</span>,
     },
     {
       accessorKey: 'isCore',
-      header: 'Type',
-      cell: ({ row }) => <Badge variant={row.original.isCore ? 'default' : 'secondary'}>{row.original.isCore ? 'Core' : 'Add-on'}</Badge>,
+      header: t('featureMgmt.columns.type'),
+      cell: ({ row }) => <Badge variant={row.original.isCore ? 'default' : 'secondary'}>{row.original.isCore ? t('featureMgmt.core') : t('featureMgmt.addOn')}</Badge>,
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('featureMgmt.columns.actions'),
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -145,20 +151,20 @@ const FeatureManagement: React.FC = () => {
           <DropdownMenuContent align="end">
             <DropdownMenuItem>
               <Eye className="mr-2 h-4 w-4" />
-              View Details
+              {t('featureMgmt.dropdown.viewDetails')}
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Pencil className="mr-2 h-4 w-4" />
-              Edit Feature
+              {t('featureMgmt.dropdown.editFeature')}
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              Manage Venues
+              {t('featureMgmt.dropdown.manageVenues')}
             </DropdownMenuItem>
             {!row.original.isCore && (
               <DropdownMenuItem className="text-red-600">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete Feature
+                {t('featureMgmt.dropdown.deleteFeature')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -172,20 +178,20 @@ const FeatureManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Feature Management</h1>
-          <p className="text-muted-foreground">Manage platform features and venue access controls</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('featureMgmt.title')}</h1>
+          <p className="text-muted-foreground">{t('featureMgmt.subtitle')}</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="w-4 h-4 mr-2" />
-              Create Feature
+              {t('featureMgmt.create')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Create New Feature</DialogTitle>
-              <DialogDescription>Add a new feature to the platform that venues can subscribe to.</DialogDescription>
+              <DialogTitle>{t('featureMgmt.createTitle')}</DialogTitle>
+              <DialogDescription>{t('featureMgmt.createDesc')}</DialogDescription>
             </DialogHeader>
             <CreateFeatureForm onClose={() => setIsCreateDialogOpen(false)} />
           </DialogContent>
@@ -196,45 +202,45 @@ const FeatureManagement: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Features</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('featureMgmt.stats.total')}</CardTitle>
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{features.length}</div>
-            <p className="text-xs text-muted-foreground">{features.filter(f => f.isCore).length} core features</p>
+            <p className="text-xs text-muted-foreground">{features.filter(f => f.isCore).length} {t('featureMgmt.stats.coreCountSuffix')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Features</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('featureMgmt.stats.active')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{features.filter(f => f.status === FeatureStatus.ACTIVE).length}</div>
-            <p className="text-xs text-muted-foreground">{features.filter(f => f.status === FeatureStatus.BETA).length} in beta</p>
+            <p className="text-xs text-muted-foreground">{features.filter(f => f.status === FeatureStatus.BETA).length} {t('featureMgmt.stats.betaCountSuffix')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Revenue per Feature</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('featureMgmt.stats.avgRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$8,450</div>
-            <p className="text-xs text-muted-foreground">+12.5% from last month</p>
+            <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.avgRevenueChange')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Feature Adoption</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('featureMgmt.stats.adoption')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">67%</div>
-            <p className="text-xs text-muted-foreground">Average adoption rate</p>
+            <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.adoptionAvg')}</p>
           </CardContent>
         </Card>
       </div>
@@ -242,31 +248,31 @@ const FeatureManagement: React.FC = () => {
       {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <CardTitle>Platform Features</CardTitle>
-          <CardDescription>Manage and monitor all platform features available to venues</CardDescription>
+          <CardTitle>{t('featureMgmt.tableTitle')}</CardTitle>
+          <CardDescription>{t('featureMgmt.tableDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex-1">
-              <Input placeholder="Search features..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <Input placeholder={t('featureMgmt.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by category" />
+                <SelectValue placeholder={t('featureMgmt.filterByCategory')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value={FeatureCategory.CORE}>Core</SelectItem>
-                <SelectItem value={FeatureCategory.AI}>AI</SelectItem>
-                <SelectItem value={FeatureCategory.ANALYTICS}>Analytics</SelectItem>
-                <SelectItem value={FeatureCategory.INTEGRATIONS}>Integrations</SelectItem>
-                <SelectItem value={FeatureCategory.PREMIUM}>Premium</SelectItem>
+                <SelectItem value="all">{t('featureMgmt.allCategories')}</SelectItem>
+                <SelectItem value={FeatureCategory.CORE}>{t('categories.CORE')}</SelectItem>
+                <SelectItem value={FeatureCategory.AI}>{t('categories.AI')}</SelectItem>
+                <SelectItem value={FeatureCategory.ANALYTICS}>{t('categories.ANALYTICS')}</SelectItem>
+                <SelectItem value={FeatureCategory.INTEGRATIONS}>{t('categories.INTEGRATIONS')}</SelectItem>
+                <SelectItem value={FeatureCategory.PREMIUM}>{t('categories.PREMIUM')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {isLoading ? (
-            <div className="py-8 text-sm text-muted-foreground">Loading features...</div>
+            <div className="py-8 text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : (
             <DataTable
               columns={columns}
@@ -286,6 +292,7 @@ const FeatureManagement: React.FC = () => {
 const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -298,13 +305,13 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const createFeature = useMutation({
     mutationFn: superadminAPI.createFeature,
     onSuccess: data => {
-      toast({ title: 'Feature created', description: `${data.name} has been created.` })
+      toast({ title: t('featureMgmt.toast.createdTitle'), description: `${data.name} ${t('featureMgmt.toast.createdDescPrefix')}` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-features'] })
       onClose()
     },
     onError: (error: any) => {
       toast({
-        title: 'Failed to create feature',
+        title: t('featureMgmt.toast.createFailed'),
         description: error?.response?.data?.message || error.message,
         variant: 'destructive' as any,
       })
@@ -327,47 +334,47 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="name">Feature Name</Label>
-          <Input id="name" placeholder="AI Chatbot" value={name} onChange={e => setName(e.target.value)} />
+          <Label htmlFor="name">{t('featureMgmt.form.nameLabel')}</Label>
+          <Input id="name" placeholder={t('featureMgmt.form.namePlaceholder')} value={name} onChange={e => setName(e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="code">Feature Code</Label>
-          <Input id="code" placeholder="ai_chatbot" value={code} onChange={e => setCode(e.target.value)} />
+          <Label htmlFor="code">{t('featureMgmt.form.codeLabel')}</Label>
+          <Input id="code" placeholder={t('featureMgmt.form.codePlaceholder')} value={code} onChange={e => setCode(e.target.value)} />
         </div>
       </div>
 
       <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" placeholder="Describe what this feature does..." value={description} onChange={e => setDescription(e.target.value)} />
+        <Label htmlFor="description">{t('featureMgmt.form.descLabel')}</Label>
+        <Textarea id="description" placeholder={t('featureMgmt.form.descPlaceholder')} value={description} onChange={e => setDescription(e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="category">Category</Label>
+          <Label htmlFor="category">{t('featureMgmt.form.categoryLabel')}</Label>
           <Select value={category} onValueChange={value => setCategory(value as FeatureCategory)}>
             <SelectTrigger>
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder={t('featureMgmt.form.categoryPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={FeatureCategory.AI}>AI</SelectItem>
-              <SelectItem value={FeatureCategory.ANALYTICS}>Analytics</SelectItem>
-              <SelectItem value={FeatureCategory.INTEGRATIONS}>Integrations</SelectItem>
-              <SelectItem value={FeatureCategory.PREMIUM}>Premium</SelectItem>
-              <SelectItem value={FeatureCategory.CORE}>Core</SelectItem>
+              <SelectItem value={FeatureCategory.AI}>{t('categories.AI')}</SelectItem>
+              <SelectItem value={FeatureCategory.ANALYTICS}>{t('categories.ANALYTICS')}</SelectItem>
+              <SelectItem value={FeatureCategory.INTEGRATIONS}>{t('categories.INTEGRATIONS')}</SelectItem>
+              <SelectItem value={FeatureCategory.PREMIUM}>{t('categories.PREMIUM')}</SelectItem>
+              <SelectItem value={FeatureCategory.CORE}>{t('categories.CORE')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="pricing">Pricing Model</Label>
+          <Label htmlFor="pricing">{t('featureMgmt.form.pricingLabel')}</Label>
           <Select value={pricingModel} onValueChange={value => setPricingModel(value as PricingModel)}>
             <SelectTrigger>
-              <SelectValue placeholder="Select pricing" />
+              <SelectValue placeholder={t('featureMgmt.form.pricingPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={PricingModel.FREE}>Free</SelectItem>
-              <SelectItem value={PricingModel.FIXED}>Fixed Price</SelectItem>
-              <SelectItem value={PricingModel.USAGE_BASED}>Usage Based</SelectItem>
-              <SelectItem value={PricingModel.TIERED}>Tiered</SelectItem>
+              <SelectItem value={PricingModel.FREE}>{t('featureMgmt.pricing.free')}</SelectItem>
+              <SelectItem value={PricingModel.FIXED}>{t('featureMgmt.pricing.fixed')}</SelectItem>
+              <SelectItem value={PricingModel.USAGE_BASED}>{t('featureMgmt.pricing.usageBased')}</SelectItem>
+              <SelectItem value={PricingModel.TIERED}>{t('featureMgmt.pricing.tiered')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -375,21 +382,21 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="price">Base Price ($)</Label>
+          <Label htmlFor="price">{t('featureMgmt.form.basePriceLabel')}</Label>
           <Input id="price" type="number" placeholder="49.99" value={basePrice} onChange={e => setBasePrice(e.target.value)} />
         </div>
         <div className="flex items-center space-x-2 pt-6">
           <Switch id="core" checked={isCore} onCheckedChange={setIsCore} />
-          <Label htmlFor="core">Core Feature</Label>
+          <Label htmlFor="core">{t('featureMgmt.form.coreLabel')}</Label>
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
-          Cancel
+          {t('featureMgmt.form.cancel')}
         </Button>
         <Button onClick={onSubmit} disabled={createFeature.isPending}>
-          {createFeature.isPending ? 'Creating...' : 'Create Feature'}
+          {createFeature.isPending ? t('featureMgmt.form.creating') : t('featureMgmt.form.submit')}
         </Button>
       </DialogFooter>
     </div>

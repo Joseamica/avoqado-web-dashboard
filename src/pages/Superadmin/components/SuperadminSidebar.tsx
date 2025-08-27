@@ -16,38 +16,41 @@ import {
   Headphones
 } from 'lucide-react'
 
+import { useTranslation } from 'react-i18next'
+
 const SuperadminSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const navigationItems = [
     {
-      title: 'Resumen',
+      title: t('sidebar.summary'),
       items: [
-        { name: 'Panel Principal', href: '/superadmin', icon: LayoutDashboard },
-        { name: 'Analíticas', href: '/superadmin/analytics', icon: BarChart3 },
-        { name: 'Alertas', href: '/superadmin/alerts', icon: AlertTriangle },
+        { name: t('sidebar.main'), href: '/superadmin', icon: LayoutDashboard },
+        { name: t('sidebar.analytics'), href: '/superadmin/analytics', icon: BarChart3 },
+        { name: t('sidebar.alerts'), href: '/superadmin/alerts', icon: AlertTriangle },
       ]
     },
     {
-      title: 'Gestión de Negocio',
+      title: t('sidebar.business'),
       items: [
-        { name: 'Locales', href: '/superadmin/venues', icon: Building2 },
-        { name: 'Ingresos', href: '/superadmin/revenue', icon: DollarSign },
-        { name: 'Clientes', href: '/superadmin/customers', icon: Users },
-        { name: 'Crecimiento', href: '/superadmin/growth', icon: TrendingUp },
+        { name: t('sidebar.venues'), href: '/superadmin/venues', icon: Building2 },
+        { name: t('sidebar.revenue'), href: '/superadmin/revenue', icon: DollarSign },
+        { name: t('sidebar.customers'), href: '/superadmin/customers', icon: Users },
+        { name: t('sidebar.growth'), href: '/superadmin/growth', icon: TrendingUp },
       ]
     },
     {
-      title: 'Plataforma',
+      title: t('sidebar.platform'),
       items: [
-        { name: 'Funcionalidades', href: '/superadmin/features', icon: Zap },
-        { name: 'Estado del Sistema', href: '/superadmin/system', icon: Shield },
-        { name: 'Reportes', href: '/superadmin/reports', icon: FileText },
-        { name: 'Soporte', href: '/superadmin/support', icon: Headphones },
+        { name: t('sidebar.features'), href: '/superadmin/features', icon: Zap },
+        { name: t('sidebar.system'), href: '/superadmin/system', icon: Shield },
+        { name: t('sidebar.reports'), href: '/superadmin/reports', icon: FileText },
+        { name: t('sidebar.support'), href: '/superadmin/support', icon: Headphones },
       ]
     },
     {
-      title: 'Administración',
+      title: t('sidebar.admin'),
       items: [
-        { name: 'Configuración', href: '/superadmin/settings', icon: Settings },
+        { name: t('sidebar.config'), href: '/superadmin/settings', icon: Settings },
       ]
     }
   ]
@@ -61,8 +64,8 @@ const SuperadminSidebar: React.FC = () => {
             <Shield className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Avoqado</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Panel de Superadmin</p>
+            <h1 className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{t('header.brand')}</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('header.title')}</p>
           </div>
         </div>
       </div>
