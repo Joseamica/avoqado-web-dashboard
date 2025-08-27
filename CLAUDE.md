@@ -178,3 +178,21 @@ Checklist:
 - Use only theme-aware classes
 - Test in both light and dark modes
 - Provide dark variants for custom colored elements (blue/green/orange)
+
+### Internationalization (i18n) Policy
+
+All user‑facing text must be internationalized. When adding or modifying any UI, ensure the following:
+
+- Use `react-i18next` with `useTranslation()` and `t('...')` for every user‑visible string. Do not hardcode copy in components.
+- Add translation keys for both English (`en`) and Spanish (`es`) in `src/i18n.ts` under the appropriate group (e.g., `header`, `sidebar`, `dashboard`, `revenue`, `featureMgmt`, `venueMgmt`, `detailsView`, `categories`, `featureStatuses`).
+- Prefer interpolation and pluralization over manual string concatenation (e.g., `t('revenue.features.meta', { count, amount })`).
+- For dynamic labels (statuses, categories, pricing models), map values to translation keys instead of rendering raw enum values.
+- Format dates, numbers, and currency using locale‑aware APIs (`Intl.*`, `date-fns` with the selected locale) based on `i18n.language`.
+- Respect the existing language selector (`src/components/language-switcher.tsx`). Do not duplicate this control.
+
+Pull request checklist (i18n):
+- [ ] All new/changed strings use `t('...')`
+- [ ] Keys added for both `en` and `es` in `src/i18n.ts`
+- [ ] Interpolation/pluralization used where needed
+- [ ] No raw enum or category codes shown to users
+- [ ] Locale‑aware formatting for dates/numbers/currency

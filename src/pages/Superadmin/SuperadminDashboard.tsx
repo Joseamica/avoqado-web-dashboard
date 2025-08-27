@@ -6,32 +6,24 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, Building2, DollarSign, Users, AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { useSuperadminDashboard, useRefreshSuperadminData } from '@/hooks/use-superadmin-queries'
-
-// Helper function to format timestamps
-const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-  
-  if (diffInMinutes < 1) return 'hace menos de un minuto'
-  if (diffInMinutes < 60) return `hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`
-  if (diffInMinutes < 1440) return `hace ${Math.floor(diffInMinutes / 60)} hora${Math.floor(diffInMinutes / 60) > 1 ? 's' : ''}`
-  return `hace ${Math.floor(diffInMinutes / 1440)} día${Math.floor(diffInMinutes / 1440) > 1 ? 's' : ''}`
-}
+import { useTranslation } from 'react-i18next'
 
 // Error component
-const DashboardError: React.FC<{ error: Error | null; refetch: () => void }> = ({ error, refetch }) => (
-  <div className="flex items-center justify-center min-h-96">
-    <div className="text-center">
-      <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-2">Error al Cargar Datos</h3>
-      <p className="text-slate-600 dark:text-slate-400 mb-4">
-        {error?.message || 'Error al cargar los datos del dashboard'}
-      </p>
-      <Button onClick={refetch}>Reintentar</Button>
+const DashboardError: React.FC<{ error: Error | null; refetch: () => void }> = ({ error, refetch }) => {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center justify-center min-h-96">
+      <div className="text-center">
+        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-2">{t('common.errorLoading') || 'Error al Cargar Datos'}</h3>
+        <p className="text-slate-600 dark:text-slate-400 mb-4">
+          {error?.message || t('common.errorLoadingDashboard') || 'Error al cargar los datos del dashboard'}
+        </p>
+        <Button onClick={refetch}>{t('header.retry')}</Button>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 // Loading skeleton component
 const DashboardSkeleton = () => (
@@ -74,6 +66,7 @@ const DashboardSkeleton = () => (
 )
 
 const SuperadminDashboard: React.FC = () => {
+  const { t, i18n } = useTranslation()
   const { 
     data: dashboardData, 
     isLoading, 
@@ -84,6 +77,24 @@ const SuperadminDashboard: React.FC = () => {
   } = useSuperadminDashboard()
   
   const refreshAllData = useRefreshSuperadminData()
+
+  // Helper to format relative timestamps in current language
+  const formatRelative = (timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    if (diffInMinutes < 1) return t('dashboard.recentActivity.relative.lessThanMinute')
+    if (diffInMinutes < 60) {
+      const count = diffInMinutes
+      return t('dashboard.recentActivity.relative.minutes', { count })
+    }
+    if (diffInMinutes < 1440) {
+      const count = Math.floor(diffInMinutes / 60)
+      return t('dashboard.recentActivity.relative.hours', { count })
+    }
+    const count = Math.floor(diffInMinutes / 1440)
+    return t('dashboard.recentActivity.relative.days', { count })
+  }
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -104,13 +115,13 @@ const SuperadminDashboard: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Panel de Control</h1>
-          <p className="text-slate-600 dark:text-slate-400">Monitorea y gestiona todo el ecosistema de Avoqado</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">{t('dashboard.title')}</h1>
+          <p className="text-slate-600 dark:text-slate-400">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Todos los Sistemas Operativos
+            {t('header.systemOperational')}
           </Badge>
           <Button 
             onClick={refreshAllData}
@@ -118,7 +129,7 @@ const SuperadminDashboard: React.FC = () => {
             className="bg-emerald-600 hover:bg-emerald-700 text-primary-foreground"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-            {isFetching ? 'Actualizando...' : 'Actualizar Datos'}
+            {isFetching ? t('dashboard.refreshing') : t('dashboard.refresh')}
           </Button>
         </div>
       </div>
@@ -127,52 +138,52 @@ const SuperadminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.kpis.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Currency(kpis?.totalRevenue || 0)}</div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />+{(kpis?.growthRate || 0).toFixed(1)}% del mes pasado
+              <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />+{(kpis?.growthRate || 0).toFixed(1)}% {t('dashboard.kpis.lastMonthSuffix')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Recurrentes Mensuales</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.kpis.platformRevenue')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Currency(kpis?.monthlyRecurringRevenue || 0)}</div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />
-              +8.2% del mes pasado
+              {t('dashboard.kpis.mrrChangeText')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Locales Activos</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.kpis.activeVenues')}</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(kpis?.activeVenues || 0).toLocaleString()}</div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{(kpis?.totalVenues || 0).toLocaleString()} locales totales</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{(kpis?.totalVenues || 0).toLocaleString()} {t('dashboard.kpis.totalVenuesSuffix')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingreso por Usuario</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.kpis.arpu')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{kpis?.averageRevenuePerUser ? Currency(kpis.averageRevenuePerUser) : 'N/A'}</div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               <TrendingUp className="h-3 w-3 inline mr-1 text-emerald-500" />
-              Ingreso promedio por usuario
+              {t('dashboard.kpis.arpuSubtitle')}
             </p>
           </CardContent>
         </Card>
@@ -182,29 +193,29 @@ const SuperadminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Desglose de Ingresos</CardTitle>
-            <CardDescription>Ingresos de la plataforma por fuente</CardDescription>
+            <CardTitle>{t('dashboard.revenueBreakdown.title')}</CardTitle>
+            <CardDescription>{t('dashboard.revenueBreakdown.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Ingresos por Suscripciones</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.subs')}</span>
                 </div>
                 <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.subscriptionRevenue || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Ingresos por Funcionalidades Premium</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.features')}</span>
                 </div>
                 <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.featureRevenue || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Ingresos por Comisiones</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{t('dashboard.revenueBreakdown.commissions')}</span>
                 </div>
                 <span className="font-medium text-slate-900 dark:text-slate-50">{Currency(kpis?.totalCommissionRevenue || 0)}</span>
               </div>
@@ -214,29 +225,29 @@ const SuperadminDashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Estado del Sistema</CardTitle>
-            <CardDescription>Métricas de rendimiento de la plataforma</CardDescription>
+            <CardTitle>{t('dashboard.system.title')}</CardTitle>
+            <CardDescription>{t('dashboard.system.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Estado del Sistema</span>
-                  <span className="text-sm font-medium text-emerald-600">Operativo</span>
+                  <span className="text-sm">{t('dashboard.system.status')}</span>
+                  <span className="text-sm font-medium text-emerald-600">{t('dashboard.system.operational')}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Todos los servicios funcionando</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.allServices')}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 pt-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{(kpis?.activeVenues || 0).toLocaleString()}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Locales Activos</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.activeVenues')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(kpis?.totalUsers || 0).toLocaleString()}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Usuarios Totales</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.system.totalUsers')}</div>
                 </div>
               </div>
             </div>
@@ -249,9 +260,9 @@ const SuperadminDashboard: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-emerald-500" />
-            <span>Ingresos de la Plataforma Avoqado</span>
+            <span>{t('dashboard.platformRevenueAnalytics.title')}</span>
           </CardTitle>
-          <CardDescription>Análisis detallado de lo que realmente gana la plataforma</CardDescription>
+          <CardDescription>{t('dashboard.platformRevenueAnalytics.desc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -260,10 +271,10 @@ const SuperadminDashboard: React.FC = () => {
                 {Currency(dashboardData.revenueMetrics?.totalPlatformRevenue || 0)}
               </div>
               <div className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-                Ingresos Totales de Plataforma
+                {t('dashboard.platformRevenueAnalytics.totalPlatform')}
               </div>
               <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                Lo que realmente gana Avoqado
+                {t('dashboard.platformRevenueAnalytics.tagline')}
               </div>
             </div>
             
@@ -272,10 +283,10 @@ const SuperadminDashboard: React.FC = () => {
                 {Currency(dashboardData.revenueMetrics?.totalCommissionRevenue || 0)}
               </div>
               <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                Comisiones por Transacciones
+                {t('dashboard.platformRevenueAnalytics.transCommissions')}
               </div>
               <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                De pagos procesados
+                {t('dashboard.platformRevenueAnalytics.fromPayments')}
               </div>
             </div>
             
@@ -284,10 +295,10 @@ const SuperadminDashboard: React.FC = () => {
                 {Currency(dashboardData.revenueMetrics?.subscriptionRevenue || 0)}
               </div>
               <div className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-                Suscripciones de Locales
+                {t('dashboard.platformRevenueAnalytics.venueSubscriptions')}
               </div>
               <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                Cuotas mensuales
+                {t('dashboard.platformRevenueAnalytics.monthlyFees')}
               </div>
             </div>
             
@@ -296,48 +307,48 @@ const SuperadminDashboard: React.FC = () => {
                 {Currency(dashboardData.revenueMetrics?.featureRevenue || 0)}
               </div>
               <div className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-                Funcionalidades Premium
+                {t('dashboard.platformRevenueAnalytics.premiumFeatures')}
               </div>
               <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Features adicionales
+                {t('dashboard.platformRevenueAnalytics.additionalFeatures')}
               </div>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <h4 className="font-medium text-slate-700 dark:text-slate-300">Métricas Financieras</h4>
+              <h4 className="font-medium text-slate-700 dark:text-slate-300">{t('dashboard.platformRevenueAnalytics.financialMetrics')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Ingresos Facturados:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.invoicedRevenue')}:</span>
                   <span className="font-medium">{Currency(dashboardData.revenueMetrics?.invoicedRevenue || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Ingresos Liquidados:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.settledRevenue')}:</span>
                   <span className="font-medium">{Currency(dashboardData.revenueMetrics?.settledRevenue || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Transacciones Procesadas:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.processedTransactions')}:</span>
                   <span className="font-medium">{(dashboardData.revenueMetrics?.transactionCount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
             
             <div className="space-y-3">
-              <h4 className="font-medium text-slate-700 dark:text-slate-300">Proyecciones</h4>
+              <h4 className="font-medium text-slate-700 dark:text-slate-300">{t('dashboard.platformRevenueAnalytics.projections')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Ingreso Promedio por Local:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.avgPerVenue')}:</span>
                   <span className="font-medium">
                     {Currency(kpis?.activeVenues > 0 ? (dashboardData.revenueMetrics?.totalPlatformRevenue || 0) / kpis.activeVenues : 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Locales Nuevos este Mes:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.newVenuesThisMonth')}:</span>
                   <span className="font-medium text-emerald-600 dark:text-emerald-400">+{dashboardData.revenueMetrics?.newVenues || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Tasa de Crecimiento:</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.growthRate')}:</span>
                   <span className={`font-medium ${(kpis?.growthRate || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {(kpis?.growthRate || 0) >= 0 ? '+' : ''}{(kpis?.growthRate || 0).toFixed(1)}%
                   </span>
@@ -352,8 +363,8 @@ const SuperadminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Actividad Reciente</CardTitle>
-            <CardDescription>Últimos eventos de la plataforma</CardDescription>
+            <CardTitle>{t('dashboard.recentActivity.title')}</CardTitle>
+            <CardDescription>{t('dashboard.recentActivity.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -372,12 +383,12 @@ const SuperadminDashboard: React.FC = () => {
                   ></div>
                   <div className="flex-1">
                     <p className="text-sm text-slate-900 dark:text-slate-50">{activity.description}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatTimestamp(activity.timestamp)}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatRelative(activity.timestamp)}</p>
                   </div>
                 </div>
               )) : (
                 <div className="text-center py-8">
-                  <p className="text-slate-500 dark:text-slate-400">No hay actividad reciente</p>
+                  <p className="text-slate-500 dark:text-slate-400">{t('dashboard.recentActivity.empty')}</p>
                 </div>
               )}
             </div>
@@ -386,8 +397,8 @@ const SuperadminDashboard: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Alertas y Notificaciones</CardTitle>
-            <CardDescription>Alertas importantes del sistema</CardDescription>
+            <CardTitle>{t('dashboard.alerts.title')}</CardTitle>
+            <CardDescription>{t('dashboard.alerts.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -414,7 +425,7 @@ const SuperadminDashboard: React.FC = () => {
               )) : (
                 <div className="text-center py-8">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-slate-500 dark:text-slate-400">No hay alertas activas</p>
+                  <p className="text-slate-500 dark:text-slate-400">{t('dashboard.alerts.empty')}</p>
                 </div>
               )}
             </div>
@@ -425,8 +436,8 @@ const SuperadminDashboard: React.FC = () => {
       {/* Top Performing Venues */}
       <Card>
         <CardHeader>
-          <CardTitle>Locales con Mejor Rendimiento</CardTitle>
-          <CardDescription>Locales que generan más ingresos este mes</CardDescription>
+          <CardTitle>{t('dashboard.topVenues.title')}</CardTitle>
+          <CardDescription>{t('dashboard.topVenues.desc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -438,11 +449,11 @@ const SuperadminDashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-medium text-slate-900 dark:text-slate-50">{venue.name}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Ingresos: {Currency(venue.revenue)}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.topVenues.revenue')} {Currency(venue.revenue)}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-slate-900 dark:text-slate-50">Comisión: {Currency(venue.commission)}</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{t('dashboard.topVenues.commission')} {Currency(venue.commission)}</p>
                   <p className={`text-sm font-medium ${venue.growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                     {venue.growth >= 0 ? '+' : ''}
                     {venue.growth}%
@@ -451,7 +462,7 @@ const SuperadminDashboard: React.FC = () => {
               </div>
             )) : (
               <div className="text-center py-8">
-                <p className="text-slate-500 dark:text-slate-400">No hay datos de locales disponibles</p>
+                <p className="text-slate-500 dark:text-slate-400">{t('dashboard.topVenues.empty')}</p>
               </div>
             )}
           </div>

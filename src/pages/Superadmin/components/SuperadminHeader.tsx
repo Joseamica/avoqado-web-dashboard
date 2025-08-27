@@ -14,6 +14,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSuperadminNotificationData } from '@/hooks/use-superadmin-queries'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from '@/components/language-switcher'
 
 // Helper function to format notification timestamps
 const formatNotificationTime = (timestamp: string) => {
@@ -30,6 +32,7 @@ const formatNotificationTime = (timestamp: string) => {
 const SuperadminHeader: React.FC = () => {
   const { user, logout, allVenues } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   
   // Usar TanStack Query para las notificaciones
   const { 
@@ -53,10 +56,10 @@ const SuperadminHeader: React.FC = () => {
         {/* Left side - Title and System Status */}
         <div className="flex items-center space-x-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Panel de Superadministrador</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('header.title')}</h2>
             <div className="flex items-center space-x-2 mt-1">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Todos los Sistemas Operativos</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">{t('header.systemOperational')}</span>
             </div>
           </div>
         </div>
@@ -66,7 +69,7 @@ const SuperadminHeader: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 w-4 h-4" />
             <Input
-              placeholder="Buscar locales, funcionalidades, usuarios..."
+              placeholder={t('header.searchPlaceholder')}
               className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400"
             />
           </div>
@@ -83,9 +86,12 @@ const SuperadminHeader: React.FC = () => {
             disabled={!allVenues || allVenues.length === 0}
           >
             <Building2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Panel de Local</span>
+            <span className="hidden sm:inline">{t('header.venuePanel')}</span>
             <ArrowRight className="w-3 h-3" />
           </Button>
+
+          {/* Language Switcher */}
+          <LanguageSwitcher />
 
           {/* Notifications */}
           <DropdownMenu>
@@ -105,7 +111,7 @@ const SuperadminHeader: React.FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 p-0">
               <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50">Notificaciones</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-slate-50">{t('header.notifications')}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {unreadCount > 0 
                     ? `Tienes ${unreadCount} notificación${unreadCount !== 1 ? 'es' : ''} sin leer`
@@ -129,9 +135,9 @@ const SuperadminHeader: React.FC = () => {
                   </div>
                 ) : isError ? (
                   <div className="text-center py-8">
-                    <p className="text-slate-500 dark:text-slate-400 mb-2">Error al cargar notificaciones</p>
+                    <p className="text-slate-500 dark:text-slate-400 mb-2">{t('header.notificationsError')}</p>
                     <Button variant="ghost" size="sm" onClick={() => refetch()} className="text-xs">
-                      Reintentar
+                      {t('header.retry')}
                     </Button>
                   </div>
                 ) : notifications.length > 0 ? (
@@ -152,19 +158,19 @@ const SuperadminHeader: React.FC = () => {
                           <p className="text-xs text-slate-600 dark:text-slate-400">{notification.message}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{formatNotificationTime(notification.createdAt)}</p>
                         </div>
-                        {!notification.isRead && <div className="w-2 h-2 bg-red-500 rounded-full" title="No leído"></div>}
+                        {!notification.isRead && <div className="w-2 h-2 bg-red-500 rounded-full" title={t('header.unreadTooltip')}></div>}
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-slate-500 dark:text-slate-400">No hay notificaciones</p>
+                    <p className="text-slate-500 dark:text-slate-400">{t('header.noNotifications')}</p>
                   </div>
                 )}
               </div>
               <div className="p-3 border-t border-slate-200 dark:border-slate-700">
                 <Button variant="ghost" className="w-full text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50">
-                  Ver todas las notificaciones
+                  {t('header.seeAllNotifications')}
                 </Button>
               </div>
             </DropdownMenuContent>
@@ -183,21 +189,21 @@ const SuperadminHeader: React.FC = () => {
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
                     {user?.firstName} {user?.lastName}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Superadministrador</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('header.superadmin')}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-slate-700 dark:text-slate-300">Configuración de Cuenta</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-slate-700 dark:text-slate-300">{t('header.accountSettings')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-50">
                 <Settings className="mr-2 h-4 w-4" />
-                Configuración
+                {t('header.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
                 <LogOut className="mr-2 h-4 w-4" />
-                Cerrar sesión
+                {t('header.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

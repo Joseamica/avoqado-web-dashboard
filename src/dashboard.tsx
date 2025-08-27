@@ -12,26 +12,29 @@ import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
 import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
+import LanguageSwitcher from './components/language-switcher'
+import { useTranslation } from 'react-i18next'
 
-// Route path segment to display name mapping
-const routeDisplayNames: Record<string, string> = {
-  payments: 'Pagos',
-  orders: 'Cuentas',
-  home: 'Inicio',
-  menu: 'Menú',
-  settings: 'Configuración',
-  shifts: 'Turnos',
-  categories: 'Categorías',
-  products: 'Productos',
-  users: 'Usuarios',
-  waiters: 'Meseros',
-  tpv: 'Terminales',
-  overview: 'Resumen',
-  menumaker: 'Creación de menú',
-  editvenue: 'Editar restaurante',
+// Route segment -> i18n key mapping
+const routeKeyMap: Record<string, string> = {
+  payments: 'routes.payments',
+  orders: 'routes.orders',
+  home: 'routes.home',
+  menu: 'routes.menu',
+  settings: 'routes.settings',
+  shifts: 'routes.shifts',
+  categories: 'routes.categories',
+  products: 'routes.products',
+  users: 'routes.users',
+  waiters: 'routes.waiters',
+  tpv: 'routes.tpv',
+  overview: 'routes.overview',
+  menumaker: 'routes.menumaker',
+  editvenue: 'routes.editvenue',
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
@@ -100,7 +103,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando venue...</p>
+          <p className="mt-4 text-muted-foreground">{t('dashboardShell.loadingVenue')}</p>
         </div>
       </div>
     )
@@ -124,7 +127,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Restaurando acceso al venue...</p>
+            <p className="mt-4 text-muted-foreground">{t('dashboardShell.restoringAccess')}</p>
           </div>
         </div>
       )
@@ -134,9 +137,9 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Acceso Denegado</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t('dashboardShell.accessDenied')}</h2>
           <p className="text-muted-foreground">
-            {isPrivilegedUser ? 'Procesando cambio de venue...' : 'No tienes permisos para acceder a este venue.'}
+            {isPrivilegedUser ? t('dashboardShell.processingChange') : t('dashboardShell.noPermission')}
           </p>
         </div>
       </div>
@@ -169,8 +172,8 @@ export default function Dashboard() {
 
     // Check if we have a predefined display name for this segment
     const lowerSegment = segment.toLowerCase()
-    if (routeDisplayNames[lowerSegment]) {
-      return routeDisplayNames[lowerSegment]
+    if (routeKeyMap[lowerSegment]) {
+      return t(routeKeyMap[lowerSegment])
     }
 
     // Otherwise return the segment as is
@@ -217,11 +220,12 @@ export default function Dashboard() {
             {user?.role === StaffRole.SUPERADMIN && (
               <Button variant="outline" size="sm" onClick={() => navigate('/superadmin')} className="flex items-center space-x-2">
                 <Shield className="w-4 h-4" />
-                <span>Superadmin</span>
+                <span>{t('header.superadmin')}</span>
                 <ArrowLeft className="w-3 h-3" />
               </Button>
             )}
             <NotificationBell />
+            <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </header>

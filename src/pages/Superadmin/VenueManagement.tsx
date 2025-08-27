@@ -48,6 +48,7 @@ import { superadminAPI } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { useNavigate } from 'react-router-dom'
 import { Label } from '@/components/ui/label'
+import { useTranslation } from 'react-i18next'
 
 // Data now fetched from API via React Query
 
@@ -55,6 +56,7 @@ const VenueManagement: React.FC = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ['superadmin-venues'],
     queryFn: superadminAPI.getAllVenues,
@@ -87,6 +89,8 @@ const VenueManagement: React.FC = () => {
     }
   }
 
+  const getStatusLabel = (status: VenueStatus) => t(`venueMgmt.statuses.${status}`)
+
   const getPlanColor = (plan: SubscriptionPlan) => {
     switch (plan) {
       case SubscriptionPlan.STARTER: return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
@@ -105,6 +109,10 @@ const VenueManagement: React.FC = () => {
     }
   }
 
+  const getPaymentStatusLabel = (status: string) => t(`venueMgmt.paymentStatuses.${status}`)
+
+  const getPlanLabel = (plan: SubscriptionPlan) => t(`venueMgmt.planLabels.${plan}`)
+
   const handleApproveVenue = (venue: SuperadminVenue) => {
     setSelectedVenue(venue)
     setIsApprovalDialogOpen(true)
@@ -118,14 +126,14 @@ const VenueManagement: React.FC = () => {
   const approveMutation = useMutation({
     mutationFn: (venueId: string) => superadminAPI.approveVenue(venueId, reason || undefined),
     onSuccess: () => {
-      toast({ title: 'Venue approved', description: `${selectedVenue?.name} has been approved.` })
+      toast({ title: t('venueMgmt.toasts.approveSuccessTitle'), description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.approved')}` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsApprovalDialogOpen(false)
       setReason('')
     },
     onError: (error: any) => {
       toast({
-        title: 'Failed to approve venue',
+        title: t('venueMgmt.toasts.approveFailedTitle'),
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
@@ -133,16 +141,16 @@ const VenueManagement: React.FC = () => {
   })
 
   const suspendMutation = useMutation({
-    mutationFn: (venueId: string) => superadminAPI.suspendVenue(venueId, reason || 'No reason provided'),
+    mutationFn: (venueId: string) => superadminAPI.suspendVenue(venueId, reason || t('venueMgmt.dialogs.suspendReasonPlaceholder')),
     onSuccess: () => {
-      toast({ title: 'Venue suspended', description: `${selectedVenue?.name} has been suspended.` })
+      toast({ title: t('venueMgmt.toasts.suspendSuccessTitle'), description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.suspended')}` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsSuspendDialogOpen(false)
       setReason('')
     },
     onError: (error: any) => {
       toast({
-        title: 'Failed to suspend venue',
+        title: t('venueMgmt.toasts.suspendFailedTitle'),
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
@@ -152,7 +160,7 @@ const VenueManagement: React.FC = () => {
   const columns: ColumnDef<SuperadminVenue>[] = [
     {
       accessorKey: 'name',
-      header: 'Venue',
+      header: t('venueMgmt.columns.venue'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
@@ -167,49 +175,49 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('venueMgmt.columns.status'),
       cell: ({ row }) => (
         <Badge className={getStatusColor(row.original.status)}>
-          {row.original.status}
+          {getStatusLabel(row.original.status)}
         </Badge>
       ),
     },
     {
       accessorKey: 'subscriptionPlan',
-      header: 'Plan',
+      header: t('venueMgmt.columns.subscriptionPlan'),
       cell: ({ row }) => (
         <Badge className={getPlanColor(row.original.subscriptionPlan)}>
-          {row.original.subscriptionPlan}
+          {getPlanLabel(row.original.subscriptionPlan)}
         </Badge>
       ),
     },
     {
       accessorKey: 'monthlyRevenue',
-      header: 'Monthly Revenue',
+      header: t('venueMgmt.columns.monthlyRevenue'),
       cell: ({ row }) => (
         <div className="font-medium">{Currency(row.original.monthlyRevenue)}</div>
       ),
     },
     {
       accessorKey: 'billing.paymentStatus',
-      header: 'Payment',
+      header: t('venueMgmt.columns.payment'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
           {getPaymentStatusIcon(row.original.billing.paymentStatus)}
-          <span className="text-sm">{row.original.billing.paymentStatus}</span>
+          <span className="text-sm">{getPaymentStatusLabel(row.original.billing.paymentStatus)}</span>
         </div>
       ),
     },
     {
       accessorKey: 'analytics.activeUsers',
-      header: 'Users',
+      header: t('venueMgmt.columns.users'),
       cell: ({ row }) => (
         <span className="text-sm">{row.original.analytics.activeUsers}</span>
       ),
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('venueMgmt.columns.actions'),
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -220,26 +228,26 @@ const VenueManagement: React.FC = () => {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => handleViewDetails(row.original)}>
               <Eye className="mr-2 h-4 w-4" />
-              View Details
+              {t('venueMgmt.dropdown.viewDetails')}
             </DropdownMenuItem>
             {row.original.status === VenueStatus.PENDING && (
               <DropdownMenuItem onClick={() => handleApproveVenue(row.original)}>
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Approve Venue
+                {t('venueMgmt.dropdown.approve')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => navigate(`/admin/venues/${row.original.id}`)}>
               <Settings className="mr-2 h-4 w-4" />
-              Manage Features
+              {t('venueMgmt.dropdown.manageFeatures')}
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Zap className="mr-2 h-4 w-4" />
-              View Analytics
+              {t('venueMgmt.dropdown.viewAnalytics')}
             </DropdownMenuItem>
             {row.original.status === VenueStatus.ACTIVE && (
               <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedVenue(row.original); setIsSuspendDialogOpen(true) }}>
                 <XCircle className="mr-2 h-4 w-4" />
-                Suspend Venue
+                {t('venueMgmt.dropdown.suspend')}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -262,12 +270,8 @@ const VenueManagement: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Venue Management
-          </h1>
-          <p className="text-muted-foreground">
-            Monitor and manage all venues on the platform
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">{t('venueMgmt.title')}</h1>
+          <p className="text-muted-foreground">{t('venueMgmt.subtitle')}</p>
         </div>
       </div>
 
@@ -275,55 +279,51 @@ const VenueManagement: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Currency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              Commission: {Currency(totalCommission)}
+              {t('venueMgmt.stats.commissionPrefix')} {Currency(totalCommission)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Venues</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.activeVenues')}</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeVenues}</div>
             <p className="text-xs text-muted-foreground">
-              {venues.length} total venues
+              {venues.length} {t('venueMgmt.stats.totalVenuesSuffix')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.pendingApprovals')}</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingApprovals}</div>
-            <p className="text-xs text-muted-foreground">
-              Require action
-            </p>
+            <p className="text-xs text-muted-foreground">{t('venueMgmt.stats.requireAction')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Revenue per Venue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.avgRevenue')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {Currency(totalRevenue / (activeVenues || 1))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Per active venue
-            </p>
+            <p className="text-xs text-muted-foreground">{t('venueMgmt.stats.perActiveVenue')}</p>
           </CardContent>
         </Card>
       </div>
@@ -331,10 +331,8 @@ const VenueManagement: React.FC = () => {
       {/* Venues Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Venues</CardTitle>
-          <CardDescription>
-            Manage venue registrations, subscriptions, and status
-          </CardDescription>
+          <CardTitle>{t('venueMgmt.tableTitle')}</CardTitle>
+          <CardDescription>{t('venueMgmt.tableDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}
@@ -342,7 +340,7 @@ const VenueManagement: React.FC = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search venues, owners, or organizations..."
+                placeholder={t('venueMgmt.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -350,20 +348,20 @@ const VenueManagement: React.FC = () => {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
+                <SelectValue placeholder={t('venueMgmt.filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value={VenueStatus.ACTIVE}>Active</SelectItem>
-                <SelectItem value={VenueStatus.PENDING}>Pending</SelectItem>
-                <SelectItem value={VenueStatus.SUSPENDED}>Suspended</SelectItem>
-                <SelectItem value={VenueStatus.TRIAL}>Trial</SelectItem>
+                <SelectItem value="all">{t('venueMgmt.allStatuses')}</SelectItem>
+                <SelectItem value={VenueStatus.ACTIVE}>{t('venueMgmt.statuses.ACTIVE')}</SelectItem>
+                <SelectItem value={VenueStatus.PENDING}>{t('venueMgmt.statuses.PENDING')}</SelectItem>
+                <SelectItem value={VenueStatus.SUSPENDED}>{t('venueMgmt.statuses.SUSPENDED')}</SelectItem>
+                <SelectItem value={VenueStatus.TRIAL}>{t('venueMgmt.statuses.TRIAL')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {isLoading ? (
-            <div className="py-8 text-sm text-muted-foreground">Loading venues...</div>
+            <div className="py-8 text-sm text-muted-foreground">{t('venueMgmt.loadingVenues')}</div>
           ) : (
             <DataTable
               columns={columns}
@@ -380,9 +378,9 @@ const VenueManagement: React.FC = () => {
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Venue Details</DialogTitle>
+            <DialogTitle>{t('venueMgmt.dialogs.detailsTitle')}</DialogTitle>
             <DialogDescription>
-              Complete information about {selectedVenue?.name}
+              {t('venueMgmt.dialogs.detailsDescPrefix')} {selectedVenue?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedVenue && <VenueDetailsView venue={selectedVenue} />}
@@ -393,21 +391,21 @@ const VenueManagement: React.FC = () => {
       <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Approve Venue</DialogTitle>
+            <DialogTitle>{t('venueMgmt.dialogs.approveTitle')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to approve {selectedVenue?.name}?
+              {t('venueMgmt.dialogs.approveDescPrefix')} {selectedVenue?.name}?
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="approve-reason">Reason (optional)</Label>
-            <Input id="approve-reason" placeholder="Optional reason" value={reason} onChange={e => setReason(e.target.value)} />
+            <Label htmlFor="approve-reason">{t('venueMgmt.dialogs.approveReasonLabel')}</Label>
+            <Input id="approve-reason" placeholder={t('venueMgmt.dialogs.approveReasonPlaceholder')} value={reason} onChange={e => setReason(e.target.value)} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
-              Cancel
+              {t('venueMgmt.dialogs.cancel')}
             </Button>
             <Button onClick={() => selectedVenue && approveMutation.mutate(selectedVenue.id)} disabled={approveMutation.isPending}>
-              {approveMutation.isPending ? 'Approving...' : 'Approve Venue'}
+              {approveMutation.isPending ? t('venueMgmt.dialogs.approving') : t('venueMgmt.dialogs.approve')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -417,21 +415,21 @@ const VenueManagement: React.FC = () => {
       <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Suspend Venue</DialogTitle>
+            <DialogTitle>{t('venueMgmt.dialogs.suspendTitle')}</DialogTitle>
             <DialogDescription>
-              Please provide a reason to suspend {selectedVenue?.name}.
+              {t('venueMgmt.dialogs.suspendDescPrefix')} {selectedVenue?.name}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="suspend-reason">Reason</Label>
-            <Input id="suspend-reason" placeholder="Reason for suspension" value={reason} onChange={e => setReason(e.target.value)} />
+            <Label htmlFor="suspend-reason">{t('venueMgmt.dialogs.suspendReasonLabel')}</Label>
+            <Input id="suspend-reason" placeholder={t('venueMgmt.dialogs.suspendReasonPlaceholder')} value={reason} onChange={e => setReason(e.target.value)} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
-              Cancel
+              {t('venueMgmt.dialogs.cancel')}
             </Button>
             <Button variant="destructive" onClick={() => selectedVenue && suspendMutation.mutate(selectedVenue.id)} disabled={suspendMutation.isPending || !reason}>
-              {suspendMutation.isPending ? 'Suspending...' : 'Suspend Venue'}
+              {suspendMutation.isPending ? t('venueMgmt.dialogs.suspending') : t('venueMgmt.dialogs.suspend')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -442,32 +440,33 @@ const VenueManagement: React.FC = () => {
 
 // Venue Details Component
 const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
+  const { t } = useTranslation()
   return (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="billing">Billing</TabsTrigger>
-        <TabsTrigger value="features">Features</TabsTrigger>
-        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsTrigger value="overview">{t('detailsView.tabs.overview')}</TabsTrigger>
+        <TabsTrigger value="billing">{t('detailsView.tabs.billing')}</TabsTrigger>
+        <TabsTrigger value="features">{t('detailsView.tabs.features')}</TabsTrigger>
+        <TabsTrigger value="analytics">{t('detailsView.tabs.analytics')}</TabsTrigger>
       </TabsList>
       
       <TabsContent value="overview" className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="font-medium mb-2">Venue Information</h3>
+            <h3 className="font-medium mb-2">{t('detailsView.venueInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>Name:</strong> {venue.name}</div>
-              <div><strong>Slug:</strong> {venue.slug}</div>
-              <div><strong>Status:</strong> {venue.status}</div>
-              <div><strong>Plan:</strong> {venue.subscriptionPlan}</div>
+              <div><strong>{t('detailsView.venueInfo.name')}:</strong> {venue.name}</div>
+              <div><strong>{t('detailsView.venueInfo.slug')}:</strong> {venue.slug}</div>
+              <div><strong>{t('detailsView.venueInfo.status')}:</strong> {venue.status}</div>
+              <div><strong>{t('detailsView.venueInfo.plan')}:</strong> {venue.subscriptionPlan}</div>
             </div>
           </div>
           <div>
-            <h3 className="font-medium mb-2">Owner Information</h3>
+            <h3 className="font-medium mb-2">{t('detailsView.ownerInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>Name:</strong> {venue.owner.firstName} {venue.owner.lastName}</div>
-              <div><strong>Email:</strong> {venue.owner.email}</div>
-              <div><strong>Phone:</strong> {venue.owner.phone || 'N/A'}</div>
+              <div><strong>{t('detailsView.ownerInfo.name')}:</strong> {venue.owner.firstName} {venue.owner.lastName}</div>
+              <div><strong>{t('detailsView.ownerInfo.email')}:</strong> {venue.owner.email}</div>
+              <div><strong>{t('detailsView.ownerInfo.phone')}:</strong> {venue.owner.phone || t('detailsView.ownerInfo.na')}</div>
             </div>
           </div>
         </div>
@@ -476,21 +475,21 @@ const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
       <TabsContent value="billing" className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="font-medium mb-2">Billing Information</h3>
+            <h3 className="font-medium mb-2">{t('detailsView.billingInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>Subscription Fee:</strong> {Currency(venue.billing.monthlySubscriptionFee)}</div>
-              <div><strong>Features Cost:</strong> {Currency(venue.billing.additionalFeaturesCost)}</div>
-              <div><strong>Total Monthly:</strong> {Currency(venue.billing.totalMonthlyBill)}</div>
-              <div><strong>Payment Status:</strong> {venue.billing.paymentStatus}</div>
+              <div><strong>{t('detailsView.billingInfo.subscriptionFee')}:</strong> {Currency(venue.billing.monthlySubscriptionFee)}</div>
+              <div><strong>{t('detailsView.billingInfo.featuresCost')}:</strong> {Currency(venue.billing.additionalFeaturesCost)}</div>
+              <div><strong>{t('detailsView.billingInfo.totalMonthly')}:</strong> {Currency(venue.billing.totalMonthlyBill)}</div>
+              <div><strong>{t('detailsView.billingInfo.paymentStatus')}:</strong> {venue.billing.paymentStatus}</div>
             </div>
           </div>
           <div>
-            <h3 className="font-medium mb-2">Revenue Information</h3>
+            <h3 className="font-medium mb-2">{t('detailsView.revenueInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>Monthly Revenue:</strong> {Currency(venue.monthlyRevenue)}</div>
-              <div><strong>Total Revenue:</strong> {Currency(venue.totalRevenue)}</div>
-              <div><strong>Commission Rate:</strong> {venue.commissionRate}%</div>
-              <div><strong>Commission Earned:</strong> {Currency(venue.monthlyRevenue * venue.commissionRate / 100)}</div>
+              <div><strong>{t('detailsView.revenueInfo.monthlyRevenue')}:</strong> {Currency(venue.monthlyRevenue)}</div>
+              <div><strong>{t('detailsView.revenueInfo.totalRevenue')}:</strong> {Currency(venue.totalRevenue)}</div>
+              <div><strong>{t('detailsView.revenueInfo.commissionRate')}:</strong> {venue.commissionRate}%</div>
+              <div><strong>{t('detailsView.revenueInfo.commissionEarned')}:</strong> {Currency(venue.monthlyRevenue * venue.commissionRate / 100)}</div>
             </div>
           </div>
         </div>
@@ -498,18 +497,18 @@ const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
       
       <TabsContent value="features">
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Feature management coming soon...</p>
+          <p className="text-muted-foreground">{t('detailsView.featuresComingSoon')}</p>
         </div>
       </TabsContent>
       
       <TabsContent value="analytics">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="font-medium mb-2">Performance Metrics</h3>
+            <h3 className="font-medium mb-2">{t('detailsView.analytics.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>Monthly Transactions:</strong> {venue.analytics.monthlyTransactions.toLocaleString()}</div>
-              <div><strong>Average Order Value:</strong> {Currency(venue.analytics.averageOrderValue)}</div>
-              <div><strong>Active Users:</strong> {venue.analytics.activeUsers}</div>
+              <div><strong>{t('detailsView.analytics.monthlyTransactions')}:</strong> {venue.analytics.monthlyTransactions.toLocaleString()}</div>
+              <div><strong>{t('detailsView.analytics.avgOrderValue')}:</strong> {Currency(venue.analytics.averageOrderValue)}</div>
+              <div><strong>{t('detailsView.analytics.activeUsers')}:</strong> {venue.analytics.activeUsers}</div>
             </div>
           </div>
         </div>
