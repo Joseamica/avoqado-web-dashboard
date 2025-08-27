@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, UploadCloud, ImageIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
@@ -15,6 +17,8 @@ import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 
 export default function Products() {
+  const { t } = useTranslation()
+  const { i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -44,11 +48,7 @@ export default function Products() {
       // Optimistically update the cache
       queryClient.setQueryData<Product[]>(['products', venueId], old => {
         if (!old) return old
-        return old.map(product => 
-          product.id === productId 
-            ? { ...product, active: status }
-            : product
-        )
+        return old.map(product => (product.id === productId ? { ...product, active: status } : product))
       })
 
       // Return a context object with the snapshotted value
@@ -60,10 +60,10 @@ export default function Products() {
         queryClient.setQueryData(['products', venueId], context.previousProducts)
       }
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       toast({
-        title: `Producto ${data.status ? 'activado' : 'desactivado'}`,
-        description: 'Los cambios se han guardado correctamente.',
+        title: data.status ? t('products.toasts.activated') : t('products.toasts.deactivated'),
+        description: t('products.toasts.saved'),
       })
     },
   })
@@ -73,7 +73,7 @@ export default function Products() {
       id: 'imageUrl',
       accessorKey: 'imageUrl',
       sortDescFirst: true,
-      header: () => <div className=" flex-row-center">Foto</div>,
+      header: () => <div className=" flex-row-center">{t('products.columns.photo')}</div>,
 
       cell: ({ cell, row }) => {
         const imageUrl = cell.getValue() as string
@@ -83,10 +83,10 @@ export default function Products() {
         return (
           <div className="w-12 h-12 overflow-hidden bg-muted rounded">
             {imageUrl && !hasError ? (
-              <img 
-                src={imageUrl} 
-                alt="product" 
-                className="object-cover h-12 w-12" 
+              <img
+                src={imageUrl}
+                alt="product"
+                className="object-cover h-12 w-12"
                 onError={() => setImageErrors(prev => ({ ...prev, [productId]: true }))}
               />
             ) : imageUrl && hasError ? (
@@ -108,7 +108,7 @@ export default function Products() {
       sortDescFirst: true,
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
-          Nombre
+          {t('products.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -123,7 +123,7 @@ export default function Products() {
       sortDescFirst: true,
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
-          Precio
+          {t('products.columns.price')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -137,27 +137,27 @@ export default function Products() {
     {
       id: 'categories',
       accessorKey: 'categories',
-      header: 'Categorías',
+      header: t('products.columns.categories'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
     {
       id: 'modifierGroups',
       accessorKey: 'modifierGroups',
-      header: 'Grupos Modificadores',
+      header: t('products.columns.modifierGroups'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
     {
       id: 'updatedAt',
       accessorKey: 'updatedAt',
-      header: 'Ultima actualización',
+      header: t('products.columns.updatedAt'),
       enableColumnFilter: false,
       cell: ({ cell }) => {
         const updatedAt = cell.getValue() as string
         return (
           <span>
-            {new Date(updatedAt).toLocaleDateString('es-MX', {
+            {new Date(updatedAt).toLocaleDateString(getIntlLocale(i18n.language), {
               day: 'numeric',
               month: 'numeric',
             })}
@@ -207,7 +207,7 @@ export default function Products() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between">
-        <h1 className="text-xl font-semibold">Productos</h1>
+        <h1 className="text-xl font-semibold">{t('products.title')}</h1>
         <Button asChild>
           <Link
             to={`create`}
@@ -216,13 +216,13 @@ export default function Products() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>Nuevo producto</span>
+            <span>{t('products.new')}</span>
           </Link>
         </Button>
       </div>
       <Input
         type="text"
-        placeholder="Buscar..."
+        placeholder={t('common.search')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"

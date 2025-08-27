@@ -7,6 +7,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useProgressiveLoader } from '@/hooks/use-intersection-observer'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Currency } from '@/utils/currency'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/locale'
@@ -132,7 +133,7 @@ const MetricCard = ({
 const Home = () => {
   const { venueId } = useCurrentVenue()
   const { t, i18n } = useTranslation()
-  const localeCode = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-ES'
+  const localeCode = getIntlLocale(i18n.language)
   const dateLocale = i18n.language?.startsWith('fr') ? localeFr : i18n.language?.startsWith('en') ? localeEn : localeEs
   const [exportLoading, setExportLoading] = useState(false)
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
@@ -379,7 +380,7 @@ const Home = () => {
       {/* Header with date range buttons */}
       <div className="sticky top-0 z-10 bg-background border-b border-border shadow-sm p-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('home.title')}</h1>
           <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
             {/* Quick filter buttons */}
             <div className="flex space-x-2">
@@ -389,7 +390,7 @@ const Home = () => {
                 onClick={handleToday}
                 className="whitespace-nowrap"
               >
-                Hoy
+                {t('home.filters.today')}
               </Button>
               <Button
                 size="sm"
@@ -420,7 +421,7 @@ const Home = () => {
 
                 setCompareRange({ from: compareStart, to: compareEnd })
                 setCompareType('custom')
-                setComparisonLabel('período anterior')
+                setComparisonLabel(t('home.comparison.previousPeriod'))
                 setActiveFilter('custom')
               }}
               initialDateFrom={selectedRange.from}
@@ -483,7 +484,7 @@ const Home = () => {
             {/* Key metrics cards - Priority Load */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
-                title="Total ventas"
+                title={t('home.cards.totalSales')}
                 value={isBasicLoading ? null : Currency(totalAmount)}
                 isLoading={isBasicLoading}
                 icon={<DollarIcon />}
@@ -492,7 +493,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title="5 estrellas Google"
+                title={t('home.cards.fiveStars')}
                 value={isBasicLoading ? null : fiveStarReviews}
                 isLoading={isBasicLoading}
                 icon={<StarIcon />}
@@ -501,7 +502,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title="Total propinas"
+                title={t('home.cards.totalTips')}
                 value={isBasicLoading ? null : Currency(tipStats.totalTips, false)}
                 isLoading={isBasicLoading}
                 icon={<TipIcon />}
@@ -510,7 +511,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title="Promedio propinas %"
+                title={t('home.cards.avgTipPercentage')}
                 value={isBasicLoading ? null : `${tipStats.avgTipPercentage}%`}
                 isLoading={isBasicLoading}
                 icon={<PercentIcon />}
@@ -707,6 +708,7 @@ const ProgressiveChartSection = ({
 }) => {
   const [ref, isVisible] = useProgressiveLoader()
   const dashboardService = useMemo(() => new DashboardProgressiveService(venueId), [venueId])
+  const { t } = useTranslation()
 
   const { data, isLoading } = useQuery({
     queryKey: ['chart', chartType, venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
@@ -724,7 +726,7 @@ const ProgressiveChartSection = ({
         skeleton={chartType === CHART_TYPES.BEST_SELLING_PRODUCTS ? <ProductListSkeleton /> : <ChartSkeleton />}
       >
         {/* Render the specific chart based on chartType and data */}
-        {renderChartContent(chartType, data)}
+        {renderChartContent(chartType, data, t)}
       </ProgressiveSection>
     </div>
   )
@@ -744,6 +746,7 @@ const ProgressiveMetricSection = ({
 }) => {
   const [ref, isVisible] = useProgressiveLoader()
   const dashboardService = useMemo(() => new DashboardProgressiveService(venueId), [venueId])
+  const { t } = useTranslation()
 
   const { data, isLoading } = useQuery({
     queryKey: ['metric', metricType, venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
@@ -769,15 +772,15 @@ const ProgressiveMetricSection = ({
         }
       >
         {/* Render the specific metric content based on metricType and data */}
-        {renderMetricContent(metricType, data)}
+        {renderMetricContent(metricType, data, t)}
       </ProgressiveSection>
     </div>
   )
 }
 
 // Helper function to render chart content
-const renderChartContent = (chartType: string, data: any) => {
-  if (!data) return <div>No data available</div>
+const renderChartContent = (chartType: string, data: any, t: (k: string, o?: any) => string) => {
+  if (!data) return <div>{t('home.noData')}</div>
 
   switch (chartType) {
     case CHART_TYPES.BEST_SELLING_PRODUCTS:
@@ -812,7 +815,7 @@ const renderChartContent = (chartType: string, data: any) => {
             <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-muted-foreground">Chart content for {chartType} would be rendered here</div>
+            <div className="p-8 text-center text-muted-foreground">{t('home.chartContent.placeholder', { name: chartType })}</div>
           </CardContent>
         </Card>
       )
@@ -820,8 +823,8 @@ const renderChartContent = (chartType: string, data: any) => {
 }
 
 // Helper function to render metric content
-const renderMetricContent = (metricType: string, data: any) => {
-  if (!data) return <div>No data available</div>
+const renderMetricContent = (metricType: string, data: any, t: (k: string, o?: any) => string) => {
+  if (!data) return <div>{t('home.noData')}</div>
 
   switch (metricType) {
     case 'staff-efficiency':
@@ -840,7 +843,7 @@ const renderMetricContent = (metricType: string, data: any) => {
             <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-muted-foreground">Metric content for {metricType} would be rendered here</div>
+            <div className="p-8 text-center text-muted-foreground">{t('home.metricContent.placeholder', { name: metricType })}</div>
           </CardContent>
         </Card>
       )
@@ -985,7 +988,7 @@ const PeakHoursChart = ({ data }: { data: any }) => {
 // Tips Over Time Chart
 const TipsOverTimeChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
-  const localeCode = i18n.language?.startsWith('fr') ? 'fr-FR' : i18n.language?.startsWith('en') ? 'en-US' : 'es-ES'
+  const localeCode = getIntlLocale(i18n.language)
   // Process tips data over time
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
@@ -1013,7 +1016,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
         formattedDate: new Date(date).toLocaleDateString(localeCode, { month: 'short', day: 'numeric' }),
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [data?.payments])
+  }, [data?.payments, localeCode])
 
   return (
     <Card>
@@ -1110,25 +1113,26 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
 
 // Average Order Value Trends Chart
 const AOVTrendsChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const aovData = data?.aov || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Ticket Promedio</CardTitle>
-        <CardDescription>Valor promedio por orden</CardDescription>
+        <CardTitle>{t('home.aov.title')}</CardTitle>
+        <CardDescription>{t('home.aov.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!aovData || aovData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               aov: {
-                label: 'Ticket Promedio',
+                label: t('home.aov.title'),
                 color: CHART_COLORS[1],
               },
             }}
@@ -1158,25 +1162,26 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
 
 // Order Frequency Chart
 const OrderFrequencyChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const frequencyData = data?.frequency || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Frecuencia de Órdenes</CardTitle>
-        <CardDescription>Número de órdenes por hora</CardDescription>
+        <CardTitle>{t('home.orderFrequency.title')}</CardTitle>
+        <CardDescription>{t('home.orderFrequency.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!frequencyData || frequencyData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               orders: {
-                label: 'Órdenes',
+                label: t('home.charts.ordersLabel'),
                 color: CHART_COLORS[3],
               },
             }}
@@ -1194,7 +1199,7 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
             >
               <CartesianGrid vertical={false} />
               <XAxis dataKey="hour" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} órdenes`} />} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('home.charts.ordersLabel')}`} />} />
               <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1206,29 +1211,30 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
 
 // Customer Satisfaction Chart
 const CustomerSatisfactionChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const satisfactionData = data?.satisfaction || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Satisfacción del Cliente</CardTitle>
-        <CardDescription>Calificaciones promedio y tendencias de reviews</CardDescription>
+        <CardTitle>{t('home.customerSatisfaction.title')}</CardTitle>
+        <CardDescription>{t('home.customerSatisfaction.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!satisfactionData || satisfactionData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               rating: {
-                label: 'Calificación',
+                label: t('home.charts.rating'),
                 color: CHART_COLORS[4],
               },
               reviewCount: {
-                label: 'N° Reviews',
+                label: t('home.charts.reviewCount'),
                 color: CHART_COLORS[5],
               },
             }}
@@ -1249,7 +1255,11 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value: any, name: any) => (name === 'rating' ? `${value} estrellas` : `${value} reviews`)}
+                    formatter={(value: any, name: any) =>
+                      name === 'rating'
+                        ? `${value} ${t('home.tooltips.starsSuffix')}`
+                        : `${value} ${t('home.tooltips.reviewsSuffix')}`
+                    }
                   />
                 }
               />
@@ -1266,29 +1276,30 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
 
 // Kitchen Performance Chart
 const KitchenPerformanceChart = ({ data }: { data: any }) => {
+  const { t } = useTranslation()
   const kitchenData = data?.kitchen || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>Rendimiento de Cocina</CardTitle>
-        <CardDescription>Tiempos de preparación vs metas</CardDescription>
+        <CardTitle>{t('home.kitchen.title')}</CardTitle>
+        <CardDescription>{t('home.kitchen.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!kitchenData || kitchenData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No hay datos disponibles</p>
+            <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               prepTime: {
-                label: 'Tiempo Real',
+                label: t('home.charts.prepTime'),
                 color: CHART_COLORS[0],
               },
               target: {
-                label: 'Meta',
+                label: t('home.charts.target'),
                 color: CHART_COLORS[2],
               },
             }}
@@ -1306,7 +1317,7 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
             >
               <CartesianGrid vertical={false} />
               <XAxis dataKey="category" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} min`} />} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('home.tooltips.minutesSuffix')}`} />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="prepTime" fill="var(--color-prepTime)" radius={4} maxBarSize={30} />
               <Bar dataKey="target" fill="var(--color-target)" radius={4} maxBarSize={30} />

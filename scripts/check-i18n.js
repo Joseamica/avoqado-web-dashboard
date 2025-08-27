@@ -55,7 +55,8 @@ function scanFile(file) {
     if (line.includes("t('") || line.includes('t("')) return
 
     // 1) JSX text nodes between > and < (not starting with {)
-    const textNodeRegex = />\s*([^<{][^<{}]*)\s*</g
+    // Match JSX text nodes where the next tag is a proper closing tag
+    const textNodeRegex = />\s*([^<{][^<{}]*)\s*<\//g
     let m
     while ((m = textNodeRegex.exec(line)) !== null) {
       const text = m[1]

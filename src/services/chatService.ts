@@ -83,10 +83,55 @@ const getCurrentVenueSlug = (): string | null => {
   return venueSlug && venueSlug !== 'dashboard' ? venueSlug : null
 }
 
-// Función para generar keys específicas por venue
-const getVenueSpecificKey = (baseKey: string, venueSlug?: string | null): string => {
+// Función para obtener usuario actual
+const getCurrentUserId = (): string | null => {
+  // Try to get user from localStorage auth data
+  try {
+    const authToken = localStorage.getItem('authToken')
+    if (authToken) {
+      // Parse JWT to get user ID (basic decode, just for user identification)
+      const payload = JSON.parse(atob(authToken.split('.')[1]))
+      return payload.userId || payload.sub || null
+    }
+  } catch (error) {
+    console.warn('Could not extract user ID from token:', error)
+  }
+  
+  // Fallback: try to get from any auth context in localStorage
+  try {
+    const authData = localStorage.getItem('authData') || localStorage.getItem('user')
+    if (authData) {
+      const parsed = JSON.parse(authData)
+      return parsed.id || parsed.userId || null
+    }
+  } catch (error) {
+    console.warn('Could not get user from localStorage:', error)
+  }
+  
+  return null
+}
+
+// Función para generar keys específicas por venue y usuario
+const getUserVenueSpecificKey = (baseKey: string, venueSlug?: string | null, userId?: string | null): string => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
-  return currentVenue ? `${baseKey}_${currentVenue}` : baseKey
+  const currentUserId = userId || getCurrentUserId()
+  
+  let key = baseKey
+  
+  if (currentVenue) {
+    key = `${key}_${currentVenue}`
+  }
+  
+  if (currentUserId) {
+    key = `${key}_user_${currentUserId}`
+  }
+  
+  return key
+}
+
+// Legacy function for backward compatibility
+const getVenueSpecificKey = (baseKey: string, venueSlug?: string | null): string => {
+  return getUserVenueSpecificKey(baseKey, venueSlug)
 }
 
 // Gestión del historial de conversación por venue
@@ -439,19 +484,39 @@ export const getSavedConversations = (): SavedConversation[] => {
 }
 
 // Guardar una conversación para venue específico
-export const saveConversation = (title?: string, venueSlug?: string | null): string => {
+export const saveConversation = async (title?: string, venueSlug?: string | null, existingConversationId?: string | null): Promise<string> => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
   const currentHistory = getConversationHistory(currentVenue)
   if (currentHistory.length === 0) return ''
 
   const conversations = getSavedConversations()
-  const conversationId = `conv_${currentVenue}_${Date.now()}`
-  
-  // Generar título automático si no se proporciona
-  const autoTitle = title || generateConversationTitle(currentHistory)
+  let conversationId = existingConversationId
+  let isUpdate = false
+
+  // If we have an existing conversation ID, try to find and update it
+  if (conversationId) {
+    const existingConversationIndex = conversations.findIndex(conv => conv.id === conversationId)
+    if (existingConversationIndex !== -1) {
+      isUpdate = true
+    }
+  }
+
+  // If no existing conversation or not found, create new ID
+  if (!conversationId || !isUpdate) {
+    conversationId = `conv_${currentVenue}_${Date.now()}`
+  }
+
+  // Generate title using LLM if not provided, fallback to simple title generation
+  let autoTitle: string
+  try {
+    autoTitle = title || await generateConversationTitleWithLLM(currentHistory)
+  } catch (error) {
+    console.warn('LLM title generation failed, using fallback:', error)
+    autoTitle = title || generateConversationTitleFallback(currentHistory)
+  }
   const lastMessage = currentHistory[currentHistory.length - 1]?.content || ''
 
-  const newConversation: SavedConversation = {
+  const conversationData: SavedConversation = {
     id: conversationId,
     title: `[${currentVenue}] ${autoTitle}`,
     lastMessage: lastMessage.substring(0, 100) + (lastMessage.length > 100 ? '...' : ''),
@@ -459,11 +524,31 @@ export const saveConversation = (title?: string, venueSlug?: string | null): str
     history: [...currentHistory],
   }
 
-  const updatedConversations = [newConversation, ...conversations].slice(0, 10) // Mantener solo las 10 más recientes
+  let updatedConversations: SavedConversation[]
+
+  if (isUpdate) {
+    // Update existing conversation
+    updatedConversations = conversations.map(conv => 
+      conv.id === conversationId ? conversationData : conv
+    )
+    console.log(`🔄 Conversación actualizada para ${currentVenue}: ${autoTitle}`, {
+      conversationId,
+      oldTitle: conversations.find(c => c.id === conversationId)?.title,
+      newTitle: conversationData.title,
+      messageCount: currentHistory.length
+    })
+  } else {
+    // Add new conversation at the beginning
+    updatedConversations = [conversationData, ...conversations].slice(0, 10)
+    console.log(`💾 Nueva conversación guardada para ${currentVenue}: ${autoTitle}`, {
+      conversationId,
+      title: conversationData.title,
+      messageCount: currentHistory.length
+    })
+  }
   
   try {
     localStorage.setItem(STORAGE_KEYS.CONVERSATIONS_LIST, JSON.stringify(updatedConversations))
-    console.log(`💾 Conversación guardada para ${currentVenue}: ${autoTitle}`)
   } catch (error) {
     console.error('Error saving conversation:', error)
   }
@@ -513,13 +598,76 @@ export const deleteConversation = (conversationId: string): boolean => {
 }
 
 // Generar título automático basado en el primer mensaje del usuario
-const generateConversationTitle = (history: ConversationEntry[]): string => {
+// Generate conversation title using LLM
+const generateConversationTitleWithLLM = async (history: ConversationEntry[]): Promise<string> => {
+  try {
+    // Extract user messages and AI responses for context
+    const conversationSummary = history
+      .slice(0, 10) // Only use first 10 messages to avoid token limits
+      .map(entry => `${entry.role === 'user' ? 'Usuario' : 'Asistente'}: ${entry.content}`)
+      .join('\n')
+
+    console.log('🤖 Attempting LLM title generation:', {
+      url: '/api/v1/dashboard/assistant/generate-title',
+      summaryLength: conversationSummary.length,
+      hasAuthToken: !!localStorage.getItem('authToken')
+    })
+
+    const response = await fetch('/api/v1/dashboard/assistant/generate-title', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      body: JSON.stringify({
+        conversationSummary
+      })
+    })
+
+    console.log('🌐 LLM title response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ LLM title generated:', data.title)
+      return data.title || generateConversationTitleFallback(history)
+    } else {
+      console.warn('❌ LLM title generation failed:', await response.text())
+    }
+  } catch (error) {
+    console.warn('Failed to generate LLM title, using fallback:', error)
+  }
+
+  return generateConversationTitleFallback(history)
+}
+
+// Fallback title generation (original logic)
+const generateConversationTitleFallback = (history: ConversationEntry[]): string => {
   const firstUserMessage = history.find(entry => entry.role === 'user')
   if (firstUserMessage) {
     const title = firstUserMessage.content.substring(0, 50)
     return title.length < firstUserMessage.content.length ? title + '...' : title
   }
   return `Conversación del ${new Date().toLocaleDateString()}`
+}
+
+// Keep original function for backward compatibility
+const generateConversationTitle = generateConversationTitleFallback
+
+// Legacy synchronous wrapper for backward compatibility
+export const saveConversationSync = (title?: string, venueSlug?: string | null): string => {
+  // For existing calls that expect synchronous behavior, we'll generate a simple ID
+  const conversationId = `conv_${venueSlug || getCurrentVenueSlug()}_${Date.now()}`
+  
+  // Queue the async save operation but don't wait for it
+  saveConversation(title, venueSlug).catch(error => {
+    console.error('Error in background conversation save:', error)
+  })
+  
+  return conversationId
 }
 
 // Crear nueva conversación (limpiar la actual) para venue específico
@@ -529,7 +677,7 @@ export const createNewConversation = (venueSlug?: string | null): void => {
   // Guardar automáticamente la conversación actual si tiene contenido
   const currentHistory = getConversationHistory(currentVenue)
   if (currentHistory.length > 1) { // Más de solo el mensaje de bienvenida
-    saveConversation(undefined, currentVenue)
+    saveConversationSync(undefined, currentVenue)
   }
   
   // Limpiar la conversación actual

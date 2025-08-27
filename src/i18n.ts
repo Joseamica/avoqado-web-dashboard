@@ -20,6 +20,10 @@ const resources = {
         overview: 'Overview',
         menumaker: 'Menu Maker',
         editvenue: 'Edit Venue',
+        reviews: 'Reviews',
+        teams: 'Teams',
+        billing: 'Billing',
+        limits: 'Limits',
       },
       dashboardShell: {
         loadingVenue: 'Loading venue...',
@@ -29,7 +33,9 @@ const resources = {
         noPermission: 'You do not have permission to access this venue.',
       },
       home: {
+        title: 'Dashboard',
         filters: {
+          today: 'Today',
           last7: 'Last 7 days',
           last30: 'Last 30 days',
         },
@@ -48,6 +54,14 @@ const resources = {
         noData: 'No data available',
         currentPeriod: 'Current period',
         total: 'Total',
+        noChange: 'No change',
+        table: 'Table',
+        chartContent: {
+          placeholder: 'Chart content for {{name}} would be rendered here',
+        },
+        metricContent: {
+          placeholder: 'Metric content for {{name}} would be rendered here',
+        },
         sections: {
           bestSellers: 'Best Selling Products',
           paymentMethods: 'Payment Methods',
@@ -75,6 +89,32 @@ const resources = {
           orders: 'orders',
           margin: 'margin',
           sold: 'sold',
+          ordersLabel: 'Orders',
+          rating: 'Rating',
+          reviewCount: 'Reviews',
+          prepTime: 'Actual Time',
+          target: 'Target',
+        },
+        orderFrequency: {
+          title: 'Order Frequency',
+          desc: 'Number of orders by hour',
+        },
+        aov: {
+          title: 'Average Ticket',
+          desc: 'Average value per order',
+        },
+        customerSatisfaction: {
+          title: 'Customer Satisfaction',
+          desc: 'Average ratings and trends',
+        },
+        kitchen: {
+          title: 'Kitchen Performance',
+          desc: 'Prep times versus targets',
+        },
+        tooltips: {
+          starsSuffix: 'stars',
+          reviewsSuffix: 'reviews',
+          minutesSuffix: 'min',
         },
         categories: {
           FOOD: 'Food',
@@ -84,6 +124,83 @@ const resources = {
         error: {
           failedTitle: 'Failed to load dashboard data',
           unknown: 'An unknown error occurred',
+        },
+        cards: {
+          totalSales: 'Total sales',
+          fiveStars: 'Google 5-stars',
+          totalTips: 'Total tips',
+          avgTipPercentage: 'Average tips %',
+        },
+      },
+      orders: {
+        title: 'Orders',
+        searchPlaceholder: 'Search by order number, customer or waiter...',
+        errorPrefix: 'Failed to load orders',
+        counter: 'Counter',
+        columns: {
+          date: 'Date',
+          orderNumber: 'Order #',
+          customer: 'Customer',
+          waiter: 'Waiter',
+          status: 'Status',
+          total: 'Total',
+        },
+        statuses: {
+          PENDING: 'Pending',
+          CONFIRMED: 'Confirmed',
+          PREPARING: 'Preparing',
+          READY: 'Ready',
+          COMPLETED: 'Completed',
+          CANCELLED: 'Cancelled',
+        },
+      },
+      payments: {
+        title: 'Payments',
+        searchPlaceholder: 'Search by waiter, total or method...',
+        errorPrefix: 'Failed to load payments',
+        columns: {
+          date: 'Date',
+          waiter: 'Waiter',
+          tip: 'Tip',
+          source: 'Source',
+          method: 'Method',
+          subtotal: 'Subtotal',
+          total: 'Total',
+        },
+        methods: {
+          cash: 'Cash',
+          card: 'Card',
+        },
+      },
+      products: {
+        title: 'Products',
+        new: 'New product',
+        columns: {
+          photo: 'Photo',
+          name: 'Name',
+          price: 'Price',
+          categories: 'Categories',
+          modifierGroups: 'Modifier Groups',
+          updatedAt: 'Last update',
+        },
+        toasts: {
+          activated: 'Product activated',
+          deactivated: 'Product deactivated',
+          saved: 'Changes have been saved successfully.'
+        },
+      },
+      shifts: {
+        title: 'Shifts',
+        open: 'Open',
+        closed: 'Closed',
+        columns: {
+          status: 'Status',
+          shiftId: 'Shift ID',
+          openTime: 'Open time',
+          closeTime: 'Close time',
+          totalTip: 'Total tip',
+          subtotal: 'Subtotal',
+          total: 'Total',
         },
       },
       dashboard: {
@@ -231,6 +348,9 @@ const resources = {
       },
       common: {
         cancel: 'Cancel',
+        save: 'Save',
+        error: 'Error',
+        areYouSure: 'Are you sure?',
         actions: 'Actions',
         search: 'Search',
         all: 'All',
@@ -240,6 +360,7 @@ const resources = {
         type: 'Type',
         users: 'Users',
         payment: 'Payment',
+        unknown: 'Unknown',
         viewDetails: 'View Details',
         edit: 'Edit',
         delete: 'Delete',
@@ -263,6 +384,88 @@ const resources = {
         settings: 'Settings',
         logout: 'Log out',
       },
+      chat: {
+        welcome: 'Hi! I am the Avoqado assistant. How can I help you?',
+        input: {
+          placeholder: 'Type your question...'
+        },
+        labels: {
+          cache: 'Cache',
+        },
+        a11y: {
+          open: 'Open chat',
+          close: 'Close chat',
+          positiveFeedback: 'Positive feedback',
+          negativeFeedback: 'Negative feedback',
+        },
+        errors: {
+          assistantTitle: 'Assistant Error',
+          sendFailed: 'Could not send the message. Please try again.',
+          createConversation: 'Could not create a new conversation.',
+          clearFailed: 'Unable to clear history. Please try again.',
+          saveFailed: 'Could not save the conversation.',
+        },
+        feedback: {
+          thanksTitle: 'Thanks for your feedback',
+          thanksDesc: 'Your input helps improve the AI assistant',
+          sendError: 'Could not submit feedback. Please try again.',
+          sentTitle: 'Feedback sent',
+          correctedDesc: 'I have provided a corrected response based on your feedback',
+          recordedDesc: 'Your feedback has been recorded to improve the assistant',
+          unavailableTitle: 'Feedback unavailable',
+          unavailableDesc: 'Cannot send feedback for this message',
+          previousQuestion: 'Previous question',
+          dialog: {
+            title: 'What was wrong?',
+            desc: 'Describe the issue with the response so I can provide a better one.',
+          },
+          form: {
+            label: 'Describe the problem',
+            placeholder: 'E.g., The answer is incorrect because...'
+          },
+          submit: 'Send Feedback',
+          sending: 'Sending...'
+        },
+        saved: {
+          title: 'Saved Conversations',
+          back: 'Back to Chat',
+          empty: 'No saved conversations yet.'
+        },
+        toast: {
+          historyCleared: {
+            title: 'History cleared',
+            desc: 'The conversation history has been cleared.'
+          },
+          alreadyNew: {
+            title: 'You are already in a new conversation',
+            desc: 'There is nothing to clear in this conversation.'
+          },
+          newConversation: {
+            title: 'New conversation',
+            desc: 'A new conversation has been created.'
+          },
+          conversationLoaded: {
+            title: 'Conversation loaded',
+            desc: 'Loaded: {{title}}'
+          },
+          conversationDeleted: {
+            title: 'Conversation deleted',
+            desc: 'Deleted: {{title}}'
+          }
+        },
+        confirm: {
+          clear: {
+            title: 'Clear history',
+            desc: 'Are you sure you want to clear the conversation history? This action cannot be undone.',
+            confirm: 'Yes, clear'
+          },
+          delete: {
+            title: 'Delete conversation',
+            desc: 'Are you sure you want to delete "{{title}}"? This action cannot be undone.',
+            confirm: 'Yes, delete'
+          }
+        }
+      },
       sidebar: {
         summary: 'Summary',
         main: 'Main Dashboard',
@@ -280,6 +483,7 @@ const resources = {
         support: 'Support',
         admin: 'Administration',
         config: 'Settings',
+        legacy_admin: 'Legacy Admin',
       },
       featureMgmt: {
         title: 'Feature Management',
@@ -503,6 +707,10 @@ const resources = {
         overview: 'Resumen',
         menumaker: 'Creación de menú',
         editvenue: 'Editar restaurante',
+        reviews: 'Reseñas',
+        teams: 'Equipo',
+        billing: 'Facturación',
+        limits: 'Límites',
       },
       dashboardShell: {
         loadingVenue: 'Cargando venue...',
@@ -512,7 +720,9 @@ const resources = {
         noPermission: 'No tienes permisos para acceder a este venue.',
       },
       home: {
+        title: 'Dashboard',
         filters: {
+          today: 'Hoy',
           last7: 'Últimos 7 días',
           last30: 'Últimos 30 días',
         },
@@ -531,6 +741,14 @@ const resources = {
         noData: 'No hay datos disponibles',
         currentPeriod: 'Periodo actual',
         total: 'Total',
+        noChange: 'Sin cambios',
+        table: 'Mesa',
+        chartContent: {
+          placeholder: 'Aquí se mostraría el gráfico de {{name}}',
+        },
+        metricContent: {
+          placeholder: 'Aquí se mostraría la métrica de {{name}}',
+        },
         sections: {
           bestSellers: 'Productos mejor vendidos',
           paymentMethods: 'Métodos de pago',
@@ -558,6 +776,32 @@ const resources = {
           orders: 'órdenes',
           margin: 'margen',
           sold: 'vendidos',
+          ordersLabel: 'Órdenes',
+          rating: 'Calificación',
+          reviewCount: 'N° Reviews',
+          prepTime: 'Tiempo Real',
+          target: 'Meta',
+        },
+        orderFrequency: {
+          title: 'Frecuencia de Órdenes',
+          desc: 'Número de órdenes por hora',
+        },
+        aov: {
+          title: 'Ticket Promedio',
+          desc: 'Valor promedio por orden',
+        },
+        customerSatisfaction: {
+          title: 'Satisfacción del Cliente',
+          desc: 'Calificaciones promedio y tendencias de reviews',
+        },
+        kitchen: {
+          title: 'Rendimiento de Cocina',
+          desc: 'Tiempos de preparación vs metas',
+        },
+        tooltips: {
+          starsSuffix: 'estrellas',
+          reviewsSuffix: 'reviews',
+          minutesSuffix: 'min',
         },
         categories: {
           FOOD: 'Comida',
@@ -567,6 +811,83 @@ const resources = {
         error: {
           failedTitle: 'Error al cargar datos del dashboard',
           unknown: 'Ocurrió un error desconocido',
+        },
+        cards: {
+          totalSales: 'Total ventas',
+          fiveStars: '5 estrellas Google',
+          totalTips: 'Total propinas',
+          avgTipPercentage: 'Promedio propinas %',
+        },
+      },
+      orders: {
+        title: 'Órdenes',
+        searchPlaceholder: 'Buscar por folio, cliente o mesero...',
+        errorPrefix: 'Error al cargar órdenes',
+        counter: 'Mostrador',
+        columns: {
+          date: 'Fecha',
+          orderNumber: 'Folio',
+          customer: 'Cliente',
+          waiter: 'Mesero',
+          status: 'Estado',
+          total: 'Total',
+        },
+        statuses: {
+          PENDING: 'Pendiente',
+          CONFIRMED: 'Confirmada',
+          PREPARING: 'En Preparación',
+          READY: 'Lista',
+          COMPLETED: 'Completada',
+          CANCELLED: 'Cancelada',
+        },
+      },
+      payments: {
+        title: 'Pagos',
+        searchPlaceholder: 'Buscar por mesero, total o método...',
+        errorPrefix: 'Error al cargar pagos',
+        columns: {
+          date: 'Fecha',
+          waiter: 'Mesero',
+          tip: 'Propina',
+          source: 'Origen',
+          method: 'Método',
+          subtotal: 'Subtotal',
+          total: 'Total',
+        },
+        methods: {
+          cash: 'Efectivo',
+          card: 'Tarjeta',
+        },
+      },
+      products: {
+        title: 'Productos',
+        new: 'Nuevo producto',
+        columns: {
+          photo: 'Foto',
+          name: 'Nombre',
+          price: 'Precio',
+          categories: 'Categorías',
+          modifierGroups: 'Grupos Modificadores',
+          updatedAt: 'Última actualización',
+        },
+        toasts: {
+          activated: 'Producto activado',
+          deactivated: 'Producto desactivado',
+          saved: 'Los cambios se han guardado correctamente.'
+        },
+      },
+      shifts: {
+        title: 'Turnos',
+        open: 'Abierto',
+        closed: 'Cerrado',
+        columns: {
+          status: 'Estado',
+          shiftId: 'ID Turno',
+          openTime: 'Apertura',
+          closeTime: 'Cierre',
+          totalTip: 'Propina Total',
+          subtotal: 'Subtotal',
+          total: 'Total',
         },
       },
       dashboard: {
@@ -714,6 +1035,9 @@ const resources = {
       },
       common: {
         cancel: 'Cancelar',
+        save: 'Guardar',
+        error: 'Error',
+        areYouSure: '¿Estás seguro?',
         actions: 'Acciones',
         search: 'Buscar',
         all: 'Todas',
@@ -723,6 +1047,7 @@ const resources = {
         type: 'Tipo',
         users: 'Usuarios',
         payment: 'Pago',
+        unknown: 'Desconocido',
         viewDetails: 'Ver detalles',
         edit: 'Editar',
         delete: 'Eliminar',
@@ -746,6 +1071,100 @@ const resources = {
         settings: 'Configuración',
         logout: 'Cerrar sesión',
       },
+      chat: {
+        welcome: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
+        input: {
+          placeholder: 'Escribe tu pregunta...'
+        },
+        labels: {
+          cache: 'Cache',
+        },
+        a11y: {
+          open: 'Abrir chat',
+          close: 'Cerrar chat',
+          positiveFeedback: 'Feedback positivo',
+          negativeFeedback: 'Feedback negativo',
+        },
+        errors: {
+          assistantTitle: 'Error del Asistente',
+          sendFailed: 'No se pudo enviar el mensaje. Intenta de nuevo.',
+          createConversation: 'No se pudo crear una nueva conversación.',
+          clearFailed: 'No se pudo borrar el historial. Intenta de nuevo.',
+          saveFailed: 'No se pudo guardar la conversación.',
+        },
+        feedback: {
+          thanksTitle: 'Gracias por tu feedback',
+          thanksDesc: 'Tu opinión nos ayuda a mejorar el asistente de IA',
+          sendError: 'No se pudo procesar el feedback. Inténtalo de nuevo.',
+          sentTitle: 'Feedback enviado',
+          correctedDesc: 'He proporcionado una respuesta corregida basada en tu feedback',
+          recordedDesc: 'Tu feedback ha sido registrado para mejorar el asistente',
+          unavailableTitle: 'Feedback no disponible',
+          unavailableDesc: 'No se puede enviar feedback para este mensaje',
+          previousQuestion: 'Pregunta anterior',
+          dialog: {
+            title: '¿Qué estuvo mal?',
+            desc: 'Describe el problema con la respuesta para que pueda proporcionarte una mejor respuesta.',
+          },
+          form: {
+            label: 'Describe el problema',
+            placeholder: 'Ej: La respuesta no es correcta porque...'
+          },
+          submit: 'Enviar Feedback',
+          sending: 'Enviando...'
+        },
+        saved: {
+          title: 'Conversaciones Guardadas',
+          back: 'Volver al Chat',
+          empty: 'No hay conversaciones guardadas aún.'
+        },
+        toast: {
+          historyCleared: {
+            title: 'Historial borrado',
+            desc: 'El historial de conversación ha sido borrado.'
+          },
+          nothingToSave: {
+            title: 'No hay nada que guardar',
+            desc: 'Necesitas tener al menos una conversación para guardarla.'
+          },
+          alreadyNew: {
+            title: 'Ya estás en una conversación nueva',
+            desc: 'No hay nada que limpiar en esta conversación.'
+          },
+          newConversation: {
+            title: 'Nueva conversación',
+            desc: 'Se ha creado una nueva conversación.'
+          },
+          conversationLoaded: {
+            title: 'Conversación cargada',
+            desc: 'Se ha cargado: {{title}}'
+          },
+          conversationSaved: {
+            title: 'Conversación guardada',
+            desc: 'La conversación ha sido guardada exitosamente.'
+          },
+          conversationUpdated: {
+            title: 'Conversación actualizada',
+            desc: 'La conversación ha sido actualizada con los nuevos mensajes.'
+          },
+          conversationDeleted: {
+            title: 'Conversación eliminada',
+            desc: 'Se ha eliminado: {{title}}'
+          }
+        },
+        confirm: {
+          clear: {
+            title: 'Borrar historial',
+            desc: '¿Estás seguro que quieres borrar el historial de la conversación? Esta acción no se puede deshacer.',
+            confirm: 'Sí, borrar'
+          },
+          delete: {
+            title: 'Eliminar conversación',
+            desc: '¿Estás seguro que quieres eliminar "{{title}}"? Esta acción no se puede deshacer.',
+            confirm: 'Sí, eliminar'
+          }
+        }
+      },
       sidebar: {
         summary: 'Resumen',
         main: 'Panel Principal',
@@ -763,6 +1182,7 @@ const resources = {
         support: 'Soporte',
         admin: 'Administración',
         config: 'Configuración',
+        legacy_admin: 'Admin clásico',
       },
       featureMgmt: {
         title: 'Gestión de funcionalidades',
@@ -1050,6 +1470,78 @@ const resources = {
         error: {
           failedTitle: 'Échec du chargement des données du tableau de bord',
           unknown: 'Une erreur inconnue est survenue',
+        },
+        cards: {
+          totalSales: 'Ventes totales',
+          fiveStars: 'Google 5-étoiles',
+          totalTips: 'Pourboires totaux',
+          avgTipPercentage: 'Moyenne pourboires %',
+        },
+      },
+      orders: {
+        title: 'Commandes',
+        searchPlaceholder: "Rechercher par n° commande, client ou serveur...",
+        errorPrefix: 'Échec du chargement des commandes',
+        counter: 'Comptoir',
+        columns: {
+          date: 'Date',
+          orderNumber: 'N° commande',
+          customer: 'Client',
+          waiter: 'Serveur',
+          status: 'Statut',
+          total: 'Total',
+        },
+        statuses: {
+          PENDING: 'En attente',
+          CONFIRMED: 'Confirmée',
+          PREPARING: 'Préparation',
+          READY: 'Prête',
+          COMPLETED: 'Terminée',
+          CANCELLED: 'Annulée',
+        },
+      },
+      payments: {
+        title: 'Paiements',
+        searchPlaceholder: 'Rechercher par serveur, total ou méthode...',
+        errorPrefix: 'Échec du chargement des paiements',
+        columns: {
+          date: 'Date',
+          waiter: 'Serveur',
+          tip: 'Pourboire',
+          source: 'Origine',
+          method: 'Méthode',
+          subtotal: 'Sous-total',
+          total: 'Total',
+        },
+        methods: {
+          cash: 'Espèces',
+          card: 'Carte',
+        },
+      },
+      products: {
+        title: 'Produits',
+        new: 'Nouveau produit',
+        columns: {
+          photo: 'Photo',
+          name: 'Nom',
+          price: 'Prix',
+          categories: 'Catégories',
+          modifierGroups: 'Groupes de modificateurs',
+          updatedAt: 'Dernière mise à jour',
+        },
+      },
+      shifts: {
+        title: 'Postes',
+        open: 'Ouvert',
+        closed: 'Fermé',
+        columns: {
+          status: 'Statut',
+          shiftId: 'ID Poste',
+          openTime: 'Ouverture',
+          closeTime: 'Fermeture',
+          totalTip: 'Pourboire total',
+          subtotal: 'Sous-total',
+          total: 'Total',
         },
       },
       dashboard: {
