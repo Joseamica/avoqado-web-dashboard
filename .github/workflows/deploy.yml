@@ -33,9 +33,9 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
-  # Second job: Build and deploy (only runs if tests pass)
+  # Second job: Deploy pre-built files (only runs if tests pass)
   deploy:
-    name: Build and Deploy
+    name: Deploy to Cloudflare Pages
     needs: test # This ensures deploy only runs if test job passes
     runs-on: ubuntu-latest
     # Only deploy on push to main branch (not on pull requests)
@@ -54,10 +54,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build application
+      - name: Build application with production environment
         run: npm run build
         env:
-          # Production environment variables
+          # Production environment variables from GitHub secrets
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_FRONTEND_URL: ${{ secrets.VITE_FRONTEND_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
