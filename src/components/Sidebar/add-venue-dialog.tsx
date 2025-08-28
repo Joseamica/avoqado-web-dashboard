@@ -204,7 +204,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
                 control={form.control}
                 rules={{ required: 'Este campo es requerido' }}
                 name="logo"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Logo</FormLabel>
                     <FormControl>

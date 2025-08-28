@@ -81,7 +81,7 @@ export interface MultipleSelectorRef {
   reset: () => void
 }
 
-export function useDebounce<T>(value: T, delay?: number): T {
+function useDebounce<T>(value: T, delay?: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value)
 
   useEffect(() => {
@@ -147,7 +147,7 @@ const CommandEmpty = forwardRef<HTMLDivElement, React.ComponentProps<typeof Comm
     if (!render) return null
 
     return (
-      <div ref={forwardedRef} className={cn('py-4 text-center text-sm bg-white', className)} cmdk-empty="" role="presentation" {...props} />
+      <div ref={forwardedRef} className={cn('py-4 text-center text-sm bg-background', className)} cmdk-empty="" role="presentation" {...props} />
     )
   },
 )
@@ -413,7 +413,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
           handleKeyDown(e)
           commandProps?.onKeyDown?.(e)
         }}
-        className={cn('h-auto overflow-visible bg-white', commandProps?.className)}
+        className={cn('h-auto overflow-visible bg-background', commandProps?.className)}
         shouldFilter={commandProps?.shouldFilter !== undefined ? commandProps.shouldFilter : !onSearch} // When onSearch is provided, we don't want to filter the options. You can still override it.
         filter={commandFilter()}
       >
@@ -538,7 +538,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
                   {CreatableItem()}
                   {!selectFirstItem && <CommandItem value="-" className="hidden" />}
                   {Object.entries(selectables).map(([key, dropdowns]) => (
-                    <CommandGroup key={key} heading={key} className="h-full overflow-auto bg-white">
+                    <CommandGroup key={key} heading={key} className="h-full overflow-auto bg-background">
                       <>
                         {dropdowns.map(option => {
                           return (

@@ -1,4 +1,4 @@
-import React, { type FC, useState, useEffect, useRef } from 'react'
+import React, { type FC, useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from './ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Calendar } from './ui/calendar'
@@ -220,7 +220,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
   }
 
-  const checkPreset = (): void => {
+  const checkPreset = useCallback((): void => {
     for (const preset of PRESETS) {
       const presetRange = getPresetRange(preset.name)
 
@@ -242,7 +242,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
 
     setSelectedPreset(undefined)
-  }
+  }, [range, setSelectedPreset])
 
   const resetValues = (): void => {
     setRange({
@@ -273,7 +273,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 
   useEffect(() => {
     checkPreset()
-  }, [range])
+  }, [range, checkPreset])
 
   const PresetButton = ({ preset, label, isSelected }: { preset: string; label: string; isSelected: boolean }): JSX.Element => (
     <Button
@@ -303,7 +303,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       openedRangeRef.current = range
       openedRangeCompareRef.current = rangeCompare
     }
-  }, [isOpen])
+  }, [isOpen, range, rangeCompare])
 
   // Helper to focus the first focusable element within the popover
   const focusFirstInPopover = (): void => {
