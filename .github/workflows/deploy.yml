@@ -55,8 +55,13 @@ jobs:
       - name: Build application for staging
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL_STAGING }}
-          # ... el resto de tus variables de entorno
+          # Staging environment variables (from staging environment)
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_FRONTEND_URL: ${{ secrets.VITE_FRONTEND_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_FIREBASE_RECAPTCHA_SITE_KEY }}
       - name: Deploy to Cloudflare Pages (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
