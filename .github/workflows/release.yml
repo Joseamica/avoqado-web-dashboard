@@ -1,0 +1,88 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+    paths: ['package.json']
+
+jobs:
+  check-version-bump:
+    name: Check Version Bump
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.get-version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          
+      - name: Check if version changed
+        id: check
+        run: |
+          if git diff HEAD~1 HEAD --name-only | grep -q "package.json"; then
+            if git diff HEAD~1 HEAD package.json | grep -q '"version"'; then
+              echo "changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Get new version
+        id: get-version
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: check-version-bump
+    if: needs.check-version-bump.outputs.version-changed == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ needs.check-version-bump.outputs.new-version }}" -m "Release v${{ needs.check-version-bump.outputs.new-version }}"
+          git push origin "v${{ needs.check-version-bump.outputs.new-version }}"
+        
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --reverse)
+          else
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --reverse)
+          fi
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## What's Changed
+          
+          $COMMITS
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...v${{ needs.check-version-bump.outputs.new-version }}
+          EOF
+          
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version-bump.outputs.new-version }}
+          release_name: Release v${{ needs.check-version-bump.outputs.new-version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
