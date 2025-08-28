@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -118,7 +119,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
       navigate('/venues/new', { replace: true })
     }
-  }, [slug, user, isAuthenticated, isStatusLoading, location.pathname, navigate, activeVenue?.id, getVenueBySlug])
+  }, [
+    slug,
+    user,
+    isAuthenticated,
+    isStatusLoading,
+    location.pathname,
+    navigate,
+    activeVenue?.id,
+    getVenueBySlug,
+    activeVenue,
+    allVenues,
+    userRole,
+  ])
 
   // --- MUTACIONES ---
   const loginMutation = useMutation({
@@ -183,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Get Google auth URL
       const { authUrl } = await authService.getGoogleAuthUrl()
-      
+
       // Redirect to Google OAuth
       window.location.href = authUrl
     } catch (error: any) {

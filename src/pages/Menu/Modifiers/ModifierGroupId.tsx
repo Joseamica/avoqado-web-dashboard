@@ -14,8 +14,9 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import CreateModifier from './createModifier'
-import EditModifier from './editModifier'
+
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import EditModifier from './EditModifier'
 
 export default function ModifierGroupId() {
   const { modifierGroupId } = useParams()
@@ -215,7 +216,9 @@ export default function ModifierGroupId() {
     return (
       <div className="p-4">
         <div className="text-red-500 mb-2">Error loading modifier group</div>
-        <div className="text-sm text-muted-foreground mb-2">{isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}</div>
+        <div className="text-sm text-muted-foreground mb-2">
+          {isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}
+        </div>
         {error && (
           <div className="text-xs text-red-400 bg-red-50 p-2 rounded mb-4">{error instanceof Error ? error.message : 'Unknown error'}</div>
         )}
