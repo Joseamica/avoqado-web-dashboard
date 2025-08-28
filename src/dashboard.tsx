@@ -184,9 +184,11 @@ export default function Dashboard() {
     <SidebarProvider className="theme-scaled">
       <AppSidebar user={user} variant="inset" />
       <SidebarInset
-        style={{
-          "--font-sans": "var(--font-inter)",
-        } as React.CSSProperties}
+        style={
+          {
+            '--font-sans': 'var(--font-inter)',
+          } as React.CSSProperties
+        }
       >
         <header
           className={`flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 text-foreground`}
@@ -228,8 +230,8 @@ export default function Dashboard() {
                 <ArrowLeft className="w-3 h-3" />
               </Button>
             )}
-            <NotificationBell />
             <LanguageSwitcher />
+            <NotificationBell />
             <ThemeToggle />
           </div>
         </header>
@@ -239,7 +241,7 @@ export default function Dashboard() {
             <Outlet />
           </div>
         </div>
-        
+
         {/* ChatBubble positioned at bottom-right edge */}
         {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && (
           <div className="fixed bottom-4 right-4 z-50">

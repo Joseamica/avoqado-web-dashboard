@@ -56,7 +56,7 @@ export default function CreateTpv() {
   return (
     <div className="">
       {/* Barra superior */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-white border-b-2 top-14">
+      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
         <div className="space-x-4 flex-row-center">
           <Link to={from}>
             <ArrowLeft />

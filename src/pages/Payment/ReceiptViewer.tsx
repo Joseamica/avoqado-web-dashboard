@@ -390,7 +390,7 @@ export default function ReceiptViewer() {
       </div>
 
       {/* Contenido del recibo */}
-      <div className="p-8 bg-white rounded-lg border print:shadow-none" id="printable-receipt">
+      <div className="p-8 bg-background rounded-lg border print:shadow-none" id="printable-receipt">
         <div className="pb-6 mb-6 text-center border-b">
           {venue.logo && <img src={venue.logo} alt={venue.name} className="mx-auto mb-3 h-12" />}
           <h2 className="text-xl font-bold">{venue.name}</h2>
@@ -426,7 +426,7 @@ export default function ReceiptViewer() {
                 <td className="py-2">
                   <div>{item.name}</div>
                   {item.modifiers.length > 0 && (
-                    <ul className="pl-4 text-xs text-gray-600">
+                    <ul className="pl-4 text-xs text-muted-foreground">
                       {item.modifiers.map((mod : any, idx : number) => (
                         <li key={idx}>{mod.name} (+{CurrencyFormat(mod.price)})</li>
                       ))}
@@ -464,7 +464,7 @@ export default function ReceiptViewer() {
           </div>
         </div>
 
-        <div className="pt-4 text-sm text-center text-gray-600 border-t">
+        <div className="pt-4 text-sm text-center text-muted-foreground border-t">
           <p>¡Gracias por su visita!</p>
           <p>Recibo generado por Avoqado</p>
         </div>

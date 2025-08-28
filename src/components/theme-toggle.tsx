@@ -19,17 +19,12 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t('common.toggle_theme')}
-          className="rounded-full bg-transparent hover:bg-accent/80 border-0"
-        >
+        <Button variant="outline" size="icon" aria-label={t('common.toggle_theme')} className=" bg-transparent hover:bg-accent/80">
           <Icon className="h-[1.2rem] w-[1.2rem] text-foreground" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuRadioGroup value={themeSetting} onValueChange={(v) => setTheme(v as any)}>
+        <DropdownMenuRadioGroup value={themeSetting} onValueChange={v => setTheme(v as any)}>
           <DropdownMenuRadioItem value="system">
             <span className="inline-flex items-center gap-2">
               <Laptop className="h-4 w-4" /> {t('common.system')}
