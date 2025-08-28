@@ -1,14 +1,14 @@
-import { BsCreditCard2Back } from 'react-icons/bs'
+import { CreditCard } from 'lucide-react'
 import { FaCcStripe } from 'react-icons/fa'
 
 export function Visa({ className }: { className?: string }) {
   return (
-    <figure className="flex items-center p-1 border-2 rounded w-9 h-7 border-borders-disabled">
-      <svg viewBox="0 0 20 7.48" xmlns="http://www.w3.org/2000/svg" width="50" height="15">
+    <figure className="flex items-center justify-center p-1 border border-slate-200 dark:border-slate-600 shadow-sm rounded-lg w-9 h-7 border-borders-disabled">
+      <svg viewBox="0 0 20 7.48" xmlns="http://www.w3.org/2000/svg" className={`w-8 h-5 ${className || ''}`}>
         <path
           d="M13.027 0c-1.42 0-2.69.85-2.69 2.42 0 1.802 2.251 1.926 2.251 2.831 0 .381-.378.722-1.023.722a3.073 3.073 0 0 1-1.602-.476L9.67 7.082s.79.402 1.837.402c1.552 0 2.774-.891 2.774-2.489 0-1.903-2.26-2.024-2.26-2.864 0-.298.31-.625.954-.625.727 0 1.32.346 1.32.346l.286-1.53S13.936 0 13.027 0ZM.034.116 0 .346s.597.127 1.136.379c.692.289.742.457.858.98l1.272 5.66H4.97L7.596.115h-1.7l-1.688 4.93L3.52.866c-.063-.478-.383-.75-.775-.75H.035Zm8.246 0-1.334 7.25h1.622L9.897.115H8.28Zm9.044 0c-.39 0-.598.241-.75.664l-2.376 6.585h1.7l.33-1.097h2.071l.2 1.097H20L18.691.115h-1.367Zm.221 1.958.504 2.72H16.7l.846-2.72Z"
           className="fill-[#1434CB]"
-        ></path>
+        />
       </svg>
     </figure>
   )
@@ -16,33 +16,33 @@ export function Visa({ className }: { className?: string }) {
 
 export function Amex({ className }: { className?: string }) {
   return (
-    <figure className="flex items-center p-1 border-2 rounded w-9 h-7 border-borders-disabled">
-      <svg viewBox="0 0 22 8" xmlns="http://www.w3.org/2000/svg" width="50" height="15">
+    <figure className="flex items-center justify-center p-1 border border-slate-200 dark:border-slate-600 shadow-sm rounded-lg w-9 h-7 border-borders-disabled">
+      <svg viewBox="0 0 22 8" xmlns="http://www.w3.org/2000/svg" className={`w-8 h-5 ${className || ''}`}>
         <path
           d="M1.113.43.004 3.022h.722l.204-.52h1.19l.205.52h.74L1.954.429h-.842Zm.411.6.363.907h-.726l.363-.906ZM3.14 3.02V.425L4.166.43l.596 1.672.583-1.676h1.018v2.593H5.72V1.11l-.684 1.91H4.47l-.686-1.91v1.91h-.645ZM6.807 3.02V.425h2.105v.58H7.46v.444h1.417v.546h-1.42v.46H8.91v.563H6.807ZM9.284.428v2.594h.645V2.1h.27l.775.922h.787l-.849-.956a.788.788 0 0 0 .708-.796c0-.546-.426-.84-.902-.84L9.284.428Zm.645.58h.737c.176 0 .305.139.305.271 0 .173-.167.272-.297.272H9.93v-.544ZM12.542 3.02h-.658V.425h.658v2.593ZM14.104 3.02h-.143c-.689 0-1.104-.544-1.104-1.285 0-.759.413-1.307 1.28-1.307h.713v.615h-.737c-.352 0-.603.276-.603.698 0 .502.286.712.695.712h.17l-.271.567ZM15.508.428l-1.109 2.591h.722l.204-.52h1.19l.205.52h.737L16.348.426l-.84.002Zm.409.601.363.907h-.726l.363-.907ZM17.532 3.02V.425h.82l1.047 1.63V.425h.645v2.593h-.794l-1.074-1.671v1.671h-.644ZM4.701 7.557V4.963h2.106v.58H5.355v.444h1.419v.546h-1.42v.46h1.453v.564H4.7ZM15.013 7.557V4.963h2.105v.58h-1.452v.444h1.412v.546h-1.412v.46h1.452v.564h-2.105ZM6.888 7.557l1.025-1.28-1.05-1.314h.813l.624.812.627-.812h.781L8.672 6.26 9.7 7.555h-.812l-.607-.799-.592.799-.801.002ZM9.777 4.965V7.56h.662v-.818h.68c.574 0 1.01-.307 1.01-.902 0-.493-.341-.871-.927-.871H9.777v-.003Zm.662.586h.715c.185 0 .319.115.319.299 0 .172-.132.298-.321.298h-.713v-.597ZM12.406 4.963v2.594h.644v-.922h.27l.775.922h.788l-.85-.955a.788.788 0 0 0 .709-.796c0-.547-.427-.84-.902-.84l-1.434-.003Zm.646.582h.737c.176 0 .306.139.306.272 0 .172-.167.272-.297.272h-.746v-.544ZM17.417 7.557v-.564h1.292c.191 0 .272-.104.272-.217 0-.108-.081-.219-.272-.219h-.583c-.506 0-.79-.31-.79-.776 0-.415.26-.816 1.012-.816h1.256l-.27.584h-1.087c-.207 0-.271.11-.271.215 0 .108.08.225.238.225h.611c.566 0 .81.323.81.745 0 .454-.273.825-.84.825h-1.378v-.002ZM19.784 7.557v-.564h1.292c.191 0 .273-.104.273-.217 0-.108-.082-.219-.273-.219h-.583c-.506 0-.79-.31-.79-.776 0-.415.26-.816 1.012-.816h1.256l-.27.584h-1.087c-.207 0-.27.11-.27.215 0 .108.078.225.237.225h.611c.566 0 .81.323.81.745 0 .454-.273.825-.84.825h-1.378v-.002Z"
           className="fill-[#016FD0]"
-        ></path>
+        />
       </svg>
     </figure>
   )
 }
 export function MasterCard({ className }: { className?: string }) {
   return (
-    <figure className="flex items-center p-1 border-2 rounded w-9 h-7 border-borders-disabled">
-      <svg viewBox="0 0 16 12.44" xmlns="http://www.w3.org/2000/svg" width="50" height="25">
+    <figure className="flex items-center justify-center p-1 border border-slate-200 dark:border-slate-600 shadow-sm rounded-lg w-9 h-7 border-borders-disabled">
+      <svg viewBox="0 0 16 12.44" xmlns="http://www.w3.org/2000/svg" className={`w-8 h-5 ${className || ''}`}>
         <path
           d="M2.9 12.417v-.826c0-.316-.192-.522-.522-.522a.54.54 0 0 0-.468.234.482.482 0 0 0-.44-.235.443.443 0 0 0-.384.193v-.165H.798v1.321h.288v-.73c0-.234.123-.344.315-.344s.288.123.288.345v.73h.289v-.73c0-.235.137-.345.315-.345.192 0 .288.123.288.345v.73h.32Zm4.275-1.321h-.467v-.4H6.42v.4h-.261v.261h.26v.606c0 .303.124.481.454.481a.774.774 0 0 0 .357-.096l-.083-.248a.46.46 0 0 1-.249.069c-.137 0-.192-.084-.192-.22v-.592h.468v-.261h.001Zm2.447-.03a.39.39 0 0 0-.344.193v-.165H8.99v1.322h.288v-.745c0-.22.096-.344.275-.344.055 0 .124.014.18.027l.083-.276c-.058-.011-.14-.011-.194-.011Zm-3.697.139c-.138-.096-.33-.138-.537-.138-.33 0-.549.165-.549.426 0 .22.165.345.453.385l.138.015c.15.027.234.069.234.138 0 .096-.11.165-.303.165a.76.76 0 0 1-.44-.138l-.138.22c.15.11.357.165.564.165.384 0 .605-.18.605-.427 0-.234-.18-.357-.453-.399l-.138-.015c-.123-.014-.22-.041-.22-.123 0-.096.097-.15.25-.15a.99.99 0 0 1 .412.11l.122-.234Zm7.668-.138a.39.39 0 0 0-.344.192v-.165h-.288v1.322h.288v-.745c0-.22.096-.344.276-.344.054 0 .123.014.179.027l.083-.273c-.056-.014-.138-.014-.194-.014Zm-3.683.69c0 .399.276.687.702.687a.69.69 0 0 0 .467-.15l-.137-.234a.55.55 0 0 1-.345.123c-.233 0-.398-.165-.398-.426 0-.25.165-.414.398-.427.124 0 .234.042.345.123l.137-.234a.682.682 0 0 0-.467-.15c-.426-.002-.702.288-.702.688Zm2.667 0v-.661h-.289v.165a.498.498 0 0 0-.413-.192c-.371 0-.66.288-.66.688 0 .399.289.687.66.687.192 0 .33-.069.413-.192v.165h.289v-.66Zm-1.059 0c0-.235.15-.427.399-.427.234 0 .399.18.399.427 0 .234-.165.426-.4.426a.407.407 0 0 1-.398-.426Zm-3.449-.69c-.384 0-.66.276-.66.688 0 .414.276.688.674.688a.837.837 0 0 0 .537-.18l-.138-.207a.655.655 0 0 1-.384.138c-.18 0-.357-.083-.399-.316h.975v-.11c.013-.425-.235-.701-.605-.701Zm0 .248c.18 0 .303.111.33.316h-.687c.027-.178.15-.316.357-.316Zm7.16.442v-1.184h-.287v.688a.498.498 0 0 0-.413-.192c-.372 0-.66.288-.66.688 0 .399.288.687.66.687.192 0 .33-.069.413-.192v.165h.288v-.66Zm-1.057 0c0-.235.15-.427.398-.427.234 0 .399.18.399.427 0 .234-.165.426-.399.426-.248-.014-.399-.194-.399-.426Zm-9.65 0v-.661h-.288v.165a.498.498 0 0 0-.413-.192c-.372 0-.66.288-.66.688 0 .399.288.687.66.687.192 0 .33-.069.413-.192v.165h.288v-.66Zm-1.071 0c0-.235.15-.427.399-.427.233 0 .398.18.398.427 0 .234-.165.426-.398.426-.249-.014-.4-.194-.4-.426Z"
           className="fill-black"
-        ></path>
-        <path d="M10.158 1.06h-4.33v7.79h4.33V1.06Z" className="fill-[#FE5A00]"></path>
+        />
+        <path d="M10.158 1.06h-4.33v7.79h4.33V1.06Z" className="fill-[#FE5A00]" />
         <path
           d="M6.117 4.955c0-1.582.743-2.987 1.883-3.895A4.917 4.917 0 0 0 4.948 0 4.949 4.949 0 0 0 0 4.955a4.949 4.949 0 0 0 4.948 4.956c1.154 0 2.213-.4 3.052-1.06a4.948 4.948 0 0 1-1.883-3.896Z"
           className="fill-[#EB001B]"
-        ></path>
+        />
         <path
           d="M16 4.955a4.949 4.949 0 0 1-4.948 4.956c-1.155 0-2.213-.4-3.052-1.06a4.931 4.931 0 0 0 1.883-3.896A4.972 4.972 0 0 0 8 1.06 4.909 4.909 0 0 1 11.05 0C13.787 0 16 2.23 16 4.955Z"
           className="fill-[#F79E1C]"
-        ></path>
+        />
       </svg>
     </figure>
   )
@@ -58,7 +58,7 @@ export function Check({ className }: { className?: string }) {
 
 export function ApplePay({ className }: { className?: string }) {
   return (
-    <figure className="flex items-center h-8 p-1 rounded w-9 border-borders-disabled">
+    <figure className="flex items-center justify-center p-1 border-2 rounded w-9 h-7 border-borders-disabled">
       <svg
         version="1.1"
         id="Artwork"
@@ -164,7 +164,7 @@ export const GooglePay = props => (
     width="32"
     height="20"
     data-testid="brand-icon-googlePay"
-    className="flex items-center h-8 p-1 rounded w-9 border-borders-disabled"
+    className="flex items-center justify-center p-1 rounded w-9 h-7 border-borders-disabled"
     {...props}
   >
     <svg width="752" height="397" xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" viewBox="0 0 752 397">
@@ -229,28 +229,31 @@ export const GooglePay = props => (
 )
 
 export default function getIcon(type) {
-  const normalizedType = type?.toLowerCase()
+  const normalizedType = String(type || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/_/g, '')
 
   switch (normalizedType) {
     case 'visa':
-    case 'VISA':
       return <Visa />
     case 'amex':
-    case 'AMEX':
+    case 'americanexpress':
       return <Amex />
     case 'mastercard':
-    case 'MASTERCARD':
+    case 'mc':
       return <MasterCard />
-    case 'apple-pay':
-    case 'APPLE-PAY':
+    case 'applepay':
       return <ApplePay />
-    case 'google-pay':
-    case 'GOOGLE-PAY':
+    case 'googlepay':
       return <GooglePay />
     case 'stripe':
-    case 'STRIPE':
       return <FaCcStripe className="fill-[#635BFF]" />
     default:
-      return <BsCreditCard2Back /> // Puedes usar cualquier ícono por defecto o null
+      return (
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-600 shadow-sm">
+          <CreditCard className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+        </div>
+      )
   }
 }

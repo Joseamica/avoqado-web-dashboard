@@ -171,6 +171,14 @@ const resources = {
           cash: 'Cash',
           card: 'Card',
         },
+        sources: {
+          POS: 'POS',
+          TPV: 'Terminal',
+          QR: 'QR',
+          WEB: 'Web',
+          APP: 'App',
+          UNKNOWN: 'Unknown',
+        },
       },
       products: {
         title: 'Products',
@@ -907,6 +915,14 @@ const resources = {
         methods: {
           cash: 'Efectivo',
           card: 'Tarjeta',
+        },
+        sources: {
+          POS: 'Punto de venta',
+          TPV: 'Terminal',
+          QR: 'QR',
+          WEB: 'Web',
+          APP: 'App',
+          UNKNOWN: 'Desconocido',
         },
       },
       products: {
