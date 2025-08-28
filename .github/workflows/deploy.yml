@@ -39,39 +39,31 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    # Asegúrate de haber creado el entorno 'staging' en GitHub
     environment: staging
-    
     steps:
+      # ... (los pasos de checkout, setup-node, npm ci y build son correctos) ...
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build application for staging
         run: npm run build
         env:
-          # Staging environment variables
           VITE_API_URL: ${{ secrets.VITE_API_URL_STAGING }}
-          VITE_FRONTEND_URL: ${{ secrets.VITE_FRONTEND_URL_STAGING }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_FIREBASE_RECAPTCHA_SITE_KEY }}
-
+          # ... el resto de tus variables de entorno
       - name: Deploy to Cloudflare Pages (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name avoqado-web-dashboard --env preview
-
+          # FIX: Especifica la rama de despliegue
+          command: pages deploy dist --project-name avoqado-web-dashboard --branch develop
   # Deploy to Production (main branch)
   deploy-production:
     name: Deploy to Production
@@ -79,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
