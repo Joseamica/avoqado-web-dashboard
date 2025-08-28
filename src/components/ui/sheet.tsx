@@ -51,11 +51,11 @@ const sheetVariants = cva(
 
 interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>, VariantProps<typeof sheetVariants> {
   hasTitle?: boolean
-  defaultTitle?: string
+  _defaultTitle?: string
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = 'right', className, children, hasTitle, defaultTitle = 'Sheet', ...props }, ref) => {
+  ({ side = 'right', className, children, hasTitle, _defaultTitle = 'Sheet', ...props }, ref) => {
     const { t } = useTranslation()
     // Check if any child is a SheetTitle
     const hasExplicitTitle = React.Children.toArray(children).some(child => React.isValidElement(child) && child.type === SheetTitle)
