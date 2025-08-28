@@ -11,7 +11,7 @@ interface TimePickerProps {
 const TimePicker: React.FC<TimePickerProps> = ({ 
   value, 
   onChange, 
-  placeholder = "Seleccionar hora",
+  _placeholder = "Seleccionar hora",
   className = ""
 }) => {
   // Internal state to maintain the current selections

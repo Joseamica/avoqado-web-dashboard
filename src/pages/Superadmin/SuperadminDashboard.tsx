@@ -66,7 +66,7 @@ const DashboardSkeleton = () => (
 )
 
 const SuperadminDashboard: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { 
     data: dashboardData, 
     isLoading, 
