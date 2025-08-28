@@ -1,0 +1,9 @@
+name = "avoqado-web-dashboard"
+compatibility_date = "2024-08-28"
+pages_build_output_dir = "dist"
+
+[env.production]
+name = "avoqado-web-dashboard"
+
+[env.preview]
+name = "avoqado-web-dashboard-preview"
