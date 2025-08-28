@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /** DnDMultipleSelector.tsx */
 import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -99,21 +100,20 @@ function removePickedOption(groupOption: GroupOption, picked: Option[]) {
   return cloneOption
 }
 
-function isOptionsExist(groupOption: GroupOption, targetOption: Option[]) {
-  for (const [, value] of Object.entries(groupOption)) {
-    if (value.some(option => targetOption.find(p => p.value === option.value))) {
-      return true
-    }
-  }
-  return false
-}
+// Removed unused function isOptionsExist
 
 const CommandEmpty = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof CommandPrimitive.Empty>>(
   ({ className, ...props }, forwardedRef) => {
     const render = useCommandState(state => state.filtered.count === 0)
     if (!render) return null
     return (
-      <div ref={forwardedRef} className={cn('py-4 text-center text-sm bg-white', className)} cmdk-empty="" role="presentation" {...props} />
+      <div
+        ref={forwardedRef}
+        className={cn('py-4 text-center text-sm bg-background', className)}
+        cmdk-empty=""
+        role="presentation"
+        {...props}
+      />
     )
   },
 )
@@ -125,7 +125,7 @@ CommandEmpty.displayName = 'CommandEmpty'
 
 function SortableBadge({
   option,
-  index,
+  index: _index,
   disabled,
   badgeClassName,
   handleUnselect,
@@ -399,44 +399,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
       void exec()
     }, [debouncedSearchTerm, groupBy, open, triggerSearchOnFocus, onSearch])
 
-    /**
-     * ALWAYS SHOW a Create button (if `creatable` is true),
-     * even if `inputValue` is empty or already exists.
-     * You can decide whether to disable it or not in those conditions.
-     */
-    const CreatableItem = () => {
-      if (!creatable) return null
-
-      // For demonstration, disable if the user hasn't typed anything
-      // so we don't create an empty value.
-      const isDisabled = !inputValue.trim()
-
-      // You could also do other checks (like duplicates) if you want
-      // but you said "always show."
-      return (
-        <CommandItem
-          value={inputValue}
-          className="bg-white cursor-pointer"
-          disabled={isDisabled}
-          onMouseDown={e => {
-            e.preventDefault()
-            e.stopPropagation()
-          }}
-          onSelect={() => {
-            if (selected.length >= maxSelected) {
-              onMaxSelected?.(selected.length)
-              return
-            }
-            setInputValue('')
-            const newOptions = [...selected, { value: inputValue, label: inputValue }]
-            setSelected(newOptions)
-            onChange?.(newOptions)
-          }}
-        >
-          {isDisabled ? 'Create (type something...)' : `Create "${inputValue}"`}
-        </CommandItem>
-      )
-    }
+    // CreatableItem functionality has been moved to the fixed footer section below
 
     // Show empty indicator (or fallback) if no results
     const EmptyItem = React.useCallback(() => {
@@ -487,7 +450,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
             handleKeyDown(e)
             commandProps?.onKeyDown?.(e)
           }}
-          className={cn('h-auto overflow-visible bg-white', commandProps?.className)}
+          className={cn('h-auto overflow-visible bg-background', commandProps?.className)}
           shouldFilter={commandProps?.shouldFilter !== undefined ? commandProps.shouldFilter : !onSearch}
           filter={commandFilter()}
         >
@@ -570,7 +533,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                     onChange?.(keptFixed)
                   }}
                   className={cn(
-                    'h-6 w-6 rounded-lg p-1 flex items-center justify-center bg-black/10 dark:bg-black/50 text-foreground hover:bg-black/20 dark:hover:bg-black/70 transition-colors',
+                    'h-6 w-6 rounded-lg p-1 flex items-center justify-center bg-muted/50 text-muted-foreground hover:bg-muted/70 transition-colors',
                     (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
                       'hidden',
                   )}
@@ -611,7 +574,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
 
                       {/* Render existing groups/options */}
                       {Object.entries(selectables).map(([key, groupItems]) => (
-                        <CommandGroup key={key} heading={key} className="bg-white">
+                        <CommandGroup key={key} heading={key} className="bg-background">
                           {groupItems.map(option => (
                             <CommandItem
                               key={option.value}
@@ -639,15 +602,14 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                         </CommandGroup>
                       ))}
 
-                      {/* Always show the Create button at the bottom if creatable is true */}
-                      {/* {CreatableItem()} */}
+                      {/* Create button functionality is handled in the footer below */}
                     </>
                   )}
                 </CommandList>
 
                 {/* Fixed footer - Add item button at the bottom */}
                 {showAddItemText && (
-                  <div className="w-full border-t bg-white z-50 p-1">
+                  <div className="w-full border-t bg-background z-50 p-1">
                     <CommandItem
                       value="add-item-fixed-option"
                       className="cursor-pointer font-medium bg-muted/40 hover:bg-muted/60"
@@ -660,12 +622,12 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                         if (onViewOption) {
                           // Using a dummy option since we don't have a specific one
                           // We use special "_new" value that you can detect in your handler
-                          onViewOption({ 
-                            value: "_new", 
+                          onViewOption({
+                            value: '_new',
                             label: `New ${itemName}`,
                           })
                         } else {
-                          // Otherwise just focus the input 
+                          // Otherwise just focus the input
                           inputRef.current?.focus()
                         }
                       }}
