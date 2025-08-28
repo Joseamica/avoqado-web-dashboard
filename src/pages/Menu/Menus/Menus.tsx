@@ -30,6 +30,7 @@ export default function Menus() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
+      meta: { label: 'Nombre' },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
           Nombre
@@ -43,6 +44,7 @@ export default function Menus() {
     },
     {
       id: 'timeRange',
+      meta: { label: 'Horarios del menú' },
       header: 'Horarios del menú',
       // No accessorKey since we're accessing multiple fields
       cell: ({ row }) => {
@@ -65,6 +67,7 @@ export default function Menus() {
     {
       id: 'categories',
       accessorKey: 'categories',
+      meta: { label: 'Categorías' },
       header: 'Categorías',
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
@@ -113,6 +116,7 @@ export default function Menus() {
         rowCount={data?.length}
         columns={columns}
         isLoading={isLoading}
+        tableId="menu:menus"
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },

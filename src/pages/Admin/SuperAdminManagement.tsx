@@ -232,12 +232,12 @@ export default function SuperAdminManagement() {
   // Get audit action label and icon
   const getAuditInfo = action => {
     const actionMap = {
-      user_update: { label: 'Actualización de Usuario', icon: <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> },
-      user_create: { label: 'Creación de Usuario', icon: <UserPlus className="h-4 w-4 text-green-600 dark:text-green-400" /> },
+      user_update: { label: 'Actualización de Usuario', icon: <User className="h-4 w-4 text-blue-600" /> },
+      user_create: { label: 'Creación de Usuario', icon: <UserPlus className="h-4 w-4 text-green-600" /> },
       user_delete: { label: 'Eliminación de Usuario', icon: <XCircle className="h-4 w-4 text-destructive" /> },
-      venue_create: { label: 'Creación de Venue', icon: <PlusCircle className="h-4 w-4 text-green-600 dark:text-green-400" /> },
-      venue_update: { label: 'Actualización de Venue', icon: <UserCog className="h-4 w-4 text-blue-600 dark:text-blue-400" /> },
-      config_update: { label: 'Actualización de Config', icon: <Key className="h-4 w-4 text-yellow-600 dark:text-yellow-400" /> },
+      venue_create: { label: 'Creación de Venue', icon: <PlusCircle className="h-4 w-4 text-green-600" /> },
+      venue_update: { label: 'Actualización de Venue', icon: <UserCog className="h-4 w-4 text-blue-600" /> },
+      config_update: { label: 'Actualización de Config', icon: <Key className="h-4 w-4 text-amber-500" /> },
       superadmin_create: { label: 'Creación de SuperAdmin', icon: <ShieldAlert className="h-4 w-4 text-purple-500" /> },
       superadmin_login: { label: 'Login de SuperAdmin', icon: <Lock className="h-4 w-4 text-muted-foreground" /> },
     }
@@ -248,7 +248,7 @@ export default function SuperAdminManagement() {
   if (!isSuperAdmin) {
     return (
       <div className="py-4">
-        <Card className="border-red-200 dark:border-red-800">
+        <Card className="border border-red-500/30">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
               <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
@@ -271,10 +271,10 @@ export default function SuperAdminManagement() {
       </div>
 
       {/* Warning banner */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/20 dark:border-yellow-600">
+      <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
           </div>
           <div className="ml-3">
             <p className="text-sm text-foreground">
@@ -389,7 +389,7 @@ export default function SuperAdminManagement() {
                         <TableCell>
                           <div className="flex items-center">
                             {admin.status === 'active' ? (
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                             ) : (
                               <XCircle className="mr-2 h-4 w-4 text-destructive" />
                             )}
@@ -454,7 +454,7 @@ export default function SuperAdminManagement() {
                       <h4 className="text-sm font-medium">Estado</h4>
                       <div className="flex items-center mt-1">
                         {selectedAdmin.status === 'active' ? (
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="mr-2 h-4 w-4 text-destructive" />
                         )}
@@ -479,7 +479,7 @@ export default function SuperAdminManagement() {
                           </>
                         ) : (
                           <>
-                            <ShieldAlert className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <ShieldAlert className="mr-2 h-4 w-4 text-blue-600" />
                             SuperAdmin
                           </>
                         )}

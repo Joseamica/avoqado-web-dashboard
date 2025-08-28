@@ -160,6 +160,7 @@ const VenueManagement: React.FC = () => {
   const columns: ColumnDef<SuperadminVenue>[] = [
     {
       accessorKey: 'name',
+      meta: { label: t('venueMgmt.columns.venue') },
       header: t('venueMgmt.columns.venue'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
@@ -175,6 +176,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'status',
+      meta: { label: t('venueMgmt.columns.status') },
       header: t('venueMgmt.columns.status'),
       cell: ({ row }) => (
         <Badge className={getStatusColor(row.original.status)}>
@@ -184,6 +186,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'subscriptionPlan',
+      meta: { label: t('venueMgmt.columns.subscriptionPlan') },
       header: t('venueMgmt.columns.subscriptionPlan'),
       cell: ({ row }) => (
         <Badge className={getPlanColor(row.original.subscriptionPlan)}>
@@ -193,6 +196,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'monthlyRevenue',
+      meta: { label: t('venueMgmt.columns.monthlyRevenue') },
       header: t('venueMgmt.columns.monthlyRevenue'),
       cell: ({ row }) => (
         <div className="font-medium">{Currency(row.original.monthlyRevenue)}</div>
@@ -200,6 +204,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'billing.paymentStatus',
+      meta: { label: t('venueMgmt.columns.payment') },
       header: t('venueMgmt.columns.payment'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-2">
@@ -210,6 +215,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       accessorKey: 'analytics.activeUsers',
+      meta: { label: t('venueMgmt.columns.users') },
       header: t('venueMgmt.columns.users'),
       cell: ({ row }) => (
         <span className="text-sm">{row.original.analytics.activeUsers}</span>
@@ -217,6 +223,7 @@ const VenueManagement: React.FC = () => {
     },
     {
       id: 'actions',
+      meta: { label: t('venueMgmt.columns.actions') },
       header: t('venueMgmt.columns.actions'),
       cell: ({ row }) => (
         <DropdownMenu>
@@ -368,6 +375,7 @@ const VenueManagement: React.FC = () => {
               data={filteredVenues}
               pagination={{ pageIndex: 0, pageSize: 10 }}
               setPagination={() => {}}
+              tableId="superadmin:venues"
               rowCount={filteredVenues.length}
             />
           )}

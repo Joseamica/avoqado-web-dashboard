@@ -10,7 +10,7 @@ const App: React.FC = () => {
   return (
     <>
       <RouterProvider router={router} />
-      <ReactQueryDevtools initialIsOpen position="bottom" />
+      <ReactQueryDevtools initialIsOpen position="bottom" buttonPosition="relative" i18nIsDynamicList={true} styleNonce="nonce" />
     </>
   )
 }

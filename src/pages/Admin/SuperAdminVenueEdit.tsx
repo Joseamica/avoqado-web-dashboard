@@ -502,7 +502,7 @@ export default function SuperAdminVenueEdit() {
                 <h3 className={`text-lg font-medium text-foreground`}>Características premium (SUPERADMIN)</h3>
                 <Separator />
 
-                <div className="p-4 mb-6 border-l-4 border-yellow-500 dark:border-yellow-700 rounded-sm bg-yellow-50/30 dark:bg-yellow-950/20">
+                <div className="p-4 mb-6 border-l-4 border-amber-500/30 rounded-sm bg-amber-500/10">
                   <h4 className={`text-base font-medium mb-1 text-foreground`}>Configuración de características de pago</h4>
                   <p className={`text-sm text-foregroundMuted`}>
                     Estas opciones solo están disponibles para administradores con nivel SUPERADMIN y permiten habilitar/deshabilitar

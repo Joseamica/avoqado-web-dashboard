@@ -362,7 +362,7 @@ export default function ModifierGroups() {
         className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
       />
 
-      <Table className="mb-4 bg-white rounded-xl">
+      <Table className="mb-4 bg-card border border-border rounded-xl">
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => (
             <TableRow key={headerGroup.id}>

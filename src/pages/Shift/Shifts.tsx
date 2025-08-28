@@ -1,17 +1,16 @@
 import api from '@/api'
-import { Button } from '@/components/ui/button'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
 // import { Shift } from '@/types'
-import { Currency } from '@/utils/currency'
+import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { Currency } from '@/utils/currency'
 export default function Shifts() {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
@@ -44,14 +43,7 @@ export default function Shifts() {
       },
       id: 'active',
       sortDescFirst: true,
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.status')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.status'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
 
@@ -69,14 +61,7 @@ export default function Shifts() {
     {
       accessorKey: 'id',
       sortDescFirst: true,
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.shiftId')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.shiftId'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
         return value.slice(-8) // Show last 8 characters of ID
@@ -85,14 +70,7 @@ export default function Shifts() {
     {
       accessorKey: 'startTime',
       sortDescFirst: true,
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.openTime')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.openTime'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
         const date = new Date(value)
@@ -107,8 +85,8 @@ export default function Shifts() {
 
         return (
           <div className="flex flex-col space-y-2">
-            <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-            <span className="font-[400] text-dashboard-gray_darker text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+            <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
+            <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
           </div>
         )
       },
@@ -118,14 +96,7 @@ export default function Shifts() {
     {
       accessorKey: 'endTime',
       sortDescFirst: true,
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.closeTime')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.closeTime'),
       cell: ({ cell }) => {
         if (!cell.getValue()) return '-'
         const value = cell.getValue() as string
@@ -142,8 +113,8 @@ export default function Shifts() {
 
         return (
           <div className="flex flex-col space-y-2">
-            <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-            <span className="font-[400] text-dashboard-gray_darker text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+            <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
+            <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
           </div>
         )
       },
@@ -154,16 +125,54 @@ export default function Shifts() {
     {
       accessorKey: 'totalTips',
       id: 'totalTips',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('shifts.columns.totalTip')}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
+      header: t('shifts.columns.totalTip'),
       cell: ({ row }) => {
-        const totalTips = row.original.totalTips || 0
-        const totalSales = row.original.totalSales || 0
-        const tipPercentage = totalSales !== 0 ? (totalTips / totalSales) * 100 : 0
+        // Robust locale-aware parse: handles "1,231.00", "1.231,00", and plain numbers
+        const parseAmount = (v: any): number => {
+          if (typeof v === 'number') return Number.isFinite(v) ? v : 0
+          if (v == null) return 0
+          let s = String(v).trim()
+          // Drop currency symbols and spaces
+          s = s.replace(/[^0-9.,-]/g, '')
+          if (!s) return 0
+          const lastComma = s.lastIndexOf(',')
+          const lastDot = s.lastIndexOf('.')
+          const hasComma = lastComma !== -1
+          const hasDot = lastDot !== -1
+          if (hasComma && hasDot) {
+            // Assume the right-most separator is the decimal, drop the other as thousand
+            if (lastComma > lastDot) {
+              s = s.replace(/\./g, '') // remove thousands dots
+              s = s.replace(',', '.') // decimal comma -> dot
+            } else {
+              s = s.replace(/,/g, '') // remove thousands commas
+              // decimal dot stays
+            }
+          } else if (hasComma && !hasDot) {
+            // Treat comma as decimal
+            s = s.replace(',', '.')
+          }
+          // Only dot or plain digits: nothing to do
+          const n = Number(s)
+          return Number.isFinite(n) ? n : 0
+        }
+
+        const totalTips = parseAmount(row.original.totalTips)
+        const totalSales = parseAmount(row.original.totalSales)
+        const providedSubtotal = parseAmount((row.original as any).subtotal)
+        // Prefer provided subtotal; else use (sales - tips) if that seems valid
+        let subtotal = providedSubtotal > 0 ? providedSubtotal : totalSales - totalTips
+        if (subtotal <= 0) subtotal = totalSales // fallback
+        let tipPercentage = subtotal > 0 ? (totalTips / subtotal) * 100 : 0
+        if ((subtotal <= 0 || !Number.isFinite(tipPercentage)) && totalTips > 0) {
+          const gross = totalSales + totalTips
+          if (gross > 0) tipPercentage = (totalTips / gross) * 100
+        }
+        // Fallback to provided percentage field if available
+        const providedPct = Number((row.original as any).tipPercentage ?? (row.original as any).tipsPercentage)
+        if (!Number.isFinite(tipPercentage) || tipPercentage === 0) {
+          if (Number.isFinite(providedPct) && providedPct > 0) tipPercentage = providedPct
+        }
 
         let tipClasses = {
           bg: 'bg-green-100 dark:bg-green-900/30',
@@ -184,8 +193,10 @@ export default function Shifts() {
 
         return (
           <div className="flex flex-col space-y-1 items-center">
-            <span className="text-[12px] font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
-            <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTips)}</p>
+            <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+            <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
+              {Currency(totalTips)}
+            </Badge>
           </div>
         )
       },
@@ -196,14 +207,7 @@ export default function Shifts() {
     {
       accessorKey: 'totalSales',
       id: 'totalSales',
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.subtotal')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.subtotal'),
       cell: ({ cell }) => {
         const value = cell.getValue() as number
         return value ? Currency(value) : Currency(0)
@@ -219,14 +223,7 @@ export default function Shifts() {
         return totalSales + totalTips
       },
       id: 'totalAmount',
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('shifts.columns.total')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        )
-      },
+      header: t('shifts.columns.total'),
       cell: ({ cell }) => {
         const value = cell.getValue() as number
         return value ? Currency(value) : Currency(0)

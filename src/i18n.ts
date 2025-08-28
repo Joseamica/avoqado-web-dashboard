@@ -377,6 +377,9 @@ const resources = {
         actions: 'Actions',
         search: 'Search',
         search_docs_placeholder: 'Search the docs...',
+        system: 'System',
+        light: 'Light',
+        dark: 'Dark',
         all: 'All',
         category: 'Category',
         status: 'Status',
@@ -390,6 +393,7 @@ const resources = {
         delete: 'Delete',
         manage: 'Manage',
         loading: 'Loading...',
+        no_results: 'No results',
         close: 'Close',
         previous: 'Previous',
         next: 'Next',
@@ -399,6 +403,7 @@ const resources = {
         go_to_next_page: 'Go to next page',
         toggle_sidebar: 'Toggle Sidebar',
         toggle_theme: 'Toggle theme',
+        customize_columns: 'Customize Columns',
         command_menu: 'Command Menu',
         dialog_title_default: 'Dialog',
         sheet_title_default: 'Sheet',
@@ -422,8 +427,15 @@ const resources = {
         settings: 'Settings',
         logout: 'Log out',
       },
+      teams: {
+        tabs: {
+          members: 'Team Members',
+          invitations: 'Pending Invitations',
+        },
+      },
       chat: {
         welcome: 'Hi! I am the Avoqado assistant. How can I help you?',
+        assistant: 'Assistant',
         input: {
           placeholder: 'Type your question...'
         },
@@ -1102,6 +1114,9 @@ const resources = {
         actions: 'Acciones',
         search: 'Buscar',
         search_docs_placeholder: 'Buscar en la documentación...',
+        system: 'Sistema',
+        light: 'Claro',
+        dark: 'Oscuro',
         all: 'Todas',
         category: 'Categoría',
         status: 'Estado',
@@ -1115,6 +1130,7 @@ const resources = {
         delete: 'Eliminar',
         manage: 'Gestionar',
         loading: 'Cargando...',
+        no_results: 'Sin resultados',
         close: 'Cerrar',
         previous: 'Anterior',
         next: 'Siguiente',
@@ -1124,6 +1140,7 @@ const resources = {
         go_to_next_page: 'Ir a la página siguiente',
         toggle_sidebar: 'Mostrar/ocultar barra lateral',
         toggle_theme: 'Cambiar tema',
+        customize_columns: 'Personalizar columnas',
         command_menu: 'Menú de comandos',
         dialog_title_default: 'Diálogo',
         sheet_title_default: 'Panel',
@@ -1147,8 +1164,15 @@ const resources = {
         settings: 'Configuración',
         logout: 'Cerrar sesión',
       },
+      teams: {
+        tabs: {
+          members: 'Miembros del Equipo',
+          invitations: 'Invitaciones Pendientes',
+        },
+      },
       chat: {
         welcome: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
+        assistant: 'Asistente',
         input: {
           placeholder: 'Escribe tu pregunta...'
         },

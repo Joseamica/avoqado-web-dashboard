@@ -181,9 +181,13 @@ export default function Dashboard() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} />
-      <SidebarInset>
+    <SidebarProvider className="theme-scaled">
+      <AppSidebar user={user} variant="inset" />
+      <SidebarInset
+        style={{
+          "--font-sans": "var(--font-inter)",
+        } as React.CSSProperties}
+      >
         <header
           className={`flex h-16 shrink-0 items-center justify-between transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 px-4 text-foreground`}
         >
@@ -231,12 +235,17 @@ export default function Dashboard() {
         </header>
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
-          <div className={`min-h-[100vh] flex-1 rounded-xl bg-muted md:min-h-min transition-colors duration-200`}>
+          <div className={`min-h-[100vh] flex-1 rounded-xl bg-background md:min-h-min transition-colors duration-200`}>
             <Outlet />
           </div>
         </div>
-        {/* Chatbot component - solo mostrar si hay venue y la feature está activa */}
-        {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && <ChatBubble />}
+        
+        {/* ChatBubble positioned at bottom-right edge */}
+        {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <ChatBubble />
+          </div>
+        )}
       </SidebarInset>
     </SidebarProvider>
   )

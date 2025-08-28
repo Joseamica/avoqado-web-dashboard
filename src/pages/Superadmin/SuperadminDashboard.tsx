@@ -338,18 +338,18 @@ const SuperadminDashboard: React.FC = () => {
               <h4 className="font-medium text-foreground/80">{t('dashboard.platformRevenueAnalytics.projections')}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.avgPerVenue')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.avgPerVenue')}:</span>
                   <span className="font-medium">
                     {Currency(kpis?.activeVenues > 0 ? (dashboardData.revenueMetrics?.totalPlatformRevenue || 0) / kpis.activeVenues : 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.newVenuesThisMonth')}:</span>
-                  <span className="font-medium text-emerald-600 dark:text-emerald-400">+{dashboardData.revenueMetrics?.newVenues || 0}</span>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.newVenuesThisMonth')}:</span>
+                  <span className="font-medium text-emerald-600">+{dashboardData.revenueMetrics?.newVenues || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">{t('dashboard.platformRevenueAnalytics.growthRate')}:</span>
-                  <span className={`font-medium ${(kpis?.growthRate || 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <span className="text-sm text-muted-foreground">{t('dashboard.platformRevenueAnalytics.growthRate')}:</span>
+                  <span className={`font-medium ${(kpis?.growthRate || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                     {(kpis?.growthRate || 0) >= 0 ? '+' : ''}{(kpis?.growthRate || 0).toFixed(1)}%
                   </span>
                 </div>
@@ -382,8 +382,8 @@ const SuperadminDashboard: React.FC = () => {
                     }`}
                   ></div>
                   <div className="flex-1">
-                    <p className="text-sm text-slate-900 dark:text-slate-50">{activity.description}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatRelative(activity.timestamp)}</p>
+                    <p className="text-sm text-foreground">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">{formatRelative(activity.timestamp)}</p>
                   </div>
                 </div>
               )) : (
@@ -413,12 +413,12 @@ const SuperadminDashboard: React.FC = () => {
                       : 'bg-blue-50 border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20'
                   }`}
                 >
-                  {alert.type === 'error' && <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5" />}
-                  {alert.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400 mt-0.5" />}
-                  {alert.type === 'info' && <Clock className="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5" />}
+                  {alert.type === 'error' && <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5" />}
+                  {alert.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5" />}
+                  {alert.type === 'info' && <Clock className="w-4 h-4 text-blue-500 mt-0.5" />}
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{alert.title}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{alert.message}</p>
+                    <p className="text-sm font-medium text-foreground">{alert.title}</p>
+                    <p className="text-xs text-muted-foreground">{alert.message}</p>
                   </div>
                   {!alert.isRead && <div className="w-2 h-2 bg-red-500 rounded-full"></div>}
                 </div>

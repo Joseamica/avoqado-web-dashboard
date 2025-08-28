@@ -341,7 +341,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsClearing(false)
       }, 100)
     }
-  }, [toast])
+  }, [toast, t])
 
   const handleSaveConversation = useCallback(async () => {
     if (isSaving) return
@@ -405,7 +405,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsSaving(false)
       }, 1000)
     }
-  }, [toast, isSaving, messages, currentConversationId, lastSavedMessageCount])
+  }, [toast, isSaving, messages, currentConversationId, lastSavedMessageCount, t])
 
   const handleNewConversation = useCallback(() => {
     if (isCreatingNew) return
@@ -456,7 +456,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsCreatingNew(false)
       }, 1000)
     }
-  }, [toast, messages, isCreatingNew])
+  }, [toast, messages, isCreatingNew, t])
 
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
@@ -478,7 +478,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         })
       }
     },
-    [savedConversations, toast],
+    [savedConversations, toast, t],
   )
 
   const handleDeleteConversation = useCallback((conversationId: string) => {
@@ -514,7 +514,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     }
 
     setConversationToDelete(null)
-  }, [conversationToDelete, savedConversations, currentConversationId, toast])
+  }, [conversationToDelete, savedConversations, currentConversationId, toast, t])
 
   // Handle feedback dialog submission
   const handleFeedbackSubmit = useCallback(
@@ -533,7 +533,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         messageId: feedbackMessage.id,
       })
     },
-    [feedbackMessage, messages, negativeFeedbackMutation],
+    [feedbackMessage, messages, negativeFeedbackMutation, t],
   )
 
   // Scroll to bottom when new messages are added
@@ -956,17 +956,20 @@ export function ChatBubble() {
   }
 
   return (
-    <div className="fixed bottom-4 right-20 z-50">
-      {isOpen && <ChatInterface key={`chat-${venueId}`} onClose={() => setIsOpen(false)} />}
+    <div className="relative">
+      {isOpen && (
+        <div className="fixed top-16 right-4 z-50">
+          <ChatInterface key={`chat-${venueId}`} onClose={() => setIsOpen(false)} />
+        </div>
+      )}
 
       <Button
         onClick={toggleChat}
         size="icon"
-        variant="default"
-        className={`h-14 w-14 rounded-full shadow-lg theme-transition`}
+        className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
         aria-label={isOpen ? t('chat.a11y.close') : t('chat.a11y.open')}
       >
-        <MessageSquare className="h-6 w-6 text-primary-foreground" />
+        <MessageSquare className="h-5 w-5" />
       </Button>
     </div>
   )

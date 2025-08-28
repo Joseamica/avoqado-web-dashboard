@@ -7,7 +7,6 @@ import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
@@ -33,6 +32,7 @@ export default function Tpvs() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
+      meta: { label: 'Nombre' },
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
           Nombre
@@ -45,6 +45,7 @@ export default function Tpvs() {
       id: 'serialNumber',
       accessorKey: 'serialNumber',
       sortDescFirst: true,
+      meta: { label: 'Numero de serie' },
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
           Numero de serie
@@ -56,6 +57,7 @@ export default function Tpvs() {
       id: 'version',
       accessorKey: 'version',
       sortDescFirst: true,
+      meta: { label: 'Versión' },
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
           Versión
@@ -100,24 +102,22 @@ export default function Tpvs() {
         placeholder="Buscar..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-72`}
+        className={`p-2 mt-4 mb-4 border rounded max-w-72`}
       />
-      <Card>
-        <CardContent className="p-0">
-          <DataTable
-            data={filteredTpvs}
-            rowCount={totalTpvs}
-            columns={columns}
-            isLoading={isLoading}
-            clickableRow={row => ({
-              to: row.id,
-              state: { from: location.pathname },
-            })}
-            pagination={pagination}
-            setPagination={setPagination}
-          />
-        </CardContent>
-      </Card>
+
+      <DataTable
+        data={filteredTpvs}
+        rowCount={totalTpvs}
+        columns={columns}
+        isLoading={isLoading}
+        tableId="tpv:list"
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+        pagination={pagination}
+        setPagination={setPagination}
+      />
     </div>
   )
 }

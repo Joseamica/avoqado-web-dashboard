@@ -29,6 +29,7 @@ export default function Categories() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
+      meta: { label: 'Nombre' },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
           Nombre
@@ -99,6 +100,7 @@ export default function Categories() {
         rowCount={categories?.length}
         columns={columns}
         isLoading={isLoading}
+        tableId="menu:categories"
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },

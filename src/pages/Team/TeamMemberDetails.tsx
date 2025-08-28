@@ -192,7 +192,7 @@ export default function TeamMemberDetails() {
                   <CardTitle className="text-lg">
                     {memberDetails.firstName} {memberDetails.lastName}
                   </CardTitle>
-                  <Badge className={getRoleBadgeColor(memberDetails.role, staffInfo?.role)}>
+                  <Badge variant="soft" className={getRoleBadgeColor(memberDetails.role, staffInfo?.role)}>
                     {getRoleDisplayName(memberDetails.role, staffInfo?.role)}
                   </Badge>
                 </div>

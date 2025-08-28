@@ -1,19 +1,18 @@
 // src/pages/Orders.tsx
 
 import DataTable from '@/components/data-table'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue' // Hook actualizado
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import * as orderService from '@/services/order.service'
 import { Order as OrderType } from '@/types' // CAMBIO: Usar el tipo Order
 import { Currency } from '@/utils/currency'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import { useLocation } from 'react-router-dom'
 
 export default function Orders() {
@@ -47,6 +46,7 @@ export default function Orders() {
     () => [
       {
         accessorKey: 'createdAt', // Sin cambios
+        meta: { label: t('orders.columns.date') },
         header: t('orders.columns.date'),
         cell: ({ cell }) => {
           // Lógica de formato de fecha sin cambios
@@ -61,8 +61,8 @@ export default function Orders() {
           const ampm = date.getHours() >= 12 ? 'pm' : 'am'
           return (
             <div className="flex flex-col space-y-2">
-              <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="font-[400] text-muted-foreground text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
+              <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
             </div>
           )
         },
@@ -70,12 +70,14 @@ export default function Orders() {
       {
         // CAMBIO: `folio` ahora es `orderNumber`
         accessorKey: 'orderNumber',
+        meta: { label: t('orders.columns.orderNumber') },
         header: t('orders.columns.orderNumber'),
         cell: info => <>{(info.getValue() as string) || '-'}</>,
       },
       {
         // CAMBIO: `billName` ahora es `customerName`
         accessorKey: 'customerName',
+        meta: { label: t('orders.columns.customer') },
         header: t('orders.columns.customer'),
         cell: info => <>{(info.getValue() as string) || t('orders.counter')}</>,
       },
@@ -83,23 +85,25 @@ export default function Orders() {
         // CAMBIO: `waiterName` ahora se obtiene del objeto anidado `createdBy`
         accessorFn: row => (row.createdBy ? `${row.createdBy.firstName}` : '-'),
         id: 'waiterName',
+        meta: { label: t('orders.columns.waiter') },
         header: t('orders.columns.waiter'),
       },
       {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
         accessorKey: 'status',
+        meta: { label: t('orders.columns.status') },
         header: t('orders.columns.status'),
         cell: ({ cell }) => {
           const status = cell.getValue() as string
 
           // Lógica de clases adaptada a los nuevos estados
-          let statusClasses = { bg: 'bg-secondary', text: 'text-secondary-foreground' }
+          let statusClasses = { bg: 'bg-secondary dark:bg-secondary', text: 'text-secondary-foreground' }
           if (status === 'COMPLETED') {
-            statusClasses = { bg: 'bg-green-100', text: 'text-green-800' }
+            statusClasses = { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-400' }
           } else if (status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING') {
-            statusClasses = { bg: 'bg-yellow-100', text: 'text-yellow-800' }
+            statusClasses = { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-400' }
           } else if (status === 'CANCELLED') {
-            statusClasses = { bg: 'bg-red-100', text: 'text-red-800' }
+            statusClasses = { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-800 dark:text-red-400' }
           }
 
           // Mapa de traducción para los nuevos estados
@@ -114,9 +118,9 @@ export default function Orders() {
 
           return (
             <div className="flex justify-center">
-              <span className={`${statusClasses.bg} ${statusClasses.text} px-3 py-1 font-medium rounded-full`}>
+              <Badge variant="soft" className={`${statusClasses.bg} ${statusClasses.text} border-transparent`}>
                 {statusMap[status] || status}
-              </span>
+              </Badge>
             </div>
           )
         },
@@ -124,12 +128,8 @@ export default function Orders() {
       {
         // CAMBIO: El total es un campo numérico directo, no un string.
         accessorKey: 'total',
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('orders.columns.total')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
+        meta: { label: t('orders.columns.total') },
+        header: t('orders.columns.total'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           // `Currency` probablemente espera centavos, y total es un valor decimal.
@@ -170,7 +170,7 @@ export default function Orders() {
         placeholder={t('orders.searchPlaceholder')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
+        className={`p-2 mt-4 mb-4 border rounded bg-input border-input max-w-sm`}
       />
 
       {error && (
@@ -184,6 +184,7 @@ export default function Orders() {
         rowCount={totalOrders}
         columns={columns}
         isLoading={isLoading}
+        tableId="orders:main"
         clickableRow={row => ({
           to: row.id, // El ID de la orden
           state: { from: location.pathname },

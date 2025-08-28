@@ -14,7 +14,7 @@ import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/local
 import { DollarSign, Download, Gift, Loader2, Percent, Star, TrendingUp } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Label, Line, LineChart, Pie, PieChart, XAxis } from 'recharts'
 
 // Import progressive loading components
 import {
@@ -463,7 +463,7 @@ const Home = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-2 md:p-4 space-y-4 mx-auto w-full">
+      <div className="flex-1 p-2 md:p-4 space-y-4 mx-auto w-full section-soft cards-tinted">
         {isBasicError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
@@ -524,7 +524,7 @@ const Home = () => {
             {/* Payment methods chart - Also priority since it uses basic data */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
               <Card className="lg:col-span-4 flex flex-col">
-                <CardHeader className="border-b pb-3">
+                <CardHeader className="items-center pb-0">
                   <CardTitle>{t('home.sections.paymentMethods')}</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
@@ -534,7 +534,7 @@ const Home = () => {
                       : t('home.currentPeriod')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 pt-6 pb-0">
+                <CardContent className="flex-1 pb-0">
                   {isBasicLoading ? (
                     <div className="animate-pulse flex h-full w-full flex-col space-y-4">
                       <div className="h-6 bg-muted rounded w-1/2 mx-auto"></div>
@@ -545,80 +545,82 @@ const Home = () => {
                       <p className="text-muted-foreground">{t('home.noData')}</p>
                     </div>
                   ) : (
-                    <div className="mx-auto aspect-square max-h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Tooltip
-                            formatter={value => `${Currency(Number(value), false)}`}
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    <ChartContainer
+                      config={{
+                        total: {
+                          label: t('home.total'),
+                        },
+                        ...paymentMethodsData.reduce((acc, item, index) => ({
+                          ...acc,
+                          [item.method]: {
+                            label: item.method,
+                            color: `var(--chart-${(index % 5) + 1})`,
+                          }
+                        }), {})
+                      }}
+                      className="mx-auto aspect-square max-h-[250px]"
+                    >
+                      <PieChart>
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel formatter={value => Currency(Number(value), false)} />}
+                        />
+                        <Pie
+                          data={paymentMethodsData.map((item, index) => ({
+                            ...item,
+                            fill: `var(--chart-${(index % 5) + 1})`
+                          }))}
+                          dataKey="total"
+                          nameKey="method"
+                          innerRadius={60}
+                          strokeWidth={5}
+                        >
+                          <Label
+                            content={({ viewBox }) => {
+                              if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                                return (
+                                  <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      className="fill-foreground text-xl font-bold"
+                                    >
+                                      {Currency(totalAmount, false)}
+                                    </tspan>
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={(viewBox.cy || 0) + 20}
+                                      className="fill-muted-foreground text-sm"
+                                    >
+                                      {t('home.total')}
+                                    </tspan>
+                                  </text>
+                                )
+                              }
+                            }}
                           />
-                          <Pie
-                            data={paymentMethodsData}
-                            dataKey="total"
-                            nameKey="method"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
-                            innerRadius={60}
-                            paddingAngle={2}
-                            strokeWidth={5}
-                          >
-                            {paymentMethodsData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                            <Label
-                              content={({ viewBox }) => {
-                                if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                                  return (
-                                    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                      <tspan
-                                        x={viewBox.cx}
-                                        y={viewBox.cy}
-                                        className="text-lg font-bold"
-                                        style={{ fill: 'hsl(var(--foreground))' }}
-                                      >
-                                        {Currency(totalAmount, false)}
-                                      </tspan>
-                                      <tspan
-                                        x={viewBox.cx}
-                                        y={(viewBox.cy || 0) + 24}
-                                        className="text-sm"
-                                        style={{ fill: 'hsl(var(--muted-foreground))' }}
-                                      >
-                                        {t('home.total')}
-                                      </tspan>
-                                    </text>
-                                  )
-                                }
-                              }}
-                            />
-                          </Pie>
-                          <Legend verticalAlign="bottom" align="center" layout="horizontal" iconSize={10} iconType="circle" />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
                   )}
                 </CardContent>
                 {!isBasicLoading && paymentMethodsData && paymentMethodsData.length > 0 && compareType && (
-                  <CardFooter className="flex-col gap-2 text-sm pt-2">
+                  <CardFooter className="flex-col gap-2 text-sm">
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {amountChangePercentage > 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600">
-                            Incremento de {amountChangePercentage}% vs {comparisonLabel}
-                          </span>
+                          {t('home.comparison.trending')} {amountChangePercentage}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4" />
                         </>
                       ) : amountChangePercentage < 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
-                          <span className="text-red-600">
-                            Disminución de {Math.abs(amountChangePercentage)}% vs {comparisonLabel}
-                          </span>
+                          {t('home.comparison.trending')} {Math.abs(amountChangePercentage)}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4 rotate-180" />
                         </>
                       ) : (
-                        <span>Sin cambios vs {comparisonLabel}</span>
+                        t('home.comparison.noChange')
                       )}
+                    </div>
+                    <div className="leading-none text-muted-foreground">
+                      {t('home.comparison.showingTotal')} vs {comparisonLabel}
                     </div>
                   </CardFooter>
                 )}
@@ -985,76 +987,166 @@ const PeakHoursChart = ({ data }: { data: any }) => {
   )
 }
 
-// Tips Over Time Chart
+// Tips Over Time Chart - Interactive Line Chart
 const TipsOverTimeChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
-  // Process tips data over time
+  
+  const [activeMetric, setActiveMetric] = useState<'tips' | 'tipPercentage'>('tips')
+  
+  // Process tips data over time with additional metrics
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
     if (!payments || payments.length === 0) return []
 
     const tipsByDate = new Map()
+    const revenueByDate = new Map()
 
     payments.forEach((payment: any) => {
-      if (payment.tips && payment.tips.length > 0) {
-        const date = new Date(payment.createdAt).toISOString().split('T')[0]
-        const tipAmount = payment.tips.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0)
+      const date = new Date(payment.createdAt).toISOString().split('T')[0]
+      const paymentAmount = Number(payment.amount)
+      const tipAmount = payment.tips?.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0) || 0
 
-        if (tipsByDate.has(date)) {
-          tipsByDate.set(date, tipsByDate.get(date) + tipAmount)
-        } else {
-          tipsByDate.set(date, tipAmount)
-        }
+      // Accumulate tips
+      if (tipsByDate.has(date)) {
+        tipsByDate.set(date, tipsByDate.get(date) + tipAmount)
+      } else {
+        tipsByDate.set(date, tipAmount)
+      }
+
+      // Accumulate revenue
+      if (revenueByDate.has(date)) {
+        revenueByDate.set(date, revenueByDate.get(date) + paymentAmount)
+      } else {
+        revenueByDate.set(date, paymentAmount)
       }
     })
 
     return Array.from(tipsByDate.entries())
-      .map(([date, amount]) => ({
-        date,
-        tips: amount,
-        formattedDate: new Date(date).toLocaleDateString(localeCode, { month: 'short', day: 'numeric' }),
-      }))
+      .map(([date, tips]) => {
+        const revenue = revenueByDate.get(date) || 0
+        const tipPercentage = revenue > 0 ? (tips / revenue) * 100 : 0
+        
+        return {
+          date,
+          tips,
+          tipPercentage: Number(tipPercentage.toFixed(2)),
+          formattedDate: new Date(date).toLocaleDateString(localeCode, { month: 'short', day: 'numeric' }),
+        }
+      })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   }, [data?.payments, localeCode])
 
+  // Calculate totals
+  const stats = useMemo(() => {
+    const totalTips = tipsOverTime.reduce((acc, curr) => acc + curr.tips, 0)
+    const avgTipPercentage = tipsOverTime.length > 0 
+      ? tipsOverTime.reduce((acc, curr) => acc + curr.tipPercentage, 0) / tipsOverTime.length
+      : 0
+
+    return {
+      tips: totalTips,
+      tipPercentage: Number(avgTipPercentage.toFixed(1)),
+    }
+  }, [tipsOverTime])
+
+  const chartConfig = {
+    tips: {
+      label: t('home.charts.tips'),
+      color: 'var(--chart-1)',
+    },
+    tipPercentage: {
+      label: t('home.charts.tipPercentage'),
+      color: 'var(--chart-2)',
+    },
+  }
+
   return (
-    <Card>
-      <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
-        <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
+    <Card className="py-4 sm:py-0">
+      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
+          <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
+          <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
+        </div>
+        <div className="flex">
+          {(['tips', 'tipPercentage'] as const).map((key) => (
+            <button
+              key={key}
+              data-active={activeMetric === key}
+              className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              onClick={() => setActiveMetric(key)}
+            >
+              <span className="text-muted-foreground text-xs">
+                {chartConfig[key].label}
+              </span>
+              <span className="text-lg leading-none font-bold sm:text-2xl">
+                {key === 'tips' 
+                  ? Currency(stats[key], false)
+                  : `${stats[key]}%`
+                }
+              </span>
+            </button>
+          ))}
+        </div>
       </CardHeader>
-      <CardContent className="pt-6" style={{ height: '360px' }}>
+      <CardContent className="px-2 sm:p-6">
         {!tipsOverTime || tipsOverTime.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-[250px]">
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
-            className="h-full"
-            config={{
-              tips: {
-                label: t('home.charts.tips'),
-                color: CHART_COLORS[2],
-              },
-            }}
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
           >
-            <BarChart
+            <LineChart
               accessibilityLayer
               data={tipsOverTime}
               margin={{
-                top: 30,
-                right: 30,
-                left: 20,
-                bottom: 20,
+                left: 12,
+                right: 12,
               }}
-              height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
-              <Bar dataKey="tips" fill="var(--color-tips)" radius={4} />
-            </BarChart>
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    className="w-[180px]"
+                    labelFormatter={(value) => {
+                      const matchingData = tipsOverTime.find(d => d.formattedDate === value)
+                      if (matchingData) {
+                        const date = new Date(matchingData.date)
+                        return date.toLocaleDateString(localeCode, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      }
+                      return value
+                    }}
+                    formatter={(value: any) =>
+                      activeMetric === 'tips'
+                        ? Currency(Number(value), false)
+                        : `${value}%`
+                    }
+                  />
+                }
+              />
+              <Line
+                dataKey={activeMetric}
+                type="monotone"
+                stroke={`var(--color-${activeMetric})`}
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
           </ChartContainer>
         )}
       </CardContent>
@@ -1062,48 +1154,128 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
   )
 }
 
-// Revenue Trends Chart
+// Revenue Trends Chart - Interactive Line Chart
 const RevenueTrendsChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const localeCode = getIntlLocale(i18n.language)
   const revenueData = data?.revenue || []
+  
+  // Add state for interactive chart
+  const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue')
+  
+  // Calculate totals for header buttons
+  const totals = useMemo(() => ({
+    revenue: revenueData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0),
+    orders: revenueData.reduce((acc: number, curr: any) => acc + (curr.orders || 0), 0),
+  }), [revenueData])
+
+  const chartConfig = {
+    revenue: {
+      label: t('home.charts.revenue'),
+      color: 'var(--chart-1)',
+    },
+    orders: {
+      label: t('home.charts.orders'),
+      color: 'var(--chart-2)',
+    },
+  }
 
   return (
-    <Card>
-      <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
-        <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
+    <Card className="py-4 sm:py-0">
+      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
+          <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
+          <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
+        </div>
+        <div className="flex">
+          {(['revenue', 'orders'] as const).map((key) => (
+            <button
+              key={key}
+              data-active={activeMetric === key}
+              className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              onClick={() => setActiveMetric(key)}
+            >
+              <span className="text-muted-foreground text-xs">
+                {chartConfig[key].label}
+              </span>
+              <span className="text-lg leading-none font-bold sm:text-2xl">
+                {key === 'revenue' 
+                  ? Currency(totals[key], false)
+                  : totals[key].toLocaleString()
+                }
+              </span>
+            </button>
+          ))}
+        </div>
       </CardHeader>
-      <CardContent className="pt-6" style={{ height: '360px' }}>
+      <CardContent className="px-2 sm:p-6">
         {!revenueData || revenueData.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-[250px]">
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
-            className="h-full"
-            config={{
-              revenue: {
-                label: t('home.charts.revenue'),
-                color: CHART_COLORS[0],
-              },
-            }}
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
           >
-            <BarChart
+            <LineChart
               accessibilityLayer
               data={revenueData}
               margin={{
-                top: 30,
-                right: 30,
-                left: 20,
-                bottom: 20,
+                left: 12,
+                right: 12,
               }}
-              height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
-              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-            </BarChart>
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  // Handle both formatted dates and raw dates
+                  if (typeof value === 'string' && value.includes(' ')) {
+                    return value // Already formatted
+                  }
+                  const date = new Date(value)
+                  return date.toLocaleDateString(localeCode, {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                }}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    className="w-[180px]"
+                    labelFormatter={(value) => {
+                      if (typeof value === 'string' && value.includes(' ')) {
+                        return value
+                      }
+                      const date = new Date(value)
+                      return date.toLocaleDateString(localeCode, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    }}
+                    formatter={(value: any) =>
+                      activeMetric === 'revenue'
+                        ? Currency(Number(value), false)
+                        : `${value} ${t('home.charts.ordersLabel')}`
+                    }
+                  />
+                }
+              />
+              <Line
+                dataKey={activeMetric}
+                type="monotone"
+                stroke={`var(--color-${activeMetric})`}
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
           </ChartContainer>
         )}
       </CardContent>
@@ -1111,48 +1283,132 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
   )
 }
 
-// Average Order Value Trends Chart
+// Average Order Value Trends Chart - Interactive Line Chart
 const AOVTrendsChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const localeCode = getIntlLocale(i18n.language)
   const aovData = data?.aov || []
+  
+  const [activeMetric, setActiveMetric] = useState<'aov' | 'orderCount'>('aov')
+  
+  // Calculate totals and averages
+  const stats = useMemo(() => {
+    const totalRevenue = aovData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0)
+    const totalOrders = aovData.reduce((acc: number, curr: any) => acc + (curr.orderCount || 0), 0)
+    const avgAOV = totalOrders > 0 ? totalRevenue / totalOrders : 0
+    
+    return {
+      aov: avgAOV,
+      orderCount: totalOrders,
+    }
+  }, [aovData])
+
+  const chartConfig = {
+    aov: {
+      label: t('home.aov.title'),
+      color: 'var(--chart-1)',
+    },
+    orderCount: {
+      label: t('home.charts.totalOrders'),
+      color: 'var(--chart-2)',
+    },
+  }
 
   return (
-    <Card>
-      <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.aov.title')}</CardTitle>
-        <CardDescription>{t('home.aov.desc')}</CardDescription>
+    <Card className="py-4 sm:py-0">
+      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+        <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
+          <CardTitle>{t('home.aov.title')}</CardTitle>
+          <CardDescription>{t('home.aov.desc')}</CardDescription>
+        </div>
+        <div className="flex">
+          {(['aov', 'orderCount'] as const).map((key) => (
+            <button
+              key={key}
+              data-active={activeMetric === key}
+              className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              onClick={() => setActiveMetric(key)}
+            >
+              <span className="text-muted-foreground text-xs">
+                {chartConfig[key].label}
+              </span>
+              <span className="text-lg leading-none font-bold sm:text-2xl">
+                {key === 'aov' 
+                  ? Currency(stats[key], false)
+                  : stats[key].toLocaleString()
+                }
+              </span>
+            </button>
+          ))}
+        </div>
       </CardHeader>
-      <CardContent className="pt-6" style={{ height: '360px' }}>
+      <CardContent className="px-2 sm:p-6">
         {!aovData || aovData.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-[250px]">
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
           <ChartContainer
-            className="h-full"
-            config={{
-              aov: {
-                label: t('home.aov.title'),
-                color: CHART_COLORS[1],
-              },
-            }}
+            config={chartConfig}
+            className="aspect-auto h-[250px] w-full"
           >
-            <BarChart
+            <LineChart
               accessibilityLayer
               data={aovData}
               margin={{
-                top: 30,
-                right: 30,
-                left: 20,
-                bottom: 20,
+                left: 12,
+                right: 12,
               }}
-              height={280}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="formattedDate" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => Currency(Number(value))} />} />
-              <Bar dataKey="aov" fill="var(--color-aov)" radius={4} />
-            </BarChart>
+              <XAxis
+                dataKey="formattedDate"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  if (typeof value === 'string' && value.includes(' ')) {
+                    return value
+                  }
+                  const date = new Date(value)
+                  return date.toLocaleDateString(localeCode, {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                }}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    className="w-[180px]"
+                    labelFormatter={(value) => {
+                      if (typeof value === 'string' && value.includes(' ')) {
+                        return value
+                      }
+                      const date = new Date(value)
+                      return date.toLocaleDateString(localeCode, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    }}
+                    formatter={(value: any) =>
+                      activeMetric === 'aov'
+                        ? Currency(Number(value), false)
+                        : `${value} ${t('home.charts.ordersLabel')}`
+                    }
+                  />
+                }
+              />
+              <Line
+                dataKey={activeMetric}
+                type="monotone"
+                stroke={`var(--color-${activeMetric})`}
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
           </ChartContainer>
         )}
       </CardContent>

@@ -9,17 +9,17 @@ export function useThemeClasses() {
 
   return {
     // State-based colors that need dynamic theming
-    success: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
-    warning: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200',
-    info: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
-    error: 'bg-destructive/10 border-destructive/20 text-destructive',
+    success: 'status-badge status-success',
+    warning: 'status-badge status-warning',
+    info: 'status-badge status-info',
+    error: 'status-badge status-critical',
 
     // Priority colors for notifications, badges, etc.
     priority: {
       low: 'text-muted-foreground',
-      normal: 'text-blue-500 dark:text-blue-400',
-      high: 'text-orange-500 dark:text-orange-400',
-      urgent: 'text-destructive',
+      normal: 'text-[var(--color-info)]',
+      high: 'text-[var(--color-warning)]',
+      urgent: 'text-[var(--color-destructive)]',
     },
 
     // Common component combinations
@@ -36,10 +36,10 @@ export function useThemeClasses() {
     
     // Status indicators
     statusDot: {
-      active: 'bg-green-500 dark:bg-green-400',
+      active: 'bg-[var(--color-success)]',
       inactive: 'bg-muted-foreground',
-      pending: 'bg-orange-500 dark:bg-orange-400',
-      error: 'bg-destructive',
+      pending: 'bg-[var(--color-warning)]',
+      error: 'bg-[var(--color-destructive)]',
     }
   }
 }
@@ -56,10 +56,10 @@ export function themeClasses(...classes: (string | undefined | false | null)[]):
  */
 export function getStatusColor(status: 'success' | 'warning' | 'info' | 'error'): string {
   const colors = {
-    success: 'text-green-600 dark:text-green-400',
-    warning: 'text-orange-600 dark:text-orange-400',
-    info: 'text-blue-600 dark:text-blue-400',
-    error: 'text-destructive',
+    success: 'text-[color:var(--color-success)]',
+    warning: 'text-[color:var(--color-warning)]',
+    info: 'text-[color:var(--color-info)]',
+    error: 'text-[color:var(--color-destructive)]',
   }
   return colors[status]
 }
@@ -69,10 +69,10 @@ export function getStatusColor(status: 'success' | 'warning' | 'info' | 'error')
  */
 export function getStatusBackground(status: 'success' | 'warning' | 'info' | 'error'): string {
   const backgrounds = {
-    success: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800',
-    warning: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800', 
-    info: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
-    error: 'bg-destructive/10 border-destructive/20',
+    success: 'status-badge status-success',
+    warning: 'status-badge status-warning', 
+    info: 'status-badge status-info',
+    error: 'status-badge status-critical',
   }
   return backgrounds[status]
 }
