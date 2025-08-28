@@ -155,7 +155,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           </h3>
           <p className="text-sm text-muted-foreground">{teamMember.email}</p>
         </div>
-        <Badge className={getRoleBadgeColor(teamMember.role, staffInfo?.role)}>
+        <Badge variant="soft" className={getRoleBadgeColor(teamMember.role, staffInfo?.role)}>
           {getRoleDisplayName(teamMember.role, staffInfo?.role)}
         </Badge>
       </div>

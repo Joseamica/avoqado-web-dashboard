@@ -1,4 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Settings2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   ColumnDef,
   flexRender,
@@ -9,8 +13,9 @@ import {
   useReactTable,
   PaginationState,
   RowSelectionState,
+  VisibilityState,
 } from '@tanstack/react-table'
-import { Dispatch, SetStateAction, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -22,17 +27,41 @@ type DataTableProps<TData> = {
   clickableRow?: (row: TData) => { to: string; state?: Record<string, any> }
   pagination?: PaginationState
   setPagination?: Dispatch<SetStateAction<PaginationState>>
+  showColumnCustomizer?: boolean
+  tableId?: string
 }
 
-function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickableRow, pagination, setPagination }: DataTableProps<TData>) {
+function DataTable<TData>({
+  data,
+  rowCount,
+  columns,
+  isLoading = false,
+  clickableRow,
+  pagination,
+  setPagination,
+  showColumnCustomizer = true,
+  tableId,
+}: DataTableProps<TData>) {
+  // MUST call ALL hooks at the very top, before ANY conditional logic or returns
+  const { t } = useTranslation()
+
+  // Row selection state to prevent React Table errors
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
+    if (!tableId) return {}
+    try {
+      const raw = localStorage.getItem(`table:visibility:${tableId}`)
+      return raw ? (JSON.parse(raw) as VisibilityState) : {}
+    } catch {
+      return {}
+    }
+  })
+
   // Default pagination state if not provided
   const defaultPagination = {
     pageIndex: 0,
     pageSize: 10,
   }
-
-  // Row selection state to prevent React Table errors
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const table = useReactTable({
     data: data || [],
@@ -41,9 +70,11 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
     state: {
       pagination: pagination || defaultPagination,
       rowSelection,
+      columnVisibility,
     },
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
     manualPagination: !!pagination, // Enable server-side pagination when pagination prop is provided
     rowCount: rowCount || 0,
     getCoreRowModel: getCoreRowModel(),
@@ -59,6 +90,16 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
     enableRowSelection: false, // Explicitly disable row selection to prevent errors
   })
 
+  // Persist visibility per tableId
+  useEffect(() => {
+    if (!tableId) return
+    try {
+      localStorage.setItem(`table:visibility:${tableId}`, JSON.stringify(columnVisibility))
+    } catch {
+      /* Intentionally ignore localStorage write errors (e.g., Safari private mode or quota exceeded) */
+    }
+  }, [tableId, columnVisibility])
+
   if (isLoading) {
     return <TableSkeleton columns={columns.length} rows={5} />
   }
@@ -68,14 +109,48 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
 
   return (
     <>
-      <Table className="mb-4 rounded-xl bg-card">
+      {/* Toolbar */}
+      {showColumnCustomizer && (
+        <div className="mb-2 flex items-center justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="default" className="gap-2 ">
+                <Settings2 className="h-4 w-4" /> {t('common.customize_columns')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {table
+                .getAllLeafColumns()
+                .filter(col => col.getCanHide())
+                .map(col => (
+                  <DropdownMenuCheckboxItem
+                    key={col.id}
+                    className="capitalize"
+                    checked={col.getIsVisible()}
+                    onCheckedChange={val => col.toggleVisibility(!!val)}
+                  >
+                    {(col.columnDef as any)?.meta?.label ??
+                      (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+      <Table
+        containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden"
+        className="table-sticky"
+      >
         {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-10 bg-muted dark:bg-[#262626] text-muted-foreground">
           {table.getHeaderGroups().map(headerGroup => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="border-border">
               {headerGroup.headers.map(header => {
                 return (
-                  <TableHead key={header.id} className="p-4">
+                  <TableHead
+                    key={header.id}
+                    className="px-4 py-3 font-medium first:rounded-tl-xl last:rounded-tr-xl"
+                  >
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     {/* {header.column.getCanFilter() ? (
                   <div>
@@ -99,10 +174,10 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className="border-gray-200 dark:border-gray-700" // eslint-disable-line
+                    className="bg-background border-border hover:bg-background data-[state=selected]:bg-background"
                   >
                     {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} className="p-4">
+                      <TableCell key={cell.id} className="px-4 py-3">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -111,9 +186,13 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
               }
 
               return (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="border-gray-200 dark:border-gray-700">
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="bg-background border-border hover:bg-background data-[state=selected]:bg-background"
+                >
                   {row.getVisibleCells().map(cell => (
-                    <TableCell key={cell.id} className="p-4">
+                    <TableCell key={cell.id} className="px-4 py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -123,7 +202,7 @@ function DataTable<TData>({ data, rowCount, columns, isLoading = false, clickabl
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className={`h-10 text-center text-muted-foreground`}>
-                Sin resultados.
+                {t('common.no_results')}
               </TableCell>
             </TableRow>
           )}

@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslation } from 'react-i18next'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import InviteTeamMemberForm from './components/InviteTeamMemberForm'
@@ -43,6 +44,7 @@ export default function Teams() {
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
@@ -151,7 +153,7 @@ export default function Teams() {
       accessorKey: 'role',
       header: 'Rol',
       cell: ({ row }) => (
-        <Badge className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+        <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
@@ -219,7 +221,7 @@ export default function Teams() {
       accessorKey: 'role',
       header: 'Rol',
       cell: ({ row }) => (
-        <Badge className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+        <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
@@ -317,9 +319,25 @@ export default function Teams() {
       </div>
 
       <Tabs defaultValue="members" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="members">Miembros del Equipo ({teamData?.meta.totalCount || 0})</TabsTrigger>
-          <TabsTrigger value="invitations">Invitaciones Pendientes ({invitationsData?.data.length || 0})</TabsTrigger>
+        <TabsList className="inline-flex h-9 items-center justify-start rounded-full bg-muted px-1 py-1 text-muted-foreground">
+          <TabsTrigger
+            value="members"
+            className="rounded-full px-3 py-1.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] hover:bg-accent hover:text-accent-foreground"
+          >
+            <span>{t('teams.tabs.members')}</span>
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-foreground/10 px-1 text-xs text-foreground">
+              {teamData?.meta.totalCount || 0}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="invitations"
+            className="rounded-full px-3 py-1.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)] hover:bg-accent hover:text-accent-foreground"
+          >
+            <span>{t('teams.tabs.invitations')}</span>
+            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-foreground/10 px-1 text-xs text-foreground">
+              {invitationsData?.data.length || 0}
+            </span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
@@ -333,18 +351,15 @@ export default function Teams() {
             />
           </div>
 
-          <Card>
-            <CardContent className="p-0">
-              <DataTable
-                data={filteredTeamMembers}
-                columns={teamColumns}
-                isLoading={isLoadingTeam}
-                pagination={pagination}
-                setPagination={setPagination}
-                rowCount={teamData?.meta.totalCount || 0}
-              />
-            </CardContent>
-          </Card>
+          <DataTable
+            data={filteredTeamMembers}
+            columns={teamColumns}
+            isLoading={isLoadingTeam}
+            pagination={pagination}
+            setPagination={setPagination}
+            tableId="team:members"
+            rowCount={teamData?.meta.totalCount || 0}
+          />
         </TabsContent>
 
         <TabsContent value="invitations" className="space-y-4">
@@ -363,6 +378,7 @@ export default function Teams() {
                 isLoading={isLoadingInvitations}
                 pagination={{ pageIndex: 0, pageSize: 50 }}
                 setPagination={() => {}}
+                tableId="team:invitations"
                 rowCount={invitationsData?.data.length || 0}
               />
             </CardContent>

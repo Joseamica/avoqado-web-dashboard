@@ -272,7 +272,7 @@ export default function UserManagement() {
       accessorKey: 'status',
       header: 'Estado',
       cell: ({ row }) => (
-        <div className={`flex items-center ${row.original.status === 'active' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+        <div className={`flex items-center ${row.original.status === 'active' ? 'text-green-700' : 'text-red-700'}`}>
           {row.original.status === 'active' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
           {row.original.status === 'active' ? 'Activo' : 'Inactivo'}
         </div>
@@ -422,7 +422,7 @@ export default function UserManagement() {
           <AlertDialogFooter>
             <AlertDialogCancel className="text-foreground">Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500 text-red-50 hover:bg-red-600 dark:text-red-50"
+              className="bg-red-500 text-red-50 hover:bg-red-600"
               onClick={() => userToDelete && handleDeleteUser(userToDelete.id)}
               disabled={deleteUserMutation.isPending}
             >
@@ -514,7 +514,7 @@ export default function UserManagement() {
             )}
           </div>
 
-          <DataTable columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} />
+          <DataTable columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} tableId="admin:users" />
 
           <div className="text-xs text-muted-foreground mt-2">
             Mostrando {filteredUsers.length} de {userData.length} usuarios

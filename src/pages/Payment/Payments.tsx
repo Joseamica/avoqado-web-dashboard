@@ -2,6 +2,7 @@
 
 import api from '@/api'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/data-table'
 import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -63,12 +64,8 @@ export default function Payments() {
     () => [
       {
         accessorKey: 'createdAt', // Sin cambios
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.date')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
+        meta: { label: t('payments.columns.date') },
+        header: t('payments.columns.date'),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
           const date = new Date(value)
@@ -85,8 +82,8 @@ export default function Payments() {
 
           return (
             <div className="flex flex-col space-y-2">
-              <span className="font-[600] text-[14px]">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="font-[400] text-muted-foreground text-[12px]">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
+              <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
             </div>
           )
         },
@@ -95,12 +92,8 @@ export default function Payments() {
         // CAMBIO: Accedemos al mesero a través de `processedBy`
         accessorFn: row => (row.processedBy ? `${row.processedBy.firstName} ${row.processedBy.lastName}` : '-'),
         id: 'waiterName', // Es buena práctica dar un ID único al usar accessorFn
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.waiter')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
+        meta: { label: t('payments.columns.waiter') },
+        header: t('payments.columns.waiter'),
         cell: info => <>{info.getValue() as string}</>,
       },
       {
@@ -108,6 +101,7 @@ export default function Payments() {
         // Usamos número para poder calcular porcentajes y ordenar correctamente
         accessorFn: row => Number(row.tipAmount) || 0,
         id: 'totalTipAmount',
+        meta: { label: t('payments.columns.tip') },
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
             {t('payments.columns.tip')}
@@ -122,20 +116,20 @@ export default function Payments() {
 
           // La lógica de colores no necesita cambios
           let tipClasses = {
-            bg: 'bg-green-100',
-            text: 'text-green-800',
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-800 dark:text-green-400',
           }
           if (tipPercentage < 7) {
-            tipClasses = { bg: 'bg-red-100', text: 'text-red-800' }
+            tipClasses = { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-800 dark:text-red-400' }
           } else if (tipPercentage >= 7 && tipPercentage < 10) {
-            tipClasses = { bg: 'bg-yellow-100', text: 'text-yellow-800' }
+            tipClasses = { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-400' }
           }
 
           return (
             <div className="flex flex-col space-y-1 items-center">
-              <span className="text-[12px] font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+              <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
               {/* Formatear propina en unidades (Currency ya maneja decimales) */}
-              <p className={`${tipClasses.bg} ${tipClasses.text} px-3 py-1 font-medium rounded-full`}>{Currency(totalTip)}</p>
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>{Currency(totalTip)}</Badge>
             </div>
           )
         },
@@ -145,6 +139,7 @@ export default function Payments() {
         // CAMBIO: `source` ahora viene del objeto `order` anidado.
         accessorFn: row => row.order?.source || 'DESCONOCIDO',
         id: 'source',
+        meta: { label: t('payments.columns.source') },
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
             {t('payments.columns.source')}
@@ -159,7 +154,7 @@ export default function Payments() {
             return (
               <div className="space-x-2 flex flex-row items-center">
                 <Computer className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[12px] font-[600] text-muted-foreground">POS</span>
+                <span className="text-xs font-medium text-muted-foreground">POS</span>
               </div>
             )
           } else if (source === 'TPV') {
@@ -167,16 +162,17 @@ export default function Payments() {
             return (
               <div className="space-x-2 flex flex-row items-center">
                 <Smartphone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[12px] font-[600] text-muted-foreground">TPV</span>
+                <span className="text-xs font-medium text-muted-foreground">TPV</span>
               </div>
             )
           }
 
-          return <span className="text-[12px] font-[600] text-muted-foreground">{source}</span>
+          return <span className="text-xs font-medium text-muted-foreground">{source}</span>
         },
       },
       {
         accessorKey: 'method',
+        meta: { label: t('payments.columns.method') },
         header: t('payments.columns.method'),
         cell: ({ row }) => {
           const payment = row.original
@@ -194,10 +190,10 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <span>{getIcon(cardBrand)}</span>
-                  <span className="text-[12px] font-[600] text-muted-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
                 </>
               ) : (
-                <span className="text-[12px] font-[600] text-muted-foreground">{methodDisplay}</span>
+                <span className="text-xs font-medium text-muted-foreground">{methodDisplay}</span>
               )}
             </div>
           )
@@ -206,12 +202,8 @@ export default function Payments() {
       {
         // CAMBIO: `amount` ahora es el subtotal del pago. Es numérico.
         accessorKey: 'amount',
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.subtotal')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
+        meta: { label: t('payments.columns.subtotal') },
+        header: t('payments.columns.subtotal'),
         cell: ({ cell }) => {
           const value = cell.getValue()
           // Convert to number, Currency function handles null/undefined
@@ -226,12 +218,8 @@ export default function Payments() {
           return amount + tipAmount
         },
         id: 'totalAmount',
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.total')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
+        meta: { label: t('payments.columns.total') },
+        header: t('payments.columns.total'),
         cell: ({ cell }) => {
           const value = cell.getValue()
           // Convert to number, Currency function handles null/undefined
@@ -278,7 +266,7 @@ export default function Payments() {
         placeholder={t('payments.searchPlaceholder')}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded bg-background border-border max-w-sm`}
+        className={`p-2 mt-4 mb-4 border rounded bg-input border-input max-w-sm`}
       />
 
       {error && <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>{t('payments.errorPrefix')}: {(error as Error).message}</div>}
@@ -288,6 +276,7 @@ export default function Payments() {
         rowCount={totalPayments}
         columns={columns}
         isLoading={isLoading}
+        tableId="payments:main"
         clickableRow={row => ({
           // CAMBIO: Asegurarse de que el ID de la fila sea el correcto
           to: row.id,

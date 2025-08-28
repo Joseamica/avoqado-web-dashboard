@@ -58,7 +58,7 @@ export default function SystemSettings() {
         <Card className="border-border">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-700 dark:text-red-400 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Acceso restringido</h3>
                 <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a la configuración del sistema.</p>
@@ -77,7 +77,7 @@ export default function SystemSettings() {
         Volver al Panel de Administración
       </Link>
       {/* Warning banner */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 dark:bg-yellow-900/20 dark:border-yellow-600">
+      <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4">
         <div className="flex">
           <div className="flex-shrink-0">
             <AlertTriangle className="h-5 w-5 text-yellow-400" />

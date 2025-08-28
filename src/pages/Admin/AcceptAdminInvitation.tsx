@@ -178,12 +178,12 @@ export default function AcceptAdminInvitation() {
               <p>{isVerifying ? 'Verificando invitación...' : 'Procesando solicitud...'}</p>
             </div>
           ) : hasError ? (
-            <div className="flex flex-col items-center justify-center py-8 text-red-700 dark:text-red-400">
+            <div className="flex flex-col items-center justify-center py-8 text-red-600">
               <XCircle className="h-12 w-12 mb-4" />
               <p className="text-center">{errorMessage}</p>
             </div>
           ) : isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-8 text-green-700 dark:text-green-400">
+            <div className="flex flex-col items-center justify-center py-8 text-green-600">
               <CheckCircle className="h-12 w-12 mb-4" />
               <p className="text-center">¡Tu cuenta ha sido activada exitosamente!</p>
               <p className="text-center text-sm text-muted-foreground mt-2">Serás redirigido en un momento...</p>
@@ -205,10 +205,10 @@ export default function AcceptAdminInvitation() {
 
               {needsPassword && (
                 <div className="mt-6">
-                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 mb-6">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 mb-6">
                     <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-2 mt-0.5" />
-                      <p className="text-sm text-amber-800 dark:text-amber-300">
+                      <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+                      <p className="text-sm text-amber-400">
                         {invitationData.isExistingUser
                           ? 'Tu cuenta existe pero necesitas definir una contraseña para continuar.'
                           : 'Necesitas crear una contraseña para tu nueva cuenta.'}

@@ -73,6 +73,7 @@ export default function Products() {
       id: 'imageUrl',
       accessorKey: 'imageUrl',
       sortDescFirst: true,
+      meta: { label: t('products.columns.photo') },
       header: () => <div className=" flex-row-center">{t('products.columns.photo')}</div>,
 
       cell: ({ cell, row }) => {
@@ -106,6 +107,7 @@ export default function Products() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
+      meta: { label: t('products.columns.name') },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
           {t('products.columns.name')}
@@ -121,6 +123,7 @@ export default function Products() {
       id: 'price',
       accessorKey: 'price',
       sortDescFirst: true,
+      meta: { label: t('products.columns.price') },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
           {t('products.columns.price')}
@@ -137,6 +140,7 @@ export default function Products() {
     {
       id: 'categories',
       accessorKey: 'categories',
+      meta: { label: t('products.columns.categories') },
       header: t('products.columns.categories'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
@@ -144,6 +148,7 @@ export default function Products() {
     {
       id: 'modifierGroups',
       accessorKey: 'modifierGroups',
+      meta: { label: t('products.columns.modifierGroups') },
       header: t('products.columns.modifierGroups'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
@@ -151,6 +156,7 @@ export default function Products() {
     {
       id: 'updatedAt',
       accessorKey: 'updatedAt',
+      meta: { label: t('products.columns.updatedAt') },
       header: t('products.columns.updatedAt'),
       enableColumnFilter: false,
       cell: ({ cell }) => {
@@ -232,6 +238,7 @@ export default function Products() {
         rowCount={products?.length}
         columns={columns}
         isLoading={isLoading}
+        tableId="menu:products"
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },

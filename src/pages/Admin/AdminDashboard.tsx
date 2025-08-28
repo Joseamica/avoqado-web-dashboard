@@ -29,7 +29,7 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center space-x-2">
           {isSuperAdmin && (
-            <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md">
+            <span className="px-2 py-1 text-xs font-medium rounded-md border border-red-500/20 bg-red-500/10 text-red-400">
               SuperAdmin
             </span>
           )}
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
               <TabsContent value="system" className="mt-6">
                 <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración del Sistema</h2>
                 <Separator className="mb-6 border-border" />
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 dark:bg-yellow-900/20 dark:border-yellow-600">
+                <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4 mb-6">
                   <div className="flex">
                     <div className="flex-shrink-0">
                       <Lock className="h-5 w-5 text-yellow-400" />

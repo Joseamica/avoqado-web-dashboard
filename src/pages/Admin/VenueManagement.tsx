@@ -326,7 +326,7 @@ export default function VenueManagement() {
                 cell: ({ row }) => (
                   <div
                     className={`flex items-center ${
-                      row.original.status === 'active' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                      row.original.status === 'active' ? 'text-green-700' : 'text-red-700'
                     }`}
                   >
                     {row.original.status === 'active' ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
@@ -377,6 +377,7 @@ export default function VenueManagement() {
                 rowCount={venues.length}
                 columns={columns}
                 isLoading={venuesLoading}
+                tableId="admin:venues"
                 clickableRow={row => ({
                   to: `${row.id}`,
                   state: { from: location.pathname },

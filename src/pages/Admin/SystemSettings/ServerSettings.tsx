@@ -102,17 +102,17 @@ export default function ServerSettings() {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey="timestamp" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+          <XAxis dataKey="timestamp" stroke="var(--color-muted-foreground)" tick={{ fontSize: 10 }} />
           <YAxis
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--color-muted-foreground)"
             tick={{ fontSize: 10 }}
             tickFormatter={value => `${value}%`}
             domain={[0, Math.max(...chartData.map(d => d.rawValue)) * 1.1 || 5]}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))' }}
-            labelStyle={{ color: 'hsl(var(--foreground))' }}
+            contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}
+            labelStyle={{ color: 'var(--color-foreground)' }}
             formatter={value => [`${value}%`, 'CPU']}
             labelFormatter={label => `Hora: ${label}`}
           />
