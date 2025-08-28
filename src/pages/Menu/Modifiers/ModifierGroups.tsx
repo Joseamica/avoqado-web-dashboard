@@ -494,7 +494,7 @@ export default function ModifierGroups() {
                                 onChange={field.onChange}
                               />
                             ) : (
-                              <div className="flex items-center justify-center h-20 text-gray-400">
+                              <div className="flex items-center justify-center h-20 text-muted-foreground">
                                 No hay modificadores asignados a este grupo
                               </div>
                             )}
@@ -527,7 +527,7 @@ export default function ModifierGroups() {
                                 onChange={field.onChange}
                               />
                             ) : (
-                              <div className="flex items-center justify-center h-20 text-gray-400">
+                              <div className="flex items-center justify-center h-20 text-muted-foreground">
                                 No hay productos asignados a este grupo modificador
                               </div>
                             )}

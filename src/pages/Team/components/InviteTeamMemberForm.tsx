@@ -111,7 +111,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
       <div className="space-y-2">
         <Label htmlFor="email">Email del invitado *</Label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="email"
             type="email"
@@ -165,7 +165,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
               <SelectItem key={option.value} value={option.value}>
                 <div>
                   <div className="font-medium">{option.label}</div>
-                  <div className="text-sm text-gray-500">{option.description}</div>
+                  <div className="text-sm text-muted-foreground">{option.description}</div>
                 </div>
               </SelectItem>
             ))}

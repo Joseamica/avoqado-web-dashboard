@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { Bell, X, Check, CheckCheck, MoreVertical } from 'lucide-react'
 import { useNotificationBadge, useNotifications } from '@/context/NotificationContext'
-import { formatNotificationTime, getNotificationPriorityColor, formatNotificationPriority, groupNotificationsByDate } from '@/services/notification.service'
-import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu'
+  formatNotificationTime,
+  getNotificationPriorityColor,
+  formatNotificationPriority,
+  groupNotificationsByDate,
+} from '@/services/notification.service'
+import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -18,20 +18,13 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
-  const {
-    notifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    refreshNotifications,
-    loading
-  } = useNotifications()
-  
+  const { notifications, markAsRead, markAllAsRead, deleteNotification, refreshNotifications, loading } = useNotifications()
+
   const [isOpen, setIsOpen] = useState(false)
 
   const handleNotificationClick = async (notificationId: string, actionUrl?: string) => {
     await markAsRead(notificationId)
-    
+
     if (actionUrl) {
       // Navigate to the action URL
       window.location.href = actionUrl
@@ -53,29 +46,21 @@ export function NotificationBell({ className }: NotificationBellProps) {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           className={`relative p-2 ${className}`}
           aria-label={`Notifications ${hasUnread ? `(${unreadCount} unread)` : ''}`}
         >
           <Bell className="h-5 w-5" />
           {hasUnread && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        className="w-80 max-h-96"
-        align="end"
-        side="bottom"
-        sideOffset={4}
-      >
+      <DropdownMenuContent className="w-80 max-h-96" align="end" side="bottom" sideOffset={4}>
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h3 className="font-semibold text-sm text-foreground">
@@ -98,13 +83,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
               <Bell className="h-3 w-3" />
             </Button>
             {hasUnread && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                className="h-6 w-6 p-0"
-                title="Marcar todas como leídas"
-              >
+              <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-6 w-6 p-0" title="Marcar todas como leídas">
                 <CheckCheck className="h-3 w-3" />
               </Button>
             )}
@@ -128,7 +107,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                   </div>
 
                   {/* Notifications in Group */}
-                  {groupNotifications.map((notification) => (
+                  {groupNotifications.map(notification => (
                     <div
                       key={notification.id}
                       className={`
@@ -142,30 +121,29 @@ export function NotificationBell({ className }: NotificationBellProps) {
                           {/* Notification Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
-                              <h4 className={`text-sm font-medium truncate ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              <h4
+                                className={`text-sm font-medium truncate ${
+                                  !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
+                                }`}
+                              >
                                 {notification.title}
                               </h4>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${getNotificationPriorityColor(notification.priority)}`}
-                              >
+                              <Badge variant="outline" className={`text-xs ${getNotificationPriorityColor(notification.priority)}`}>
                                 {formatNotificationPriority(notification.priority)}
                               </Badge>
                             </div>
-                            
-                            <p className={`text-sm mb-2 line-clamp-2 ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
+
+                            <p
+                              className={`text-sm mb-2 line-clamp-2 ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}
+                            >
                               {notification.message}
                             </p>
 
                             <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">
-                                {formatNotificationTime(notification.createdAt)}
-                              </span>
-                              
+                              <span className="text-xs text-muted-foreground">{formatNotificationTime(notification.createdAt)}</span>
+
                               {notification.actionLabel && (
-                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                  {notification.actionLabel}
-                                </span>
+                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{notification.actionLabel}</span>
                               )}
                             </div>
                           </div>
@@ -177,7 +155,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={e => e.stopPropagation()}
                               >
                                 <MoreVertical className="h-3 w-3" />
                               </Button>
@@ -185,7 +163,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                             <DropdownMenuContent align="end">
                               {!notification.isRead && (
                                 <DropdownMenuItem
-                                  onClick={(e) => {
+                                  onClick={e => {
                                     e.stopPropagation()
                                     markAsRead(notification.id)
                                   }}
@@ -194,10 +172,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                                   Marcar como leída
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                className="text-destructive"
-                              >
+                              <DropdownMenuItem onClick={e => handleDeleteNotification(notification.id, e)} className="text-destructive">
                                 <X className="h-3 w-3 mr-2" />
                                 Eliminar
                               </DropdownMenuItem>

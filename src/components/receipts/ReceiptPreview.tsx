@@ -190,7 +190,7 @@ export default function ReceiptPreview({ receipt, open, onClose }: ReceiptPrevie
         </div>
 
         {/* Contenido del recibo */}
-        <div className="p-6 bg-white rounded-lg border print:shadow-none" id="printable-receipt">
+        <div className="p-6 bg-background rounded-lg border print:shadow-none" id="printable-receipt">
           <div className="pb-4 mb-6 text-center border-b">
             {venue?.logo && <img src={venue.logo} alt={venue.name} className="mx-auto mb-3 h-12" />}
             <h2 className="text-xl font-bold">{venue?.name || 'Restaurante'}</h2>

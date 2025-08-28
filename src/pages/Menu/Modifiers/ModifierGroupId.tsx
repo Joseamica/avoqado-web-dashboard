@@ -215,7 +215,7 @@ export default function ModifierGroupId() {
     return (
       <div className="p-4">
         <div className="text-red-500 mb-2">Error loading modifier group</div>
-        <div className="text-sm text-gray-600 mb-2">{isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}</div>
+        <div className="text-sm text-muted-foreground mb-2">{isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}</div>
         {error && (
           <div className="text-xs text-red-400 bg-red-50 p-2 rounded mb-4">{error instanceof Error ? error.message : 'Unknown error'}</div>
         )}
