@@ -1,7 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Settings2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Settings2, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   ColumnDef,
@@ -15,7 +16,7 @@ import {
   RowSelectionState,
   VisibilityState,
 } from '@tanstack/react-table'
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useState, useMemo } from 'react'
 import { DataTablePagination } from './pagination'
 import TableSkeleton from './skeleton-table'
 
@@ -29,6 +30,10 @@ type DataTableProps<TData> = {
   setPagination?: Dispatch<SetStateAction<PaginationState>>
   showColumnCustomizer?: boolean
   tableId?: string
+  // Search functionality
+  enableSearch?: boolean
+  searchPlaceholder?: string
+  onSearch?: (searchTerm: string, data: TData[]) => TData[]
 }
 
 function DataTable<TData>({
@@ -41,6 +46,9 @@ function DataTable<TData>({
   setPagination,
   showColumnCustomizer = true,
   tableId,
+  enableSearch = false,
+  searchPlaceholder,
+  onSearch,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -57,6 +65,17 @@ function DataTable<TData>({
     }
   })
 
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('')
+
+  // Filter data based on search
+  const filteredData = useMemo(() => {
+    if (!enableSearch || !searchTerm || !onSearch) {
+      return data || []
+    }
+    return onSearch(searchTerm, data || [])
+  }, [enableSearch, searchTerm, onSearch, data])
+
   // Default pagination state if not provided
   const defaultPagination = {
     pageIndex: 0,
@@ -64,7 +83,7 @@ function DataTable<TData>({
   }
 
   const table = useReactTable({
-    data: data || [],
+    data: filteredData,
     columns,
     pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : Math.ceil(rowCount / defaultPagination.pageSize),
     state: {
@@ -110,11 +129,26 @@ function DataTable<TData>({
   return (
     <>
       {/* Toolbar */}
-      {showColumnCustomizer && (
-        <div className="mb-2 flex items-center justify-end">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search Bar */}
+        {enableSearch && (
+          <div className="relative w-full max-w-2xl">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={searchPlaceholder || t('common.search')}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9 bg-background border-input w-full"
+            />
+          </div>
+        )}
+
+        {/* Column Customizer */}
+        {showColumnCustomizer && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="gap-2 ">
+              <Button variant="outline" size="default" className="gap-2">
                 <Settings2 className="h-4 w-4" /> {t('common.customize_columns')}
               </Button>
             </DropdownMenuTrigger>
@@ -135,22 +169,16 @@ function DataTable<TData>({
                 ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      )}
-      <Table
-        containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden"
-        className="table-sticky"
-      >
+        )}
+      </div>
+      <Table containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden" className="table-sticky">
         {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
         <TableHeader className="sticky top-0 z-10 bg-muted dark:bg-[#262626] text-muted-foreground">
           {table.getHeaderGroups().map(headerGroup => (
             <TableRow key={headerGroup.id} className="border-border">
               {headerGroup.headers.map(header => {
                 return (
-                  <TableHead
-                    key={header.id}
-                    className="px-4 py-3 font-medium first:rounded-tl-xl last:rounded-tr-xl"
-                  >
+                  <TableHead key={header.id} className="px-4 py-3 font-medium first:rounded-tl-xl last:rounded-tr-xl">
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     {/* {header.column.getCanFilter() ? (
                   <div>

@@ -1,28 +1,26 @@
 // src/pages/Payments.tsx
 
 import api from '@/api'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import DataTable from '@/components/data-table'
-import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Payment as PaymentType } from '@/types' // Asumiendo que actualizas este tipo
 import { Currency } from '@/utils/currency'
 import getIcon from '@/utils/getIcon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Computer, Smartphone } from 'lucide-react'
+import { AppWindow, ArrowUpDown, Banknote, Computer, Globe, QrCode, Smartphone, TabletSmartphone } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import { useLocation } from 'react-router-dom'
 
 export default function Payments() {
   const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
   const location = useLocation()
-  const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -70,20 +68,14 @@ export default function Payments() {
           const value = cell.getValue() as string
           const date = new Date(value)
 
-          // Usar toLocaleString con zona horaria local para consistencia
-          const localDate = new Date(date.getTime())
-          const monthName = localDate.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
-          const year = localDate.getFullYear()
-          const last2Year = year.toString().slice(-2)
-          const day = localDate.getDate()
-          const hour = localDate.getHours()
-          const minutes = localDate.getMinutes().toString().padStart(2, '0')
-          const ampm = localDate.getHours() >= 12 ? 'pm' : 'am'
+          // Localized time and date without hardcoded strings
+          const timeStr = date.toLocaleTimeString(localeCode, { hour: 'numeric', minute: '2-digit' })
+          const dateStr = date.toLocaleDateString(localeCode, { day: '2-digit', month: 'short', year: '2-digit' })
 
           return (
             <div className="flex flex-col space-y-2">
-              <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="text-sm font-medium">{timeStr}</span>
+              <span className="text-xs text-muted-foreground">{dateStr}</span>
             </div>
           )
         },
@@ -129,7 +121,9 @@ export default function Payments() {
             <div className="flex flex-col space-y-1 items-center">
               <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
               {/* Formatear propina en unidades (Currency ya maneja decimales) */}
-              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>{Currency(totalTip)}</Badge>
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
+                {Currency(totalTip)}
+              </Badge>
             </div>
           )
         },
@@ -137,7 +131,7 @@ export default function Payments() {
       },
       {
         // CAMBIO: `source` ahora viene del objeto `order` anidado.
-        accessorFn: row => row.order?.source || 'DESCONOCIDO',
+        accessorFn: row => row.order?.source || 'UNKNOWN',
         id: 'source',
         meta: { label: t('payments.columns.source') },
         header: ({ column }) => (
@@ -147,27 +141,48 @@ export default function Payments() {
           </Button>
         ),
         cell: ({ cell }) => {
-          // Los valores del enum `OrderSource` son TPV, QR, WEB, APP, POS
-          const source = cell.getValue() as string
+          // Valores posibles: TPV, QR, WEB, APP, POS, UNKNOWN
+          const source = String(cell.getValue() || 'UNKNOWN')
 
-          if (source === 'POS') {
-            return (
-              <div className="space-x-2 flex flex-row items-center">
-                <Computer className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">POS</span>
-              </div>
-            )
-          } else if (source === 'TPV') {
-            // ANTERIOR: 'AVOQADO_TPV'
-            return (
-              <div className="space-x-2 flex flex-row items-center">
-                <Smartphone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">TPV</span>
-              </div>
-            )
-          }
+          const iconBox = (icon: JSX.Element, bgColor: string = 'bg-muted') => (
+            <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${bgColor} border border-border shadow-sm`}>{icon}</div>
+          )
 
-          return <span className="text-xs font-medium text-muted-foreground">{source}</span>
+          const map = {
+            POS: {
+              icon: iconBox(<Computer className="h-4 w-4 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
+              label: t('payments.sources.POS'),
+            },
+            TPV: {
+              icon: iconBox(<TabletSmartphone className="h-4 w-4 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
+              label: t('payments.sources.TPV'),
+            },
+            QR: {
+              icon: iconBox(<QrCode className="h-4 w-4 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
+              label: t('payments.sources.QR'),
+            },
+            WEB: {
+              icon: iconBox(<Globe className="h-4 w-4 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
+              label: t('payments.sources.WEB'),
+            },
+            APP: {
+              icon: iconBox(<AppWindow className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+              label: t('payments.sources.APP'),
+            },
+            UNKNOWN: {
+              icon: iconBox(<Smartphone className="h-4 w-4 text-muted-foreground" />, 'bg-muted'),
+              label: t('payments.sources.UNKNOWN'),
+            },
+          } as const
+
+          const item = map[source as keyof typeof map] || map.UNKNOWN
+
+          return (
+            <div className="flex items-center gap-3">
+              {item.icon}
+              <span className="text-sm font-medium text-foreground">{item.label}</span>
+            </div>
+          )
         },
       },
       {
@@ -182,18 +197,23 @@ export default function Payments() {
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
-          const cardBrand = payment.processorData?.cardBrand || 'generic'
-          const last4 = payment.processorData?.last4 || ''
+          const cardBrand = payment.cardBrand || payment.processorData?.cardBrand || null
+          const last4 = payment.last4 || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
 
           return (
-            <div className="space-x-2 flex flex-row items-center">
+            <div className="flex items-center gap-3">
               {isCard ? (
                 <>
-                  <span>{getIcon(cardBrand)}</span>
-                  <span className="text-xs font-medium text-muted-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
+                  <div className="shrink-0"> {getIcon(cardBrand)}</div>
+                  <span className="text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
                 </>
               ) : (
-                <span className="text-xs font-medium text-muted-foreground">{methodDisplay}</span>
+                <>
+                  <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                    <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{methodDisplay}</span>
+                </>
               )}
             </div>
           )
@@ -230,9 +250,8 @@ export default function Payments() {
     [t, localeCode],
   )
 
-  // CAMBIO: Actualizar la lógica de filtrado/búsqueda
-  const filteredPayments = useMemo(() => {
-    const payments = data?.data || []
+  // Search callback for DataTable with multi-language support
+  const handleSearch = (searchTerm: string, payments: PaymentType[]) => {
     if (!searchTerm) return payments
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -248,35 +267,63 @@ export default function Payments() {
       const total = amount + tipAmount
       const totalMatch = total.toString().includes(lowerSearchTerm)
 
-      // Búsqueda por método de pago
-      const methodMatch = payment.method.toLowerCase().includes(lowerSearchTerm)
+      // Búsqueda por método de pago - buscar en ambos idiomas y valores originales
+      const methodOriginal = payment.method?.toLowerCase() || ''
+      const methodTranslated =
+        payment.method === 'CASH' ? t('payments.methods.cash').toLowerCase() : t('payments.methods.card').toLowerCase()
 
-      return waiterMatches || totalMatch || methodMatch
+      // También buscar en términos comunes en inglés
+      const methodEnglish = payment.method === 'CASH' ? 'cash' : 'card'
+      const methodMatches =
+        methodOriginal.includes(lowerSearchTerm) || methodTranslated.includes(lowerSearchTerm) || methodEnglish.includes(lowerSearchTerm)
+
+      // Búsqueda por fuente - buscar en valores originales y traducciones
+      const source = payment.order?.source || 'UNKNOWN'
+      const sourceOriginal = source.toLowerCase()
+      const sourceTranslated = t(`payments.sources.${source}`, { defaultValue: source }).toLowerCase()
+
+      // Términos en inglés para fuentes
+      const sourceEnglishTerms = {
+        POS: ['pos', 'terminal'],
+        TPV: ['tpv', 'tablet'],
+        QR: ['qr', 'codigo'],
+        WEB: ['web', 'website'],
+        APP: ['app', 'mobile', 'movil'],
+        UNKNOWN: ['unknown', 'desconocido'],
+      }
+
+      const sourceEnglishMatches =
+        sourceEnglishTerms[source as keyof typeof sourceEnglishTerms]?.some(
+          term => term.includes(lowerSearchTerm) || lowerSearchTerm.includes(term),
+        ) || false
+
+      const sourceMatches = sourceOriginal.includes(lowerSearchTerm) || sourceTranslated.includes(lowerSearchTerm) || sourceEnglishMatches
+
+      return waiterMatches || totalMatch || methodMatches || sourceMatches
     })
-  }, [searchTerm, data])
+  }
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('payments.title')}</h1>
       </div>
 
-      <Input
-        type="text"
-        placeholder={t('payments.searchPlaceholder')}
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded bg-input border-input max-w-sm`}
-      />
-
-      {error && <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>{t('payments.errorPrefix')}: {(error as Error).message}</div>}
+      {error && (
+        <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
+          {t('payments.errorPrefix')}: {(error as Error).message}
+        </div>
+      )}
 
       <DataTable
-        data={filteredPayments}
+        data={data?.data || []}
         rowCount={totalPayments}
         columns={columns}
         isLoading={isLoading}
         tableId="payments:main"
+        enableSearch={true}
+        searchPlaceholder={t('payments.searchPlaceholder')}
+        onSearch={handleSearch}
         clickableRow={row => ({
           // CAMBIO: Asegurarse de que el ID de la fila sea el correcto
           to: row.id,

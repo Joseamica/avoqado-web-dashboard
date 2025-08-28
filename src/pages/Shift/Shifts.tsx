@@ -2,20 +2,20 @@ import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
-import { Input } from '@/components/ui/input'
 // import { Shift } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
+import { useLocation } from 'react-router-dom'
 export default function Shifts() {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
-  const [searchTerm, setSearchTerm] = useState('')
+  const location = useLocation()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -233,14 +233,13 @@ export default function Shifts() {
     },
   ]
 
-  const filteredShifts = useMemo(() => {
-    const currentShifts = data?.data || []
-
-    if (!searchTerm) return currentShifts
+  // Search callback for DataTable
+  const handleSearch = (searchTerm: string, shifts: any[]) => {
+    if (!searchTerm) return shifts
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return currentShifts.filter(shift => {
+    return shifts.filter(shift => {
       // Search by shift ID or staff name
       const shiftIdMatch = shift.id.toString().includes(lowerSearchTerm)
       const staffNameMatch = shift.staff
@@ -250,30 +249,26 @@ export default function Shifts() {
 
       return shiftIdMatch || staffNameMatch || totalSalesMatch
     })
-  }, [searchTerm, data])
+  }
 
   return (
     <div className="p-4 bg-background text-foreground">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('shifts.title')}</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}
         {/* TODO: Add create waiter CTA if needed */}
       </div>
-      <Input
-        type="text"
-        placeholder={t('common.search')}
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-input border-border max-w-72"
-      />
 
       <DataTable
-        data={filteredShifts}
+        data={data?.data || []}
         rowCount={totalShifts}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder={t('common.search')}
+        onSearch={handleSearch}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
