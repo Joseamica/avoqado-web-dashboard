@@ -10,14 +10,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
     <script>
-      (function() {
-        const storageKey = 'vite-ui-theme';
-        const getSystemTheme = () => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        const setting = localStorage.getItem(storageKey) || 'system';
-        const theme = setting === 'system' ? getSystemTheme() : setting;
-        if (theme === 'dark') document.documentElement.classList.add('dark');
-      })();
+      ;(function () {
+        const storageKey = 'vite-ui-theme'
+        const getSystemTheme = () => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        const setting = localStorage.getItem(storageKey) || 'system'
+        const theme = setting === 'system' ? getSystemTheme() : setting
+        if (theme === 'dark') document.documentElement.classList.add('dark')
+      })()
     </script>
+    <!-- Cloudflare Web Analytics (Free) - Replace YOUR_TOKEN with actual token from dashboard -->
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "1f59becd2ca54aae8944e3393ea5d16d"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </head>
   <body>
     <div id="root"></div>

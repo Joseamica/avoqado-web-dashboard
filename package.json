@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "lint:i18n": "node scripts/check-i18n.js",
     "preview": "vite preview",
-    "vite": "vite"
+    "vite": "vite",
+    "deploy": "npm run build && wrangler pages deploy",
+    "deploy:preview": "npm run build && wrangler pages deploy --env preview"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
