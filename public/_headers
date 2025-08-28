@@ -7,7 +7,7 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   
   # Content Security Policy (adjust domains as needed)
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://cdn.socket.io https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.avoqado.io https://avoqado-server.onrender.com https://avoqado-d0a24.firebaseapp.com wss: ws:; frame-src https://www.google.com https://recaptcha.google.com;
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://cdn.socket.io https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.avoqado.io https://avoqado-server.onrender.com https://cloudflareinsights.com https://avoqado-d0a24.firebaseapp.com wss: ws:; frame-src https://www.google.com https://recaptcha.google.com;
 
   # HSTS (HTTP Strict Transport Security) - 1 year
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
