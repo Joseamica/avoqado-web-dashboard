@@ -360,20 +360,196 @@ const Home = () => {
     return getComparisonPercentage(parseFloat(String(tipStats.avgTipPercentage)), parseFloat(String(compareTipStats.avgTipPercentage)))
   }, [tipStats.avgTipPercentage, compareTipStats.avgTipPercentage])
 
-  // Export functions (simplified for now)
-  const exportToCSV = useCallback(async () => {
-    // Simplified export - could be enhanced to fetch all data if needed
-    setExportLoading(true)
-    // Implementation would be similar to original but with basic data
-    setExportLoading(false)
-  }, [])
+  // Helper function to convert data to CSV
+  const convertToCSV = (data: any[], headers: string[]): string => {
+    const csvHeaders = headers.join(',')
+    const csvRows = data.map(row =>
+      headers.map(header => {
+        const value = row[header] ?? ''
+        // Escape commas and quotes in values
+        const stringValue = String(value).replace(/"/g, '""')
+        return `"${stringValue}"`
+      }).join(',')
+    )
+    return [csvHeaders, ...csvRows].join('\n')
+  }
 
-  const exportToExcel = useCallback(async () => {
-    // Simplified export - could be enhanced to fetch all data if needed
+  // Export functions
+  const exportToCSV = useCallback(async () => {
+    if (!basicData) return
+    
     setExportLoading(true)
-    // Implementation would be similar to original but with basic data
-    setExportLoading(false)
-  }, [])
+    try {
+      // Prepare payment data for CSV
+      const paymentsForCSV = filteredPayments.map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        method: payment.method,
+        source: payment.source || '',
+        cardBrand: payment.cardBrand || '',
+        maskedPan: payment.maskedPan || '',
+        createdAt: new Date(payment.createdAt).toLocaleDateString(localeCode),
+        tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
+        status: payment.status
+      }))
+
+      // Prepare reviews data for CSV
+      const reviewsForCSV = filteredReviews.map(review => ({
+        id: review.id,
+        stars: review.stars,
+        comment: review.comment || '',
+        createdAt: new Date(review.createdAt).toLocaleDateString(localeCode),
+        customerName: review.customerName || ''
+      }))
+
+      // Prepare payment methods summary for CSV
+      const paymentMethodsForCSV = paymentMethodsData.map(method => ({
+        method: method.method,
+        total: method.total,
+        count: method.count || 0
+      }))
+
+      // Create CSV content
+      const paymentsCSV = convertToCSV(paymentsForCSV, [
+        'id', 'amount', 'method', 'source', 'cardBrand', 'maskedPan', 'createdAt', 'tips', 'status'
+      ])
+
+      const reviewsCSV = convertToCSV(reviewsForCSV, [
+        'id', 'stars', 'comment', 'createdAt', 'customerName'
+      ])
+
+      const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, [
+        'method', 'total', 'count'
+      ])
+
+      // Combine all data with section headers
+      const combinedCSV = [
+        '# ' + t('home.export.payments'),
+        paymentsCSV,
+        '',
+        '# ' + t('home.export.reviews'),
+        reviewsCSV,
+        '',
+        '# ' + t('home.export.paymentMethods'),
+        paymentMethodsCSV,
+        '',
+        '# ' + t('home.export.summary'),
+        `"${t('home.cards.totalSales')}","${Currency(totalAmount)}"`,
+        `"${t('home.cards.fiveStars')}","${fiveStarReviews}"`,
+        `"${t('home.cards.totalTips')}","${Currency(tipStats.totalTips)}"`,
+        `"${t('home.cards.avgTipPercentage')}","${tipStats.avgTipPercentage}%"`
+      ].join('\n')
+
+      // Create and download file
+      const blob = new Blob([combinedCSV], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `dashboard-data-${format(new Date(), 'yyyy-MM-dd')}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+    } catch (error) {
+      console.error('Export to CSV failed:', error)
+      // Could add toast notification here
+    } finally {
+      setExportLoading(false)
+    }
+  }, [basicData, filteredPayments, filteredReviews, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, localeCode])
+
+  const exportToJSON = useCallback(async () => {
+    if (!basicData) return
+    
+    setExportLoading(true)
+    try {
+      // Prepare comprehensive data for JSON export
+      const exportData = {
+        metadata: {
+          exportDate: new Date().toISOString(),
+          dateRange: {
+            from: selectedRange.from.toISOString(),
+            to: selectedRange.to.toISOString()
+          },
+          venue: venueId,
+          locale: i18n.language
+        },
+        summary: {
+          totalSales: totalAmount,
+          fiveStarReviews,
+          totalTips: tipStats.totalTips,
+          avgTipPercentage: parseFloat(String(tipStats.avgTipPercentage)),
+          totalPayments: filteredPayments.length,
+          totalReviews: filteredReviews.length
+        },
+        payments: filteredPayments.map(payment => ({
+          ...payment,
+          tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
+          createdAt: new Date(payment.createdAt).toISOString()
+        })),
+        reviews: filteredReviews.map(review => ({
+          ...review,
+          createdAt: new Date(review.createdAt).toISOString()
+        })),
+        paymentMethods: paymentMethodsData,
+        comparison: compareType ? {
+          type: compareType,
+          label: comparisonLabel,
+          data: {
+            totalSales: compareAmount,
+            fiveStarReviews: compareFiveStarReviews,
+            totalTips: compareTipStats.totalTips,
+            avgTipPercentage: parseFloat(String(compareTipStats.avgTipPercentage))
+          },
+          percentageChanges: {
+            sales: amountChangePercentage,
+            reviews: reviewsChangePercentage,
+            tips: tipsChangePercentage,
+            avgTipPercentage: tipAvgChangePercentage
+          }
+        } : null
+      }
+
+      // Create and download file
+      const jsonString = JSON.stringify(exportData, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `dashboard-data-${format(new Date(), 'yyyy-MM-dd')}.json`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+    } catch (error) {
+      console.error('Export to JSON failed:', error)
+      // Could add toast notification here
+    } finally {
+      setExportLoading(false)
+    }
+  }, [
+    basicData, 
+    filteredPayments, 
+    filteredReviews, 
+    paymentMethodsData, 
+    totalAmount, 
+    fiveStarReviews, 
+    tipStats,
+    selectedRange,
+    venueId,
+    i18n.language,
+    compareType,
+    comparisonLabel,
+    compareAmount,
+    compareFiveStarReviews,
+    compareTipStats,
+    amountChangePercentage,
+    reviewsChangePercentage,
+    tipsChangePercentage,
+    tipAvgChangePercentage
+  ])
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -453,8 +629,8 @@ const Home = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={exportToCSV}>{t('home.export.json')}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportToExcel}>{t('home.export.csv')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToJSON}>{t('home.export.json')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToCSV}>{t('home.export.csv')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
