@@ -42,7 +42,9 @@ export function ThemeAwareForm() {
       {/* Form Fields */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-foreground">Email</Label>
+          <Label htmlFor="email" className="text-foreground">
+            Email
+          </Label>
           <Input
             id="email"
             type="email"
@@ -52,7 +54,9 @@ export function ThemeAwareForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-foreground">Name</Label>
+          <Label htmlFor="name" className="text-foreground">
+            Name
+          </Label>
           <Input
             id="name"
             type="text"
@@ -67,9 +71,7 @@ export function ThemeAwareForm() {
         <Button variant="outline" className="border-border">
           Cancel
         </Button>
-        <Button type="submit">
-          Submit
-        </Button>
+        <Button type="submit">Submit</Button>
       </div>
     </form>
   )
@@ -96,7 +98,7 @@ export function ThemeAwareList() {
 
       {/* List Items */}
       <div className="space-y-2">
-        {items.map((item) => (
+        {items.map(item => (
           <div
             key={item.id}
             className="flex items-center justify-between p-4 bg-muted border border-border rounded-lg hover:bg-muted/80 transition-colors"
@@ -105,7 +107,7 @@ export function ThemeAwareList() {
               <h4 className="font-medium text-foreground">{item.name}</h4>
               <p className="text-sm text-muted-foreground">{item.description}</p>
             </div>
-            <Badge 
+            <Badge
               variant={item.status === 'active' ? 'default' : 'secondary'}
               className={item.status === 'active' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200' : ''}
             >
@@ -126,30 +128,22 @@ export function ThemeAwareAlerts() {
     <div className="space-y-4">
       {/* Success Alert */}
       <Alert className="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800">
-        <AlertDescription className="text-green-800 dark:text-green-200">
-          ✅ Success message with proper theming
-        </AlertDescription>
+        <AlertDescription className="text-green-800 dark:text-green-200">✅ Success message with proper theming</AlertDescription>
       </Alert>
 
       {/* Error Alert */}
       <Alert className="bg-destructive/10 border-destructive/20">
-        <AlertDescription className="text-destructive">
-          ❌ Error message using destructive colors
-        </AlertDescription>
+        <AlertDescription className="text-destructive">❌ Error message using destructive colors</AlertDescription>
       </Alert>
 
       {/* Warning Alert */}
       <Alert className="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800">
-        <AlertDescription className="text-orange-800 dark:text-orange-200">
-          ⚠️ Warning message with dark theme support
-        </AlertDescription>
+        <AlertDescription className="text-orange-800 dark:text-orange-200">⚠️ Warning message with dark theme support</AlertDescription>
       </Alert>
 
       {/* Info Alert */}
       <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-        <AlertDescription className="text-blue-800 dark:text-blue-200">
-          ℹ️ Info message with proper contrast
-        </AlertDescription>
+        <AlertDescription className="text-blue-800 dark:text-blue-200">ℹ️ Info message with proper contrast</AlertDescription>
       </Alert>
     </div>
   )
@@ -163,7 +157,7 @@ export function ThemeAwareModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
-      
+
       {/* Modal Content */}
       <div className="relative z-50 w-full max-w-md">
         <div className="bg-background border border-border rounded-lg shadow-lg">
@@ -204,17 +198,17 @@ export function ThemeAwareStats() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {stats.map((stat) => (
+      {stats.map(stat => (
         <Card key={stat.label} className="bg-card border-border">
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
               <div className="flex items-center space-x-2">
                 <p className="text-2xl font-bold text-card-foreground">{stat.value}</p>
-                <Badge 
+                <Badge
                   variant="outline"
                   className={
-                    stat.trend === 'up' 
+                    stat.trend === 'up'
                       ? 'text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'
                       : 'text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
                   }
@@ -242,16 +236,13 @@ export function ThemeAwareNavigation() {
 
   return (
     <nav className="space-y-2">
-      {navItems.map((item) => (
+      {navItems.map(item => (
         <a
           key={item.name}
           href={item.href}
           className={`
             block px-3 py-2 rounded-md text-sm font-medium transition-colors
-            ${item.active 
-              ? 'bg-primary text-primary-foreground' 
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }
+            ${item.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}
           `}
         >
           {item.name}
@@ -264,6 +255,8 @@ export function ThemeAwareNavigation() {
 // ============================================================================
 // EXPORT ALL TEMPLATES
 // ============================================================================
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const ThemeTemplates = {
   Card: ThemeAwareCard,
   Form: ThemeAwareForm,
