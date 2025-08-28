@@ -56,7 +56,7 @@ export function Check({ className }: { className?: string }) {
   )
 }
 
-export function ApplePay({ className }: { className?: string }) {
+export function ApplePay() {
   return (
     <figure className="flex items-center justify-center p-1 border-2 rounded w-9 h-7 border-borders-disabled">
       <svg

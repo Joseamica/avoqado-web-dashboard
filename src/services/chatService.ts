@@ -45,10 +45,10 @@ interface SavedConversation {
   history: ConversationEntry[]
 }
 
-interface ConversationsList {
-  conversations: SavedConversation[]
-  currentId: string | null
-}
+// interface ConversationsList {
+//   conversations: SavedConversation[]
+//   currentId: string | null
+// }
 
 interface ChatResponse {
   response: string
@@ -96,7 +96,7 @@ const getCurrentUserId = (): string | null => {
   } catch (error) {
     console.warn('Could not extract user ID from token:', error)
   }
-  
+
   // Fallback: try to get from any auth context in localStorage
   try {
     const authData = localStorage.getItem('authData') || localStorage.getItem('user')
@@ -107,7 +107,7 @@ const getCurrentUserId = (): string | null => {
   } catch (error) {
     console.warn('Could not get user from localStorage:', error)
   }
-  
+
   return null
 }
 
@@ -115,17 +115,17 @@ const getCurrentUserId = (): string | null => {
 const getUserVenueSpecificKey = (baseKey: string, venueSlug?: string | null, userId?: string | null): string => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
   const currentUserId = userId || getCurrentUserId()
-  
+
   let key = baseKey
-  
+
   if (currentVenue) {
     key = `${key}_${currentVenue}`
   }
-  
+
   if (currentUserId) {
     key = `${key}_user_${currentUserId}`
   }
-  
+
   return key
 }
 
@@ -171,12 +171,7 @@ const saveConversationHistory = (history: ConversationEntry[], venueSlug?: strin
 }
 
 // Nueva función para agregar mensajes individuales al historial por venue
-export const addMessageToHistory = (
-  role: 'user' | 'assistant',
-  content: string,
-  venueSlug?: string | null,
-  trainingDataId?: string,
-) => {
+export const addMessageToHistory = (role: 'user' | 'assistant', content: string, venueSlug?: string | null, trainingDataId?: string) => {
   try {
     const currentVenue = venueSlug || getCurrentVenueSlug()
     const currentHistory = getConversationHistory(currentVenue)
@@ -215,7 +210,7 @@ const getDailyUsage = (): DailyUsage => {
     if (stored) {
       const usage = JSON.parse(stored) as DailyUsage
       const today = new Date().toDateString()
-      
+
       if (usage.date === today) {
         return usage
       }
@@ -223,7 +218,7 @@ const getDailyUsage = (): DailyUsage => {
   } catch (error) {
     console.warn('Error loading daily usage:', error)
   }
-  
+
   return { date: new Date().toDateString(), count: 0 }
 }
 
@@ -255,27 +250,27 @@ const PREDEFINED_SUGGESTIONS = [
 const handleVenueChange = (): { venueChanged: boolean; previousVenue: string | null; currentVenue: string | null } => {
   const currentVenue = getCurrentVenueSlug()
   const storedVenue = localStorage.getItem(STORAGE_KEYS.CURRENT_VENUE)
-  
+
   if (storedVenue !== currentVenue) {
     // Venue cambió
     localStorage.setItem(STORAGE_KEYS.CURRENT_VENUE, currentVenue || '')
-    
+
     console.log('🏢 Venue change detected:', {
       from: storedVenue,
-      to: currentVenue
+      to: currentVenue,
     })
-    
+
     return {
       venueChanged: true,
       previousVenue: storedVenue,
-      currentVenue
+      currentVenue,
     }
   }
-  
+
   return {
     venueChanged: false,
     previousVenue: storedVenue,
-    currentVenue
+    currentVenue,
   }
 }
 
@@ -284,11 +279,11 @@ const generateVenueChangeContext = (previousVenue: string | null, currentVenue: 
   if (!previousVenue && currentVenue) {
     return `[CONTEXTO: Usuario accedió al dashboard del venue '${currentVenue}'. Todas las consultas deben ser para este venue específicamente.]`
   }
-  
+
   if (previousVenue && currentVenue && previousVenue !== currentVenue) {
     return `[CONTEXTO: Usuario cambió del venue '${previousVenue}' al venue '${currentVenue}'. Nueva conversación iniciada. Todas las consultas ahora son para el venue '${currentVenue}' exclusivamente.]`
   }
-  
+
   return ''
 }
 
@@ -298,23 +293,23 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
   if (!message.trim()) {
     throw new Error('El mensaje no puede estar vacío')
   }
-  
+
   if (message.length > 2000) {
     throw new Error('El mensaje es demasiado largo (máximo 2000 caracteres)')
   }
-  
+
   // Verificar límite diario
   if (!checkDailyLimit()) {
     throw new Error(`Has alcanzado el límite diario de ${CHAT_CONFIG.MAX_DAILY_REQUESTS} consultas. Intenta mañana.`)
   }
-  
+
   try {
     // Detectar cambios de venue
     const { venueChanged, previousVenue, currentVenue } = handleVenueChange()
-    
+
     // Preparar historial de conversación para el venue actual
     let history = getConversationHistory(currentVenue)
-    
+
     // Si cambio de venue, agregar contexto e iniciar nueva conversación
     if (venueChanged) {
       const contextMessage = generateVenueChangeContext(previousVenue, currentVenue)
@@ -323,32 +318,32 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
         const contextEntry: ConversationEntry = {
           role: 'assistant',
           content: contextMessage,
-          timestamp: new Date()
+          timestamp: new Date(),
         }
         history = [contextEntry]
         console.log('🔄 Venue change context added to conversation')
       }
     }
-    
+
     // Llamar a la API Text-to-SQL usando axios (que ya tiene la configuración correcta)
     const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', {
       message,
       conversationHistory: history,
     })
-    
+
     if (!response.data?.success) {
       throw new Error(response.data?.message || 'Error en la respuesta del servidor')
     }
-    
+
     const result = response.data.data
     const aiResponse = result.response || 'No se pudo obtener una respuesta.'
     const suggestions = result.suggestions || []
     const metadata = result.metadata || {}
-    
+
     // Debug: Log the complete backend response
     console.log('🔍 Backend response data:', result)
     console.log('🔍 TrainingDataId from backend:', result.trainingDataId)
-    
+
     // NOTA: El historial ahora se maneja desde ChatBubble.tsx para evitar duplicados
     // Pero aseguramos que se guarde en el venue correcto
     // const newHistory = [
@@ -357,10 +352,10 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
     //   { role: 'assistant' as const, content: aiResponse, timestamp: new Date() }
     // ]
     // saveConversationHistory(newHistory, currentVenue)
-    
+
     // Incrementar contador de uso
     incrementDailyUsage()
-    
+
     // Log Text-to-SQL metadata for debugging
     console.log('🔍 Text-to-SQL Assistant Response:', {
       confidence: metadata.confidence,
@@ -371,7 +366,7 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       dataSourcesUsed: metadata.dataSourcesUsed,
       sqlQuery: metadata.sqlQuery, // Only in development
     })
-    
+
     return {
       response: aiResponse,
       suggestions,
@@ -379,10 +374,9 @@ export const sendChatMessage = async (message: string): Promise<ChatResponse> =>
       metadata,
       trainingDataId: result.trainingDataId,
     }
-    
   } catch (error: any) {
     console.error('Error sending chat message:', error)
-    
+
     // Manejo específico de errores
     if (error.response?.status === 401) {
       throw new Error('No estás autenticado. Por favor, recarga la página e inicia sesión nuevamente.')
@@ -430,7 +424,7 @@ export const getUsageStats = (venueSlug?: string | null) => {
   const dailyUsage = getDailyUsage()
   const currentVenue = venueSlug || getCurrentVenueSlug()
   const historyLength = getConversationHistory(currentVenue).length
-  
+
   return {
     dailyRequests: dailyUsage.count,
     maxDailyRequests: CHAT_CONFIG.MAX_DAILY_REQUESTS,
@@ -455,7 +449,7 @@ export const initializeChatSession = async (userId: string, venueId: string): Pr
   return `session-${userId}-${venueId}-${Date.now()}`
 }
 
-export const clearChatHistory = async (venueId?: string): Promise<boolean> => {
+export const clearChatHistory = async (): Promise<boolean> => {
   clearConversationHistory()
   return true
 }
@@ -484,7 +478,11 @@ export const getSavedConversations = (): SavedConversation[] => {
 }
 
 // Guardar una conversación para venue específico
-export const saveConversation = async (title?: string, venueSlug?: string | null, existingConversationId?: string | null): Promise<string> => {
+export const saveConversation = async (
+  title?: string,
+  venueSlug?: string | null,
+  existingConversationId?: string | null,
+): Promise<string> => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
   const currentHistory = getConversationHistory(currentVenue)
   if (currentHistory.length === 0) return ''
@@ -509,7 +507,7 @@ export const saveConversation = async (title?: string, venueSlug?: string | null
   // Generate title using LLM if not provided, fallback to simple title generation
   let autoTitle: string
   try {
-    autoTitle = title || await generateConversationTitleWithLLM(currentHistory)
+    autoTitle = title || (await generateConversationTitleWithLLM(currentHistory))
   } catch (error) {
     console.warn('LLM title generation failed, using fallback:', error)
     autoTitle = title || generateConversationTitleFallback(currentHistory)
@@ -528,14 +526,12 @@ export const saveConversation = async (title?: string, venueSlug?: string | null
 
   if (isUpdate) {
     // Update existing conversation
-    updatedConversations = conversations.map(conv => 
-      conv.id === conversationId ? conversationData : conv
-    )
+    updatedConversations = conversations.map(conv => (conv.id === conversationId ? conversationData : conv))
     console.log(`🔄 Conversación actualizada para ${currentVenue}: ${autoTitle}`, {
       conversationId,
       oldTitle: conversations.find(c => c.id === conversationId)?.title,
       newTitle: conversationData.title,
-      messageCount: currentHistory.length
+      messageCount: currentHistory.length,
     })
   } else {
     // Add new conversation at the beginning
@@ -543,10 +539,10 @@ export const saveConversation = async (title?: string, venueSlug?: string | null
     console.log(`💾 Nueva conversación guardada para ${currentVenue}: ${autoTitle}`, {
       conversationId,
       title: conversationData.title,
-      messageCount: currentHistory.length
+      messageCount: currentHistory.length,
     })
   }
-  
+
   try {
     localStorage.setItem(STORAGE_KEYS.CONVERSATIONS_LIST, JSON.stringify(updatedConversations))
   } catch (error) {
@@ -560,7 +556,7 @@ export const saveConversation = async (title?: string, venueSlug?: string | null
 export const loadConversation = (conversationId: string): boolean => {
   const conversations = getSavedConversations()
   const conversation = conversations.find(conv => conv.id === conversationId)
-  
+
   if (conversation) {
     try {
       localStorage.setItem(STORAGE_KEYS.CONVERSATION, JSON.stringify(conversation.history))
@@ -571,7 +567,7 @@ export const loadConversation = (conversationId: string): boolean => {
       console.error('Error loading conversation:', error)
     }
   }
-  
+
   return false
 }
 
@@ -581,14 +577,14 @@ export const deleteConversation = (conversationId: string): boolean => {
     const conversations = getSavedConversations()
     const updatedConversations = conversations.filter(conv => conv.id !== conversationId)
     localStorage.setItem(STORAGE_KEYS.CONVERSATIONS_LIST, JSON.stringify(updatedConversations))
-    
+
     // Si es la conversación actual, limpiar
     const currentId = localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION)
     if (currentId === conversationId) {
       clearConversationHistory()
       localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION)
     }
-    
+
     console.log(`🗑️ Conversación eliminada: ${conversationId}`)
     return true
   } catch (error) {
@@ -610,24 +606,24 @@ const generateConversationTitleWithLLM = async (history: ConversationEntry[]): P
     console.log('🤖 Attempting LLM title generation:', {
       url: '/api/v1/dashboard/assistant/generate-title',
       summaryLength: conversationSummary.length,
-      hasAuthToken: !!localStorage.getItem('authToken')
+      hasAuthToken: !!localStorage.getItem('authToken'),
     })
 
     const response = await fetch('/api/v1/dashboard/assistant/generate-title', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
       },
       body: JSON.stringify({
-        conversationSummary
-      })
+        conversationSummary,
+      }),
     })
 
     console.log('🌐 LLM title response:', {
       status: response.status,
       statusText: response.statusText,
-      ok: response.ok
+      ok: response.ok,
     })
 
     if (response.ok) {
@@ -655,31 +651,32 @@ const generateConversationTitleFallback = (history: ConversationEntry[]): string
 }
 
 // Keep original function for backward compatibility
-const generateConversationTitle = generateConversationTitleFallback
+// const generateConversationTitle = generateConversationTitleFallback
 
 // Legacy synchronous wrapper for backward compatibility
 export const saveConversationSync = (title?: string, venueSlug?: string | null): string => {
   // For existing calls that expect synchronous behavior, we'll generate a simple ID
   const conversationId = `conv_${venueSlug || getCurrentVenueSlug()}_${Date.now()}`
-  
+
   // Queue the async save operation but don't wait for it
   saveConversation(title, venueSlug).catch(error => {
     console.error('Error in background conversation save:', error)
   })
-  
+
   return conversationId
 }
 
 // Crear nueva conversación (limpiar la actual) para venue específico
 export const createNewConversation = (venueSlug?: string | null): void => {
   const currentVenue = venueSlug || getCurrentVenueSlug()
-  
+
   // Guardar automáticamente la conversación actual si tiene contenido
   const currentHistory = getConversationHistory(currentVenue)
-  if (currentHistory.length > 1) { // Más de solo el mensaje de bienvenida
+  if (currentHistory.length > 1) {
+    // Más de solo el mensaje de bienvenida
     saveConversationSync(undefined, currentVenue)
   }
-  
+
   // Limpiar la conversación actual
   clearConversationHistory(currentVenue)
   localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION)
@@ -697,7 +694,7 @@ export const submitFeedback = async (
   feedbackType: 'CORRECT' | 'INCORRECT' | 'PARTIALLY_CORRECT',
   correctedResponse?: string,
   correctedSql?: string,
-  userNotes?: string
+  userNotes?: string,
 ) => {
   try {
     const response = await api.post('/api/v1/dashboard/assistant/feedback', {
@@ -719,7 +716,7 @@ export const submitFeedback = async (
 export const submitFeedbackWithCorrection = async (
   trainingDataId: string,
   problemDescription: string,
-  originalQuestion: string
+  originalQuestion: string,
 ): Promise<{
   success: boolean
   correctedResponse?: string
@@ -728,7 +725,7 @@ export const submitFeedbackWithCorrection = async (
   try {
     // First submit the feedback
     await submitFeedback(trainingDataId, 'INCORRECT', undefined, undefined, problemDescription)
-    
+
     // Then request a corrected response based on the feedback
     const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', {
       message: `${originalQuestion}\n\nFeedback del usuario: ${problemDescription}`,
@@ -752,7 +749,7 @@ export const submitFeedbackWithCorrection = async (
 export const initializeVenueContext = (): void => {
   const currentVenue = getCurrentVenueSlug()
   const storedVenue = localStorage.getItem(STORAGE_KEYS.CURRENT_VENUE)
-  
+
   if (currentVenue && currentVenue !== storedVenue) {
     localStorage.setItem(STORAGE_KEYS.CURRENT_VENUE, currentVenue)
     console.log('🏢 Venue context initialized:', currentVenue)
@@ -764,26 +761,26 @@ export const getChatStatus = () => {
   const currentVenue = getCurrentVenueSlug()
   const history = getConversationHistory(currentVenue)
   const stats = getUsageStats(currentVenue)
-  
+
   return {
     currentVenue,
     hasHistory: history.length > 0,
     messageCount: history.length,
-    ...stats
+    ...stats,
   }
 }
 
 // Función para notificar cambio de venue (usar desde componentes)
 export const notifyVenueChange = (newVenueSlug: string): void => {
   const previousVenue = getCurrentVenueSlug()
-  
+
   // Actualizar venue actual en localStorage
   localStorage.setItem(STORAGE_KEYS.CURRENT_VENUE, newVenueSlug)
-  
+
   console.log('🔄 Venue change notified:', {
     from: previousVenue,
-    to: newVenueSlug
+    to: newVenueSlug,
   })
-  
+
   // El próximo mensaje del chat detectará el cambio automáticamente
 }
