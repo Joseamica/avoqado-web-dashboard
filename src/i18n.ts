@@ -378,6 +378,16 @@ const resources = {
           emailRequired: 'Email is required',
           passwordRequired: 'Password is required',
         },
+        toast: {
+          login_success: 'Login successful',
+          login_error_title: 'Login failed',
+          login_error_desc: 'Please check your credentials and try again',
+          switched_to_venue: 'Switched to {{name}}',
+          switch_venue_error_title: 'Failed to switch venue',
+          switch_venue_error_desc: 'Unable to switch venue. Please try again',
+          auth_error_title: 'Authentication error',
+          google_login_error_desc: 'Google login failed. Please try again',
+        },
       },
       common: {
         cancel: 'Cancel',
@@ -1126,6 +1136,16 @@ const resources = {
           and: 'y',
           emailRequired: 'El correo electrónico es requerido',
           passwordRequired: 'La contraseña es requerida',
+        },
+        toast: {
+          login_success: 'Inicio de sesión exitoso',
+          login_error_title: 'Error al iniciar sesión',
+          login_error_desc: 'Por favor verifica tus credenciales e intenta de nuevo',
+          switched_to_venue: 'Cambiado a {{name}}',
+          switch_venue_error_title: 'Error al cambiar de local',
+          switch_venue_error_desc: 'No se pudo cambiar de local. Por favor intenta de nuevo',
+          auth_error_title: 'Error de autenticación',
+          google_login_error_desc: 'Error al iniciar sesión con Google. Por favor intenta de nuevo',
         },
       },
       common: {
