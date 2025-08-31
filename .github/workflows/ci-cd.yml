@@ -65,7 +65,7 @@ jobs:
           
       - name: 📊 Get package version
         id: package-version
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -p 'require("./package.json").version')" >> $GITHUB_OUTPUT
         
       - name: ⏰ Build info
         id: build-info
