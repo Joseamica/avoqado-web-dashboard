@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import * as authService from '@/services/auth.service'
@@ -39,6 +40,7 @@ export const useAuth = (): AuthContextType => {
 
 // Componente Proveedor
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
@@ -137,14 +139,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginData) => authService.login(credentials),
     onSuccess: () => {
-      toast({ title: 'Has iniciado sesión correctamente.' })
+      toast({ title: t('auth.toast.login_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: (error: any) => {
       toast({
-        title: 'Error de inicio de sesión',
+        title: t('auth.toast.login_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || 'Credenciales inválidas. Verifica tu email y contraseña.',
+        description: error.response?.data?.message || t('auth.toast.login_error_desc'),
       })
     },
   })
@@ -173,7 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newVenue = getVenueBySlug(newVenueSlug)
         if (newVenue) {
           setActiveVenue(newVenue)
-          toast({ title: `Cambiado a ${newVenue.name}.` })
+          toast({ title: t('auth.toast.switched_to_venue', { name: newVenue.name }) })
 
           // Navegar a la página correspondiente del nuevo venue
           const currentPath = location.pathname
@@ -184,9 +186,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al cambiar',
+        title: t('auth.toast.switch_venue_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message,
+        description: error.response?.data?.message || t('auth.toast.switch_venue_error_desc'),
       })
     },
   })
@@ -201,13 +203,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.location.href = authUrl
     } catch (error: any) {
       toast({
-        title: 'Error de autenticación',
+        title: t('auth.toast.auth_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || 'Error al iniciar sesión con Google',
+        description: error.response?.data?.message || t('auth.toast.google_login_error_desc'),
       })
       throw error
     }
-  }, [toast])
+  }, [toast, t])
 
   // --- FUNCIONES EXPUESTAS ---
 
@@ -267,7 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   if (isStatusLoading) {
-    return <LoadingScreen message="Verificando sesión..." />
+    return <LoadingScreen message={t('common.verifying_session')} />
   }
 
   const value: AuthContextType = {
