@@ -13,9 +13,13 @@ import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { User, Mail, Shield, Calendar } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 export default function Account() {
+  const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
+  const localeCode = getIntlLocale(i18n.language)
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -56,8 +60,8 @@ export default function Account() {
     },
     onSuccess: () => {
       toast({
-        title: 'Cambios guardados',
-        description: 'Tus cambios se han actualizado correctamente',
+        title: t('account.toast.success.title'),
+        description: t('account.toast.success.description'),
       })
       // Clear password fields after successful update
       form.setValue('old_password', '')
@@ -67,8 +71,8 @@ export default function Account() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Error al guardar cambios',
+        title: t('common.error'),
+        description: error.response?.data?.message || t('account.toast.error.description'),
         variant: 'destructive',
       })
     },
@@ -83,9 +87,9 @@ export default function Account() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <User className="h-6 w-6" />
-          Mi Perfil
+          {t('account.title')}
         </h1>
-        <p className="text-muted-foreground mt-2">Administra tu información personal y configuración de cuenta</p>
+        <p className="text-muted-foreground mt-2">{t('account.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -95,15 +99,15 @@ export default function Account() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Información de Cuenta
+                {t('account.accountInfo.title')}
               </CardTitle>
-              <CardDescription>Detalles básicos de tu cuenta</CardDescription>
+              <CardDescription>{t('account.accountInfo.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Email</p>
+                  <p className="text-sm font-medium">{t('account.accountInfo.email')}</p>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
@@ -111,7 +115,7 @@ export default function Account() {
               <div className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Rol</p>
+                  <p className="text-sm font-medium">{t('account.accountInfo.role')}</p>
                   <Badge variant="secondary">{user?.role}</Badge>
                 </div>
               </div>
@@ -119,9 +123,9 @@ export default function Account() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Miembro desde</p>
+                  <p className="text-sm font-medium">{t('account.accountInfo.memberSince')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('es-ES') : 'N/A'}
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(localeCode) : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -130,8 +134,8 @@ export default function Account() {
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">Último acceso</p>
-                    <p className="text-sm text-muted-foreground">{new Date(user.lastLogin).toLocaleString('es-ES')}</p>
+                    <p className="text-sm font-medium">{t('account.accountInfo.lastLogin')}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(user.lastLogin).toLocaleString(localeCode)}</p>
                   </div>
                 </div>
               )}
@@ -143,8 +147,8 @@ export default function Account() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Editar Perfil</CardTitle>
-              <CardDescription>Actualiza tu información personal</CardDescription>
+              <CardTitle>{t('account.editProfile.title')}</CardTitle>
+              <CardDescription>{t('account.editProfile.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -156,7 +160,7 @@ export default function Account() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nombre</FormLabel>
+                          <FormLabel>{t('account.editProfile.firstName')}</FormLabel>
                           <FormControl>
                             <Input {...field} disabled={editProfile.isPending} />
                           </FormControl>
@@ -171,7 +175,7 @@ export default function Account() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Apellido</FormLabel>
+                          <FormLabel>{t('account.editProfile.lastName')}</FormLabel>
                           <FormControl>
                             <Input {...field} disabled={editProfile.isPending} />
                           </FormControl>
@@ -187,7 +191,7 @@ export default function Account() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormLabel>{t('account.editProfile.email')}</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" disabled={editProfile.isPending} />
                         </FormControl>
@@ -202,7 +206,7 @@ export default function Account() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
+                        <FormLabel>{t('account.editProfile.phone')}</FormLabel>
                         <FormControl>
                           <Input {...field} type="tel" disabled={editProfile.isPending} />
                         </FormControl>
@@ -217,21 +221,21 @@ export default function Account() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-medium">Contraseña</h3>
-                        <p className="text-sm text-muted-foreground">Cambia tu contraseña para mantener tu cuenta segura</p>
+                        <h3 className="text-lg font-medium">{t('account.password.title')}</h3>
+                        <p className="text-sm text-muted-foreground">{t('account.password.description')}</p>
                       </div>
                       <Button ref={triggerRef} type="button" variant="outline" onClick={() => setIsDialogOpen(true)}>
-                        Cambiar contraseña
+                        {t('account.password.changeButton')}
                       </Button>
                     </div>
                   </div>
 
                   <div className="flex gap-4">
                     <Button type="submit" disabled={editProfile.isPending}>
-                      {editProfile.isPending ? 'Guardando...' : 'Guardar cambios'}
+                      {editProfile.isPending ? t('common.saving') : t('common.save')}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => form.reset()} disabled={editProfile.isPending}>
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                   </div>
                 </form>
@@ -262,7 +266,7 @@ export default function Account() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <DialogHeader>
-                <DialogTitle>Actualizar contraseña</DialogTitle>
+                <DialogTitle>{t('account.password.dialog.title')}</DialogTitle>
               </DialogHeader>
 
               {/* Email visible pero no editable en el diálogo */}
@@ -283,10 +287,10 @@ export default function Account() {
               <FormField
                 control={form.control}
                 name="old_password"
-                rules={{ required: 'La contraseña actual es obligatoria' }}
+                rules={{ required: t('account.password.dialog.currentPasswordRequired') }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña actual</FormLabel>
+                    <FormLabel>{t('account.password.dialog.currentPassword')}</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
@@ -298,10 +302,10 @@ export default function Account() {
               <FormField
                 control={form.control}
                 name="password"
-                rules={{ required: 'La nueva contraseña es obligatoria' }}
+                rules={{ required: t('account.password.dialog.newPasswordRequired') }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nueva contraseña</FormLabel>
+                    <FormLabel>{t('account.password.dialog.newPassword')}</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
@@ -311,7 +315,7 @@ export default function Account() {
               />
 
               <Button type="submit" className="w-full">
-                Guardar cambios
+                {t('common.save')}
               </Button>
             </form>
           </Form>

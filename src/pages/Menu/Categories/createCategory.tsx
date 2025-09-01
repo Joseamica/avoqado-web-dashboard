@@ -13,8 +13,10 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
 
 export default function CreateCategory() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -41,15 +43,15 @@ export default function CreateCategory() {
     },
     onSuccess: (_, data: any) => {
       toast({
-        title: `Categoría ${data.name.toLowerCase()} creada.`,
-        description: 'La categoría se ha creado correctamente.',
+        title: t('menu.forms.messages.categoryCreated', { name: data.name.toLowerCase() }),
+        description: t('menu.forms.messages.categoryCreatedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || error.message || 'Hubo un problema al guardar los cambios.'
+      const errorMessage = error?.response?.data?.message || error.message || t('menu.forms.messages.saveErrorDesc')
       toast({
-        title: 'Error al guardar',
+        title: t('menu.forms.messages.saveError'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -130,8 +132,8 @@ export default function CreateCategory() {
 
       if (fromMinutes >= untilMinutes) {
         toast({
-          title: 'Horario inválido',
-          description: 'La hora de inicio debe ser anterior a la hora de cierre.',
+          title: t('menu.forms.messages.invalidSchedule'),
+          description: t('menu.forms.messages.invalidScheduleDesc'),
           variant: 'destructive',
         })
         return // Don't submit if time range is invalid
@@ -142,7 +144,7 @@ export default function CreateCategory() {
   }
 
   if (isMenusLoading || isProductsLoading) {
-    return <LoadingScreen message="Cargando..." />
+    return <LoadingScreen message={t('menu.forms.messages.loading')} />
   }
 
   return (
@@ -163,16 +165,16 @@ export default function CreateCategory() {
               form.setValue('active', !currentActive)
             }}
           >
-            {form.watch('active') ? '✓ Activa' : '✗ Inactiva'}
+            {form.watch('active') ? t('menu.forms.labels.active') : t('menu.forms.labels.inactive')}
           </Button>
           <LoadingButton loading={createCategory.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createCategory.isPending ? 'Guardando...' : 'Guardar'}
+            {createCategory.isPending ? t('common.saving') : t('common.save')}
           </LoadingButton>
         </div>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
-          <h1 className="text-xl font-semibold">Nueva categoría</h1>
+          <h1 className="text-xl font-semibold">{t('menu.forms.labels.newCategory')}</h1>
 
           <FormField
             control={form.control}

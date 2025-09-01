@@ -3,6 +3,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // Legacy api removed; use typed services instead
 import DataTable from '@/components/data-table'
@@ -35,6 +36,7 @@ import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
 
 export default function ModifierGroups() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const navigate = useNavigate()
@@ -108,8 +110,8 @@ export default function ModifierGroups() {
     },
     onSuccess: () => {
       toast({
-        title: 'Grupo modificador actualizado',
-        description: 'Los cambios se han guardado correctamente.',
+        title: t('menu.modifiers.toasts.updated'),
+        description: t('menu.modifiers.toasts.saved'),
       })
       // Invalidate all relevant queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -120,8 +122,8 @@ export default function ModifierGroups() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('menu.modifiers.toasts.saveError'),
+        description: error.message || t('menu.modifiers.toasts.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -134,8 +136,8 @@ export default function ModifierGroups() {
     },
     onSuccess: () => {
       toast({
-        title: 'Grupo modificador eliminado',
-        description: 'El grupo modificador ha sido eliminado correctamente.',
+        title: t('menu.modifiers.toasts.deleted'),
+        description: t('menu.modifiers.toasts.deletedDesc'),
       })
       // Invalidate and refetch data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -144,8 +146,8 @@ export default function ModifierGroups() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al eliminar',
-        description: error.message || 'Hubo un problema al eliminar el grupo modificador.',
+        title: t('menu.modifiers.toasts.deleteError'),
+        description: error.message || t('menu.modifiers.toasts.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -158,7 +160,7 @@ export default function ModifierGroups() {
       sortDescFirst: true,
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="flex items-center cursor-pointer">
-          Nombre
+          {t('menu.modifiers.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -168,28 +170,28 @@ export default function ModifierGroups() {
     {
       id: 'modifiers',
       accessorKey: 'modifiers',
-      header: 'Modificadores',
+      header: t('menu.modifiers.columns.modifiers'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('menu.modifiers.columns.actions'),
       cell: ({ row }) => {
         return (
           <div className="flex justify-end" onClick={e => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 dropdown-menu-trigger">
-                  <span className="sr-only">Abrir menu</span>
+                  <span className="sr-only">{t('menu.modifiers.actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('menu.modifiers.actions.title')}</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  Editar
+                  {t('menu.modifiers.actions.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -198,7 +200,7 @@ export default function ModifierGroups() {
                   }}
                 >
                   <Link2 className="h-4 w-4 mr-2" />
-                  Asignar modificadores y productos
+                  {t('menu.modifiers.actions.assignModifiersAndProducts')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -209,7 +211,7 @@ export default function ModifierGroups() {
                   className="text-red-600 focus:text-red-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
+                  {t('menu.modifiers.actions.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -279,7 +281,7 @@ export default function ModifierGroups() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Grupos modificadores</h1>
+        <h1 className="text-xl font-semibold">{t('menu.modifiers.title')}</h1>
 
         <Button asChild>
           <Link
@@ -289,7 +291,7 @@ export default function ModifierGroups() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>Nuevo grupo modificador</span>
+            <span>{t('menu.modifiers.newModifierGroup')}</span>
           </Link>
         </Button>
 
@@ -297,21 +299,21 @@ export default function ModifierGroups() {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Eliminar grupo modificador</DialogTitle>
+              <DialogTitle>{t('menu.modifiers.dialogs.delete.title')}</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.
+                {t('menu.modifiers.dialogs.delete.description')}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="destructive"
                 onClick={() => modifierGroupToDelete && deleteModifierGroupMutation.mutate(modifierGroupToDelete)}
                 disabled={deleteModifierGroupMutation.isPending}
               >
-                {deleteModifierGroupMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                {deleteModifierGroupMutation.isPending ? t('menu.modifiers.dialogs.delete.deleting') : t('menu.modifiers.dialogs.delete.delete')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -324,7 +326,7 @@ export default function ModifierGroups() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder="Buscar..."
+        searchPlaceholder={t('menu.modifiers.searchPlaceholder')}
         onSearch={handleSearch}
         tableId="modifier-groups:list"
         clickableRow={row => ({
@@ -380,10 +382,10 @@ export default function ModifierGroups() {
                   <SheetHeader>
                     <SheetTitle>{modifierGroup.name}</SheetTitle>
                     <SheetDescription>
-                      Asigna modificadores y productos a este grupo.
+                      {t('menu.modifiers.forms.assignDescription')}
                       <div className="flex justify-end">
                         <Button type="button" variant="outline" size="sm" onClick={() => setCreateModifier(true)} className="mt-4">
-                          Crear nuevo modificador
+                          {t('menu.modifiers.forms.createNewModifier')}
                         </Button>
                       </div>
                     </SheetDescription>
@@ -395,18 +397,18 @@ export default function ModifierGroups() {
                       name="modifiers"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Modificadores en este grupo</FormLabel>
+                          <FormLabel>{t('menu.modifiers.forms.modifiersInGroup')}</FormLabel>
                           <FormControl>
                             {field.value && field.value.length > 0 ? (
                               <DnDMultipleSelector
-                                placeholder="Seleccionar modificadores..."
+                                placeholder={t('menu.modifiers.forms.selectModifiers')}
                                 options={allModifierOptions}
                                 value={field.value}
                                 onChange={field.onChange}
                               />
                             ) : (
                               <div className="flex items-center justify-center h-20 text-muted-foreground">
-                                No hay modificadores asignados a este grupo
+                                {t('menu.modifiers.forms.noModifiersAssigned')}
                               </div>
                             )}
                           </FormControl>
@@ -420,11 +422,11 @@ export default function ModifierGroups() {
                       name="avoqadoProduct"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Productos que usan este grupo de modificadores</FormLabel>
+                          <FormLabel>{t('menu.modifiers.forms.productsUsingGroup')}</FormLabel>
                           <FormControl>
                             {field.value && field.value.length > 0 ? (
                               <DnDMultipleSelector
-                                placeholder="Seleccionar productos..."
+                                placeholder={t('menu.modifiers.forms.selectProducts')}
                                 options={
                                   allProducts
                                     ? allProducts.map(product => ({
@@ -439,7 +441,7 @@ export default function ModifierGroups() {
                               />
                             ) : (
                               <div className="flex items-center justify-center h-20 text-muted-foreground">
-                                No hay productos asignados a este grupo modificador
+                                {t('menu.modifiers.forms.noProductsAssigned')}
                               </div>
                             )}
                           </FormControl>
@@ -451,7 +453,7 @@ export default function ModifierGroups() {
 
                   <SheetFooter>
                     <Button type="submit" disabled={!form.formState.isDirty || saveModifierGroup.isPending} className="ml-auto">
-                      {saveModifierGroup.isPending ? 'Guardando...' : 'Guardar'}
+                      {saveModifierGroup.isPending ? t('common.saving') : t('common.save')}
                     </Button>
                   </SheetFooter>
                 </form>

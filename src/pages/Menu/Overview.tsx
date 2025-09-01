@@ -16,8 +16,9 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, MoreHorizontal, Search } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 // Skeleton Components
@@ -253,14 +254,15 @@ function SortableMenu({
           </Button>
         </div>
       </header>
-      {isExpanded && !isDraggingMenu && <div className="p-4 border-t-2 border-dashed relative z-0">{children}</div>}
+      {isExpanded && !isDraggingMenu && <div className="p-4 border-t-2 relative z-0">{children}</div>}
     </div>
   )
 }
 
 export default function Overview() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
 
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -521,7 +523,7 @@ export default function Overview() {
     return (
       <div className="text-red-500 p-4">
         <AlertCircle className="inline-block mr-2" />
-        Error loading data: {menusError?.message || productsError?.message}
+        {t('menu.overview.errorLoading', { message: menusError?.message || productsError?.message })}
       </div>
     )
   }
@@ -535,10 +537,23 @@ export default function Overview() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Menu Overview</h1>
+        <h1 className="text-3xl font-bold">{t('menu.overview.title')}</h1>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => navigate('/menu/categories/new')}>New Category</Button>
-          <Button onClick={() => navigate('/menu/new')}>New Menu</Button>
+          <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
+            {t('menu.overview.manageCategories')}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>{t('menu.overview.create')}</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>{t('menu.overview.newMenu')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>{t('menu.overview.newCategory')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
+                {t('menu.overview.createNewProduct')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -547,29 +562,18 @@ export default function Overview() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <Input
             type="text"
-            placeholder="Search menus or categories..."
+            placeholder={t('menu.overview.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
         <Button variant="outline" onClick={expandAll}>
-          Expand All
+          {t('menu.overview.expandAll')}
         </Button>
         <Button variant="outline" onClick={collapseAll}>
-          Collapse All
+          {t('menu.overview.collapseAll')}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <MoreHorizontal size={20} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => navigate('/menu/products/new')}>Create New Product</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/menu/categories')}>Manage Categories</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -610,7 +614,7 @@ export default function Overview() {
             <div className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm">
               <div className="flex items-center space-x-3">
                 <GripVertical className="text-muted-foreground" size={20} />
-                <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : 'Item'}</p>
+                <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : t('menu.overview.draggedItem')}</p>
               </div>
             </div>
           )}

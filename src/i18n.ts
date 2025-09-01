@@ -25,6 +25,150 @@ const resources = {
         billing: 'Billing',
         limits: 'Limits',
       },
+      menu: {
+        overview: {
+          title: 'Menu Overview',
+          newCategory: 'New Category',
+          newMenu: 'New Menu',
+          searchPlaceholder: 'Search menus or categories...',
+          expandAll: 'Expand All',
+          collapseAll: 'Collapse All',
+          createNewProduct: 'Create New Product',
+          manageCategories: 'Manage Categories',
+          create: 'Create',
+          errorLoading: 'Error loading data: {{message}}',
+          draggedItem: 'Item',
+        },
+        menus: {
+          title: 'Menus',
+          newMenu: 'New Menu',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            schedules: 'Menu Schedules',
+            categories: 'Categories',
+            alwaysAvailable: 'Always available',
+          },
+        },
+        categories: {
+          title: 'Categories',
+          newCategory: 'New Category',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            lastModification: 'Last Modification',
+          },
+          toasts: {
+            activated: 'Category activated',
+            deactivated: 'Category deactivated',
+            saved: 'Changes have been saved successfully.',
+          },
+        },
+        forms: {
+          name: 'Name',
+          description: 'Description',
+          price: 'Price',
+          selectCategories: 'Select categories...',
+          selectProducts: 'Select products...',
+          selectMenus: 'Select menus...',
+          availableFrom: 'Available from',
+          availableUntil: 'Available until',
+          scheduleOptional: 'Schedule (optional)',
+          alwaysAvailable: 'Always available',
+          daysOfWeek: {
+            monday: 'Monday',
+            tuesday: 'Tuesday',
+            wednesday: 'Wednesday',
+            thursday: 'Thursday',
+            friday: 'Friday',
+            saturday: 'Saturday',
+            sunday: 'Sunday',
+            mon: 'Mon',
+            tue: 'Tue',
+            wed: 'Wed',
+            thu: 'Thu',
+            fri: 'Fri',
+            sat: 'Sat',
+            sun: 'Sun',
+          },
+          messages: {
+            categoryCreated: 'Category {{name}} created.',
+            categoryCreatedDesc: 'The category has been created successfully.',
+            menuCreated: 'Menu created successfully.',
+            menuCreatedDesc: 'The menu has been created successfully.',
+            modifierCreated: 'Modifier created successfully.',
+            modifierCreatedDesc: 'The modifier has been created successfully.',
+            modifierGroupCreated: 'Modifier group created successfully.',
+            modifierGroupCreatedDesc: 'The modifier group has been created successfully.',
+            saveError: 'Error saving',
+            saveErrorDesc: 'There was a problem saving the changes.',
+            invalidSchedule: 'Invalid schedule',
+            invalidScheduleDesc: 'Start time must be before end time.',
+            loading: 'Loading...',
+          },
+          labels: {
+            newCategory: 'New Category',
+            active: '✓ Active',
+            inactive: '✗ Inactive',
+            menusForCategory: 'Menus where the category will appear',
+            addProductsToCategory: 'Add products to this category',
+            selectMenus: 'Select menus',
+            selectProducts: 'Select products',
+            noMoreMenus: 'No more menus found',
+            noMoreProducts: 'No more products found',
+            enterName: 'Enter a name',
+          },
+          validation: {
+            nameRequired: 'Name is required.',
+            nameMinLength: 'Name must be at least 3 characters.',
+            nameMaxLength: 'Name must not exceed 30 characters.',
+          },
+          buttons: {
+            create: 'Create',
+            goBack: 'Go back',
+          },
+        },
+        modifiers: {
+          title: 'Modifier Groups',
+          newModifierGroup: 'New Modifier Group',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            modifiers: 'Modifiers',
+            actions: 'Actions',
+          },
+          actions: {
+            edit: 'Edit',
+            assignModifiers: 'Assign modifiers and products',
+            delete: 'Delete',
+            openMenu: 'Open menu',
+          },
+          dialogs: {
+            deleteTitle: 'Delete modifier group',
+            deleteDescription: 'Are you sure you want to delete this modifier group? This action cannot be undone.',
+            deleteConfirm: 'Delete',
+            deleteCancel: 'Cancel',
+            deleting: 'Deleting...',
+          },
+          toasts: {
+            updated: 'Modifier group updated',
+            updateError: 'Error saving',
+            deleted: 'Modifier group deleted',
+            deleteError: 'Error deleting',
+            saved: 'Changes have been saved correctly.',
+            saving: 'Saving...',
+          },
+          forms: {
+            assignTitle: 'Assign modifiers and products to this group.',
+            createNewModifier: 'Create new modifier',
+            modifiersInGroup: 'Modifiers in this group',
+            productsUsingGroup: 'Products that use this modifier group',
+            noModifiers: 'No modifiers assigned to this group',
+            noProducts: 'No products assigned to this modifier group',
+            save: 'Save',
+          },
+        },
+      },
       dashboardShell: {
         loadingVenue: 'Loading venue...',
         restoringAccess: 'Restoring venue access...',
@@ -198,7 +342,7 @@ const resources = {
         toasts: {
           activated: 'Product activated',
           deactivated: 'Product deactivated',
-          saved: 'Changes have been saved successfully.'
+          saved: 'Changes have been saved successfully.',
         },
       },
       shifts: {
@@ -389,9 +533,51 @@ const resources = {
           google_login_error_desc: 'Google login failed. Please try again',
         },
       },
+      account: {
+        title: 'Account',
+        subtitle: 'Manage your account settings and preferences',
+        accountInfo: {
+          title: 'Account Information',
+          description: 'Your account details and membership information',
+          email: 'Email',
+          role: 'Role',
+          memberSince: 'Member Since',
+          lastLogin: 'Last Login',
+        },
+        editProfile: {
+          title: 'Edit Profile',
+          description: 'Update your personal information',
+          firstName: 'First Name',
+          lastName: 'Last Name',
+          email: 'Email',
+          phone: 'Phone',
+        },
+        password: {
+          title: 'Password',
+          description: 'Change your password for security',
+          changeButton: 'Change Password',
+          dialog: {
+            title: 'Change Password',
+            currentPassword: 'Current Password',
+            newPassword: 'New Password',
+            currentPasswordRequired: 'Current password is required',
+            newPasswordRequired: 'New password is required',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Success',
+            description: 'Profile updated successfully',
+          },
+          error: {
+            description: 'Failed to update profile',
+          },
+        },
+      },
       common: {
         cancel: 'Cancel',
         save: 'Save',
+        saving: 'Saving...',
         error: 'Error',
         errorLoading: 'Error loading data',
         errorLoadingDashboard: 'Error loading dashboard data',
@@ -459,7 +645,7 @@ const resources = {
         welcome: 'Hi! I am the Avoqado assistant. How can I help you?',
         assistant: 'Assistant',
         input: {
-          placeholder: 'Type your question...'
+          placeholder: 'Type your question...',
         },
         labels: {
           cache: 'Cache',
@@ -493,50 +679,50 @@ const resources = {
           },
           form: {
             label: 'Describe the problem',
-            placeholder: 'E.g., The answer is incorrect because...'
+            placeholder: 'E.g., The answer is incorrect because...',
           },
           submit: 'Send Feedback',
-          sending: 'Sending...'
+          sending: 'Sending...',
         },
         saved: {
           title: 'Saved Conversations',
           back: 'Back to Chat',
-          empty: 'No saved conversations yet.'
+          empty: 'No saved conversations yet.',
         },
         toast: {
           historyCleared: {
             title: 'History cleared',
-            desc: 'The conversation history has been cleared.'
+            desc: 'The conversation history has been cleared.',
           },
           alreadyNew: {
             title: 'You are already in a new conversation',
-            desc: 'There is nothing to clear in this conversation.'
+            desc: 'There is nothing to clear in this conversation.',
           },
           newConversation: {
             title: 'New conversation',
-            desc: 'A new conversation has been created.'
+            desc: 'A new conversation has been created.',
           },
           conversationLoaded: {
             title: 'Conversation loaded',
-            desc: 'Loaded: {{title}}'
+            desc: 'Loaded: {{title}}',
           },
           conversationDeleted: {
             title: 'Conversation deleted',
-            desc: 'Deleted: {{title}}'
-          }
+            desc: 'Deleted: {{title}}',
+          },
         },
         confirm: {
           clear: {
             title: 'Clear history',
             desc: 'Are you sure you want to clear the conversation history? This action cannot be undone.',
-            confirm: 'Yes, clear'
+            confirm: 'Yes, clear',
           },
           delete: {
             title: 'Delete conversation',
             desc: 'Are you sure you want to delete "{{title}}"? This action cannot be undone.',
-            confirm: 'Yes, delete'
-          }
-        }
+            confirm: 'Yes, delete',
+          },
+        },
       },
       sidebar: {
         summary: 'Summary',
@@ -784,6 +970,150 @@ const resources = {
         billing: 'Facturación',
         limits: 'Límites',
       },
+      menu: {
+        overview: {
+          title: 'Resumen del Menú',
+          newCategory: 'Nueva Categoría',
+          newMenu: 'Nuevo Menú',
+          searchPlaceholder: 'Buscar menús o categorías...',
+          expandAll: 'Expandir Todo',
+          collapseAll: 'Contraer Todo',
+          createNewProduct: 'Crear Nuevo Producto',
+          manageCategories: 'Gestionar Categorías',
+          create: 'Crear',
+          errorLoading: 'Error al cargar los datos: {{message}}',
+          draggedItem: 'Elemento',
+        },
+        menus: {
+          title: 'Menús',
+          newMenu: 'Nuevo menú',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            schedules: 'Horarios del menú',
+            categories: 'Categorías',
+            alwaysAvailable: 'Siempre disponible',
+          },
+        },
+        categories: {
+          title: 'Categorías',
+          newCategory: 'Nueva categoría',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            lastModification: 'Última modificación',
+          },
+          toasts: {
+            activated: 'Categoría activada',
+            deactivated: 'Categoría desactivada',
+            saved: 'Los cambios se han guardado correctamente.',
+          },
+        },
+        forms: {
+          name: 'Nombre',
+          description: 'Descripción',
+          price: 'Precio',
+          selectCategories: 'Seleccionar categorías...',
+          selectProducts: 'Seleccionar productos...',
+          selectMenus: 'Seleccionar menús...',
+          availableFrom: 'Disponible desde',
+          availableUntil: 'Disponible hasta',
+          scheduleOptional: 'Horario (opcional)',
+          alwaysAvailable: 'Siempre disponible',
+          daysOfWeek: {
+            monday: 'Lunes',
+            tuesday: 'Martes',
+            wednesday: 'Miércoles',
+            thursday: 'Jueves',
+            friday: 'Viernes',
+            saturday: 'Sábado',
+            sunday: 'Domingo',
+            mon: 'Lun',
+            tue: 'Mar',
+            wed: 'Mié',
+            thu: 'Jue',
+            fri: 'Vie',
+            sat: 'Sáb',
+            sun: 'Dom',
+          },
+          messages: {
+            categoryCreated: 'Categoría {{name}} creada.',
+            categoryCreatedDesc: 'La categoría se ha creado correctamente.',
+            menuCreated: 'Menú creado exitosamente.',
+            menuCreatedDesc: 'El menú se ha creado correctamente.',
+            modifierCreated: 'Modificador creado exitosamente.',
+            modifierCreatedDesc: 'El modificador se ha creado correctamente.',
+            modifierGroupCreated: 'Grupo modificador creado exitosamente.',
+            modifierGroupCreatedDesc: 'El grupo modificador se ha creado correctamente.',
+            saveError: 'Error al guardar',
+            saveErrorDesc: 'Hubo un problema al guardar los cambios.',
+            invalidSchedule: 'Horario inválido',
+            invalidScheduleDesc: 'La hora de inicio debe ser anterior a la hora de cierre.',
+            loading: 'Cargando...',
+          },
+          labels: {
+            newCategory: 'Nueva categoría',
+            active: '✓ Activa',
+            inactive: '✗ Inactiva',
+            menusForCategory: 'Menús en los que aparecerá la categoría',
+            addProductsToCategory: 'Agregar productos a esta categoría',
+            selectMenus: 'Selecciona los menús',
+            selectProducts: 'Selecciona los productos',
+            noMoreMenus: 'No se han encontrado más menús',
+            noMoreProducts: 'No se han encontrado más productos',
+            enterName: 'Introduce un nombre',
+          },
+          validation: {
+            nameRequired: 'El nombre es requerido.',
+            nameMinLength: 'El nombre debe tener al menos 3 caracteres.',
+            nameMaxLength: 'El nombre no debe tener más de 30 caracteres.',
+          },
+          buttons: {
+            create: 'Crear',
+            goBack: 'Volver',
+          },
+        },
+        modifiers: {
+          title: 'Grupos modificadores',
+          newModifierGroup: 'Nuevo grupo modificador',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            modifiers: 'Modificadores',
+            actions: 'Acciones',
+          },
+          actions: {
+            edit: 'Editar',
+            assignModifiers: 'Asignar modificadores y productos',
+            delete: 'Eliminar',
+            openMenu: 'Abrir menú',
+          },
+          dialogs: {
+            deleteTitle: 'Eliminar grupo modificador',
+            deleteDescription: '¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.',
+            deleteConfirm: 'Eliminar',
+            deleteCancel: 'Cancelar',
+            deleting: 'Eliminando...',
+          },
+          toasts: {
+            updated: 'Grupo modificador actualizado',
+            updateError: 'Error al guardar',
+            deleted: 'Grupo modificador eliminado',
+            deleteError: 'Error al eliminar',
+            saved: 'Los cambios se han guardado correctamente.',
+            saving: 'Guardando...',
+          },
+          forms: {
+            assignTitle: 'Asigna modificadores y productos a este grupo.',
+            createNewModifier: 'Crear nuevo modificador',
+            modifiersInGroup: 'Modificadores en este grupo',
+            productsUsingGroup: 'Productos que usan este grupo de modificadores',
+            noModifiers: 'No hay modificadores asignados a este grupo',
+            noProducts: 'No hay productos asignados a este grupo modificador',
+            save: 'Guardar',
+          },
+        },
+      },
       dashboardShell: {
         loadingVenue: 'Cargando venue...',
         restoringAccess: 'Restaurando acceso al venue...',
@@ -957,7 +1287,7 @@ const resources = {
         toasts: {
           activated: 'Producto activado',
           deactivated: 'Producto desactivado',
-          saved: 'Los cambios se han guardado correctamente.'
+          saved: 'Los cambios se han guardado correctamente.',
         },
       },
       shifts: {
@@ -1148,9 +1478,51 @@ const resources = {
           google_login_error_desc: 'Error al iniciar sesión con Google. Por favor intenta de nuevo',
         },
       },
+      account: {
+        title: 'Cuenta',
+        subtitle: 'Gestiona la configuración y preferencias de tu cuenta',
+        accountInfo: {
+          title: 'Información de la cuenta',
+          description: 'Detalles de tu cuenta e información de membresía',
+          email: 'Correo electrónico',
+          role: 'Rol',
+          memberSince: 'Miembro desde',
+          lastLogin: 'Último acceso',
+        },
+        editProfile: {
+          title: 'Editar perfil',
+          description: 'Actualiza tu información personal',
+          firstName: 'Nombre',
+          lastName: 'Apellido',
+          email: 'Correo electrónico',
+          phone: 'Teléfono',
+        },
+        password: {
+          title: 'Contraseña',
+          description: 'Cambia tu contraseña por seguridad',
+          changeButton: 'Cambiar contraseña',
+          dialog: {
+            title: 'Cambiar contraseña',
+            currentPassword: 'Contraseña actual',
+            newPassword: 'Nueva contraseña',
+            currentPasswordRequired: 'La contraseña actual es requerida',
+            newPasswordRequired: 'La nueva contraseña es requerida',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Éxito',
+            description: 'Perfil actualizado correctamente',
+          },
+          error: {
+            description: 'Error al actualizar el perfil',
+          },
+        },
+      },
       common: {
         cancel: 'Cancelar',
         save: 'Guardar',
+        saving: 'Guardando...',
         error: 'Error',
         errorLoading: 'Error al cargar datos',
         errorLoadingDashboard: 'Error al cargar los datos del panel',
@@ -1218,7 +1590,7 @@ const resources = {
         welcome: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
         assistant: 'Asistente',
         input: {
-          placeholder: 'Escribe tu pregunta...'
+          placeholder: 'Escribe tu pregunta...',
         },
         labels: {
           cache: 'Cache',
@@ -1252,62 +1624,62 @@ const resources = {
           },
           form: {
             label: 'Describe el problema',
-            placeholder: 'Ej: La respuesta no es correcta porque...'
+            placeholder: 'Ej: La respuesta no es correcta porque...',
           },
           submit: 'Enviar Feedback',
-          sending: 'Enviando...'
+          sending: 'Enviando...',
         },
         saved: {
           title: 'Conversaciones Guardadas',
           back: 'Volver al Chat',
-          empty: 'No hay conversaciones guardadas aún.'
+          empty: 'No hay conversaciones guardadas aún.',
         },
         toast: {
           historyCleared: {
             title: 'Historial borrado',
-            desc: 'El historial de conversación ha sido borrado.'
+            desc: 'El historial de conversación ha sido borrado.',
           },
           nothingToSave: {
             title: 'No hay nada que guardar',
-            desc: 'Necesitas tener al menos una conversación para guardarla.'
+            desc: 'Necesitas tener al menos una conversación para guardarla.',
           },
           alreadyNew: {
             title: 'Ya estás en una conversación nueva',
-            desc: 'No hay nada que limpiar en esta conversación.'
+            desc: 'No hay nada que limpiar en esta conversación.',
           },
           newConversation: {
             title: 'Nueva conversación',
-            desc: 'Se ha creado una nueva conversación.'
+            desc: 'Se ha creado una nueva conversación.',
           },
           conversationLoaded: {
             title: 'Conversación cargada',
-            desc: 'Se ha cargado: {{title}}'
+            desc: 'Se ha cargado: {{title}}',
           },
           conversationSaved: {
             title: 'Conversación guardada',
-            desc: 'La conversación ha sido guardada exitosamente.'
+            desc: 'La conversación ha sido guardada exitosamente.',
           },
           conversationUpdated: {
             title: 'Conversación actualizada',
-            desc: 'La conversación ha sido actualizada con los nuevos mensajes.'
+            desc: 'La conversación ha sido actualizada con los nuevos mensajes.',
           },
           conversationDeleted: {
             title: 'Conversación eliminada',
-            desc: 'Se ha eliminado: {{title}}'
-          }
+            desc: 'Se ha eliminado: {{title}}',
+          },
         },
         confirm: {
           clear: {
             title: 'Borrar historial',
             desc: '¿Estás seguro que quieres borrar el historial de la conversación? Esta acción no se puede deshacer.',
-            confirm: 'Sí, borrar'
+            confirm: 'Sí, borrar',
           },
           delete: {
             title: 'Eliminar conversación',
             desc: '¿Estás seguro que quieres eliminar "{{title}}"? Esta acción no se puede deshacer.',
-            confirm: 'Sí, eliminar'
-          }
-        }
+            confirm: 'Sí, eliminar',
+          },
+        },
       },
       sidebar: {
         summary: 'Resumen',
@@ -1551,6 +1923,150 @@ const resources = {
         menumaker: 'Création de menu',
         editvenue: 'Modifier le restaurant',
       },
+      menu: {
+        overview: {
+          title: 'Aperçu du Menu',
+          newCategory: 'Nouvelle Catégorie',
+          newMenu: 'Nouveau Menu',
+          searchPlaceholder: 'Rechercher menus ou catégories...',
+          expandAll: 'Tout Développer',
+          collapseAll: 'Tout Réduire',
+          createNewProduct: 'Créer Nouveau Produit',
+          manageCategories: 'Gérer les Catégories',
+          create: 'Créer',
+          errorLoading: 'Erreur lors du chargement des données: {{message}}',
+          draggedItem: 'Élément',
+        },
+        menus: {
+          title: 'Menus',
+          newMenu: 'Nouveau menu',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            schedules: 'Horaires du menu',
+            categories: 'Catégories',
+            alwaysAvailable: 'Toujours disponible',
+          },
+        },
+        categories: {
+          title: 'Catégories',
+          newCategory: 'Nouvelle catégorie',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            lastModification: 'Dernière modification',
+          },
+          toasts: {
+            activated: 'Catégorie activée',
+            deactivated: 'Catégorie désactivée',
+            saved: 'Les modifications ont été enregistrées avec succès.',
+          },
+        },
+        forms: {
+          name: 'Nom',
+          description: 'Description',
+          price: 'Prix',
+          selectCategories: 'Sélectionner catégories...',
+          selectProducts: 'Sélectionner produits...',
+          selectMenus: 'Sélectionner menus...',
+          availableFrom: 'Disponible à partir de',
+          availableUntil: 'Disponible jusqu\'à',
+          scheduleOptional: 'Horaire (optionnel)',
+          alwaysAvailable: 'Toujours disponible',
+          daysOfWeek: {
+            monday: 'Lundi',
+            tuesday: 'Mardi',
+            wednesday: 'Mercredi',
+            thursday: 'Jeudi',
+            friday: 'Vendredi',
+            saturday: 'Samedi',
+            sunday: 'Dimanche',
+            mon: 'Lun',
+            tue: 'Mar',
+            wed: 'Mer',
+            thu: 'Jeu',
+            fri: 'Ven',
+            sat: 'Sam',
+            sun: 'Dim',
+          },
+          messages: {
+            categoryCreated: 'Catégorie {{name}} créée.',
+            categoryCreatedDesc: 'La catégorie a été créée avec succès.',
+            menuCreated: 'Menu créé avec succès.',
+            menuCreatedDesc: 'Le menu a été créé avec succès.',
+            modifierCreated: 'Modificateur créé avec succès.',
+            modifierCreatedDesc: 'Le modificateur a été créé avec succès.',
+            modifierGroupCreated: 'Groupe modificateur créé avec succès.',
+            modifierGroupCreatedDesc: 'Le groupe modificateur a été créé avec succès.',
+            saveError: 'Erreur de sauvegarde',
+            saveErrorDesc: 'Il y a eu un problème lors de la sauvegarde des modifications.',
+            invalidSchedule: 'Horaire invalide',
+            invalidScheduleDesc: 'L\'heure de début doit être antérieure à l\'heure de fin.',
+            loading: 'Chargement...',
+          },
+          labels: {
+            newCategory: 'Nouvelle catégorie',
+            active: '✓ Active',
+            inactive: '✗ Inactive',
+            menusForCategory: 'Menus où la catégorie apparaîtra',
+            addProductsToCategory: 'Ajouter des produits à cette catégorie',
+            selectMenus: 'Sélectionner les menus',
+            selectProducts: 'Sélectionner les produits',
+            noMoreMenus: 'Aucun autre menu trouvé',
+            noMoreProducts: 'Aucun autre produit trouvé',
+            enterName: 'Entrez un nom',
+          },
+          validation: {
+            nameRequired: 'Le nom est requis.',
+            nameMinLength: 'Le nom doit contenir au moins 3 caractères.',
+            nameMaxLength: 'Le nom ne doit pas dépasser 30 caractères.',
+          },
+          buttons: {
+            create: 'Créer',
+            goBack: 'Retour',
+          },
+        },
+        modifiers: {
+          title: 'Groupes de modificateurs',
+          newModifierGroup: 'Nouveau groupe de modificateurs',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            modifiers: 'Modificateurs',
+            actions: 'Actions',
+          },
+          actions: {
+            edit: 'Modifier',
+            assignModifiers: 'Assigner modificateurs et produits',
+            delete: 'Supprimer',
+            openMenu: 'Ouvrir le menu',
+          },
+          dialogs: {
+            deleteTitle: 'Supprimer le groupe de modificateurs',
+            deleteDescription: 'Êtes-vous sûr de vouloir supprimer ce groupe de modificateurs? Cette action ne peut pas être annulée.',
+            deleteConfirm: 'Supprimer',
+            deleteCancel: 'Annuler',
+            deleting: 'Suppression...',
+          },
+          toasts: {
+            updated: 'Groupe de modificateurs mis à jour',
+            updateError: 'Erreur lors de l\'enregistrement',
+            deleted: 'Groupe de modificateurs supprimé',
+            deleteError: 'Erreur lors de la suppression',
+            saved: 'Les modifications ont été enregistrées correctement.',
+            saving: 'Enregistrement...',
+          },
+          forms: {
+            assignTitle: 'Assigner modificateurs et produits à ce groupe.',
+            createNewModifier: 'Créer nouveau modificateur',
+            modifiersInGroup: 'Modificateurs dans ce groupe',
+            productsUsingGroup: 'Produits qui utilisent ce groupe de modificateurs',
+            noModifiers: 'Aucun modificateur assigné à ce groupe',
+            noProducts: 'Aucun produit assigné à ce groupe de modificateurs',
+            save: 'Enregistrer',
+          },
+        },
+      },
       dashboardShell: {
         loadingVenue: 'Chargement du lieu...',
         restoringAccess: "Restauration de l'accès au lieu...",
@@ -1624,7 +2140,7 @@ const resources = {
       },
       orders: {
         title: 'Commandes',
-        searchPlaceholder: "Rechercher par n° commande, client ou serveur...",
+        searchPlaceholder: 'Rechercher par n° commande, client ou serveur...',
         errorPrefix: 'Échec du chargement des commandes',
         counter: 'Comptoir',
         columns: {
@@ -1723,7 +2239,7 @@ const resources = {
           title: 'Revenus de la plateforme Avoqado',
           desc: 'Analyse détaillée des revenus réels de la plateforme',
           totalPlatform: 'Revenus totaux de la plateforme',
-          tagline: "Ce que gagne réellement Avoqado",
+          tagline: 'Ce que gagne réellement Avoqado',
           transCommissions: 'Commissions sur transactions',
           fromPayments: 'Des paiements traités',
           venueSubscriptions: 'Abonnements des lieux',
@@ -1831,8 +2347,52 @@ const resources = {
           empty: 'Aucune donnée de commissions disponible',
         },
       },
+      account: {
+        title: 'Compte',
+        subtitle: 'Gérez les paramètres et préférences de votre compte',
+        accountInfo: {
+          title: 'Informations du compte',
+          description: 'Détails de votre compte et informations d\'adhésion',
+          email: 'Email',
+          role: 'Rôle',
+          memberSince: 'Membre depuis',
+          lastLogin: 'Dernière connexion',
+        },
+        editProfile: {
+          title: 'Modifier le profil',
+          description: 'Mettez à jour vos informations personnelles',
+          firstName: 'Prénom',
+          lastName: 'Nom de famille',
+          email: 'Email',
+          phone: 'Téléphone',
+        },
+        password: {
+          title: 'Mot de passe',
+          description: 'Changez votre mot de passe pour la sécurité',
+          changeButton: 'Changer le mot de passe',
+          dialog: {
+            title: 'Changer le mot de passe',
+            currentPassword: 'Mot de passe actuel',
+            newPassword: 'Nouveau mot de passe',
+            currentPasswordRequired: 'Le mot de passe actuel est requis',
+            newPasswordRequired: 'Le nouveau mot de passe est requis',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Succès',
+            description: 'Profil mis à jour avec succès',
+          },
+          error: {
+            description: 'Échec de la mise à jour du profil',
+          },
+        },
+      },
       common: {
         cancel: 'Annuler',
+        save: 'Enregistrer',
+        saving: 'Enregistrement...',
+        error: 'Erreur',
         actions: 'Actions',
         search: 'Rechercher',
         all: 'Tous',
@@ -1895,7 +2455,7 @@ const resources = {
           active: 'Fonctionnalités actives',
           betaCountSuffix: 'en bêta',
           avgRevenue: 'Revenu moy. par fonctionnalité',
-          avgRevenueChange: "+12,5% par rapport au mois dernier",
+          avgRevenueChange: '+12,5% par rapport au mois dernier',
           adoption: 'Adoption des fonctionnalités',
           adoptionAvg: 'Taux moyen d’adoption',
         },
@@ -1930,7 +2490,7 @@ const resources = {
         },
         form: {
           nameLabel: 'Nom de la fonctionnalité',
-          namePlaceholder: "Chatbot IA",
+          namePlaceholder: 'Chatbot IA',
           codeLabel: 'Code de la fonctionnalité',
           codePlaceholder: 'ai_chatbot',
           descLabel: 'Description',
@@ -2090,15 +2650,14 @@ const resources = {
   },
 }
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: (localStorage.getItem('lang') as 'es' | 'en') || 'es',
-    fallbackLng: 'es',
-    interpolation: {
-      escapeValue: false,
-    },
-  })
+i18n.use(initReactI18next).init({
+  resources,
+  lng: (localStorage.getItem('lang') as 'es' | 'en' | 'fr') || 'es',
+  fallbackLng: 'es',
+  supportedLngs: ['en', 'es', 'fr'],
+  interpolation: {
+    escapeValue: false,
+  },
+})
 
 export default i18n
