@@ -20,11 +20,12 @@
 
         // Environment detection and favicon/title setting
         const hostname = window.location.hostname
-        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.endsWith('.local')
-        const isStaging = hostname.includes('staging')
+        const isLocal =
+          hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.endsWith('.local')
+        const isStaging = hostname.includes('staging') || hostname.includes('develop')
         const favicon = document.getElementById('favicon')
         const pageTitle = document.getElementById('page-title')
-        
+
         if (isLocal) {
           favicon.href = '/favicon-development.svg'
           pageTitle.textContent = 'Avoqado | Dashboard (DEV)'
