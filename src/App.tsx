@@ -4,11 +4,13 @@ import { RouterProvider } from 'react-router-dom'
 
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
+// import { EnvironmentIndicator } from './components/EnvironmentIndicator'
 import router from './routes/router'
 
 const App: React.FC = () => {
   return (
     <>
+      {/* <EnvironmentIndicator /> */}
       <RouterProvider router={router} />
       <ReactQueryDevtools initialIsOpen position="bottom" buttonPosition="relative" i18nIsDynamicList={true} styleNonce="nonce" />
     </>

@@ -2,20 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" type="image/svg+xml" />
+    <link rel="icon" id="favicon" href="/favicon.ico" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Avoqado | Dashboard</title>
+    <title id="page-title">Avoqado | Dashboard</title>
     <!-- Geist (variable) + Geist Mono for Sidebar; Inter (variable) for content -->
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
     <script>
       ;(function () {
+        // Theme detection
         const storageKey = 'vite-ui-theme'
         const getSystemTheme = () => (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
         const setting = localStorage.getItem(storageKey) || 'system'
         const theme = setting === 'system' ? getSystemTheme() : setting
         if (theme === 'dark') document.documentElement.classList.add('dark')
+
+        // Environment detection and favicon/title setting
+        const hostname = window.location.hostname
+        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.endsWith('.local')
+        const isStaging = hostname.includes('staging')
+        const favicon = document.getElementById('favicon')
+        const pageTitle = document.getElementById('page-title')
+        
+        if (isLocal) {
+          favicon.href = '/favicon-development.svg'
+          pageTitle.textContent = 'Avoqado | Dashboard (DEV)'
+          document.documentElement.setAttribute('data-env', 'development')
+        } else if (isStaging) {
+          favicon.href = '/favicon-staging.svg'
+          pageTitle.textContent = 'Avoqado | Dashboard (STAGING)'
+          document.documentElement.setAttribute('data-env', 'staging')
+        } else {
+          favicon.href = '/favicon.ico'
+          pageTitle.textContent = 'Avoqado | Dashboard'
+          document.documentElement.setAttribute('data-env', 'production')
+        }
       })()
     </script>
   </head>
