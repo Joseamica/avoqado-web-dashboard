@@ -3,16 +3,18 @@
 ## Required Secrets for GitHub Actions
 
 ### Current Secrets ✅
+
 - `CLOUDFLARE_API_TOKEN` - Already configured
 - `CLOUDFLARE_ACCOUNT_ID` - Already configured
 - `VITE_STAGING_API_URL` - ✅ Set to `https://avoqado-server-staging-cm35.onrender.com`
 - `VITE_STAGING_FRONTEND_URL` - ✅ Set to `https://staging.dashboard.avoqado.io`
 - `VITE_PRODUCTION_API_URL` - ✅ Set to `https://avoqado-server.onrender.com`
-- `VITE_PRODUCTION_FRONTEND_URL` - ✅ Set to `https://app.avoqado.io`
+- `VITE_PRODUCTION_FRONTEND_URL` - ✅ Set to `https://dashboardv2.avoqado.io`
 
 ### Missing Secrets ❌ (YOU NEED TO ADD THESE)
 
 #### Staging Environment Secrets
+
 ```bash
 # You need to find these values from your current setup and add them:
 gh secret set VITE_STAGING_GOOGLE_CLIENT_ID --body "YOUR_STAGING_GOOGLE_CLIENT_ID"
@@ -22,6 +24,7 @@ gh secret set VITE_STAGING_FIREBASE_RECAPTCHA_SITE_KEY --body "YOUR_STAGING_RECA
 ```
 
 #### Production Environment Secrets
+
 ```bash
 # You need to find these values from your current setup and add them:
 gh secret set VITE_PRODUCTION_GOOGLE_CLIENT_ID --body "YOUR_PRODUCTION_GOOGLE_CLIENT_ID"
@@ -40,6 +43,7 @@ gh secret set VITE_PRODUCTION_FIREBASE_RECAPTCHA_SITE_KEY --body "YOUR_PRODUCTIO
 ## 🔍 How to Find Current Values
 
 Check your existing configuration files or ask your team for:
+
 - Google OAuth Client IDs (staging vs production)
 - Firebase configuration for both environments
 - reCAPTCHA site keys for both environments

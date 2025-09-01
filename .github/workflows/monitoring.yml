@@ -22,7 +22,7 @@ permissions:
   issues: write
 
 env:
-  PRODUCTION_URL: https://app.avoqado.io
+  PRODUCTION_URL: https://dashboardv2.avoqado.io
   STAGING_URL: https://staging.dashboard.avoqado.io
 
 jobs:
@@ -208,7 +208,7 @@ jobs:
           
           # Test CORS preflight for a typical API call
           CORS_CHECK=$(curl -s -X OPTIONS \
-            -H "Origin: https://app.avoqado.io" \
+            -H "Origin: https://dashboardv2.avoqado.io" \
             -H "Access-Control-Request-Method: GET" \
             -H "Access-Control-Request-Headers: Authorization" \
             -I $API_URL/api/auth/me | head -1 || echo "CORS check failed")
@@ -217,7 +217,7 @@ jobs:
           
           # Test basic API endpoint
           API_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
-            -H "Origin: https://app.avoqado.io" \
+            -H "Origin: https://dashboardv2.avoqado.io" \
             $API_URL/health || echo "API unreachable")
             
           if [[ $API_RESPONSE == *"HTTPSTATUS:200"* ]]; then
@@ -279,6 +279,6 @@ jobs:
           
           echo ""
           echo "## 📍 URLs Monitored"
-          echo "- Production: https://app.avoqado.io"
+          echo "- Production: https://dashboardv2.avoqado.io"
           echo "- Staging: https://staging.dashboard.avoqado.io"
           echo "- Backend API: https://avoqado-server.onrender.com"

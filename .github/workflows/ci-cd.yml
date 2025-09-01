@@ -181,7 +181,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: 
       name: production
-      url: https://app.avoqado.io
+      url: https://dashboardv2.avoqado.io
 
     steps:
       - name: 📥 Checkout code
@@ -225,14 +225,14 @@ jobs:
           
           # Extended health checks for production
           for i in {1..15}; do
-            if curl -f -s -I https://app.avoqado.io; then
+            if curl -f -s -I https://dashboardv2.avoqado.io; then
               echo "✅ Production health check $i passed!"
               
               # Additional production-specific checks
               echo "🔍 Verifying production assets and security headers..."
               
               # Check security headers
-              HEADERS=$(curl -s -I https://app.avoqado.io)
+              HEADERS=$(curl -s -I https://dashboardv2.avoqado.io)
               if echo "$HEADERS" | grep -i "strict-transport-security" > /dev/null; then
                 echo "🔒 HSTS header present"
               fi
@@ -242,7 +242,7 @@ jobs:
               fi
               
               # Check if assets are properly cached
-              if curl -f -s -I https://app.avoqado.io/assets/ > /dev/null 2>&1; then
+              if curl -f -s -I https://dashboardv2.avoqado.io/assets/ > /dev/null 2>&1; then
                 echo "📦 Static assets loading correctly!"
               fi
               
@@ -261,7 +261,7 @@ jobs:
           STATUS="${{ job.status }}"
           if [ "$STATUS" = "success" ]; then
             echo "🎉 ✅ 🏭 PRODUCTION DEPLOYMENT SUCCESSFUL! 🏭 ✅ 🎉"
-            echo "🌐 Environment: https://app.avoqado.io"
+            echo "🌐 Environment: https://dashboardv2.avoqado.io"
             echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
             echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
             echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"

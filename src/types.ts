@@ -1145,11 +1145,14 @@ export interface User {
   email: string
   emailVerified: boolean
   photoUrl: string | null
+  phone: string | null
   organizationId: string
   // El backend debe transformar StaffVenue en esto para mantener la consistencia
   venues: SessionVenue[]
   // El rol más alto que tiene el usuario en todas sus asignaciones
   role: StaffRole
+  createdAt: string
+  lastLogin: string | null
 }
 
 // Representa un Venue simplificado para el contexto de sesión

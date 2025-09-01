@@ -2,12 +2,12 @@
 /* /index.html 200
 
 # Force HTTPS redirect for production
-http://app.avoqado.io/* https://app.avoqado.io/:splat 301!
-http://dashboard.avoqado.io/* https://app.avoqado.io/:splat 301!
+http://dashboardv2.avoqado.io/* https://dashboardv2.avoqado.io/:splat 301!
+http://dashboard.avoqado.io/* https://dashboardv2.avoqado.io/:splat 301!
 
 # Force HTTPS redirect for staging
 http://staging.dashboard.avoqado.io/* https://staging.dashboard.avoqado.io/:splat 301!
 
 # Default Pages redirect to production
-http://avoqado-web-dashboard.pages.dev/* https://app.avoqado.io/:splat 301!
-http://*.avoqado-web-dashboard.pages.dev/* https://app.avoqado.io/:splat 301!
+http://avoqado-web-dashboard.pages.dev/* https://dashboardv2.avoqado.io/:splat 301!
+http://*.avoqado-web-dashboard.pages.dev/* https://dashboardv2.avoqado.io/:splat 301!
