@@ -2,19 +2,18 @@ import { getTpvs } from '@/services/tpv.service'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
+import { t } from 'i18next'
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()
   const location = useLocation()
-  const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -67,23 +66,25 @@ export default function Tpvs() {
     },
   ]
 
-  const filteredTpvs = useMemo(() => {
-    const currentTpvs = data?.data || []
-
-    if (!searchTerm) return currentTpvs
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, tpvs: any[]) => {
+    if (!searchTerm) return tpvs
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return currentTpvs.filter((tpv: Terminal) => {
-      // Buscar en el name del tpv
-      const nameMatches = tpv.name.toLowerCase().includes(lowerSearchTerm)
-      return nameMatches
+    return tpvs.filter(tpv => {
+      const tpvIdMatch = tpv.id.toString().includes(lowerSearchTerm)
+      const tpvNameMatch = tpv.name.toLowerCase().includes(lowerSearchTerm)
+      const serialNumberMatch = tpv.serialNumber?.toLowerCase().includes(lowerSearchTerm)
+      const versionMatch = tpv.version?.toLowerCase().includes(lowerSearchTerm)
+
+      return tpvIdMatch || tpvNameMatch || serialNumberMatch || versionMatch
     })
-  }, [searchTerm, data])
+  }, [])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Terminales punto de venta</h1>
         <Button asChild>
           <Link
@@ -97,24 +98,20 @@ export default function Tpvs() {
           </Link>
         </Button>
       </div>
-      <Input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded max-w-72`}
-      />
 
       <DataTable
-        data={filteredTpvs}
+        data={data?.data || []}
         rowCount={totalTpvs}
         columns={columns}
         isLoading={isLoading}
-        tableId="tpv:list"
+        enableSearch={true}
+        searchPlaceholder={t('common.search')}
+        onSearch={handleSearch}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
         })}
+        tableId="tpv:list"
         pagination={pagination}
         setPagination={setPagination}
       />

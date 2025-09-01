@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { getMenus } from '@/services/menu.service'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -19,7 +18,6 @@ export default function Menus() {
 
   const location = useLocation()
 
-  const [searchTerm, setSearchTerm] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['menus', venueId],
@@ -74,23 +72,23 @@ export default function Menus() {
     },
   ]
 
-  const filteredMenus = useMemo(() => {
-    if (!searchTerm) return data
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, menus: any[]) => {
+    if (!searchTerm) return menus
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return data?.filter(menu => {
-      // Buscar en el name del menu o en las categorías
+    return menus.filter(menu => {
       const nameMatches = menu.name.toLowerCase().includes(lowerSearchTerm)
       const categoryMatches = menu.categories?.some(category => category.category.name.toLowerCase().includes(lowerSearchTerm))
       return nameMatches || categoryMatches
     })
-  }, [searchTerm, data])
+  }, [])
 
   // if (isLoading) return <div>Loading...</div>
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Menús</h1>
         <Button asChild>
           <Link
@@ -104,18 +102,15 @@ export default function Menus() {
           </Link>
         </Button>
       </div>
-      <Input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
-      />
+
       <DataTable
-        data={filteredMenus}
+        data={data || []}
         rowCount={data?.length}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder="Buscar..."
+        onSearch={handleSearch}
         tableId="menu:menus"
         clickableRow={row => ({
           to: row.id,

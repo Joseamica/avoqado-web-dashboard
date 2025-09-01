@@ -6,7 +6,14 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, MoreHorizontal, Search } from 'lucide-react'
@@ -54,10 +61,10 @@ function SortableProduct({
       </div>
       <div className="w-12 h-12 bg-muted rounded-md mr-4 flex items-center justify-center">
         {product.imageUrl && !imageErrors[product.id] ? (
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="w-full h-full object-cover rounded-md" 
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover rounded-md"
             onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
           />
         ) : (
@@ -93,7 +100,11 @@ function SortableCategory({ menuId, category, children }: { menuId: string; cate
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}
+    >
       <div {...attributes} {...listeners} className="flex items-center cursor-grab active:cursor-grabbing relative z-20">
         <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
           <GripVertical size={20} />
@@ -290,16 +301,16 @@ export default function Overview() {
 
   const filteredMenus = useMemo(() => {
     if (!menusData) return []
-    
+
     // Always sort menus by the current menuOrder first
     const sortedMenus = [...menusData].sort((a, b) => {
       const indexA = menuOrder.indexOf(a.id)
       const indexB = menuOrder.indexOf(b.id)
       return indexA - indexB
     })
-    
+
     if (!searchTerm) return sortedMenus
-    
+
     const lowercasedFilter = searchTerm.toLowerCase()
     return sortedMenus.filter(menu => {
       const menuNameMatch = menu.name.toLowerCase().includes(lowercasedFilter)
@@ -329,7 +340,7 @@ export default function Overview() {
 
   const handleDragStart = (event: { active: Active }) => {
     setActiveId(event.active.id as string)
-    
+
     // If dragging a menu, collapse all and set menu drag state
     const activeType = event.active.data.current?.type
     if (activeType === 'menu') {
@@ -508,9 +519,7 @@ export default function Overview() {
         </SortableContext>
         <DragOverlay>
           {activeId && activeItem && (
-            <div
-              className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 border-blue-200 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm"
-            >
+            <div className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm">
               <div className="flex items-center space-x-3">
                 <GripVertical className="text-muted-foreground" size={20} />
                 <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : 'Item'}</p>

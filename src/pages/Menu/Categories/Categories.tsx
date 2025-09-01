@@ -1,27 +1,65 @@
-import { getMenuCategories } from '@/services/menu.service'
-import { useQuery } from '@tanstack/react-query'
+import { getMenuCategories, updateMenuCategory } from '@/services/menu.service'
+import { useToast } from '@/hooks/use-toast'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
-import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
 
 export default function Categories() {
+  const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
-
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
 
-  const [searchTerm, setSearchTerm] = useState('')
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', venueId],
     queryFn: () => getMenuCategories(venueId),
+  })
+
+  const toggleActive = useMutation({
+    mutationFn: async ({ categoryId, status }: { categoryId: string; status: boolean }) => {
+      await updateMenuCategory(venueId!, categoryId, { active: status })
+      return { categoryId, status }
+    },
+    onMutate: async ({ categoryId, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['categories', venueId] })
+
+      // Snapshot the previous value
+      const previousCategories = queryClient.getQueryData<MenuCategory[]>(['categories', venueId])
+
+      // Optimistically update the cache
+      queryClient.setQueryData<MenuCategory[]>(['categories', venueId], old => {
+        if (!old) return old
+        return old.map(category => (category.id === categoryId ? { ...category, active: status } : category))
+      })
+
+      // Return a context object with the snapshotted value
+      return { previousCategories }
+    },
+    onError: (_, __, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousCategories) {
+        queryClient.setQueryData(['categories', venueId], context.previousCategories)
+      }
+    },
+    onSuccess: data => {
+      toast({
+        title: data.status ? 'Categoría activada' : 'Categoría desactivada',
+        description: 'Los cambios se han guardado correctamente.',
+      })
+    },
   })
 
   const columns: ColumnDef<MenuCategory, unknown>[] = [
@@ -41,40 +79,64 @@ export default function Categories() {
         return cell.getValue() as string
       },
     },
-    // {
-    //   id: 'avoqadoMenus',
-    //   accessorKey: 'avoqadoMenus',
-    //   header: 'Menús',
-    //   enableColumnFilter: false,
-    //   cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
-    // },
-    // {
-    //   id: 'avoqadoProducts',
-    //   accessorKey: 'avoqadoProducts',
-    //   header: 'Productos',
-    //   enableColumnFilter: false,
-    //   cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
-    // },
+    {
+      id: 'updatedAt',
+      accessorKey: 'updatedAt',
+      meta: { label: 'Última modificación' },
+      header: 'Última modificación',
+      enableColumnFilter: false,
+      cell: ({ cell }) => {
+        const updatedAt = cell.getValue() as string
+        return (
+          <span>
+            {new Date(updatedAt).toLocaleDateString(getIntlLocale(i18n.language), {
+              day: 'numeric',
+              month: 'numeric',
+            })}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'active',
+      accessorKey: 'active',
+      header: '',
+      enableColumnFilter: false,
+      cell: ({ row, cell }) => {
+        const categoryId = row.original.id as string
+        const active = cell.getValue() as boolean
+
+        return (
+          <Switch
+            id={`active-switch-${categoryId}`}
+            checked={active}
+            onCheckedChange={() => toggleActive.mutate({ categoryId, status: !active })}
+            onClick={e => e.stopPropagation()} // Prevent row click when switch is clicked
+            disabled={toggleActive.isPending}
+          />
+        )
+      },
+    },
   ]
 
-  const filteredCategories = useMemo(() => {
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, categories: any[]) => {
     if (!searchTerm) return categories
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return categories?.filter(category => {
-      // Buscar en el name del category o en los menús asignados
+    return categories.filter(category => {
       const nameMatches = category.name.toLowerCase().includes(lowerSearchTerm)
       const menuMatches = category.menus?.some(menuAssignment => menuAssignment.menu?.name.toLowerCase().includes(lowerSearchTerm)) || false
       return nameMatches || menuMatches
     })
-  }, [searchTerm, categories])
+  }, [])
 
   // if (isLoading) return <LoadingScreen message="Partiendo la cuenta y el aguacate…" />
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Categorias</h1>
         <Button asChild>
           <Link
@@ -88,18 +150,15 @@ export default function Categories() {
           </Link>
         </Button>
       </div>
-      <Input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
-      />
+
       <DataTable
-        data={filteredCategories}
+        data={categories || []}
         rowCount={categories?.length}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder="Buscar..."
+        onSearch={handleSearch}
         tableId="menu:categories"
         clickableRow={row => ({
           to: row.id,

@@ -1,21 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 // Legacy api removed; use typed services instead
+import DataTable from '@/components/data-table'
 import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { ItemsCell } from '@/components/multiple-cell-values'
-import { DataTablePagination } from '@/components/pagination'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -27,10 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -51,7 +40,6 @@ export default function ModifierGroups() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [searchTerm, setSearchTerm] = useState('')
   const [createModifier, setCreateModifier] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [modifierGroupToDelete, setModifierGroupToDelete] = useState<string | null>(null)
@@ -82,8 +70,6 @@ export default function ModifierGroups() {
 
   const {
     data: modifierGroup,
-    isError: isModifierGroupError,
-    error: modifierGroupError,
     isSuccess: isModifierGroupSuccess,
     refetch: refetchModifierGroup,
   } = useQuery({
@@ -233,46 +219,23 @@ export default function ModifierGroups() {
     },
   ]
 
-  const filteredModifierGroups = useMemo(() => {
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, modifierGroups: any[]) => {
     if (!searchTerm) return modifierGroups
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return modifierGroups?.filter(modifierGroup => {
+    return modifierGroups.filter(modifierGroup => {
       const nameMatches = modifierGroup.name.toLowerCase().includes(lowerSearchTerm)
       const modifiersMatches = modifierGroup.modifiers?.some(menu => menu.name.toLowerCase().includes(lowerSearchTerm)) ?? false
       return nameMatches || modifiersMatches
     })
-  }, [searchTerm, modifierGroups])
+  }, [])
 
-  const table = useReactTable({
-    data: filteredModifierGroups || [],
-    columns,
-    rowCount: modifierGroups?.length,
-    getCoreRowModel: getCoreRowModel(),
-    defaultColumn: {
-      size: 10,
-      minSize: 200, // enforced during column resizing
-    },
-    debugTable: true,
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    sortDescFirst: true, // sort by all columns in descending order first
-    getPaginationRowModel: getPaginationRowModel(),
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
   })
-
-  // --- Cascade: Added useEffect to reset row selection when table data changes ---
-  // This helps prevent infinite loops when the venue changes and the table's selected state
-  // becomes inconsistent with the new data.
-  useEffect(() => {
-    if (table) {
-      // Resetting row selection when the data (filteredModifierGroups) changes.
-      // This is important when the venueId changes and new data is fetched.
-      table.resetRowSelection() // Calling with no arguments or `false` clears selection but keeps a ref to the old selection for performance.
-      // `true` forces a full reset which might be safer here if issues persist.
-    }
-  }, [filteredModifierGroups, table])
-  // --- End Cascade change ---
 
   // Form configuration for the sheet
   type FormValues = {
@@ -315,7 +278,7 @@ export default function ModifierGroups() {
   }
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Grupos modificadores</h1>
 
         <Button asChild>
@@ -354,75 +317,23 @@ export default function ModifierGroups() {
           </DialogContent>
         </Dialog>
       </div>
-      <Input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
-      />
 
-      <Table className="mb-4 bg-card border border-border rounded-xl">
-        <TableHeader>
-          {table.getHeaderGroups().map(headerGroup => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
-                <TableHead key={header.id} className="p-4">
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            // Render skeleton rows while loading
-            Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index} className="cursor-pointer" onClick={() => setSearchParams({ modifierGroup: String(index) })}>
-                {columns.map(column => (
-                  <TableCell key={column.id} className="p-4">
-                    <Skeleton className="w-full h-4" />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : isModifierGroupError ? (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-10 text-center text-red-500">
-                Error: {(modifierGroupError as Error).message}
-              </TableCell>
-            </TableRow>
-          ) : table.getRowModel().rows?.length ? (
-            // Render actual data rows
-            table.getRowModel().rows.map(row => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                onClick={e => {
-                  // Check if the click is not on the action dropdown
-                  if (!(e.target as HTMLElement).closest('.dropdown-menu-trigger')) {
-                    navigate(`${row.original.id}`)
-                  }
-                }}
-                className="cursor-pointer"
-              >
-                {row.getVisibleCells().map(cell => (
-                  <TableCell key={cell.id} className="p-4">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            // Render "No results" message
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-10 text-center">
-                Sin resultados.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <DataTable
+        data={modifierGroups || []}
+        rowCount={modifierGroups?.length}
+        columns={columns}
+        isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder="Buscar..."
+        onSearch={handleSearch}
+        tableId="modifier-groups:list"
+        clickableRow={row => ({
+          to: row.id,
+          state: { from: location.pathname },
+        })}
+        pagination={pagination}
+        setPagination={setPagination}
+      />
       <Sheet open={searchParams.has('modifierGroup')} onOpenChange={() => setSearchParams({})}>
         {isModifierGroupSuccess && modifierGroup && (
           <SheetContent className="w-1/2">
@@ -549,7 +460,6 @@ export default function ModifierGroups() {
           </SheetContent>
         )}
       </Sheet>
-      <DataTablePagination table={table} />
     </div>
   )
 }
