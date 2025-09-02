@@ -25,6 +25,150 @@ const resources = {
         billing: 'Billing',
         limits: 'Limits',
       },
+      menu: {
+        overview: {
+          title: 'Menu Overview',
+          newCategory: 'New Category',
+          newMenu: 'New Menu',
+          searchPlaceholder: 'Search menus or categories...',
+          expandAll: 'Expand All',
+          collapseAll: 'Collapse All',
+          createNewProduct: 'Create New Product',
+          manageCategories: 'Manage Categories',
+          create: 'Create',
+          errorLoading: 'Error loading data: {{message}}',
+          draggedItem: 'Item',
+        },
+        menus: {
+          title: 'Menus',
+          newMenu: 'New Menu',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            schedules: 'Menu Schedules',
+            categories: 'Categories',
+            alwaysAvailable: 'Always available',
+          },
+        },
+        categories: {
+          title: 'Categories',
+          newCategory: 'New Category',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            lastModification: 'Last Modification',
+          },
+          toasts: {
+            activated: 'Category activated',
+            deactivated: 'Category deactivated',
+            saved: 'Changes have been saved successfully.',
+          },
+        },
+        forms: {
+          name: 'Name',
+          description: 'Description',
+          price: 'Price',
+          selectCategories: 'Select categories...',
+          selectProducts: 'Select products...',
+          selectMenus: 'Select menus...',
+          availableFrom: 'Available from',
+          availableUntil: 'Available until',
+          scheduleOptional: 'Schedule (optional)',
+          alwaysAvailable: 'Always available',
+          daysOfWeek: {
+            monday: 'Monday',
+            tuesday: 'Tuesday',
+            wednesday: 'Wednesday',
+            thursday: 'Thursday',
+            friday: 'Friday',
+            saturday: 'Saturday',
+            sunday: 'Sunday',
+            mon: 'Mon',
+            tue: 'Tue',
+            wed: 'Wed',
+            thu: 'Thu',
+            fri: 'Fri',
+            sat: 'Sat',
+            sun: 'Sun',
+          },
+          messages: {
+            categoryCreated: 'Category {{name}} created.',
+            categoryCreatedDesc: 'The category has been created successfully.',
+            menuCreated: 'Menu created successfully.',
+            menuCreatedDesc: 'The menu has been created successfully.',
+            modifierCreated: 'Modifier created successfully.',
+            modifierCreatedDesc: 'The modifier has been created successfully.',
+            modifierGroupCreated: 'Modifier group created successfully.',
+            modifierGroupCreatedDesc: 'The modifier group has been created successfully.',
+            saveError: 'Error saving',
+            saveErrorDesc: 'There was a problem saving the changes.',
+            invalidSchedule: 'Invalid schedule',
+            invalidScheduleDesc: 'Start time must be before end time.',
+            loading: 'Loading...',
+          },
+          labels: {
+            newCategory: 'New Category',
+            active: '✓ Active',
+            inactive: '✗ Inactive',
+            menusForCategory: 'Menus where the category will appear',
+            addProductsToCategory: 'Add products to this category',
+            selectMenus: 'Select menus',
+            selectProducts: 'Select products',
+            noMoreMenus: 'No more menus found',
+            noMoreProducts: 'No more products found',
+            enterName: 'Enter a name',
+          },
+          validation: {
+            nameRequired: 'Name is required.',
+            nameMinLength: 'Name must be at least 3 characters.',
+            nameMaxLength: 'Name must not exceed 30 characters.',
+          },
+          buttons: {
+            create: 'Create',
+            goBack: 'Go back',
+          },
+        },
+        modifiers: {
+          title: 'Modifier Groups',
+          newModifierGroup: 'New Modifier Group',
+          searchPlaceholder: 'Search...',
+          columns: {
+            name: 'Name',
+            modifiers: 'Modifiers',
+            actions: 'Actions',
+          },
+          actions: {
+            edit: 'Edit',
+            assignModifiers: 'Assign modifiers and products',
+            delete: 'Delete',
+            openMenu: 'Open menu',
+          },
+          dialogs: {
+            deleteTitle: 'Delete modifier group',
+            deleteDescription: 'Are you sure you want to delete this modifier group? This action cannot be undone.',
+            deleteConfirm: 'Delete',
+            deleteCancel: 'Cancel',
+            deleting: 'Deleting...',
+          },
+          toasts: {
+            updated: 'Modifier group updated',
+            updateError: 'Error saving',
+            deleted: 'Modifier group deleted',
+            deleteError: 'Error deleting',
+            saved: 'Changes have been saved correctly.',
+            saving: 'Saving...',
+          },
+          forms: {
+            assignTitle: 'Assign modifiers and products to this group.',
+            createNewModifier: 'Create new modifier',
+            modifiersInGroup: 'Modifiers in this group',
+            productsUsingGroup: 'Products that use this modifier group',
+            noModifiers: 'No modifiers assigned to this group',
+            noProducts: 'No products assigned to this modifier group',
+            save: 'Save',
+          },
+        },
+      },
       dashboardShell: {
         loadingVenue: 'Loading venue...',
         restoringAccess: 'Restoring venue access...',
@@ -198,7 +342,7 @@ const resources = {
         toasts: {
           activated: 'Product activated',
           deactivated: 'Product deactivated',
-          saved: 'Changes have been saved successfully.'
+          saved: 'Changes have been saved successfully.',
         },
       },
       shifts: {
@@ -363,7 +507,7 @@ const resources = {
           title: 'Sign in',
           subtitle: 'Enter your email and password to sign in',
           emailLabel: 'Email',
-          emailPlaceholder: 'm@example.com',
+          emailPlaceholder: 'myemail@example.com',
           passwordLabel: 'Password',
           forgotPassword: 'Forgot your password?',
           signInButton: 'Sign in',
@@ -389,9 +533,51 @@ const resources = {
           google_login_error_desc: 'Google login failed. Please try again',
         },
       },
+      account: {
+        title: 'Account',
+        subtitle: 'Manage your account settings and preferences',
+        accountInfo: {
+          title: 'Account Information',
+          description: 'Your account details and membership information',
+          email: 'Email',
+          role: 'Role',
+          memberSince: 'Member Since',
+          lastLogin: 'Last Login',
+        },
+        editProfile: {
+          title: 'Edit Profile',
+          description: 'Update your personal information',
+          firstName: 'First Name',
+          lastName: 'Last Name',
+          email: 'Email',
+          phone: 'Phone',
+        },
+        password: {
+          title: 'Password',
+          description: 'Change your password for security',
+          changeButton: 'Change Password',
+          dialog: {
+            title: 'Change Password',
+            currentPassword: 'Current Password',
+            newPassword: 'New Password',
+            currentPasswordRequired: 'Current password is required',
+            newPasswordRequired: 'New password is required',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Success',
+            description: 'Profile updated successfully',
+          },
+          error: {
+            description: 'Failed to update profile',
+          },
+        },
+      },
       common: {
         cancel: 'Cancel',
         save: 'Save',
+        saving: 'Saving...',
         error: 'Error',
         errorLoading: 'Error loading data',
         errorLoadingDashboard: 'Error loading dashboard data',
@@ -459,7 +645,7 @@ const resources = {
         welcome: 'Hi! I am the Avoqado assistant. How can I help you?',
         assistant: 'Assistant',
         input: {
-          placeholder: 'Type your question...'
+          placeholder: 'Type your question...',
         },
         labels: {
           cache: 'Cache',
@@ -493,50 +679,50 @@ const resources = {
           },
           form: {
             label: 'Describe the problem',
-            placeholder: 'E.g., The answer is incorrect because...'
+            placeholder: 'E.g., The answer is incorrect because...',
           },
           submit: 'Send Feedback',
-          sending: 'Sending...'
+          sending: 'Sending...',
         },
         saved: {
           title: 'Saved Conversations',
           back: 'Back to Chat',
-          empty: 'No saved conversations yet.'
+          empty: 'No saved conversations yet.',
         },
         toast: {
           historyCleared: {
             title: 'History cleared',
-            desc: 'The conversation history has been cleared.'
+            desc: 'The conversation history has been cleared.',
           },
           alreadyNew: {
             title: 'You are already in a new conversation',
-            desc: 'There is nothing to clear in this conversation.'
+            desc: 'There is nothing to clear in this conversation.',
           },
           newConversation: {
             title: 'New conversation',
-            desc: 'A new conversation has been created.'
+            desc: 'A new conversation has been created.',
           },
           conversationLoaded: {
             title: 'Conversation loaded',
-            desc: 'Loaded: {{title}}'
+            desc: 'Loaded: {{title}}',
           },
           conversationDeleted: {
             title: 'Conversation deleted',
-            desc: 'Deleted: {{title}}'
-          }
+            desc: 'Deleted: {{title}}',
+          },
         },
         confirm: {
           clear: {
             title: 'Clear history',
             desc: 'Are you sure you want to clear the conversation history? This action cannot be undone.',
-            confirm: 'Yes, clear'
+            confirm: 'Yes, clear',
           },
           delete: {
             title: 'Delete conversation',
             desc: 'Are you sure you want to delete "{{title}}"? This action cannot be undone.',
-            confirm: 'Yes, delete'
-          }
-        }
+            confirm: 'Yes, delete',
+          },
+        },
       },
       sidebar: {
         summary: 'Summary',
@@ -760,6 +946,219 @@ const resources = {
           activeUsers: 'Active Users',
         },
       },
+      tpv: {
+        title: 'TPV Terminals',
+        subtitle: 'Manage your restaurant\'s point-of-sale devices',
+        actions: {
+          createNew: 'New Device',
+          maintenance: 'Put in maintenance mode',
+          exit_maintenance: 'Exit maintenance mode',
+          update_status: 'Force status update',
+          offline: 'Terminal disconnected',
+          exitMaintenance: 'Exit Maintenance',
+          maintenanceMode: 'Maintenance',
+          update: 'Update',
+        },
+        search: {
+          placeholder: 'Search terminals...',
+        },
+        table: {
+          columns: {
+            name: 'Name',
+            status: 'Status',
+            serial: 'Serial Number',
+            version: 'Version',
+            actions: 'Actions',
+          },
+          noVersion: 'Not specified',
+        },
+        status: {
+          online: 'Online',
+          offline: 'Offline',
+          inactive: 'Inactive',
+          maintenance: 'Maintenance',
+          retired: 'Retired',
+          unknown: 'Unknown',
+          lastSeen: 'Last seen',
+        },
+        commands: {
+          sent: 'Command sent',
+          sentSuccess: 'Command {command} sent successfully',
+          error: 'Error',
+          sendError: 'Error sending command: {error}',
+          maintenancePayload: 'Activated from dashboard',
+        },
+      },
+      legal: {
+        backToLogin: 'Back to Login',
+        terms: {
+          title: 'Terms and Conditions',
+          lastUpdated: 'Last updated',
+          date: 'January 1, 2025',
+          introduction: {
+            title: 'Introduction',
+            content:
+              'Welcome to Avoqado, a comprehensive restaurant management platform. These Terms and Conditions govern your use of our services. By accessing or using Avoqado, you agree to be bound by these terms.',
+          },
+          service: {
+            title: 'Service Description',
+            description: 'Avoqado provides a comprehensive restaurant management platform that includes:',
+            features: {
+              pos: 'Point of Sale (POS) system for order processing',
+              inventory: 'Inventory management and tracking',
+              orders: 'Order management and kitchen coordination',
+              payments: 'Payment processing and financial reporting',
+              analytics: 'Business analytics and performance insights',
+              staff: 'Staff management and scheduling tools',
+            },
+          },
+          responsibilities: {
+            title: 'User Responsibilities',
+            intro: 'As a user of Avoqado, you agree to:',
+            account: 'Maintain accurate account information and secure login credentials',
+            accuracy: 'Provide accurate business and financial information',
+            compliance: 'Comply with all applicable laws and regulations in your jurisdiction',
+            security: 'Implement appropriate security measures to protect customer data',
+            misuse: 'Not use the service for any illegal or unauthorized purposes',
+          },
+          payment: {
+            title: 'Payment Terms',
+            billing: 'Subscription fees are billed monthly in advance. Payment processing fees may apply for transaction processing.',
+            fees: 'All fees are non-refundable except as required by law or as specifically stated in these terms.',
+            refunds: 'Refunds may be provided at our discretion for unused portions of prepaid services.',
+          },
+          privacy: {
+            title: 'Data and Privacy',
+            content: 'Your privacy is important to us. Our collection and use of personal information is governed by our',
+            policyLink: 'Privacy Policy',
+          },
+          liability: {
+            title: 'Limitation of Liability',
+            content:
+              'Avoqado provides the service "as is" without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service.',
+          },
+          termination: {
+            title: 'Termination',
+            content:
+              'Either party may terminate this agreement at any time. Upon termination, your access to the service will cease, and you remain responsible for any outstanding fees.',
+          },
+          changes: {
+            title: 'Changes to Terms',
+            content:
+              'We reserve the right to modify these terms at any time. We will notify you of significant changes via email or through the platform.',
+          },
+          contact: {
+            title: 'Contact Information',
+            intro: 'If you have questions about these Terms and Conditions, please contact us:',
+            email: 'Email',
+            address: 'Address',
+            addressLine: 'Mexico City, Mexico',
+          },
+        },
+        privacy: {
+          title: 'Privacy Policy',
+          lastUpdated: 'Last updated',
+          date: 'January 1, 2025',
+          introduction: {
+            title: 'Introduction',
+            content:
+              'This Privacy Policy describes how Avoqado collects, uses, and protects your information when you use our restaurant management platform.',
+          },
+          collection: {
+            title: 'Information We Collect',
+            personal: {
+              title: 'Personal Information',
+              name: 'Name and contact information',
+              email: 'Email address and phone number',
+              phone: 'Business information and tax identification',
+              business: 'Payment and billing information',
+            },
+            business: {
+              title: 'Business Data',
+              sales: 'Sales transactions and order history',
+              inventory: 'Inventory levels and product information',
+              customers: 'Customer data and preferences',
+              staff: 'Staff schedules and performance data',
+              financial: 'Financial reports and analytics',
+            },
+            technical: {
+              title: 'Technical Information',
+              ip: 'IP addresses and device information',
+              device: 'Browser type and operating system',
+              usage: 'Usage patterns and feature interactions',
+              cookies: 'Cookies and similar tracking technologies',
+            },
+          },
+          usage: {
+            title: 'How We Use Your Information',
+            service: 'Provide and maintain our restaurant management services',
+            support: 'Provide customer support and technical assistance',
+            communication: 'Send important updates and notifications',
+            improvement: 'Improve our services and develop new features',
+            analytics: 'Generate business insights and analytics',
+            compliance: 'Comply with legal obligations and prevent fraud',
+          },
+          sharing: {
+            title: 'Information Sharing',
+            intro: 'We may share your information in the following circumstances:',
+            consent: 'With your explicit consent',
+            providers: 'With trusted service providers who assist in our operations',
+            legal: 'When required by law or to protect our rights',
+            business: 'In connection with a business transfer or acquisition',
+            aggregated: 'Aggregated, non-personally identifiable data for research',
+          },
+          security: {
+            title: 'Data Security',
+            intro: 'We implement industry-standard security measures including:',
+            encryption: 'Encryption of data in transit and at rest',
+            access: 'Strict access controls and authentication',
+            monitoring: 'Regular security monitoring and audits',
+            updates: 'Regular security updates and patches',
+            backups: 'Secure data backup and recovery procedures',
+          },
+          retention: {
+            title: 'Data Retention',
+            content:
+              'We retain your information for as long as necessary to provide our services and comply with legal obligations. You may request deletion of your data subject to certain limitations.',
+          },
+          rights: {
+            title: 'Your Rights',
+            access: 'Access your personal information',
+            correction: 'Correct inaccurate information',
+            deletion: 'Request deletion of your data',
+            portability: 'Data portability and export',
+            restriction: 'Restrict processing of your data',
+            objection: 'Object to certain processing activities',
+            withdraw: 'Withdraw consent where applicable',
+          },
+          cookies: {
+            title: 'Cookies and Tracking',
+            intro: 'We use cookies and similar technologies for:',
+            essential: 'Essential site functionality',
+            functional: 'Enhanced user experience',
+            analytics: 'Usage analytics and performance monitoring',
+            marketing: 'Marketing and advertising (with consent)',
+          },
+          international: {
+            title: 'International Transfers',
+            content:
+              'Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.',
+          },
+          changes: {
+            title: 'Changes to This Policy',
+            content:
+              'We may update this Privacy Policy from time to time. We will notify you of any material changes via email or through our platform.',
+          },
+          contact: {
+            title: 'Contact Information',
+            intro: 'For privacy-related questions or requests, contact us:',
+            email: 'Email',
+            dpo: 'Data Protection Officer',
+            address: 'Address',
+            addressLine: 'Mexico City, Mexico',
+          },
+        },
+      },
     },
   },
   es: {
@@ -783,6 +1182,150 @@ const resources = {
         teams: 'Equipo',
         billing: 'Facturación',
         limits: 'Límites',
+      },
+      menu: {
+        overview: {
+          title: 'Resumen del Menú',
+          newCategory: 'Nueva Categoría',
+          newMenu: 'Nuevo Menú',
+          searchPlaceholder: 'Buscar menús o categorías...',
+          expandAll: 'Expandir Todo',
+          collapseAll: 'Contraer Todo',
+          createNewProduct: 'Crear Nuevo Producto',
+          manageCategories: 'Gestionar Categorías',
+          create: 'Crear',
+          errorLoading: 'Error al cargar los datos: {{message}}',
+          draggedItem: 'Elemento',
+        },
+        menus: {
+          title: 'Menús',
+          newMenu: 'Nuevo menú',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            schedules: 'Horarios del menú',
+            categories: 'Categorías',
+            alwaysAvailable: 'Siempre disponible',
+          },
+        },
+        categories: {
+          title: 'Categorías',
+          newCategory: 'Nueva categoría',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            lastModification: 'Última modificación',
+          },
+          toasts: {
+            activated: 'Categoría activada',
+            deactivated: 'Categoría desactivada',
+            saved: 'Los cambios se han guardado correctamente.',
+          },
+        },
+        forms: {
+          name: 'Nombre',
+          description: 'Descripción',
+          price: 'Precio',
+          selectCategories: 'Seleccionar categorías...',
+          selectProducts: 'Seleccionar productos...',
+          selectMenus: 'Seleccionar menús...',
+          availableFrom: 'Disponible desde',
+          availableUntil: 'Disponible hasta',
+          scheduleOptional: 'Horario (opcional)',
+          alwaysAvailable: 'Siempre disponible',
+          daysOfWeek: {
+            monday: 'Lunes',
+            tuesday: 'Martes',
+            wednesday: 'Miércoles',
+            thursday: 'Jueves',
+            friday: 'Viernes',
+            saturday: 'Sábado',
+            sunday: 'Domingo',
+            mon: 'Lun',
+            tue: 'Mar',
+            wed: 'Mié',
+            thu: 'Jue',
+            fri: 'Vie',
+            sat: 'Sáb',
+            sun: 'Dom',
+          },
+          messages: {
+            categoryCreated: 'Categoría {{name}} creada.',
+            categoryCreatedDesc: 'La categoría se ha creado correctamente.',
+            menuCreated: 'Menú creado exitosamente.',
+            menuCreatedDesc: 'El menú se ha creado correctamente.',
+            modifierCreated: 'Modificador creado exitosamente.',
+            modifierCreatedDesc: 'El modificador se ha creado correctamente.',
+            modifierGroupCreated: 'Grupo modificador creado exitosamente.',
+            modifierGroupCreatedDesc: 'El grupo modificador se ha creado correctamente.',
+            saveError: 'Error al guardar',
+            saveErrorDesc: 'Hubo un problema al guardar los cambios.',
+            invalidSchedule: 'Horario inválido',
+            invalidScheduleDesc: 'La hora de inicio debe ser anterior a la hora de cierre.',
+            loading: 'Cargando...',
+          },
+          labels: {
+            newCategory: 'Nueva categoría',
+            active: '✓ Activa',
+            inactive: '✗ Inactiva',
+            menusForCategory: 'Menús en los que aparecerá la categoría',
+            addProductsToCategory: 'Agregar productos a esta categoría',
+            selectMenus: 'Selecciona los menús',
+            selectProducts: 'Selecciona los productos',
+            noMoreMenus: 'No se han encontrado más menús',
+            noMoreProducts: 'No se han encontrado más productos',
+            enterName: 'Introduce un nombre',
+          },
+          validation: {
+            nameRequired: 'El nombre es requerido.',
+            nameMinLength: 'El nombre debe tener al menos 3 caracteres.',
+            nameMaxLength: 'El nombre no debe tener más de 30 caracteres.',
+          },
+          buttons: {
+            create: 'Crear',
+            goBack: 'Volver',
+          },
+        },
+        modifiers: {
+          title: 'Grupos modificadores',
+          newModifierGroup: 'Nuevo grupo modificador',
+          searchPlaceholder: 'Buscar...',
+          columns: {
+            name: 'Nombre',
+            modifiers: 'Modificadores',
+            actions: 'Acciones',
+          },
+          actions: {
+            edit: 'Editar',
+            assignModifiers: 'Asignar modificadores y productos',
+            delete: 'Eliminar',
+            openMenu: 'Abrir menú',
+          },
+          dialogs: {
+            deleteTitle: 'Eliminar grupo modificador',
+            deleteDescription: '¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.',
+            deleteConfirm: 'Eliminar',
+            deleteCancel: 'Cancelar',
+            deleting: 'Eliminando...',
+          },
+          toasts: {
+            updated: 'Grupo modificador actualizado',
+            updateError: 'Error al guardar',
+            deleted: 'Grupo modificador eliminado',
+            deleteError: 'Error al eliminar',
+            saved: 'Los cambios se han guardado correctamente.',
+            saving: 'Guardando...',
+          },
+          forms: {
+            assignTitle: 'Asigna modificadores y productos a este grupo.',
+            createNewModifier: 'Crear nuevo modificador',
+            modifiersInGroup: 'Modificadores en este grupo',
+            productsUsingGroup: 'Productos que usan este grupo de modificadores',
+            noModifiers: 'No hay modificadores asignados a este grupo',
+            noProducts: 'No hay productos asignados a este grupo modificador',
+            save: 'Guardar',
+          },
+        },
       },
       dashboardShell: {
         loadingVenue: 'Cargando venue...',
@@ -957,7 +1500,7 @@ const resources = {
         toasts: {
           activated: 'Producto activado',
           deactivated: 'Producto desactivado',
-          saved: 'Los cambios se han guardado correctamente.'
+          saved: 'Los cambios se han guardado correctamente.',
         },
       },
       shifts: {
@@ -1122,7 +1665,7 @@ const resources = {
           title: 'Iniciar sesión',
           subtitle: 'Ingresa tu email y contraseña para ingresar',
           emailLabel: 'Email',
-          emailPlaceholder: 'm@example.com',
+          emailPlaceholder: 'myemail@example.com',
           passwordLabel: 'Contraseña',
           forgotPassword: '¿Olvidaste tu contraseña?',
           signInButton: 'Iniciar sesión',
@@ -1148,9 +1691,51 @@ const resources = {
           google_login_error_desc: 'Error al iniciar sesión con Google. Por favor intenta de nuevo',
         },
       },
+      account: {
+        title: 'Cuenta',
+        subtitle: 'Gestiona la configuración y preferencias de tu cuenta',
+        accountInfo: {
+          title: 'Información de la cuenta',
+          description: 'Detalles de tu cuenta e información de membresía',
+          email: 'Correo electrónico',
+          role: 'Rol',
+          memberSince: 'Miembro desde',
+          lastLogin: 'Último acceso',
+        },
+        editProfile: {
+          title: 'Editar perfil',
+          description: 'Actualiza tu información personal',
+          firstName: 'Nombre',
+          lastName: 'Apellido',
+          email: 'Correo electrónico',
+          phone: 'Teléfono',
+        },
+        password: {
+          title: 'Contraseña',
+          description: 'Cambia tu contraseña por seguridad',
+          changeButton: 'Cambiar contraseña',
+          dialog: {
+            title: 'Cambiar contraseña',
+            currentPassword: 'Contraseña actual',
+            newPassword: 'Nueva contraseña',
+            currentPasswordRequired: 'La contraseña actual es requerida',
+            newPasswordRequired: 'La nueva contraseña es requerida',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Éxito',
+            description: 'Perfil actualizado correctamente',
+          },
+          error: {
+            description: 'Error al actualizar el perfil',
+          },
+        },
+      },
       common: {
         cancel: 'Cancelar',
         save: 'Guardar',
+        saving: 'Guardando...',
         error: 'Error',
         errorLoading: 'Error al cargar datos',
         errorLoadingDashboard: 'Error al cargar los datos del panel',
@@ -1218,7 +1803,7 @@ const resources = {
         welcome: '¡Hola! Soy el asistente de Avoqado. ¿En qué puedo ayudarte?',
         assistant: 'Asistente',
         input: {
-          placeholder: 'Escribe tu pregunta...'
+          placeholder: 'Escribe tu pregunta...',
         },
         labels: {
           cache: 'Cache',
@@ -1252,62 +1837,62 @@ const resources = {
           },
           form: {
             label: 'Describe el problema',
-            placeholder: 'Ej: La respuesta no es correcta porque...'
+            placeholder: 'Ej: La respuesta no es correcta porque...',
           },
           submit: 'Enviar Feedback',
-          sending: 'Enviando...'
+          sending: 'Enviando...',
         },
         saved: {
           title: 'Conversaciones Guardadas',
           back: 'Volver al Chat',
-          empty: 'No hay conversaciones guardadas aún.'
+          empty: 'No hay conversaciones guardadas aún.',
         },
         toast: {
           historyCleared: {
             title: 'Historial borrado',
-            desc: 'El historial de conversación ha sido borrado.'
+            desc: 'El historial de conversación ha sido borrado.',
           },
           nothingToSave: {
             title: 'No hay nada que guardar',
-            desc: 'Necesitas tener al menos una conversación para guardarla.'
+            desc: 'Necesitas tener al menos una conversación para guardarla.',
           },
           alreadyNew: {
             title: 'Ya estás en una conversación nueva',
-            desc: 'No hay nada que limpiar en esta conversación.'
+            desc: 'No hay nada que limpiar en esta conversación.',
           },
           newConversation: {
             title: 'Nueva conversación',
-            desc: 'Se ha creado una nueva conversación.'
+            desc: 'Se ha creado una nueva conversación.',
           },
           conversationLoaded: {
             title: 'Conversación cargada',
-            desc: 'Se ha cargado: {{title}}'
+            desc: 'Se ha cargado: {{title}}',
           },
           conversationSaved: {
             title: 'Conversación guardada',
-            desc: 'La conversación ha sido guardada exitosamente.'
+            desc: 'La conversación ha sido guardada exitosamente.',
           },
           conversationUpdated: {
             title: 'Conversación actualizada',
-            desc: 'La conversación ha sido actualizada con los nuevos mensajes.'
+            desc: 'La conversación ha sido actualizada con los nuevos mensajes.',
           },
           conversationDeleted: {
             title: 'Conversación eliminada',
-            desc: 'Se ha eliminado: {{title}}'
-          }
+            desc: 'Se ha eliminado: {{title}}',
+          },
         },
         confirm: {
           clear: {
             title: 'Borrar historial',
             desc: '¿Estás seguro que quieres borrar el historial de la conversación? Esta acción no se puede deshacer.',
-            confirm: 'Sí, borrar'
+            confirm: 'Sí, borrar',
           },
           delete: {
             title: 'Eliminar conversación',
             desc: '¿Estás seguro que quieres eliminar "{{title}}"? Esta acción no se puede deshacer.',
-            confirm: 'Sí, eliminar'
-          }
-        }
+            confirm: 'Sí, eliminar',
+          },
+        },
       },
       sidebar: {
         summary: 'Resumen',
@@ -1531,6 +2116,220 @@ const resources = {
           activeUsers: 'Usuarios activos',
         },
       },
+      tpv: {
+        title: 'Terminales TPV',
+        subtitle: 'Gestiona los dispositivos de punto de venta de tu restaurante',
+        actions: {
+          createNew: 'Nuevo dispositivo',
+          maintenance: 'Poner en modo mantenimiento',
+          exit_maintenance: 'Salir del modo mantenimiento',
+          update_status: 'Forzar actualización de estado',
+          offline: 'Terminal desconectado',
+          exitMaintenance: 'Salir Mantenimiento',
+          maintenanceMode: 'Mantenimiento',
+          update: 'Actualizar',
+        },
+        search: {
+          placeholder: 'Buscar terminales...',
+        },
+        table: {
+          columns: {
+            name: 'Nombre',
+            status: 'Estado',
+            serial: 'Número de serie',
+            version: 'Versión',
+            actions: 'Acciones',
+          },
+          noVersion: 'No especificada',
+        },
+        status: {
+          online: 'En línea',
+          offline: 'Sin conexión',
+          inactive: 'Inactivo',
+          maintenance: 'Mantenimiento',
+          retired: 'Retirado',
+          unknown: 'Desconocido',
+          lastSeen: 'Visto por última vez',
+        },
+        commands: {
+          sent: 'Comando enviado',
+          sentSuccess: 'Comando {command} enviado exitosamente',
+          error: 'Error',
+          sendError: 'Error enviando comando: {error}',
+          maintenancePayload: 'Activado desde dashboard',
+        },
+      },
+      legal: {
+        backToLogin: 'Volver al Login',
+        terms: {
+          title: 'Términos y Condiciones',
+          lastUpdated: 'Última actualización',
+          date: '1 de enero de 2025',
+          introduction: {
+            title: 'Introducción',
+            content:
+              'Bienvenido a Avoqado, una plataforma integral de gestión de restaurantes. Estos Términos y Condiciones rigen el uso de nuestros servicios. Al acceder o usar Avoqado, aceptas estar sujeto a estos términos.',
+          },
+          service: {
+            title: 'Descripción del Servicio',
+            description: 'Avoqado proporciona una plataforma integral de gestión de restaurantes que incluye:',
+            features: {
+              pos: 'Sistema de punto de venta (POS) para procesamiento de pedidos',
+              inventory: 'Gestión y seguimiento de inventario',
+              orders: 'Gestión de pedidos y coordinación de cocina',
+              payments: 'Procesamiento de pagos e informes financieros',
+              analytics: 'Análisis de negocio e insights de rendimiento',
+              staff: 'Herramientas de gestión y programación de personal',
+            },
+          },
+          responsibilities: {
+            title: 'Responsabilidades del Usuario',
+            intro: 'Como usuario de Avoqado, aceptas:',
+            account: 'Mantener información de cuenta precisa y credenciales de acceso seguras',
+            accuracy: 'Proporcionar información comercial y financiera precisa',
+            compliance: 'Cumplir con todas las leyes y regulaciones aplicables en tu jurisdicción',
+            security: 'Implementar medidas de seguridad apropiadas para proteger datos de clientes',
+            misuse: 'No usar el servicio para propósitos ilegales o no autorizados',
+          },
+          payment: {
+            title: 'Términos de Pago',
+            billing:
+              'Las tarifas de suscripción se facturan mensualmente por adelantado. Pueden aplicarse tarifas de procesamiento de pagos.',
+            fees: 'Todas las tarifas no son reembolsables excepto según lo requiera la ley o como se establezca específicamente en estos términos.',
+            refunds: 'Los reembolsos pueden proporcionarse a nuestra discreción para porciones no utilizadas de servicios prepagados.',
+          },
+          privacy: {
+            title: 'Datos y Privacidad',
+            content: 'Tu privacidad es importante para nosotros. Nuestra recopilación y uso de información personal se rige por nuestra',
+            policyLink: 'Política de Privacidad',
+          },
+          liability: {
+            title: 'Limitación de Responsabilidad',
+            content:
+              'Avoqado proporciona el servicio "tal como está" sin garantías. No somos responsables de daños indirectos, incidentales o consecuentes que surjan del uso del servicio.',
+          },
+          termination: {
+            title: 'Terminación',
+            content:
+              'Cualquiera de las partes puede terminar este acuerdo en cualquier momento. Al terminar, tu acceso al servicio cesará y seguirás siendo responsable de cualquier tarifa pendiente.',
+          },
+          changes: {
+            title: 'Cambios en los Términos',
+            content:
+              'Nos reservamos el derecho de modificar estos términos en cualquier momento. Te notificaremos de cambios significativos por correo electrónico o a través de la plataforma.',
+          },
+          contact: {
+            title: 'Información de Contacto',
+            intro: 'Si tienes preguntas sobre estos Términos y Condiciones, por favor contáctanos:',
+            email: 'Correo electrónico',
+            address: 'Dirección',
+            addressLine: 'Ciudad de México, México',
+          },
+        },
+        privacy: {
+          title: 'Política de Privacidad',
+          lastUpdated: 'Última actualización',
+          date: '1 de enero de 2025',
+          introduction: {
+            title: 'Introducción',
+            content:
+              'Esta Política de Privacidad describe cómo Avoqado recopila, usa y protege tu información cuando usas nuestra plataforma de gestión de restaurantes.',
+          },
+          collection: {
+            title: 'Información que Recopilamos',
+            personal: {
+              title: 'Información Personal',
+              name: 'Nombre e información de contacto',
+              email: 'Dirección de correo electrónico y número de teléfono',
+              phone: 'Información comercial e identificación fiscal',
+              business: 'Información de pago y facturación',
+            },
+            business: {
+              title: 'Datos Comerciales',
+              sales: 'Transacciones de ventas e historial de pedidos',
+              inventory: 'Niveles de inventario e información de productos',
+              customers: 'Datos y preferencias de clientes',
+              staff: 'Horarios de personal y datos de rendimiento',
+              financial: 'Informes financieros y análisis',
+            },
+            technical: {
+              title: 'Información Técnica',
+              ip: 'Direcciones IP e información del dispositivo',
+              device: 'Tipo de navegador y sistema operativo',
+              usage: 'Patrones de uso e interacciones con funciones',
+              cookies: 'Cookies y tecnologías de seguimiento similares',
+            },
+          },
+          usage: {
+            title: 'Cómo Usamos tu Información',
+            service: 'Proporcionar y mantener nuestros servicios de gestión de restaurantes',
+            support: 'Brindar soporte al cliente y asistencia técnica',
+            communication: 'Enviar actualizaciones importantes y notificaciones',
+            improvement: 'Mejorar nuestros servicios y desarrollar nuevas funciones',
+            analytics: 'Generar insights comerciales y análisis',
+            compliance: 'Cumplir con obligaciones legales y prevenir fraude',
+          },
+          sharing: {
+            title: 'Compartir Información',
+            intro: 'Podemos compartir tu información en las siguientes circunstancias:',
+            consent: 'Con tu consentimiento explícito',
+            providers: 'Con proveedores de servicios de confianza que nos asisten en nuestras operaciones',
+            legal: 'Cuando lo requiera la ley o para proteger nuestros derechos',
+            business: 'En conexión con una transferencia o adquisición comercial',
+            aggregated: 'Datos agregados, no identificables personalmente para investigación',
+          },
+          security: {
+            title: 'Seguridad de Datos',
+            intro: 'Implementamos medidas de seguridad estándar de la industria incluyendo:',
+            encryption: 'Cifrado de datos en tránsito y en reposo',
+            access: 'Controles de acceso estrictos y autenticación',
+            monitoring: 'Monitoreo regular de seguridad y auditorías',
+            updates: 'Actualizaciones regulares de seguridad y parches',
+            backups: 'Procedimientos seguros de respaldo y recuperación de datos',
+          },
+          retention: {
+            title: 'Retención de Datos',
+            content:
+              'Retenemos tu información durante el tiempo necesario para proporcionar nuestros servicios y cumplir con obligaciones legales. Puedes solicitar la eliminación de tus datos sujeto a ciertas limitaciones.',
+          },
+          rights: {
+            title: 'Tus Derechos',
+            access: 'Acceder a tu información personal',
+            correction: 'Corregir información inexacta',
+            deletion: 'Solicitar eliminación de tus datos',
+            portability: 'Portabilidad y exportación de datos',
+            restriction: 'Restringir el procesamiento de tus datos',
+            objection: 'Objetar ciertas actividades de procesamiento',
+            withdraw: 'Retirar consentimiento donde aplique',
+          },
+          cookies: {
+            title: 'Cookies y Seguimiento',
+            intro: 'Usamos cookies y tecnologías similares para:',
+            essential: 'Funcionalidad esencial del sitio',
+            functional: 'Experiencia de usuario mejorada',
+            analytics: 'Análisis de uso y monitoreo de rendimiento',
+            marketing: 'Marketing y publicidad (con consentimiento)',
+          },
+          international: {
+            title: 'Transferencias Internacionales',
+            content:
+              'Tu información puede ser transferida y procesada en países distintos al tuyo. Aseguramos que se implementen salvaguardas apropiadas para tales transferencias.',
+          },
+          changes: {
+            title: 'Cambios a esta Política',
+            content:
+              'Podemos actualizar esta Política de Privacidad de vez en cuando. Te notificaremos de cualquier cambio material por correo electrónico o a través de nuestra plataforma.',
+          },
+          contact: {
+            title: 'Información de Contacto',
+            intro: 'Para preguntas o solicitudes relacionadas con privacidad, contáctanos:',
+            email: 'Correo electrónico',
+            dpo: 'Oficial de Protección de Datos',
+            address: 'Dirección',
+            addressLine: 'Ciudad de México, México',
+          },
+        },
+      },
     },
   },
   fr: {
@@ -1550,6 +2349,150 @@ const resources = {
         overview: 'Aperçu',
         menumaker: 'Création de menu',
         editvenue: 'Modifier le restaurant',
+      },
+      menu: {
+        overview: {
+          title: 'Aperçu du Menu',
+          newCategory: 'Nouvelle Catégorie',
+          newMenu: 'Nouveau Menu',
+          searchPlaceholder: 'Rechercher menus ou catégories...',
+          expandAll: 'Tout Développer',
+          collapseAll: 'Tout Réduire',
+          createNewProduct: 'Créer Nouveau Produit',
+          manageCategories: 'Gérer les Catégories',
+          create: 'Créer',
+          errorLoading: 'Erreur lors du chargement des données: {{message}}',
+          draggedItem: 'Élément',
+        },
+        menus: {
+          title: 'Menus',
+          newMenu: 'Nouveau menu',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            schedules: 'Horaires du menu',
+            categories: 'Catégories',
+            alwaysAvailable: 'Toujours disponible',
+          },
+        },
+        categories: {
+          title: 'Catégories',
+          newCategory: 'Nouvelle catégorie',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            lastModification: 'Dernière modification',
+          },
+          toasts: {
+            activated: 'Catégorie activée',
+            deactivated: 'Catégorie désactivée',
+            saved: 'Les modifications ont été enregistrées avec succès.',
+          },
+        },
+        forms: {
+          name: 'Nom',
+          description: 'Description',
+          price: 'Prix',
+          selectCategories: 'Sélectionner catégories...',
+          selectProducts: 'Sélectionner produits...',
+          selectMenus: 'Sélectionner menus...',
+          availableFrom: 'Disponible à partir de',
+          availableUntil: "Disponible jusqu'à",
+          scheduleOptional: 'Horaire (optionnel)',
+          alwaysAvailable: 'Toujours disponible',
+          daysOfWeek: {
+            monday: 'Lundi',
+            tuesday: 'Mardi',
+            wednesday: 'Mercredi',
+            thursday: 'Jeudi',
+            friday: 'Vendredi',
+            saturday: 'Samedi',
+            sunday: 'Dimanche',
+            mon: 'Lun',
+            tue: 'Mar',
+            wed: 'Mer',
+            thu: 'Jeu',
+            fri: 'Ven',
+            sat: 'Sam',
+            sun: 'Dim',
+          },
+          messages: {
+            categoryCreated: 'Catégorie {{name}} créée.',
+            categoryCreatedDesc: 'La catégorie a été créée avec succès.',
+            menuCreated: 'Menu créé avec succès.',
+            menuCreatedDesc: 'Le menu a été créé avec succès.',
+            modifierCreated: 'Modificateur créé avec succès.',
+            modifierCreatedDesc: 'Le modificateur a été créé avec succès.',
+            modifierGroupCreated: 'Groupe modificateur créé avec succès.',
+            modifierGroupCreatedDesc: 'Le groupe modificateur a été créé avec succès.',
+            saveError: 'Erreur de sauvegarde',
+            saveErrorDesc: 'Il y a eu un problème lors de la sauvegarde des modifications.',
+            invalidSchedule: 'Horaire invalide',
+            invalidScheduleDesc: "L'heure de début doit être antérieure à l'heure de fin.",
+            loading: 'Chargement...',
+          },
+          labels: {
+            newCategory: 'Nouvelle catégorie',
+            active: '✓ Active',
+            inactive: '✗ Inactive',
+            menusForCategory: 'Menus où la catégorie apparaîtra',
+            addProductsToCategory: 'Ajouter des produits à cette catégorie',
+            selectMenus: 'Sélectionner les menus',
+            selectProducts: 'Sélectionner les produits',
+            noMoreMenus: 'Aucun autre menu trouvé',
+            noMoreProducts: 'Aucun autre produit trouvé',
+            enterName: 'Entrez un nom',
+          },
+          validation: {
+            nameRequired: 'Le nom est requis.',
+            nameMinLength: 'Le nom doit contenir au moins 3 caractères.',
+            nameMaxLength: 'Le nom ne doit pas dépasser 30 caractères.',
+          },
+          buttons: {
+            create: 'Créer',
+            goBack: 'Retour',
+          },
+        },
+        modifiers: {
+          title: 'Groupes de modificateurs',
+          newModifierGroup: 'Nouveau groupe de modificateurs',
+          searchPlaceholder: 'Rechercher...',
+          columns: {
+            name: 'Nom',
+            modifiers: 'Modificateurs',
+            actions: 'Actions',
+          },
+          actions: {
+            edit: 'Modifier',
+            assignModifiers: 'Assigner modificateurs et produits',
+            delete: 'Supprimer',
+            openMenu: 'Ouvrir le menu',
+          },
+          dialogs: {
+            deleteTitle: 'Supprimer le groupe de modificateurs',
+            deleteDescription: 'Êtes-vous sûr de vouloir supprimer ce groupe de modificateurs? Cette action ne peut pas être annulée.',
+            deleteConfirm: 'Supprimer',
+            deleteCancel: 'Annuler',
+            deleting: 'Suppression...',
+          },
+          toasts: {
+            updated: 'Groupe de modificateurs mis à jour',
+            updateError: "Erreur lors de l'enregistrement",
+            deleted: 'Groupe de modificateurs supprimé',
+            deleteError: 'Erreur lors de la suppression',
+            saved: 'Les modifications ont été enregistrées correctement.',
+            saving: 'Enregistrement...',
+          },
+          forms: {
+            assignTitle: 'Assigner modificateurs et produits à ce groupe.',
+            createNewModifier: 'Créer nouveau modificateur',
+            modifiersInGroup: 'Modificateurs dans ce groupe',
+            productsUsingGroup: 'Produits qui utilisent ce groupe de modificateurs',
+            noModifiers: 'Aucun modificateur assigné à ce groupe',
+            noProducts: 'Aucun produit assigné à ce groupe de modificateurs',
+            save: 'Enregistrer',
+          },
+        },
       },
       dashboardShell: {
         loadingVenue: 'Chargement du lieu...',
@@ -1624,7 +2567,7 @@ const resources = {
       },
       orders: {
         title: 'Commandes',
-        searchPlaceholder: "Rechercher par n° commande, client ou serveur...",
+        searchPlaceholder: 'Rechercher par n° commande, client ou serveur...',
         errorPrefix: 'Échec du chargement des commandes',
         counter: 'Comptoir',
         columns: {
@@ -1723,7 +2666,7 @@ const resources = {
           title: 'Revenus de la plateforme Avoqado',
           desc: 'Analyse détaillée des revenus réels de la plateforme',
           totalPlatform: 'Revenus totaux de la plateforme',
-          tagline: "Ce que gagne réellement Avoqado",
+          tagline: 'Ce que gagne réellement Avoqado',
           transCommissions: 'Commissions sur transactions',
           fromPayments: 'Des paiements traités',
           venueSubscriptions: 'Abonnements des lieux',
@@ -1831,8 +2774,52 @@ const resources = {
           empty: 'Aucune donnée de commissions disponible',
         },
       },
+      account: {
+        title: 'Compte',
+        subtitle: 'Gérez les paramètres et préférences de votre compte',
+        accountInfo: {
+          title: 'Informations du compte',
+          description: "Détails de votre compte et informations d'adhésion",
+          email: 'Email',
+          role: 'Rôle',
+          memberSince: 'Membre depuis',
+          lastLogin: 'Dernière connexion',
+        },
+        editProfile: {
+          title: 'Modifier le profil',
+          description: 'Mettez à jour vos informations personnelles',
+          firstName: 'Prénom',
+          lastName: 'Nom de famille',
+          email: 'Email',
+          phone: 'Téléphone',
+        },
+        password: {
+          title: 'Mot de passe',
+          description: 'Changez votre mot de passe pour la sécurité',
+          changeButton: 'Changer le mot de passe',
+          dialog: {
+            title: 'Changer le mot de passe',
+            currentPassword: 'Mot de passe actuel',
+            newPassword: 'Nouveau mot de passe',
+            currentPasswordRequired: 'Le mot de passe actuel est requis',
+            newPasswordRequired: 'Le nouveau mot de passe est requis',
+          },
+        },
+        toast: {
+          success: {
+            title: 'Succès',
+            description: 'Profil mis à jour avec succès',
+          },
+          error: {
+            description: 'Échec de la mise à jour du profil',
+          },
+        },
+      },
       common: {
         cancel: 'Annuler',
+        save: 'Enregistrer',
+        saving: 'Enregistrement...',
+        error: 'Erreur',
         actions: 'Actions',
         search: 'Rechercher',
         all: 'Tous',
@@ -1895,7 +2882,7 @@ const resources = {
           active: 'Fonctionnalités actives',
           betaCountSuffix: 'en bêta',
           avgRevenue: 'Revenu moy. par fonctionnalité',
-          avgRevenueChange: "+12,5% par rapport au mois dernier",
+          avgRevenueChange: '+12,5% par rapport au mois dernier',
           adoption: 'Adoption des fonctionnalités',
           adoptionAvg: 'Taux moyen d’adoption',
         },
@@ -1930,7 +2917,7 @@ const resources = {
         },
         form: {
           nameLabel: 'Nom de la fonctionnalité',
-          namePlaceholder: "Chatbot IA",
+          namePlaceholder: 'Chatbot IA',
           codeLabel: 'Code de la fonctionnalité',
           codePlaceholder: 'ai_chatbot',
           descLabel: 'Description',
@@ -2086,19 +3073,61 @@ const resources = {
           activeUsers: 'Utilisateurs actifs',
         },
       },
+      tpv: {
+        title: 'Terminaux point de vente',
+        subtitle: 'Gérez les dispositifs TPV de votre restaurant',
+        actions: {
+          createNew: 'Nouveau dispositif',
+          maintenance: 'Mettre en mode maintenance',
+          exit_maintenance: 'Sortir du mode maintenance',
+          update_status: 'Forcer la mise à jour du statut',
+          offline: 'Terminal déconnecté',
+          exitMaintenance: 'Sortir de la maintenance',
+          maintenanceMode: 'Maintenance',
+          update: 'Mettre à jour',
+        },
+        search: {
+          placeholder: 'Rechercher des terminaux...',
+        },
+        table: {
+          columns: {
+            name: 'Nom',
+            status: 'État',
+            serial: 'Numéro de série',
+            version: 'Version',
+            actions: 'Actions',
+          },
+          noVersion: 'Non spécifiée',
+        },
+        status: {
+          online: 'En ligne',
+          offline: 'Hors ligne',
+          inactive: 'Inactif',
+          maintenance: 'Maintenance',
+          retired: 'Retiré',
+          unknown: 'Inconnu',
+          lastSeen: 'Vu pour la dernière fois',
+        },
+        commands: {
+          sent: 'Commande envoyée',
+          sentSuccess: 'Commande {command} envoyée avec succès',
+          error: 'Erreur',
+          sendError: 'Erreur lors de l\'envoi de la commande: {error}',
+          maintenancePayload: 'Activé depuis le tableau de bord',
+        },
+      },
     },
   },
 }
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: (localStorage.getItem('lang') as 'es' | 'en') || 'es',
-    fallbackLng: 'es',
-    interpolation: {
-      escapeValue: false,
-    },
-  })
+i18n.use(initReactI18next).init({
+  resources,
+  lng: (localStorage.getItem('lang') as 'es' | 'en' | 'fr') || 'es',
+  fallbackLng: 'es',
+  supportedLngs: ['en', 'es', 'fr'],
+  interpolation: {
+    escapeValue: false,
+  },
+})
 
 export default i18n

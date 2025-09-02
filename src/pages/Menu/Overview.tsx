@@ -6,14 +6,110 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, MoreHorizontal, Search } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-// Sortable Product Component
+// Skeleton Components
+function SkeletonProduct() {
+  return (
+    <div className="flex items-center p-2 my-1 rounded-md animate-pulse">
+      <div className="p-1 mr-2">
+        <div className="w-4 h-4 bg-muted rounded"></div>
+      </div>
+      <div className="w-12 h-12 bg-muted rounded-md mr-4"></div>
+      <div className="font-medium flex-grow">
+        <div className="h-4 bg-muted rounded w-3/4 mb-1"></div>
+      </div>
+      <div className="ml-auto">
+        <div className="w-24 h-8 bg-muted rounded"></div>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonCategory() {
+  return (
+    <div className="p-2 rounded-lg bg-muted/50 animate-pulse">
+      <div className="flex items-center mb-2">
+        <div className="p-1 mr-2">
+          <div className="w-5 h-5 bg-muted rounded"></div>
+        </div>
+        <div className="h-5 bg-muted rounded w-1/3"></div>
+      </div>
+      <div className="pl-8 space-y-2">
+        <SkeletonProduct />
+        <SkeletonProduct />
+        <SkeletonProduct />
+      </div>
+    </div>
+  )
+}
+
+function SkeletonMenu() {
+  return (
+    <div className="mb-8 rounded-xl border-border bg-card animate-pulse">
+      <header className="flex items-center p-4 rounded-t-xl bg-card">
+        <div className="p-1 mr-2">
+          <div className="w-6 h-6 bg-muted rounded"></div>
+        </div>
+        <div className="h-6 bg-muted rounded w-1/4 flex-grow"></div>
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-5 bg-muted rounded-full"></div>
+          <div className="w-8 h-8 bg-muted rounded"></div>
+        </div>
+      </header>
+      <div className="p-4 border-t-2 border-dashed">
+        <SkeletonCategory />
+        <SkeletonCategory />
+      </div>
+    </div>
+  )
+}
+
+function OverviewSkeleton() {
+  return (
+    <div className="p-6">
+      {/* Header skeleton */}
+      <div className="flex justify-between items-center mb-6 animate-pulse">
+        <div className="h-8 bg-muted rounded w-1/4"></div>
+        <div className="flex items-center space-x-2">
+          <div className="w-24 h-10 bg-muted rounded"></div>
+          <div className="w-24 h-10 bg-muted rounded"></div>
+        </div>
+      </div>
+
+      {/* Search and controls skeleton */}
+      <div className="flex items-center space-x-4 mb-6 animate-pulse">
+        <div className="relative flex-grow">
+          <div className="w-full h-10 bg-muted rounded pl-10"></div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-muted rounded"></div>
+        </div>
+        <div className="w-24 h-10 bg-muted rounded"></div>
+        <div className="w-24 h-10 bg-muted rounded"></div>
+        <div className="w-8 h-10 bg-muted rounded"></div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="space-y-4">
+        <SkeletonMenu />
+        <SkeletonMenu />
+        <SkeletonMenu />
+      </div>
+    </div>
+  )
+}
 function SortableProduct({
   product,
   editedPrices,
@@ -54,10 +150,10 @@ function SortableProduct({
       </div>
       <div className="w-12 h-12 bg-muted rounded-md mr-4 flex items-center justify-center">
         {product.imageUrl && !imageErrors[product.id] ? (
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="w-full h-full object-cover rounded-md" 
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover rounded-md"
             onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
           />
         ) : (
@@ -93,7 +189,11 @@ function SortableCategory({ menuId, category, children }: { menuId: string; cate
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}
+    >
       <div {...attributes} {...listeners} className="flex items-center cursor-grab active:cursor-grabbing relative z-20">
         <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
           <GripVertical size={20} />
@@ -154,14 +254,15 @@ function SortableMenu({
           </Button>
         </div>
       </header>
-      {isExpanded && !isDraggingMenu && <div className="p-4 border-t-2 border-dashed relative z-0">{children}</div>}
+      {isExpanded && !isDraggingMenu && <div className="p-4 border-t-2 relative z-0">{children}</div>}
     </div>
   )
 }
 
 export default function Overview() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
 
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -290,16 +391,16 @@ export default function Overview() {
 
   const filteredMenus = useMemo(() => {
     if (!menusData) return []
-    
+
     // Always sort menus by the current menuOrder first
     const sortedMenus = [...menusData].sort((a, b) => {
       const indexA = menuOrder.indexOf(a.id)
       const indexB = menuOrder.indexOf(b.id)
       return indexA - indexB
     })
-    
+
     if (!searchTerm) return sortedMenus
-    
+
     const lowercasedFilter = searchTerm.toLowerCase()
     return sortedMenus.filter(menu => {
       const menuNameMatch = menu.name.toLowerCase().includes(lowercasedFilter)
@@ -329,7 +430,7 @@ export default function Overview() {
 
   const handleDragStart = (event: { active: Active }) => {
     setActiveId(event.active.id as string)
-    
+
     // If dragging a menu, collapse all and set menu drag state
     const activeType = event.active.data.current?.type
     if (activeType === 'menu') {
@@ -416,13 +517,13 @@ export default function Overview() {
     setExpandedMenus(allExpanded)
   }
 
-  if (menusLoading || productsLoading) return <div>Loading...</div>
+  if (menusLoading || productsLoading) return <OverviewSkeleton />
 
   if (menusError || productsError) {
     return (
       <div className="text-red-500 p-4">
         <AlertCircle className="inline-block mr-2" />
-        Error loading data: {menusError?.message || productsError?.message}
+        {t('menu.overview.errorLoading', { message: menusError?.message || productsError?.message })}
       </div>
     )
   }
@@ -436,10 +537,23 @@ export default function Overview() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Menu Overview</h1>
+        <h1 className="text-3xl font-bold">{t('menu.overview.title')}</h1>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => navigate('/menu/categories/new')}>New Category</Button>
-          <Button onClick={() => navigate('/menu/new')}>New Menu</Button>
+          <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
+            {t('menu.overview.manageCategories')}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>{t('menu.overview.create')}</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>{t('menu.overview.newMenu')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>{t('menu.overview.newCategory')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
+                {t('menu.overview.createNewProduct')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -448,29 +562,18 @@ export default function Overview() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
           <Input
             type="text"
-            placeholder="Search menus or categories..."
+            placeholder={t('menu.overview.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
         <Button variant="outline" onClick={expandAll}>
-          Expand All
+          {t('menu.overview.expandAll')}
         </Button>
         <Button variant="outline" onClick={collapseAll}>
-          Collapse All
+          {t('menu.overview.collapseAll')}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <MoreHorizontal size={20} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => navigate('/menu/products/new')}>Create New Product</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/menu/categories')}>Manage Categories</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -508,12 +611,10 @@ export default function Overview() {
         </SortableContext>
         <DragOverlay>
           {activeId && activeItem && (
-            <div
-              className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 border-blue-200 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm"
-            >
+            <div className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm">
               <div className="flex items-center space-x-3">
                 <GripVertical className="text-muted-foreground" size={20} />
-                <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : 'Item'}</p>
+                <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : t('menu.overview.draggedItem')}</p>
               </div>
             </div>
           )}

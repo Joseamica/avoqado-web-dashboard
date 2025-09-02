@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { getMenus } from '@/services/menu.service'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -15,11 +15,11 @@ import { Menu } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
 
 export default function Menus() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
 
-  const [searchTerm, setSearchTerm] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['menus', venueId],
@@ -30,10 +30,10 @@ export default function Menus() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
-      meta: { label: 'Nombre' },
+      meta: { label: t('menu.menus.columns.name') },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
-          Nombre
+          {t('menu.menus.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -44,14 +44,14 @@ export default function Menus() {
     },
     {
       id: 'timeRange',
-      meta: { label: 'Horarios del menú' },
-      header: 'Horarios del menú',
+      meta: { label: t('menu.menus.columns.schedules') },
+      header: t('menu.menus.columns.schedules'),
       // No accessorKey since we're accessing multiple fields
       cell: ({ row }) => {
         const { availableFrom, availableUntil } = row.original
 
         if (!availableFrom || !availableUntil) {
-          return <span>Siempre disponible</span>
+          return <span>{t('menu.menus.columns.alwaysAvailable')}</span>
         }
 
         const formattedStart = formatDateInTimeZone(availableFrom, 'America/Mexico_City')
@@ -67,31 +67,31 @@ export default function Menus() {
     {
       id: 'categories',
       accessorKey: 'categories',
-      meta: { label: 'Categorías' },
-      header: 'Categorías',
+      meta: { label: t('menu.menus.columns.categories') },
+      header: t('menu.menus.columns.categories'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
   ]
 
-  const filteredMenus = useMemo(() => {
-    if (!searchTerm) return data
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, menus: any[]) => {
+    if (!searchTerm) return menus
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return data?.filter(menu => {
-      // Buscar en el name del menu o en las categorías
+    return menus.filter(menu => {
       const nameMatches = menu.name.toLowerCase().includes(lowerSearchTerm)
       const categoryMatches = menu.categories?.some(category => category.category.name.toLowerCase().includes(lowerSearchTerm))
       return nameMatches || categoryMatches
     })
-  }, [searchTerm, data])
+  }, [])
 
   // if (isLoading) return <div>Loading...</div>
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between">
-        <h1 className="text-xl font-semibold">Menús</h1>
+      <div className="flex flex-row items-center justify-between mb-6">
+        <h1 className="text-xl font-semibold">{t('menu.menus.title')}</h1>
         <Button asChild>
           <Link
             to={`create`}
@@ -100,22 +100,19 @@ export default function Menus() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>Nuevo menú</span>
+            <span>{t('menu.menus.newMenu')}</span>
           </Link>
         </Button>
       </div>
-      <Input
-        type="text"
-        placeholder="Buscar..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
-      />
+
       <DataTable
-        data={filteredMenus}
+        data={data || []}
         rowCount={data?.length}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder={t('menu.menus.searchPlaceholder')}
+        onSearch={handleSearch}
         tableId="menu:menus"
         clickableRow={row => ({
           to: row.id,
