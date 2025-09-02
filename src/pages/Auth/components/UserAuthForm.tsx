@@ -85,6 +85,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             id="password"
             type="password"
             autoComplete="current-password"
+            placeholder="********"
             disabled={isLoading}
             className={cn('w-full', errors.password && 'border-red-500')}
           />
@@ -116,12 +117,12 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
           {t('auth.login.continueWithGoogle')}
         </Button>
       </div>
-      <div className="text-center text-sm">
+      {/* <div className="text-center text-sm">
         {t('auth.login.noAccount')}{' '}
         <a href="#" className="underline underline-offset-4">
           {t('auth.login.signUp')}
         </a>
-      </div>
+      </div> */}
       {/* Auth errors are surfaced via toasts in AuthContext */}
     </form>
   )

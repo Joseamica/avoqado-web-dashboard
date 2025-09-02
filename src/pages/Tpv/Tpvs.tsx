@@ -84,8 +84,8 @@ export default function Tpvs() {
       sendTpvCommandApi(terminalId, command, payload),
     onSuccess: (data, variables) => {
       toast({
-        title: "Comando enviado",
-        description: `Comando ${variables.command} enviado exitosamente`,
+        title: t('tpv.commands.sent', { defaultValue: 'Comando enviado' }),
+        description: t('tpv.commands.sentSuccess', { command: variables.command, defaultValue: `Comando ${variables.command} enviado exitosamente` }),
         variant: "default",
       })
       // Refresh the TPV list to show updated status
@@ -93,8 +93,8 @@ export default function Tpvs() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: `Error enviando comando: ${error.response?.data?.message || error.message}`,
+        title: t('tpv.commands.error', { defaultValue: 'Error' }),
+        description: t('tpv.commands.sendError', { error: error.response?.data?.message || error.message, defaultValue: `Error enviando comando: ${error.response?.data?.message || error.message}` }),
         variant: "destructive",
       })
     }
@@ -102,11 +102,11 @@ export default function Tpvs() {
 
   const sendTpvCommand = useCallback((terminalId: string, command: string) => {
     const payload = command === 'MAINTENANCE_MODE' 
-      ? { message: 'Activado desde dashboard', duration: 0 }
+      ? { message: t('tpv.commands.maintenancePayload', { defaultValue: 'Activado desde dashboard' }), duration: 0 }
       : undefined
 
     commandMutation.mutate({ terminalId, command, payload })
-  }, [commandMutation])
+  }, [commandMutation, t])
 
   const totalTpvs = data?.meta?.total || 0
 
@@ -212,34 +212,59 @@ export default function Tpvs() {
         const terminal = row.original as any
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
         const isOnline = statusStyle.label === t('tpv.status.online', { defaultValue: 'En línea' })
+        const isInMaintenance = terminal.status === 'MAINTENANCE'
         
         return (
           <div className="flex items-center space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!isOnline}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
-                  }}
-                  className="h-8 px-3"
-                >
-                  <Wrench className="w-4 h-4 mr-1" />
-                  Mantenimiento
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {isOnline 
-                    ? t('tpv.actions.maintenance', { defaultValue: 'Poner en modo mantenimiento' })
-                    : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
-                  }
-                </p>
-              </TooltipContent>
-            </Tooltip>
+            {isInMaintenance ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      sendTpvCommand(terminal.id, 'EXIT_MAINTENANCE')
+                    }}
+                    className="h-8 px-3 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                    {t('tpv.actions.exitMaintenance', { defaultValue: 'Salir Mantenimiento' })}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {t('tpv.actions.exit_maintenance', { defaultValue: 'Salir del modo mantenimiento' })}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!isOnline}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
+                    }}
+                    className="h-8 px-3"
+                  >
+                    <Wrench className="w-4 h-4 mr-1" />
+                    {t('tpv.actions.maintenanceMode', { defaultValue: 'Mantenimiento' })}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {isOnline 
+                      ? t('tpv.actions.maintenance', { defaultValue: 'Poner en modo mantenimiento' })
+                      : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
+                    }
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             
             <Tooltip>
               <TooltipTrigger asChild>
@@ -254,7 +279,7 @@ export default function Tpvs() {
                   className="h-8 px-3"
                 >
                   <AlertTriangle className="w-4 h-4 mr-1" />
-                  Actualizar
+                  {t('tpv.actions.update', { defaultValue: 'Actualizar' })}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

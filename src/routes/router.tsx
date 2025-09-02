@@ -57,6 +57,8 @@ import {
   SuperadminFeatureManagement,
   SuperadminVenueManagement,
   RevenueDashboard,
+  Terms,
+  Privacy,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -74,6 +76,14 @@ const router = createBrowserRouter(
         {
           path: '/login',
           element: <Login />,
+        },
+        {
+          path: '/terms',
+          element: <Terms />,
+        },
+        {
+          path: '/privacy',
+          element: <Privacy />,
         },
         {
           path: '/auth/google/callback',
