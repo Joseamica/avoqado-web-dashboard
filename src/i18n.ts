@@ -946,6 +946,34 @@ const resources = {
           activeUsers: 'Active Users',
         },
       },
+      tpv: {
+        title: 'Point of Sale Terminals',
+        subtitle: 'Manage your restaurant TPV devices',
+        actions: {
+          createNew: 'New Device',
+        },
+        search: {
+          placeholder: 'Search terminals...',
+        },
+        table: {
+          columns: {
+            name: 'Name',
+            status: 'Status',
+            serial: 'Serial Number',
+            version: 'Version',
+          },
+          noVersion: 'Not specified',
+        },
+        status: {
+          online: 'Online',
+          offline: 'Offline',
+          inactive: 'Inactive',
+          maintenance: 'Maintenance',
+          retired: 'Retired',
+          unknown: 'Unknown',
+          lastSeen: 'Last seen',
+        },
+      },
     },
   },
   es: {
@@ -1903,6 +1931,34 @@ const resources = {
           activeUsers: 'Usuarios activos',
         },
       },
+      tpv: {
+        title: 'Terminales punto de venta',
+        subtitle: 'Gestiona los dispositivos TPV de tu restaurante',
+        actions: {
+          createNew: 'Nuevo dispositivo',
+        },
+        search: {
+          placeholder: 'Buscar terminales...',
+        },
+        table: {
+          columns: {
+            name: 'Nombre',
+            status: 'Estado',
+            serial: 'Número de serie',
+            version: 'Versión',
+          },
+          noVersion: 'No especificada',
+        },
+        status: {
+          online: 'En línea',
+          offline: 'Sin conexión',
+          inactive: 'Inactivo',
+          maintenance: 'Mantenimiento',
+          retired: 'Retirado',
+          unknown: 'Desconocido',
+          lastSeen: 'Visto por última vez',
+        },
+      },
     },
   },
   fr: {
@@ -2644,6 +2700,34 @@ const resources = {
           monthlyTransactions: 'Transactions mensuelles',
           avgOrderValue: 'Valeur moyenne de commande',
           activeUsers: 'Utilisateurs actifs',
+        },
+      },
+      tpv: {
+        title: 'Terminaux point de vente',
+        subtitle: 'Gérez les dispositifs TPV de votre restaurant',
+        actions: {
+          createNew: 'Nouveau dispositif',
+        },
+        search: {
+          placeholder: 'Rechercher des terminaux...',
+        },
+        table: {
+          columns: {
+            name: 'Nom',
+            status: 'État',
+            serial: 'Numéro de série',
+            version: 'Version',
+          },
+          noVersion: 'Non spécifiée',
+        },
+        status: {
+          online: 'En ligne',
+          offline: 'Hors ligne',
+          inactive: 'Inactif',
+          maintenance: 'Maintenance',
+          retired: 'Retiré',
+          unknown: 'Inconnu',
+          lastSeen: 'Vu pour la dernière fois',
         },
       },
     },

@@ -9,3 +9,11 @@ export const getTpvs = async (venueId: string, pagination: { pageIndex: number; 
   })
   return response.data
 }
+
+export const sendTpvCommand = async (terminalId: string, command: string, payload?: any) => {
+  const response = await api.post(`/api/v1/dashboard/tpv/${terminalId}/command`, {
+    command,
+    payload,
+  })
+  return response.data
+}
