@@ -131,7 +131,7 @@ export default function Orders() {
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           // `Currency` probablemente espera centavos, y total es un valor decimal.
-          return Currency(value * 100)
+          return Currency(value)
         },
       },
     ],
