@@ -57,6 +57,7 @@ import {
   SuperadminFeatureManagement,
   SuperadminVenueManagement,
   RevenueDashboard,
+  ProfitAnalyticsDashboard,
   Terms,
   Privacy,
 } from './lazyComponents'
@@ -212,6 +213,10 @@ const router = createBrowserRouter(
                     {
                       path: 'revenue',
                       element: <RevenueDashboard />,
+                    },
+                    {
+                      path: 'profit-analytics',
+                      element: <ProfitAnalyticsDashboard />,
                     },
                     {
                       path: 'customers',

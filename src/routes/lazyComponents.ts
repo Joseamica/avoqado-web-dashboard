@@ -63,6 +63,7 @@ export { default as SuperadminDashboard } from '@/pages/Superadmin/SuperadminDas
 export { default as SuperadminFeatureManagement } from '@/pages/Superadmin/FeatureManagement'
 export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueManagement'
 export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'
+export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAnalyticsDashboard'
 
 // Legal components
 export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))
