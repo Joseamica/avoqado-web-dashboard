@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -13,6 +14,7 @@ export default function MenuMakerLayout() {
 }
 
 export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
+  const { t } = useTranslation()
   return (
     <nav className={cn("flex items-center space-x-6 lg:space-x-8 border-y border-border p-4", className)} {...props}>
       <NavLink
@@ -23,7 +25,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Resumen
+        {t('menumaker.nav.overview', { defaultValue: 'Overview' })}
       </NavLink>
       <NavLink
         to="menus"
@@ -33,7 +35,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Menús
+        {t('menumaker.nav.menus', { defaultValue: 'Menus' })}
       </NavLink>
       <NavLink
         to="categories"
@@ -43,7 +45,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Categorias
+        {t('menumaker.nav.categories', { defaultValue: 'Categories' })}
       </NavLink>
       <NavLink
         to="products"
@@ -53,7 +55,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Productos
+        {t('menumaker.nav.products', { defaultValue: 'Products' })}
       </NavLink>
       <NavLink
         to="modifier-groups"
@@ -63,7 +65,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Grupos Modificadores
+        {t('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' })}
       </NavLink>
       <NavLink
         to="/examples/dashboard"
@@ -73,7 +75,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           }`
         }
       >
-        Customers
+        {t('menumaker.nav.customers', { defaultValue: 'Customers' })}
       </NavLink>
     </nav>
   )

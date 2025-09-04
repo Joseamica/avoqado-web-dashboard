@@ -15,6 +15,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function NavUser({
   user,
@@ -27,6 +28,14 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
+  const { t } = useTranslation()
+
+  const initials = (user?.name || user?.email || '?')
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
     <SidebarMenu>
@@ -55,7 +64,7 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="w-8 h-8 rounded-lg">
                   <AvatarImage src={user.image} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-sm leading-tight text-left">
                   <span className="font-semibold truncate">{user.name}</span>
@@ -75,7 +84,7 @@ export function NavUser({
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to="account">
                   <BadgeCheck />
-                  Cuenta
+                  {t('userMenu.account', { defaultValue: 'Account' })}
                 </Link>
               </DropdownMenuItem>
               {/* <DropdownMenuItem>
@@ -84,13 +93,13 @@ export function NavUser({
               </DropdownMenuItem> */}
               <DropdownMenuItem className="cursor-pointer">
                 <Bell />
-                Notifications
+                <Link to="notifications">{t('userMenu.notifications', { defaultValue: 'Notifications' })}</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer" onClick={() => logout()}>
               <LogOut />
-              Cerrar sesión
+              {t('userMenu.logout', { defaultValue: 'Log out' })}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

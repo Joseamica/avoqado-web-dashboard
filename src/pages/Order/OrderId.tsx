@@ -26,10 +26,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, PencilIcon, Save, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function OrderId() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   // CAMBIO: billId ahora es orderId
   const { orderId } = useParams()
   const location = useLocation()
@@ -44,10 +45,10 @@ export default function OrderId() {
   // CAMBIO: el estado ahora es de tipo OrderType o null
   const [editedOrder, setEditedOrder] = useState<OrderType | null>(null)
 
-  // CAMBIO: Opciones de estado basadas en el enum OrderStatus
+  // CAMBIO: Opciones de estado basadas en el enum OrderStatus con i18n
   const statusOptions = Object.values(OrderStatus).map(status => ({
     value: status,
-    label: status.charAt(0) + status.slice(1).toLowerCase(), // Formato simple
+    label: t(`orders.detail.statuses.${status}`),
   }))
 
   // CAMBIO: Fetch de la orden individual
@@ -67,15 +68,18 @@ export default function OrderId() {
   const updateOrderMutation = useMutation({
     mutationFn: (updatedOrder: Partial<OrderType>) => orderService.updateOrder(venueId, orderId, updatedOrder),
     onSuccess: () => {
-      toast({ title: 'Orden actualizada', description: 'La orden ha sido actualizada exitosamente' })
+      toast({
+        title: t('orders.detail.toast.updatedTitle'),
+        description: t('orders.detail.toast.updatedDesc'),
+      })
       queryClient.invalidateQueries({ queryKey: ['order', venueId, orderId] })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] }) // Invalida la lista también
       setIsEditing(false)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'No se pudo actualizar la cuenta',
+        title: t('orders.detail.toast.updateErrorTitle'),
+        description: error.response?.data?.message || t('orders.detail.toast.updateErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -84,14 +88,17 @@ export default function OrderId() {
   const deleteOrderMutation = useMutation({
     mutationFn: () => orderService.deleteOrder(venueId, orderId),
     onSuccess: () => {
-      toast({ title: 'Orden eliminada', description: 'La orden ha sido eliminada exitosamente' })
+      toast({
+        title: t('orders.detail.toast.deletedTitle'),
+        description: t('orders.detail.toast.deletedDesc'),
+      })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       navigate(`/venues/${venueId}/orders`)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'No se pudo eliminar la cuenta',
+        title: t('orders.detail.toast.deleteErrorTitle'),
+        description: error.response?.data?.message || t('orders.detail.toast.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -130,7 +137,7 @@ export default function OrderId() {
 
     const date = new Date(dateString)
 
-    return date.toLocaleString('es-ES', {
+    return date.toLocaleString(getIntlLocale(i18n.language), {
       year: 'numeric',
 
       month: 'long',
@@ -145,35 +152,11 @@ export default function OrderId() {
 
   // Map status to Spanish
 
-  const getStatusText = (status: string) => {
-    const statusMap: Record<string, string> = {
-      OPEN: 'Abierta',
-
-      PAID: 'Pagada',
-
-      PENDING: 'Pendiente',
-
-      CLOSED: 'Cerrada',
-
-      CANCELED: 'Cancelada',
-
-      PRECREATED: 'Pre-creada',
-
-      WITHOUT_TABLE: 'Sin mesa',
-
-      DELETED: 'Eliminada',
-
-      EARLYACCESS: 'Acceso anticipado',
-
-      COURTESY: 'Cortesía',
-    }
-
-    return statusMap[status] || status
-  }
+  const getStatusText = (status: string) => t(`orders.detail.statuses.${status}`)
   // Get status style classes
 
   const getStatusClasses = (status: string) => {
-    if (status === 'PAID' || status === 'CLOSED') {
+    if (status === 'PAID' || status === 'CLOSED' || status === 'COMPLETED') {
       return {
         bg: 'bg-green-100',
 
@@ -185,7 +168,7 @@ export default function OrderId() {
 
         text: 'text-yellow-800',
       }
-    } else if (status === 'CANCELED' || status === 'DELETED') {
+    } else if (status === 'CANCELED' || status === 'CANCELLED' || status === 'DELETED') {
       return {
         bg: 'bg-red-100',
 
@@ -328,15 +311,15 @@ export default function OrderId() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.subtotal')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.subtotal * 100)}</p>
+              <p className="text-xl font-semibold">{Currency(order.subtotal)}</p>
             </div>
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.tips')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.tipAmount * 100)}</p>
+              <p className="text-xl font-semibold">{Currency(order.tipAmount)}</p>
             </div>
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.total')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.total * 100)}</p>
+              <p className="text-xl font-semibold">{Currency(order.total)}</p>
             </div>
           </div>
         </div>
@@ -357,15 +340,15 @@ export default function OrderId() {
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.amount')}</Label>
-                    <p className="font-medium">{Currency(payment.amount * 100)}</p>
+                    <p className="font-medium">{Currency(payment.amount)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.tip')}</Label>
-                    <p className="font-medium">{Currency(payment.tipAmount * 100)}</p>
+                    <p className="font-medium">{Currency(payment.tipAmount)}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.method')}</Label>
-                    <p className="font-medium">{payment.method}</p>
+                    <p className="font-medium">{t(`payments.methods.${String(payment.method).toLowerCase()}`)}</p>
                   </div>
                 </div>
               ))}

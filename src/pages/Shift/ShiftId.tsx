@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -26,14 +27,15 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function ShiftId() {
-  const { venueId, shiftId } = useParams()
+  const { shiftId, slug } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const { venueId } = useCurrentVenue()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [editedShift, setEditedShift] = useState<any>(null)
 
@@ -46,7 +48,7 @@ export default function ShiftId() {
   const { data: shift, isLoading } = useQuery({
     queryKey: ['shift', venueId, shiftId],
     queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/shifts/${shiftId}`)
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`)
       return response.data
     },
   })
@@ -58,12 +60,12 @@ export default function ShiftId() {
     }
   }, [shift, editedShift])
 
-  const from = (location.state as any)?.from || `/venues/${venueId}/shifts`
+  const from = (location.state as any)?.from || `/venues/${slug}/shifts`
 
   // Delete shift mutation
   const deleteShift = useMutation({
     mutationFn: async () => {
-      await api.delete(`/v2/dashboard/${venueId}/shifts/${shiftId}`)
+      await api.delete(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`)
     },
     onSuccess: () => {
       toast({
@@ -85,7 +87,7 @@ export default function ShiftId() {
   // Update shift mutation
   const updateShiftMutation = useMutation({
     mutationFn: async (updatedShift: any) => {
-      return await api.put(`/v2/dashboard/${venueId}/shifts/${shiftId}`, {
+      return await api.put(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`, {
         status: updatedShift.status,
       })
     },
@@ -139,7 +141,7 @@ export default function ShiftId() {
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-'
     const date = new Date(dateString)
-    return date.toLocaleString('es-ES', {
+    return date.toLocaleString(i18n.language || undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -296,7 +298,14 @@ export default function ShiftId() {
                       <Label className="text-sm text-muted-foreground">
                         {t('shifts.detail.paymentMethod', { defaultValue: 'Método de Pago' })}
                       </Label>
-                      <p className="font-medium">{payment.paymentType}</p>
+                      <p className="font-medium">
+                        {(() => {
+                          const type = String(payment.paymentType)
+                          if (type === 'CARD') return t('payments.methods.card', { defaultValue: 'Tarjeta' })
+                          if (type === 'CASH') return t('payments.methods.cash', { defaultValue: 'Efectivo' })
+                          return type
+                        })()}
+                      </p>
                     </div>
                     <div>
                       <Label className="text-sm text-muted-foreground">{t('shifts.detail.amount', { defaultValue: 'Monto' })}</Label>

@@ -726,26 +726,77 @@ const Home = () => {
                         total: {
                           label: t('home.total'),
                         },
-                        ...paymentMethodsData.reduce((acc, item, index) => ({
-                          ...acc,
-                          [item.method]: {
-                            label: item.method,
-                            color: `var(--chart-${(index % 5) + 1})`,
+                        ...paymentMethodsData.reduce((acc, item, index) => {
+                          const raw = typeof item.method === 'string' ? item.method : String(item.method)
+                          const lower = raw.trim().toLowerCase()
+                          // Prefer known keys via translation match for current locale
+                          const candidates = ['card', 'cash'] as const
+                          const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
+                          // Fallback normalization by common aliases
+                          const norm = matchedKey
+                            || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                              ? 'card'
+                              : undefined)
+                            || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                          const methodKey = (norm || lower) as 'card' | 'cash' | string
+                          return {
+                            ...acc,
+                            [methodKey]: {
+                              label: t(`payments.methods.${methodKey}`),
+                              color: `var(--chart-${(index % 5) + 1})`,
+                            },
                           }
-                        }), {})
+                        }, {})
                       }}
                       className="mx-auto aspect-square max-h-[250px]"
                     >
                       <PieChart>
                         <ChartTooltip
                           cursor={false}
-                          content={<ChartTooltipContent hideLabel formatter={value => Currency(Number(value), false)} />}
+                          content={
+                            <ChartTooltipContent
+                              hideLabel
+                              formatter={(value, _name, item: any) => {
+                                const methodKey = item?.payload?.method
+                                const color = item?.color || item?.payload?.fill
+                                return (
+                                  <div className="flex w-full items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                                        style={{ backgroundColor: color }}
+                                      />
+                                      <span className="text-zinc-500 dark:text-zinc-400">
+                                        {t(`payments.methods.${methodKey}`)}
+                                      </span>
+                                    </div>
+                                    <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
+                                      {Currency(Number(value), false)}
+                                    </span>
+                                  </div>
+                                )
+                              }}
+                            />
+                          }
                         />
                         <Pie
-                          data={paymentMethodsData.map((item, index) => ({
-                            ...item,
-                            fill: `var(--chart-${(index % 5) + 1})`
-                          }))}
+                          data={paymentMethodsData.map((item, index) => {
+                            const raw = typeof item.method === 'string' ? item.method : String(item.method)
+                            const lower = raw.trim().toLowerCase()
+                            const candidates = ['card', 'cash'] as const
+                            const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
+                            const norm = matchedKey
+                              || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                                ? 'card'
+                                : undefined)
+                              || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                            const methodKey = (norm || lower) as 'card' | 'cash' | string
+                            return {
+                              ...item,
+                              method: methodKey,
+                              fill: `var(--chart-${(index % 5) + 1})`,
+                            }
+                          })}
                           dataKey="total"
                           nameKey="method"
                           innerRadius={60}
@@ -1104,7 +1155,7 @@ const PeakHoursChart = ({ data }: { data: any }) => {
         <CardTitle>{t('home.sections.peakHours')}</CardTitle>
         <CardDescription>{t('home.sections.peakHoursDesc')}</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6" style={{ height: '360px' }}>
+      <CardContent className="pt-6 px-2 sm:px-4" style={{ height: '360px' }}>
         {!peakHoursData || peakHoursData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-muted-foreground">{t('home.noData')}</p>
@@ -1244,12 +1295,12 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
           <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
           <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
         </div>
-        <div className="flex">
+        <div className="flex flex-wrap">
           {(['tips', 'tipPercentage'] as const).map((key) => (
             <button
               key={key}
               data-active={activeMetric === key}
-              className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
               <span className="text-muted-foreground text-xs">
@@ -1273,14 +1324,14 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
         ) : (
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
+            className="aspect-auto h-[220px] sm:h-[250px] w-full"
           >
             <LineChart
               accessibilityLayer
               data={tipsOverTime}
               margin={{
-                left: 12,
-                right: 12,
+                left: 10,
+                right: 10,
               }}
             >
               <CartesianGrid vertical={false} />
@@ -1334,7 +1385,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 const RevenueTrendsChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
-  const revenueData = data?.revenue || []
+  const revenueData = useMemo(() => data?.revenue ?? [], [data?.revenue])
   
   // Add state for interactive chart
   const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue')
@@ -1363,12 +1414,12 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
           <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
           <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
         </div>
-        <div className="flex">
+        <div className="flex flex-wrap">
           {(['revenue', 'orders'] as const).map((key) => (
             <button
               key={key}
               data-active={activeMetric === key}
-              className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
               <span className="text-muted-foreground text-xs">
@@ -1392,7 +1443,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
         ) : (
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
+            className="aspect-auto h-[220px] sm:h-[250px] w-full"
           >
             <LineChart
               accessibilityLayer
@@ -1463,7 +1514,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
 const AOVTrendsChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
-  const aovData = data?.aov || []
+  const aovData = useMemo(() => data?.aov ?? [], [data?.aov])
   
   const [activeMetric, setActiveMetric] = useState<'aov' | 'orderCount'>('aov')
   
@@ -1610,7 +1661,7 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
           </div>
         ) : (
           <ChartContainer
-            className="h-full"
+            className="h-full w-full aspect-auto"
             config={{
               orders: {
                 label: t('home.charts.ordersLabel'),
@@ -1622,10 +1673,10 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
               accessibilityLayer
               data={frequencyData}
               margin={{
-                top: 30,
-                right: 30,
-                left: 20,
-                bottom: 20,
+                top: 24,
+                right: 16,
+                left: 12,
+                bottom: 16,
               }}
               height={280}
             >
@@ -1722,7 +1773,7 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
           </div>
         ) : (
           <ChartContainer
-            className="h-full"
+            className="h-full w-full aspect-auto"
             config={{
               prepTime: {
                 label: t('home.charts.prepTime'),
@@ -1738,15 +1789,15 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
               accessibilityLayer
               data={kitchenData}
               margin={{
-                top: 30,
-                right: 30,
-                left: 20,
-                bottom: 20,
+                top: 20,
+                right: 20,
+                left: 16,
+                bottom: 16,
               }}
-              height={280}
+              height={240}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="category" tickLine={false} tickMargin={10} axisLine={false} />
+              <XAxis dataKey="category" tickLine={false} tickMargin={8} axisLine={false} />
               <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('home.tooltips.minutesSuffix')}`} />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="prepTime" fill="var(--color-prepTime)" radius={4} maxBarSize={30} />

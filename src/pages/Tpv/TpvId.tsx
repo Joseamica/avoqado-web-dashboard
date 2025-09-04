@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -231,7 +232,7 @@ export default function TpvId() {
       const response = await api.post(`/api/v1/dashboard/tpv/${tpvId}/command`, { command, payload })
       return response.data
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       toast({
         title: 'Comando enviado',
         description: `Comando ${variables.command} enviado exitosamente`,
@@ -350,6 +351,7 @@ export default function TpvId() {
   const statusStyle = getTerminalStatusStyle(tpv?.status, tpv?.lastHeartbeat)
   const terminalOnline = isOnline(tpv?.status, tpv?.lastHeartbeat)
   const isInMaintenance = tpv?.status === 'MAINTENANCE'
+  const isInactive = tpv?.status === 'INACTIVE'
 
   return (
     <TooltipProvider>
@@ -643,11 +645,23 @@ export default function TpvId() {
                             <FormItem>
                               <FormLabel className="text-sm font-medium">Tipo de Terminal</FormLabel>
                               <FormControl>
-                                <Input
-                                  {...field}
-                                  disabled={!isEditing}
-                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                />
+                                {isEditing ? (
+                                  <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
+                                    <SelectTrigger className="border-primary/50 focus:border-primary">
+                                      <SelectValue placeholder="Seleccionar tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ANDROID_TABLET">Tablet Android</SelectItem>
+                                      <SelectItem value="WINDOWS_PC">PC Windows</SelectItem>
+                                      <SelectItem value="LINUX_DEVICE">Dispositivo Linux</SelectItem>
+                                      <SelectItem value="MOBILE_DEVICE">Dispositivo Móvil</SelectItem>
+                                      <SelectItem value="KIOSK">Kiosco</SelectItem>
+                                      <SelectItem value="OTHER">Otro</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input value={field.value || 'No especificado'} disabled className="bg-muted" />
+                                )}
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -726,7 +740,7 @@ export default function TpvId() {
                   <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
-                  {/* Maintenance Status */}
+                  {/* Status Actions */}
                   {isInMaintenance ? (
                     <Alert className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent">
                       <Wrench className="h-4 w-4" />
@@ -738,6 +752,23 @@ export default function TpvId() {
                             onClick={() => sendTpvCommand('EXIT_MAINTENANCE')}
                             disabled={commandMutation.isPending}
                             className="ml-2 bg-green-600 hover:bg-green-700 text-background  h-7 px-3 "
+                          >
+                            Reactivar
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  ) : isInactive ? (
+                    <Alert className="bg-muted text-muted-foreground border border-border">
+                      <XIcon className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Terminal inactivo</span>
+                          <Button
+                            size="sm"
+                            onClick={() => sendTpvCommand('REACTIVATE')}
+                            disabled={commandMutation.isPending}
+                            className="ml-2 bg-green-600 hover:bg-green-700 text-background h-7 px-3"
                           >
                             Reactivar
                           </Button>

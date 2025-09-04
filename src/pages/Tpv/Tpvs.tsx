@@ -83,9 +83,10 @@ export default function Tpvs() {
     mutationFn: ({ terminalId, command, payload }: { terminalId: string; command: string; payload?: any }) =>
       sendTpvCommandApi(terminalId, command, payload),
     onSuccess: (data, variables) => {
+      const commandLabel = t(`tpv.commandLabels.${variables.command}`, { defaultValue: variables.command })
       toast({
         title: t('tpv.commands.sent', { defaultValue: 'Comando enviado' }),
-        description: t('tpv.commands.sentSuccess', { command: variables.command, defaultValue: `Comando ${variables.command} enviado exitosamente` }),
+        description: t('tpv.commands.sentSuccess', { command: commandLabel, defaultValue: `Comando ${commandLabel} enviado exitosamente` }),
         variant: "default",
       })
       // Refresh the TPV list to show updated status
