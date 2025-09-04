@@ -41,6 +41,8 @@ import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import teamService from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 
@@ -52,6 +54,7 @@ export default function TeamMemberDetails() {
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
+  const { t, i18n } = useTranslation()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
@@ -68,15 +71,15 @@ export default function TeamMemberDetails() {
     mutationFn: () => teamService.removeTeamMember(venueId, memberId!),
     onSuccess: () => {
       toast({
-        title: 'Miembro eliminado',
-        description: 'El miembro del equipo ha sido eliminado correctamente.',
+        title: t('teams.toasts.memberRemovedTitle'),
+        description: t('teams.toasts.memberRemovedDesc'),
       })
       navigate(-1)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'No se pudo eliminar el miembro del equipo.',
+        title: t('teams.toasts.memberRemoveErrorTitle'),
+        description: error.response?.data?.message || t('teams.toasts.memberRemoveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -115,10 +118,10 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-foreground">Miembro no encontrado</h1>
-          <p className="text-muted-foreground mt-2">El miembro del equipo que buscas no existe o ha sido eliminado.</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('teams.detail.errors.memberNotFoundTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('teams.detail.errors.memberNotFoundDesc')}</p>
           <Button onClick={handleGoBack} className="mt-4">
-            Volver al Equipo
+            {t('teams.detail.errors.backToTeam')}
           </Button>
         </div>
       </div>
@@ -130,10 +133,10 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-foreground">Acceso denegado</h1>
-          <p className="text-muted-foreground mt-2">No tienes permisos para ver este miembro del equipo.</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('teams.detail.errors.accessDeniedTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('teams.detail.errors.accessDeniedDesc')}</p>
           <Button onClick={handleGoBack} className="mt-4">
-            Volver al Equipo
+            {t('teams.detail.errors.backToTeam')}
           </Button>
         </div>
       </div>
@@ -155,7 +158,7 @@ export default function TeamMemberDetails() {
             <h1 className="text-2xl font-bold">
               {memberDetails.firstName} {memberDetails.lastName}
             </h1>
-            <p className="text-muted-foreground">Detalles del miembro del equipo</p>
+            <p className="text-muted-foreground">{t('teams.header.subtitle')}</p>
           </div>
         </div>
         
@@ -163,7 +166,7 @@ export default function TeamMemberDetails() {
           {canEdit && (
             <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
               <Edit3 className="h-4 w-4 mr-2" />
-              Editar
+              {t('teams.actions.edit')}
             </Button>
           )}
           {canRemove && (
@@ -173,7 +176,7 @@ export default function TeamMemberDetails() {
               className="text-destructive hover:text-destructive/80"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
+              {t('teams.actions.delete')}
             </Button>
           )}
         </div>
@@ -207,9 +210,16 @@ export default function TeamMemberDetails() {
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="text-sm">Fecha de inicio</div>
+                  <div className="text-sm">{t('account.accountInfo.memberSince')}</div>
                   <div className="text-xs text-muted-foreground">
-                    {new Date(memberDetails.startDate).toLocaleDateString('es-ES')}
+                    {memberDetails.startDate
+                      ? (() => {
+                          const d = new Date(memberDetails.startDate)
+                          return isNaN(d.getTime())
+                            ? t('common.na')
+                            : d.toLocaleDateString(getIntlLocale(i18n.language))
+                        })()
+                      : t('common.na')}
                   </div>
                 </div>
               </div>
@@ -217,9 +227,9 @@ export default function TeamMemberDetails() {
               <div className="flex items-center space-x-3">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="text-sm">Estado</div>
+                  <div className="text-sm">{t('teams.columns.status')}</div>
                   <Badge variant={memberDetails.active ? 'default' : 'secondary'}>
-                    {memberDetails.active ? 'Activo' : 'Inactivo'}
+                    {memberDetails.active ? t('teams.status.active') : t('teams.status.inactive')}
                   </Badge>
                 </div>
               </div>
@@ -228,7 +238,7 @@ export default function TeamMemberDetails() {
                 <div className="flex items-center space-x-3">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm">PIN configurado</div>
+                    <div className="text-sm">{t('teams.detail.labels.pin')}</div>
                     <div className="text-xs text-muted-foreground">••••</div>
                   </div>
                 </div>
@@ -245,9 +255,9 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Ventas Totales</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.totalSales')}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${memberDetails.totalSales.toLocaleString()}
+                      {Number(memberDetails.totalSales).toLocaleString(getIntlLocale(i18n.language))}
                     </p>
                   </div>
                   <DollarSign className="h-8 w-8 text-green-500 dark:text-green-400" />
@@ -259,9 +269,9 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Órdenes Totales</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.totalOrders')}</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {memberDetails.totalOrders.toLocaleString()}
+                      {Number(memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language))}
                     </p>
                   </div>
                   <ShoppingCart className="h-8 w-8 text-blue-500 dark:text-blue-400" />
@@ -273,7 +283,7 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Calificación Promedio</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.avgRating')}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                       {memberDetails.averageRating.toFixed(1)}
                     </p>
@@ -289,38 +299,43 @@ export default function TeamMemberDetails() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2" />
-                Métricas de Rendimiento
+                {t('teams.detail.performance.title')}
               </CardTitle>
               <CardDescription>
-                Estadísticas detalladas del desempeño del miembro
+                {t('teams.detail.performance.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Propinas Totales:</span>
-                    <span className="font-medium">${memberDetails.totalTips.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.totalTips')}:</span>
+                    <span className="font-medium">{Number(memberDetails.totalTips).toLocaleString(getIntlLocale(i18n.language))}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Promedio por Orden:</span>
+                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.avgPerOrder')}:</span>
                     <span className="font-medium">
-                      ${memberDetails.totalOrders > 0 
-                        ? (memberDetails.totalSales / memberDetails.totalOrders).toFixed(2) 
-                        : '0.00'}
+                      {memberDetails.totalOrders > 0 
+                        ? (memberDetails.totalSales / memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : (0).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Días Activos:</span>
+                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.activeDays')}:</span>
                     <span className="font-medium">
-                      {Math.floor((Date.now() - new Date(memberDetails.startDate).getTime()) / (1000 * 60 * 60 * 24))} días
+                      {(() => {
+                        const d = new Date(memberDetails.startDate)
+                        if (isNaN(d.getTime())) return t('common.na')
+                        const days = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
+                        return days.toLocaleString(getIntlLocale(i18n.language))
+                      })()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Venue:</span>
+                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.venue')}:</span>
                     <span className="font-medium">{memberDetails.venue.name}</span>
                   </div>
                 </div>
@@ -331,16 +346,16 @@ export default function TeamMemberDetails() {
           {/* Organization Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Información de la Organización</CardTitle>
+              <CardTitle>{t('teams.detail.organization.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Organización:</span>
+                  <span className="text-sm text-muted-foreground">{t('teams.detail.organization.organization')}:</span>
                   <span className="font-medium">{memberDetails.venue.organization.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Establecimiento:</span>
+                  <span className="text-sm text-muted-foreground">{t('teams.detail.organization.establishment')}:</span>
                   <span className="font-medium">{memberDetails.venue.name}</span>
                 </div>
               </div>
@@ -362,9 +377,9 @@ export default function TeamMemberDetails() {
             }}
           >
             <DialogHeader>
-              <DialogTitle>Editar Miembro del Equipo</DialogTitle>
+              <DialogTitle>{t('teams.dialogs.editMemberTitle')}</DialogTitle>
               <DialogDescription>
-                Actualiza el rol y configuración de {memberDetails.firstName} {memberDetails.lastName}.
+                {t('teams.dialogs.editMemberDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </DialogDescription>
             </DialogHeader>
             <EditTeamMemberForm
@@ -381,20 +396,19 @@ export default function TeamMemberDetails() {
         <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar miembro del equipo?</AlertDialogTitle>
+              <AlertDialogTitle>{t('teams.dialogs.removeTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                ¿Estás seguro de que deseas eliminar a {memberDetails.firstName} {memberDetails.lastName} del equipo?
-                Esta acción no se puede deshacer y el miembro perderá acceso al dashboard.
+                {t('teams.dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>{t('teams.dialogs.removeCancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleRemoveConfirm}
                 disabled={removeTeamMemberMutation.isPending}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {removeTeamMemberMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                {removeTeamMemberMutation.isPending ? t('teams.dialogs.removing') : t('teams.dialogs.removeConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
