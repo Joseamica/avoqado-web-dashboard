@@ -124,7 +124,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading profit analytics...</p>
+          <p className="mt-2 text-muted-foreground">{t('profitAnalytics.loadingAnalytics', 'Loading profit analytics...')}</p>
         </div>
       </div>
     )
@@ -278,7 +278,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
                   <span className={profitMetrics.profitGrowth >= 0 ? 'text-green-500' : 'text-red-500'}>
                     {formatPercentage(profitMetrics.profitGrowth)}
                   </span>
-                  <span className="ml-1">vs last period</span>
+                  <span className="ml-1">{t('profitAnalytics.vsLastPeriod', 'vs last period')}</span>
                 </>
               )}
             </div>
@@ -295,7 +295,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
               {((profitMetrics?.averageProfitMargin || 0) * 100).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Profit / Revenue ratio
+{t('profitAnalytics.profitRevenueRatio', 'Profit / Revenue ratio')}
             </p>
           </CardContent>
         </Card>
@@ -310,7 +310,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
               {formatCurrency(profitMetrics?.totalProviderCosts || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              What we pay providers
+{t('profitAnalytics.whatWePayProviders', 'What we pay providers')}
             </p>
           </CardContent>
         </Card>
@@ -325,7 +325,7 @@ const ProfitAnalyticsDashboard: React.FC = () => {
               {formatCurrency(profitMetrics?.totalVenueCharges || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              What we charge venues
+{t('profitAnalytics.whatWeChargeVenues', 'What we charge venues')}
             </p>
           </CardContent>
         </Card>
