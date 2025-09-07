@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Download, Share2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
+import { ReceiptUrls } from '@/constants/receipt'
 
 interface ReceiptPreviewProps {
   receipt: {
@@ -162,7 +163,7 @@ export default function ReceiptPreview({ receipt, open, onClose }: ReceiptPrevie
   const copyPublicLink = () => {
     // Usamos la URL de la API para obtener recibos públicos usando el accessKey
     const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin
-    const publicUrl = `${frontendUrl}/receipts/public/${receipt.accessKey}`
+    const publicUrl = ReceiptUrls.public(receipt.accessKey, frontendUrl)
     
     navigator.clipboard.writeText(publicUrl)
     toast({

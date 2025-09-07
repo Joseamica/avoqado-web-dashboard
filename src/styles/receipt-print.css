@@ -1,0 +1,165 @@
+/**
+ * Print styles for receipts
+ * Optimized for both thermal printers and standard printers
+ */
+
+@media print {
+  /* Reset and optimize for printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide everything except receipt */
+  body * {
+    visibility: hidden;
+  }
+  
+  .receipt-container, .receipt-container * {
+    visibility: visible;
+  }
+  
+  .receipt-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Hide print buttons and actions */
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Optimize spacing for thermal printers */
+  .print-optimized {
+    max-width: 58mm !important; /* Standard thermal printer width */
+    margin: 0 auto !important;
+    padding: 2mm !important;
+  }
+
+  /* Adjust fonts for printing */
+  h1, h2, h3 {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin: 2mm 0 !important;
+  }
+
+  p, span, td, th {
+    font-size: 11px !important;
+    margin: 1mm 0 !important;
+  }
+
+  /* Table optimizations */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 2mm 0 !important;
+  }
+
+  th, td {
+    padding: 1mm !important;
+    border: none !important;
+    text-align: left !important;
+  }
+
+  th {
+    font-weight: bold !important;
+    border-bottom: 1px solid #000 !important;
+  }
+
+  /* Remove shadows and rounded corners for printing */
+  .receipt-container * {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Ensure important text is black */
+  .receipt-container .font-bold,
+  .receipt-container .font-semibold,
+  .receipt-container h1,
+  .receipt-container h2,
+  .receipt-container h3 {
+    color: black !important;
+  }
+
+  /* Page breaks */
+  .receipt-container {
+    page-break-inside: avoid;
+  }
+
+  /* QR codes for printing */
+  .qr-code {
+    width: 20mm !important;
+    height: 20mm !important;
+    margin: 2mm auto !important;
+  }
+
+  /* Center align important elements */
+  .receipt-header {
+    text-align: center !important;
+  }
+
+  /* Ensure totals are prominent */
+  .receipt-totals {
+    border-top: 2px solid black !important;
+    margin-top: 3mm !important;
+    padding-top: 2mm !important;
+  }
+
+  .receipt-final-total {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    border-top: 1px solid black !important;
+    border-bottom: 1px solid black !important;
+    padding: 2mm 0 !important;
+    margin: 2mm 0 !important;
+  }
+}
+
+/* Mobile-specific print styles */
+@media print and (max-width: 768px) {
+  .receipt-container {
+    font-size: 10px !important;
+  }
+  
+  h1, h2, h3 {
+    font-size: 12px !important;
+  }
+}
+
+/* Thermal printer specific styles */
+@media print and (max-width: 80mm) {
+  .receipt-container {
+    max-width: 72mm !important;
+    font-size: 9px !important;
+    padding: 1mm !important;
+  }
+  
+  h1 {
+    font-size: 11px !important;
+  }
+  
+  .receipt-container img {
+    max-width: 15mm !important;
+    max-height: 15mm !important;
+  }
+}
+
+/* Dark mode print override */
+@media print {
+  .dark .receipt-container,
+  .dark .receipt-container * {
+    background: white !important;
+    color: black !important;
+  }
+}

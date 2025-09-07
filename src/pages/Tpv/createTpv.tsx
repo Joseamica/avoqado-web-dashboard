@@ -20,8 +20,9 @@ export default function CreateTpv() {
   const from = (location.state as any)?.from || '/'
 
   const createTpv = useMutation({
-    mutationFn: async formValues => {
-      const response = await api.post(`/v2/dashboard/${venueId}/tpv`, formValues)
+    mutationFn: async (formValues: any) => {
+      const payload = { name: formValues.name, serialNumber: formValues.serial }
+      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpvs`, payload)
       return response.data
     },
     onSuccess: (_, data: any) => {
@@ -34,7 +35,7 @@ export default function CreateTpv() {
     onError: (error: any) => {
       toast({
         title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        description: error?.response?.data?.message || error.message || 'Hubo un problema al guardar los cambios.',
         variant: 'destructive',
       })
     },

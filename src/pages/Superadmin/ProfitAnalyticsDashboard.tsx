@@ -18,12 +18,7 @@ import {
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-// Import types from the service instead of redefining
-import type {
-  ProfitMetrics,
-  MonthlyProfitData,
-  CostStructureAnalysis,
-} from '@/services/cost-management.service'
+// We don't need to import unused types
 
 const ProfitAnalyticsDashboard: React.FC = () => {
   const { t, i18n } = useTranslation()
@@ -68,10 +63,14 @@ const ProfitAnalyticsDashboard: React.FC = () => {
     queryFn: () => costManagementAPI.getVenuesList(),
     retry: 3,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error) => {
-      console.error('Error loading venues:', error)
-    }
   })
+
+  // Handle venues loading error
+  React.useEffect(() => {
+    if (venuesError) {
+      console.error('Error loading venues:', venuesError)
+    }
+  }, [venuesError])
 
   // Fetch provider list for filter
   const { data: providers } = useQuery({
@@ -389,8 +388,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         <TabsContent value="providers" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Provider Cost Analysis</CardTitle>
-              <CardDescription>Cost breakdown by payment provider</CardDescription>
+              <CardTitle>{t('profitAnalytics.providerAnalysis.title', 'Provider Cost Analysis')}</CardTitle>
+              <CardDescription>{t('profitAnalytics.providerAnalysis.description', 'Cost breakdown by payment provider')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -423,8 +422,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         <TabsContent value="monthly" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Profit Summary</CardTitle>
-              <CardDescription>Monthly aggregated profit data by venue</CardDescription>
+              <CardTitle>{t('profitAnalytics.monthlyAnalysis.title', 'Monthly Profit Summary')}</CardTitle>
+              <CardDescription>{t('profitAnalytics.monthlyAnalysis.description', 'Monthly aggregated profit data by venue')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -474,8 +473,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
         <TabsContent value="cost-structures" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Current Cost Structures</CardTitle>
-              <CardDescription>Active cost structures by provider and merchant account</CardDescription>
+              <CardTitle>{t('profitAnalytics.costStructures.title', 'Current Cost Structures')}</CardTitle>
+              <CardDescription>{t('profitAnalytics.costStructures.description', 'Active cost structures by provider and merchant account')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -496,32 +495,32 @@ const ProfitAnalyticsDashboard: React.FC = () => {
                               <p className="font-semibold text-red-600 dark:text-red-400">
                                 {formatCurrency(account.totalCosts)}
                               </p>
-                              <p className="text-sm text-muted-foreground">total costs</p>
+                              <p className="text-sm text-muted-foreground">{t('profitAnalytics.totalCosts', 'total costs')}</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Debit:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.debit', 'Debit')}:</span>
                               <span className="ml-1">{(account.currentCosts.debitRate * 100).toFixed(2)}%</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Credit:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.credit', 'Credit')}:</span>
                               <span className="ml-1">{(account.currentCosts.creditRate * 100).toFixed(2)}%</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Amex:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.amex', 'Amex')}:</span>
                               <span className="ml-1">{(account.currentCosts.amexRate * 100).toFixed(2)}%</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">International:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.international', 'International')}:</span>
                               <span className="ml-1">{(account.currentCosts.internationalRate * 100).toFixed(2)}%</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Fixed:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.fixed', 'Fixed')}:</span>
                               <span className="ml-1">{formatCurrency(account.currentCosts.fixedCostPerTransaction)}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Monthly:</span>
+                              <span className="text-muted-foreground">{t('profitAnalytics.rates.monthly', 'Monthly')}:</span>
                               <span className="ml-1">{formatCurrency(account.currentCosts.monthlyFee)}</span>
                             </div>
                           </div>
