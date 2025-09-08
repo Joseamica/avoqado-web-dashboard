@@ -15,12 +15,11 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
 
 export default function Categories() {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
-
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', venueId],

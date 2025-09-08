@@ -20,7 +20,6 @@ export const CreateProduct = React.lazy(() => import('@/pages/Menu/Products/crea
 export const Products = React.lazy(() => import('@/pages/Menu/Products/Products'))
 export const ProductId = React.lazy(() => import('@/pages/Menu/Products/productId'))
 export const ReceiptViewer = React.lazy(() => import('@/pages/Payment/ReceiptViewer'))
-export const ReceiptPreview = React.lazy(() => import('@/components/receipts/ReceiptPreview'))
 
 export const CreateTpv = React.lazy(() => import('@/pages/Tpv/createTpv'))
 export const Tpv = React.lazy(() => import('@/pages/Tpv/Tpvs'))

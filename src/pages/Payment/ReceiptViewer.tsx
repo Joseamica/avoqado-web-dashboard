@@ -6,76 +6,17 @@
 import api from '@/api'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
+import { useTranslation } from 'react-i18next'
 
-// Receipt data type (matching backend schema)
-interface ReceiptDataSnapshot {
-  payment: {
-    id: string
-    amount: number
-    tipAmount: number
-    totalAmount: number
-    method: string
-    status: string
-    createdAt: string
-    cardBrand?: string
-    maskedPan?: string
-    entryMode?: string
-    authorizationNumber?: string
-    referenceNumber?: string
-  }
-  venue: {
-    id: string
-    name: string
-    address: string
-    city: string
-    state: string
-    zipCode?: string
-    phone: string
-    email?: string
-    logo?: string
-    primaryColor?: string
-    currency: string
-  }
-  order: {
-    id: string
-    number: string | number
-    items: Array<{
-      name: string
-      quantity: number
-      price: number
-      totalPrice: number
-      modifiers: Array<{
-        name: string
-        price: number
-      }>
-    }>
-    subtotal: number
-    taxAmount: number
-    total: number
-    createdAt: string
-    table?: {
-      number: string
-      area?: string
-    }
-  }
-  processedBy?: {
-    name: string
-  }
-  customer?: {
-    name: string
-    email?: string
-  }
-}
+// (Removed unused ReceiptDataSnapshot interface)
 
 export default function ReceiptViewer() {
   const { receiptId, accessKey } = useParams<{ receiptId?: string; accessKey?: string }>()
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
-  const [emailInput, setEmailInput] = useState('')
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   // Determine if we're in public view or dashboard view
   const isPublicView = ReceiptUrls.isPublicView()
@@ -97,42 +38,40 @@ export default function ReceiptViewer() {
         if (response.data?.success && response.data?.data) {
           return response.data.data
         }
-        throw new Error('Invalid response format from server')
+        throw new Error(t('payments.receipt.errors.invalidResponse'))
       } else if (!isPublicView && receiptId) {
         // Dashboard route: GET /api/v1/dashboard/venues/{venueId}/receipts/{receiptId}
         // Note: This would need venueId - you might need to adjust based on your routing
-        throw new Error('Dashboard receipt viewing not implemented yet')
+        throw new Error(t('payments.receipt.errors.notImplemented'))
       }
-      throw new Error('Invalid receipt identifier')
+      throw new Error(t('payments.receipt.errors.invalidIdentifier'))
     },
     enabled: !!identifier,
     retry: 2,
   })
 
   // Transform any query errors into a readable message
-  const error = queryError ? 
-    (queryError as any)?.response?.data?.message || 
-    (queryError as any)?.message || 
-    'Error al cargar el recibo' 
+  const error = queryError
+    ? (queryError as any)?.response?.data?.message || (queryError as any)?.message || t('payments.receipt.errors.load')
     : null
 
   // Copy public link to clipboard
   const copyPublicLink = async () => {
     if (!receipt?.accessKey) return
-    
+
     const publicUrl = ReceiptUrls.public(receipt.accessKey)
-    
+
     try {
       await navigator.clipboard.writeText(publicUrl)
       toast({
-        title: '¡Enlace copiado!',
-        description: 'El enlace del recibo se ha copiado al portapapeles',
+        title: t('payments.receipt.toasts.linkCopied.title'),
+        description: t('payments.receipt.toasts.linkCopied.desc'),
       })
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Error',
-        description: 'No se pudo copiar el enlace',
-        variant: 'destructive'
+        title: t('payments.receipt.toasts.copyError.title'),
+        description: t('payments.receipt.toasts.copyError.desc'),
+        variant: 'destructive',
       })
     }
   }
@@ -142,15 +81,15 @@ export default function ReceiptViewer() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Recibo de ${receipt?.dataSnapshot?.venue?.name || 'Restaurant'}`,
-          text: `Recibo digital de ${receipt?.dataSnapshot?.venue?.name || 'Restaurant'}`,
-          url: url
+          title: t('payments.receipt.share.title', { venue: receipt?.dataSnapshot?.venue?.name || t('payments.receipt.unknownVenue') }),
+          text: t('payments.receipt.share.text', { venue: receipt?.dataSnapshot?.venue?.name || t('payments.receipt.unknownVenue') }),
+          url: url,
         })
         toast({
-          title: '¡Compartido!',
-          description: 'El recibo ha sido compartido exitosamente',
+          title: t('payments.receipt.toasts.shared.title'),
+          description: t('payments.receipt.toasts.shared.desc'),
         })
-      } catch (error) {
+      } catch {
         // User cancelled sharing or error occurred
         copyPublicLink() // Fallback to copying
       }
@@ -159,24 +98,24 @@ export default function ReceiptViewer() {
     }
   }
 
-  const handleCopy = (url: string) => {
+  const handleCopy = (_url: string) => {
     copyPublicLink()
   }
 
   const handlePrint = () => {
     window.print()
     toast({
-      title: 'Imprimiendo...',
-      description: 'Se ha enviado el recibo a la impresora',
+      title: t('payments.receipt.printing.title'),
+      description: t('payments.receipt.printing.desc'),
     })
   }
 
-  const handleEmail = (email: string) => {
+  const handleEmail = (_email: string) => {
     // This would integrate with your existing email functionality
     // For now, just show a message
     toast({
-      title: 'Función en desarrollo',
-      description: 'La funcionalidad de email estará disponible pronto',
+      title: t('payments.receipt.email.soon.title'),
+      description: t('payments.receipt.email.soon.desc'),
     })
   }
 
