@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, Search } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -139,13 +139,11 @@ function SortableProduct({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className={`flex items-center p-2 my-1 rounded-md hover:bg-muted ${
         isDragging ? 'shadow-lg z-30' : 'z-20'
       } cursor-grab active:cursor-grabbing relative pointer-events-auto`}
     >
-      <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
+      <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors" {...attributes} {...listeners}>
         <GripVertical size={18} />
       </div>
       <div className="w-12 h-12 bg-muted rounded-md mr-4 flex items-center justify-center">
@@ -271,6 +269,11 @@ export default function Overview() {
   const [categoryOrders, setCategoryOrders] = useState<Record<string, string[]>>({})
   const [localProductOrder, setLocalProductOrder] = useState<Record<string, string[]>>({})
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
+  // New: selection + view level state for Tree + Inspector layout
+  const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  type ViewLevel = 'menus' | 'menu' | 'category'
+  const viewLevel: ViewLevel = selectedCategoryId ? 'category' : selectedMenuId ? 'menu' : 'menus'
   const [editedPrices, setEditedPrices] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
@@ -447,41 +450,39 @@ export default function Overview() {
     setIsDraggingMenu(false)
 
     if (over && active.id !== over.id) {
-      const activeType = active.data.current?.type
-      const overType = over.data.current?.type
-
-      if (activeType === 'menu' && overType === 'menu') {
+      // We use the current view level to determine what we are sorting
+      if (viewLevel === 'menus') {
         setMenuOrder(order => {
           const oldIndex = order.indexOf(active.id as string)
           const newIndex = order.indexOf(over.id as string)
-          // Prevent unnecessary moves for small differences
-          if (Math.abs(oldIndex - newIndex) < 1) return order
-          const newOrder = arrayMove(order, oldIndex, newIndex)
-          const payload = newOrder.map((id, index) => ({ id, displayOrder: index }))
+          if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return order
+          const prev = [...order]
+          const next = arrayMove(order, oldIndex, newIndex)
+          const payload = next.map((id, index) => ({ id, displayOrder: index }))
           updateMenuOrderMutation.mutate(payload)
-          return newOrder
+          return next
         })
-      } else if (activeType === 'category' && overType === 'category') {
-        const menuId = active.data.current?.menuId
+      } else if (viewLevel === 'menu' && selectedMenuId) {
         setCategoryOrders(orders => {
-          const newOrders = { ...orders }
-          const oldIndex = newOrders[menuId].indexOf(active.id as string)
-          const newIndex = newOrders[menuId].indexOf(over.id as string)
-          newOrders[menuId] = arrayMove(newOrders[menuId], oldIndex, newIndex)
-          const payload = newOrders[menuId].map((id, index) => ({ id, displayOrder: index }))
+          const items = orders[selectedMenuId] || []
+          const oldIndex = items.indexOf(active.id as string)
+          const newIndex = items.indexOf(over.id as string)
+          if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return orders
+          const nextItems = arrayMove(items, oldIndex, newIndex)
+          const payload = nextItems.map((id, index) => ({ id, displayOrder: index }))
           updateCategoryOrderMutation.mutate(payload)
-          return newOrders
+          return { ...orders, [selectedMenuId]: nextItems }
         })
-      } else if (activeType === 'product' && overType === 'product') {
-        const categoryId = active.data.current?.categoryId
+      } else if (viewLevel === 'category' && selectedCategoryId) {
         setLocalProductOrder(orders => {
-          const newOrders = { ...orders }
-          const oldIndex = newOrders[categoryId].indexOf(active.id as string)
-          const newIndex = newOrders[categoryId].indexOf(over.id as string)
-          newOrders[categoryId] = arrayMove(newOrders[categoryId], oldIndex, newIndex)
-          const payload = newOrders[categoryId].map((id, index) => ({ id, displayOrder: index }))
+          const items = orders[selectedCategoryId] || []
+          const oldIndex = items.indexOf(active.id as string)
+          const newIndex = items.indexOf(over.id as string)
+          if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return orders
+          const nextItems = arrayMove(items, oldIndex, newIndex)
+          const payload = nextItems.map((id, index) => ({ id, displayOrder: index }))
           updateProductOrderMutation.mutate(payload)
-          return newOrders
+          return { ...orders, [selectedCategoryId]: nextItems }
         })
       }
     }
@@ -517,6 +518,31 @@ export default function Overview() {
     setExpandedMenus(allExpanded)
   }
 
+  // Build current center list based on selection (defined before early returns to keep hooks order stable)
+  const centerItems = useMemo(() => {
+    if (viewLevel === 'menus') return filteredMenus
+    if (viewLevel === 'menu') {
+      const menu = menusData?.find(m => m.id === selectedMenuId)
+      if (!menu) return []
+      return getSortedCategories(menu)
+    }
+    // category view
+    return selectedCategoryId ? getProductsForCategory(selectedCategoryId) : []
+  }, [viewLevel, filteredMenus, menusData, selectedMenuId, selectedCategoryId, getSortedCategories, getProductsForCategory])
+
+  const centerItemIds = useMemo(() => {
+    if (viewLevel === 'menus') return menuOrder
+    if (viewLevel === 'menu' && selectedMenuId) return categoryOrders[selectedMenuId] || []
+    if (viewLevel === 'category' && selectedCategoryId) return localProductOrder[selectedCategoryId] || []
+    return []
+  }, [viewLevel, menuOrder, categoryOrders, localProductOrder, selectedMenuId, selectedCategoryId])
+
+  const filteredCenterItems = useMemo(() => {
+    if (!searchTerm) return centerItems
+    const q = searchTerm.toLowerCase()
+    return centerItems.filter((item: any) => (item?.name || '').toLowerCase().includes(q))
+  }, [centerItems, searchTerm])
+
   if (menusLoading || productsLoading) return <OverviewSkeleton />
 
   if (menusError || productsError) {
@@ -534,9 +560,21 @@ export default function Overview() {
       productsData?.find(p => p.id === activeId)
     : null
 
+  const handleSelectMenu = (menuId: string) => {
+    setSelectedMenuId(menuId)
+    setSelectedCategoryId(null)
+  }
+  const handleSelectCategory = (categoryId: string, menuId: string) => {
+    setSelectedMenuId(menuId)
+    setSelectedCategoryId(categoryId)
+  }
+
+  // no explicit selected item inspector for products yet; we keep simple inspector
+
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">{t('menu.overview.title')}</h1>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
@@ -557,69 +595,178 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+      {/* Global search */}
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="relative w-full max-w-2xl">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder={t('menu.overview.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-9 bg-background border-input w-full"
           />
         </div>
-        <Button variant="outline" onClick={expandAll}>
-          {t('menu.overview.expandAll')}
-        </Button>
-        <Button variant="outline" onClick={collapseAll}>
-          {t('menu.overview.collapseAll')}
-        </Button>
+        <Button variant="outline" onClick={expandAll}>{t('menu.overview.expandAll')}</Button>
+        <Button variant="outline" onClick={collapseAll}>{t('menu.overview.collapseAll')}</Button>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <SortableContext items={menuOrder} strategy={rectSortingStrategy}>
-          {filteredMenus.map(menu => (
-            <SortableMenu
-              key={menu.id}
-              menu={menu}
-              onToggleActive={(id, active) => toggleMenuActiveMutation.mutate({ menuId: id, active })}
-              isExpanded={expandedMenus[menu.id] ?? false}
-              onToggleExpansion={() => toggleMenuExpansion(menu.id)}
-              isDraggingMenu={isDraggingMenu}
-            >
-              <SortableContext items={categoryOrders[menu.id] || []} strategy={verticalListSortingStrategy}>
-                {getSortedCategories(menu).map(category => (
-                  <SortableCategory key={category.id} menuId={menu.id} category={category}>
-                    <SortableContext items={localProductOrder[category.id] || []} strategy={verticalListSortingStrategy}>
-                      {getProductsForCategory(category.id).map(product => (
-                        <SortableProduct
-                          key={product.id}
-                          product={product}
-                          editedPrices={editedPrices}
-                          handlePriceChange={handlePriceChange}
-                          handlePriceBlur={handlePriceBlur}
-                          imageErrors={imageErrors}
-                          setImageErrors={setImageErrors}
+      {/* Three-column layout */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Left: Tree */}
+        <aside className="col-span-3 rounded-lg border p-3 bg-card">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Tree</div>
+          <ul className="space-y-1">
+            {filteredMenus.map(menu => (
+              <li key={menu.id}>
+                <button
+                  className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${selectedMenuId === menu.id && viewLevel !== 'menus' ? 'bg-accent' : ''}`}
+                  onClick={() => handleSelectMenu(menu.id)}
+                >
+                  <span className="font-medium">{menu.name}</span>
+                </button>
+                {(expandedMenus[menu.id] ?? true) && (
+                  <ul className="ml-3 mt-1 space-y-1">
+                    {(menu.categories || []).map(mc => (
+                      <li key={mc.category.id}>
+                        <button
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${selectedCategoryId === mc.category.id ? 'bg-accent' : ''}`}
+                          onClick={() => handleSelectCategory(mc.category.id, menu.id)}
+                        >
+                          {mc.category.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        {/* Center: List with sorting */}
+        <main className="col-span-6 rounded-lg border bg-card">
+          <div className="flex items-center justify-between px-3 py-2 border-b">
+            <div className="text-sm font-medium">
+              {viewLevel === 'menus' && 'Menus'}
+              {viewLevel === 'menu' && 'Categories'}
+              {viewLevel === 'category' && 'Products'}
+            </div>
+            <div className="text-xs text-muted-foreground">{filteredCenterItems.length} items</div>
+          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <SortableContext items={centerItemIds} strategy={verticalListSortingStrategy}>
+              <div className="p-2">
+                {filteredCenterItems.map((item: any) => {
+                  if (viewLevel === 'menus') {
+                    return (
+                      <div key={item.id} className="flex items-center p-2 rounded hover:bg-muted">
+                        <MenuRow
+                          menu={item}
+                          onToggleActive={(id, active) => toggleMenuActiveMutation.mutate({ menuId: id, active })}
+                          onSelect={() => handleSelectMenu(item.id)}
                         />
-                      ))}
-                    </SortableContext>
-                  </SortableCategory>
-                ))}
-              </SortableContext>
-            </SortableMenu>
-          ))}
-        </SortableContext>
-        <DragOverlay>
-          {activeId && activeItem && (
-            <div className="p-4 rounded-lg shadow-2xl bg-card border-border border-2 dark:border-blue-600 bg-opacity-95 backdrop-blur-sm">
-              <div className="flex items-center space-x-3">
-                <GripVertical className="text-muted-foreground" size={20} />
-                <p className="font-semibold text-lg">{'name' in activeItem ? activeItem.name : t('menu.overview.draggedItem')}</p>
+                      </div>
+                    )
+                  } else if (viewLevel === 'menu') {
+                    return (
+                      <div key={item.id} className="flex items-center p-2 rounded hover:bg-muted">
+                        <CategoryRow category={item} menuId={selectedMenuId!} onSelect={() => handleSelectCategory(item.id, selectedMenuId!)} />
+                      </div>
+                    )
+                  } else {
+                    return (
+                      <SortableProduct
+                        key={item.id}
+                        product={item}
+                        editedPrices={editedPrices}
+                        handlePriceChange={handlePriceChange}
+                        handlePriceBlur={handlePriceBlur}
+                        imageErrors={imageErrors}
+                        setImageErrors={setImageErrors}
+                      />
+                    )
+                  }
+                })}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeId && activeItem && (
+                <div className="p-2 rounded-md shadow-2xl bg-card border-border border bg-opacity-95 backdrop-blur-sm">
+                  <div className="flex items-center space-x-2">
+                    <GripVertical className="text-muted-foreground" size={18} />
+                    <p className="font-semibold text-sm">{'name' in activeItem ? (activeItem as any).name : t('menu.overview.draggedItem')}</p>
+                  </div>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+        </main>
+
+        {/* Right: Inspector */}
+        <aside className="col-span-3 rounded-lg border p-3 bg-card">
+          <div className="flex items-center gap-2 text-sm font-medium mb-2">
+            <Info className="h-4 w-4" /> Inspector
+          </div>
+          {viewLevel === 'menus' && (
+            <p className="text-sm text-muted-foreground">Select a menu to see details.</p>
+          )}
+          {viewLevel === 'menu' && selectedMenuId && (
+            <div className="space-y-2 text-sm">
+              <div className="font-medium">Menu</div>
+              <div className="text-muted-foreground">{menusData?.find(m => m.id === selectedMenuId)?.name}</div>
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-muted-foreground">Active</span>
+                <Switch
+                  checked={!!menusData?.find(m => m.id === selectedMenuId)?.active}
+                  onCheckedChange={checked => toggleMenuActiveMutation.mutate({ menuId: selectedMenuId, active: checked })}
+                />
               </div>
             </div>
           )}
-        </DragOverlay>
-      </DndContext>
+          {viewLevel === 'category' && selectedCategoryId && (
+            <div className="space-y-2 text-sm">
+              <div className="font-medium">Category</div>
+              <div className="text-muted-foreground">
+                {menusData?.flatMap(m => m.categories?.map(c => c.category)).find(c => c.id === selectedCategoryId)?.name}
+              </div>
+              <div className="text-xs text-muted-foreground">Drag to reorder products within this category.</div>
+            </div>
+          )}
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+// Presentation-only rows with drag handle restricted to the grip
+function MenuRow({ menu, onToggleActive, onSelect }: { menu: Menu; onToggleActive: (id: string, active: boolean) => void; onSelect: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: menu.id, data: { type: 'menu' } })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center w-full">
+      <button {...attributes} {...listeners} className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
+        <GripVertical size={18} />
+      </button>
+      <button className="text-left flex-1" onClick={onSelect}>
+        <div className="font-medium">{menu.name}</div>
+      </button>
+      <Switch checked={menu.active} onCheckedChange={checked => onToggleActive(menu.id, checked)} />
+    </div>
+  )
+}
+
+function CategoryRow({ category, menuId, onSelect }: { category: MenuCategory; menuId: string; onSelect: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: category.id, data: { type: 'category', menuId } })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center w-full">
+      <button {...attributes} {...listeners} className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
+        <GripVertical size={18} />
+      </button>
+      <button className="text-left flex-1" onClick={onSelect}>
+        <div className="font-medium">{category.name}</div>
+      </button>
     </div>
   )
 }
