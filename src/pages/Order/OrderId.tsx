@@ -1,5 +1,3 @@
-// src/pages/OrderId.tsx
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,39 +9,108 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import * as orderService from '@/services/order.service'
-import { OrderStatus, Order as OrderType, StaffRole } from '@/types' // CAMBIO: Usar tipos Order y OrderStatus
+import { OrderStatus, Order as OrderType, StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, PencilIcon, Save, Trash2, X } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Copy,
+  DollarSign,
+  Download,
+  Eye,
+  FileText,
+  MapPin,
+  PencilIcon,
+  Receipt,
+  RefreshCw,
+  Save,
+  Shield,
+  Trash2,
+  TrendingUp,
+  Utensils,
+  X,
+  XCircle,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function OrderId() {
   const { t, i18n } = useTranslation()
-  // CAMBIO: billId ahora es orderId
-  const { orderId } = useParams()
+  const { orderId } = useParams<{ orderId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const { venueId } = useCurrentVenue() // Hook actualizado
+  const { venueId } = useCurrentVenue()
 
   const [isEditing, setIsEditing] = useState(false)
-  // CAMBIO: el estado ahora es de tipo OrderType o null
   const [editedOrder, setEditedOrder] = useState<OrderType | null>(null)
+
+  // Enhanced status badge styling for enterprise look
+  const getOrderStatusStyle = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+      case 'PAID':
+      case 'CLOSED':
+        return {
+          badge:
+            'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
+          icon: CheckCircle2,
+          color: 'text-emerald-500',
+        }
+      case 'PENDING':
+      case 'OPEN':
+        return {
+          badge: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200 border border-amber-200 dark:border-amber-800',
+          icon: Clock,
+          color: 'text-amber-500',
+        }
+      case 'CANCELLED':
+      case 'CANCELED':
+      case 'DELETED':
+        return {
+          badge: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800',
+          icon: XCircle,
+          color: 'text-red-500',
+        }
+      default:
+        return {
+          badge: 'bg-muted text-muted-foreground border border-border',
+          icon: AlertCircle,
+          color: 'text-muted-foreground',
+        }
+    }
+  }
+
+  // Copy to clipboard helper
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast({
+      title: 'Copiado',
+      description: `${label} copiado al portapapeles`,
+    })
+  }
 
   // CAMBIO: Opciones de estado basadas en el enum OrderStatus con i18n
   const statusOptions = Object.values(OrderStatus).map(status => ({
@@ -124,238 +191,584 @@ export default function OrderId() {
     setEditedOrder(order || null)
   }
 
-  // CAMBIO: la ruta de retorno ahora es a /orders
   const from = (location.state as any)?.from || `/venues/${venueId}/orders`
-
-  if (isLoading) return <div className="p-8 text-center">{t('orders.detail.loading')}</div>
-  if (!order) return <div className="p-8 text-center">{t('orders.detail.notFound')}</div>
-
-  // Format date for display
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-'
-
     const date = new Date(dateString)
-
     return date.toLocaleString(getIntlLocale(i18n.language), {
+      weekday: 'long',
       year: 'numeric',
-
       month: 'long',
-
       day: 'numeric',
-
       hour: '2-digit',
-
       minute: '2-digit',
+      second: '2-digit',
     })
   }
 
-  // Map status to Spanish
-
   const getStatusText = (status: string) => t(`orders.detail.statuses.${status}`)
-  // Get status style classes
 
-  const getStatusClasses = (status: string) => {
-    if (status === 'PAID' || status === 'CLOSED' || status === 'COMPLETED') {
-      return {
-        bg: 'bg-green-100',
-
-        text: 'text-green-800',
-      }
-    } else if (status === 'OPEN' || status === 'PENDING') {
-      return {
-        bg: 'bg-yellow-100',
-
-        text: 'text-yellow-800',
-      }
-    } else if (status === 'CANCELED' || status === 'CANCELLED' || status === 'DELETED') {
-      return {
-        bg: 'bg-red-100',
-
-        text: 'text-red-800',
-      }
-    }
-
-    return {
-      bg: 'bg-secondary',
-
-      text: 'text-secondary-foreground',
-    }
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-muted-foreground">Cargando información de la orden...</p>
+      </div>
+    )
   }
-  const statusClasses = getStatusClasses(order.status)
+
+  if (!order) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertCircle className="h-16 w-16 text-muted-foreground" />
+        <p className="text-lg text-muted-foreground">{t('orders.detail.notFound')}</p>
+        <Button asChild>
+          <Link to={from}>Volver a Órdenes</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const orderStatus = getOrderStatusStyle(order.status)
+  const StatusIcon = orderStatus.icon
+
+  // Calculate order statistics
+  const itemsCount = order.items?.length || 0
+  const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0
 
   return (
-    <div>
-      {/* --- CABECERA --- */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
-        <div className="space-x-4 flex items-center">
-          <Link to={from}>
-            <ArrowLeft />
-          </Link>
-          <span>{t('orders.detail.title', { number: order.orderNumber })}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isEditing ? (
-            <Select value={editedOrder?.status} onValueChange={(value: OrderStatus) => handleInputChange('status', value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className={`px-3 py-1 ${statusClasses.bg} ${statusClasses.text} rounded-full font-medium`}>
-              {getStatusText(order.status)}
-            </span>
-          )}
-          {user?.role === StaffRole.SUPERADMIN ||
-            (user?.role === StaffRole.OWNER && (
-              <>
-                {isEditing /* Botones Guardar/Cancelar */ ? (
-                  <>
-                    <Button variant="default" size="sm" onClick={handleSave}>
-                      <Save className="h-4 w-4 mr-2" />
-                      {t('common.save', { defaultValue: 'Guardar' })}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleCancel}>
-                      <X className="h-4 w-4 mr-2" />
-                      {t('common.cancel')}
-                    </Button>
-                  </>
-                ) : (
-                  /* Botón Editar */
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <PencilIcon className="h-4 w-4 mr-2" />
-                    {t('common.edit', { defaultValue: 'Editar' })}
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-b from-muted to-background">
+        {/* Enhanced Header */}
+        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center space-x-4">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to={from}>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Link>
                   </Button>
-                )}
-                {/* Botón Eliminar */}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('common.delete', { defaultValue: 'Eliminar' })}
+                </TooltipTrigger>
+                <TooltipContent>{t('orders.detail.backToList', { defaultValue: 'Volver a órdenes' })}</TooltipContent>
+              </Tooltip>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">{t('orders.detail.title', { number: order.orderNumber })}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {t('orders.detail.idLabel', { defaultValue: 'ID' })}:
+                  <span className="font-mono text-xs break-all select-all max-w-[200px] inline-block">{order.id}</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              {isEditing ? (
+                <Select value={editedOrder?.status} onValueChange={(value: OrderStatus) => handleInputChange('status', value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Badge variant="outline" className={orderStatus.badge}>
+                  <StatusIcon className={`h-3 w-3 mr-1 ${orderStatus.color}`} />
+                  {getStatusText(order.status)}
+                </Badge>
+              )}
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">{t('orders.detail.totals.total', { defaultValue: 'Total' })}</p>
+                <p className="text-lg font-bold text-foreground">{Currency(order.total || 0)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          {/* Quick Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-emerald-500">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('orders.detail.overview.subtotal', { defaultValue: 'Subtotal' })}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">{Currency(order.subtotal || 0)}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-emerald-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('orders.detail.overview.tips', { defaultValue: 'Propinas' })}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">{Currency(order.tipAmount || 0)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {order.subtotal && order.subtotal > 0 ? (((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1) : '0.0'}%
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-purple-500">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('orders.detail.overview.items', { defaultValue: 'Artículos' })}
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">{totalItems}</p>
+                    <p className="text-xs text-muted-foreground">{itemsCount} productos únicos</p>
+                  </div>
+                  <Utensils className="h-8 w-8 text-purple-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('orders.detail.overview.table', { defaultValue: 'Mesa' })}
+                    </p>
+                    <p className="text-lg font-bold text-foreground">{order.table?.number || 'N/A'}</p>
+                    <p className="text-xs text-muted-foreground">{order.table?.area?.name || 'Sin área'}</p>
+                  </div>
+                  <MapPin className="h-8 w-8 text-orange-500" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Action Bar */}
+          {order && (
+            <Card className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium text-foreground">
+                      {t('orders.detail.actions.title', { defaultValue: 'Acciones de la Orden' })}
+                    </span>
+                  </div>
+                  <div className="flex space-x-2">
+                    {/* Edit/Save/Cancel Actions */}
+                    {(user?.role === StaffRole.SUPERADMIN || user?.role === StaffRole.OWNER) && (
+                      <>
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleSave}
+                              disabled={updateOrderMutation.isPending}
+                              className="bg-background hover:bg-green-50 dark:hover:bg-green-950/50"
+                            >
+                              {updateOrderMutation.isPending ? (
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Save className="w-4 h-4 mr-2" />
+                              )}
+                              {t('common.save', { defaultValue: 'Guardar' })}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancel}
+                              className="bg-background hover:bg-red-50 dark:hover:bg-red-950/50"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              {t('common.cancel', { defaultValue: 'Cancelar' })}
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                            className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                          >
+                            <PencilIcon className="w-4 h-4 mr-2" />
+                            {t('common.edit', { defaultValue: 'Editar' })}
+                          </Button>
+                        )}
+                      </>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                      onClick={() => copyToClipboard(order.id || '', 'ID de la orden')}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar ID
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
-                      <AlertDialogDescription>{t('orders.detail.deleteWarning')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>
-                        {t('common.delete', { defaultValue: 'Eliminar' })}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            ))}
-        </div>
-      </div>
 
-      {/* --- CUERPO --- */}
-      <div className="max-w-4xl p-6 mx-auto">
-        {/* OBSOLETO: El QR ahora está en la mesa, no en la orden. Se puede quitar o adaptar esta lógica. */}
-        {/* <Button>Ver QR de la Mesa {order.table?.number}</Button> */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                      onClick={() => {
+                        // Export order details as JSON
+                        const data = JSON.stringify(order, null, 2)
+                        const blob = new Blob([data], { type: 'application/json' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `order-${order.orderNumber}.json`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar
+                    </Button>
 
-        {/* --- DETALLES DE LA ORDEN --- */}
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label>{t('orders.detail.fields.orderId')}</Label>
-              <Input value={order.id} disabled />
-            </div>
-            <div>
-              <Label>{t('orders.detail.fields.createdAt')}</Label>
-              <Input value={formatDate(order.createdAt)} disabled />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label>{t('orders.detail.fields.orderNumber')}</Label>
-              <Input value={order.orderNumber} disabled />
-            </div>
-            <div>
-              <Label>{t('orders.detail.fields.customerName')}</Label>
-              <Input
-                value={isEditing ? editedOrder?.customerName || '' : order.customerName || t('orders.counter')}
-                disabled={!isEditing}
-                onChange={e => handleInputChange('customerName', e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Label>{t('orders.detail.fields.table')}</Label>
-              <Input value={order.table?.number || t('orders.detail.noTable')} disabled />
-            </div>
-            <div>
-              <Label>{t('orders.detail.fields.waiter')}</Label>
-              <Input value={order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : '-'} disabled />
-            </div>
-          </div>
-        </div>
-
-        <Separator className="my-8" />
-
-        {/* --- RESUMEN FINANCIERO --- */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">{t('orders.detail.financialSummary.title')}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.subtotal')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.subtotal)}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.tips')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.tipAmount)}</p>
-            </div>
-            <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('orders.detail.financialSummary.total')}</Label>
-              <p className="text-xl font-semibold">{Currency(order.total)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* OBSOLETO: La sección de "Detalles de Propinas" ya no es necesaria, la info está en el resumen y en los pagos. */}
-
-        {/* --- PAGOS ASOCIADOS --- */}
-        {order.payments && order.payments.length > 0 && (
-          <>
-            <Separator className="my-8" />
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">{t('orders.detail.associatedPayments.title')}</h3>
-              {order.payments.map(payment => (
-                <div key={payment.id} className="p-4 border rounded-md grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.paymentId')}</Label>
-                    <p className="font-medium truncate">{payment.id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.amount')}</Label>
-                    <p className="font-medium">{Currency(payment.amount)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.tip')}</Label>
-                    <p className="font-medium">{Currency(payment.tipAmount)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">{t('orders.detail.associatedPayments.fields.method')}</Label>
-                    <p className="font-medium">{t(`payments.methods.${String(payment.method).toLowerCase()}`)}</p>
+                    {/* Delete Action (Only for SUPERADMIN/OWNER) */}
+                    {(user?.role === StaffRole.SUPERADMIN || user?.role === StaffRole.OWNER) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-background hover:bg-red-50 dark:hover:bg-red-950/50 text-red-600 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {t('common.delete', { defaultValue: 'Eliminar' })}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
+                            <AlertDialogDescription>{t('orders.detail.deleteWarning')}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>
+                              {t('common.delete', { defaultValue: 'Eliminar' })}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
-              ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Order Information Card */}
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
+                  <CardTitle className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <span>Información de la Orden</span>
+                  </CardTitle>
+                  <CardDescription>Detalles completos de la orden</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>Fecha y Hora</span>
+                      </Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="font-mono text-sm">{formatDate(order.createdAt)}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Número de Orden</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="font-mono text-sm">{order.orderNumber}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Cliente</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        {isEditing ? (
+                          <Input
+                            value={editedOrder?.customerName || ''}
+                            onChange={e => handleInputChange('customerName', e.target.value)}
+                            placeholder="Nombre del cliente"
+                            className="border-0 p-0 h-auto bg-transparent"
+                          />
+                        ) : (
+                          <p className="text-sm">{order.customerName || t('orders.counter', { defaultValue: 'Mostrador' })}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Mesa</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="text-sm">{order.table?.number || 'No especificada'}</p>
+                        {order.table?.area?.name && <p className="text-xs text-muted-foreground">{order.table.area.name}</p>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Mesero</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="text-sm">
+                          {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : 'No especificado'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Tipo de Orden</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="text-sm">{order.type || 'No especificado'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Items Section */}
+              {order.items && order.items.length > 0 && (
+                <Card className="shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
+                    <CardTitle className="flex items-center space-x-2">
+                      <Utensils className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <span>Artículos de la Orden</span>
+                    </CardTitle>
+                    <CardDescription>Detalle de los productos incluidos en esta orden</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      {order.items.map((item, index) => (
+                        <div
+                          key={item.id || index}
+                          className="flex justify-between items-center p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3">
+                              <Badge variant="secondary" className="font-medium">
+                                {item.quantity}x
+                              </Badge>
+                              <span className="font-medium text-foreground">{item.product?.name || 'Producto no disponible'}</span>
+                            </div>
+                            <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
+                              <span>{Currency(item.unitPrice || 0)} c/u</span>
+                              {item.modifiers && item.modifiers.length > 0 && <span>+{item.modifiers.length} modificadores</span>}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold">{Currency(item.total || 0)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payments Section */}
+              {order.payments && order.payments.length > 0 && (
+                <Card className="shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-muted to-purple-50 dark:to-purple-950/50 border-b">
+                    <CardTitle className="flex items-center space-x-2">
+                      <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span>Pagos Asociados</span>
+                    </CardTitle>
+                    <CardDescription>Historial de pagos realizados para esta orden</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-3">
+                      {order.payments.map(payment => (
+                        <div
+                          key={payment.id}
+                          className="flex justify-between items-center p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-3">
+                              <Badge variant="secondary" className="font-medium">
+                                {t(`payments.methods.${String(payment.method).toLowerCase()}`)}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">ID: {payment.id.slice(0, 8)}...</span>
+                            </div>
+                            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                              <span>Base: {Currency(payment.amount)}</span>
+                              <span>Propina: {Currency(payment.tipAmount)}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold">{Currency(Number(payment.amount) + Number(payment.tipAmount))}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-1"
+                              onClick={() => navigate(`/venues/${venueId}/payments/${payment.id}`)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          </>
-        )}
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Order Status Card */}
+              <Card className="shadow-lg border-t-4 border-t-blue-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <StatusIcon className={`h-5 w-5 ${orderStatus.color}`} />
+                    <span>Estado de la Orden</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center py-4">
+                    <div
+                      className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-3 ${
+                        orderStatus.badge.replace('text-', 'bg-').replace('dark:text-', 'dark:bg-').split(' ')[0]
+                      }`}
+                    >
+                      <StatusIcon className={`h-8 w-8 ${orderStatus.color}`} />
+                    </div>
+                    <Badge variant="outline" className={`${orderStatus.badge} text-sm px-3 py-1`}>
+                      {getStatusText(order.status)}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Última actualización: {order.updatedAt ? formatDate(order.updatedAt) : 'No disponible'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Summary Card */}
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <DollarSign className="h-5 w-5 text-green-500" />
+                    <span>Resumen Financiero</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
+                      <span className="text-lg font-bold">{Currency(order.subtotal || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Propinas</span>
+                        <p className="text-xs text-muted-foreground">
+                          {order.subtotal && order.subtotal > 0
+                            ? `${(((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1)}% del subtotal`
+                            : '0.0% del subtotal'}
+                        </p>
+                      </div>
+                      <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{Currency(order.tipAmount || 0)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border-2 border-green-200 dark:border-green-800">
+                      <span className="text-base font-bold text-green-800 dark:text-green-200">Total</span>
+                      <span className="text-xl font-bold text-green-800 dark:text-green-200">{Currency(order.total || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Base</span>
+                      <span>Propinas</span>
+                    </div>
+                    <Progress
+                      value={order.subtotal && order.total && order.total > 0 ? (order.subtotal / order.total) * 100 : 0}
+                      className="h-2"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Info Card */}
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span>Información Rápida</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mesa:</span>
+                      <span className="font-medium">{order.table?.number || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mesero:</span>
+                      <span className="font-medium">
+                        {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Artículos:</span>
+                      <span className="font-medium">
+                        {totalItems} ({itemsCount} únicos)
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tipo:</span>
+                      <span className="font-medium">{order.type || 'N/A'}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pagos:</span>
+                      <span className="font-medium">{order.payments?.length || 0}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t bg-muted mt-8">
+          <div className="max-w-7xl mx-auto p-4">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center space-x-4">
+                <span>© 2024 Avoqado POS System</span>
+                <Separator orientation="vertical" className="h-4" />
+                <span>Orden ID: {order.id}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span>Generado el {new Date().toLocaleString(getIntlLocale(i18n.language))}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }
