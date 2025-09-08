@@ -16,6 +16,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   const navMain = React.useMemo(
     () => [
       { title: t('routes.home'), isActive: true, url: 'home', icon: Home },
+      { title: t('sidebar.analytics'), isActive: true, url: 'analytics', icon: TrendingUp },
       { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen },
       { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote },
       { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame },

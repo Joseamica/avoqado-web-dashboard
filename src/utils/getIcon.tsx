@@ -228,6 +228,7 @@ export const GooglePay = props => (
   </figure>
 )
 
+// eslint-disable-next-line react-refresh/only-export-components
 export default function getIcon(type) {
   const normalizedType = String(type || '')
     .toLowerCase()

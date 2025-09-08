@@ -10,76 +10,82 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import countryList from 'react-select-country-list'
 import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
+// Image upload and crop support
+import Cropper from 'react-easy-crop'
+import { storage } from '@/firebase'
+import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
+import { getCroppedImg } from '@/utils/cropImage'
 
-// Add VenueType enum to match Prisma schema
+// Enums to match Prisma schema exactly
 enum VenueType {
   RESTAURANT = 'RESTAURANT',
-  STUDIO = 'STUDIO',
   BAR = 'BAR',
   CAFE = 'CAFE',
+  FAST_FOOD = 'FAST_FOOD',
+  FOOD_TRUCK = 'FOOD_TRUCK',
+  RETAIL_STORE = 'RETAIL_STORE',
+  HOTEL_RESTAURANT = 'HOTEL_RESTAURANT',
+  FITNESS_STUDIO = 'FITNESS_STUDIO',
+  SPA = 'SPA',
   OTHER = 'OTHER',
 }
 
-enum PosNames {
-  WANSOFT = 'WANSOFT',
+enum PosType {
   SOFTRESTAURANT = 'SOFTRESTAURANT',
+  SQUARE = 'SQUARE',
+  TOAST = 'TOAST',
+  CLOVER = 'CLOVER',
+  ALOHA = 'ALOHA',
+  MICROS = 'MICROS',
+  NCR = 'NCR',
+  CUSTOM = 'CUSTOM',
   NONE = 'NONE',
 }
 
 const venueFormSchema = z.object({
+  // Required fields from Prisma schema
   name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
-  posName: z.string().nullable().optional(),
-  posUniqueId: z.string().nullable().optional(),
-
-  address: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  type: z.string().nullable().optional(),
-  country: z.string().nullable().optional(),
-  utc: z.string().nullable().default('America/Mexico_City'),
-  instagram: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  email: z.string().email().nullable().optional(),
+  address: z.string().min(1, { message: 'La dirección es requerida.' }),
+  city: z.string().min(1, { message: 'La ciudad es requerida.' }),
+  state: z.string().min(1, { message: 'El estado es requerido.' }),
+  country: z.string().min(1, { message: 'El país es requerido.' }).default('MX'),
+  zipCode: z.string().min(1, { message: 'El código postal es requerido.' }),
+  phone: z.string().min(1, { message: 'El teléfono es requerido.' }),
+  email: z.string().email({ message: 'Debe ser un email válido.' }),
+  
+  // Optional fields from Prisma schema
+  type: z.nativeEnum(VenueType).default(VenueType.RESTAURANT),
+  timezone: z.string().default('America/Mexico_City'),
+  currency: z.string().default('MXN'),
   website: z.string().nullable().optional(),
-  language: z.string().nullable().default('es'),
-  image: z.string().nullable().optional(),
   logo: z.string().nullable().optional(),
-  cuisine: z.string().nullable().optional(),
-  dynamicMenu: z.boolean().default(false),
-  wifiName: z.string().nullable().optional(),
-  wifiPassword: z.string().nullable().optional(),
-  softRestaurantVenueId: z.string().nullable().optional(),
-  tipPercentage1: z.string().default('0.10'),
-  tipPercentage2: z.string().default('0.15'),
-  tipPercentage3: z.string().default('0.20'),
-  tipPercentages: z.array(z.number()).default([0.1, 0.15, 0.2]),
-  askNameOrdering: z.boolean().default(false),
-  googleBusinessId: z.string().nullable().optional(),
-  stripeAccountId: z.string().nullable().optional(),
-  specialPayment: z.boolean().default(false),
-  specialPaymentRef: z.string().nullable().optional(),
-  ordering: z.boolean().default(false),
-  // Menta fields
-  merchantIdA: z.string().nullable().optional(),
-  merchantIdB: z.string().nullable().optional(),
-  apiKeyA: z.string().nullable().optional(),
-  apiKeyB: z.string().nullable().optional(),
+  primaryColor: z.string().nullable().optional(),
+  secondaryColor: z.string().nullable().optional(),
+  
+  // POS Integration fields
+  posType: z.nativeEnum(PosType).nullable().optional(),
+  
+  // Location coordinates
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 })
 
 type VenueFormValues = z.infer<typeof venueFormSchema>
@@ -159,13 +165,16 @@ function VenueSkeleton() {
 }
 
 export default function EditVenue() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
+  const { user } = useAuth()
+  const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
 
   // Get the list of countries - moved to top of component
   const countries = useMemo(() => {
     // Obtener la lista de países pero usar el código ISO de dos letras como valor
     const list = countryList().getData()
-    return list.map(country => ({
+    return list.map((country: any) => ({
       value: country.value,
       label: `${country.label} (${country.value})`, // Mostrar el código junto al nombre
     }))
@@ -192,137 +201,160 @@ export default function EditVenue() {
     resolver: zodResolver(venueFormSchema),
     defaultValues: {
       name: '',
-      posName: null,
-      posUniqueId: '',
       address: '',
       city: '',
-      type: null,
-      country: '',
-      utc: 'America/Mexico_City',
-      instagram: '',
+      state: '',
+      country: 'MX',
+      zipCode: '',
       phone: '',
       email: '',
+      type: VenueType.RESTAURANT,
+      timezone: 'America/Mexico_City',
+      currency: 'MXN',
       website: '',
-      language: 'es',
-      image: '',
       logo: '',
-      cuisine: '',
-      dynamicMenu: false,
-      wifiName: '',
-      wifiPassword: '',
-      softRestaurantVenueId: '',
-      tipPercentage1: '0.10',
-      tipPercentage2: '0.15',
-      tipPercentage3: '0.20',
-      tipPercentages: [0.1, 0.15, 0.2],
-      askNameOrdering: false,
-      googleBusinessId: '',
-      stripeAccountId: '',
-      specialPayment: false,
-      specialPaymentRef: '',
-      ordering: false,
-      merchantIdA: '',
-      merchantIdB: '',
-      apiKeyA: '',
-      apiKeyB: '',
+      primaryColor: '',
+      secondaryColor: '',
+      posType: null,
+      latitude: null,
+      longitude: null,
     },
   })
 
   // Update form values when venue data is loaded
   useEffect(() => {
     if (venue) {
-      console.log('Venue data for reset:', venue) // Debugging
-
-      // El país puede venir como código ISO (MX) o como nombre completo
-      const countryValue = venue.country || ''
-      console.log('Country value from API:', countryValue)
 
       form.reset({
         name: venue.name || '',
-        posName: (venue.posName as PosNames) || null,
-        posUniqueId: venue.posUniqueId || null,
-        address: venue.address || null,
-        city: venue.city || null,
-        type: (venue.type as VenueType) || null,
-        country: countryValue || null, // Usamos el valor tal como viene
-        utc: venue.utc || 'America/Mexico_City',
-        instagram: venue.instagram || null,
-        phone: venue.phone || null,
-        email: venue.email || null,
-        website: venue.website || null,
-        language: venue.language || 'es',
-        image: venue.image || null,
-        logo: venue.logo || null,
-        cuisine: venue.cuisine || null,
-        dynamicMenu: Boolean(venue.dynamicMenu),
-        wifiName: venue.wifiName || null,
-        wifiPassword: venue.wifiPassword || null,
-        softRestaurantVenueId: venue.softRestaurantVenueId || null,
-        tipPercentage1: venue.tipPercentage1 || '0.10',
-        tipPercentage2: venue.tipPercentage2 || '0.15',
-        tipPercentage3: venue.tipPercentage3 || '0.20',
-        tipPercentages: venue.tipPercentages || [0.1, 0.15, 0.2],
-        askNameOrdering: Boolean(venue.askNameOrdering),
-        googleBusinessId: venue.googleBusinessId || null,
-        stripeAccountId: venue.stripeAccountId || null,
-        specialPayment: Boolean(venue.specialPayment),
-        specialPaymentRef: venue.specialPaymentRef || null,
-        ordering: Boolean(venue.feature?.ordering),
-        merchantIdA: venue.menta?.merchantIdA || null,
-        merchantIdB: venue.menta?.merchantIdB || null,
-        apiKeyA: venue.menta?.apiKeyA || null,
-        apiKeyB: venue.menta?.apiKeyB || null,
+        address: venue.address || '',
+        city: venue.city || '',
+        state: venue.state || '',
+        country: venue.country || 'MX',
+        zipCode: venue.zipCode || '',
+        phone: venue.phone || '',
+        email: venue.email || '',
+        type: (venue.type as VenueType) || VenueType.RESTAURANT,
+        timezone: venue.timezone || 'America/Mexico_City',
+        currency: venue.currency || 'MXN',
+        website: venue.website || '',
+        logo: venue.logo || '',
+        primaryColor: venue.primaryColor || '',
+        secondaryColor: venue.secondaryColor || '',
+        posType: (venue.posType as PosType) || null,
+        latitude: venue.latitude ? Number(venue.latitude) : null,
+        longitude: venue.longitude ? Number(venue.longitude) : null,
       })
 
-      // Después de reiniciar el formulario, verificar el valor establecido
-      console.log('Form reset with country:', form.getValues('country'))
     }
   }, [venue, form])
 
+  // -------- Logo upload + crop --------
+  const [uploading, setUploading] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [fileRef, setFileRef] = useState<any>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [imageForCrop, setImageForCrop] = useState<string | null>(null)
+
+  const onCropComplete = useCallback((_: any, area: any) => setCroppedAreaPixels(area), [])
+
   useEffect(() => {
-    if (venue) {
-      // Para debugging
-      console.log('Venue POS system:', venue.posName)
-      console.log('Venue country code:', venue.country)
-    }
+    if (venue?.logo) setImageUrl(venue.logo)
   }, [venue])
+
+  const handleFileUpload = (file: File | undefined | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setImageForCrop(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleCropConfirm = async () => {
+    if (!imageForCrop || !croppedAreaPixels || !venueId) return
+    const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels)
+    const blob = await fetch(croppedImage).then(r => r.blob())
+
+    const fileName = `cropped_${Date.now()}.jpg`
+    const storageRef = ref(storage, `venues/${venueId}/logos/${fileName}`)
+    const uploadTask = uploadBytesResumable(storageRef, blob)
+    setUploading(true)
+    uploadTask.on(
+      'state_changed',
+      () => {},
+      error => {
+        console.error('Error uploading file:', error)
+        setUploading(false)
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
+          setImageUrl(downloadURL)
+          setFileRef(storageRef)
+          setUploading(false)
+          setImageForCrop(null)
+          form.setValue('logo', downloadURL, { shouldDirty: true })
+          toast({
+            title: t('venues.edit.toast.logoUploadedTitle', { defaultValue: 'Logo actualizado' }),
+            description: t('venues.edit.toast.logoUploadedDesc', { defaultValue: 'El logo se ha actualizado correctamente.' }),
+          })
+        })
+      },
+    )
+  }
+
+  const handleFileRemove = () => {
+    if (fileRef) {
+      deleteObject(fileRef)
+        .then(() => {
+          setImageUrl(null)
+          setFileRef(null)
+          form.setValue('logo', '', { shouldDirty: true })
+          toast({
+            title: t('venues.edit.toast.logoRemovedTitle', { defaultValue: 'Logo eliminado' }),
+            description: t('venues.edit.toast.logoRemovedDesc', { defaultValue: 'El logo se ha eliminado correctamente.' }),
+          })
+        })
+        .catch(error => {
+          console.error('Error removing file:', error)
+          toast({
+            title: t('venues.edit.toast.logoErrorTitle', { defaultValue: 'Error con el logo' }),
+            description: t('venues.edit.toast.logoErrorDesc', { defaultValue: 'No se pudo procesar la imagen del logo.' }),
+            variant: 'destructive',
+          })
+        })
+    } else {
+      setImageUrl(null)
+      form.setValue('logo', '', { shouldDirty: true })
+    }
+  }
+
 
   const saveVenue = useMutation({
     mutationFn: async (data: VenueFormValues) => {
-      // Create a clean object with only the fields that have values
-      const venueData: any = {}
-
-      // Process all fields and only include non-null/non-undefined values
-      Object.entries(data).forEach(([key, value]) => {
-        // Skip the Menta fields and Feature fields as they'll be handled separately
-        if (key !== 'merchantIdA' && key !== 'merchantIdB' && key !== 'apiKeyA' && key !== 'apiKeyB' && key !== 'ordering') {
-          if (value !== null && value !== undefined && value !== '') {
-            venueData[key] = value
-          }
-        }
-      })
-
-      // Add feature object with proper Prisma relation syntax
-      venueData.feature = {
-        upsert: {
-          create: {
-            ordering: data.ordering,
-          },
-          update: {
-            ordering: data.ordering,
-          },
-        },
+      // Create venue data object matching Prisma schema
+      const venueData: any = {
+        name: data.name,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        zipCode: data.zipCode,
+        phone: data.phone,
+        email: data.email,
+        type: data.type,
+        timezone: data.timezone,
+        currency: data.currency,
       }
 
-      // Only add the menta object if at least one of the fields has a value
-      if (data.merchantIdA || data.merchantIdB || data.apiKeyA || data.apiKeyB) {
-        venueData.menta = {
-          merchantIdA: data.merchantIdA || null,
-          merchantIdB: data.merchantIdB || null,
-          apiKeyA: data.apiKeyA || null,
-          apiKeyB: data.apiKeyB || null,
-        }
-      }
+      // Add optional fields if they have values
+      if (data.website) venueData.website = data.website
+      if (data.logo) venueData.logo = data.logo
+      if (data.primaryColor) venueData.primaryColor = data.primaryColor
+      if (data.secondaryColor) venueData.secondaryColor = data.secondaryColor
+      if (data.posType) venueData.posType = data.posType
+      if (data.latitude !== null) venueData.latitude = data.latitude
+      if (data.longitude !== null) venueData.longitude = data.longitude
 
       return await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
     },
@@ -413,14 +445,16 @@ export default function EditVenue() {
             variant="default"
             size="sm"
             className="px-3 md:px-4 whitespace-nowrap"
-            disabled={!form.formState.isDirty || saveVenue.isPending}
+            disabled={!canEdit || !form.formState.isDirty || saveVenue.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
             {saveVenue.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
-          <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
-            Eliminar
-          </Button>
+          {canEdit && (
+            <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
+              Eliminar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -455,7 +489,13 @@ export default function EditVenue() {
 
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
         <Form {...form}>
+          {!canEdit && (
+            <div className="mb-4 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-3 py-2">
+              {t('venues.edit.readOnly', { defaultValue: 'Modo solo lectura: no tienes permisos para editar la información del establecimiento.' })}
+            </div>
+          )}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+            <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <h3 className="text-lg font-medium">Información básica</h3>
@@ -489,9 +529,14 @@ export default function EditVenue() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value={VenueType.RESTAURANT}>Restaurante</SelectItem>
-                          <SelectItem value={VenueType.STUDIO}>Estudio</SelectItem>
                           <SelectItem value={VenueType.BAR}>Bar</SelectItem>
                           <SelectItem value={VenueType.CAFE}>Café</SelectItem>
+                          <SelectItem value={VenueType.FAST_FOOD}>Comida Rápida</SelectItem>
+                          <SelectItem value={VenueType.FOOD_TRUCK}>Food Truck</SelectItem>
+                          <SelectItem value={VenueType.RETAIL_STORE}>Tienda</SelectItem>
+                          <SelectItem value={VenueType.HOTEL_RESTAURANT}>Restaurante de Hotel</SelectItem>
+                          <SelectItem value={VenueType.FITNESS_STUDIO}>Estudio de Fitness</SelectItem>
+                          <SelectItem value={VenueType.SPA}>Spa</SelectItem>
                           <SelectItem value={VenueType.OTHER}>Otro</SelectItem>
                         </SelectContent>
                       </Select>
@@ -502,12 +547,26 @@ export default function EditVenue() {
 
                 <FormField
                   control={form.control}
-                  name="cuisine"
+                  name="state"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo de Cocina</FormLabel>
+                      <FormLabel>Estado</FormLabel>
                       <FormControl>
-                        <Input placeholder="Tipo de cocina" {...field} />
+                        <Input placeholder="Estado" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="zipCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Código Postal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Código postal" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -521,7 +580,7 @@ export default function EditVenue() {
                     <FormItem>
                       <FormLabel>Dirección</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Dirección completa" className="resize-none" {...field} />
+                        <Input placeholder="Dirección completa" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -546,42 +605,62 @@ export default function EditVenue() {
                   <FormField
                     control={form.control}
                     name="country"
-                    render={({ field }) => {
-                      // Para debugging
-                      console.log('Field country value:', field.value)
-                      return (
-                        <FormItem>
-                          <FormLabel>País</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un país" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {countries.map(country => (
-                                <SelectItem key={country.value} value={country.value}>
-                                  {country.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )
-                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>País</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona un país" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {countries.map((country: any) => (
+                              <SelectItem key={country.value} value={country.value}>
+                                {country.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
 
                 <FormField
                   control={form.control}
-                  name="utc"
+                  name="timezone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zona horaria</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="America/Mexico_City" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.timezone', { defaultValue: 'America/Mexico_City' })} {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('venues.edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('venues.edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="MXN">Peso Mexicano (MXN)</SelectItem>
+                          <SelectItem value="USD">Dólar Estadounidense (USD)</SelectItem>
+                          <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                          <SelectItem value="CAD">Dólar Canadiense (CAD)</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -589,7 +668,7 @@ export default function EditVenue() {
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Contacto e imágenes</h3>
+                <h3 className="text-lg font-medium">{t('venues.edit.sections.contact', { defaultValue: 'Contacto e imágenes' })}</h3>
                 <Separator />
 
                 <FormField
@@ -597,9 +676,9 @@ export default function EditVenue() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.email', { defaultValue: 'Email' })}</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="email@ejemplo.com" {...field} />
+                        <Input type="email" placeholder={t('venues.edit.placeholders.email', { defaultValue: 'email@ejemplo.com' })} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -611,9 +690,9 @@ export default function EditVenue() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.phone', { defaultValue: 'Teléfono' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="+52 123 456 7890" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.phone', { defaultValue: '+52 123 456 7890' })} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -625,9 +704,9 @@ export default function EditVenue() {
                   name="website"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sitio web</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.website', { defaultValue: 'Sitio web' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://tusitio.com" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.website', { defaultValue: 'https://tusitio.com' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -636,12 +715,12 @@ export default function EditVenue() {
 
                 <FormField
                   control={form.control}
-                  name="instagram"
+                  name="primaryColor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Instagram</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.primaryColor', { defaultValue: 'Color Primario' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="@tusitio" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.primaryColor', { defaultValue: '#FF5733' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -650,159 +729,34 @@ export default function EditVenue() {
 
                 <FormField
                   control={form.control}
-                  name="image"
+                  name="secondaryColor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>URL de imagen principal</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.secondaryColor', { defaultValue: 'Color Secundario' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://example.com/imagen.jpg" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.secondaryColor', { defaultValue: '#33C4FF' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de logo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/logo.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración del WiFi</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="wifiName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del WiFi</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nombre de la red WiFi" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="wifiPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña del WiFi</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Contraseña del WiFi" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración del menú</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="dynamicMenu"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Menú dinámico</FormLabel>
-                        <p className="text-sm text-muted-foreground">Habilitar menú dinámico para este venue</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="askNameOrdering"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Pedir nombre al ordenar</FormLabel>
-                        <p className="text-sm text-muted-foreground">Solicitar nombre del cliente al realizar una orden</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="ordering"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Ordenar desde TPV</FormLabel>
-                        <p className="text-sm text-muted-foreground">Permite ordenar desde el Terminal Punto de Venta (solo lectura)</p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="language"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Idioma por defecto</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || 'es'}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un idioma" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="es">Español</SelectItem>
-                          <SelectItem value="en">Inglés</SelectItem>
-                          <SelectItem value="fr">Francés</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración de propinas</h3>
-                <Separator />
-
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="tipPercentage1"
+                    name="latitude"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Propina 1</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.latitude', { defaultValue: 'Latitud' })}</FormLabel>
                         <FormControl>
-                          <Input placeholder="0.10" {...field} />
+                          <Input 
+                            type="number" 
+                            step="any" 
+                            placeholder={t('venues.edit.placeholders.latitude', { defaultValue: '19.432608' })}
+                            {...field} 
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -811,216 +765,124 @@ export default function EditVenue() {
 
                   <FormField
                     control={form.control}
-                    name="tipPercentage2"
+                    name="longitude"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Propina 2</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.longitude', { defaultValue: 'Longitud' })}</FormLabel>
                         <FormControl>
-                          <Input placeholder="0.15" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tipPercentage3"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Propina 3</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.20" {...field} />
+                          <Input 
+                            type="number" 
+                            step="any" 
+                            placeholder={t('venues.edit.placeholders.longitude', { defaultValue: '-99.133209' })}
+                            {...field} 
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Configuración de pagos</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="stripeAccountId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID de cuenta Stripe</FormLabel>
-                      <FormControl>
-                        <Input placeholder="acct_..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="specialPayment"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Pago especial</FormLabel>
-                        <p className="text-sm text-muted-foreground">Habilitar pago especial para este venue</p>
+                {/* Logo upload with crop (optional URL fallback) */}
+                {canEdit ? (
+                  <FormItem>
+                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
+                    <FormControl>
+                      <div className="space-y-3">
+                        {imageUrl ? (
+                          <div className="flex items-center gap-3">
+                            <img src={imageUrl} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                            <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
+                              {t('common.remove', { defaultValue: 'Quitar' })}
+                            </Button>
+                          </div>
+                        ) : imageForCrop ? (
+                          <div>
+                            <div className="relative w-full h-64 bg-muted">
+                              <Cropper
+                                image={imageForCrop}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={4 / 3}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                              />
+                            </div>
+                            <div className="flex justify-between mt-3">
+                              <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                                {t('venues.addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
+                              </Button>
+                              <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
+                                {t('venues.addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Input type="file" onChange={e => handleFileUpload(e.target.files?.[0])} disabled={uploading} />
+                        )}
+                        <Input
+                          placeholder={t('venues.edit.placeholders.logo', { defaultValue: 'https://example.com/logo.jpg' })}
+                          value={form.watch('logo') || ''}
+                          onChange={e => form.setValue('logo', e.target.value, { shouldDirty: true })}
+                        />
                       </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="specialPaymentRef"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Referencia de pago especial</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Referencia de pago especial" {...field} disabled={!form.watch('specialPayment')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                ) : (
+                  <FormItem>
+                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
+                    <div className="flex items-center gap-3">
+                      {venue.logo ? (
+                        <img src={venue.logo} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Sin logo</span>
+                      )}
+                    </div>
+                  </FormItem>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Integración con POS</h3>
-                <Separator />
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
+              <Separator />
 
-                <FormField
-                  control={form.control}
-                  name="posName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sistema POS</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un sistema POS" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={PosNames.WANSOFT}>Wansoft</SelectItem>
-                          <SelectItem value={PosNames.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
-                          <SelectItem value={PosNames.NONE}>Ninguno</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="posUniqueId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Único POS</FormLabel>
+              <FormField
+                control={form.control}
+                name="posType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('venues.edit.labels.posType', { defaultValue: 'Sistema POS' })}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
-                        <Input placeholder="ID único del sistema POS" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un sistema POS" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="softRestaurantVenueId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID de Soft Restaurant</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ID de Soft Restaurant" {...field} disabled={form.watch('posName') !== 'SOFTRESTAURANT'} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">Integraciones externas</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="googleBusinessId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID de Google Business</FormLabel>
-                      <FormControl>
-                        <Input placeholder="ID de Google Business" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="merchantIdA"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Menta Merchant ID A</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Menta Merchant ID A" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="merchantIdB"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Menta Merchant ID B (opcional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Menta Merchant ID B" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="apiKeyA"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Menta API Key A</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Menta API Key A" {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="apiKeyB"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Menta API Key B (opcional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Menta API Key B" {...field} type="password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <SelectContent>
+                        <SelectItem value={PosType.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
+                        <SelectItem value={PosType.SQUARE}>Square</SelectItem>
+                        <SelectItem value={PosType.TOAST}>Toast</SelectItem>
+                        <SelectItem value={PosType.CLOVER}>Clover</SelectItem>
+                        <SelectItem value={PosType.ALOHA}>Aloha</SelectItem>
+                        <SelectItem value={PosType.MICROS}>Micros</SelectItem>
+                        <SelectItem value={PosType.NCR}>NCR</SelectItem>
+                        <SelectItem value={PosType.CUSTOM}>Personalizado</SelectItem>
+                        <SelectItem value={PosType.NONE}>Ninguno</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+
+            </fieldset>
+
           </form>
         </Form>
       </div>

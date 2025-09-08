@@ -54,7 +54,7 @@ export function NavMain({
         {items.map(item =>
           item.items ? (
             <Collapsible
-              key={item.title}
+              key={item.url}
               asChild
               defaultOpen={item.isActive || (item.items?.some(s => isSubItemActive(s.url)) ?? false)}
               className="group/collapsible"
@@ -70,7 +70,7 @@ export function NavMain({
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items.map(subItem => (
-                      <SidebarMenuSubItem key={subItem.title}>
+                      <SidebarMenuSubItem key={subItem.url}>
                         <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)}>
                           <NavLink to={subItem.url}>
                             <span>{subItem.title}</span>
@@ -84,7 +84,7 @@ export function NavMain({
             </Collapsible>
           ) : (
             // Render direct link for items without sub-items
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem key={item.url}>
               <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)}>
                 <NavLink
                   to={item.url}

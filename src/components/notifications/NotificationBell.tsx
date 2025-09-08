@@ -1,16 +1,10 @@
 import React, { useState } from 'react'
-import { Bell, X, Check, CheckCheck, MoreVertical } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { useNotificationBadge, useNotifications } from '@/context/NotificationContext'
-import {
-  formatNotificationTime,
-  getNotificationPriorityColor,
-  formatNotificationPriority,
-  groupNotificationsByDate,
-} from '@/services/notification.service'
+import { formatNotificationTime } from '@/services/notification.service'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface NotificationBellProps {
   className?: string
@@ -18,7 +12,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
-  const { notifications, markAsRead, markAllAsRead, deleteNotification, refreshNotifications, loading } = useNotifications()
+  const { notifications, markAsRead, loading } = useNotifications()
 
   const [isOpen, setIsOpen] = useState(false)
 
@@ -30,17 +24,6 @@ export function NotificationBell({ className }: NotificationBellProps) {
       window.location.href = actionUrl
     }
   }
-
-  const handleMarkAllAsRead = async () => {
-    await markAllAsRead()
-  }
-
-  const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    await deleteNotification(notificationId)
-  }
-
-  const groupedNotifications = groupNotificationsByDate(notifications)
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -60,140 +43,73 @@ export function NotificationBell({ className }: NotificationBellProps) {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-80 max-h-96" align="end" side="bottom" sideOffset={4}>
+      <DropdownMenuContent align="end" className="w-80 p-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-border">
-          <h3 className="font-semibold text-sm text-foreground">
-            Notificaciones
-            {hasUnread && (
-              <Badge variant="secondary" className="ml-2">
-                {unreadCount}
-              </Badge>
-            )}
-          </h3>
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshNotifications}
-              disabled={loading}
-              className="h-6 w-6 p-0"
-              title="Actualizar notificaciones"
-            >
-              <Bell className="h-3 w-3" />
-            </Button>
-            {hasUnread && (
-              <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-6 w-6 p-0" title="Marcar todas como leídas">
-                <CheckCheck className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">Notificaciones</h3>
+          <p className="text-sm text-muted-foreground">
+            {hasUnread ? `Tienes ${unreadCount} notificación${unreadCount > 1 ? 'es' : ''} sin leer` : 'No hay notificaciones'}
+          </p>
         </div>
 
         {/* Notifications List */}
-        <ScrollArea className="max-h-80">
-          {notifications.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Aún no hay notificaciones</p>
-            </div>
-          ) : (
-            <div className="p-0">
-              {Object.entries(groupedNotifications).map(([dateGroup, groupNotifications]) => (
-                <div key={dateGroup}>
-                  {/* Date Group Header */}
-                  <div className="px-3 py-2 bg-muted border-b border-border">
-                    <p className="text-xs font-medium text-muted-foreground">{dateGroup}</p>
+        <div className="max-h-96 overflow-y-auto">
+          {loading ? (
+            <div className="p-3 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-start space-x-3">
+                  <div className="w-2 h-2 rounded-full mt-2 bg-muted animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-1/4 bg-muted rounded animate-pulse" />
                   </div>
-
-                  {/* Notifications in Group */}
-                  {groupNotifications.map(notification => (
-                    <div
-                      key={notification.id}
-                      className={`
-                        border-b border-border last:border-b-0 hover:bg-muted/50 cursor-pointer transition-colors
-                        ${!notification.isRead ? 'bg-accent/50 border-l-4 border-l-primary' : ''}
-                      `}
-                      onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
-                    >
-                      <div className="p-3">
-                        <div className="flex items-start justify-between space-x-2">
-                          {/* Notification Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4
-                                className={`text-sm font-medium truncate ${
-                                  !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
-                                }`}
-                              >
-                                {notification.title}
-                              </h4>
-                              <Badge variant="outline" className={`text-xs ${getNotificationPriorityColor(notification.priority)}`}>
-                                {formatNotificationPriority(notification.priority)}
-                              </Badge>
-                            </div>
-
-                            <p
-                              className={`text-sm mb-2 line-clamp-2 ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}
-                            >
-                              {notification.message}
-                            </p>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">{formatNotificationTime(notification.createdAt)}</span>
-
-                              {notification.actionLabel && (
-                                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{notification.actionLabel}</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Action Menu */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                                onClick={e => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {!notification.isRead && (
-                                <DropdownMenuItem
-                                  onClick={e => {
-                                    e.stopPropagation()
-                                    markAsRead(notification.id)
-                                  }}
-                                >
-                                  <Check className="h-3 w-3 mr-2" />
-                                  Marcar como leída
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={e => handleDeleteNotification(notification.id, e)} className="text-destructive">
-                                <X className="h-3 w-3 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               ))}
             </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No hay notificaciones</p>
+            </div>
+          ) : (
+            notifications.map((notification, index) => (
+              <div 
+                key={notification.id} 
+                className={`p-3 hover:bg-accent cursor-pointer ${index < notifications.length - 1 ? 'border-b border-border' : ''}`}
+                onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
+              >
+                <div className="flex items-start space-x-3">
+                  <div
+                    className={`w-2 h-2 rounded-full mt-2 ${
+                      notification.priority === 'HIGH'
+                        ? 'bg-red-500'
+                        : notification.priority === 'NORMAL'
+                          ? 'bg-amber-500'
+                          : 'bg-blue-500'
+                    }`}
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{notification.title}</p>
+                    <p className="text-xs text-muted-foreground">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{formatNotificationTime(notification.createdAt)}</p>
+                    {notification.actionLabel && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">{notification.actionLabel}</p>
+                    )}
+                  </div>
+                  {!notification.isRead && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full" title="No leída" />
+                  )}
+                </div>
+              </div>
+            ))
           )}
-        </ScrollArea>
+        </div>
 
         {/* Footer */}
         <div className="p-3 border-t border-border">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
+          <Button 
+            variant="ghost" 
+            className="w-full text-sm text-muted-foreground hover:text-foreground"
             onClick={() => {
               setIsOpen(false)
               // Navigate to full notifications page - use current venue slug

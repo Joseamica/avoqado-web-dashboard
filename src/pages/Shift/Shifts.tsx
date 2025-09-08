@@ -2,7 +2,7 @@ import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
@@ -234,7 +234,7 @@ export default function Shifts() {
   ]
 
   // Search callback for DataTable
-  const handleSearch = (searchTerm: string, shifts: any[]) => {
+  const handleSearch = useCallback((searchTerm: string, shifts: any[]) => {
     if (!searchTerm) return shifts
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -249,7 +249,7 @@ export default function Shifts() {
 
       return shiftIdMatch || staffNameMatch || totalSalesMatch
     })
-  }
+  }, [])
 
   return (
     <div className="p-4 bg-background text-foreground">

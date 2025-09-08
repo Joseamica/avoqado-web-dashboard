@@ -19,6 +19,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
 
 interface VenuesSwitcherProps {
   venues: Array<Venue | SessionVenue>
@@ -31,9 +32,13 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const location = useLocation()
   const { checkVenueAccess, user, switchVenue, isLoading } = useAuth()
   const { venue: activeVenue } = useCurrentVenue()
+  const { t } = useTranslation()
 
   const [isDialogOpen, setDialogOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const canAddVenue = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes(
+    (user?.role as StaffRole) ?? (null as any),
+  )
 
   // Usar el venue actual del contexto, url, o fallback al default
   const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
@@ -69,6 +74,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   }
 
   const handleAddVenueClick = () => {
+    if (!canAddVenue) return
     setDialogOpen(true)
     setDropdownOpen(false) // Cerrar dropdown cuando se abre el dialog
   }
@@ -93,7 +99,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                   <AvatarFallback>{currentVenue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-sm leading-tight text-left">
-                  <span className="font-semibold truncate">{currentVenue?.name || 'Seleccionar venue'}</span>
+                  <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
                   <span className="text-xs truncate">{currentVenue?.city || ''}</span>
                 </div>
                 <ChevronsUpDown className="ml-auto" />
@@ -105,7 +111,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               side={isMobile ? 'bottom' : 'right'}
               sideOffset={4}
             >
-              <DropdownMenuLabel className="text-xs text-muted-foreground">Sucursales</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">{t('venuesSwitcher.title')}</DropdownMenuLabel>
               {venues.map((venue, index) => {
                 const isActive = venue.slug === currentVenue?.slug
                 const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
@@ -125,7 +131,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                     </Avatar>
                     <span className="flex-1 truncate">
                       {venue?.name}
-                      {isActive && <span className="ml-2 text-xs text-muted-foreground">(actual)</span>}
+                      {isActive && <span className="ml-2 text-xs text-muted-foreground">{t('venuesSwitcher.current')}</span>}
                     </span>
                     <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                   </DropdownMenuItem>
@@ -133,13 +139,15 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               })}
               <DropdownMenuSeparator />
 
-              {/* Dialog Trigger for "Agregar sucursal" */}
-              <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={handleAddVenueClick} disabled={isLoading}>
-                <div className="flex justify-center items-center bg-background rounded-md border size-6 border-border">
-                  <Plus className="size-4" />
-                </div>
-                <div className="font-medium text-muted-foreground">Agregar sucursal</div>
-              </DropdownMenuItem>
+              {/* Dialog Trigger for Add Venue (only for OWNER, ADMIN, SUPERADMIN) */}
+              {canAddVenue && (
+                <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={handleAddVenueClick} disabled={isLoading}>
+                  <div className="flex justify-center items-center bg-background rounded-md border size-6 border-border">
+                    <Plus className="size-4" />
+                  </div>
+                  <div className="font-medium text-muted-foreground">{t('venuesSwitcher.addVenue')}</div>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>

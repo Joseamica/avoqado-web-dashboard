@@ -15,12 +15,11 @@ export const Menus = React.lazy(() => import('@/pages/Menu/Menus/Menus'))
 export const ModifierGroups = React.lazy(() => import('@/pages/Menu/Modifiers/ModifierGroups'))
 export const ModifierGroupId = React.lazy(() => import('@/pages/Menu/Modifiers/ModifierGroupId'))
 export const CreateModifierGroup = React.lazy(() => import('@/pages/Menu/Modifiers/createModifierGroup'))
-export const Overview = React.lazy(() => import('@/pages/Menu/Overview'))
+export const MenuOverview = React.lazy(() => import('@/pages/Menu/MenuOverview'))
 export const CreateProduct = React.lazy(() => import('@/pages/Menu/Products/createProduct'))
 export const Products = React.lazy(() => import('@/pages/Menu/Products/Products'))
 export const ProductId = React.lazy(() => import('@/pages/Menu/Products/productId'))
 export const ReceiptViewer = React.lazy(() => import('@/pages/Payment/ReceiptViewer'))
-export const ReceiptPreview = React.lazy(() => import('@/components/receipts/ReceiptPreview'))
 
 export const CreateTpv = React.lazy(() => import('@/pages/Tpv/createTpv'))
 export const Tpv = React.lazy(() => import('@/pages/Tpv/Tpvs'))
@@ -63,3 +62,12 @@ export { default as SuperadminDashboard } from '@/pages/Superadmin/SuperadminDas
 export { default as SuperadminFeatureManagement } from '@/pages/Superadmin/FeatureManagement'
 export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueManagement'
 export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'
+export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAnalyticsDashboard'
+
+// Legal components
+export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))
+export const Privacy = React.lazy(() => import('@/pages/Legal/Privacy'))
+
+// Analytics
+export const AnalyticsLayout = React.lazy(() => import('@/pages/Analytics/AnalyticsLayout'))
+export const AnalyticsOverview = React.lazy(() => import('@/pages/Analytics/AnalyticsOverview'))

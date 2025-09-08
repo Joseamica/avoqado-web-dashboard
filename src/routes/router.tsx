@@ -17,7 +17,7 @@ import {
   Menus,
   ModifierGroups,
   CreateModifierGroup,
-  Overview,
+  MenuOverview,
   CreateProduct,
   ProductId,
   Products,
@@ -57,6 +57,11 @@ import {
   SuperadminFeatureManagement,
   SuperadminVenueManagement,
   RevenueDashboard,
+  ProfitAnalyticsDashboard,
+  Terms,
+  Privacy,
+  AnalyticsLayout,
+  AnalyticsOverview,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -76,6 +81,14 @@ const router = createBrowserRouter(
           element: <Login />,
         },
         {
+          path: '/terms',
+          element: <Terms />,
+        },
+        {
+          path: '/privacy',
+          element: <Privacy />,
+        },
+        {
           path: '/auth/google/callback',
           element: <GoogleOAuthCallback />,
         },
@@ -90,6 +103,14 @@ const router = createBrowserRouter(
         {
           element: <ProtectedRoute />, // Protected routes
           children: [
+            // Executive Analytics (org/venue scoped via backend auth)
+            {
+              path: '/analytics',
+              element: <AnalyticsLayout />,
+              children: [
+                { index: true, element: <AnalyticsOverview /> },
+              ],
+            },
             // Add venues route before venues/:slug
             {
               path: '/venues',
@@ -204,6 +225,10 @@ const router = createBrowserRouter(
                       element: <RevenueDashboard />,
                     },
                     {
+                      path: 'profit-analytics',
+                      element: <ProfitAnalyticsDashboard />,
+                    },
+                    {
                       path: 'customers',
                       element: <div>Customer Management (Coming Soon)</div>,
                     },
@@ -247,11 +272,11 @@ const router = createBrowserRouter(
                   children: [
                     {
                       index: true,
-                      element: <Overview />,
+                      element: <MenuOverview />,
                     },
                     {
                       path: 'overview',
-                      element: <Overview />,
+                      element: <MenuOverview />,
                     },
                     {
                       path: 'menus',
@@ -304,7 +329,18 @@ const router = createBrowserRouter(
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
                 { path: 'orders', element: <Orders /> },
                 { path: 'orders/:orderId', element: <OrderId /> },
-                { path: 'editVenue', element: <EditVenue /> },
+                // Analytics nested under venue for dashboard context
+                {
+                  path: 'analytics',
+                  element: <AnalyticsLayout />,
+                  children: [
+                    { index: true, element: <AnalyticsOverview /> },
+                  ],
+                },
+                {
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [{ path: 'editVenue', element: <EditVenue /> }],
+                },
                 { path: 'tpv', element: <Tpv /> },
                 { path: 'tpv/create', element: <CreateTpv /> },
                 { path: 'tpv/:tpvId', element: <TpvId /> },

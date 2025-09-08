@@ -2,7 +2,6 @@
 
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { useCurrentVenue } from '@/hooks/use-current-venue' // Hook actualizado
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import * as orderService from '@/services/order.service'
@@ -11,15 +10,14 @@ import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 export default function Orders() {
   const { t, i18n } = useTranslation()
-  const { venueId } = useCurrentVenue() // Hook actualizado
+  const { venueId } = useCurrentVenue()
   const location = useLocation()
-  const [searchTerm, setSearchTerm] = useState('')
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -133,21 +131,20 @@ export default function Orders() {
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           // `Currency` probablemente espera centavos, y total es un valor decimal.
-          return Currency(value * 100)
+          return Currency(value)
         },
       },
     ],
     [t, localeCode],
   )
 
-  const filteredOrders = useMemo(() => {
-    const orders = data?.data || []
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, orders: any[]) => {
     if (!searchTerm) return orders
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
     return orders.filter(order => {
-      // CAMBIO: Adaptar los campos de búsqueda
       const folioMatch = order.orderNumber?.toLowerCase().includes(lowerSearchTerm)
       const customerMatch = order.customerName?.toLowerCase().includes(lowerSearchTerm)
       const waiterName = order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : ''
@@ -156,22 +153,13 @@ export default function Orders() {
 
       return folioMatch || customerMatch || waiterMatch || totalMatch
     })
-  }, [searchTerm, data])
+  }, [])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
-      <div className="flex flex-row items-center justify-between">
-        {/* CAMBIO: El título ahora es Órdenes */}
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('orders.title')}</h1>
       </div>
-
-      <Input
-        type="text"
-        placeholder={t('orders.searchPlaceholder')}
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className={`p-2 mt-4 mb-4 border rounded bg-input border-input max-w-sm`}
-      />
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
@@ -180,13 +168,16 @@ export default function Orders() {
       )}
 
       <DataTable
-        data={filteredOrders}
+        data={data?.data || []}
         rowCount={totalOrders}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder={t('orders.searchPlaceholder')}
+        onSearch={handleSearch}
         tableId="orders:main"
         clickableRow={row => ({
-          to: row.id, // El ID de la orden
+          to: row.id,
           state: { from: location.pathname },
         })}
         pagination={pagination}

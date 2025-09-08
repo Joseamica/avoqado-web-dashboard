@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, UploadCloud, ImageIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation } from 'react-router-dom'
@@ -11,7 +11,6 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
@@ -25,7 +24,6 @@ export default function Products() {
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [searchTerm, setSearchTerm] = useState('')
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
   const { data: products, isLoading } = useQuery({
@@ -193,26 +191,26 @@ export default function Products() {
     },
   ]
 
-  const filteredProducts = useMemo(() => {
+  // Search callback for DataTable
+  const handleSearch = useCallback((searchTerm: string, products: any[]) => {
     if (!searchTerm) return products
 
     const lowerSearchTerm = searchTerm.toLowerCase()
 
-    return products?.filter(product => {
-      // Buscar en el name del producto, grupos de modificadores y categoría
+    return products.filter(product => {
       const nameMatches = product.name.toLowerCase().includes(lowerSearchTerm)
       const modifierGroupMatches =
         product.modifierGroups?.some(modifierGroup => modifierGroup.group?.name.toLowerCase().includes(lowerSearchTerm)) || false
       const categoryMatches = product.category?.name.toLowerCase().includes(lowerSearchTerm) || false
       return nameMatches || modifierGroupMatches || categoryMatches
     })
-  }, [searchTerm, products])
+  }, [])
 
   // if (isLoading) return <div>Loading...</div>
 
   return (
     <div className="p-4">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('products.title')}</h1>
         <Button asChild>
           <Link
@@ -226,18 +224,15 @@ export default function Products() {
           </Link>
         </Button>
       </div>
-      <Input
-        type="text"
-        placeholder={t('common.search')}
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-        className="p-2 mt-4 mb-4 border rounded bg-bg-input max-w-72"
-      />
+
       <DataTable
-        data={filteredProducts}
+        data={products || []}
         rowCount={products?.length}
         columns={columns}
         isLoading={isLoading}
+        enableSearch={true}
+        searchPlaceholder={t('common.search')}
+        onSearch={handleSearch}
         tableId="menu:products"
         clickableRow={row => ({
           to: row.id,

@@ -2,8 +2,8 @@ name: 🌐 Frontend Monitoring & Performance
 
 on:
   schedule:
-    # Run checks every 30 minutes
-    - cron: '*/30 * * * *'
+    # Run checks every 60 minutes
+    - cron: '*/59 * * * *'
   workflow_dispatch:
     inputs:
       check_type:
@@ -34,16 +34,16 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.check_type == 'all' || github.event.inputs.check_type == 'production'))
-    
+
     steps:
       - name: 🔍 Production Frontend Health Check
         id: prod-frontend-health
         run: |
           echo "🔍 Checking production frontend..."
-          
+
           # Check if site loads
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code};SIZE:%{size_download};TIME:%{time_total}" $PRODUCTION_URL || echo "FAILED")
-          
+
           if [[ $RESPONSE == *"HTTPSTATUS:200"* ]]; then
             echo "✅ Production frontend loads successfully"
             echo "Response: $RESPONSE"
@@ -59,46 +59,46 @@ jobs:
             echo "Response: $RESPONSE"
             echo "status=unhealthy" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: 🔒 Security Headers Check
         if: steps.prod-frontend-health.outputs.status == 'healthy'
         run: |
           echo "🔒 Checking security headers..."
-          
+
           HEADERS=$(curl -s -I $PRODUCTION_URL)
-          
+
           # Check for security headers
           if echo "$HEADERS" | grep -qi "strict-transport-security"; then
             echo "✅ HSTS header present"
           else
             echo "⚠️ HSTS header missing"
           fi
-          
+
           if echo "$HEADERS" | grep -qi "x-frame-options"; then
             echo "✅ X-Frame-Options header present"
           else
             echo "⚠️ X-Frame-Options header missing"
           fi
-          
+
           if echo "$HEADERS" | grep -qi "content-security-policy"; then
             echo "✅ CSP header present"
           else
             echo "⚠️ Content-Security-Policy header missing"
           fi
-          
+
       - name: 🎨 Asset Loading Check
         if: steps.prod-frontend-health.outputs.status == 'healthy'
         run: |
           echo "🎨 Checking asset loading..."
-          
+
           # Check if common assets load
           ASSETS_CHECK=$(curl -s -I $PRODUCTION_URL/assets/ 2>/dev/null | head -1 || echo "No assets endpoint")
           echo "📦 Assets endpoint: $ASSETS_CHECK"
-          
+
           # Check if favicon loads
           FAVICON_CHECK=$(curl -s -I $PRODUCTION_URL/favicon.ico | head -1 || echo "No favicon")
           echo "🎯 Favicon: $FAVICON_CHECK"
-          
+
       - name: 🚨 Production Frontend Alert
         if: steps.prod-frontend-health.outputs.status == 'unhealthy'
         run: |
@@ -115,15 +115,15 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.check_type == 'all' || github.event.inputs.check_type == 'staging'))
-    
+
     steps:
       - name: 🔍 Staging Frontend Health Check
         id: staging-frontend-health
         run: |
           echo "🔍 Checking staging frontend..."
-          
+
           RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code};TIME:%{time_total}" $STAGING_URL || echo "FAILED")
-          
+
           if [[ $RESPONSE == *"HTTPSTATUS:200"* ]]; then
             echo "✅ Staging frontend loads successfully"
             echo "Response: $RESPONSE"
@@ -133,7 +133,7 @@ jobs:
             echo "Response: $RESPONSE"
             echo "status=unhealthy" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: ⚠️ Staging Frontend Warning
         if: steps.staging-frontend-health.outputs.status == 'unhealthy'
         run: |
@@ -149,23 +149,23 @@ jobs:
     if: |
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.check_type == 'all' || github.event.inputs.check_type == 'lighthouse'))
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          
+
       - name: 📦 Install Lighthouse CI
         run: npm install -g @lhci/cli
-        
+
       - name: 🚀 Run Lighthouse audit on Production
         run: |
           echo "🚀 Running Lighthouse performance audit on production..."
-          
+
           lhci autorun \
             --upload.target=temporary-public-storage \
             --collect.url=$PRODUCTION_URL \
@@ -175,7 +175,7 @@ jobs:
             --assert.assertions.categories:accessibility=0.8 \
             --assert.assertions.categories:best-practices=0.8 \
             --assert.assertions.categories:seo=0.8 || echo "Lighthouse audit completed with warnings"
-            
+
       - name: 📊 Performance Summary
         run: |
           echo "📊 Lighthouse Performance Summary:"
@@ -195,17 +195,17 @@ jobs:
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && 
        github.event.inputs.check_type == 'all')
-    
+
     steps:
       - name: 🔗 Test frontend-to-backend connectivity
         run: |
           echo "🔗 Testing API connectivity..."
-          
+
           # Test if frontend can reach backend
           # This simulates what the frontend JavaScript would do
-          
+
           API_URL="https://avoqado-server.onrender.com"
-          
+
           # Test CORS preflight for a typical API call
           CORS_CHECK=$(curl -s -X OPTIONS \
             -H "Origin: https://dashboardv2.avoqado.io" \
@@ -214,7 +214,7 @@ jobs:
             -I $API_URL/api/auth/me | head -1 || echo "CORS check failed")
             
           echo "🌐 CORS preflight response: $CORS_CHECK"
-          
+
           # Test basic API endpoint
           API_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
             -H "Origin: https://dashboardv2.avoqado.io" \
@@ -227,20 +227,20 @@ jobs:
             echo "Response: $API_RESPONSE"
           fi
 
-  # 📊 Generate Frontend Health Report  
+  # 📊 Generate Frontend Health Report
   frontend-health-report:
     name: 📊 Frontend Health Report
     runs-on: ubuntu-latest
     needs: [frontend-health-production, frontend-health-staging, api-connectivity]
     if: always() && github.event_name == 'workflow_dispatch'
-    
+
     steps:
       - name: 📊 Generate frontend health report
         run: |
           echo "# 🌐 Avoqado Frontend Health Report"
           echo "Generated at: $(date -u)"
           echo ""
-          
+
           echo "## 🏭 Production Frontend Status"
           if [[ "${{ needs.frontend-health-production.result }}" == "success" ]]; then
             echo "✅ Production Frontend: Healthy"
@@ -251,7 +251,7 @@ jobs:
             echo "❌ Production Frontend: Issues detected"
             echo "- **URGENT**: Site may be inaccessible"
           fi
-          
+
           echo ""
           echo "## 🧪 Staging Frontend Status"
           if [[ "${{ needs.frontend-health-staging.result }}" == "success" ]]; then
@@ -259,7 +259,7 @@ jobs:
           else
             echo "⚠️ Staging Frontend: Issues detected"
           fi
-          
+
           echo ""
           echo "## 🔗 API Connectivity Status"
           if [[ "${{ needs.api-connectivity.result }}" == "success" ]]; then
@@ -269,14 +269,14 @@ jobs:
             echo "- CORS configuration may be broken"
             echo "- Backend API may be unreachable"
           fi
-          
+
           echo ""
           echo "## 🚀 Performance Notes"
           echo "- Lighthouse audits available on-demand"
           echo "- Security headers monitored"
           echo "- Asset loading verified"
           echo "- CORS configuration checked"
-          
+
           echo ""
           echo "## 📍 URLs Monitored"
           echo "- Production: https://dashboardv2.avoqado.io"

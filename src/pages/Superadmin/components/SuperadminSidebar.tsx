@@ -13,7 +13,8 @@ import {
   BarChart3,
   AlertTriangle,
   FileText,
-  Headphones
+  Headphones,
+  Calculator
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -34,6 +35,7 @@ const SuperadminSidebar: React.FC = () => {
       items: [
         { name: t('sidebar.venues'), href: '/superadmin/venues', icon: Building2 },
         { name: t('sidebar.revenue'), href: '/superadmin/revenue', icon: DollarSign },
+        { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator },
         { name: t('sidebar.customers'), href: '/superadmin/customers', icon: Users },
         { name: t('sidebar.growth'), href: '/superadmin/growth', icon: TrendingUp },
       ]
