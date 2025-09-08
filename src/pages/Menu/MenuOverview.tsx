@@ -12,11 +12,10 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-  rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, ChevronDown, ChevronRight, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
+import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -174,88 +173,7 @@ function SortableProduct({
   )
 }
 
-// Sortable Category Component
-function SortableCategory({ menuId, category, children }: { menuId: string; category: MenuCategory; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: category.id,
-    data: { type: 'category', menuId },
-  })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`p-2 rounded-lg bg-muted/50 ${isDragging ? 'shadow-lg z-20' : 'z-10'} relative pointer-events-auto`}
-    >
-      <div {...attributes} {...listeners} className="flex items-center cursor-grab active:cursor-grabbing relative z-20">
-        <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
-          <GripVertical size={20} />
-        </div>
-        <h3 className="font-semibold text-lg flex-grow pointer-events-none">{category.name}</h3>
-      </div>
-      <div className="pl-8 pt-2">{children}</div>
-    </div>
-  )
-}
-
-// Sortable Menu Component
-function SortableMenu({
-  menu,
-  children,
-  onToggleActive,
-  isExpanded,
-  onToggleExpansion,
-  isDraggingMenu,
-}: {
-  menu: Menu
-  children: React.ReactNode
-  onToggleActive: (id: string, active: boolean) => void
-  isExpanded: boolean
-  onToggleExpansion: () => void
-  isDraggingMenu?: boolean
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: menu.id, data: { type: 'menu' } })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`mb-8 rounded-xl border-border bg-card ${isDragging ? 'shadow-lg z-50' : 'z-0'} relative`}
-    >
-      <header
-        {...attributes}
-        {...listeners}
-        className="flex items-center p-4 rounded-t-xl bg-card cursor-grab active:cursor-grabbing relative z-10"
-      >
-        <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors">
-          <GripVertical size={24} />
-        </div>
-        <h2 className="text-xl font-bold flex-grow pointer-events-none">{menu.name}</h2>
-        <div className="flex items-center space-x-4 pointer-events-auto">
-          <Switch
-            checked={menu.active}
-            onCheckedChange={checked => onToggleActive(menu.id, checked)}
-            onClick={e => e.stopPropagation()} // Prevent drag from starting on click
-          />
-          <Button variant="ghost" size="icon" onClick={onToggleExpansion}>
-            {isExpanded ? <ChevronDown /> : <ChevronRight />}
-          </Button>
-        </div>
-      </header>
-      {isExpanded && !isDraggingMenu && <div className="p-4 border-t-2 relative z-0">{children}</div>}
-    </div>
-  )
-}
 
 export default function Overview() {
   const { t } = useTranslation()
@@ -264,7 +182,6 @@ export default function Overview() {
   const queryClient = useQueryClient()
 
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [isDraggingMenu, setIsDraggingMenu] = useState(false)
   const [menuOrder, setMenuOrder] = useState<string[]>([])
   const [categoryOrders, setCategoryOrders] = useState<Record<string, string[]>>({})
   const [localProductOrder, setLocalProductOrder] = useState<Record<string, string[]>>({})
@@ -437,7 +354,6 @@ export default function Overview() {
     // If dragging a menu, collapse all and set menu drag state
     const activeType = event.active.data.current?.type
     if (activeType === 'menu') {
-      setIsDraggingMenu(true)
       // Collapse all menus when dragging
       const allCollapsed = Object.keys(expandedMenus).reduce((acc, key) => ({ ...acc, [key]: false }), {})
       setExpandedMenus(allCollapsed)
@@ -447,7 +363,6 @@ export default function Overview() {
   const handleDragEnd = (event: { active: Active; over: Over | null }) => {
     const { active, over } = event
     setActiveId(null)
-    setIsDraggingMenu(false)
 
     if (over && active.id !== over.id) {
       // We use the current view level to determine what we are sorting
@@ -456,7 +371,6 @@ export default function Overview() {
           const oldIndex = order.indexOf(active.id as string)
           const newIndex = order.indexOf(over.id as string)
           if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return order
-          const prev = [...order]
           const next = arrayMove(order, oldIndex, newIndex)
           const payload = next.map((id, index) => ({ id, displayOrder: index }))
           updateMenuOrderMutation.mutate(payload)
@@ -504,9 +418,6 @@ export default function Overview() {
     })
   }
 
-  const toggleMenuExpansion = (menuId: string) => {
-    setExpandedMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }))
-  }
 
   const collapseAll = () => {
     const allCollapsed = Object.keys(expandedMenus).reduce((acc, key) => ({ ...acc, [key]: false }), {})
@@ -617,6 +528,18 @@ export default function Overview() {
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
           <div className="text-xs font-medium text-muted-foreground mb-2">Tree</div>
           <ul className="space-y-1">
+            {/* All menus root to enable menu-level reordering */}
+            <li>
+              <button
+                className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${viewLevel === 'menus' ? 'bg-accent' : ''}`}
+                onClick={() => {
+                  setSelectedMenuId(null)
+                  setSelectedCategoryId(null)
+                }}
+              >
+                <span className="font-medium">All Menus</span>
+              </button>
+            </li>
             {filteredMenus.map(menu => (
               <li key={menu.id}>
                 <button

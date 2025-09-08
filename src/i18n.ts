@@ -1518,9 +1518,6 @@ const resources = {
         overviewSection: {
           title: 'Executive Overview',
         },
-        overview: {
-          title: 'Executive Overview',
-        },
         kpis: {
           arr: 'ARR',
           mrr: 'MRR',
@@ -2612,9 +2609,6 @@ const resources = {
           badge: 'Comparar: {{label}}',
         },
         overviewSection: {
-          title: 'Resumen ejecutivo',
-        },
-        overview: {
           title: 'Resumen ejecutivo',
         },
         kpis: {

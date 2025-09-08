@@ -17,7 +17,7 @@ import {
   Menus,
   ModifierGroups,
   CreateModifierGroup,
-  Overview,
+  MenuOverview,
   CreateProduct,
   ProductId,
   Products,
@@ -272,11 +272,11 @@ const router = createBrowserRouter(
                   children: [
                     {
                       index: true,
-                      element: <Overview />,
+                      element: <MenuOverview />,
                     },
                     {
                       path: 'overview',
-                      element: <Overview />,
+                      element: <MenuOverview />,
                     },
                     {
                       path: 'menus',

@@ -16,15 +16,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import countryList from 'react-select-country-list'
 import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
+// Image upload and crop support
+import Cropper from 'react-easy-crop'
+import { storage } from '@/firebase'
+import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
+import { getCroppedImg } from '@/utils/cropImage'
 
 // Enums to match Prisma schema exactly
 enum VenueType {
@@ -157,7 +165,10 @@ function VenueSkeleton() {
 }
 
 export default function EditVenue() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
+  const { user } = useAuth()
+  const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
 
   // Get the list of countries - moved to top of component
   const countries = useMemo(() => {
@@ -237,6 +248,86 @@ export default function EditVenue() {
 
     }
   }, [venue, form])
+
+  // -------- Logo upload + crop --------
+  const [uploading, setUploading] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [fileRef, setFileRef] = useState<any>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+  const [imageForCrop, setImageForCrop] = useState<string | null>(null)
+
+  const onCropComplete = useCallback((_: any, area: any) => setCroppedAreaPixels(area), [])
+
+  useEffect(() => {
+    if (venue?.logo) setImageUrl(venue.logo)
+  }, [venue])
+
+  const handleFileUpload = (file: File | undefined | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setImageForCrop(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleCropConfirm = async () => {
+    if (!imageForCrop || !croppedAreaPixels || !venueId) return
+    const croppedImage = await getCroppedImg(imageForCrop, croppedAreaPixels)
+    const blob = await fetch(croppedImage).then(r => r.blob())
+
+    const fileName = `cropped_${Date.now()}.jpg`
+    const storageRef = ref(storage, `venues/${venueId}/logos/${fileName}`)
+    const uploadTask = uploadBytesResumable(storageRef, blob)
+    setUploading(true)
+    uploadTask.on(
+      'state_changed',
+      () => {},
+      error => {
+        console.error('Error uploading file:', error)
+        setUploading(false)
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
+          setImageUrl(downloadURL)
+          setFileRef(storageRef)
+          setUploading(false)
+          setImageForCrop(null)
+          form.setValue('logo', downloadURL, { shouldDirty: true })
+          toast({
+            title: t('venues.edit.toast.logoUploadedTitle', { defaultValue: 'Logo actualizado' }),
+            description: t('venues.edit.toast.logoUploadedDesc', { defaultValue: 'El logo se ha actualizado correctamente.' }),
+          })
+        })
+      },
+    )
+  }
+
+  const handleFileRemove = () => {
+    if (fileRef) {
+      deleteObject(fileRef)
+        .then(() => {
+          setImageUrl(null)
+          setFileRef(null)
+          form.setValue('logo', '', { shouldDirty: true })
+          toast({
+            title: t('venues.edit.toast.logoRemovedTitle', { defaultValue: 'Logo eliminado' }),
+            description: t('venues.edit.toast.logoRemovedDesc', { defaultValue: 'El logo se ha eliminado correctamente.' }),
+          })
+        })
+        .catch(error => {
+          console.error('Error removing file:', error)
+          toast({
+            title: t('venues.edit.toast.logoErrorTitle', { defaultValue: 'Error con el logo' }),
+            description: t('venues.edit.toast.logoErrorDesc', { defaultValue: 'No se pudo procesar la imagen del logo.' }),
+            variant: 'destructive',
+          })
+        })
+    } else {
+      setImageUrl(null)
+      form.setValue('logo', '', { shouldDirty: true })
+    }
+  }
 
 
   const saveVenue = useMutation({
@@ -354,14 +445,16 @@ export default function EditVenue() {
             variant="default"
             size="sm"
             className="px-3 md:px-4 whitespace-nowrap"
-            disabled={!form.formState.isDirty || saveVenue.isPending}
+            disabled={!canEdit || !form.formState.isDirty || saveVenue.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
             {saveVenue.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
-          <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
-            Eliminar
-          </Button>
+          {canEdit && (
+            <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
+              Eliminar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -396,7 +489,13 @@ export default function EditVenue() {
 
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
         <Form {...form}>
+          {!canEdit && (
+            <div className="mb-4 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-3 py-2">
+              {t('venues.edit.readOnly', { defaultValue: 'Modo solo lectura: no tienes permisos para editar la información del establecimiento.' })}
+            </div>
+          )}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+            <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <h3 className="text-lg font-medium">Información básica</h3>
@@ -534,9 +633,9 @@ export default function EditVenue() {
                   name="timezone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zona horaria</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="America/Mexico_City" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.timezone', { defaultValue: 'America/Mexico_City' })} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -548,11 +647,11 @@ export default function EditVenue() {
                   name="currency"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Moneda</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona una moneda" />
+                            <SelectValue placeholder={t('venues.edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -569,7 +668,7 @@ export default function EditVenue() {
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Contacto e imágenes</h3>
+                <h3 className="text-lg font-medium">{t('venues.edit.sections.contact', { defaultValue: 'Contacto e imágenes' })}</h3>
                 <Separator />
 
                 <FormField
@@ -577,9 +676,9 @@ export default function EditVenue() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.email', { defaultValue: 'Email' })}</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="email@ejemplo.com" {...field} />
+                        <Input type="email" placeholder={t('venues.edit.placeholders.email', { defaultValue: 'email@ejemplo.com' })} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -591,9 +690,9 @@ export default function EditVenue() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.phone', { defaultValue: 'Teléfono' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="+52 123 456 7890" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.phone', { defaultValue: '+52 123 456 7890' })} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -605,9 +704,9 @@ export default function EditVenue() {
                   name="website"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sitio web</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.website', { defaultValue: 'Sitio web' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://tusitio.com" {...field} value={field.value || ''} />
+                        <Input placeholder={t('venues.edit.placeholders.website', { defaultValue: 'https://tusitio.com' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -619,9 +718,9 @@ export default function EditVenue() {
                   name="primaryColor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Color Primario</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.primaryColor', { defaultValue: 'Color Primario' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="#FF5733" {...field} value={field.value || ''} />
+                        <Input placeholder={t('venues.edit.placeholders.primaryColor', { defaultValue: '#FF5733' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -633,9 +732,9 @@ export default function EditVenue() {
                   name="secondaryColor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Color Secundario</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.secondaryColor', { defaultValue: 'Color Secundario' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder="#33C4FF" {...field} value={field.value || ''} />
+                        <Input placeholder={t('venues.edit.placeholders.secondaryColor', { defaultValue: '#33C4FF' })} {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -648,12 +747,12 @@ export default function EditVenue() {
                     name="latitude"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Latitud</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.latitude', { defaultValue: 'Latitud' })}</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
                             step="any" 
-                            placeholder="19.432608" 
+                            placeholder={t('venues.edit.placeholders.latitude', { defaultValue: '19.432608' })}
                             {...field} 
                             value={field.value ?? ''}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
@@ -669,12 +768,12 @@ export default function EditVenue() {
                     name="longitude"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Longitud</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.longitude', { defaultValue: 'Longitud' })}</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
                             step="any" 
-                            placeholder="-99.133209" 
+                            placeholder={t('venues.edit.placeholders.longitude', { defaultValue: '-99.133209' })}
                             {...field} 
                             value={field.value ?? ''}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
@@ -686,24 +785,70 @@ export default function EditVenue() {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de logo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/logo.jpg" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Logo upload with crop (optional URL fallback) */}
+                {canEdit ? (
+                  <FormItem>
+                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
+                    <FormControl>
+                      <div className="space-y-3">
+                        {imageUrl ? (
+                          <div className="flex items-center gap-3">
+                            <img src={imageUrl} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                            <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
+                              {t('common.remove', { defaultValue: 'Quitar' })}
+                            </Button>
+                          </div>
+                        ) : imageForCrop ? (
+                          <div>
+                            <div className="relative w-full h-64 bg-muted">
+                              <Cropper
+                                image={imageForCrop}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={4 / 3}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                              />
+                            </div>
+                            <div className="flex justify-between mt-3">
+                              <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                                {t('venues.addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
+                              </Button>
+                              <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
+                                {t('venues.addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Input type="file" onChange={e => handleFileUpload(e.target.files?.[0])} disabled={uploading} />
+                        )}
+                        <Input
+                          placeholder={t('venues.edit.placeholders.logo', { defaultValue: 'https://example.com/logo.jpg' })}
+                          value={form.watch('logo') || ''}
+                          onChange={e => form.setValue('logo', e.target.value, { shouldDirty: true })}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                ) : (
+                  <FormItem>
+                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
+                    <div className="flex items-center gap-3">
+                      {venue.logo ? (
+                        <img src={venue.logo} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Sin logo</span>
+                      )}
+                    </div>
+                  </FormItem>
+                )}
               </div>
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-lg font-medium">Integración con POS</h3>
+              <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
               <Separator />
 
               <FormField
@@ -711,7 +856,7 @@ export default function EditVenue() {
                 name="posType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sistema POS</FormLabel>
+                    <FormLabel>{t('venues.edit.labels.posType', { defaultValue: 'Sistema POS' })}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
@@ -735,6 +880,8 @@ export default function EditVenue() {
                 )}
               />
             </div>
+
+            </fieldset>
 
           </form>
         </Form>
