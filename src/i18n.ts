@@ -770,6 +770,7 @@ const resources = {
         command_menu: 'Command Menu',
         dialog_title_default: 'Dialog',
         sheet_title_default: 'Sheet',
+        verifying_session: 'Verifying session...',
       },
       header: {
         title: 'Superadmin Panel',
@@ -2431,6 +2432,7 @@ const resources = {
         command_menu: 'Menú de comandos',
         dialog_title_default: 'Diálogo',
         sheet_title_default: 'Panel',
+        verifying_session: 'Verificando sesión...',
       },
       header: {
         title: 'Panel de Superadministrador',

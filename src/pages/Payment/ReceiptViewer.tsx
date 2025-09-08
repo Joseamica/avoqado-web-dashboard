@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
 import { useTranslation } from 'react-i18next'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // (Removed unused ReceiptDataSnapshot interface)
 
@@ -17,6 +18,7 @@ export default function ReceiptViewer() {
   const { receiptId, accessKey } = useParams<{ receiptId?: string; accessKey?: string }>()
   const { toast } = useToast()
   const { t } = useTranslation()
+  const { venueId } = useCurrentVenue()
 
   // Determine if we're in public view or dashboard view
   const isPublicView = ReceiptUrls.isPublicView()
@@ -41,8 +43,16 @@ export default function ReceiptViewer() {
         throw new Error(t('payments.receipt.errors.invalidResponse'))
       } else if (!isPublicView && receiptId) {
         // Dashboard route: GET /api/v1/dashboard/venues/{venueId}/receipts/{receiptId}
-        // Note: This would need venueId - you might need to adjust based on your routing
-        throw new Error(t('payments.receipt.errors.notImplemented'))
+        if (!venueId) throw new Error(t('dashboardShell.loadingVenue'))
+        const response = await api.get(`/api/v1/dashboard/venues/${venueId}/receipts/${receiptId}`)
+        if (response.data?.success && response.data?.data) {
+          return response.data.data
+        }
+        // Some backends return the resource directly without a success wrapper
+        if (response.data && (response.data.id || response.data.accessKey || response.data.dataSnapshot)) {
+          return response.data
+        }
+        throw new Error(t('payments.receipt.errors.invalidResponse'))
       }
       throw new Error(t('payments.receipt.errors.invalidIdentifier'))
     },

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { StaffRole } from '@/types'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum AdminAccessLevel {
   ADMIN = 'ADMIN', // Para roles ADMIN, OWNER y SUPERADMIN
   OWNER = 'OWNER', // Solo para OWNER y SUPERADMIN
@@ -56,9 +57,7 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
             Esta sección está disponible solo para Propietarios (OWNER) y Administradores de Sistema (SUPERADMIN).
           </AlertDescription>
         </Alert>
-        <p className="text-muted-foreground text-sm mt-4">
-          Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).
-        </p>
+        <p className="text-muted-foreground text-sm mt-4">Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).</p>
       </div>
     )
   }

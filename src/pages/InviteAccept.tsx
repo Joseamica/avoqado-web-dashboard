@@ -14,16 +14,22 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
 
-const acceptInvitationSchema = z.object({
-  firstName: z.string().min(1, 'El nombre es requerido').max(50, 'Máximo 50 caracteres'),
-  lastName: z.string().min(1, 'El apellido es requerido').max(50, 'Máximo 50 caracteres'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
-  confirmPassword: z.string(),
-  pin: z.string().regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos').optional().or(z.literal('')),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Las contraseñas no coinciden",
-  path: ["confirmPassword"],
-})
+const acceptInvitationSchema = z
+  .object({
+    firstName: z.string().min(1, 'El nombre es requerido').max(50, 'Máximo 50 caracteres'),
+    lastName: z.string().min(1, 'El apellido es requerido').max(50, 'Máximo 50 caracteres'),
+    password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+    confirmPassword: z.string(),
+    pin: z
+      .string()
+      .regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
+      .optional()
+      .or(z.literal('')),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  })
 
 type AcceptInvitationFormData = z.infer<typeof acceptInvitationSchema>
 
@@ -96,17 +102,17 @@ export default function InviteAccept() {
       })
       return response.data
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: '¡Bienvenido al equipo!',
         description: 'Tu cuenta ha sido creada exitosamente. Puedes iniciar sesión ahora.',
       })
       // Redirect to login with the email pre-filled
-      navigate('/login', { 
-        state: { 
+      navigate('/login', {
+        state: {
           email: invitationDetails?.email,
-          message: 'Cuenta creada exitosamente. Inicia sesión para continuar.'
-        }
+          message: 'Cuenta creada exitosamente. Inicia sesión para continuar.',
+        },
       })
     },
     onError: (error: any) => {
@@ -148,10 +154,7 @@ export default function InviteAccept() {
             <CardDescription>{invitationError}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => navigate('/login')} 
-              className="w-full"
-            >
+            <Button onClick={() => navigate('/login')} className="w-full">
               Ir al inicio de sesión
             </Button>
           </CardContent>
@@ -162,7 +165,7 @@ export default function InviteAccept() {
 
   // Check if invitation is expired
   const isExpired = new Date(invitationDetails.expiresAt) < new Date()
-  
+
   if (isExpired) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -173,15 +176,12 @@ export default function InviteAccept() {
             </div>
             <CardTitle>Invitación expirada</CardTitle>
             <CardDescription>
-              Esta invitación expiró el {new Date(invitationDetails.expiresAt).toLocaleDateString('es-ES')}.
-              Contacta al administrador para recibir una nueva invitación.
+              Esta invitación expiró el {new Date(invitationDetails.expiresAt).toLocaleDateString('es-ES')}. Contacta al administrador para
+              recibir una nueva invitación.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => navigate('/login')} 
-              className="w-full"
-            >
+            <Button onClick={() => navigate('/login')} className="w-full">
               Ir al inicio de sesión
             </Button>
           </CardContent>
@@ -199,10 +199,14 @@ export default function InviteAccept() {
           </div>
           <CardTitle>Únete al equipo</CardTitle>
           <CardDescription>
-            Has sido invitado a unirte a <strong>{invitationDetails.organizationName}</strong> 
+            Has sido invitado a unirte a <strong>{invitationDetails.organizationName}</strong>
             {invitationDetails.venueName && (
-              <> en <strong>{invitationDetails.venueName}</strong></>
-            )} como <strong>{invitationDetails.role}</strong>
+              <>
+                {' '}
+                en <strong>{invitationDetails.venueName}</strong>
+              </>
+            )}{' '}
+            como <strong>{invitationDetails.role}</strong>
           </CardDescription>
         </CardHeader>
 
@@ -219,26 +223,14 @@ export default function InviteAccept() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Nombre *</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Tu nombre"
-                  {...register('firstName')}
-                />
-                {errors.firstName && (
-                  <p className="text-sm text-red-600">{errors.firstName.message}</p>
-                )}
+                <Input id="firstName" placeholder="Tu nombre" {...register('firstName')} />
+                {errors.firstName && <p className="text-sm text-red-600">{errors.firstName.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="lastName">Apellido *</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Tu apellido"
-                  {...register('lastName')}
-                />
-                {errors.lastName && (
-                  <p className="text-sm text-red-600">{errors.lastName.message}</p>
-                )}
+                <Input id="lastName" placeholder="Tu apellido" {...register('lastName')} />
+                {errors.lastName && <p className="text-sm text-red-600">{errors.lastName.message}</p>}
               </div>
             </div>
 
@@ -261,9 +253,7 @@ export default function InviteAccept() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-600">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -284,34 +274,18 @@ export default function InviteAccept() {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
-              )}
+              {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>}
             </div>
 
             {/* PIN Field */}
             <div className="space-y-2">
               <Label htmlFor="pin">PIN (opcional)</Label>
-              <Input
-                id="pin"
-                type="text"
-                placeholder="4 dígitos para acceso rápido"
-                maxLength={4}
-                {...register('pin')}
-              />
-              {errors.pin && (
-                <p className="text-sm text-red-600">{errors.pin.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                El PIN te permitirá acceder rápidamente desde terminales TPV
-              </p>
+              <Input id="pin" type="text" placeholder="4 dígitos para acceso rápido" maxLength={4} {...register('pin')} />
+              {errors.pin && <p className="text-sm text-red-600">{errors.pin.message}</p>}
+              <p className="text-xs text-muted-foreground">El PIN te permitirá acceder rápidamente desde terminales TPV</p>
             </div>
 
-            <Button
-              type="submit"
-              disabled={!isValid || acceptInvitationMutation.isPending}
-              className="w-full"
-            >
+            <Button type="submit" disabled={!isValid || acceptInvitationMutation.isPending} className="w-full">
               {acceptInvitationMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -327,10 +301,7 @@ export default function InviteAccept() {
             <p>Al aceptar esta invitación, aceptas los términos de uso.</p>
             <p className="mt-2">
               ¿Ya tienes una cuenta?{' '}
-              <button
-                onClick={() => navigate('/login')}
-                className="text-blue-600 hover:text-blue-800 underline"
-              >
+              <button onClick={() => navigate('/login')} className="text-blue-600 hover:text-blue-800 underline">
                 Inicia sesión aquí
               </button>
             </p>
