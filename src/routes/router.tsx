@@ -60,6 +60,8 @@ import {
   ProfitAnalyticsDashboard,
   Terms,
   Privacy,
+  AnalyticsLayout,
+  AnalyticsOverview,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -101,6 +103,14 @@ const router = createBrowserRouter(
         {
           element: <ProtectedRoute />, // Protected routes
           children: [
+            // Executive Analytics (org/venue scoped via backend auth)
+            {
+              path: '/analytics',
+              element: <AnalyticsLayout />,
+              children: [
+                { index: true, element: <AnalyticsOverview /> },
+              ],
+            },
             // Add venues route before venues/:slug
             {
               path: '/venues',
@@ -319,7 +329,18 @@ const router = createBrowserRouter(
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
                 { path: 'orders', element: <Orders /> },
                 { path: 'orders/:orderId', element: <OrderId /> },
-                { path: 'editVenue', element: <EditVenue /> },
+                // Analytics nested under venue for dashboard context
+                {
+                  path: 'analytics',
+                  element: <AnalyticsLayout />,
+                  children: [
+                    { index: true, element: <AnalyticsOverview /> },
+                  ],
+                },
+                {
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [{ path: 'editVenue', element: <EditVenue /> }],
+                },
                 { path: 'tpv', element: <Tpv /> },
                 { path: 'tpv/create', element: <CreateTpv /> },
                 { path: 'tpv/:tpvId', element: <TpvId /> },

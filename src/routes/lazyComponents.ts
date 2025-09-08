@@ -68,3 +68,7 @@ export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAn
 // Legal components
 export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))
 export const Privacy = React.lazy(() => import('@/pages/Legal/Privacy'))
+
+// Analytics
+export const AnalyticsLayout = React.lazy(() => import('@/pages/Analytics/AnalyticsLayout'))
+export const AnalyticsOverview = React.lazy(() => import('@/pages/Analytics/Overview'))
