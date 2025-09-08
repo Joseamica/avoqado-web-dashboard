@@ -49,7 +49,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "firebase": "^11.1.0",
-    "i18next": "^25.4.2",
+    "i18next": "^25.5.2",
     "localforage": "^1.10.0",
     "lucide-react": "^0.456.0",
     "luxon": "^3.5.0",
