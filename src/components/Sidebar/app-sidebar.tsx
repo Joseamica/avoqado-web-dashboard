@@ -1,4 +1,19 @@
-import { Banknote, BookOpen, Building, Frame, Home, Settings2, Smartphone, Star, Ungroup, BarChart3, DollarSign, Zap, AlertTriangle, TrendingUp } from 'lucide-react'
+import {
+  Banknote,
+  BookOpen,
+  Building,
+  Frame,
+  Home,
+  Settings2,
+  Smartphone,
+  Star,
+  Ungroup,
+  BarChart3,
+  DollarSign,
+  Zap,
+  AlertTriangle,
+  TrendingUp,
+} from 'lucide-react'
 import * as React from 'react'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
@@ -69,7 +84,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>{defaultVenue && <VenuesSwitcher venues={venuesToShow} defaultVenue={defaultVenue} />}</SidebarHeader>
       <SidebarContent>
-        <NavMain items={user.role === 'SUPERADMIN' ? [...navMain, ...superAdminRoutes] : navMain} />
+        <NavMain items={navMain} superadminItems={user.role === 'SUPERADMIN' ? superAdminRoutes : []} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>

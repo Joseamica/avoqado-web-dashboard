@@ -260,8 +260,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   }
 
   const handlePrint = () => {
-    window.print()
-    onPrint?.()
+    // Avoid double print dialogs when parent provides handler
+    if (onPrint) {
+      onPrint()
+    } else {
+      window.print()
+    }
   }
 
   const datetime = payment?.createdAt ? formatDate(payment.createdAt) : null
@@ -269,7 +273,8 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   return (
     <div className={`min-h-screen bg-gradient-to-br from-background via-muted/30 to-background ${className}`}>
       {/* Mobile-First Layout */}
-      <div className="container mx-auto p-3 sm:p-6 max-w-2xl">
+      {/* Add receipt-container for print CSS to target only the receipt area */}
+      <div className="receipt-container container mx-auto p-3 sm:p-6 max-w-2xl">
         <div ref={receiptRef} className="space-y-4">
           {/* Header Card */}
           <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
