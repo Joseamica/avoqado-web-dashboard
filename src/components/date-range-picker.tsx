@@ -10,6 +10,7 @@ import { Switch } from './ui/switch'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -64,17 +65,17 @@ interface Preset {
 
 // Define presets
 const PRESETS: Preset[] = [
-  { name: 'today', label: 'Hoy' },
-  { name: 'yesterday', label: 'Ayer' },
-  { name: 'last7', label: 'Últimos 7 días' },
-  { name: 'last14', label: 'Últimos 14 días' },
-  { name: 'last30', label: 'Últimos 30 días' },
-  { name: 'thisWeek', label: 'Esta Semana' },
-  { name: 'lastWeek', label: 'La Semana Pasada' },
-  { name: 'thisMonth', label: 'Este Mes' },
-  { name: 'lastMonth', label: 'El Mes Pasado' },
-  { name: 'thisYear', label: 'Este Año' },
-  { name: 'lastYear', label: 'El Año Pasado' },
+  { name: 'today', label: 'today' },
+  { name: 'yesterday', label: 'yesterday' },
+  { name: 'last7', label: 'last7' },
+  { name: 'last14', label: 'last14' },
+  { name: 'last30', label: 'last30' },
+  { name: 'thisWeek', label: 'thisWeek' },
+  { name: 'lastWeek', label: 'lastWeek' },
+  { name: 'thisMonth', label: 'thisMonth' },
+  { name: 'lastMonth', label: 'lastMonth' },
+  { name: 'thisYear', label: 'thisYear' },
+  { name: 'lastYear', label: 'lastYear' },
 ]
 
 /** The DateRangePicker component allows a user to select a range of dates */
@@ -90,6 +91,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   locale = 'en-US',
   showCompare = true,
 }): JSX.Element => {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
 
   const [range, setRange] = useState<DateRange>({
@@ -389,7 +391,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                       }}
                       id="compare-mode"
                     />
-                    <Label htmlFor="compare-mode">Comparar</Label>
+                    <Label htmlFor="compare-mode">{t('common.compare')}</Label>
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
@@ -464,12 +466,12 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   }}
                 >
                   <SelectTrigger className="w-[180px] mx-auto mb-2">
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder={t('common.selectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {PRESETS.map(preset => (
                       <SelectItem key={preset.name} value={preset.name}>
-                        {preset.label}
+                        {t(`common.dateRange.${preset.name}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -494,7 +496,12 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
             <div className="flex flex-col items-end gap-1 pr-2 pl-6 pb-6">
               <div className="flex w-full flex-col items-end gap-1 pr-2 pl-6 pb-6">
                 {PRESETS.map(preset => (
-                  <PresetButton key={preset.name} preset={preset.name} label={preset.label} isSelected={selectedPreset === preset.name} />
+                  <PresetButton
+                    key={preset.name}
+                    preset={preset.name}
+                    label={t(`common.dateRange.${preset.name}`)}
+                    isSelected={selectedPreset === preset.name}
+                  />
                 ))}
               </div>
             </div>
@@ -508,7 +515,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
             }}
             variant="ghost"
           >
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={() => {
@@ -518,7 +525,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
               }
             }}
           >
-            Actualizar
+            {t('common.apply')}
           </Button>
         </div>
       </PopoverContent>

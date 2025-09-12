@@ -34,11 +34,12 @@ import { Currency } from '@/utils/currency'
 import { superadminAPI } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 // Data now fetched from API via React Query
 
 const FeatureManagement: React.FC = () => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data: features = [], isLoading } = useQuery({
     queryKey: ['superadmin-features'],
     queryFn: superadminAPI.getAllFeatures,
@@ -228,7 +229,9 @@ const FeatureManagement: React.FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$8,450</div>
+            <div className="text-2xl font-bold">{
+              Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(8450)
+            }</div>
             <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.avgRevenueChange')}</p>
           </CardContent>
         </Card>
@@ -239,7 +242,9 @@ const FeatureManagement: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">67%</div>
+            <div className="text-2xl font-bold">{
+              Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'percent', maximumFractionDigits: 0 }).format(0.67)
+            }</div>
             <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.adoptionAvg')}</p>
           </CardContent>
         </Card>
@@ -383,7 +388,7 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="price">{t('featureMgmt.form.basePriceLabel')}</Label>
-          <Input id="price" type="number" placeholder="49.99" value={basePrice} onChange={e => setBasePrice(e.target.value)} />
+          <Input id="price" type="number" placeholder={t('featureMgmt.form.basePricePlaceholder')} value={basePrice} onChange={e => setBasePrice(e.target.value)} />
         </div>
         <div className="flex items-center space-x-2 pt-6">
           <Switch id="core" checked={isCore} onCheckedChange={setIsCore} />
