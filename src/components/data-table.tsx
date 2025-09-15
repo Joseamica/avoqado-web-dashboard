@@ -163,7 +163,7 @@ function DataTable<TData>({
         )}
       </div>
       <Table containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden" className="table-sticky">
-        {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
+        {/* <TableCaption>{t('dashboard.tableTexts.paymentsList')}</TableCaption> */}
         <TableHeader className="sticky top-0 z-10 bg-muted dark:bg-[#262626] text-muted-foreground">
           {table.getHeaderGroups().map(headerGroup => (
             <TableRow key={headerGroup.id} className="border-border">

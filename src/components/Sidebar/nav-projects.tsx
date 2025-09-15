@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function NavProjects({
   projects,
@@ -28,10 +29,11 @@ export function NavProjects({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const { t } = useTranslation()
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('sidebar.projects.title')}</SidebarGroupLabel>
       <SidebarMenu>
         {projects.map(item => (
           <SidebarMenuItem key={item.name}>
@@ -45,22 +47,22 @@ export function NavProjects({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
                   <MoreHorizontal />
-                  <span className="sr-only">More</span>
+                  <span className="sr-only">{t('common.more')}</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48 rounded-lg" side={isMobile ? 'bottom' : 'right'} align={isMobile ? 'end' : 'start'}>
                 <DropdownMenuItem>
                   <Folder className="text-zinc-500 dark:text-zinc-400" />
-                  <span>View Project</span>
+                  <span>{t('sidebar.projects.view')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Forward className="text-zinc-500 dark:text-zinc-400" />
-                  <span>Share Project</span>
+                  <span>{t('sidebar.projects.share')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Trash2 className="text-zinc-500 dark:text-zinc-400" />
-                  <span>Delete Project</span>
+                  <span>{t('sidebar.projects.delete')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -69,7 +71,7 @@ export function NavProjects({
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontal className="text-sidebar-foreground/70" />
-            <span>More</span>
+            <span>{t('common.more')}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

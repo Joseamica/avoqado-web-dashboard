@@ -67,7 +67,7 @@ interface VenueFormData {
 }
 
 export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDialogProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const form = useForm<VenueFormData>({
     defaultValues: {
       name: '',
@@ -275,29 +275,29 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
       <DialogHeader>
         <DialogTitle className="flex items-center space-x-2">
           <Building className="w-5 h-5" />
-          <span>Create New Venue</span>
+          <span>{t('venueMgmt.addVenue.title')}</span>
         </DialogTitle>
         <DialogDescription>
-          Set up a new venue with complete payment processing and pricing configuration.
+          {t('venueMgmt.addVenue.description')}
         </DialogDescription>
       </DialogHeader>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs value={currentStep} onValueChange={setCurrentStep} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="location">Location</TabsTrigger>
-              <TabsTrigger value="payment">Payment Setup</TabsTrigger>
-              <TabsTrigger value="pricing">Pricing</TabsTrigger>
-            </TabsList>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">{t('venueMgmt.tabs.basicInfo')}</TabsTrigger>
+                <TabsTrigger value="location">{t('venueMgmt.tabs.location')}</TabsTrigger>
+                <TabsTrigger value="payment">{t('venueMgmt.tabs.payment')}</TabsTrigger>
+                <TabsTrigger value="pricing">{t('venueMgmt.tabs.pricing')}</TabsTrigger>
+              </TabsList>
 
             <TabsContent value="basic" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Info className="w-4 h-4" />
-                    <span>Basic Information</span>
+                    <span>{t('venueMgmt.basicInfo.title')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -308,9 +308,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Venue Name</FormLabel>
+                          <FormLabel>{t('venueMgmt.basicInfo.venueName')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., Tacos El Rey - Roma Norte" {...field} />
+                            <Input placeholder={t('venueMgmt.basicInfo.venueNamePlaceholder')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -323,21 +323,21 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Venue Type</FormLabel>
+                          <FormLabel>{t('venueMgmt.basicInfo.venueType')}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select venue type" />
+                                <SelectValue placeholder={t('venueMgmt.basicInfo.venueTypePlaceholder')} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="RESTAURANT">Restaurant</SelectItem>
-                              <SelectItem value="BAR">Bar</SelectItem>
-                              <SelectItem value="CAFE">Café</SelectItem>
-                              <SelectItem value="FAST_FOOD">Fast Food</SelectItem>
-                              <SelectItem value="FOOD_TRUCK">Food Truck</SelectItem>
-                              <SelectItem value="RETAIL_STORE">Retail Store</SelectItem>
-                              <SelectItem value="OTHER">Other</SelectItem>
+                              <SelectItem value="RESTAURANT">{t('venueMgmt.types.RESTAURANT')}</SelectItem>
+                              <SelectItem value="BAR">{t('venueMgmt.types.BAR')}</SelectItem>
+                              <SelectItem value="CAFE">{t('venueMgmt.types.CAFE')}</SelectItem>
+                              <SelectItem value="FAST_FOOD">{t('venueMgmt.types.FAST_FOOD')}</SelectItem>
+                              <SelectItem value="FOOD_TRUCK">{t('venueMgmt.types.FOOD_TRUCK')}</SelectItem>
+                              <SelectItem value="RETAIL_STORE">{t('venueMgmt.types.RETAIL_STORE')}</SelectItem>
+                              <SelectItem value="OTHER">{t('venueMgmt.types.OTHER')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -353,7 +353,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       rules={{ required: 'Phone number is required' }}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
+                          <FormLabel>{t('venueMgmt.basicInfo.phoneNumber')}</FormLabel>
                           <FormControl>
                             <Input placeholder="+52-55-1234-5678" {...field} />
                           </FormControl>
@@ -374,9 +374,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       }}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>{t('venueMgmt.basicInfo.email')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="contact@venue.com" type="email" {...field} />
+                            <Input placeholder={t('venueMgmt.basicInfo.emailPlaceholder')} type="email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -389,9 +389,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     name="website"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Website (Optional)</FormLabel>
+                        <FormLabel>{t('venueMgmt.basicInfo.websiteOptional')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="https://venue.com" {...field} />
+                          <Input placeholder={t('venueMgmt.basicInfo.websitePlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -404,12 +404,12 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     name="logo"
                     render={() => (
                       <FormItem>
-                        <FormLabel>Venue Logo</FormLabel>
+                        <FormLabel>{t('venueMgmt.basicInfo.venueLogo')}</FormLabel>
                         <FormControl>
                           <div className="pb-4">
                             {imageUrl ? (
                               <div className="flex flex-col items-center space-y-2">
-                                <img src={imageUrl} alt="Logo" className="object-cover rounded-md max-w-32 max-h-32" />
+                                <img src={imageUrl} alt={t('venueMgmt.basicInfo.logoAlt')} className="object-cover rounded-md max-w-32 max-h-32" />
                                 <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
                                   Remove Logo
                                 </Button>
@@ -429,10 +429,10 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                 </div>
                                 <div className="flex justify-between mt-4">
                                   <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                                    Cancel
+                                    {t('common.cancel')}
                                   </Button>
                                   <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
-                                    Confirm Logo
+                                    {t('venueMgmt.basicInfo.confirmLogo')}
                                   </Button>
                                 </div>
                               </div>
@@ -458,7 +458,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
             <TabsContent value="location" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Location & Settings</CardTitle>
+                  <CardTitle>{t('venueMgmt.location.title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -467,9 +467,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Street Address</FormLabel>
+                        <FormLabel>{t('venueMgmt.location.streetAddress')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Álvaro Obregón 123" {...field} />
+                          <Input placeholder={t('venueMgmt.location.streetAddressPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -483,9 +483,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel>{t('venueMgmt.location.city')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="Mexico City" {...field} />
+                            <Input placeholder={t('venueMgmt.location.cityPlaceholder')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -498,9 +498,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="state"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>State</FormLabel>
+                          <FormLabel>{t('venueMgmt.location.state')}</FormLabel>
                           <FormControl>
-                            <Input placeholder="CDMX" {...field} />
+                            <Input placeholder={t('venueMgmt.location.statePlaceholder')} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -513,7 +513,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="zipCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>ZIP Code</FormLabel>
+                          <FormLabel>{t('venueMgmt.location.zipCode')}</FormLabel>
                           <FormControl>
                             <Input placeholder="06700" {...field} />
                           </FormControl>
@@ -529,7 +529,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="timezone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Timezone</FormLabel>
+                          <FormLabel>{t('venueMgmt.location.timezone')}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -537,9 +537,9 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="America/Mexico_City">Mexico City (GMT-6)</SelectItem>
-                              <SelectItem value="America/Cancun">Cancun (GMT-5)</SelectItem>
-                              <SelectItem value="America/Tijuana">Tijuana (GMT-8)</SelectItem>
+                              <SelectItem value="America/Mexico_City">{t('venueMgmt.timezones.mexicoCity')}</SelectItem>
+                              <SelectItem value="America/Cancun">{t('venueMgmt.timezones.cancun')}</SelectItem>
+                              <SelectItem value="America/Tijuana">{t('venueMgmt.timezones.tijuana')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -552,7 +552,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       name="currency"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Currency</FormLabel>
+                          <FormLabel>{t('venueMgmt.location.currency')}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -560,8 +560,8 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="MXN">Mexican Peso (MXN)</SelectItem>
-                              <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                              <SelectItem value="MXN">{t('venueMgmt.currencies.MXN')}</SelectItem>
+                              <SelectItem value="USD">{t('venueMgmt.currencies.USD')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -574,8 +574,8 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     control={form.control}
                     name="pos"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>POS System Integration</FormLabel>
+                        <FormItem>
+                          <FormLabel>{t('venueMgmt.location.posIntegration')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -583,10 +583,10 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="SOFTRESTAURANT">SoftRestaurant</SelectItem>
-                            <SelectItem value="SQUARE">Square</SelectItem>
-                            <SelectItem value="TOAST">Toast</SelectItem>
-                            <SelectItem value="NONE">No Integration</SelectItem>
+                              <SelectItem value="SOFTRESTAURANT">{t('venueMgmt.posProviders.SOFTRESTAURANT')}</SelectItem>
+                              <SelectItem value="SQUARE">{t('venueMgmt.posProviders.SQUARE')}</SelectItem>
+                              <SelectItem value="TOAST">{t('venueMgmt.posProviders.TOAST')}</SelectItem>
+                              <SelectItem value="NONE">{t('venueMgmt.posProviders.NONE')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -602,10 +602,10 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <CreditCard className="w-4 h-4" />
-                    <span>Payment Processing Setup</span>
+                    <span>{t('venueMgmt.paymentSetup.title')}</span>
                   </CardTitle>
                   <CardDescription>
-                    Configure payment processing with merchant accounts and routing rules.
+                    {t('venueMgmt.paymentSetup.description')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -640,11 +640,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           name="primaryAccountId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Primary Account</FormLabel>
+                              <FormLabel>{t('venueMgmt.paymentSetup.primaryAccount')}</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select primary account" />
+                                    <SelectValue placeholder={t('venueMgmt.paymentSetup.primaryAccountPlaceholder')} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -665,15 +665,15 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           name="secondaryAccountId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Secondary Account (Optional)</FormLabel>
+                              <FormLabel>{t('venueMgmt.paymentSetup.secondaryAccountOptional')}</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select secondary account" />
+                                    <SelectValue placeholder={t('venueMgmt.paymentSetup.secondaryAccountPlaceholder')} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="">{t('common.none')}</SelectItem>
                                   {merchantAccounts?.map(account => (
                                     <SelectItem key={account.id} value={account.id}>
                                       {account.alias || account.externalMerchantId} ({account.providerName})
@@ -691,15 +691,15 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           name="tertiaryAccountId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Tertiary Account (Optional)</FormLabel>
+                              <FormLabel>{t('venueMgmt.paymentSetup.tertiaryAccountOptional')}</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select tertiary account" />
+                                    <SelectValue placeholder={t('venueMgmt.paymentSetup.tertiaryAccountPlaceholder')} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
+                                  <SelectItem value="">{t('common.none')}</SelectItem>
                                   {merchantAccounts?.map(account => (
                                     <SelectItem key={account.id} value={account.id}>
                                       {account.alias || account.externalMerchantId} ({account.providerName})
@@ -714,14 +714,14 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       </div>
 
                       <div className="rounded-lg border p-4 bg-muted/30">
-                        <h4 className="font-medium mb-2">Payment Routing Rules</h4>
+                        <h4 className="font-medium mb-2">{t('venueMgmt.paymentSetup.rules.title')}</h4>
                         <p className="text-sm text-muted-foreground mb-3">
                           Configure automatic routing based on business rules (can be customized later).
                         </p>
                         <div className="text-sm space-y-1">
-                          <div>• <strong>Primary Account:</strong> Default for all transactions</div>
-                          <div>• <strong>Secondary Account:</strong> Used when customer needs invoice</div>
-                          <div>• <strong>Tertiary Account:</strong> Used for high-value transactions (&gt; $5,000)</div>
+                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.primary')}</strong> {t('venueMgmt.paymentSetup.rules.primaryDesc')}</div>
+                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.secondary')}</strong> {t('venueMgmt.paymentSetup.rules.secondaryDesc')}</div>
+                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.tertiary')}</strong> {t('venueMgmt.paymentSetup.rules.tertiaryDesc')}</div>
                         </div>
                       </div>
                     </div>
@@ -735,7 +735,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Calculator className="w-4 h-4" />
-                    <span>Pricing Configuration</span>
+                    <span>{t('venueMgmt.pricing.title')}</span>
                   </CardTitle>
                   <CardDescription>
                     Set transaction fees and monthly charges for this venue.
@@ -748,12 +748,8 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">
-                            Setup Pricing Structure
-                          </FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Configure transaction fees and monthly charges now
-                          </div>
+                          <FormLabel className="text-base">{t('venueMgmt.pricing.setupTitle')}</FormLabel>
+                          <div className="text-sm text-muted-foreground">{t('venueMgmt.pricing.setupDesc')}</div>
                         </div>
                         <FormControl>
                           <Switch
@@ -772,7 +768,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                         name="pricingTier"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Pricing Tier</FormLabel>
+                            <FormLabel>{t('venueMgmt.pricing.tier')}</FormLabel>
                             <Select onValueChange={handlePricingTierChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
@@ -799,31 +795,31 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       <div className="rounded-lg border p-4 bg-blue-50 dark:bg-blue-950/30">
                         <h4 className="font-medium mb-3 flex items-center space-x-2">
                           <DollarSign className="w-4 h-4" />
-                          <span>Pricing Preview</span>
+                          <span>{t('venueMgmt.pricing.preview.title')}</span>
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Debit Cards:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.debitCards')}</span>
                             <div className="font-medium">{formatPercentage(form.watch('debitRate') || 0)}</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Credit Cards:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.creditCards')}</span>
                             <div className="font-medium">{formatPercentage(form.watch('creditRate') || 0)}</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">American Express:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.amex')}</span>
                             <div className="font-medium">{formatPercentage(form.watch('amexRate') || 0)}</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">International:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.international')}</span>
                             <div className="font-medium">{formatPercentage(form.watch('internationalRate') || 0)}</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Fixed Fee:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.fixedFee')}</span>
                             <div className="font-medium">{formatCurrency(form.watch('fixedFeePerTransaction') || 0)}</div>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Monthly Fee:</span>
+                            <span className="text-muted-foreground">{t('venueMgmt.pricing.preview.monthlyFee')}</span>
                             <div className="font-medium">{formatCurrency(form.watch('monthlyServiceFee') || 0)}</div>
                           </div>
                         </div>
@@ -832,14 +828,14 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       {/* Custom pricing fields for CUSTOM tier */}
                       {form.watch('pricingTier') === 'CUSTOM' && (
                         <div className="space-y-4">
-                          <h4 className="font-medium">Custom Pricing Rates</h4>
+                          <h4 className="font-medium">{t('venueMgmt.pricing.customRates')}</h4>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <FormField
                               control={form.control}
                               name="debitRate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Debit Rate (%)</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.debitRate')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -861,7 +857,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               name="creditRate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Credit Rate (%)</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.creditRate')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -883,7 +879,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               name="amexRate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Amex Rate (%)</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.amexRate')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -905,7 +901,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               name="internationalRate"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>International Rate (%)</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.internationalRate')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -929,7 +925,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               name="fixedFeePerTransaction"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Fixed Fee per Transaction</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.fixedFeePerTransaction')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -950,7 +946,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               name="monthlyServiceFee"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Monthly Service Fee</FormLabel>
+                                  <FormLabel>{t('venueMgmt.pricing.monthlyServiceFee')}</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -978,7 +974,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
           <DialogFooter className="flex justify-between">
             <div className="flex space-x-2">
               <Button variant="outline" type="button" onClick={onClose} disabled={uploading || isPending}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               {currentStep !== 'basic' && (
                 <Button
@@ -993,7 +989,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   }}
                   disabled={uploading || isPending}
                 >
-                  Previous
+                  {t('common.previous')}
                 </Button>
               )}
             </div>
@@ -1010,7 +1006,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   }}
                   disabled={uploading || isPending}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               ) : (
                 <Button 
@@ -1018,7 +1014,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   disabled={uploading || !imageUrl || isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {isPending ? 'Creating Venue...' : 'Create Venue'}
+                  {isPending ? t('venueMgmt.addVenue.creating') : t('venueMgmt.addVenue.create')}
                 </Button>
               )}
             </div>

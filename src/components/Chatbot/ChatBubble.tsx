@@ -629,8 +629,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             size="icon"
             className="h-8 w-8"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? 'Contraer chat' : 'Expandir chat'}
-            title={isExpanded ? 'Contraer chat' : 'Expandir chat'}
+            aria-label={isExpanded ? t('chat.actions.collapse_chat') : t('chat.actions.expand_chat')}
+            title={isExpanded ? t('chat.actions.collapse_chat') : t('chat.actions.expand_chat')}
           >
             {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
@@ -639,8 +639,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             size="icon"
             className="h-8 w-8"
             onClick={() => setShowConversations(!showConversations)}
-            aria-label="Ver conversaciones"
-            title="Ver conversaciones guardadas"
+            aria-label={t('chat.actions.view_conversations')}
+            title={t('chat.actions.view_saved_conversations')}
           >
             <History className="h-4 w-4" />
           </Button>
@@ -650,13 +650,13 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             className="h-8 w-8"
             onClick={handleSaveConversation}
             disabled={!canSaveConversation || isSaving}
-            aria-label="Guardar conversación"
+            aria-label={t('chat.actions.save_conversation')}
             title={
               !messages.some(msg => msg.isUser)
-                ? "No hay conversación para guardar"
+                ? t('chat.actions.nothing_to_save')
                 : canSaveConversation 
-                  ? "Guardar conversación actual" 
-                  : "Conversación ya guardada (sin cambios nuevos)"
+                  ? t('chat.actions.save_current') 
+                  : t('chat.actions.already_saved')
             }
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -667,8 +667,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             className="h-8 w-8"
             onClick={handleNewConversation}
             disabled={isCreatingNew}
-            aria-label="Nueva conversación"
-            title="Crear nueva conversación"
+            aria-label={t('chat.actions.new_conversation')}
+            title={t('chat.actions.create_new_conversation')}
           >
             {isCreatingNew ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
@@ -678,12 +678,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             className="h-8 w-8"
             onClick={handleClearHistory}
             disabled={isClearing || !canClearConversation}
-            aria-label="Borrar historial"
-            title={canClearConversation ? "Borrar historial" : "No hay historial para borrar"}
+            aria-label={t('chat.actions.clear_history')}
+            title={canClearConversation ? t('chat.actions.clear_history') : t('chat.actions.nothing_to_clear')}
           >
             {isClearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label="Cerrar chat">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label={t('chat.actions.close_chat')}>
             <X className="h-4 w-4" />
           </Button>
         </div>

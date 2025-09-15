@@ -3,17 +3,23 @@
   Lightweight i18n hardcoded text checker for TSX files.
   Usage:
     node scripts/check-i18n.js [paths...]
-  If no paths are passed, defaults to scanning Superadmin pages.
+  Behavior:
+    - If paths are provided, scans those.
+    - In CI (GITHUB_ACTIONS=true) with no args, scans only changed .tsx files
+      relative to the base branch (PR base or current branch on origin).
+    - Locally with no args, scans the entire `src/` tree.
 */
 
 import fs from 'fs'
 import path from 'path'
+import { execSync } from 'child_process'
 
 const DEFAULT_PATHS = ['src']
+const isCI = process.env.GITHUB_ACTIONS === 'true'
 
 const ROOT = process.cwd()
 const args = process.argv.slice(2)
-const targets = args.length ? args : DEFAULT_PATHS
+const targets = args.length ? args : undefined
 
 /** Recursively list files under a directory */
 function listFiles(dir) {
@@ -87,10 +93,48 @@ function scanFile(file) {
 }
 
 function main() {
-  const files = targets
-    .map(p => path.join(ROOT, p))
-    .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
-    .filter(isTSX)
+  let files = []
+
+  if (targets && targets.length) {
+    files = targets
+      .map(p => path.join(ROOT, p))
+      .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
+      .filter(isTSX)
+  } else if (isCI) {
+    // In CI: scan only changed TSX files
+    try {
+      const refName = process.env.GITHUB_BASE_REF || process.env.GITHUB_REF_NAME || ''
+      const baseBranch = process.env.GITHUB_BASE_REF || refName || 'develop'
+      // Ensure we have the base branch ref
+      execSync(`git fetch --no-tags --depth=2 origin ${baseBranch}`, { stdio: 'ignore' })
+      const diffOutput = execSync(`git diff --name-only --diff-filter=ACMRT origin/${baseBranch}...HEAD`, {
+        stdio: ['ignore', 'pipe', 'ignore']
+      })
+        .toString()
+        .trim()
+      const changed = diffOutput ? diffOutput.split(/\r?\n/) : []
+      files = changed
+        .filter(f => f && isTSX(f))
+        .map(f => path.join(ROOT, f))
+
+      if (files.length === 0) {
+        console.log('i18n check skipped: no changed .tsx files detected.')
+        process.exit(0)
+      }
+    } catch (e) {
+      console.warn('i18n check warning: failed to detect changed files, falling back to full scan of src/.')
+      files = DEFAULT_PATHS
+        .map(p => path.join(ROOT, p))
+        .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
+        .filter(isTSX)
+    }
+  } else {
+    // Local default: full repo scan under src/
+    files = DEFAULT_PATHS
+      .map(p => path.join(ROOT, p))
+      .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
+      .filter(isTSX)
+  }
 
   const allIssues = []
   for (const f of files) {

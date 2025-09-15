@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Command as CommandPrimitive, useCommandState } from 'cmdk'
 import { Eye, GripVertical, X } from 'lucide-react'
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useEffect } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -140,6 +141,7 @@ function SortableBadge({
   onViewOption?: (option: Option) => void
   showViewIcon?: boolean
 }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: option.value })
 
   const style: React.CSSProperties = {
@@ -184,7 +186,7 @@ function SortableBadge({
               e.stopPropagation()
               onViewOption(option)
             }}
-            title="View details"
+            title={t('common.viewDetails')}
           >
             <Eye className="m-1 w-4 h-4 text-muted-foreground hover:text-foreground" />
           </button>
@@ -210,7 +212,7 @@ function SortableBadge({
             e.stopPropagation()
             handleUnselect(option)
           }}
-          title="Remove"
+          title={t('common.remove')}
         >
           <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         </button>
@@ -537,8 +539,8 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                     (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
                       'hidden',
                   )}
-                  title="Clear all"
-                >
+          title={t('common.clearAll')}
+        >
                   <X className="w-4 h-4" />
                 </button>
               </div>

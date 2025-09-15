@@ -13,6 +13,7 @@ import { canShowNotifications, requestNotificationPermission } from '@/utils/not
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, Clock, Settings, Volume2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface NotificationPreferencesProps {
   className?: string
@@ -21,6 +22,7 @@ interface NotificationPreferencesProps {
 export function NotificationPreferences({ className }: NotificationPreferencesProps) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission>('default')
 
@@ -150,16 +152,16 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground flex items-center">
           <Settings className="h-6 w-6 mr-2" />
-          Notification Preferences
+          {t('dashboard.notifications.title')}
         </h1>
-        <p className="text-muted-foreground mt-1">Configure how and when you receive notifications</p>
+        <p className="text-muted-foreground mt-1">{t('dashboard.notifications.subtitle')}</p>
       </div>
 
       <Tabs defaultValue="types" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="types">Notification Types</TabsTrigger>
-          <TabsTrigger value="channels">Channels</TabsTrigger>
-          <TabsTrigger value="general">General Settings</TabsTrigger>
+          <TabsTrigger value="types">{t('dashboard.notifications.type')}</TabsTrigger>
+          <TabsTrigger value="channels">{t('dashboard.notifications.channels', { defaultValue: 'Channels' })}</TabsTrigger>
+          <TabsTrigger value="general">{t('dashboard.notifications.generalSettings', { defaultValue: 'General Settings' })}</TabsTrigger>
         </TabsList>
 
         {/* Notification Types Tab */}
@@ -168,8 +170,8 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
             {Object.entries(notificationCategories).map(([category, types]) => (
               <Card key={category}>
                 <CardHeader>
-                  <CardTitle className="capitalize text-lg">{category} Notifications</CardTitle>
-                  <CardDescription>Configure notifications for {category}-related events</CardDescription>
+                  <CardTitle className="capitalize text-lg">{t('dashboard.notifications.category', { defaultValue: '{{category}} Notifications', category })}</CardTitle>
+                  <CardDescription>{t('dashboard.notifications.categoryDesc', { defaultValue: 'Configure notifications for {{category}}-related events', category })}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {types.map(type => {
@@ -187,7 +189,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                           {preference.enabled && (
                             <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
                               <div className="flex items-center space-x-1">
-                                <span>Channels:</span>
+                                <span>{t('dashboard.notifications.channels', { defaultValue: 'Channels' })}:</span>
                                 {preference.channels.map(channel => (
                                   <Badge key={channel} variant="outline" className="text-xs">
                                     {channel}
@@ -195,7 +197,7 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
                                 ))}
                               </div>
                               <div className="flex items-center space-x-1">
-                                <span>Priority:</span>
+                                <span>{t('dashboard.notifications.priority')}:</span>
                                 <Badge variant="outline" className="text-xs">
                                   {preference.priority}
                                 </Badge>
@@ -244,31 +246,31 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Bell className="h-5 w-5 mr-2" />
-                  Browser Notifications
+                  {t('dashboard.notifications.browserTitle', { defaultValue: 'Browser Notifications' })}
                 </CardTitle>
-                <CardDescription>Receive notifications directly in your browser</CardDescription>
+                <CardDescription>{t('dashboard.notifications.receiveInBrowser')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Permission Status</p>
+                    <p className="font-medium">{t('dashboard.notifications.permissionStatus')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {browserPermission === 'granted' && 'Browser notifications are enabled'}
-                      {browserPermission === 'denied' && 'Browser notifications are blocked'}
-                      {browserPermission === 'default' && 'Browser notification permission not set'}
+                      {browserPermission === 'granted' && t('dashboard.notifications.browserEnabled')}
+                      {browserPermission === 'denied' && t('dashboard.notifications.browserBlocked')}
+                      {browserPermission === 'default' && t('dashboard.notifications.browserNotSet')}
                     </p>
                   </div>
 
                   {browserPermission !== 'granted' && (
                     <Button onClick={handleRequestPermission}>
-                      {browserPermission === 'denied' ? 'Enable in Settings' : 'Enable Notifications'}
+                      {browserPermission === 'denied' ? t('dashboard.notifications.enableInSettings') : t('dashboard.notifications.enableNotifications')}
                     </Button>
                   )}
 
                   {browserPermission === 'granted' && (
                     <Badge variant="default" className="flex items-center space-x-1">
                       <Bell className="h-3 w-3" />
-                      <span>Enabled</span>
+                      <span>{t('dashboard.notifications.enabled')}</span>
                     </Badge>
                   )}
                 </div>
@@ -280,19 +282,19 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Volume2 className="h-5 w-5 mr-2" />
-                  In-App Notifications
+                  {t('dashboard.notifications.inAppTitle', { defaultValue: 'In-App Notifications' })}
                 </CardTitle>
-                <CardDescription>Notifications shown within the dashboard</CardDescription>
+                <CardDescription>{t('dashboard.notifications.inAppDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Always Enabled</p>
-                    <p className="text-sm text-muted-foreground">In-app notifications are always active and cannot be disabled</p>
+                    <p className="font-medium">{t('dashboard.notifications.alwaysEnabled')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.notifications.inAppAlwaysActive')}</p>
                   </div>
                   <Badge variant="default" className="flex items-center space-x-1">
                     <Volume2 className="h-3 w-3" />
-                    <span>Active</span>
+                    <span>{t('dashboard.notifications.active')}</span>
                   </Badge>
                 </div>
               </CardContent>
@@ -308,48 +310,48 @@ export function NotificationPreferences({ className }: NotificationPreferencesPr
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Clock className="h-5 w-5 mr-2" />
-                  Quiet Hours
+                  {t('dashboard.notifications.quietHours')}
                 </CardTitle>
-                <CardDescription>Set times when you don't want to receive notifications</CardDescription>
+                <CardDescription>{t('dashboard.notifications.quietHoursDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="quiet-start">Start Time</Label>
+                    <Label htmlFor="quiet-start">{t('dashboard.notifications.startTime')}</Label>
                     <Input id="quiet-start" type="time" placeholder="22:00" className="mt-1" />
                   </div>
                   <div>
-                    <Label htmlFor="quiet-end">End Time</Label>
+                    <Label htmlFor="quiet-end">{t('dashboard.notifications.endTime')}</Label>
                     <Input id="quiet-end" type="time" placeholder="08:00" className="mt-1" />
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">During quiet hours, only urgent notifications will be shown</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.notifications.quietHoursNote')}</p>
               </CardContent>
             </Card>
 
             {/* Test Notification */}
             <Card>
               <CardHeader>
-                <CardTitle>Test Notifications</CardTitle>
-                <CardDescription>Send a test notification to verify your settings</CardDescription>
+                <CardTitle>{t('dashboard.notifications.testTitle')}</CardTitle>
+                <CardDescription>{t('dashboard.notifications.testDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button
                   onClick={() => {
                     if (canShowNotifications()) {
-                      new Notification('Test Notification', {
-                        body: 'Your notification settings are working correctly!',
+                      new Notification(t('dashboard.notifications.testTitle'), {
+                        body: t('dashboard.notifications.testBody', { defaultValue: 'Your notification settings are working correctly!' }),
                         icon: '/favicon.ico',
                       })
                     } else {
                       toast({
-                        title: 'Test Notification',
-                        description: 'Your notification settings are working correctly!',
+                        title: t('dashboard.notifications.testTitle'),
+                        description: t('dashboard.notifications.testBody', { defaultValue: 'Your notification settings are working correctly!' }),
                       })
                     }
                   }}
                 >
-                  Send Test Notification
+                  {t('dashboard.notifications.sendTest')}
                 </Button>
               </CardContent>
             </Card>

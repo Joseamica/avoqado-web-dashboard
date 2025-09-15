@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
 import { useNotifications } from '@/context/NotificationContext'
 import {
@@ -30,6 +31,7 @@ interface NotificationsPageProps {
 }
 
 export function NotificationsPage({ className }: NotificationsPageProps) {
+  const { t } = useTranslation()
   const {
     notifications,
     unreadCount,
@@ -103,16 +105,14 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center">
             <Bell className="h-6 w-6 mr-2" />
-            Notificaciones
+            {t('dashboard.notifications.title')}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {unreadCount}
               </Badge>
             )}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Mantente actualizado con eventos y actividades importantes
-          </p>
+          <p className="text-muted-foreground mt-1">{t('dashboard.notifications.subtitle')}</p>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -123,7 +123,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualizar
+            {t('common.refresh')}
           </Button>
           <Button
             variant="outline"
@@ -131,7 +131,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             onClick={() => window.location.href = '/notifications/preferences'}
           >
             <Settings className="h-4 w-4 mr-2" />
-            Configuración
+            {t('common.settings')}
           </Button>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Buscar notificaciones..."
+                  placeholder={t('dashboard.notifications.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -160,7 +160,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              Filtros
+              {t('common.filters')}
             </Button>
 
             {/* Mark All as Read */}
@@ -171,7 +171,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                 onClick={markAllAsRead}
               >
                 <CheckCheck className="h-4 w-4 mr-2" />
-                Marcar todas como leídas
+                {t('dashboard.notifications.markAllAsRead')}
               </Button>
             )}
           </div>
@@ -181,9 +181,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             <div className="mt-4 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Estado
-                  </label>
+                  <label className="text-sm font-medium text-foreground mb-2 block">{t('dashboard.notifications.status')}</label>
                   <Select
                     value={filters.isRead === undefined ? 'all' : filters.isRead ? 'read' : 'unread'}
                     onValueChange={(value) => {
@@ -197,17 +195,15 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="unread">No leídas</SelectItem>
-                      <SelectItem value="read">Leídas</SelectItem>
+                      <SelectItem value="all">{t('dashboard.notifications.all')}</SelectItem>
+                      <SelectItem value="unread">{t('dashboard.notifications.unread')}</SelectItem>
+                      <SelectItem value="read">{t('dashboard.notifications.read')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Tipo
-                  </label>
+                  <label className="text-sm font-medium text-foreground mb-2 block">{t('dashboard.notifications.type')}</label>
                   <Select
                     value={filters.type || 'all'}
                     onValueChange={(value) => {
@@ -221,7 +217,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos los tipos</SelectItem>
+                      <SelectItem value="all">{t('dashboard.notifications.allTypes')}</SelectItem>
                       {Object.values(NotificationType).map((type) => (
                         <SelectItem key={type} value={type}>
                           {formatNotificationType(type)}
@@ -232,9 +228,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Prioridad
-                  </label>
+                  <label className="text-sm font-medium text-foreground mb-2 block">{t('dashboard.notifications.priority')}</label>
                   <Select
                     value={filters.priority || 'all'}
                     onValueChange={(value) => {
@@ -248,7 +242,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas las prioridades</SelectItem>
+                      <SelectItem value="all">{t('dashboard.notifications.allPriorities')}</SelectItem>
                       {Object.values(NotificationPriority).map((priority) => (
                         <SelectItem key={priority} value={priority}>
                           {formatNotificationPriority(priority)}
@@ -269,7 +263,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                {selectedNotifications.length} notificación(es) seleccionada(s)
+                {t('dashboard.notifications.selectedCount', { count: selectedNotifications.length })}
               </span>
               <div className="flex items-center space-x-2">
                 <Button
@@ -278,7 +272,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                   onClick={handleBulkMarkAsRead}
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Marcar como leída
+                  {t('dashboard.notifications.markRead')}
                 </Button>
                 <Button
                   variant="outline"
@@ -287,7 +281,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                   className="text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
+                  {t('common.delete')}
                 </Button>
               </div>
             </div>
@@ -300,14 +294,14 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="text-red-600 text-center">
-              <p>Error al cargar notificaciones: {error}</p>
+              <p>{t('dashboard.notifications.errorLoading')}: {error}</p>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={refreshNotifications}
                 className="mt-2"
               >
-                Intentar de nuevo
+                {t('common.retry')}
               </Button>
             </div>
           </CardContent>
@@ -318,14 +312,8 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         <Card>
           <CardContent className="p-8 text-center">
             <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              No se encontraron notificaciones
-            </h3>
-            <p className="text-muted-foreground">
-              {searchQuery
-                ? 'Intenta ajustar tu búsqueda o filtros'
-                : '¡Estás al día! Las nuevas notificaciones aparecerán aquí.'}
-            </p>
+            <h3 className="text-lg font-medium text-foreground mb-2">{t('dashboard.notifications.noneFound')}</h3>
+            <p className="text-muted-foreground">{searchQuery ? t('dashboard.notifications.adjustFilters') : t('dashboard.notifications.upToDate')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -336,9 +324,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
               checked={selectedNotifications.length === notifications.length}
               onCheckedChange={handleSelectAll}
             />
-            <label className="text-sm text-muted-foreground">
-              Seleccionar todas
-            </label>
+            <label className="text-sm text-muted-foreground">{t('common.selectAll')}</label>
           </div>
 
           {/* Grouped Notifications */}
@@ -450,21 +436,19 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configuración de Notificaciones</DialogTitle>
+            <DialogTitle>{t('dashboard.notifications.settingsTitle', { defaultValue: 'Notification Settings' })}</DialogTitle>
             <DialogDescription>
-              Configura tus preferencias de notificaciones aquí.
+              {t('dashboard.notifications.settingsDesc', { defaultValue: 'Configure your notification preferences here.' })}
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              Las preferencias de notificaciones estarán disponibles en la próxima actualización.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('dashboard.notifications.settingsSoon', { defaultValue: 'Notification preferences will be available in the next update.' })}</p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSettings(false)}>
-              Cerrar
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>

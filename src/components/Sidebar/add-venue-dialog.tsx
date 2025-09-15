@@ -213,7 +213,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
                       <div className="pb-4">
                         {imageUrl ? (
                           <div className="flex flex-col items-center space-y-2">
-                            <img src={imageUrl} alt="Logo" className="object-cover rounded-md" />
+                            <img src={imageUrl} alt={t('venueMgmt.basicInfo.logoAlt')} className="object-cover rounded-md" />
                             <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
                               {t('venues.addDialog.upload.remove')}
                             </Button>
