@@ -1,11 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -25,10 +24,10 @@ export default defineConfig({
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
           firebase: ['@firebase/storage'],
           utils: ['axios', 'date-fns', 'luxon', 'clsx', 'tailwind-merge'],
-        }
-      }
+        },
+      },
     },
     // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000
-  }
+    chunkSizeWarningLimit: 1000,
+  },
 })

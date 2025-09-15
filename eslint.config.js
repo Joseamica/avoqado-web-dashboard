@@ -23,6 +23,9 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_' }],
+      // Workaround for ESLint 9 + @typescript-eslint interaction on no-unused-expressions
+      '@typescript-eslint/no-unused-expressions': 'off',
+      'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true, allowTaggedTemplates: true }],
       '@typescript-eslint/no-explicit-any': 'off',
 
       // Enforce canonical service import path
@@ -44,7 +47,7 @@ export default tseslint.config(
         },
       ],
 
-      // Prevent hardcoded gray colors in className
+      // Prevent hardcoded gray colors in className and enforce i18n for user-visible strings
       'no-restricted-syntax': [
         'error',
         {

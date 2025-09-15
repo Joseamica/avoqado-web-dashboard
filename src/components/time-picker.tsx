@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface TimePickerProps {
@@ -8,12 +9,8 @@ interface TimePickerProps {
   className?: string
 }
 
-const TimePicker: React.FC<TimePickerProps> = ({ 
-  value, 
-  onChange, 
-  _placeholder = "Seleccionar hora",
-  className = ""
-}) => {
+const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className = "" }) => {
+  const { t } = useTranslation()
   // Internal state to maintain the current selections
   const [internalState, setInternalState] = useState<{
     hour?: string
@@ -106,7 +103,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
         onValueChange={(value) => handleTimeChange('hour', value)}
       >
         <SelectTrigger className="w-20">
-          <SelectValue placeholder="Hora" />
+          <SelectValue placeholder={t('common.time.hour')} />
         </SelectTrigger>
         <SelectContent>
           {hourOptions.map((hour) => (
@@ -124,7 +121,7 @@ const TimePicker: React.FC<TimePickerProps> = ({
         onValueChange={(value) => handleTimeChange('minute', value)}
       >
         <SelectTrigger className="w-20">
-          <SelectValue placeholder="Min" />
+          <SelectValue placeholder={t('common.time.min')} />
         </SelectTrigger>
         <SelectContent>
           {minuteOptions.map((minute) => (
@@ -140,11 +137,11 @@ const TimePicker: React.FC<TimePickerProps> = ({
         onValueChange={(value) => handleTimeChange('period', value)}
       >
         <SelectTrigger className="w-20">
-          <SelectValue placeholder="AM/PM" />
+          <SelectValue placeholder={t('common.time.ampm')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="AM">AM</SelectItem>
-          <SelectItem value="PM">PM</SelectItem>
+          <SelectItem value="AM">{t('common.time.am')}</SelectItem>
+          <SelectItem value="PM">{t('common.time.pm')}</SelectItem>
         </SelectContent>
       </Select>
     </div>

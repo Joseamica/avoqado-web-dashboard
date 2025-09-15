@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface DateInputProps {
   value?: Date
@@ -12,6 +13,7 @@ interface DateParts {
 }
 
 const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
+  const { t } = useTranslation()
   const [date, setDate] = React.useState<DateParts>(() => {
     const d = value ? new Date(value) : new Date()
     return {
@@ -197,7 +199,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('month')}
         className="p-0 outline-none w-6 border-none text-center"
-        placeholder="M"
+        placeholder={t('common.date.M')}
       />
       <span className="opacity-20 -mx-px">/</span>
       <input
@@ -215,7 +217,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('day')}
         className="p-0 outline-none w-7 border-none text-center"
-        placeholder="D"
+        placeholder={t('common.date.D')}
       />
       <span className="opacity-20 -mx-px">/</span>
       <input
@@ -233,7 +235,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('year')}
         className="p-0 outline-none w-12 border-none text-center"
-        placeholder="YYYY"
+        placeholder={t('common.date.YYYY')}
       />
     </div>
   )

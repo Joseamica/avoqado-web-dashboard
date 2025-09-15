@@ -10,6 +10,12 @@
     print-color-adjust: exact !important;
   }
 
+  /* Ensure a white canvas for printing, regardless of theme */
+  html, body {
+    background: white !important;
+    color: black !important;
+  }
+
   /* Hide everything except receipt */
   body * {
     visibility: hidden;

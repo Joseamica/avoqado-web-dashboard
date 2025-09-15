@@ -1,9 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Settings2, Search } from 'lucide-react'
+import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import SearchBar from '@/components/search-bar'
 import {
   ColumnDef,
   flexRender,
@@ -132,16 +132,7 @@ function DataTable<TData>({
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Search Bar */}
         {enableSearch && (
-          <div className="relative w-full max-w-2xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder={searchPlaceholder || t('common.search')}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-9 bg-background border-input w-full"
-            />
-          </div>
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('common.search')} />
         )}
 
         {/* Column Customizer */}
@@ -172,7 +163,7 @@ function DataTable<TData>({
         )}
       </div>
       <Table containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden" className="table-sticky">
-        {/* <TableCaption>Lista de los pagos realizados.</TableCaption> */}
+        {/* <TableCaption>{t('dashboard.tableTexts.paymentsList')}</TableCaption> */}
         <TableHeader className="sticky top-0 z-10 bg-muted dark:bg-[#262626] text-muted-foreground">
           {table.getHeaderGroups().map(headerGroup => (
             <TableRow key={headerGroup.id} className="border-border">

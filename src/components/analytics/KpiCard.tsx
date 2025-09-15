@@ -1,6 +1,9 @@
 import { Info } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Sparkline from './Sparkline'
+import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 type Props = {
   title: string
@@ -9,21 +12,27 @@ type Props = {
   delta?: { label?: string; value: number; positiveIsGood?: boolean }
   tooltip?: string
   trend?: number[]
+  currency?: string // optional currency override (e.g., 'USD', 'MXN')
 }
 
-export default function KpiCard({ title, value, format = 'number', delta, tooltip, trend }: Props) {
+export default function KpiCard({ title, value, format = 'number', delta, tooltip, trend, currency }: Props) {
+  const { i18n } = useTranslation()
+  const { venue } = useCurrentVenue()
+  const locale = getIntlLocale(i18n.language)
+  const currencyCode = currency || venue?.currency || 'USD'
+
   const display = (() => {
     if (value === null) return '—'
     if (typeof value === 'string') return value
     if (format === 'currency')
-      return Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
-    if (format === 'percent') return `${(value * 100).toFixed(1)}%`
-    return Intl.NumberFormat().format(value)
+      return Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(value)
+    if (format === 'percent') return Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(value)
+    return Intl.NumberFormat(locale).format(value)
   })()
 
   const deltaText = (() => {
     if (!delta) return null
-    const pct = `${(delta.value * 100).toFixed(1)}%`
+    const pct = Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(delta.value)
     const up = delta.value >= 0
     const ok = delta.positiveIsGood ? up : !up
     return (

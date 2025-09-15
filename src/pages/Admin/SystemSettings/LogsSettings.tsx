@@ -22,9 +22,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownToLine, ArrowUpToLine, Code, Download, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { useTranslation } from 'react-i18next'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 export default function LogsSettings() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { isDark } = useTheme()
   const queryClient = useQueryClient()
@@ -62,8 +64,8 @@ export default function LogsSettings() {
       } catch (error) {
         if (error.name === 'AbortError') {
           toast({
-            title: 'Tiempo de espera agotado',
-            description: 'La carga de logs tomó demasiado tiempo. Intente con menos líneas.',
+            title: t('dashboard.systemSettings.logs.timeoutTitle'),
+            description: t('dashboard.systemSettings.logs.timeoutDesc'),
             variant: 'destructive',
           })
         }
@@ -95,17 +97,17 @@ export default function LogsSettings() {
     },
     onSuccess: () => {
       toast({
-        title: 'Logs borrados',
-        description: `Los logs de ${getLogTypeName(logType)} han sido borrados correctamente.`,
+        title: t('dashboard.systemSettings.logs.deletedTitle'),
+        description: t('dashboard.systemSettings.logs.deletedDesc', { type: getLogTypeName(logType) }),
       })
       queryClient.invalidateQueries({ queryKey: ['system-logs'] })
       setIsDialogOpen(false)
     },
     onError: (error: any) => {
       console.error('Error clearing logs:', error)
-      const errorMessage = error.response?.data?.message || 'No se pudieron borrar los logs. Contacte al administrador del sistema.'
+      const errorMessage = error.response?.data?.message || t('dashboard.systemSettings.logs.deleteErrorFallback')
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -116,7 +118,7 @@ export default function LogsSettings() {
   const formatLogs = useCallback(
     (content: string) => {
       if (!content) {
-        setFormattedLogs('No hay logs disponibles.')
+        setFormattedLogs(t('dashboard.systemSettings.logs.noLogs'))
         setIsJsonContent(false)
         return
       }
@@ -235,7 +237,7 @@ export default function LogsSettings() {
     if (logs?.content) {
       formatLogs(logs.content)
     } else {
-      setFormattedLogs('No hay logs disponibles.')
+      setFormattedLogs(t('dashboard.systemSettings.logs.noLogs'))
       setIsJsonContent(false)
     }
   }, [logs, useFormatting, showNewestFirst, formatLogs])
@@ -276,56 +278,54 @@ export default function LogsSettings() {
 
   return (
     <div className="space-y-4">
-      <h3 className={`text-lg font-medium text-foreground`}>Visualizador de Logs</h3>
+      <h3 className={`text-lg font-medium text-foreground`}>{t('dashboard.systemSettings.logs.viewerTitle')}</h3>
 
       <Card className="bg-card">
         <CardHeader className={`border-b border-border`}>
-          <CardTitle className="text-foreground">Logs del Sistema</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Visualiza los logs del backend para diagnóstico y solución de problemas
-          </CardDescription>
+          <CardTitle className="text-foreground">{t('dashboard.systemSettings.logs.cardTitle')}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t('dashboard.systemSettings.logs.cardDesc')}</CardDescription>
         </CardHeader>
 
         <CardContent className="p-6">
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium text-foreground mb-2 block`}>Tipo de Log</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>{t('dashboard.systemSettings.logs.type')}</label>
               <Select value={logType} onValueChange={setLogType}>
                 <SelectTrigger className={`w-full sm:w-[200px] bg-input border-border`}>
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder={t('dashboard.systemSettings.logs.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="application">Aplicación</SelectItem>
-                  <SelectItem value="error">Errores</SelectItem>
-                  <SelectItem value="access">Acceso</SelectItem>
-                  <SelectItem value="system">Sistema</SelectItem>
+                  <SelectItem value="application">{t('dashboard.systemSettings.logs.types.application')}</SelectItem>
+                  <SelectItem value="error">{t('dashboard.systemSettings.logs.types.error')}</SelectItem>
+                  <SelectItem value="access">{t('dashboard.systemSettings.logs.types.access')}</SelectItem>
+                  <SelectItem value="system">{t('dashboard.systemSettings.logs.types.system')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium text-foreground mb-2 block`}>Número de líneas</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>{t('dashboard.systemSettings.logs.lineCount')}</label>
               <Select value={linesCount} onValueChange={setLinesCount}>
                 <SelectTrigger className={`w-full sm:w-[200px] bg-input border-border`}>
-                  <SelectValue placeholder="Número de líneas" />
+                  <SelectValue placeholder={t('dashboard.systemSettings.logs.lineCountPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="50">50 líneas</SelectItem>
-                  <SelectItem value="100">100 líneas</SelectItem>
-                  <SelectItem value="200">200 líneas</SelectItem>
-                  <SelectItem value="500">500 líneas</SelectItem>
+                  <SelectItem value="50">{t('dashboard.systemSettings.logs.lines', { count: 50 })}</SelectItem>
+                  <SelectItem value="100">{t('dashboard.systemSettings.logs.lines', { count: 100 })}</SelectItem>
+                  <SelectItem value="200">{t('dashboard.systemSettings.logs.lines', { count: 200 })}</SelectItem>
+                  <SelectItem value="500">{t('dashboard.systemSettings.logs.lines', { count: 500 })}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="w-full sm:w-auto">
-              <label className={`text-sm font-medium text-foreground mb-2 block`}>Buscar en logs</label>
+              <label className={`text-sm font-medium text-foreground mb-2 block`}>{t('dashboard.systemSettings.logs.search')}</label>
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Buscar texto o clave..."
+                  placeholder={t('dashboard.systemSettings.logs.searchPlaceholder')}
                   className={`w-full sm:w-[300px] h-10 px-4 py-2 rounded-md bg-input border-border text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
                 {searchQuery && (
@@ -367,7 +367,7 @@ export default function LogsSettings() {
                   ) : (
                     <ArrowUpToLine className="h-4 w-4 inline mr-1" />
                   )}
-                  Nuevos primero
+                  {t('dashboard.systemSettings.logs.newestFirst')}
                 </label>
               </div>
             </div>
@@ -375,34 +375,33 @@ export default function LogsSettings() {
             <div className="flex gap-2 w-full sm:w-auto sm:self-end ml-auto">
               <Button variant="outline" onClick={() => refetchLogs()}>
                 <RefreshCcw className="h-4 w-4 mr-2" />
-                Actualizar
+                {t('common.refresh')}
               </Button>
 
               <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Borrar Logs
+                    {t('dashboard.systemSettings.logs.deleteLogs')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-card border-border">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-foreground">¿Estás seguro?</AlertDialogTitle>
+                    <AlertDialogTitle className="text-foreground">{t('common.are_you_sure')}</AlertDialogTitle>
                     <AlertDialogDescription className="text-foregroundMuted">
-                      Esta acción borrará el archivo de logs de {getLogTypeName(logType)} y no se puede deshacer. Se creará un nuevo archivo
-                      de logs vacío.
+                      {t('dashboard.systemSettings.logs.deleteConfirm', { type: getLogTypeName(logType) })}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className={buttonVariants({ variant: 'destructive' })}>
                       {clearLogsMutation.isPending ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Borrando...
+                          {t('common.deleting')}
                         </>
                       ) : (
-                        'Borrar Logs'
+                        t('dashboard.systemSettings.logs.deleteLogs')
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -468,12 +467,14 @@ export default function LogsSettings() {
 
         <div className={`border-t border-border p-4 flex justify-between items-center`}>
           <p className={`text-xs text-muted-foreground`}>
-            {logs?.lastUpdated ? `Última actualización: ${new Date(logs.lastUpdated).toLocaleString()}` : 'Sin datos'}
+            {logs?.lastUpdated
+              ? `${t('dashboard.systemSettings.logs.lastUpdated')}: ${new Date(logs.lastUpdated).toLocaleString()}`
+              : t('dashboard.systemSettings.logs.noData')}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleDownloadLogs}>
               <Download className="h-4 w-4 mr-2" />
-              Descargar Logs
+              {t('dashboard.systemSettings.logs.download')}
             </Button>
           </div>
         </div>

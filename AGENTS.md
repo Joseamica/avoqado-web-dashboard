@@ -1,89 +1,43 @@
-# AGENTS.md
+# Repository Guidelines
 
-Guidelines for coding agents (ChatGPT, Claude Code, Copilot, etc.) contributing to this repository.
+## Project Structure & Module Organization
 
-## ⚠️ MANDATORY: Internationalization (i18n) - NO EXCEPTIONS
+- App code in `src/`: components (`src/components`), pages (`src/pages`), routes (`src/routes`), services (`src/services`), hooks (`src/hooks`), context (`src/context`), utils (`src/utils`), types (`src/types`), styles/assets (`src/styles`, `src/assets`).
+- Entry points: `src/main.tsx`, `src/App.tsx`; global i18n in `src/i18n.ts`.
+- Public assets in `public/`; build output in `dist/`.
+- Scripts in `scripts/`; example: `scripts/check-i18n.js`.
+- Optional tests live under `tests/unit/...` by feature (e.g., `tests/unit/services/dashboard`).
 
-**EVERY single user‑facing change MUST include complete i18n support before considering the task complete.** This applies to:
+## Build, Test, and Development Commands
 
-- **Component creation**: New components, pages, dialogs, modals, forms
-- **Component modification**: Adding/changing buttons, labels, placeholders, tooltips, error messages  
-- **UI elements**: Toasts, alerts, confirmations, loading messages, empty states
-- **Data display**: Table headers, status labels, category names, action buttons
-- **Form elements**: Input labels, placeholders, validation messages, submit buttons
-- **Navigation**: Menu items, breadcrumbs, page titles, tab labels
+- `npm run dev` — Start Vite dev server with HMR.
+- `npm run build` — Type-check and build to `dist/`.
+- `npm run preview` — Serve the production build locally.
+- `npm run lint` — Lint codebase with ESLint.
+- `npm run lint:i18n` — Verify missing/unused translation keys.
+- `npm run deploy` / `deploy:preview` — Deploy via Cloudflare Pages (wrangler).
 
-**If you create ANY user-visible text without i18n support, the implementation is INCOMPLETE.**
+## Coding Style & Naming Conventions
 
-- Use `react-i18next` (`useTranslation`) and wrap all strings with `t('...')`.
-- Add keys for both English (`en`) and Spanish (`es`) in `src/i18n.ts` under the relevant group (`header`, `sidebar`, `dashboard`, `revenue`, `featureMgmt`, `venueMgmt`, `detailsView`, `categories`, `featureStatuses`).
-- Use interpolation and pluralization in translations instead of string concatenation.
-- Do not render raw enum or category codes; map them to translation keys.
-- Format currency, numbers, and dates using locale‑aware APIs based on `i18n.language`.
-- Reuse the existing language switcher at `src/components/language-switcher.tsx` when a language toggle is needed; do not add duplicates.
+- TypeScript + React 18; Vite bundling; Tailwind CSS v4. Use Prettier (`.prettierrc`) and ESLint (`eslint.config.js`).
+- Two-space indentation; prefer named exports. Components in PascalCase (`src/components/FeatureCard.tsx`); hooks `useX.ts`.
+- Keep UI text out of code: use `react-i18next` (`useTranslation`) and keys in `src/i18n.ts`.
+- Follow visual patterns in `THEME-GUIDELINES.md` and tips in `CLAUDE.md`.
 
-## How to add translations
+## Testing Guidelines
 
-1. Add keys to `src/i18n.ts` under both `en.translation` and `es.translation`.
-2. Import `useTranslation` and replace hardcoded strings with `t('group.key')`.
-3. For dynamic values, use interpolation, e.g. `t('revenue.features.meta', { count, amount })`.
-4. For relative times and pluralization, prefer translation keys that account for singular/plural forms.
-5. Verify both languages at runtime and ensure there are no missing keys.
+- Place unit tests under `tests/unit` mirroring `src/` (e.g., `FeatureService.test.ts`).
+- Prefer Vitest + Testing Library when adding tests; keep tests isolated and fast.
+- Name files `*.test.ts`/`*.test.tsx`; aim for critical-path coverage over blanket quotas.
 
-## ✅ MANDATORY COMPLETION CHECKLIST (i18n)
+## Commit & Pull Request Guidelines
 
-**A task is NOT complete until ALL of these are verified:**
+- Use Conventional Commits: `feat(scope): ...`, `fix(scope): ...`, `refactor: ...`, `chore: ...` (see `git log`).
+- PRs include: clear description, linked issues, before/after screenshots for UI, and a note of added/updated i18n keys.
+- Ensure `npm run lint`, `npm run build`, and `npm run lint:i18n` pass.
 
-- [ ] **Zero hardcoded strings**: Every user‑visible text uses `t('...')` - no exceptions
-- [ ] **Complete translations**: Keys exist for both `en` and `es` in `src/i18n.ts`
-- [ ] **Proper interpolation**: Dynamic values use interpolation/pluralization, not concatenation
-- [ ] **Meaningful translations**: Spanish translations are culturally appropriate, not literal
-- [ ] **Locale formatting**: Numbers/dates/currency use `Intl.*` APIs based on `i18n.language`
-- [ ] **Runtime testing**: UI manually tested in BOTH English and Spanish
-- [ ] **Clean build**: `npm run build` passes without i18n-related warnings
-- [ ] **No raw enums**: Status/category codes mapped to translation keys
+## Agent-Specific Instructions (i18n)
 
-**IMPORTANT**: If you're asked to "add a button", "create a dialog", "modify a form", etc., i18n support is automatically included in that request. Do not ask if i18n should be added - it's mandatory.
-
-## Common i18n Implementation Examples
-
-### ❌ WRONG - Hardcoded text:
-```tsx
-<Button>Save Changes</Button>
-<div>Loading...</div>
-<p>No items found</p>
-```
-
-### ✅ CORRECT - With i18n:
-```tsx
-const { t } = useTranslation()
-
-<Button>{t('common.save_changes')}</Button>
-<div>{t('common.loading')}</div>  
-<p>{t('common.no_items_found')}</p>
-```
-
-### Required i18n.ts additions:
-```typescript
-en: {
-  common: {
-    save_changes: 'Save Changes',
-    loading: 'Loading...',
-    no_items_found: 'No items found'
-  }
-},
-es: {
-  common: {
-    save_changes: 'Guardar Cambios',
-    loading: 'Cargando...',
-    no_items_found: 'No se encontraron elementos'
-  }
-}
-```
-
-## General coding notes
-
-- Follow existing patterns and group keys within the appropriate namespace under `translation` in `src/i18n.ts`.
-- Keep code minimal and avoid introducing new i18n frameworks; we standardize on `react-i18next`.
-- Maintain consistency with theme and UI conventions described in `THEME-GUIDELINES.md` and `CLAUDE.md`.
-
+- Internationalization is mandatory for all user-facing text. Wrap strings with `t('group.key')`; add `en`/`es` keys in `src/i18n.ts` (groups: `header`, `sidebar`, `dashboard`, `revenue`, `featureMgmt`, `venueMgmt`, `detailsView`, `categories`, `featureStatuses`).
+- Format numbers/dates/currency with `Intl.*` using `i18n.language`; do not render raw enums—map to translation keys.
+- Reuse `src/components/language-switcher.tsx`; do not add duplicate toggles.

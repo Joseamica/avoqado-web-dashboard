@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { LogOut } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function Layout() {
   const { isAuthenticated, logout, user, isLoading } = useAuth()
+  const { t } = useTranslation()
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   if (!isAuthenticated) {
@@ -33,20 +35,18 @@ export function Layout() {
           <div className="absolute top-4 right-4">
             <ThemeToggle />
           </div>
-          <h1 className="mb-4 text-2xl font-semibold text-foreground">¡No Tienes Sucursales Asignados!</h1>
-          <p className="mb-6 text-muted-foreground">
-            Para comenzar a usar la plataforma, crea un venue o contacta al administrador para que te asigne uno.
-          </p>
+          <h1 className="mb-4 text-2xl font-semibold text-foreground">{t('layout.noVenuesAssigned')}</h1>
+          <p className="mb-6 text-muted-foreground">{t('layout.noVenuesAssignedDesc')}</p>
 
           <p className="mt-4 mb-4 text-sm text-muted-foreground">
-            ¿Necesitas ayuda?{' '}
+            {t('layout.needHelp')}{' '}
             <a href="/support" className="text-primary underline hover:text-primary/80">
-              Contáctanos
+              {t('layout.contactUs')}
             </a>
           </p>
-          <Button onClick={() => logout()}>
+          <Button aria-label={t('common.logout')} onClick={() => logout()}>
             <LogOut />
-            Cerrar sesión
+            {t('common.logout')}
           </Button>
         </div>
       </div>
@@ -56,16 +56,16 @@ export function Layout() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="flex justify-between items-center mb-4">
-        <h1>Test Page</h1>
+        <h1>{t('layout.testPageTitle')}</h1>
         <ThemeToggle />
       </div>
-      {isAuthenticated ? <h2>Authenticated</h2> : <h2>Not Authenticated</h2>}
+      {isAuthenticated ? <h2>{t('layout.authenticated')}</h2> : <h2>{t('layout.notAuthenticated')}</h2>}
 
       <Link to="/login" className="mr-4">
-        Login
+        {t('common.login')}
       </Link>
-      <Button variant="outline" onClick={() => logout()}>
-        logout
+      <Button variant="outline" aria-label={t('common.logout')} onClick={() => logout()}>
+        {t('common.logout')}
       </Button>
     </div>
   )

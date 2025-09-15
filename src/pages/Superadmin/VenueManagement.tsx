@@ -5,21 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -34,14 +21,9 @@ import {
   Eye,
   MoreHorizontal,
   AlertTriangle,
-  Zap
+  Zap,
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { VenueStatus, SubscriptionPlan, type SuperadminVenue } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
 import { superadminAPI } from '@/services/superadmin.service'
@@ -71,21 +53,28 @@ const VenueManagement: React.FC = () => {
 
   // Filter venues
   const filteredVenues = venues.filter(venue => {
-    const matchesSearch = venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch =
+      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || venue.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
   const getStatusColor = (status: VenueStatus) => {
     switch (status) {
-      case VenueStatus.ACTIVE: return 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
-      case VenueStatus.PENDING: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200'
-      case VenueStatus.SUSPENDED: return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
-      case VenueStatus.CANCELLED: return 'bg-muted text-muted-foreground'
-      case VenueStatus.TRIAL: return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
-      default: return 'bg-muted text-muted-foreground'
+      case VenueStatus.ACTIVE:
+        return 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
+      case VenueStatus.PENDING:
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200'
+      case VenueStatus.SUSPENDED:
+        return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
+      case VenueStatus.CANCELLED:
+        return 'bg-muted text-muted-foreground'
+      case VenueStatus.TRIAL:
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -93,19 +82,27 @@ const VenueManagement: React.FC = () => {
 
   const getPlanColor = (plan: SubscriptionPlan) => {
     switch (plan) {
-      case SubscriptionPlan.STARTER: return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
-      case SubscriptionPlan.PROFESSIONAL: return 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200'
-      case SubscriptionPlan.ENTERPRISE: return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
-      default: return 'bg-muted text-muted-foreground'
+      case SubscriptionPlan.STARTER:
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
+      case SubscriptionPlan.PROFESSIONAL:
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200'
+      case SubscriptionPlan.ENTERPRISE:
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
+      default:
+        return 'bg-muted text-muted-foreground'
     }
   }
 
   const getPaymentStatusIcon = (status: string) => {
     switch (status) {
-      case 'PAID': return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'PENDING': return <Clock className="w-4 h-4 text-yellow-500" />
-      case 'OVERDUE': return <AlertTriangle className="w-4 h-4 text-red-500" />
-      default: return <XCircle className="w-4 h-4 text-muted-foreground" />
+      case 'PAID':
+        return <CheckCircle className="w-4 h-4 text-green-500" />
+      case 'PENDING':
+        return <Clock className="w-4 h-4 text-yellow-500" />
+      case 'OVERDUE':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />
+      default:
+        return <XCircle className="w-4 h-4 text-muted-foreground" />
     }
   }
 
@@ -126,7 +123,10 @@ const VenueManagement: React.FC = () => {
   const approveMutation = useMutation({
     mutationFn: (venueId: string) => superadminAPI.approveVenue(venueId, reason || undefined),
     onSuccess: () => {
-      toast({ title: t('venueMgmt.toasts.approveSuccessTitle'), description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.approved')}` })
+      toast({
+        title: t('venueMgmt.toasts.approveSuccessTitle'),
+        description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.approved')}`,
+      })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsApprovalDialogOpen(false)
       setReason('')
@@ -143,7 +143,10 @@ const VenueManagement: React.FC = () => {
   const suspendMutation = useMutation({
     mutationFn: (venueId: string) => superadminAPI.suspendVenue(venueId, reason || t('venueMgmt.dialogs.suspendReasonPlaceholder')),
     onSuccess: () => {
-      toast({ title: t('venueMgmt.toasts.suspendSuccessTitle'), description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.suspended')}` })
+      toast({
+        title: t('venueMgmt.toasts.suspendSuccessTitle'),
+        description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.suspended')}`,
+      })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsSuspendDialogOpen(false)
       setReason('')
@@ -178,29 +181,21 @@ const VenueManagement: React.FC = () => {
       accessorKey: 'status',
       meta: { label: t('venueMgmt.columns.status') },
       header: t('venueMgmt.columns.status'),
-      cell: ({ row }) => (
-        <Badge className={getStatusColor(row.original.status)}>
-          {getStatusLabel(row.original.status)}
-        </Badge>
-      ),
+      cell: ({ row }) => <Badge className={getStatusColor(row.original.status)}>{getStatusLabel(row.original.status)}</Badge>,
     },
     {
       accessorKey: 'subscriptionPlan',
       meta: { label: t('venueMgmt.columns.subscriptionPlan') },
       header: t('venueMgmt.columns.subscriptionPlan'),
       cell: ({ row }) => (
-        <Badge className={getPlanColor(row.original.subscriptionPlan)}>
-          {getPlanLabel(row.original.subscriptionPlan)}
-        </Badge>
+        <Badge className={getPlanColor(row.original.subscriptionPlan)}>{getPlanLabel(row.original.subscriptionPlan)}</Badge>
       ),
     },
     {
       accessorKey: 'monthlyRevenue',
       meta: { label: t('venueMgmt.columns.monthlyRevenue') },
       header: t('venueMgmt.columns.monthlyRevenue'),
-      cell: ({ row }) => (
-        <div className="font-medium">{Currency(row.original.monthlyRevenue)}</div>
-      ),
+      cell: ({ row }) => <div className="font-medium">{Currency(row.original.monthlyRevenue)}</div>,
     },
     {
       accessorKey: 'billing.paymentStatus',
@@ -217,9 +212,7 @@ const VenueManagement: React.FC = () => {
       accessorKey: 'analytics.activeUsers',
       meta: { label: t('venueMgmt.columns.users') },
       header: t('venueMgmt.columns.users'),
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.analytics.activeUsers}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm">{row.original.analytics.activeUsers}</span>,
     },
     {
       id: 'actions',
@@ -252,7 +245,13 @@ const VenueManagement: React.FC = () => {
               {t('venueMgmt.dropdown.viewAnalytics')}
             </DropdownMenuItem>
             {row.original.status === VenueStatus.ACTIVE && (
-              <DropdownMenuItem className="text-red-600" onClick={() => { setSelectedVenue(row.original); setIsSuspendDialogOpen(true) }}>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => {
+                  setSelectedVenue(row.original)
+                  setIsSuspendDialogOpen(true)
+                }}
+              >
                 <XCircle className="mr-2 h-4 w-4" />
                 {t('venueMgmt.dropdown.suspend')}
               </DropdownMenuItem>
@@ -266,7 +265,7 @@ const VenueManagement: React.FC = () => {
   // Calculate stats
   const { totalRevenue, totalCommission, pendingApprovals, activeVenues } = useMemo(() => {
     const tr = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
-    const tc = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate / 100), 0)
+    const tc = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate) / 100, 0)
     const pa = venues.filter(v => v.status === VenueStatus.PENDING).length
     const av = venues.filter(v => v.status === VenueStatus.ACTIVE).length
     return { totalRevenue: tr, totalCommission: tc, pendingApprovals: pa, activeVenues: av }
@@ -327,9 +326,7 @@ const VenueManagement: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Currency(totalRevenue / (activeVenues || 1))}
-            </div>
+            <div className="text-2xl font-bold">{Currency(totalRevenue / (activeVenues || 1))}</div>
             <p className="text-xs text-muted-foreground">{t('venueMgmt.stats.perActiveVenue')}</p>
           </CardContent>
         </Card>
@@ -349,7 +346,7 @@ const VenueManagement: React.FC = () => {
               <Input
                 placeholder={t('venueMgmt.searchPlaceholder')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -406,7 +403,12 @@ const VenueManagement: React.FC = () => {
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="approve-reason">{t('venueMgmt.dialogs.approveReasonLabel')}</Label>
-            <Input id="approve-reason" placeholder={t('venueMgmt.dialogs.approveReasonPlaceholder')} value={reason} onChange={e => setReason(e.target.value)} />
+            <Input
+              id="approve-reason"
+              placeholder={t('venueMgmt.dialogs.approveReasonPlaceholder')}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
@@ -430,13 +432,22 @@ const VenueManagement: React.FC = () => {
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="suspend-reason">{t('venueMgmt.dialogs.suspendReasonLabel')}</Label>
-            <Input id="suspend-reason" placeholder={t('venueMgmt.dialogs.suspendReasonPlaceholder')} value={reason} onChange={e => setReason(e.target.value)} />
+            <Input
+              id="suspend-reason"
+              placeholder={t('venueMgmt.dialogs.suspendReasonPlaceholder')}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
               {t('venueMgmt.dialogs.cancel')}
             </Button>
-            <Button variant="destructive" onClick={() => selectedVenue && suspendMutation.mutate(selectedVenue.id)} disabled={suspendMutation.isPending || !reason}>
+            <Button
+              variant="destructive"
+              onClick={() => selectedVenue && suspendMutation.mutate(selectedVenue.id)}
+              disabled={suspendMutation.isPending || !reason}
+            >
               {suspendMutation.isPending ? t('venueMgmt.dialogs.suspending') : t('venueMgmt.dialogs.suspend')}
             </Button>
           </DialogFooter>
@@ -448,7 +459,20 @@ const VenueManagement: React.FC = () => {
 
 // Venue Details Component
 const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const numberFormat = new Intl.NumberFormat(i18n.language)
+
+  function getStatusLabelLocal(status: VenueStatus) {
+    return t(`venueMgmt.statuses.${status}`)
+  }
+
+  function getPlanLabelLocal(plan: SubscriptionPlan) {
+    return t(`venueMgmt.planLabels.${plan}`)
+  }
+
+  function getPaymentStatusLabelLocal(status: string) {
+    return t(`venueMgmt.paymentStatuses.${status}`)
+  }
   return (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
@@ -457,66 +481,104 @@ const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
         <TabsTrigger value="features">{t('detailsView.tabs.features')}</TabsTrigger>
         <TabsTrigger value="analytics">{t('detailsView.tabs.analytics')}</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="overview" className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h3 className="font-medium mb-2">{t('detailsView.venueInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>{t('detailsView.venueInfo.name')}:</strong> {venue.name}</div>
-              <div><strong>{t('detailsView.venueInfo.slug')}:</strong> {venue.slug}</div>
-              <div><strong>{t('detailsView.venueInfo.status')}:</strong> {venue.status}</div>
-              <div><strong>{t('detailsView.venueInfo.plan')}:</strong> {venue.subscriptionPlan}</div>
+              <div>
+                <strong>{t('detailsView.venueInfo.name')}:</strong> {venue.name}
+              </div>
+              <div>
+                <strong>{t('detailsView.venueInfo.slug')}:</strong> {venue.slug}
+              </div>
+              <div>
+                <strong>{t('detailsView.venueInfo.status')}:</strong> {getStatusLabelLocal(venue.status)}
+              </div>
+              <div>
+                <strong>{t('detailsView.venueInfo.plan')}:</strong> {getPlanLabelLocal(venue.subscriptionPlan)}
+              </div>
             </div>
           </div>
           <div>
             <h3 className="font-medium mb-2">{t('detailsView.ownerInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>{t('detailsView.ownerInfo.name')}:</strong> {venue.owner.firstName} {venue.owner.lastName}</div>
-              <div><strong>{t('detailsView.ownerInfo.email')}:</strong> {venue.owner.email}</div>
-              <div><strong>{t('detailsView.ownerInfo.phone')}:</strong> {venue.owner.phone || t('detailsView.ownerInfo.na')}</div>
+              <div>
+                <strong>{t('detailsView.ownerInfo.name')}:</strong> {venue.owner.firstName} {venue.owner.lastName}
+              </div>
+              <div>
+                <strong>{t('detailsView.ownerInfo.email')}:</strong> {venue.owner.email}
+              </div>
+              <div>
+                <strong>{t('detailsView.ownerInfo.phone')}:</strong> {venue.owner.phone || t('detailsView.ownerInfo.na')}
+              </div>
             </div>
           </div>
         </div>
       </TabsContent>
-      
+
       <TabsContent value="billing" className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h3 className="font-medium mb-2">{t('detailsView.billingInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>{t('detailsView.billingInfo.subscriptionFee')}:</strong> {Currency(venue.billing.monthlySubscriptionFee)}</div>
-              <div><strong>{t('detailsView.billingInfo.featuresCost')}:</strong> {Currency(venue.billing.additionalFeaturesCost)}</div>
-              <div><strong>{t('detailsView.billingInfo.totalMonthly')}:</strong> {Currency(venue.billing.totalMonthlyBill)}</div>
-              <div><strong>{t('detailsView.billingInfo.paymentStatus')}:</strong> {venue.billing.paymentStatus}</div>
+              <div>
+                <strong>{t('detailsView.billingInfo.subscriptionFee')}:</strong> {Currency(venue.billing.monthlySubscriptionFee)}
+              </div>
+              <div>
+                <strong>{t('detailsView.billingInfo.featuresCost')}:</strong> {Currency(venue.billing.additionalFeaturesCost)}
+              </div>
+              <div>
+                <strong>{t('detailsView.billingInfo.totalMonthly')}:</strong> {Currency(venue.billing.totalMonthlyBill)}
+              </div>
+              <div>
+                <strong>{t('detailsView.billingInfo.paymentStatus')}:</strong> {getPaymentStatusLabelLocal(venue.billing.paymentStatus)}
+              </div>
             </div>
           </div>
           <div>
             <h3 className="font-medium mb-2">{t('detailsView.revenueInfo.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>{t('detailsView.revenueInfo.monthlyRevenue')}:</strong> {Currency(venue.monthlyRevenue)}</div>
-              <div><strong>{t('detailsView.revenueInfo.totalRevenue')}:</strong> {Currency(venue.totalRevenue)}</div>
-              <div><strong>{t('detailsView.revenueInfo.commissionRate')}:</strong> {venue.commissionRate}%</div>
-              <div><strong>{t('detailsView.revenueInfo.commissionEarned')}:</strong> {Currency(venue.monthlyRevenue * venue.commissionRate / 100)}</div>
+              <div>
+                <strong>{t('detailsView.revenueInfo.monthlyRevenue')}:</strong> {Currency(venue.monthlyRevenue)}
+              </div>
+              <div>
+                <strong>{t('detailsView.revenueInfo.totalRevenue')}:</strong> {Currency(venue.totalRevenue)}
+              </div>
+              <div>
+                <strong>{t('detailsView.revenueInfo.commissionRate')}:</strong> {venue.commissionRate}%
+              </div>
+              <div>
+                <strong>{t('detailsView.revenueInfo.commissionEarned')}:</strong>{' '}
+                {Currency((venue.monthlyRevenue * venue.commissionRate) / 100)}
+              </div>
             </div>
           </div>
         </div>
       </TabsContent>
-      
+
       <TabsContent value="features">
         <div className="text-center py-8">
           <p className="text-muted-foreground">{t('detailsView.featuresComingSoon')}</p>
         </div>
       </TabsContent>
-      
+
       <TabsContent value="analytics">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <h3 className="font-medium mb-2">{t('detailsView.analytics.title')}</h3>
             <div className="space-y-2 text-sm">
-              <div><strong>{t('detailsView.analytics.monthlyTransactions')}:</strong> {venue.analytics.monthlyTransactions.toLocaleString()}</div>
-              <div><strong>{t('detailsView.analytics.avgOrderValue')}:</strong> {Currency(venue.analytics.averageOrderValue)}</div>
-              <div><strong>{t('detailsView.analytics.activeUsers')}:</strong> {venue.analytics.activeUsers}</div>
+              <div>
+                <strong>{t('detailsView.analytics.monthlyTransactions')}:</strong>{' '}
+                {numberFormat.format(venue.analytics.monthlyTransactions)}
+              </div>
+              <div>
+                <strong>{t('detailsView.analytics.avgOrderValue')}:</strong> {Currency(venue.analytics.averageOrderValue)}
+              </div>
+              <div>
+                <strong>{t('detailsView.analytics.activeUsers')}:</strong> {numberFormat.format(venue.analytics.activeUsers)}
+              </div>
             </div>
           </div>
         </div>
