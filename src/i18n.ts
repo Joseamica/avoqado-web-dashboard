@@ -1,5 +1,34 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+// Lightweight language detector (avoids external dependency)
+const simpleDetector = {
+  type: 'languageDetector' as const,
+  detect() {
+    try {
+      const persisted = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || ''
+      if (persisted && (persisted.startsWith('en') || persisted.startsWith('es'))) return persisted.slice(0, 2)
+    } catch (e) {
+      // ignore storage read errors (e.g., privacy mode)
+    }
+    if (typeof navigator !== 'undefined') {
+      const cand = (navigator.languages && navigator.languages[0]) || navigator.language || ''
+      if (cand.startsWith('es')) return 'es'
+      if (cand.startsWith('en')) return 'en'
+    }
+    return 'en'
+  },
+  init() {
+    // no-op
+  },
+  cacheUserLanguage(lng: string) {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('lang', lng)
+    } catch (e) {
+      // ignore storage write errors (e.g., privacy mode)
+    }
+  },
+}
 
 // Basic resources for EN and ES covering Superadmin pages
 const resources = {
@@ -787,6 +816,8 @@ const resources = {
         dialog_title_default: 'Dialog',
         sheet_title_default: 'Sheet',
         verifying_session: 'Verifying session...',
+        logout: 'Log out',
+        login: 'Login',
       },
       header: {
         title: 'Superadmin Panel',
@@ -807,6 +838,16 @@ const resources = {
         settings: 'Settings',
         logout: 'Log out',
       },
+      layout: {
+        noVenuesAssigned: 'You have no assigned venues!',
+        noVenuesAssignedDesc: 'To start using the platform, create a venue or contact an administrator to assign one to you.',
+        needHelp: 'Need help?',
+        contactUs: 'Contact us',
+        testPageTitle: 'Test Page',
+        authenticated: 'Authenticated',
+        notAuthenticated: 'Not Authenticated',
+      },
+      // common login kept in common group for reuse
       teams: {
         tabs: {
           members: 'Team Members',
@@ -1685,75 +1726,6 @@ const resources = {
           aboutCohortRetention: 'About Cohort Retention',
         },
       },
-      featureMgmt: {
-        title: 'Gestión de Funcionalidades',
-        subtitle: 'Administra las funcionalidades de la plataforma y el acceso de locales',
-        create: 'Crear funcionalidad',
-        createTitle: 'Crear nueva funcionalidad',
-        createDesc: 'Agrega una nueva funcionalidad a la plataforma a la que los locales puedan suscribirse.',
-        stats: {
-          total: 'Total de funcionalidades',
-          coreCountSuffix: 'funciones núcleo',
-          active: 'Funcionalidades activas',
-          betaCountSuffix: 'en beta',
-          avgRevenue: 'Ingresos promedio por funcionalidad',
-          avgRevenueChange: '+12.5% respecto al mes anterior',
-          adoption: 'Adopción de funcionalidades',
-          adoptionAvg: 'Tasa de adopción promedio',
-        },
-        tableTitle: 'Funcionalidades de la plataforma',
-        tableDesc: 'Administra y monitorea todas las funcionalidades disponibles para los locales',
-        searchPlaceholder: 'Buscar funcionalidades...',
-        filterByCategory: 'Filtrar por categoría',
-        allCategories: 'Todas las categorías',
-        columns: {
-          feature: 'Funcionalidad',
-          category: 'Categoría',
-          status: 'Estado',
-          pricing: 'Precio',
-          type: 'Tipo',
-          actions: 'Acciones',
-        },
-        dropdown: {
-          viewDetails: 'Ver detalles',
-          editFeature: 'Editar funcionalidad',
-          manageVenues: 'Gestionar locales',
-          deleteFeature: 'Eliminar funcionalidad',
-        },
-        core: 'Núcleo',
-        addOn: 'Complemento',
-        pricing: {
-          free: 'Gratis',
-          from: 'Desde',
-          contactSales: 'Contactar ventas',
-          fixed: 'Precio fijo',
-          usageBased: 'Según uso',
-          tiered: 'Por niveles',
-        },
-        form: {
-          nameLabel: 'Nombre de la funcionalidad',
-          namePlaceholder: 'Chatbot IA',
-          codeLabel: 'Código de la funcionalidad',
-          codePlaceholder: 'ai_chatbot',
-          descLabel: 'Descripción',
-          descPlaceholder: 'Describe qué hace esta funcionalidad...',
-          categoryLabel: 'Categoría',
-          categoryPlaceholder: 'Selecciona una categoría',
-          pricingLabel: 'Modelo de precio',
-          pricingPlaceholder: 'Selecciona un modelo',
-          basePriceLabel: 'Precio base ($)',
-          basePricePlaceholder: 'ej. 49.99',
-          coreLabel: 'Funcionalidad núcleo',
-          cancel: 'Cancelar',
-          submit: 'Crear funcionalidad',
-          creating: 'Creando...',
-        },
-        toast: {
-          createdTitle: 'Funcionalidad creada',
-          createdDescPrefix: 'ha sido creada.',
-          createFailed: 'Error al crear la funcionalidad',
-        },
-      },
     },
   },
   es: {
@@ -2549,6 +2521,8 @@ const resources = {
         dialog_title_default: 'Diálogo',
         sheet_title_default: 'Panel',
         verifying_session: 'Verificando sesión...',
+        logout: 'Cerrar sesión',
+        login: 'Iniciar sesión',
       },
       header: {
         title: 'Panel de Superadministrador',
@@ -2569,6 +2543,16 @@ const resources = {
         settings: 'Configuración',
         logout: 'Cerrar sesión',
       },
+      layout: {
+        noVenuesAssigned: '¡No tienes sucursales asignadas!',
+        noVenuesAssignedDesc: 'Para comenzar a usar la plataforma, crea un local o contacta al administrador para que te asigne uno.',
+        needHelp: '¿Necesitas ayuda?',
+        contactUs: 'Contáctanos',
+        testPageTitle: 'Página de Prueba',
+        authenticated: 'Autenticado',
+        notAuthenticated: 'No Autenticado',
+      },
+      // common login kept in common group for reuse
       teams: {
         tabs: {
           members: 'Miembros del Equipo',
@@ -3250,14 +3234,17 @@ const resources = {
   },
 }
 
-i18n.use(initReactI18next).init({
-  resources,
-  lng: (localStorage.getItem('lang') as 'es' | 'en' | 'fr') || 'es',
-  fallbackLng: 'es',
-  supportedLngs: ['en', 'es', 'fr'],
-  interpolation: {
-    escapeValue: false,
-  },
-})
+i18n
+  .use(simpleDetector)
+  .use(initReactI18next)
+  .init({
+    resources,
+    // Let language detector determine current language; default to English
+    fallbackLng: 'en',
+    supportedLngs: ['en', 'es'],
+    interpolation: {
+      escapeValue: false,
+    },
+  })
 
 export default i18n

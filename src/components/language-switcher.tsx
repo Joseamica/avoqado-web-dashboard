@@ -5,15 +5,14 @@ import { Button } from '@/components/ui/button'
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation()
-  const current = i18n.language?.startsWith('en') ? 'en' : i18n.language?.startsWith('fr') ? 'fr' : 'es'
+  const current = i18n.language?.startsWith('en') ? 'en' : 'es'
 
-  const options: Array<{ lng: 'es' | 'en' | 'fr'; label: string; flag: string }> = [
+  const options: Array<{ lng: 'es' | 'en'; label: string; flag: string }> = [
     { lng: 'es', label: 'Español', flag: '🇪🇸' },
     { lng: 'en', label: 'English', flag: '🇬🇧' },
-    { lng: 'fr', label: 'Français', flag: '🇫🇷' },
   ]
 
-  const changeLang = (lng: 'es' | 'en' | 'fr') => {
+  const changeLang = (lng: 'es' | 'en') => {
     i18n.changeLanguage(lng)
     localStorage.setItem('lang', lng)
   }

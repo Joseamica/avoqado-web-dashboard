@@ -9,9 +9,7 @@
 import fs from 'fs'
 import path from 'path'
 
-const DEFAULT_PATHS = [
-  'src/pages/Superadmin',
-]
+const DEFAULT_PATHS = ['src']
 
 const ROOT = process.cwd()
 const args = process.argv.slice(2)
