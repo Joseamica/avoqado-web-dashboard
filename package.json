@@ -67,7 +67,7 @@
     "react-syntax-highlighter": "^15.6.6",
     "recharts": "^2.13.3",
     "socket.io-client": "^4.8.1",
-    "tailwind-merge": "^2.5.4",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "uuidv4": "^6.2.13",
     "zod": "^3.24.1"
