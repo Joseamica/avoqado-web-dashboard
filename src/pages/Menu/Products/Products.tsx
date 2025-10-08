@@ -206,8 +206,6 @@ export default function Products() {
     })
   }, [])
 
-  // if (isLoading) return <div>Loading...</div>
-
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
