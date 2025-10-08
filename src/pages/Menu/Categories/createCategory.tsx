@@ -180,16 +180,16 @@ export default function CreateCategory() {
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: 'El nombre es requerido.' },
-              minLength: { value: 3, message: 'El nombre debe tener al menos 3 caracteres.' },
-              maxLength: { value: 30, message: 'El nombre no debe tener más de 30 caracteres.' },
+              required: { value: true, message: t('menu.forms.validation.nameRequired') },
+              minLength: { value: 3, message: t('menu.forms.validation.nameMinLength') },
+              maxLength: { value: 30, message: t('menu.forms.validation.nameMaxLength') },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>Nombre</FormLabel>
+                  <FormLabel>{t('menu.forms.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
+                    <Input placeholder={t('menu.forms.labels.enterName')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,7 +201,7 @@ export default function CreateCategory() {
             name="avoqadoMenus"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Menús en los que aparececerá la categoría</FormLabel>
+                <FormLabel>{t('menu.forms.labels.menusForCategory')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
@@ -211,8 +211,8 @@ export default function CreateCategory() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder="Selecciona los menús"
-                    emptyIndicator="No se han encontrado mas menús"
+                    placeholder={t('menu.forms.labels.selectMenus')}
+                    emptyIndicator={t('menu.forms.labels.noMoreMenus')}
                   />
                 </FormControl>
                 <FormMessage />
@@ -224,7 +224,7 @@ export default function CreateCategory() {
             name="avoqadoProducts"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Agregar productos a esta categoría</FormLabel>
+                <FormLabel>{t('menu.forms.labels.addProductsToCategory')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
@@ -234,8 +234,8 @@ export default function CreateCategory() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder="Selecciona los productos"
-                    emptyIndicator="No se han encontrado mas productos"
+                    placeholder={t('menu.forms.labels.selectProducts')}
+                    emptyIndicator={t('menu.forms.labels.noMoreProducts')}
                   />
                 </FormControl>
                 <FormMessage />
@@ -249,9 +249,9 @@ export default function CreateCategory() {
               name="availableFrom"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Disponible desde</FormLabel>
+                  <FormLabel>{t('menu.forms.availableFrom')}</FormLabel>
                   <FormControl>
-                    <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de inicio" />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectStartTime')} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -263,9 +263,9 @@ export default function CreateCategory() {
               name="availableUntil"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Disponible hasta</FormLabel>
+                  <FormLabel>{t('menu.forms.availableUntil')}</FormLabel>
                   <FormControl>
-                    <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de cierre" />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectEndTime')} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -286,8 +286,8 @@ export default function CreateCategory() {
 
               if (fromMinutes >= untilMinutes) {
                 return (
-                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
-                    ⚠️ La hora de inicio debe ser anterior a la hora de cierre
+                  <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
+                    ⚠️ {t('menu.forms.messages.invalidScheduleDesc')}
                   </div>
                 )
               }
@@ -300,22 +300,22 @@ export default function CreateCategory() {
             name="availableDays"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Días disponibles</FormLabel>
+                <FormLabel>{t('menu.categoryDetail.labels.availableDays')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
                     options={[
-                      { label: 'Lunes', value: 'MON', disabled: false },
-                      { label: 'Martes', value: 'TUE', disabled: false },
-                      { label: 'Miércoles', value: 'WED', disabled: false },
-                      { label: 'Jueves', value: 'THU', disabled: false },
-                      { label: 'Viernes', value: 'FRI', disabled: false },
-                      { label: 'Sábado', value: 'SAT', disabled: false },
-                      { label: 'Domingo', value: 'SUN', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.monday'), value: 'MON', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
+                      { label: t('menu.forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
                     ]}
                     hidePlaceholderWhenSelected
-                    placeholder="Selecciona los días"
-                    emptyIndicator="No se han encontrado más días"
+                    placeholder={t('menu.categoryDetail.placeholders.selectDays')}
+                    emptyIndicator={t('menu.categoryDetail.placeholders.noMoreDays')}
                   />
                 </FormControl>
                 <FormMessage />

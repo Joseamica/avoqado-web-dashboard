@@ -22,6 +22,7 @@ import { ArrowLeft, CheckCircle, Loader2, PlusCircle, Search, Trash2, X, XCircle
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 // Define interfaces
 interface User {
@@ -40,6 +41,7 @@ interface Venue {
 }
 
 export default function UserManagement() {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('all')
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
@@ -81,16 +83,16 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Rol actualizado',
-        description: 'El rol del usuario ha sido actualizado correctamente.',
+        title: t('admin.userManagement.roleUpdated'),
+        description: t('admin.userManagement.roleUpdatedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: error => {
       console.error('Error updating user role:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el rol del usuario.',
+        title: t('admin.userManagement.error'),
+        description: t('admin.userManagement.roleUpdateError'),
         variant: 'destructive',
       })
     },
@@ -106,16 +108,16 @@ export default function UserManagement() {
     onSuccess: (_, variables) => {
       const newStatus = variables.currentStatus === 'active' ? 'inactive' : 'active'
       toast({
-        title: `Usuario ${newStatus === 'active' ? 'activado' : 'desactivado'}`,
-        description: `El usuario ha sido ${newStatus === 'active' ? 'activado' : 'desactivado'} correctamente.`,
+        title: newStatus === 'active' ? t('admin.userManagement.userActivated') : t('admin.userManagement.userDeactivated'),
+        description: newStatus === 'active' ? t('admin.userManagement.userActivatedDesc') : t('admin.userManagement.userDeactivatedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: error => {
       console.error('Error toggling user status:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo cambiar el estado del usuario.',
+        title: t('admin.userManagement.error'),
+        description: t('admin.userManagement.statusUpdateError'),
         variant: 'destructive',
       })
     },
@@ -128,16 +130,16 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Usuario creado',
-        description: 'El nuevo usuario ha sido creado correctamente.',
+        title: t('admin.userManagement.userCreated'),
+        description: t('admin.userManagement.userCreatedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: error => {
       console.error('Error creating user:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo crear el usuario.',
+        title: t('admin.userManagement.error'),
+        description: t('admin.userManagement.createUserError'),
         variant: 'destructive',
       })
     },
@@ -175,16 +177,16 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Usuario eliminado',
-        description: 'El usuario ha sido eliminado correctamente.',
+        title: t('admin.userManagement.userDeleted'),
+        description: t('admin.userManagement.userDeletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: error => {
       console.error('Error deleting user:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo eliminar el usuario.',
+        title: t('admin.userManagement.error'),
+        description: t('admin.userManagement.deleteUserError'),
         variant: 'destructive',
       })
     },
@@ -197,8 +199,8 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue asignado',
-        description: 'El usuario ha sido asignado al venue correctamente.',
+        title: t('admin.userManagement.venueAssigned'),
+        description: t('admin.userManagement.venueAssignedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setUserToAssignVenue(null)
@@ -207,8 +209,8 @@ export default function UserManagement() {
     onError: error => {
       console.error('Error assigning venue:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo asignar el venue al usuario.',
+        title: t('admin.userManagement.error'),
+        description: t('admin.userManagement.assignVenueError'),
         variant: 'destructive',
       })
     },
@@ -234,16 +236,16 @@ export default function UserManagement() {
   const columns: ColumnDef<User>[] = [
     {
       accessorKey: 'name',
-      header: 'Nombre',
+      header: t('admin.userManagement.columns.name'),
       cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
     },
     {
       accessorKey: 'email',
-      header: 'Email',
+      header: t('admin.userManagement.columns.email'),
     },
     {
       accessorKey: 'role',
-      header: 'Rol',
+      header: t('admin.userManagement.columns.role'),
       cell: ({ row }) => (
         <Select
           defaultValue={row.original.role}
@@ -254,33 +256,33 @@ export default function UserManagement() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="USER">Usuario</SelectItem>
-            <SelectItem value="ADMIN">Administrador</SelectItem>
-            <SelectItem value="VENUEADMIN">Admin de Venue</SelectItem>
-            <SelectItem value="WAITER">Mesero</SelectItem>
-            {isSuperAdmin && <SelectItem value="SUPERADMIN">Super Admin</SelectItem>}
+            <SelectItem value="USER">{t('admin.userManagement.roles.user')}</SelectItem>
+            <SelectItem value="ADMIN">{t('admin.userManagement.roles.admin')}</SelectItem>
+            <SelectItem value="VENUEADMIN">{t('admin.userManagement.roles.venueAdmin')}</SelectItem>
+            <SelectItem value="WAITER">{t('admin.userManagement.roles.waiter')}</SelectItem>
+            {isSuperAdmin && <SelectItem value="SUPERADMIN">{t('admin.userManagement.roles.superAdmin')}</SelectItem>}
           </SelectContent>
         </Select>
       ),
     },
     {
       accessorKey: 'venue',
-      header: 'Venue',
-      cell: ({ row }) => <div className="max-w-[200px] truncate">{row.original.venueName || 'No asignado'}</div>,
+      header: t('admin.userManagement.columns.venue'),
+      cell: ({ row }) => <div className="max-w-[200px] truncate">{row.original.venueName || t('admin.userManagement.notAssigned')}</div>,
     },
     {
       accessorKey: 'status',
-      header: 'Estado',
+      header: t('admin.userManagement.columns.status'),
       cell: ({ row }) => (
         <div className={`flex items-center ${row.original.status === 'active' ? 'text-green-700' : 'text-red-700'}`}>
           {row.original.status === 'active' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
-          {row.original.status === 'active' ? 'Activo' : 'Inactivo'}
+          {row.original.status === 'active' ? t('admin.userManagement.status.active') : t('admin.userManagement.status.inactive')}
         </div>
       ),
     },
     {
       id: 'actions',
-      header: 'Acciones',
+      header: t('admin.userManagement.columns.actions'),
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
           <Button
@@ -292,16 +294,16 @@ export default function UserManagement() {
             {statusToggleMutation.isPending && statusToggleMutation.variables?.userId === row.original.id ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : row.original.status === 'active' ? (
-              'Desactivar'
+              t('admin.userManagement.deactivate')
             ) : (
-              'Activar'
+              t('admin.userManagement.activate')
             )}
           </Button>
 
           {/* Only show these buttons for superadmins */}
           {isSuperAdmin && (
             <>
-              <Button variant="outline" size="icon" onClick={() => setUserToAssignVenue(row.original)} title="Asignar a venue">
+              <Button variant="outline" size="icon" onClick={() => setUserToAssignVenue(row.original)} title={t('admin.userManagement.assignToVenue')}>
                 <Building className="h-4 w-4" />
               </Button>
               <Button
@@ -309,7 +311,7 @@ export default function UserManagement() {
                 size="icon"
                 onClick={() => setUserToDelete(row.original)}
                 className="text-red-500 hover:text-red-700"
-                title="Eliminar usuario"
+                title={t('admin.userManagement.deleteUser')}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -327,61 +329,61 @@ export default function UserManagement() {
     <div className="space-y-4 bg-background p-4 md:p-6 lg:p-8">
       <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Volver al Panel de Administración
+        {t('admin.userManagement.backToAdmin')}
       </Link>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Gestión de Usuarios</h2>
+        <h2 className="text-2xl font-bold text-foreground">{t('admin.userManagement.title')}</h2>
 
         <Dialog>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Usuario
+              {t('admin.userManagement.addUser')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] bg-card">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Crear Nuevo Usuario</DialogTitle>
-              <DialogDescription className="text-muted-foreground">Completa los detalles para crear un nuevo usuario.</DialogDescription>
+              <DialogTitle className="text-foreground">{t('admin.userManagement.createNewUser')}</DialogTitle>
+              <DialogDescription className="text-muted-foreground">{t('admin.userManagement.createNewUserDesc')}</DialogDescription>
             </DialogHeader>
             <form id="createUserForm" onSubmit={handleCreateUser} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="name" className="text-right text-sm font-medium text-muted-foreground">
-                  Nombre
+                  {t('admin.userManagement.form.name')}
                 </label>
                 <Input id="name" className="col-span-3 bg-input" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="email" className="text-right text-sm font-medium text-muted-foreground">
-                  Email
+                  {t('admin.userManagement.form.email')}
                 </label>
                 <Input id="email" type="email" className="col-span-3 bg-input" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="role" className="text-right text-sm font-medium text-muted-foreground">
-                  Rol
+                  {t('admin.userManagement.form.role')}
                 </label>
                 <Select>
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona un rol" />
+                    <SelectValue placeholder={t('admin.userManagement.form.selectRole')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USER">Usuario</SelectItem>
-                    <SelectItem value="ADMIN">Administrador</SelectItem>
-                    <SelectItem value="VENUEADMIN">Admin de Venue</SelectItem>
-                    <SelectItem value="WAITER">Mesero</SelectItem>
-                    {isSuperAdmin && <SelectItem value="SUPERADMIN">Super Admin</SelectItem>}
+                    <SelectItem value="USER">{t('admin.userManagement.roles.user')}</SelectItem>
+                    <SelectItem value="ADMIN">{t('admin.userManagement.roles.admin')}</SelectItem>
+                    <SelectItem value="VENUEADMIN">{t('admin.userManagement.roles.venueAdmin')}</SelectItem>
+                    <SelectItem value="WAITER">{t('admin.userManagement.roles.waiter')}</SelectItem>
+                    {isSuperAdmin && <SelectItem value="SUPERADMIN">{t('admin.userManagement.roles.superAdmin')}</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
               {isSuperAdmin && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <label htmlFor="venue" className="text-right text-sm font-medium text-muted-foreground">
-                    Venue
+                    {t('admin.userManagement.form.venue')}
                   </label>
                   <Select>
                     <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecciona un venue (opcional)" />
+                      <SelectValue placeholder={t('admin.userManagement.form.selectVenue')} />
                     </SelectTrigger>
                     <SelectContent>
                       {venuesData.map(venue => (
@@ -399,10 +401,10 @@ export default function UserManagement() {
                 {createUserMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
+                    {t('admin.userManagement.saving')}
                   </>
                 ) : (
-                  'Guardar Usuario'
+                  t('admin.userManagement.saveUser')
                 )}
               </Button>
             </DialogFooter>
@@ -414,13 +416,13 @@ export default function UserManagement() {
       <AlertDialog open={!!userToDelete} onOpenChange={open => !open && setUserToDelete(null)}>
         <AlertDialogContent className="bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Confirmar Eliminación</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">{t('admin.userManagement.confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              ¿Estás seguro de que deseas eliminar a {userToDelete?.name}? Esta acción no se puede deshacer.
+              {t('admin.userManagement.confirmDeleteDesc', { name: userToDelete?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="text-foreground">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="text-foreground">{t('admin.userManagement.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-500 text-red-50 hover:bg-red-600"
               onClick={() => userToDelete && handleDeleteUser(userToDelete.id)}
@@ -429,10 +431,10 @@ export default function UserManagement() {
               {deleteUserMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
+                  {t('admin.userManagement.deleting')}
                 </>
               ) : (
-                'Eliminar'
+                t('admin.userManagement.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -443,15 +445,15 @@ export default function UserManagement() {
       <Dialog open={!!userToAssignVenue} onOpenChange={open => !open && setUserToAssignVenue(null)}>
         <DialogContent className="sm:max-w-[425px] bg-card">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Asignar a Venue</DialogTitle>
+            <DialogTitle className="text-foreground">{t('admin.userManagement.assignVenue')}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Selecciona un venue para asignar a {userToAssignVenue?.name}.
+              {t('admin.userManagement.assignVenueDesc', { name: userToAssignVenue?.name })}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona un venue" />
+                <SelectValue placeholder={t('admin.userManagement.selectVenue')} />
               </SelectTrigger>
               <SelectContent>
                 {venuesData.map(venue => (
@@ -464,16 +466,16 @@ export default function UserManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setUserToAssignVenue(null)}>
-              Cancelar
+              {t('admin.userManagement.cancel')}
             </Button>
             <Button onClick={handleAssignVenue} disabled={!selectedVenueId || assignVenueMutation.isPending}>
               {assignVenueMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Asignando...
+                  {t('admin.userManagement.assigning')}
                 </>
               ) : (
-                'Asignar'
+                t('admin.userManagement.assign')
               )}
             </Button>
           </DialogFooter>
@@ -489,7 +491,7 @@ export default function UserManagement() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar usuarios..."
+                placeholder={t('admin.userManagement.searchPlaceholder')}
                 className="pl-8 w-[250px] bg-input"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -497,14 +499,14 @@ export default function UserManagement() {
             </div>
             <Select value={filterRole} onValueChange={setFilterRole}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filtrar por rol" />
+                <SelectValue placeholder={t('admin.userManagement.filterByRole')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los roles</SelectItem>
-                <SelectItem value="USER">Usuario</SelectItem>
-                <SelectItem value="ADMIN">Administrador</SelectItem>
-                <SelectItem value="VENUEADMIN">Admin de Venue</SelectItem>
-                <SelectItem value="WAITER">Mesero</SelectItem>
+                <SelectItem value="all">{t('admin.userManagement.allRoles')}</SelectItem>
+                <SelectItem value="USER">{t('admin.userManagement.roles.user')}</SelectItem>
+                <SelectItem value="ADMIN">{t('admin.userManagement.roles.admin')}</SelectItem>
+                <SelectItem value="VENUEADMIN">{t('admin.userManagement.roles.venueAdmin')}</SelectItem>
+                <SelectItem value="WAITER">{t('admin.userManagement.roles.waiter')}</SelectItem>
               </SelectContent>
             </Select>
             {filterRole !== 'all' && (
@@ -517,7 +519,7 @@ export default function UserManagement() {
           <DataTable columns={columns} data={filteredUsers} rowCount={filteredUsers.length} isLoading={usersLoading} tableId="admin:users" />
 
           <div className="text-xs text-muted-foreground mt-2">
-            Mostrando {filteredUsers.length} de {userData.length} usuarios
+            {t('admin.userManagement.showing', { filtered: filteredUsers.length, total: userData.length })}
           </div>
         </CardContent>
       </Card>

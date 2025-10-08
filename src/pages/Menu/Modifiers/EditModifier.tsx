@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { updateModifier } from '@/services/menu.service'
+import { useTranslation } from 'react-i18next'
 
 // Define form values type
 type FormValues = {
@@ -31,6 +32,7 @@ interface EditModifierProps {
 }
 
 export default function EditModifier({ venueId, modifierId, modifierGroupId, onBack, onSuccess, initialValues }: EditModifierProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -64,8 +66,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     },
     onSuccess: () => {
       toast({
-        title: 'Modificador actualizado',
-        description: 'El modificador se ha actualizado correctamente.',
+        title: t('menu.modifiers.editModifier.toast.updated'),
+        description: t('menu.modifiers.editModifier.toast.updatedDesc'),
       })
 
       // Invalidate and force refetch the relevant queries
@@ -89,8 +91,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     },
     onError: error => {
       toast({
-        title: 'Error',
-        description: `Error al actualizar el modificador: ${error.message}`,
+        title: t('menu.modifiers.editModifier.toast.error'),
+        description: t('menu.modifiers.editModifier.toast.errorDesc', { message: error.message }),
         variant: 'destructive',
       })
     },
@@ -104,9 +106,9 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Editar Modificador</h2>
+        <h2 className="text-2xl font-bold">{t('menu.modifiers.editModifier.title')}</h2>
         <Button variant="outline" onClick={onBack}>
-          Volver
+          {t('menu.modifiers.editModifier.buttons.back')}
         </Button>
       </div>
 
@@ -115,12 +117,12 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
           <FormField
             control={form.control}
             name="name"
-            rules={{ required: 'El nombre es obligatorio' }}
+            rules={{ required: t('menu.modifiers.editModifier.validation.nameRequired') }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nombre</FormLabel>
+                <FormLabel>{t('menu.modifiers.editModifier.fields.name')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nombre del modificador" {...field} />
+                  <Input placeholder={t('menu.modifiers.editModifier.fields.namePlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -130,10 +132,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
           <FormField
             control={form.control}
             name="price"
-            rules={{ required: 'El precio es obligatorio' }}
+            rules={{ required: t('menu.modifiers.editModifier.validation.priceRequired') }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Precio</FormLabel>
+                <FormLabel>{t('menu.modifiers.editModifier.fields.price')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -159,8 +161,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">Activo</FormLabel>
-                  <FormDescription>Activa o desactiva este modificador.</FormDescription>
+                  <FormLabel className="text-base">{t('menu.modifiers.editModifier.fields.active')}</FormLabel>
+                  <FormDescription>{t('menu.modifiers.editModifier.fields.activeDesc')}</FormDescription>
                 </div>
                 <FormControl>
                   <div>
@@ -173,10 +175,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onBack}>
-              Cancelar
+              {t('menu.modifiers.editModifier.buttons.cancel')}
             </Button>
             <Button type="submit" disabled={updateModifierMutation.isPending || !form.formState.isDirty}>
-              {updateModifierMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+              {updateModifierMutation.isPending ? t('menu.modifiers.editModifier.buttons.saving') : t('menu.modifiers.editModifier.buttons.save')}
             </Button>
           </div>
         </form>

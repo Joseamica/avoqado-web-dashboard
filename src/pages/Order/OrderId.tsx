@@ -107,8 +107,8 @@ export default function OrderId() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast({
-      title: 'Copiado',
-      description: `${label} copiado al portapapeles`,
+      title: t('common.copied'),
+      description: t('orders.detail.copiedToClipboard', { label }),
     })
   }
 
@@ -213,7 +213,7 @@ export default function OrderId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground">Cargando información de la orden...</p>
+        <p className="text-muted-foreground">{t('orders.detail.loading')}</p>
       </div>
     )
   }
@@ -224,7 +224,7 @@ export default function OrderId() {
         <AlertCircle className="h-16 w-16 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">{t('orders.detail.notFound')}</p>
         <Button asChild>
-          <Link to={from}>Volver a Órdenes</Link>
+          <Link to={from}>{t('orders.detail.backToOrders')}</Link>
         </Button>
       </div>
     )
@@ -333,7 +333,7 @@ export default function OrderId() {
                       {t('orders.detail.overview.items', { defaultValue: 'Artículos' })}
                     </p>
                     <p className="text-2xl font-bold text-foreground">{totalItems}</p>
-                    <p className="text-xs text-muted-foreground">{itemsCount} productos únicos</p>
+                    <p className="text-xs text-muted-foreground">{t('orders.detail.overview.uniqueProducts', { count: itemsCount })}</p>
                   </div>
                   <Utensils className="h-8 w-8 text-purple-500" />
                 </div>
@@ -348,7 +348,7 @@ export default function OrderId() {
                       {t('orders.detail.overview.table', { defaultValue: 'Mesa' })}
                     </p>
                     <p className="text-lg font-bold text-foreground">{order.table?.number || 'N/A'}</p>
-                    <p className="text-xs text-muted-foreground">{order.table?.area?.name || 'Sin área'}</p>
+                    <p className="text-xs text-muted-foreground">{order.table?.area?.name || t('orders.detail.overview.noArea')}</p>
                   </div>
                   <MapPin className="h-8 w-8 text-orange-500" />
                 </div>
@@ -418,7 +418,7 @@ export default function OrderId() {
                       onClick={() => copyToClipboard(order.id || '', 'ID de la orden')}
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      Copiar ID
+                      {t('orders.detail.actions.copyId')}
                     </Button>
 
                     <Button
@@ -438,7 +438,7 @@ export default function OrderId() {
                       }}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Exportar
+                      {t('orders.detail.actions.export')}
                     </Button>
 
                     {/* Delete Action (Only for SUPERADMIN/OWNER) */}
@@ -482,16 +482,16 @@ export default function OrderId() {
                 <CardHeader className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span>Información de la Orden</span>
+                    <span>{t('orders.detail.sections.orderInfo')}</span>
                   </CardTitle>
-                  <CardDescription>Detalles completos de la orden</CardDescription>
+                  <CardDescription>{t('orders.detail.sections.orderInfoDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1">
                         <Calendar className="h-4 w-4" />
-                        <span>Fecha y Hora</span>
+                        <span>{t('orders.detail.fields.dateTime')}</span>
                       </Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="font-mono text-sm">{formatDate(order.createdAt)}</p>
@@ -499,20 +499,20 @@ export default function OrderId() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Número de Orden</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.orderNumber')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="font-mono text-sm">{order.orderNumber}</p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Cliente</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.customer')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         {isEditing ? (
                           <Input
                             value={editedOrder?.customerName || ''}
                             onChange={e => handleInputChange('customerName', e.target.value)}
-                            placeholder="Nombre del cliente"
+                            placeholder={t('orders.detail.fields.customerPlaceholder')}
                             className="border-0 p-0 h-auto bg-transparent"
                           />
                         ) : (
@@ -522,26 +522,26 @@ export default function OrderId() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Mesa</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.table')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
-                        <p className="text-sm">{order.table?.number || 'No especificada'}</p>
+                        <p className="text-sm">{order.table?.number || t('orders.detail.fields.noTable')}</p>
                         {order.table?.area?.name && <p className="text-xs text-muted-foreground">{order.table.area.name}</p>}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Mesero</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.waiter')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="text-sm">
-                          {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : 'No especificado'}
+                          {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : t('orders.detail.fields.noWaiter')}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Tipo de Orden</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.orderType')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
-                        <p className="text-sm">{order.type || 'No especificado'}</p>
+                        <p className="text-sm">{order.type || t('orders.detail.fields.noType')}</p>
                       </div>
                     </div>
                   </div>
@@ -554,9 +554,9 @@ export default function OrderId() {
                   <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Utensils className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      <span>Artículos de la Orden</span>
+                      <span>{t('orders.detail.sections.items')}</span>
                     </CardTitle>
-                    <CardDescription>Detalle de los productos incluidos en esta orden</CardDescription>
+                    <CardDescription>{t('orders.detail.sections.itemsDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-3">
@@ -570,11 +570,11 @@ export default function OrderId() {
                               <Badge variant="secondary" className="font-medium">
                                 {item.quantity}x
                               </Badge>
-                              <span className="font-medium text-foreground">{item.product?.name || 'Producto no disponible'}</span>
+                              <span className="font-medium text-foreground">{item.product?.name || t('orders.detail.items.productNotAvailable')}</span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                              <span>{Currency(item.unitPrice || 0)} c/u</span>
-                              {item.modifiers && item.modifiers.length > 0 && <span>+{item.modifiers.length} modificadores</span>}
+                              <span>{Currency(item.unitPrice || 0)} {t('orders.detail.items.each')}</span>
+                              {item.modifiers && item.modifiers.length > 0 && <span>{t('orders.detail.items.modifiers', { count: item.modifiers.length })}</span>}
                             </div>
                           </div>
                           <div className="text-right">
@@ -593,9 +593,9 @@ export default function OrderId() {
                   <CardHeader className="bg-gradient-to-r from-muted to-purple-50 dark:to-purple-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <span>Pagos Asociados</span>
+                      <span>{t('orders.detail.sections.payments')}</span>
                     </CardTitle>
-                    <CardDescription>Historial de pagos realizados para esta orden</CardDescription>
+                    <CardDescription>{t('orders.detail.sections.paymentsDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-3">
@@ -612,8 +612,8 @@ export default function OrderId() {
                               <span className="text-sm text-muted-foreground">ID: {payment.id.slice(0, 8)}...</span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                              <span>Base: {Currency(payment.amount)}</span>
-                              <span>Propina: {Currency(payment.tipAmount)}</span>
+                              <span>{t('orders.detail.payments.base')}: {Currency(payment.amount)}</span>
+                              <span>{t('orders.detail.payments.tip')}: {Currency(payment.tipAmount)}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -625,7 +625,7 @@ export default function OrderId() {
                               onClick={() => navigate(`/venues/${venueId}/payments/${payment.id}`)}
                             >
                               <Eye className="h-3 w-3 mr-1" />
-                              Ver
+                              {t('orders.detail.payments.view')}
                             </Button>
                           </div>
                         </div>
@@ -643,7 +643,7 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <StatusIcon className={`h-5 w-5 ${orderStatus.color}`} />
-                    <span>Estado de la Orden</span>
+                    <span>{t('orders.detail.sidebar.statusTitle')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -659,7 +659,7 @@ export default function OrderId() {
                       {getStatusText(order.status)}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Última actualización: {order.updatedAt ? formatDate(order.updatedAt) : 'No disponible'}
+                      {t('orders.detail.sidebar.lastUpdate')}: {order.updatedAt ? formatDate(order.updatedAt) : t('orders.detail.sidebar.notAvailable')}
                     </p>
                   </div>
                 </CardContent>
@@ -670,29 +670,29 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <DollarSign className="h-5 w-5 text-green-500" />
-                    <span>Resumen Financiero</span>
+                    <span>{t('orders.detail.sidebar.financialSummary')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t('orders.detail.overview.subtotal')}</span>
                       <span className="text-lg font-bold">{Currency(order.subtotal || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">Propinas</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('orders.detail.overview.tips')}</span>
                         <p className="text-xs text-muted-foreground">
                           {order.subtotal && order.subtotal > 0
-                            ? `${(((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1)}% del subtotal`
-                            : '0.0% del subtotal'}
+                            ? t('orders.detail.sidebar.tipsPercent', { percent: (((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1) })
+                            : t('orders.detail.sidebar.tipsPercent', { percent: '0.0' })}
                         </p>
                       </div>
                       <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{Currency(order.tipAmount || 0)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border-2 border-green-200 dark:border-green-800">
-                      <span className="text-base font-bold text-green-800 dark:text-green-200">Total</span>
+                      <span className="text-base font-bold text-green-800 dark:text-green-200">{t('orders.detail.overview.total')}</span>
                       <span className="text-xl font-bold text-green-800 dark:text-green-200">{Currency(order.total || 0)}</span>
                     </div>
                   </div>
@@ -700,8 +700,8 @@ export default function OrderId() {
                   {/* Progress Bar */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Base</span>
-                      <span>Propinas</span>
+                      <span>{t('orders.detail.sidebar.base')}</span>
+                      <span>{t('orders.detail.overview.tips')}</span>
                     </div>
                     <Progress
                       value={order.subtotal && order.total && order.total > 0 ? (order.subtotal / order.total) * 100 : 0}
@@ -716,34 +716,34 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span>Información Rápida</span>
+                    <span>{t('orders.detail.sidebar.quickInfo')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mesa:</span>
+                      <span className="text-muted-foreground">{t('orders.detail.sidebar.table')}:</span>
                       <span className="font-medium">{order.table?.number || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Mesero:</span>
+                      <span className="text-muted-foreground">{t('orders.detail.sidebar.waiter')}:</span>
                       <span className="font-medium">
                         {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Artículos:</span>
+                      <span className="text-muted-foreground">{t('orders.detail.sidebar.items')}:</span>
                       <span className="font-medium">
-                        {totalItems} ({itemsCount} únicos)
+                        {t('orders.detail.sidebar.itemsCount', { total: totalItems, unique: itemsCount })}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tipo:</span>
+                      <span className="text-muted-foreground">{t('orders.detail.sidebar.type')}:</span>
                       <span className="font-medium">{order.type || 'N/A'}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Pagos:</span>
+                      <span className="text-muted-foreground">{t('orders.detail.sidebar.payments')}:</span>
                       <span className="font-medium">{order.payments?.length || 0}</span>
                     </div>
                   </div>
@@ -758,12 +758,12 @@ export default function OrderId() {
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center space-x-4">
-                <span>© 2024 Avoqado POS System</span>
+                <span>{t('orders.detail.footer.copyright')}</span>
                 <Separator orientation="vertical" className="h-4" />
-                <span>Orden ID: {order.id}</span>
+                <span>{t('orders.detail.footer.orderId', { id: order.id })}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span>Generado el {new Date().toLocaleString(getIntlLocale(i18n.language))}</span>
+                <span>{t('orders.detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
               </div>
             </div>
           </div>

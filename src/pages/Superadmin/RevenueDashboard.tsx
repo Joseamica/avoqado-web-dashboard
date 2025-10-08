@@ -137,7 +137,7 @@ const RevenueDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{t('revenue.kpis.totalRevenue')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('revenue.kpis.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -244,12 +244,16 @@ const RevenueDashboard: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-medium">{venue.venueName}</p>
-                        <p className="text-sm text-muted-foreground">{venue.transactionCount} {t('revenue.venues.transactions')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {venue.transactionCount} {t('revenue.venues.transactions')}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(venue.revenue)}</p>
-                      <p className="text-sm text-muted-foreground">{t('revenue.venues.commissionPrefix')} {formatCurrency(venue.commission)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('revenue.venues.commissionPrefix')} {formatCurrency(venue.commission)}
+                      </p>
                     </div>
                   </div>
                 )) || <p className="text-center text-muted-foreground py-8">{t('revenue.venues.empty')}</p>}
@@ -297,11 +301,15 @@ const RevenueDashboard: React.FC = () => {
                   <div key={period.date} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded">
                     <div>
                       <p className="font-medium">{format(new Date(period.date), 'MMM dd, yyyy')}</p>
-                      <p className="text-sm text-muted-foreground">{period.transactionCount} {t('revenue.timeline.transactions')}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {period.transactionCount} {t('revenue.timeline.transactions')}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{formatCurrency(period.revenue)}</p>
-                      <p className="text-sm text-muted-foreground">{t('revenue.timeline.commissionPrefix')} {formatCurrency(period.commission)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('revenue.timeline.commissionPrefix')} {formatCurrency(period.commission)}
+                      </p>
                     </div>
                   </div>
                 )) || <p className="text-center text-muted-foreground py-8">{t('revenue.timeline.empty')}</p>}

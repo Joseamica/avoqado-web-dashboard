@@ -8,10 +8,11 @@ import { ArrowLeft } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
 
 export default function CreateTpv() {
+  const { t } = useTranslation()
   const { venueId } = useCurrentVenue()
-  // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
 
   const location = useLocation()
   const { toast } = useToast()
@@ -27,15 +28,15 @@ export default function CreateTpv() {
     },
     onSuccess: (_, data: any) => {
       toast({
-        title: `Terminal ${data.name} creado`,
-        description: 'La terminal se ha creado correctamente.',
+        title: t('tpv.create.successTitle', { name: data.name }),
+        description: t('tpv.create.successDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error?.response?.data?.message || error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('tpv.create.errorTitle'),
+        description: error?.response?.data?.message || error.message || t('tpv.create.errorDesc'),
         variant: 'destructive',
       })
     },
@@ -66,29 +67,29 @@ export default function CreateTpv() {
         </div>
         <div className="space-x-3 flex-row-center">
           <LoadingButton loading={createTpv.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createTpv.isPending ? 'Guardando...' : 'Guardar'}
+            {createTpv.isPending ? t('common.saving') : t('common.save')}
           </LoadingButton>
         </div>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
-          <h1 className="text-xl font-semibold">Nuevo tpv</h1>
+          <h1 className="text-xl font-semibold">{t('tpv.create.title')}</h1>
 
           <FormField
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: 'El nombre es requerido.' },
-              minLength: { value: 3, message: 'El nombre debe tener al menos 3 caracteres.' },
-              maxLength: { value: 30, message: 'El nombre no debe tener más de 30 caracteres.' },
+              required: { value: true, message: t('tpv.create.validation.nameRequired') },
+              minLength: { value: 3, message: t('tpv.create.validation.nameMin') },
+              maxLength: { value: 30, message: t('tpv.create.validation.nameMax') },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>Nombre</FormLabel>
+                  <FormLabel>{t('tpv.create.nameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Introduce un nombre" className="max-w-96" {...field} />
+                    <Input placeholder={t('tpv.create.namePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -96,15 +97,15 @@ export default function CreateTpv() {
             }}
           />
 
-          {/* Campo Descripción */}
+          {/* Campo Serial Number */}
           <FormField
             control={form.control}
             name="serial"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Número de serie</FormLabel>
+                <FormLabel>{t('tpv.create.serialLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="Introduce una descripción" className="max-w-96" {...field} />
+                  <Input placeholder={t('tpv.create.serialPlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

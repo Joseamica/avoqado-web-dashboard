@@ -243,22 +243,22 @@ export default function ShiftId() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <Label htmlFor="turnId">ID de Turno</Label>
+              <Label htmlFor="turnId">{t('shifts.detail.turnIdLabel', { defaultValue: 'ID de Turno' })}</Label>
               <Input id="turnId" value={shift?.turnId || ''} disabled />
             </div>
             <div>
-              <Label htmlFor="id">ID del Sistema</Label>
+              <Label htmlFor="id">{t('shifts.detail.systemIdLabel', { defaultValue: 'ID del Sistema' })}</Label>
               <Input id="id" value={shift?.id || ''} disabled />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <Label htmlFor="startTime">Hora de Apertura</Label>
+              <Label htmlFor="startTime">{t('shifts.detail.openTimeLabel', { defaultValue: 'Hora de Apertura' })}</Label>
               <Input id="startTime" value={formatDate(shift?.startTime)} disabled />
             </div>
             <div>
-              <Label htmlFor="endTime">Hora de Cierre</Label>
+              <Label htmlFor="endTime">{t('shifts.detail.closeTimeLabel', { defaultValue: 'Hora de Cierre' })}</Label>
               <Input id="endTime" value={formatDate(shift?.endTime)} disabled />
             </div>
           </div>

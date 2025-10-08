@@ -6,8 +6,10 @@ import { BarChart3, Building, Database, Globe, Lock, Settings, Shield, Users } f
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export default function AdminDashboard() {
+  const { t } = useTranslation()
   const { user } = useAuth()
 
   const navigate = useNavigate()
@@ -25,7 +27,7 @@ export default function AdminDashboard() {
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-card border-border border-b shadow-md backdrop-blur-sm">
         <div className="flex items-center space-x-2">
           <Shield className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-medium text-foreground">Panel de Administración</h1>
+          <h1 className="text-lg font-medium text-foreground">{t('adminDashboard.title')}</h1>
         </div>
         <div className="flex items-center space-x-2">
           {isSuperAdmin && (
@@ -44,11 +46,11 @@ export default function AdminDashboard() {
             <TabsList className={`w-full grid ${isSuperAdmin ? 'grid-cols-6' : 'grid-cols-4'} rounded-none`}>
               <TabsTrigger value="general" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <BarChart3 className="h-4 w-4 mr-2" />
-                General
+                {t('common.all')}
               </TabsTrigger>
               <TabsTrigger value="users" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Users className="h-4 w-4 mr-2" />
-                Usuarios
+                {t('common.users')}
               </TabsTrigger>
               <TabsTrigger value="venues" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Building className="h-4 w-4 mr-2" />
@@ -58,17 +60,17 @@ export default function AdminDashboard() {
                 <>
                   <TabsTrigger value="system" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                     <Database className="h-4 w-4 mr-2" />
-                    Sistema
+                    {t('common.system')}
                   </TabsTrigger>
                   <TabsTrigger value="global" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                     <Globe className="h-4 w-4 mr-2" />
-                    Configuración Global
+                    {t('adminDashboard.cards.globalConfig')}
                   </TabsTrigger>
                 </>
               )}
               <TabsTrigger value="settings" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
                 <Settings className="h-4 w-4 mr-2" />
-                Configuración
+                {t('common.settings')}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -77,52 +79,52 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground">Resumen</CardTitle>
-                  <CardDescription className="text-muted-foreground">Vista general del sistema</CardDescription>
+                  <CardTitle className="text-foreground">{t('adminDashboard.tabs.overview')}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t('adminDashboard.tabs.overviewDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground">Contenido del panel general</p>
+                  <p className="text-foreground">{t('adminDashboard.content.overview')}</p>
                 </CardContent>
               </Card>
               <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground">Actividad Reciente</CardTitle>
-                  <CardDescription className="text-muted-foreground">Últimas acciones realizadas</CardDescription>
+                  <CardTitle className="text-foreground">{t('adminDashboard.tabs.recentActivity')}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t('adminDashboard.tabs.recentActivityDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground">Contenido de actividad reciente</p>
+                  <p className="text-foreground">{t('adminDashboard.content.recentActivity')}</p>
                 </CardContent>
               </Card>
               <Card className="bg-card">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground">Rendimiento</CardTitle>
-                  <CardDescription className="text-muted-foreground">Métricas del sistema</CardDescription>
+                  <CardTitle className="text-foreground">{t('adminDashboard.tabs.performance')}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t('adminDashboard.tabs.performanceDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground">Contenido de rendimiento</p>
+                  <p className="text-foreground">{t('adminDashboard.content.performance')}</p>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="users" className="mt-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Gestión de Usuarios</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">{t('adminDashboard.cards.userManagement')}</h2>
             <Separator className="mb-6 border-border" />
-            <p className="text-muted-foreground">Administra los usuarios del sistema</p>
+            <p className="text-muted-foreground">{t('adminDashboard.cards.userManagementDesc')}</p>
             <Outlet />
           </TabsContent>
 
           <TabsContent value="venues" className="mt-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Gestión de Venues</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">{t('adminDashboard.cards.venueManagement')}</h2>
             <Separator className="mb-6 border-border" />
-            <p className="text-muted-foreground">Administra los venues registrados</p>
+            <p className="text-muted-foreground">{t('adminDashboard.cards.venueManagementDesc')}</p>
             <Outlet />
           </TabsContent>
 
           {isSuperAdmin && (
             <>
               <TabsContent value="system" className="mt-6">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración del Sistema</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">{t('adminDashboard.cards.systemSettings')}</h2>
                 <Separator className="mb-6 border-border" />
                 <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4 mb-6">
                   <div className="flex">
@@ -131,28 +133,28 @@ export default function AdminDashboard() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-foreground">
-                        Esta sección está restringida solo para SuperAdmins y contiene configuraciones sensibles del sistema.
+                        {t('globalConfig.restrictedAccessDesc')}
                       </p>
                     </div>
                   </div>
                 </div>
-                <p className="text-muted-foreground">Administra las configuraciones a nivel de sistema</p>
+                <p className="text-muted-foreground">{t('adminDashboard.cards.systemSettingsDesc')}</p>
                 <Outlet />
               </TabsContent>
 
               <TabsContent value="global" className="mt-6">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración Global</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">{t('adminDashboard.cards.globalConfig')}</h2>
                 <Separator className="mb-6 border-border" />
-                <p className="text-muted-foreground">Administra las configuraciones globales de la plataforma</p>
+                <p className="text-muted-foreground">{t('adminDashboard.cards.globalConfigDesc')}</p>
                 <Outlet />
               </TabsContent>
             </>
           )}
 
           <TabsContent value="settings" className="mt-6">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Configuración de Cuenta</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">{t('adminDashboard.cards.accountSettings')}</h2>
             <Separator className="mb-6 border-border" />
-            <p className="text-muted-foreground">Administra tu cuenta y preferencias</p>
+            <p className="text-muted-foreground">{t('adminDashboard.cards.accountSettingsDesc')}</p>
             <Outlet />
           </TabsContent>
         </Tabs>

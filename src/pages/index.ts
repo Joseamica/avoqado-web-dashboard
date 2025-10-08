@@ -32,11 +32,11 @@ export { default as Orders } from './Order/Orders'
 export { default as OrderId } from './Order/OrderId'
 
 // Admin
-export { default as AdminDashboard } from '@/pages/Admin/AdminDashboard'
-export { default as UserManagement } from '@/pages/Admin/UserManagement'
-export { default as SystemSettings } from '@/pages/Admin/SystemSettings'
-export { default as VenueManagement } from '@/pages/Admin/VenueManagement'
-export { default as GlobalConfig } from '@/pages/Admin/GlobalConfig'
+export { default as AdminDashboard } from '@/pages/Admin/DEPRECATEDAdminDashboard'
+export { default as UserManagement } from '@/pages/Admin/DEPRECATEDUserManagement'
+export { default as SystemSettings } from '@/pages/Admin/DEPRECATEDSystemSettings'
+export { default as VenueManagement } from '@/pages/Admin/DEPRECATEDVenueManagement'
+export { default as GlobalConfig } from '@/pages/Admin/DEPRECATEDGlobalConfig'
 export { default as SuperAdminManagement } from '@/pages/Admin/SuperAdminManagement'
 export { default as SuperAdminVenueEdit } from '@/pages/Admin/SuperAdminVenueEdit'
 

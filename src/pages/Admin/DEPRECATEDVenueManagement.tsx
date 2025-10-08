@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { ArrowLeft, CheckCircle, Loader2, MapPin, PlusCircle, Search, X, XCircle } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 
 // Define types for venues and admins
@@ -35,6 +36,7 @@ interface VenueAdmin {
 }
 
 export default function VenueManagement() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -94,17 +96,18 @@ export default function VenueManagement() {
     },
     onSuccess: (response, variables) => {
       const newStatus = variables.status === 'active' ? 'inactive' : 'active'
+      const statusKey = newStatus === 'active' ? 'activated' : 'deactivated'
       toast({
-        title: `Venue ${newStatus === 'active' ? 'activado' : 'desactivado'}`,
-        description: `El establecimiento ha sido ${newStatus === 'active' ? 'activado' : 'desactivado'} correctamente.`,
+        title: t(`admin.venueManagement.toast.${statusKey}`),
+        description: t(`admin.venueManagement.toast.${statusKey}Desc`),
       })
       queryClient.invalidateQueries({ queryKey: ['venues'] })
     },
     onError: error => {
       console.error('Error toggling venue status:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el estado del establecimiento.',
+        title: t('admin.venueManagement.toast.statusError'),
+        description: t('admin.venueManagement.toast.statusErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -117,16 +120,16 @@ export default function VenueManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue creado',
-        description: 'El nuevo establecimiento ha sido creado correctamente.',
+        title: t('admin.venueManagement.toast.created'),
+        description: t('admin.venueManagement.toast.createdDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['venues'] })
     },
     onError: error => {
       console.error('Error creating venue:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo crear el establecimiento.',
+        title: t('admin.venueManagement.toast.createError'),
+        description: t('admin.venueManagement.toast.createErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -139,8 +142,8 @@ export default function VenueManagement() {
     },
     onSuccess: () => {
       toast({
-        title: 'Administrador añadido',
-        description: 'El administrador ha sido asignado al establecimiento correctamente.',
+        title: t('admin.venueManagement.toast.adminAdded'),
+        description: t('admin.venueManagement.toast.adminAddedDesc'),
       })
       if (selectedVenue?.id) {
         refetchAdmins()
@@ -149,8 +152,8 @@ export default function VenueManagement() {
     onError: error => {
       console.error('Error adding admin to venue:', error)
       toast({
-        title: 'Error',
-        description: 'No se pudo asignar el administrador al establecimiento.',
+        title: t('admin.venueManagement.toast.createError'),
+        description: t('admin.venueManagement.toast.adminAddError'),
         variant: 'destructive',
       })
     },
@@ -188,65 +191,65 @@ export default function VenueManagement() {
     <div className={`space-y-4 h-screen bg-background p-4 md:p-6 lg:p-8`}>
       <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Volver al Panel de Administración
+        {t('admin.venueManagement.backToAdmin')}
       </Link>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Gestión de Establecimientos</h2>
+        <h2 className="text-2xl font-bold text-foreground">{t('admin.venueManagement.title')}</h2>
         <Dialog>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Nuevo Establecimiento
+              {t('admin.venueManagement.newVenue')}
             </Button>
           </DialogTrigger>
           <DialogContent className={`sm:max-w-[600px] bg-card border-border`}>
             <DialogHeader>
-              <DialogTitle className="text-foreground">Crear Nuevo Establecimiento</DialogTitle>
+              <DialogTitle className="text-foreground">{t('admin.venueManagement.dialog.create.title')}</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Completa los datos para crear un nuevo establecimiento en el sistema
+                {t('admin.venueManagement.dialog.create.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="name" className="text-right">
-                  Nombre
+                  {t('admin.venueManagement.dialog.create.name')}
                 </label>
-                <Input id="name" className="col-span-3" placeholder="Nombre del establecimiento" />
+                <Input id="name" className="col-span-3" placeholder={t('admin.venueManagement.dialog.create.namePlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="type" className="text-right">
-                  Tipo
+                  {t('admin.venueManagement.dialog.create.type')}
                 </label>
                 <Select>
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona un tipo" />
+                    <SelectValue placeholder={t('admin.venueManagement.dialog.create.typePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="restaurant">Restaurante</SelectItem>
-                    <SelectItem value="bar">Bar</SelectItem>
-                    <SelectItem value="cafe">Cafetería</SelectItem>
-                    <SelectItem value="pub">Pub</SelectItem>
-                    <SelectItem value="other">Otro</SelectItem>
+                    <SelectItem value="restaurant">{t('admin.venueManagement.types.restaurant')}</SelectItem>
+                    <SelectItem value="bar">{t('admin.venueManagement.types.bar')}</SelectItem>
+                    <SelectItem value="cafe">{t('admin.venueManagement.types.cafe')}</SelectItem>
+                    <SelectItem value="pub">{t('admin.venueManagement.types.pub')}</SelectItem>
+                    <SelectItem value="other">{t('admin.venueManagement.types.other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="address" className="text-right">
-                  Dirección
+                  {t('admin.venueManagement.dialog.create.address')}
                 </label>
-                <Input id="address" className="col-span-3" placeholder="Dirección completa" />
+                <Input id="address" className="col-span-3" placeholder={t('admin.venueManagement.dialog.create.addressPlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="phone" className="text-right">
-                  Teléfono
+                  {t('admin.venueManagement.dialog.create.phone')}
                 </label>
-                <Input id="phone" type="tel" className="col-span-3" placeholder="+34 000 000 000" />
+                <Input id="phone" type="tel" className="col-span-3" placeholder={t('admin.venueManagement.dialog.create.phonePlaceholder')} />
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
                 <label htmlFor="description" className="text-right pt-2">
-                  Descripción
+                  {t('common.description')}
                 </label>
-                <Textarea id="description" className="col-span-3" placeholder="Descripción del establecimiento" />
+                <Textarea id="description" className="col-span-3" placeholder={t('admin.venueManagement.dialog.create.descriptionPlaceholder')} />
               </div>
             </div>
             <DialogFooter>
@@ -254,10 +257,10 @@ export default function VenueManagement() {
                 {createVenueMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creando...
+                    {t('admin.venueManagement.dialog.create.creating')}
                   </>
                 ) : (
-                  'Crear Establecimiento'
+                  t('admin.venueManagement.dialog.create.create')
                 )}
               </Button>
             </DialogFooter>
@@ -272,7 +275,7 @@ export default function VenueManagement() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar establecimientos..."
+                placeholder={t('admin.venueManagement.searchPlaceholder')}
                 className={`pl-8 w-[250px] bg-input`}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -280,14 +283,14 @@ export default function VenueManagement() {
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filtrar por tipo" />
+                <SelectValue placeholder={t('admin.venueManagement.filterByType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                <SelectItem value="restaurant">Restaurante</SelectItem>
-                <SelectItem value="bar">Bar</SelectItem>
-                <SelectItem value="cafe">Cafetería</SelectItem>
-                <SelectItem value="pub">Pub</SelectItem>
+                <SelectItem value="all">{t('admin.venueManagement.allTypes')}</SelectItem>
+                <SelectItem value="restaurant">{t('admin.venueManagement.types.restaurant')}</SelectItem>
+                <SelectItem value="bar">{t('admin.venueManagement.types.bar')}</SelectItem>
+                <SelectItem value="cafe">{t('admin.venueManagement.types.cafe')}</SelectItem>
+                <SelectItem value="pub">{t('admin.venueManagement.types.pub')}</SelectItem>
               </SelectContent>
             </Select>
             {filterType !== 'all' && (
@@ -302,12 +305,12 @@ export default function VenueManagement() {
             const columns: ColumnDef<Venue>[] = [
               {
                 accessorKey: 'name',
-                header: 'Nombre',
+                header: t('admin.venueManagement.table.name'),
                 cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
               },
               {
                 accessorKey: 'address',
-                header: 'Ubicación',
+                header: t('admin.venueManagement.table.location'),
                 cell: ({ row }) => (
                   <div className="flex items-center">
                     <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
@@ -317,12 +320,12 @@ export default function VenueManagement() {
               },
               {
                 accessorKey: 'type',
-                header: 'Tipo',
+                header: t('admin.venueManagement.table.type'),
                 cell: ({ row }) => <div>{row.original.type}</div>,
               },
               {
                 accessorKey: 'status',
-                header: 'Estado',
+                header: t('admin.venueManagement.table.status'),
                 cell: ({ row }) => (
                   <div
                     className={`flex items-center ${
@@ -330,13 +333,13 @@ export default function VenueManagement() {
                     }`}
                   >
                     {row.original.status === 'active' ? <CheckCircle className="mr-1 h-4 w-4" /> : <XCircle className="mr-1 h-4 w-4" />}
-                    {row.original.status === 'active' ? 'Activo' : 'Inactivo'}
+                    {row.original.status === 'active' ? t('admin.venueManagement.table.active') : t('admin.venueManagement.table.inactive')}
                   </div>
                 ),
               },
               {
                 id: 'actions',
-                header: () => <div className="text-right">Acciones</div>,
+                header: () => <div className="text-right">{t('admin.venueManagement.table.actions')}</div>,
                 cell: ({ row }) => (
                   <div className="flex justify-end gap-2">
                     <Button
@@ -351,9 +354,9 @@ export default function VenueManagement() {
                       {toggleVenueStatusMutation.isPending && toggleVenueStatusMutation.variables?.venueId === row.original.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : row.original.status === 'active' ? (
-                        'Desactivar'
+                        t('admin.venueManagement.table.deactivate')
                       ) : (
-                        'Activar'
+                        t('admin.venueManagement.table.activate')
                       )}
                     </Button>
                     {/* <Button
@@ -387,7 +390,7 @@ export default function VenueManagement() {
           })()}
 
           <div className="text-xs text-muted-foreground mt-2">
-            Mostrando {filteredVenues.length} de {venues.length} establecimientos
+            {t('admin.venueManagement.showing', { filtered: filteredVenues.length, total: venues.length })}
           </div>
         </CardContent>
       </Card>

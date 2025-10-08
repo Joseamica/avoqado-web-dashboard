@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Mail, Send, AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,26 +22,6 @@ import { useToast } from '@/hooks/use-toast'
 import { StaffRole } from '@/types'
 import teamService, { InviteTeamMemberRequest } from '@/services/team.service'
 
-const inviteTeamMemberSchema = z.object({
-  email: z
-    .string()
-    .email('El email debe tener un formato válido')
-    .min(1, 'El email es requerido'),
-  firstName: z
-    .string()
-    .min(1, 'El nombre es requerido')
-    .max(50, 'El nombre debe tener máximo 50 caracteres'),
-  lastName: z
-    .string()
-    .min(1, 'El apellido es requerido')
-    .max(50, 'El apellido debe tener máximo 50 caracteres'),
-  role: z.nativeEnum(StaffRole, { required_error: 'El rol es requerido' }),
-  message: z
-    .string()
-    .max(500, 'El mensaje debe tener máximo 500 caracteres')
-    .optional(),
-})
-
 type InviteTeamMemberFormData = InviteTeamMemberRequest
 
 interface InviteTeamMemberFormProps {
@@ -48,19 +29,40 @@ interface InviteTeamMemberFormProps {
   onSuccess: () => void
 }
 
-const ROLE_OPTIONS = [
-  { value: StaffRole.ADMIN, label: 'Administrador', description: 'Acceso completo al venue' },
-  { value: StaffRole.MANAGER, label: 'Gerente', description: 'Gestión operativa y reportes' },
-  { value: StaffRole.WAITER, label: 'Mesero', description: 'Tomar órdenes y gestionar mesas' },
-  { value: StaffRole.CASHIER, label: 'Cajero', description: 'Procesar pagos y cerrar turnos' },
-  { value: StaffRole.KITCHEN, label: 'Cocina', description: 'Gestión de cocina y órdenes' },
-  { value: StaffRole.HOST, label: 'Anfitrión', description: 'Recepción y gestión de mesas' },
-  { value: StaffRole.VIEWER, label: 'Visualizador', description: 'Solo lectura de reportes' },
-]
-
 export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamMemberFormProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
+
+  const inviteTeamMemberSchema = z.object({
+    email: z
+      .string()
+      .email(t('team.invite.validation.emailFormat'))
+      .min(1, t('team.invite.validation.emailRequired')),
+    firstName: z
+      .string()
+      .min(1, t('team.invite.validation.firstNameRequired'))
+      .max(50, t('team.invite.validation.firstNameMax')),
+    lastName: z
+      .string()
+      .min(1, t('team.invite.validation.lastNameRequired'))
+      .max(50, t('team.invite.validation.lastNameMax')),
+    role: z.nativeEnum(StaffRole, { required_error: t('team.invite.validation.roleRequired') }),
+    message: z
+      .string()
+      .max(500, t('team.invite.validation.messageMax'))
+      .optional(),
+  })
+
+  const ROLE_OPTIONS = [
+    { value: StaffRole.ADMIN, label: t('team.edit.roles.admin'), description: t('team.edit.roles.adminDesc') },
+    { value: StaffRole.MANAGER, label: t('team.edit.roles.manager'), description: t('team.edit.roles.managerDesc') },
+    { value: StaffRole.WAITER, label: t('team.edit.roles.waiter'), description: t('team.edit.roles.waiterDesc') },
+    { value: StaffRole.CASHIER, label: t('team.edit.roles.cashier'), description: t('team.edit.roles.cashierDesc') },
+    { value: StaffRole.KITCHEN, label: t('team.edit.roles.kitchen'), description: t('team.edit.roles.kitchenDesc') },
+    { value: StaffRole.HOST, label: t('team.edit.roles.host'), description: t('team.edit.roles.hostDesc') },
+    { value: StaffRole.VIEWER, label: t('team.edit.roles.viewer'), description: t('team.edit.roles.viewerDesc') },
+  ]
 
   const {
     register,
@@ -77,17 +79,17 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     mutationFn: (data: InviteTeamMemberRequest) => teamService.inviteTeamMember(venueId, data),
     onSuccess: (data) => {
       toast({
-        title: 'Invitación enviada',
-        description: `Se envió una invitación a ${data.invitation.email}. La invitación expira en 7 días.`,
+        title: t('team.invite.invitationSent'),
+        description: t('team.invite.invitationSentDesc', { email: data.invitation.email }),
       })
       reset()
       setSelectedRole(undefined)
       onSuccess()
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || 'No se pudo enviar la invitación.'
+      const errorMessage = error.response?.data?.message || t('team.invite.invitationError')
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -109,56 +111,56 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Email Field */}
       <div className="space-y-2">
-        <Label htmlFor="email">Email del invitado *</Label>
+        <Label htmlFor="email">{t('team.invite.emailLabel')} *</Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             id="email"
             type="email"
-            placeholder="ejemplo@empresa.com"
+            placeholder={t('team.invite.emailPlaceholder')}
             className="pl-10"
             data-autofocus
             {...register('email')}
           />
         </div>
         {errors.email && (
-          <p className="text-sm text-red-600">{errors.email.message}</p>
+          <p className="text-sm text-destructive">{errors.email.message}</p>
         )}
       </div>
 
       {/* Name Fields */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="firstName">Nombre *</Label>
+          <Label htmlFor="firstName">{t('team.invite.firstNameLabel')} *</Label>
           <Input
             id="firstName"
-            placeholder="Nombre"
+            placeholder={t('team.invite.firstNamePlaceholder')}
             {...register('firstName')}
           />
           {errors.firstName && (
-            <p className="text-sm text-red-600">{errors.firstName.message}</p>
+            <p className="text-sm text-destructive">{errors.firstName.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="lastName">Apellido *</Label>
+          <Label htmlFor="lastName">{t('team.invite.lastNameLabel')} *</Label>
           <Input
             id="lastName"
-            placeholder="Apellido"
+            placeholder={t('team.invite.lastNamePlaceholder')}
             {...register('lastName')}
           />
           {errors.lastName && (
-            <p className="text-sm text-red-600">{errors.lastName.message}</p>
+            <p className="text-sm text-destructive">{errors.lastName.message}</p>
           )}
         </div>
       </div>
 
       {/* Role Selection */}
       <div className="space-y-2">
-        <Label>Rol *</Label>
+        <Label>{t('team.invite.roleLabel')} *</Label>
         <Select onValueChange={handleRoleChange} value={selectedRole}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecciona un rol" />
+            <SelectValue placeholder={t('team.invite.roleSelectPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {ROLE_OPTIONS.map((option) => (
@@ -172,11 +174,11 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
           </SelectContent>
         </Select>
         {errors.role && (
-          <p className="text-sm text-red-600">{errors.role.message}</p>
+          <p className="text-sm text-destructive">{errors.role.message}</p>
         )}
         {selectedRoleInfo && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>{selectedRoleInfo.label}:</strong> {selectedRoleInfo.description}
             </p>
           </div>
@@ -185,15 +187,15 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
 
       {/* Message Field */}
       <div className="space-y-2">
-        <Label htmlFor="message">Mensaje personalizado (opcional)</Label>
+        <Label htmlFor="message">{t('team.invite.messageLabel')}</Label>
         <Textarea
           id="message"
-          placeholder="Escribe un mensaje de bienvenida para el nuevo miembro del equipo..."
+          placeholder={t('team.invite.messagePlaceholder')}
           rows={3}
           {...register('message')}
         />
         {errors.message && (
-          <p className="text-sm text-red-600">{errors.message.message}</p>
+          <p className="text-sm text-destructive">{errors.message.message}</p>
         )}
       </div>
 
@@ -201,9 +203,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          El invitado recibirá un email con un enlace para crear su cuenta y unirse al equipo.
-          Puede iniciar sesión con su cuenta de Google o crear una contraseña.
-          La invitación expira automáticamente en 7 días.
+          {t('team.invite.infoAlert')}
         </AlertDescription>
       </Alert>
 
@@ -217,12 +217,12 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
           {inviteMutation.isPending ? (
             <>
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              Enviando...
+              {t('team.invite.sending')}
             </>
           ) : (
             <>
               <Send className="h-4 w-4 mr-2" />
-              Enviar Invitación
+              {t('team.invite.sendButton')}
             </>
           )}
         </Button>

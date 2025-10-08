@@ -18,6 +18,7 @@ import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // ----------------------------
 // Helpers y datos iniciales
@@ -27,14 +28,14 @@ type DayItem = {
   selected: boolean
 }
 
-const initialDays: DayItem[] = [
-  { label: 'Lun', selected: false },
-  { label: 'Mar', selected: false },
-  { label: 'Mié', selected: false },
-  { label: 'Jue', selected: false },
-  { label: 'Vie', selected: false },
-  { label: 'Sáb', selected: false },
-  { label: 'Dom', selected: false },
+const getInitialDays = (t: (key: string) => string): DayItem[] => [
+  { label: t('menu.menuId.days.mon'), selected: false },
+  { label: t('menu.menuId.days.tue'), selected: false },
+  { label: t('menu.menuId.days.wed'), selected: false },
+  { label: t('menu.menuId.days.thu'), selected: false },
+  { label: t('menu.menuId.days.fri'), selected: false },
+  { label: t('menu.menuId.days.sat'), selected: false },
+  { label: t('menu.menuId.days.sun'), selected: false },
 ]
 
 function dayLabelToEnum(label: string): string {
@@ -90,6 +91,7 @@ function timeToPercentage(time: string) {
 // Componente para editar el menú
 // ----------------------------
 export default function MenuId() {
+  const { t } = useTranslation()
   const { menuId } = useParams()
   const { venueId } = useCurrentVenue()
 
@@ -118,7 +120,7 @@ export default function MenuId() {
       avoqadoMenus: [],
       avoqadoProducts: [],
       categories: [],
-      days: initialDays,
+      days: getInitialDays(t),
       startTime: '09:00',
       endTime: '19:30',
       isActive: true,
@@ -137,7 +139,7 @@ export default function MenuId() {
       const isAllDayValue = !menuData.availableFrom && !menuData.availableUntil
       const defaultStartTime = menuData.availableFrom || '09:00'
       const defaultEndTime = menuData.availableUntil || '19:30'
-      const formDays = initialDays.map(day => ({
+      const formDays = getInitialDays(t).map(day => ({
         ...day,
         selected: availableDays.includes(dayLabelToEnum(day.label)),
       }))
@@ -174,15 +176,15 @@ export default function MenuId() {
     },
     onSuccess: (data: any) => {
       toast({
-        title: `Menú ${data.name.toLowerCase()} actualizado.`,
-        description: 'El menú se ha actualizado correctamente.',
+        title: t('menu.menuId.toast.menuUpdated', { name: data.name.toLowerCase() }),
+        description: t('menu.menuId.toast.menuUpdatedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('menu.menuId.toast.errorSaving'),
+        description: error.message || t('menu.menuId.toast.errorSavingDesc'),
         variant: 'destructive',
       })
     },
@@ -195,16 +197,16 @@ export default function MenuId() {
     },
     onSuccess: (data: any) => {
       toast({
-        title: `Menú ${data.active ? 'activado' : 'desactivado'}.`,
-        description: `El menú ahora está ${data.active ? 'visible para los clientes' : 'oculto de los clientes'}.`,
+        title: t(`menu.menuId.toast.menuStatus${data.active ? 'Active' : 'Inactive'}`),
+        description: t(`menu.menuId.toast.menuStatus${data.active ? 'Active' : 'Inactive'}Desc`),
       })
     },
     onError: (error: any) => {
       // Revert the form state on error
       form.setValue('isActive', !form.getValues('isActive'))
       toast({
-        title: 'Error al cambiar estado',
-        description: error.message || 'Hubo un problema al cambiar el estado del menú.',
+        title: t('menu.menuId.toast.errorStatus'),
+        description: error.message || t('menu.menuId.toast.errorStatusDesc'),
         variant: 'destructive',
       })
     },
@@ -212,7 +214,7 @@ export default function MenuId() {
 
   // Si aún se están cargando datos, mostramos el loading.
   if (isMenuLoading || isCategoriesLoading) {
-    return <div>Cargando...</div>
+    return <div>{t('menu.menuId.loading')}</div>
   }
 
   // Obtenemos valores del formulario
@@ -251,32 +253,32 @@ export default function MenuId() {
     const { name, categories, days, startTime, endTime, isAllDay, isActive, startDate, endDate, type } = formValues
 
     if (!name.trim()) {
-      form.setError('name', { type: 'manual', message: 'El nombre es obligatorio' })
+      form.setError('name', { type: 'manual', message: t('menu.menuId.validation.nameRequired') })
     }
     if (!days.some((day: DayItem) => day.selected)) {
       form.setError('days', {
         type: 'manual',
-        message: 'Al menos un día tiene que ser seleccionado',
+        message: t('menu.menuId.validation.dayRequired'),
       })
     }
 
     // Validación para menús de temporada
     if (type === 'SEASONAL') {
       if (!startDate) {
-        form.setError('startDate', { type: 'manual', message: 'La fecha de inicio es obligatoria para menús de temporada' })
+        form.setError('startDate', { type: 'manual', message: t('menu.menuId.validation.startDateRequired') })
       }
       if (!endDate) {
-        form.setError('endDate', { type: 'manual', message: 'La fecha de fin es obligatoria para menús de temporada' })
+        form.setError('endDate', { type: 'manual', message: t('menu.menuId.validation.endDateRequired') })
       }
       if (startDate && endDate && startDate >= endDate) {
-        form.setError('endDate', { type: 'manual', message: 'La fecha de fin debe ser posterior a la fecha de inicio' })
+        form.setError('endDate', { type: 'manual', message: t('menu.menuId.validation.endDateAfterStart') })
       }
     }
     if (!isAllDay) {
       const startMinutes = parseTimeToMinutes(startTime)
       const endMinutes = parseTimeToMinutes(endTime)
       if (endMinutes - startMinutes < 60) {
-        const errorMessage = 'Los horarios del menú no pueden tener intervalos inferiores a 60 minutos. Tienes que cambiarlos.'
+        const errorMessage = t('menu.menuId.validation.minInterval')
         form.setError('startTime', { type: 'manual', message: errorMessage })
         form.setError('endTime', { type: 'manual', message: errorMessage })
       }
@@ -335,7 +337,7 @@ export default function MenuId() {
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
           >
-            {updateMenuMutation.isPending ? 'Guardando...' : 'Guardar'}
+            {updateMenuMutation.isPending ? t('menu.menuId.buttons.saving') : t('menu.menuId.buttons.save')}
           </Button>
         </div>
       </div>
@@ -344,24 +346,24 @@ export default function MenuId() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="p-4 space-y-6">
           <div className="max-w-2xl p-4 space-y-4 border rounded-md">
             <div className="flex items-center justify-between mb-4">
-              <span className="mr-2 font-bold">El menú está activo</span>
+              <span className="mr-2 font-bold">{t('menu.menuId.fields.menuActive')}</span>
               <Switch checked={isActive} onCheckedChange={handleToggle} disabled={toggleActiveMutation.isPending} />
             </div>
             <p className="mb-3 text-sm">
-              {isActive ? 'Los clientes pueden ver este menú y hacer pedidos' : 'Los clientes no pueden ver este menú ni hacer pedidos'}
+              {isActive ? t('menu.menuId.fields.menuActiveDesc') : t('menu.menuId.fields.menuInactiveDesc')}
             </p>
 
             <FormField
               control={form.control}
               name="name"
               rules={{
-                required: { value: true, message: 'El nombre es obligatorio' },
+                required: { value: true, message: t('menu.menuId.validation.nameRequired') },
               }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre del Menú</FormLabel>
+                  <FormLabel>{t('menu.menuId.fields.menuName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej. Desayunos" {...field} />
+                    <Input placeholder={t('menu.menuId.fields.menuNamePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -373,19 +375,19 @@ export default function MenuId() {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Menú</FormLabel>
+                  <FormLabel>{t('menu.menuId.fields.menuType')}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tipo" />
+                        <SelectValue placeholder={t('menu.menuId.fields.selectType')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="REGULAR">Regular</SelectItem>
-                      <SelectItem value="BREAKFAST">Desayuno</SelectItem>
-                      <SelectItem value="LUNCH">Comida</SelectItem>
-                      <SelectItem value="DINNER">Cena</SelectItem>
-                      <SelectItem value="SEASONAL">Temporada/Promoción</SelectItem>
+                      <SelectItem value="REGULAR">{t('menu.menuId.types.regular')}</SelectItem>
+                      <SelectItem value="BREAKFAST">{t('menu.menuId.types.breakfast')}</SelectItem>
+                      <SelectItem value="LUNCH">{t('menu.menuId.types.lunch')}</SelectItem>
+                      <SelectItem value="DINNER">{t('menu.menuId.types.dinner')}</SelectItem>
+                      <SelectItem value="SEASONAL">{t('menu.menuId.types.seasonal')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -394,15 +396,15 @@ export default function MenuId() {
             />
 
             {menuType === 'SEASONAL' && (
-              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-                <h3 className="font-medium mb-3 text-blue-900">Configuración de Temporada</h3>
+              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-950/50 dark:border-blue-800">
+                <h3 className="font-medium mb-3 text-blue-900 dark:text-blue-200">{t('menu.menuId.seasonal.title')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="startDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de Inicio</FormLabel>
+                        <FormLabel>{t('menu.menuId.seasonal.startDate')}</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -410,7 +412,7 @@ export default function MenuId() {
                                 variant="outline"
                                 className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
+                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>{t('menu.menuId.seasonal.selectDate')}</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -439,7 +441,7 @@ export default function MenuId() {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Fecha de Fin</FormLabel>
+                        <FormLabel>{t('menu.menuId.seasonal.endDate')}</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -447,7 +449,7 @@ export default function MenuId() {
                                 variant="outline"
                                 className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
+                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>{t('menu.menuId.seasonal.selectDate')}</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -474,16 +476,18 @@ export default function MenuId() {
                 </div>
 
                 {startDate && endDate && (
-                  <div className="mt-3 p-2 bg-blue-100 rounded text-sm text-blue-800">
-                    <strong>Vista previa:</strong> Este menú estará activo desde el {format(startDate, 'PPP', { locale: es })} hasta el{' '}
-                    {format(endDate, 'PPP', { locale: es })}
+                  <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/50 rounded text-sm text-blue-800 dark:text-blue-200">
+                    <strong>{t('menu.menuId.seasonal.preview')}:</strong> {t('menu.menuId.seasonal.previewText', {
+                      startDate: format(startDate, 'PPP', { locale: es }),
+                      endDate: format(endDate, 'PPP', { locale: es })
+                    })}
                   </div>
                 )}
               </div>
             )}
 
             <div className="space-y-2">
-              <FormLabel>Días disponibles</FormLabel>
+              <FormLabel>{t('menu.menuId.fields.availableDays')}</FormLabel>
               <div className="flex w-full mb-2">
                 {days.map((day: DayItem) => (
                   <button
@@ -527,7 +531,7 @@ export default function MenuId() {
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora de inicio</FormLabel>
+                    <FormLabel>{t('menu.menuId.fields.startTime')}</FormLabel>
                     <Select
                       disabled={isAllDay}
                       value={field.value}
@@ -538,12 +542,12 @@ export default function MenuId() {
                     >
                       <FormControl>
                         <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Seleccionar" />
+                          <SelectValue placeholder={t('menu.menuId.fields.selectTime')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectLabel>Selecciona hora</SelectLabel>
+                          <SelectLabel>{t('menu.menuId.fields.selectTime')}</SelectLabel>
                           {hourOptions.map(time => (
                             <SelectItem key={time} value={time}>
                               {convertTo12h(time)}
@@ -562,7 +566,7 @@ export default function MenuId() {
                 name="endTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hora de finalización</FormLabel>
+                    <FormLabel>{t('menu.menuId.fields.endTime')}</FormLabel>
                     <Select
                       disabled={isAllDay}
                       value={field.value}
@@ -573,12 +577,12 @@ export default function MenuId() {
                     >
                       <FormControl>
                         <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Seleccionar..." />
+                          <SelectValue placeholder={t('menu.menuId.fields.selectTime')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectLabel>Selecciona hora</SelectLabel>
+                          <SelectLabel>{t('menu.menuId.fields.selectTime')}</SelectLabel>
                           {hourOptions.map(time => (
                             <SelectItem key={time} value={time}>
                               {convertTo12h(time)}
@@ -596,12 +600,12 @@ export default function MenuId() {
             <div className="flex items-center space-x-2">
               <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
               <label htmlFor="allDay" className="text-sm font-semibold">
-                Abierto 24 horas
+                {t('menu.menuId.fields.allDay')}
               </label>
             </div>
           </div>
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Categorías</h2>
+            <h2 className="text-lg font-semibold">{t('menu.menuId.fields.categories')}</h2>
             <FormField
               control={form.control}
               name="categories"
@@ -616,8 +620,8 @@ export default function MenuId() {
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
-                      placeholder="Selecciona las categorías"
-                      emptyIndicator="No se han encontrado mas categorías"
+                      placeholder={t('menu.menuId.fields.selectCategories')}
+                      emptyIndicator={t('menu.menuId.fields.noCategoriesFound')}
                     />
                   </FormControl>
                   <FormMessage />

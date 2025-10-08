@@ -14,27 +14,29 @@ import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useEffect } from 'react'
-
-const getDayLabel = (day: string) => {
-  const dayLabels: Record<string, string> = {
-    MON: 'Lunes',
-    TUE: 'Martes',
-    WED: 'Miércoles',
-    THU: 'Jueves',
-    FRI: 'Viernes',
-    SAT: 'Sábado',
-    SUN: 'Domingo',
-  }
-  return dayLabels[day] || day
-}
+import { useTranslation } from 'react-i18next'
 
 export default function CategoryId() {
+  const { t } = useTranslation()
   const { categoryId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const getDayLabel = (day: string) => {
+    const dayLabels: Record<string, string> = {
+      MON: t('menu.forms.daysOfWeek.monday'),
+      TUE: t('menu.forms.daysOfWeek.tuesday'),
+      WED: t('menu.forms.daysOfWeek.wednesday'),
+      THU: t('menu.forms.daysOfWeek.thursday'),
+      FRI: t('menu.forms.daysOfWeek.friday'),
+      SAT: t('menu.forms.daysOfWeek.saturday'),
+      SUN: t('menu.forms.daysOfWeek.sunday'),
+    }
+    return dayLabels[day] || day
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['category', categoryId],
@@ -60,15 +62,15 @@ export default function CategoryId() {
     },
     onSuccess: () => {
       toast({
-        title: 'Categoría guardada',
-        description: 'Los cambios se han guardado correctamente.',
+        title: t('menu.categoryDetail.toasts.saved'),
+        description: t('menu.categories.toasts.saved'),
       })
       queryClient.invalidateQueries({ queryKey: ['category', categoryId] }) // Refetch product data
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('menu.forms.messages.saveError'),
+        description: error.message || t('menu.forms.messages.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -80,8 +82,8 @@ export default function CategoryId() {
     },
     onSuccess: (_, newActiveState) => {
       toast({
-        title: newActiveState ? 'Categoría activada' : 'Categoría pausada',
-        description: newActiveState ? 'La categoría está ahora activa.' : 'La categoría ha sido pausada.',
+        title: newActiveState ? t('menu.categoryDetail.toasts.activated') : t('menu.categoryDetail.toasts.paused'),
+        description: newActiveState ? t('menu.categoryDetail.toasts.activatedDesc') : t('menu.categoryDetail.toasts.pausedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
       form.setValue('active', newActiveState) // Update form state
@@ -90,8 +92,8 @@ export default function CategoryId() {
       const currentActive = form.getValues('active')
       form.setValue('active', currentActive) // Revert on error
       toast({
-        title: 'Error al cambiar estado',
-        description: error.message || 'Hubo un problema al cambiar el estado de la categoría.',
+        title: t('menu.categoryDetail.toasts.statusError'),
+        description: error.message || t('menu.categoryDetail.toasts.statusErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -103,8 +105,8 @@ export default function CategoryId() {
     },
     onSuccess: () => {
       toast({
-        title: 'Categoría eliminada',
-        description: 'La categoría se ha eliminado correctamente.',
+        title: t('menu.categoryDetail.toasts.deleted'),
+        description: t('menu.categoryDetail.toasts.deletedDesc'),
       })
       navigate(from)
     },
@@ -169,8 +171,8 @@ export default function CategoryId() {
 
       if (fromMinutes >= untilMinutes) {
         toast({
-          title: 'Horario inválido',
-          description: 'La hora de inicio debe ser anterior a la hora de cierre.',
+          title: t('menu.forms.messages.invalidSchedule'),
+          description: t('menu.forms.messages.invalidScheduleDesc'),
           variant: 'destructive',
         })
         return // Don't submit if time range is invalid
@@ -248,25 +250,25 @@ export default function CategoryId() {
               toggleActive.mutate(newActiveState)
             }}
           >
-            {toggleActive.isPending ? '...' : form.watch('active') ? '✓ Activa' : '✗ Inactiva'}
+            {toggleActive.isPending ? '...' : form.watch('active') ? t('menu.forms.labels.active') : t('menu.forms.labels.inactive')}
           </Button>
           <AlertDialogWrapper
-            triggerTitle="Eliminar"
-            title="Eliminar categoría"
+            triggerTitle={t('menu.categoryDetail.buttons.delete')}
+            title={t('menu.categoryDetail.dialogs.deleteTitle')}
             // description="Al eliminar el producto, no podrás recuperarlo."
-            message=" ¿Estás seguro de que deseas eliminar esta categoría?"
-            rightButtonLabel="Eliminar"
+            message={t('menu.categoryDetail.dialogs.deleteMessage')}
+            rightButtonLabel={t('menu.categoryDetail.buttons.delete')}
             rightButtonVariant="default"
             onRightButtonClick={() => deleteCategory.mutate()}
           />
-          <Button variant="outline">Duplicar</Button>
+          <Button variant="outline">{t('menu.categoryDetail.buttons.duplicate')}</Button>
           <LoadingButton
             disabled={!form.formState.isDirty || saveCategory.isPending}
             loading={saveCategory.isPending}
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
           >
-            {saveCategory.isPending ? 'Guardando...' : 'Guardar'}
+            {saveCategory.isPending ? t('menu.categoryDetail.buttons.saving') : t('menu.categoryDetail.buttons.save')}
           </LoadingButton>
         </div>
       </div>
@@ -286,7 +288,7 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Menús en los que aparececerá la categoría</FormLabel>
+                  <FormLabel>{t('menu.forms.labels.menusForCategory')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
@@ -296,8 +298,8 @@ export default function CategoryId() {
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
-                      placeholder="Selecciona los menús"
-                      emptyIndicator="No se han encontrado mas menús"
+                      placeholder={t('menu.forms.labels.selectMenus')}
+                      emptyIndicator={t('menu.forms.labels.noMoreMenus')}
                     />
                   </FormControl>
                   <FormMessage />
@@ -316,7 +318,7 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Agregar productos a esta categoría</FormLabel>
+                  <FormLabel>{t('menu.forms.labels.addProductsToCategory')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
@@ -326,8 +328,8 @@ export default function CategoryId() {
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
-                      placeholder="Selecciona los productos"
-                      emptyIndicator="No se han encontrado mas productos"
+                      placeholder={t('menu.forms.labels.selectProducts')}
+                      emptyIndicator={t('menu.forms.labels.noMoreProducts')}
                     />
                   </FormControl>
                   <FormMessage />
@@ -342,9 +344,9 @@ export default function CategoryId() {
                 defaultValue={data.availableFrom || ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Disponible desde</FormLabel>
+                    <FormLabel>{t('menu.forms.availableFrom')}</FormLabel>
                     <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de inicio" />
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectStartTime')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -357,9 +359,9 @@ export default function CategoryId() {
                 defaultValue={data.availableUntil || ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Disponible hasta</FormLabel>
+                    <FormLabel>{t('menu.forms.availableUntil')}</FormLabel>
                     <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder="Seleccionar hora de cierre" />
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectEndTime')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -380,8 +382,8 @@ export default function CategoryId() {
 
                 if (fromMinutes >= untilMinutes) {
                   return (
-                    <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
-                      ⚠️ La hora de inicio debe ser anterior a la hora de cierre
+                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
+                      ⚠️ {t('menu.forms.messages.invalidScheduleDesc')}
                     </div>
                   )
                 }
@@ -401,22 +403,22 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Días disponibles</FormLabel>
+                  <FormLabel>{t('menu.categoryDetail.labels.availableDays')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
                       options={[
-                        { label: 'Lunes', value: 'MON', disabled: false },
-                        { label: 'Martes', value: 'TUE', disabled: false },
-                        { label: 'Miércoles', value: 'WED', disabled: false },
-                        { label: 'Jueves', value: 'THU', disabled: false },
-                        { label: 'Viernes', value: 'FRI', disabled: false },
-                        { label: 'Sábado', value: 'SAT', disabled: false },
-                        { label: 'Domingo', value: 'SUN', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.monday'), value: 'MON', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
+                        { label: t('menu.forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
                       ]}
                       hidePlaceholderWhenSelected
-                      placeholder="Selecciona los días"
-                      emptyIndicator="No se han encontrado más días"
+                      placeholder={t('menu.categoryDetail.placeholders.selectDays')}
+                      emptyIndicator={t('menu.categoryDetail.placeholders.noMoreDays')}
                     />
                   </FormControl>
                   <FormMessage />

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Save, Shield, Eye, EyeOff } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,17 +25,11 @@ import { StaffRole } from '@/types'
 import teamService, { TeamMember, UpdateTeamMemberRequest } from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
 
-const editTeamMemberSchema = z.object({
-  role: z.nativeEnum(StaffRole).optional(),
-  active: z.boolean().optional(),
-  pin: z
-    .string()
-    .regex(/^\d{4}$/, 'El PIN debe tener exactamente 4 dígitos')
-    .optional()
-    .or(z.literal('')),
-})
-
-type EditTeamMemberFormData = z.infer<typeof editTeamMemberSchema>
+type EditTeamMemberFormData = {
+  role?: StaffRole
+  active?: boolean
+  pin?: string
+}
 
 interface EditTeamMemberFormProps {
   venueId: string
@@ -42,20 +37,30 @@ interface EditTeamMemberFormProps {
   onSuccess: () => void
 }
 
-const ROLE_OPTIONS = [
-  { value: StaffRole.ADMIN, label: 'Administrador', description: 'Acceso completo al venue' },
-  { value: StaffRole.MANAGER, label: 'Gerente', description: 'Gestión operativa y reportes' },
-  { value: StaffRole.WAITER, label: 'Mesero', description: 'Tomar órdenes y gestionar mesas' },
-  { value: StaffRole.CASHIER, label: 'Cajero', description: 'Procesar pagos y cerrar turnos' },
-  { value: StaffRole.KITCHEN, label: 'Cocina', description: 'Gestión de cocina y órdenes' },
-  { value: StaffRole.HOST, label: 'Anfitrión', description: 'Recepción y gestión de mesas' },
-  { value: StaffRole.VIEWER, label: 'Visualizador', description: 'Solo lectura de reportes' },
-]
-
-
 export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: EditTeamMemberFormProps) {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
+
+  const editTeamMemberSchema = z.object({
+    role: z.nativeEnum(StaffRole).optional(),
+    active: z.boolean().optional(),
+    pin: z
+      .string()
+      .regex(/^\d{4}$/, t('team.edit.validation.pinFormat'))
+      .optional()
+      .or(z.literal('')),
+  })
+
+  const ROLE_OPTIONS = [
+    { value: StaffRole.ADMIN, label: t('team.edit.roles.admin'), description: t('team.edit.roles.adminDesc') },
+    { value: StaffRole.MANAGER, label: t('team.edit.roles.manager'), description: t('team.edit.roles.managerDesc') },
+    { value: StaffRole.WAITER, label: t('team.edit.roles.waiter'), description: t('team.edit.roles.waiterDesc') },
+    { value: StaffRole.CASHIER, label: t('team.edit.roles.cashier'), description: t('team.edit.roles.cashierDesc') },
+    { value: StaffRole.KITCHEN, label: t('team.edit.roles.kitchen'), description: t('team.edit.roles.kitchenDesc') },
+    { value: StaffRole.HOST, label: t('team.edit.roles.host'), description: t('team.edit.roles.hostDesc') },
+    { value: StaffRole.VIEWER, label: t('team.edit.roles.viewer'), description: t('team.edit.roles.viewerDesc') },
+  ]
   const [showPin, setShowPin] = useState(false)
   const [selectedRole, setSelectedRole] = useState<StaffRole>(teamMember.role)
   const [isActive, setIsActive] = useState(teamMember.active)
@@ -89,12 +94,12 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
   }, [selectedRole, isActive, setValue])
 
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateTeamMemberRequest) => 
+    mutationFn: (data: UpdateTeamMemberRequest) =>
       teamService.updateTeamMember(venueId, teamMember.id, data),
     onSuccess: (data) => {
       toast({
-        title: 'Miembro actualizado',
-        description: `Se actualizó correctamente la información de ${teamMember.firstName} ${teamMember.lastName}.`,
+        title: t('team.edit.memberUpdated'),
+        description: t('team.edit.memberUpdatedDesc', { firstName: teamMember.firstName, lastName: teamMember.lastName }),
       })
       reset({
         role: data.data.role,
@@ -104,9 +109,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       onSuccess()
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || 'No se pudo actualizar el miembro del equipo.'
+      const errorMessage = error.response?.data?.message || t('team.edit.updateError')
       toast({
-        title: 'Error',
+        title: t('common.error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -131,8 +136,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
     // Only submit if there are actual changes
     if (Object.keys(updateData).length === 0) {
       toast({
-        title: 'Sin cambios',
-        description: 'No se detectaron cambios para guardar.',
+        title: t('team.edit.noChanges'),
+        description: t('team.edit.noChangesDesc'),
       })
       return
     }
@@ -162,9 +167,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
 
       {/* Role Selection */}
       <div className="space-y-2">
-        <Label>Rol</Label>
-        <Select 
-          onValueChange={(value) => setSelectedRole(value as StaffRole)} 
+        <Label>{t('team.edit.role')}</Label>
+        <Select
+          onValueChange={(value) => setSelectedRole(value as StaffRole)}
           value={selectedRole}
           disabled={teamMember.role === StaffRole.OWNER || teamMember.role === StaffRole.SUPERADMIN}
         >
@@ -173,8 +178,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           </SelectTrigger>
           <SelectContent>
             {filteredRoleOptions.map((option) => (
-              <SelectItem 
-                key={option.value} 
+              <SelectItem
+                key={option.value}
                 value={option.value}
                 disabled={option.value === StaffRole.SUPERADMIN}
               >
@@ -192,7 +197,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
         {selectedRoleInfo && selectedRole !== teamMember.role && (
           <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Nuevo rol:</strong> {selectedRoleInfo.description}
+              <strong>{t('team.edit.newRole')}:</strong> {selectedRoleInfo.description}
             </p>
           </div>
         )}
@@ -200,7 +205,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              No puedes cambiar el rol de un {teamMember.role === StaffRole.OWNER ? 'Propietario' : 'Super Administrador'}.
+              {teamMember.role === StaffRole.OWNER ? t('team.edit.cannotChangeOwnerRole') : t('team.edit.cannotChangeSuperadminRole')}
             </AlertDescription>
           </Alert>
         )}
@@ -209,9 +214,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       {/* Status Toggle */}
       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
         <div className="space-y-1">
-          <Label className="text-base font-medium">Estado del miembro</Label>
+          <Label className="text-base font-medium">{t('team.edit.memberStatus')}</Label>
           <p className="text-sm text-muted-foreground">
-            {isActive ? 'El miembro puede acceder al sistema' : 'El miembro no puede acceder al sistema'}
+            {isActive ? t('team.edit.memberActive') : t('team.edit.memberInactive')}
           </p>
         </div>
         <Switch
@@ -224,19 +229,19 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            No puedes desactivar al propietario del venue.
+            {t('team.edit.cannotDeactivateOwner')}
           </AlertDescription>
         </Alert>
       )}
 
       {/* PIN Field */}
       <div className="space-y-2">
-        <Label htmlFor="pin">Cambiar PIN (opcional)</Label>
+        <Label htmlFor="pin">{t('team.edit.changePin')}</Label>
         <div className="relative">
           <Input
             id="pin"
             type={showPin ? 'text' : 'password'}
-            placeholder="Nuevo PIN de 4 dígitos"
+            placeholder={t('team.edit.newPin')}
             className="pr-10"
             maxLength={4}
             {...register('pin')}
@@ -254,7 +259,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
         )}
         {watchedPin && (
           <p className="text-sm text-blue-600 dark:text-blue-400">
-            Se establecerá un nuevo PIN para el miembro
+            {t('team.edit.newPinSet')}
           </p>
         )}
       </div>
@@ -265,13 +270,13 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <div className="text-2xl font-bold text-foreground">
             ${teamMember.totalSales.toLocaleString()}
           </div>
-          <div className="text-sm text-muted-foreground">Ventas Totales</div>
+          <div className="text-sm text-muted-foreground">{t('team.edit.totalSales')}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-foreground">
             {teamMember.totalOrders}
           </div>
-          <div className="text-sm text-muted-foreground">Órdenes</div>
+          <div className="text-sm text-muted-foreground">{t('team.edit.orders')}</div>
         </div>
       </div>
 
@@ -285,12 +290,12 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           {updateMutation.isPending ? (
             <>
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              Guardando...
+              {t('team.edit.saving')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Guardar Cambios
+              {t('team.edit.saveChanges')}
             </>
           )}
         </Button>

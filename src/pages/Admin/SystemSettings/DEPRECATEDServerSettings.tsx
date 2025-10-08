@@ -4,6 +4,7 @@ import { Loader2, RefreshCcw } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { useTranslation } from 'react-i18next'
 
 
 interface MetricData {
@@ -15,6 +16,7 @@ interface MetricData {
 const UI_COLORS = ['#2563eb', '#60a8fb', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1']
 
 export default function ServerSettings() {
+  const { t } = useTranslation()
 
   const { data: cpuUsageData, isLoading: cpuUsageLoading } = useQuery({
     queryKey: ['cpu-usage'],
@@ -114,7 +116,7 @@ export default function ServerSettings() {
             contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}
             labelStyle={{ color: 'var(--color-foreground)' }}
             formatter={value => [`${value}%`, 'CPU']}
-            labelFormatter={label => `Hora: ${label}`}
+            labelFormatter={label => `${t('admin.systemSettings.server.time')}: ${label}`}
           />
           <Line type="monotone" dataKey="rawValue" stroke={UI_COLORS[0]} strokeWidth={2} dot={false} activeDot={{ r: 6 }} name="CPU" />
         </LineChart>
@@ -124,18 +126,18 @@ export default function ServerSettings() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-foreground">Configuración del Servidor</h3>
+      <h3 className="text-lg font-medium text-foreground">{t('admin.systemSettings.server.title')}</h3>
 
       <Card className="bg-card">
         <CardHeader className="border-b border-border">
-          <CardTitle className="text-foreground">Estado del Sistema</CardTitle>
-          <CardDescription className="text-muted-foreground">Estado actual del servidor y opciones de mantenimiento</CardDescription>
+          <CardTitle className="text-foreground">{t('admin.systemSettings.server.systemStatus')}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t('admin.systemSettings.server.systemStatusDesc')}</CardDescription>
         </CardHeader>
 
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h4 className="text-base font-medium text-foreground mb-2">Uso de CPU</h4>
+              <h4 className="text-base font-medium text-foreground mb-2">{t('admin.systemSettings.server.cpuUsage')}</h4>
               <div className="flex items-center mb-2">
                 <div className="h-2 w-full bg-input rounded-full overflow-hidden">
                   {cpuUsageLoading || cpuLimitLoading ? (
@@ -151,19 +153,19 @@ export default function ServerSettings() {
                   )}
                 </div>
                 <span className="ml-2 text-xs text-foreground w-16 text-right">
-                  {cpuUsageLoading || cpuLimitLoading ? 'Cargando...' : `${calculateCpuUsagePercentage().toFixed(2)}%`}
+                  {cpuUsageLoading || cpuLimitLoading ? t('admin.systemSettings.server.loading') : `${calculateCpuUsagePercentage().toFixed(2)}%`}
                 </span>
               </div>
               <div className="flex justify-between mt-1">
                 <p className="text-xs text-muted-foreground">
-                  Promedio: {cpuUsageLoading ? '...' : `${calculateAverageCpuUsage().toFixed(2)}%`}
+                  {t('admin.systemSettings.server.average')}: {cpuUsageLoading ? '...' : `${calculateAverageCpuUsage().toFixed(2)}%`}
                 </p>
-                <p className="text-xs text-muted-foreground">Límite: {cpuLimitLoading ? '...' : '100%'}</p>
+                <p className="text-xs text-muted-foreground">{t('admin.systemSettings.server.limit')}: {cpuLimitLoading ? '...' : '100%'}</p>
               </div>
             </div>
 
             <div>
-              <h4 className="text-base font-medium text-foreground mb-2">Memoria RAM</h4>
+              <h4 className="text-base font-medium text-foreground mb-2">{t('admin.systemSettings.server.memoryRAM')}</h4>
               <div className="flex items-center mb-2">
                 <div className="h-2 w-full bg-input rounded-full overflow-hidden">
                   {memoryUsageLoading || memoryLimitLoading ? (
@@ -179,18 +181,18 @@ export default function ServerSettings() {
                   )}
                 </div>
                 <span className="ml-2 text-xs text-foreground w-16 text-right">
-                  {memoryUsageLoading || memoryLimitLoading ? 'Cargando...' : `${calculateMemoryUsagePercentage().toFixed(2)}%`}
+                  {memoryUsageLoading || memoryLimitLoading ? t('admin.systemSettings.server.loading') : `${calculateMemoryUsagePercentage().toFixed(2)}%`}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {memoryUsageLoading || memoryLimitLoading ? 'Cargando datos de memoria...' : 'Uso actual de memoria RAM'}
+                {memoryUsageLoading || memoryLimitLoading ? t('admin.systemSettings.server.loadingMemory') : t('admin.systemSettings.server.currentMemoryUsage')}
               </p>
             </div>
           </div>
         </CardContent>
 
         <CardContent className="px-6 pb-6 pt-0">
-          <h4 className="text-base font-medium text-foreground mb-4">Historial de CPU (últimos 60 minutos)</h4>
+          <h4 className="text-base font-medium text-foreground mb-4">{t('admin.systemSettings.server.cpuHistory')}</h4>
           {cpuUsageLoading || cpuLimitLoading ? (
             <div className="h-24 bg-input rounded-md animate-pulse flex items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -201,7 +203,7 @@ export default function ServerSettings() {
                 <CpuUsageChart cpuData={cpuUsageData[0]} />
               ) : (
                 <div className="h-24 bg-input rounded-md flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.systemSettings.server.noDataAvailable')}</p>
                 </div>
               )}
             </div>
@@ -216,7 +218,7 @@ export default function ServerSettings() {
             }}
           >
             <RefreshCcw className="h-4 w-4 mr-2" />
-            Actualizar Datos
+            {t('admin.systemSettings.server.refreshData')}
           </Button>
         </div>
       </Card>

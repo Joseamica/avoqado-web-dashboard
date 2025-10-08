@@ -36,6 +36,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Mock data for super admins
 const mockSuperAdmins = [
@@ -149,6 +150,7 @@ const mockAuditLogs = [
 ]
 
 export default function SuperAdminManagement() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { user } = useAuth()
   const [superAdmins, setSuperAdmins] = useState(mockSuperAdmins)
@@ -185,8 +187,8 @@ export default function SuperAdminManagement() {
     const newStatus = superAdmins.find(a => a.id === adminId)?.status === 'active' ? 'inactive' : 'active'
 
     toast({
-      title: `SuperAdmin ${newStatus === 'active' ? 'activado' : 'desactivado'}`,
-      description: `El superadministrador ha sido ${newStatus === 'active' ? 'activado' : 'desactivado'} correctamente.`,
+      title: t(newStatus === 'active' ? 'admin.superAdminManagement.toast.activated' : 'admin.superAdminManagement.toast.deactivated'),
+      description: t(newStatus === 'active' ? 'admin.superAdminManagement.toast.activatedDesc' : 'admin.superAdminManagement.toast.deactivatedDesc'),
     })
   }
 
@@ -194,8 +196,8 @@ export default function SuperAdminManagement() {
   const handleCreateSuperAdmin = data => {
     // In a real implementation, this would send a request to the server
     toast({
-      title: 'SuperAdmin creado',
-      description: 'El nuevo superadministrador ha sido creado correctamente.',
+      title: t('admin.superAdminManagement.toast.created'),
+      description: t('admin.superAdminManagement.toast.createdDesc'),
     })
   }
 
@@ -207,8 +209,8 @@ export default function SuperAdminManagement() {
   // Reset 2FA
   const handleReset2FA = adminId => {
     toast({
-      title: '2FA restablecido',
-      description: 'La autenticación de dos factores ha sido restablecida correctamente.',
+      title: t('admin.superAdminManagement.toast.reset2FA'),
+      description: t('admin.superAdminManagement.toast.reset2FADesc'),
     })
   }
 
@@ -220,11 +222,11 @@ export default function SuperAdminManagement() {
   // Get permission label
   const getPermissionLabel = permission => {
     const labels = {
-      all: 'Acceso Total',
-      users: 'Gestión de Usuarios',
-      venues: 'Gestión de Venues',
-      config: 'Configuración',
-      reports: 'Informes',
+      all: t('admin.superAdminManagement.permissions.all'),
+      users: t('admin.superAdminManagement.permissions.users'),
+      venues: t('admin.superAdminManagement.permissions.venues'),
+      config: t('admin.superAdminManagement.permissions.config'),
+      reports: t('admin.superAdminManagement.permissions.reports'),
     }
     return labels[permission] || permission
   }
@@ -232,14 +234,14 @@ export default function SuperAdminManagement() {
   // Get audit action label and icon
   const getAuditInfo = action => {
     const actionMap = {
-      user_update: { label: 'Actualización de Usuario', icon: <User className="h-4 w-4 text-blue-600" /> },
-      user_create: { label: 'Creación de Usuario', icon: <UserPlus className="h-4 w-4 text-green-600" /> },
-      user_delete: { label: 'Eliminación de Usuario', icon: <XCircle className="h-4 w-4 text-destructive" /> },
-      venue_create: { label: 'Creación de Venue', icon: <PlusCircle className="h-4 w-4 text-green-600" /> },
-      venue_update: { label: 'Actualización de Venue', icon: <UserCog className="h-4 w-4 text-blue-600" /> },
-      config_update: { label: 'Actualización de Config', icon: <Key className="h-4 w-4 text-amber-500" /> },
-      superadmin_create: { label: 'Creación de SuperAdmin', icon: <ShieldAlert className="h-4 w-4 text-purple-500" /> },
-      superadmin_login: { label: 'Login de SuperAdmin', icon: <Lock className="h-4 w-4 text-muted-foreground" /> },
+      user_update: { label: t('admin.superAdminManagement.audit.actions.userUpdate'), icon: <User className="h-4 w-4 text-blue-600" /> },
+      user_create: { label: t('admin.superAdminManagement.audit.actions.userCreate'), icon: <UserPlus className="h-4 w-4 text-green-600" /> },
+      user_delete: { label: t('admin.superAdminManagement.audit.actions.userDelete'), icon: <XCircle className="h-4 w-4 text-destructive" /> },
+      venue_create: { label: t('admin.superAdminManagement.audit.actions.venueCreate'), icon: <PlusCircle className="h-4 w-4 text-green-600" /> },
+      venue_update: { label: t('admin.superAdminManagement.audit.actions.venueUpdate'), icon: <UserCog className="h-4 w-4 text-blue-600" /> },
+      config_update: { label: t('admin.superAdminManagement.audit.actions.configUpdate'), icon: <Key className="h-4 w-4 text-amber-500" /> },
+      superadmin_create: { label: t('admin.superAdminManagement.audit.actions.superadminCreate'), icon: <ShieldAlert className="h-4 w-4 text-purple-500" /> },
+      superadmin_login: { label: t('admin.superAdminManagement.audit.actions.superadminLogin'), icon: <Lock className="h-4 w-4 text-muted-foreground" /> },
     }
 
     return actionMap[action] || { label: action, icon: <Eye className="h-4 w-4 text-muted-foreground" /> }
@@ -253,8 +255,8 @@ export default function SuperAdminManagement() {
             <div className="flex items-start space-x-2">
               <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
               <div>
-                <h3 className="text-lg font-semibold">Acceso restringido</h3>
-                <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a esta sección.</p>
+                <h3 className="text-lg font-semibold">{t('admin.superAdminManagement.accessDenied.title')}</h3>
+                <p className="text-muted-foreground">{t('admin.superAdminManagement.accessDenied.description')}</p>
               </div>
             </div>
           </CardContent>
@@ -266,8 +268,8 @@ export default function SuperAdminManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Gestión de SuperAdministradores</h2>
-        <p className="text-muted-foreground">Administra los usuarios con privilegios de superadministrador</p>
+        <h2 className="text-2xl font-bold text-foreground">{t('admin.superAdminManagement.title')}</h2>
+        <p className="text-muted-foreground">{t('admin.superAdminManagement.subtitle')}</p>
       </div>
 
       {/* Warning banner */}
@@ -278,8 +280,7 @@ export default function SuperAdminManagement() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-foreground">
-              Esta sección permite gestionar usuarios con acceso completo al sistema. Los superadministradores tienen permisos para realizar
-              cualquier acción, incluyendo cambios críticos en la configuración y acceso a todos los datos.
+              {t('admin.superAdminManagement.warningMessage')}
             </p>
           </div>
         </div>
@@ -289,11 +290,11 @@ export default function SuperAdminManagement() {
         <TabsList>
           <TabsTrigger value="admins" className="flex items-center">
             <ShieldAlert className="h-4 w-4 mr-2" />
-            <span>SuperAdmins</span>
+            <span>{t('admin.superAdminManagement.tabs.admins')}</span>
           </TabsTrigger>
           <TabsTrigger value="audit" className="flex items-center">
             <Eye className="h-4 w-4 mr-2" />
-            <span>Registro de Actividad</span>
+            <span>{t('admin.superAdminManagement.tabs.audit')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -305,7 +306,7 @@ export default function SuperAdminManagement() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Buscar superadmins..."
+                  placeholder={t('admin.superAdminManagement.searchPlaceholder')}
                   className="pl-8 w-[250px]"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -317,45 +318,44 @@ export default function SuperAdminManagement() {
               <DialogTrigger asChild>
                 <Button>
                   <ShieldAlert className="mr-2 h-4 w-4" />
-                  Nuevo SuperAdmin
+                  {t('admin.superAdminManagement.newSuperAdmin')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Añadir Nuevo SuperAdministrador</DialogTitle>
+                  <DialogTitle>{t('admin.superAdminManagement.dialog.create.title')}</DialogTitle>
                   <DialogDescription>
-                    Crea un nuevo usuario con permisos de superadministrador. Los superadministradores tienen acceso completo a todas las
-                    funcionalidades del sistema.
+                    {t('admin.superAdminManagement.dialog.create.description')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <label htmlFor="name" className="text-right">
-                      Nombre
+                      {t('admin.superAdminManagement.dialog.create.name')}
                     </label>
                     <Input id="name" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <label htmlFor="email" className="text-right">
-                      Email
+                      {t('admin.superAdminManagement.dialog.create.email')}
                     </label>
                     <Input id="email" type="email" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <label htmlFor="password" className="text-right">
-                      Contraseña
+                      {t('admin.superAdminManagement.dialog.create.password')}
                     </label>
                     <Input id="password" type="password" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <label htmlFor="confirm" className="text-right">
-                      Confirmar
+                      {t('admin.superAdminManagement.dialog.create.confirm')}
                     </label>
                     <Input id="confirm" type="password" className="col-span-3" />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateSuperAdmin}>Crear SuperAdmin</Button>
+                  <Button onClick={handleCreateSuperAdmin}>{t('admin.superAdminManagement.dialog.create.button')}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -366,11 +366,11 @@ export default function SuperAdminManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Superadministrador</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Último Acceso</TableHead>
-                    <TableHead>Permisos</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.table.administrator')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.table.status')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.table.lastAccess')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.table.permissions')}</TableHead>
+                    <TableHead className="text-right">{t('admin.superAdminManagement.table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -381,7 +381,7 @@ export default function SuperAdminManagement() {
                           <div>
                             <div className="font-medium flex items-center">
                               {admin.name}
-                              {admin.isMaster && <Badge className="ml-2 bg-purple-600">Master</Badge>}
+                              {admin.isMaster && <Badge className="ml-2 bg-purple-600">{t('admin.superAdminManagement.table.master')}</Badge>}
                             </div>
                             <div className="text-xs text-muted-foreground">{admin.email}</div>
                           </div>
@@ -393,14 +393,14 @@ export default function SuperAdminManagement() {
                             ) : (
                               <XCircle className="mr-2 h-4 w-4 text-destructive" />
                             )}
-                            {admin.status === 'active' ? 'Activo' : 'Inactivo'}
+                            {admin.status === 'active' ? t('admin.superAdminManagement.table.active') : t('admin.superAdminManagement.table.inactive')}
                           </div>
                         </TableCell>
                         <TableCell>{formatDate(admin.lastLogin)}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {admin.permissions.includes('all') ? (
-                              <Badge variant="outline">Acceso Total</Badge>
+                              <Badge variant="outline">{t('admin.superAdminManagement.permissions.all')}</Badge>
                             ) : (
                               admin.permissions.map(perm => (
                                 <Badge key={perm} variant="outline">
@@ -414,11 +414,11 @@ export default function SuperAdminManagement() {
                           <div className="flex justify-end gap-2">
                             {!admin.isMaster && (
                               <Button variant="outline" size="sm" onClick={() => handleStatusToggle(admin.id)}>
-                                {admin.status === 'active' ? 'Desactivar' : 'Activar'}
+                                {admin.status === 'active' ? t('admin.superAdminManagement.table.deactivate') : t('admin.superAdminManagement.table.activate')}
                               </Button>
                             )}
                             <Button variant="outline" size="sm" onClick={() => handleViewAdminDetails(admin)}>
-                              Detalles
+                              {t('admin.superAdminManagement.table.details')}
                             </Button>
                           </div>
                         </TableCell>
@@ -427,7 +427,7 @@ export default function SuperAdminManagement() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center">
-                        No se encontraron superadministradores con los criterios de búsqueda.
+                        {t('admin.superAdminManagement.table.noResults')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -440,8 +440,8 @@ export default function SuperAdminManagement() {
             <Dialog open={!!selectedAdmin} onOpenChange={open => !open && setSelectedAdmin(null)}>
               <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                  <DialogTitle>Detalles de SuperAdmin</DialogTitle>
-                  <DialogDescription>Información detallada del superadministrador</DialogDescription>
+                  <DialogTitle>{t('admin.superAdminManagement.dialog.details.title')}</DialogTitle>
+                  <DialogDescription>{t('admin.superAdminManagement.dialog.details.description')}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -451,36 +451,36 @@ export default function SuperAdminManagement() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-medium">Estado</h4>
+                      <h4 className="text-sm font-medium">{t('admin.superAdminManagement.dialog.details.status')}</h4>
                       <div className="flex items-center mt-1">
                         {selectedAdmin.status === 'active' ? (
                           <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
                         ) : (
                           <XCircle className="mr-2 h-4 w-4 text-destructive" />
                         )}
-                        {selectedAdmin.status === 'active' ? 'Activo' : 'Inactivo'}
+                        {selectedAdmin.status === 'active' ? t('admin.superAdminManagement.table.active') : t('admin.superAdminManagement.table.inactive')}
                       </div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">Creado</h4>
+                      <h4 className="text-sm font-medium">{t('admin.superAdminManagement.dialog.details.created')}</h4>
                       <div className="text-sm mt-1">{formatDate(selectedAdmin.createdAt)}</div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">Último acceso</h4>
+                      <h4 className="text-sm font-medium">{t('admin.superAdminManagement.dialog.details.lastAccess')}</h4>
                       <div className="text-sm mt-1">{formatDate(selectedAdmin.lastLogin)}</div>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium">Tipo</h4>
+                      <h4 className="text-sm font-medium">{t('admin.superAdminManagement.dialog.details.type')}</h4>
                       <div className="text-sm mt-1 flex items-center">
                         {selectedAdmin.isMaster ? (
                           <>
                             <ShieldAlert className="mr-2 h-4 w-4 text-purple-500" />
-                            SuperAdmin Master
+                            {t('admin.superAdminManagement.dialog.details.masterSuperAdmin')}
                           </>
                         ) : (
                           <>
                             <ShieldAlert className="mr-2 h-4 w-4 text-blue-600" />
-                            SuperAdmin
+                            {t('admin.superAdminManagement.dialog.details.superAdmin')}
                           </>
                         )}
                       </div>
@@ -488,10 +488,10 @@ export default function SuperAdminManagement() {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Permisos</h4>
+                    <h4 className="text-sm font-medium mb-2">{t('admin.superAdminManagement.dialog.details.permissions')}</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedAdmin.permissions.includes('all') ? (
-                        <Badge className="bg-purple-600">Acceso Total</Badge>
+                        <Badge className="bg-purple-600">{t('admin.superAdminManagement.permissions.all')}</Badge>
                       ) : (
                         selectedAdmin.permissions.map(perm => <Badge key={perm}>{getPermissionLabel(perm)}</Badge>)
                       )}
@@ -500,38 +500,37 @@ export default function SuperAdminManagement() {
 
                   {!selectedAdmin.isMaster && (
                     <div className="border-t pt-4 flex flex-col space-y-2">
-                      <h4 className="text-sm font-medium mb-2">Acciones de seguridad</h4>
+                      <h4 className="text-sm font-medium mb-2">{t('admin.superAdminManagement.dialog.details.securityActions')}</h4>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="outline" size="sm">
                             <Key className="mr-2 h-4 w-4" />
-                            Restablecer 2FA
+                            {t('admin.superAdminManagement.dialog.details.reset2FA')}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>¿Restablecer la autenticación de dos factores?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('admin.superAdminManagement.dialog.details.reset2FATitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta acción eliminará la configuración actual de 2FA para este usuario. Deberá configurar 2FA nuevamente en su
-                              próximo inicio de sesión.
+                              {t('admin.superAdminManagement.dialog.details.reset2FADescription')}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleReset2FA(selectedAdmin.id)}>Restablecer</AlertDialogAction>
+                            <AlertDialogCancel>{t('admin.superAdminManagement.dialog.details.cancel')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleReset2FA(selectedAdmin.id)}>{t('admin.superAdminManagement.dialog.details.reset')}</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
 
                       <Button variant="outline" size="sm">
                         <Lock className="mr-2 h-4 w-4" />
-                        Cambiar contraseña
+                        {t('admin.superAdminManagement.dialog.details.changePassword')}
                       </Button>
 
                       <div className="flex items-center justify-between mt-2">
                         <div>
-                          <label className="text-sm font-medium">Requerir cambio de contraseña</label>
-                          <p className="text-xs text-muted-foreground">En el próximo inicio de sesión</p>
+                          <label className="text-sm font-medium">{t('admin.superAdminManagement.dialog.details.requirePasswordChange')}</label>
+                          <p className="text-xs text-muted-foreground">{t('admin.superAdminManagement.dialog.details.requirePasswordChangeDesc')}</p>
                         </div>
                         <Switch defaultChecked={false} />
                       </div>
@@ -540,7 +539,7 @@ export default function SuperAdminManagement() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setSelectedAdmin(null)}>
-                    Cerrar
+                    {t('admin.superAdminManagement.dialog.details.close')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -554,18 +553,18 @@ export default function SuperAdminManagement() {
             <div className="flex gap-2">
               <Select value={actionFilter} onValueChange={setActionFilter}>
                 <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por acción" />
+                  <SelectValue placeholder={t('admin.superAdminManagement.audit.filterPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas las acciones</SelectItem>
-                  <SelectItem value="user_update">Actualización de usuario</SelectItem>
-                  <SelectItem value="user_create">Creación de usuario</SelectItem>
-                  <SelectItem value="user_delete">Eliminación de usuario</SelectItem>
-                  <SelectItem value="venue_create">Creación de venue</SelectItem>
-                  <SelectItem value="venue_update">Actualización de venue</SelectItem>
-                  <SelectItem value="config_update">Actualización de config</SelectItem>
-                  <SelectItem value="superadmin_create">Creación de superadmin</SelectItem>
-                  <SelectItem value="superadmin_login">Login de superadmin</SelectItem>
+                  <SelectItem value="">{t('admin.superAdminManagement.audit.allActions')}</SelectItem>
+                  <SelectItem value="user_update">{t('admin.superAdminManagement.audit.actions.userUpdate')}</SelectItem>
+                  <SelectItem value="user_create">{t('admin.superAdminManagement.audit.actions.userCreate')}</SelectItem>
+                  <SelectItem value="user_delete">{t('admin.superAdminManagement.audit.actions.userDelete')}</SelectItem>
+                  <SelectItem value="venue_create">{t('admin.superAdminManagement.audit.actions.venueCreate')}</SelectItem>
+                  <SelectItem value="venue_update">{t('admin.superAdminManagement.audit.actions.venueUpdate')}</SelectItem>
+                  <SelectItem value="config_update">{t('admin.superAdminManagement.audit.actions.configUpdate')}</SelectItem>
+                  <SelectItem value="superadmin_create">{t('admin.superAdminManagement.audit.actions.superadminCreate')}</SelectItem>
+                  <SelectItem value="superadmin_login">{t('admin.superAdminManagement.audit.actions.superadminLogin')}</SelectItem>
                 </SelectContent>
               </Select>
               {actionFilter && (
@@ -577,7 +576,7 @@ export default function SuperAdminManagement() {
 
             <Button variant="outline">
               <PlusCircle className="h-4 w-4 mr-2" />
-              Exportar Registros
+              {t('admin.superAdminManagement.audit.exportRecords')}
             </Button>
           </div>
 
@@ -586,11 +585,11 @@ export default function SuperAdminManagement() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha y Hora</TableHead>
-                    <TableHead>Acción</TableHead>
-                    <TableHead>Administrador</TableHead>
-                    <TableHead>Detalles</TableHead>
-                    <TableHead>IP</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.audit.table.dateTime')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.audit.table.action')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.audit.table.administrator')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.audit.table.details')}</TableHead>
+                    <TableHead>{t('admin.superAdminManagement.audit.table.ip')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -614,7 +613,7 @@ export default function SuperAdminManagement() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center">
-                        No hay registros de actividad que coincidan con los criterios de búsqueda.
+                        {t('admin.superAdminManagement.audit.table.noResults')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -624,7 +623,7 @@ export default function SuperAdminManagement() {
           </Card>
 
           <div className="text-xs text-muted-foreground text-right">
-            Mostrando {filteredAuditLogs.length} de {auditLogs.length} registros de actividad
+            {t('admin.superAdminManagement.audit.showing', { filtered: filteredAuditLogs.length, total: auditLogs.length })}
           </div>
         </TabsContent>
       </Tabs>

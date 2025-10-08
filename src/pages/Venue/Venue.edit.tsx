@@ -360,15 +360,15 @@ export default function EditVenue() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue actualizado',
-        description: 'El venue se ha actualizado correctamente.',
+        title: t('venues.edit.toast.updateSuccess'),
+        description: t('venues.edit.toast.updateSuccessDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || 'Hubo un error al actualizar el venue.'
+      const errorMessage = error?.response?.data?.message || t('venues.edit.toast.updateError')
       toast({
-        title: 'Error al actualizar venue',
+        title: t('venues.edit.toast.updateErrorTitle'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -389,17 +389,17 @@ export default function EditVenue() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue eliminado',
-        description: 'El venue se ha eliminado correctamente.',
+        title: t('venues.edit.toast.deleteSuccess'),
+        description: t('venues.edit.toast.deleteSuccessDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['status'] })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data'] })
       navigate(from)
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || 'Hubo un error al eliminar el venue.'
+      const errorMessage = error?.response?.data?.message || t('venues.edit.toast.deleteError')
       toast({
-        title: 'Error al eliminar venue',
+        title: t('venues.edit.toast.deleteErrorTitle'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -417,11 +417,11 @@ export default function EditVenue() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Venue no encontrado</h2>
-          <p className="text-muted-foreground mb-4">El venue que buscas no existe o no tienes permisos para editarlo.</p>
+          <h2 className="text-xl font-semibold text-foreground mb-2">{t('venues.edit.notFound')}</h2>
+          <p className="text-muted-foreground mb-4">{t('venues.edit.notFoundDesc')}</p>
           <Button onClick={() => navigate(from)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
+            {t('common.goBack')}
           </Button>
         </div>
       </div>
@@ -448,11 +448,11 @@ export default function EditVenue() {
             disabled={!canEdit || !form.formState.isDirty || saveVenue.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
-            {saveVenue.isPending ? 'Guardando...' : 'Guardar'}
+            {saveVenue.isPending ? t('common.saving') : t('common.save')}
           </Button>
           {canEdit && (
             <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
-              Eliminar
+              {t('common.delete')}
             </Button>
           )}
         </div>
@@ -461,9 +461,9 @@ export default function EditVenue() {
       <AlertDialog open={showDeleteDialog} onOpenChange={handleDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de que deseas eliminar este venue?</AlertDialogTitle>
+            <AlertDialogTitle>{t('venues.edit.deleteDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Para confirmar, escribe "delete {venue.name}" a continuación:
+              {t('venues.edit.deleteDialog.description', { venueName: venue.name })}
             </AlertDialogDescription>
             <div className="mt-4">
               <Input
@@ -475,13 +475,13 @@ export default function EditVenue() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteVenue.mutate()}
               disabled={!isDeleteConfirmed}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteVenue.isPending ? 'Eliminando...' : 'Eliminar'}
+              {deleteVenue.isPending ? t('common.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -498,7 +498,7 @@ export default function EditVenue() {
             <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Información básica</h3>
+                <h3 className="text-lg font-medium">{t('venues.edit.sections.basicInfo')}</h3>
                 <Separator />
 
                 <FormField
@@ -506,9 +506,9 @@ export default function EditVenue() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.name')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nombre del venue" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.name')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -520,24 +520,24 @@ export default function EditVenue() {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.type')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un tipo" />
+                            <SelectValue placeholder={t('venues.edit.placeholders.type')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={VenueType.RESTAURANT}>Restaurante</SelectItem>
-                          <SelectItem value={VenueType.BAR}>Bar</SelectItem>
-                          <SelectItem value={VenueType.CAFE}>Café</SelectItem>
-                          <SelectItem value={VenueType.FAST_FOOD}>Comida Rápida</SelectItem>
-                          <SelectItem value={VenueType.FOOD_TRUCK}>Food Truck</SelectItem>
-                          <SelectItem value={VenueType.RETAIL_STORE}>Tienda</SelectItem>
-                          <SelectItem value={VenueType.HOTEL_RESTAURANT}>Restaurante de Hotel</SelectItem>
-                          <SelectItem value={VenueType.FITNESS_STUDIO}>Estudio de Fitness</SelectItem>
-                          <SelectItem value={VenueType.SPA}>Spa</SelectItem>
-                          <SelectItem value={VenueType.OTHER}>Otro</SelectItem>
+                          <SelectItem value={VenueType.RESTAURANT}>{t('venues.edit.types.restaurant')}</SelectItem>
+                          <SelectItem value={VenueType.BAR}>{t('venues.edit.types.bar')}</SelectItem>
+                          <SelectItem value={VenueType.CAFE}>{t('venues.edit.types.cafe')}</SelectItem>
+                          <SelectItem value={VenueType.FAST_FOOD}>{t('venues.edit.types.fastFood')}</SelectItem>
+                          <SelectItem value={VenueType.FOOD_TRUCK}>{t('venues.edit.types.foodTruck')}</SelectItem>
+                          <SelectItem value={VenueType.RETAIL_STORE}>{t('venues.edit.types.retailStore')}</SelectItem>
+                          <SelectItem value={VenueType.HOTEL_RESTAURANT}>{t('venues.edit.types.hotelRestaurant')}</SelectItem>
+                          <SelectItem value={VenueType.FITNESS_STUDIO}>{t('venues.edit.types.fitnessStudio')}</SelectItem>
+                          <SelectItem value={VenueType.SPA}>{t('venues.edit.types.spa')}</SelectItem>
+                          <SelectItem value={VenueType.OTHER}>{t('venues.edit.types.other')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -550,9 +550,9 @@ export default function EditVenue() {
                   name="state"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estado</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.state')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Estado" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.state')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -564,9 +564,9 @@ export default function EditVenue() {
                   name="zipCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Código Postal</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.zipCode')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Código postal" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.zipCode')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -578,9 +578,9 @@ export default function EditVenue() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Dirección</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.address')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Dirección completa" {...field} />
+                        <Input placeholder={t('venues.edit.placeholders.address')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -593,9 +593,9 @@ export default function EditVenue() {
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ciudad</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.city')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ciudad" {...field} />
+                          <Input placeholder={t('venues.edit.placeholders.city')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -607,11 +607,11 @@ export default function EditVenue() {
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>País</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.country')}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un país" />
+                              <SelectValue placeholder={t('venues.edit.placeholders.country')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -655,10 +655,10 @@ export default function EditVenue() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="MXN">Peso Mexicano (MXN)</SelectItem>
-                          <SelectItem value="USD">Dólar Estadounidense (USD)</SelectItem>
-                          <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                          <SelectItem value="CAD">Dólar Canadiense (CAD)</SelectItem>
+                          <SelectItem value="MXN">{t('venues.edit.currencies.mxn')}</SelectItem>
+                          <SelectItem value="USD">{t('venues.edit.currencies.usd')}</SelectItem>
+                          <SelectItem value="EUR">{t('venues.edit.currencies.eur')}</SelectItem>
+                          <SelectItem value="CAD">{t('venues.edit.currencies.cad')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -793,7 +793,7 @@ export default function EditVenue() {
                       <div className="space-y-3">
                         {imageUrl ? (
                           <div className="flex items-center gap-3">
-                            <img src={imageUrl} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                            <img src={imageUrl} alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })} className="h-16 w-16 object-cover rounded" />
                             <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
                               {t('common.remove', { defaultValue: 'Quitar' })}
                             </Button>
@@ -837,9 +837,9 @@ export default function EditVenue() {
                     <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
                     <div className="flex items-center gap-3">
                       {venue.logo ? (
-                        <img src={venue.logo} alt="Logo" className="h-16 w-16 object-cover rounded" />
+                        <img src={venue.logo} alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })} className="h-16 w-16 object-cover rounded" />
                       ) : (
-                        <span className="text-sm text-muted-foreground">Sin logo</span>
+                        <span className="text-sm text-muted-foreground">{t('venues.edit.noLogo')}</span>
                       )}
                     </div>
                   </FormItem>
@@ -860,19 +860,19 @@ export default function EditVenue() {
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un sistema POS" />
+                          <SelectValue placeholder={t('venues.edit.placeholders.posType')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={PosType.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
-                        <SelectItem value={PosType.SQUARE}>Square</SelectItem>
-                        <SelectItem value={PosType.TOAST}>Toast</SelectItem>
-                        <SelectItem value={PosType.CLOVER}>Clover</SelectItem>
-                        <SelectItem value={PosType.ALOHA}>Aloha</SelectItem>
-                        <SelectItem value={PosType.MICROS}>Micros</SelectItem>
-                        <SelectItem value={PosType.NCR}>NCR</SelectItem>
-                        <SelectItem value={PosType.CUSTOM}>Personalizado</SelectItem>
-                        <SelectItem value={PosType.NONE}>Ninguno</SelectItem>
+                        <SelectItem value={PosType.SOFTRESTAURANT}>{t('venues.edit.posTypes.softRestaurant')}</SelectItem>
+                        <SelectItem value={PosType.SQUARE}>{t('venues.edit.posTypes.square')}</SelectItem>
+                        <SelectItem value={PosType.TOAST}>{t('venues.edit.posTypes.toast')}</SelectItem>
+                        <SelectItem value={PosType.CLOVER}>{t('venues.edit.posTypes.clover')}</SelectItem>
+                        <SelectItem value={PosType.ALOHA}>{t('venues.edit.posTypes.aloha')}</SelectItem>
+                        <SelectItem value={PosType.MICROS}>{t('venues.edit.posTypes.micros')}</SelectItem>
+                        <SelectItem value={PosType.NCR}>{t('venues.edit.posTypes.ncr')}</SelectItem>
+                        <SelectItem value={PosType.CUSTOM}>{t('venues.edit.posTypes.custom')}</SelectItem>
+                        <SelectItem value={PosType.NONE}>{t('venues.edit.posTypes.none')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

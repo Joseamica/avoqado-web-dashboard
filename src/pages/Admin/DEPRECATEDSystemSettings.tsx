@@ -6,13 +6,15 @@ import { useState, useEffect } from 'react'
 
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 // Import new component modules
-import DatabaseSettings from './SystemSettings/DatabaseSettings'
+
 import LogsSettings from './SystemSettings/LogsSettings'
 import ServerSettings from './SystemSettings/ServerSettings'
 
 export default function SystemSettings() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
 
@@ -54,14 +56,15 @@ export default function SystemSettings() {
   if (!isSuperAdmin) {
     return (
       <div className="py-4">
+        aaaa
         {/* Consider adding a more generic 'access denied' component here */}
         <Card className="border-border">
           <CardContent className="pt-6">
             <div className="flex items-start space-x-2">
               <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Acceso restringido</h3>
-                <p className="text-muted-foreground">Solo los SuperAdministradores pueden acceder a la configuración del sistema.</p>
+                <h3 className="text-lg font-semibold text-foreground">{t('admin.systemSettings.accessRestricted')}</h3>
+                <p className="text-muted-foreground">{t('admin.systemSettings.accessRestrictedDesc')}</p>
               </div>
             </div>
           </CardContent>
@@ -74,7 +77,7 @@ export default function SystemSettings() {
     <div className="flex flex-col space-y-6 h-screen bg-background p-4 md:p-6">
       <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2">
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Volver al Panel de Administración
+        {t('admin.systemSettings.backToAdmin')}
       </Link>
       {/* Warning banner */}
       <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4">
@@ -84,8 +87,7 @@ export default function SystemSettings() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-foreground">
-              Esta sección contiene configuraciones avanzadas del sistema. Manipular estos valores incorrectamente puede afectar el
-              funcionamiento de la plataforma.
+              {t('admin.systemSettings.warningMessage')}
             </p>
           </div>
         </div>
@@ -97,22 +99,22 @@ export default function SystemSettings() {
           <TabsList className="w-full grid grid-cols-4 rounded-none">
             <TabsTrigger value="database" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <Database className="h-5 w-5 mr-2" />
-              <span>Base de Datos</span>
+              <span>{t('admin.systemSettings.tabs.database')}</span>
             </TabsTrigger>
 
             <TabsTrigger value="system" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <Server className="h-5 w-5 mr-2" />
-              <span>Servidor</span>
+              <span>{t('admin.systemSettings.tabs.server')}</span>
             </TabsTrigger>
 
             <TabsTrigger value="logs" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <FileText className="h-5 w-5 mr-2" />
-              <span>Logs</span>
+              <span>{t('admin.systemSettings.tabs.logs')}</span>
             </TabsTrigger>
 
             <TabsTrigger value="security" className="rounded-none data-[state=active]:bg-muted data-[state=active]:text-primary">
               <ShieldAlert className="h-5 w-5 mr-2" />
-              <span>Seguridad</span>
+              <span>{t('admin.systemSettings.tabs.security')}</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -148,7 +150,7 @@ export default function SystemSettings() {
               </Card>
             </div>
           ) : (
-            <DatabaseSettings />
+        null   
           )}
         </TabsContent>
 
@@ -261,16 +263,16 @@ export default function SystemSettings() {
             </div>
           ) : (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-foreground">Configuración de Seguridad</h3>
+              <h3 className="text-lg font-medium text-foreground">{t('admin.systemSettings.security.title')}</h3>
 
               <Card className="bg-card">
                 <CardHeader className="border-b border-border">
-                  <CardTitle className="text-foreground">Opciones de Seguridad</CardTitle>
-                  <CardDescription className="text-muted-foreground">Configuración de seguridad de la plataforma</CardDescription>
+                  <CardTitle className="text-foreground">{t('admin.systemSettings.security.optionsTitle')}</CardTitle>
+                  <CardDescription className="text-muted-foreground">{t('admin.systemSettings.security.optionsDesc')}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="p-6">
-                  <p className="text-foreground">Contenido de configuración de seguridad</p>
+                  <p className="text-foreground">{t('admin.systemSettings.security.content')}</p>
                 </CardContent>
               </Card>
             </div>

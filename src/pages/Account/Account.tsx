@@ -269,21 +269,7 @@ export default function Account() {
                 <DialogTitle>{t('account.password.dialog.title')}</DialogTitle>
               </DialogHeader>
 
-              {/* Email visible pero no editable en el diálogo */}
-              {/* <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Correo electrónico</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="email" readOnly className="text-muted-foreground" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              /> */}
-
-              {/* Campos de contraseña */}
+              {/* Password fields */}
               <FormField
                 control={form.control}
                 name="old_password"

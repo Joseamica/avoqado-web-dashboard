@@ -13,12 +13,14 @@ import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import CreateModifier from './createModifier'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import EditModifier from './EditModifier'
 
 export default function ModifierGroupId() {
+  const { t } = useTranslation()
   const { modifierGroupId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -72,8 +74,8 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: 'Grupo modificador actualizado',
-        description: 'Los detalles del grupo se han actualizado correctamente.',
+        title: t('menu.modifiers.toasts.updated'),
+        description: t('menu.modifiers.detail.toasts.updatedDesc'),
       })
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -81,8 +83,8 @@ export default function ModifierGroupId() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al actualizar el grupo modificador.',
+        title: t('menu.modifiers.toasts.updateError'),
+        description: error.message || t('menu.modifiers.detail.toasts.updateErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -95,8 +97,8 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: 'Grupo modificador actualizado',
-        description: 'Los cambios se han guardado correctamente.',
+        title: t('menu.modifiers.toasts.updated'),
+        description: t('menu.modifiers.toasts.saved'),
       })
       // Invalidate all relevant queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -105,8 +107,8 @@ export default function ModifierGroupId() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('menu.modifiers.toasts.updateError'),
+        description: error.message || t('menu.forms.messages.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -119,15 +121,15 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: 'Grupo modificador eliminado',
-        description: 'El grupo modificador ha sido eliminado correctamente.',
+        title: t('menu.modifiers.toasts.deleted'),
+        description: t('menu.modifiers.detail.toasts.deletedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al eliminar',
-        description: error.message || 'Hubo un problema al eliminar el grupo modificador.',
+        title: t('menu.modifiers.toasts.deleteError'),
+        description: error.message || t('menu.modifiers.detail.toasts.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -209,22 +211,22 @@ export default function ModifierGroupId() {
   }
 
   if (isLoading) {
-    return <div className="p-4">Cargando...</div>
+    return <div className="p-4">{t('menu.forms.messages.loading')}</div>
   }
 
   if (isError || !data) {
     return (
       <div className="p-4">
-        <div className="text-red-500 mb-2">Error loading modifier group</div>
+        <div className="text-destructive mb-2">{t('menu.modifiers.detail.errorLoading')}</div>
         <div className="text-sm text-muted-foreground mb-2">
-          {isError ? 'Failed to fetch modifier group data' : 'No data returned from server'}
+          {isError ? t('menu.modifiers.detail.errorFetching') : t('menu.modifiers.detail.noData')}
         </div>
         {error && (
-          <div className="text-xs text-red-400 bg-red-50 p-2 rounded mb-4">{error instanceof Error ? error.message : 'Unknown error'}</div>
+          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-4">{error instanceof Error ? error.message : t('menu.modifiers.detail.unknownError')}</div>
         )}
         <div className="mt-4">
-          <Link to={from} className="text-blue-500 hover:underline">
-            ← Back to Modifier Groups
+          <Link to={from} className="text-primary hover:underline">
+            {t('menu.modifiers.detail.backToGroups')}
           </Link>
         </div>
       </div>
@@ -243,10 +245,10 @@ export default function ModifierGroupId() {
         </div>
         <div className="space-x-3 flex items-center">
           <AlertDialogWrapper
-            triggerTitle="Eliminar"
-            title="Eliminar grupo modificador"
-            message="¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer."
-            rightButtonLabel="Eliminar"
+            triggerTitle={t('menu.modifiers.actions.delete')}
+            title={t('menu.modifiers.dialogs.deleteTitle')}
+            message={t('menu.modifiers.dialogs.deleteDescription')}
+            rightButtonLabel={t('menu.modifiers.dialogs.deleteConfirm')}
             rightButtonVariant="destructive"
             onRightButtonClick={() => deleteModifierGroupMutation.mutate()}
           />
@@ -254,7 +256,7 @@ export default function ModifierGroupId() {
             disabled={!form.formState.isDirty || updateModifierGroupDetails.isPending || saveModifierGroup.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
-            {updateModifierGroupDetails.isPending || saveModifierGroup.isPending ? 'Guardando...' : 'Guardar'}
+            {updateModifierGroupDetails.isPending || saveModifierGroup.isPending ? t('menu.modifiers.toasts.saving') : t('menu.modifiers.forms.save')}
           </Button>
         </div>
       </div>
@@ -263,7 +265,7 @@ export default function ModifierGroupId() {
       <Sheet open={isCreateModifierSheetOpen} onOpenChange={setIsCreateModifierSheetOpen}>
         <SheetContent className="sm:max-w-md md:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Crear nuevo modificador</SheetTitle>
+            <SheetTitle>{t('menu.modifiers.forms.createNewModifier')}</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
             <CreateModifier
@@ -309,20 +311,20 @@ export default function ModifierGroupId() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Información del grupo</h3>
+              <h3 className="text-lg font-medium">{t('menu.modifiers.detail.groupInformation')}</h3>
               <FormField
                 control={form.control}
                 name="groupName"
                 defaultValue={typeof data.name === 'string' ? data.name : ''}
                 rules={{
-                  required: { value: true, message: 'El nombre es obligatorio' },
+                  required: { value: true, message: t('menu.modifiers.detail.nameRequired') },
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre del Grupo</FormLabel>
+                    <FormLabel>{t('menu.modifiers.detail.groupName')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Nombre del grupo"
+                        placeholder={t('menu.modifiers.detail.groupNamePlaceholder')}
                         value={typeof field.value === 'string' ? field.value : ''}
                         onChange={field.onChange}
                         onBlur={field.onBlur}
@@ -342,10 +344,10 @@ export default function ModifierGroupId() {
                 defaultValue={typeof data.description === 'string' ? data.description : ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descripción</FormLabel>
+                    <FormLabel>{t('menu.forms.description')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Descripción opcional"
+                        placeholder={t('menu.modifiers.detail.descriptionPlaceholder')}
                         name={field.name}
                         value={typeof field.value === 'string' ? field.value : ''}
                         onChange={field.onChange}
@@ -369,14 +371,14 @@ export default function ModifierGroupId() {
               render={({ field }) => (
                 <FormItem className="mt-4">
                   <div className="flex items-center gap-2">
-                    <FormLabel>Asignar modificadores</FormLabel>
+                    <FormLabel>{t('menu.modifiers.detail.assignModifiers')}</FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="rounded-full border bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold">
                           ?
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Para crear un modificador haz click en la barra y selecciona Agregar modificador</p>
+                          <p>{t('menu.modifiers.detail.modifierTooltip')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -384,7 +386,7 @@ export default function ModifierGroupId() {
                   <FormControl>
                     <DnDMultipleSelector
                       showAddItemText={true}
-                      itemName="modificador"
+                      itemName={t('menu.modifiers.detail.modifierItem')}
                       // showViewIcon={true}
                       onViewOption={option => {
                         if (option.value === '_new') {
@@ -395,7 +397,7 @@ export default function ModifierGroupId() {
                           navigate(`/venues/${venueId}/menumaker/modifier-groups/${option.value}`)
                         }
                       }}
-                      placeholder="Seleccionar modificadores..."
+                      placeholder={t('menu.modifiers.detail.selectModifiersPlaceholder')}
                       options={
                         allModifiers
                           ? allModifiers.map(modifier => ({
@@ -422,14 +424,14 @@ export default function ModifierGroupId() {
               render={({ field }) => (
                 <FormItem className="mt-4">
                   <div className="flex items-center gap-2">
-                    <FormLabel>Asignar productos</FormLabel>
+                    <FormLabel>{t('menu.modifiers.detail.assignProducts')}</FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="rounded-full bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold border">
                           ?
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Para crear un producto haz click en la barra y selecciona Agregar producto</p>
+                          <p>{t('menu.modifiers.detail.productTooltip')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -438,7 +440,7 @@ export default function ModifierGroupId() {
                     <DnDMultipleSelector
                       showViewIcon={true}
                       showAddItemText={true}
-                      itemName="producto"
+                      itemName={t('menu.modifiers.detail.productItem')}
                       onViewOption={option => {
                         if (option.value === '_new') {
                           // Handle "Add new product" click
@@ -448,7 +450,7 @@ export default function ModifierGroupId() {
                           navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
                         }
                       }}
-                      placeholder="Seleccionar productos..."
+                      placeholder={t('menu.modifiers.detail.selectProductsPlaceholder')}
                       options={
                         allProducts
                           ? allProducts.map(product => ({

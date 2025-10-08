@@ -2,6 +2,7 @@
 
 import { createBrowserRouter } from 'react-router-dom'
 import { StaffRole } from '@/types'
+import { ComingSoon } from '@/components/ComingSoon'
 
 import {
   Dashboard,
@@ -156,7 +157,7 @@ const router = createBrowserRouter(
                 },
                 {
                   path: 'settings',
-                  element: <div>Configuración de cuenta de admin (en desarrollo)</div>,
+                  element: <ComingSoon feature="Admin Account Settings" />,
                 },
                 // Rutas solo para superadmin
                 {
@@ -214,11 +215,11 @@ const router = createBrowserRouter(
                     },
                     {
                       path: 'analytics',
-                      element: <div>Analytics Dashboard (Coming Soon)</div>,
+                      element: <ComingSoon feature="Analytics Dashboard" />,
                     },
                     {
                       path: 'alerts',
-                      element: <div>Alerts Dashboard (Coming Soon)</div>,
+                      element: <ComingSoon feature="Alerts Dashboard" />,
                     },
                     {
                       path: 'revenue',
@@ -230,27 +231,27 @@ const router = createBrowserRouter(
                     },
                     {
                       path: 'customers',
-                      element: <div>Customer Management (Coming Soon)</div>,
+                      element: <ComingSoon feature="Customer Management" />,
                     },
                     {
                       path: 'growth',
-                      element: <div>Growth Analytics (Coming Soon)</div>,
+                      element: <ComingSoon feature="Growth Analytics" />,
                     },
                     {
                       path: 'system',
-                      element: <div>System Health (Coming Soon)</div>,
+                      element: <ComingSoon feature="System Health" />,
                     },
                     {
                       path: 'reports',
-                      element: <div>Reports (Coming Soon)</div>,
+                      element: <ComingSoon feature="Reports" />,
                     },
                     {
                       path: 'support',
-                      element: <div>Support Dashboard (Coming Soon)</div>,
+                      element: <ComingSoon feature="Support Dashboard" />,
                     },
                     {
                       path: 'settings',
-                      element: <div>Superadmin Settings (Coming Soon)</div>,
+                      element: <ComingSoon feature="Superadmin Settings" />,
                     },
                   ],
                 },
@@ -359,7 +360,7 @@ const router = createBrowserRouter(
                   children: [
                     {
                       index: true,
-                      element: <div>Super Admin Dashboard (Obsoleto, usar /admin)</div>,
+                      element: <ComingSoon feature="Super Admin Dashboard (Deprecated - use /admin)" />,
                     },
                   ],
                 },

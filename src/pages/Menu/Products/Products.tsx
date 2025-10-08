@@ -84,7 +84,7 @@ export default function Products() {
             {imageUrl && !hasError ? (
               <img
                 src={imageUrl}
-                alt="product"
+                alt={t('products.imageAlt')}
                 className="object-cover h-12 w-12"
                 onError={() => setImageErrors(prev => ({ ...prev, [productId]: true }))}
               />

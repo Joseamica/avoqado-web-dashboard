@@ -12,6 +12,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useTranslation } from 'react-i18next'
 
 // --------------------------------------------------
 // Tipos y datos iniciales
@@ -23,14 +24,14 @@ type DayItem = {
 
 type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
-const initialDays: DayItem[] = [
-  { label: 'Lun', selected: false },
-  { label: 'Mar', selected: false },
-  { label: 'Mié', selected: false },
-  { label: 'Jue', selected: false },
-  { label: 'Vie', selected: false },
-  { label: 'Sáb', selected: false },
-  { label: 'Dom', selected: false },
+const getInitialDays = (t: (key: string) => string): DayItem[] => [
+  { label: t('menu.createMenu.days.mon'), selected: false },
+  { label: t('menu.createMenu.days.tue'), selected: false },
+  { label: t('menu.createMenu.days.wed'), selected: false },
+  { label: t('menu.createMenu.days.thu'), selected: false },
+  { label: t('menu.createMenu.days.fri'), selected: false },
+  { label: t('menu.createMenu.days.sat'), selected: false },
+  { label: t('menu.createMenu.days.sun'), selected: false },
 ]
 
 // --------------------------------------------------
@@ -103,6 +104,7 @@ function timeToPercentage(time: string) {
 // Componente principal
 // --------------------------------------------------
 export default function MenuScheduleWithMenuDayModel() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { venueId } = useCurrentVenue()
   const location = useLocation()
@@ -120,7 +122,7 @@ export default function MenuScheduleWithMenuDayModel() {
       name: '',
       avoqadoMenus: [],
       avoqadoProducts: [],
-      days: initialDays,
+      days: getInitialDays(t),
       startTime: '09:00',
       endTime: '19:30',
       isActive: true,
@@ -154,15 +156,15 @@ export default function MenuScheduleWithMenuDayModel() {
     },
     onSuccess: (data: any) => {
       toast({
-        title: `Categoría ${data.name.toLowerCase()} creada.`,
-        description: 'La categoría se ha creado correctamente.',
+        title: t('menu.createMenu.toast.categoryCreated', { name: data.name.toLowerCase() }),
+        description: t('menu.createMenu.toast.categoryCreatedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: 'Error al guardar',
-        description: error.message || 'Hubo un problema al guardar los cambios.',
+        title: t('menu.createMenu.toast.errorSaving'),
+        description: error.message || t('menu.createMenu.toast.errorSavingDesc'),
         variant: 'destructive',
       })
     },
@@ -204,7 +206,7 @@ export default function MenuScheduleWithMenuDayModel() {
     if (!name.trim()) {
       setError('name', {
         type: 'manual',
-        message: 'El nombre es obligatorio',
+        message: t('menu.createMenu.validation.nameRequired'),
       })
     }
 
@@ -212,7 +214,7 @@ export default function MenuScheduleWithMenuDayModel() {
     if (!days.some((day: DayItem) => day.selected)) {
       setError('days', {
         type: 'manual',
-        message: 'Al menos un día tiene que ser seleccionado',
+        message: t('menu.createMenu.validation.dayRequired'),
       })
     }
 
@@ -223,7 +225,7 @@ export default function MenuScheduleWithMenuDayModel() {
       const diff = endMinutes - startMinutes
 
       if (diff < 60) {
-        const errorMessage = 'Los horarios del menú no pueden tener intervalos inferiores a 60 minutos. Tienes que cambiarlos.'
+        const errorMessage = t('menu.createMenu.validation.minInterval')
         setError('startTime', { type: 'manual', message: errorMessage })
         setError('endTime', { type: 'manual', message: errorMessage })
       }
@@ -270,7 +272,7 @@ export default function MenuScheduleWithMenuDayModel() {
   const hourOptions = getHourOptions()
 
   if (isLoading) {
-    return <LoadingScreen message="Cargando..." />
+    return <LoadingScreen message={t('menu.createMenu.loading')} />
   }
 
   return (
@@ -284,7 +286,7 @@ export default function MenuScheduleWithMenuDayModel() {
         </div>
         <div className="space-x-3 flex-row-center">
           <LoadingButton loading={createMenuMutation.isPending} onClick={handleSubmit(onSubmit)} variant="default">
-            {createMenuMutation.isPending ? 'Guardando...' : 'Guardar'}
+            {createMenuMutation.isPending ? t('menu.createMenu.buttons.saving') : t('menu.createMenu.buttons.save')}
           </LoadingButton>
         </div>
       </div>
@@ -292,14 +294,14 @@ export default function MenuScheduleWithMenuDayModel() {
       <div className="p-4">
         <div className="max-w-2xl p-4 space-y-4 border rounded-md">
           <div className="flex items-center justify-between mb-4">
-            <span className="mr-2 font-bold">El menú está activo</span>
+            <span className="mr-2 font-bold">{t('menu.createMenu.fields.menuActive')}</span>
             <Switch checked={isActive} onCheckedChange={handleToggle} />
           </div>
-          <p className="mb-3 text-sm">Los clientes pueden ver este menú y hacer pedidos</p>
+          <p className="mb-3 text-sm">{t('menu.createMenu.fields.menuActiveDesc')}</p>
           {/* Campo "name" */}
           <div>
-            <label className="block mb-1 text-sm font-medium">Nombre del Menú</label>
-            <input type="text" placeholder="Ej. Desayunos" className="w-full p-2 border rounded-sm" {...register('name')} />
+            <label className="block mb-1 text-sm font-medium">{t('menu.createMenu.fields.menuName')}</label>
+            <input type="text" placeholder={t('menu.createMenu.fields.menuNamePlaceholder')} className="w-full p-2 border rounded-sm" {...register('name')} />
             {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
           </div>
           {/* Botones de días */}
@@ -347,7 +349,7 @@ export default function MenuScheduleWithMenuDayModel() {
           <div className="flex items-center space-x-4">
             {/* Hora de inicio */}
             <div>
-              <label className="block mb-1 text-sm font-medium">Hora de inicio</label>
+              <label className="block mb-1 text-sm font-medium">{t('menu.createMenu.fields.startTime')}</label>
               <Select
                 disabled={isAllDay}
                 value={startTime}
@@ -360,11 +362,11 @@ export default function MenuScheduleWithMenuDayModel() {
                 }}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Seleccionar" />
+                  <SelectValue placeholder={t('menu.createMenu.fields.selectTime')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>Selecciona hora</SelectLabel>
+                    <SelectLabel>{t('menu.createMenu.fields.selectTime')}</SelectLabel>
                     {hourOptions.map(time => (
                       <SelectItem key={time} value={time}>
                         {convertTo12h(time)}
@@ -377,7 +379,7 @@ export default function MenuScheduleWithMenuDayModel() {
             </div>
             {/* Hora de fin */}
             <div>
-              <label className="block mb-1 text-sm font-medium">Hora de finalización</label>
+              <label className="block mb-1 text-sm font-medium">{t('menu.createMenu.fields.endTime')}</label>
               <Select
                 disabled={isAllDay}
                 value={endTime}
@@ -389,11 +391,11 @@ export default function MenuScheduleWithMenuDayModel() {
                 }}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Seleccionar..." />
+                  <SelectValue placeholder={t('menu.createMenu.fields.selectTime')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>Selecciona hora</SelectLabel>
+                    <SelectLabel>{t('menu.createMenu.fields.selectTime')}</SelectLabel>
                     {hourOptions.map(time => (
                       <SelectItem key={time} value={time}>
                         {convertTo12h(time)}
@@ -409,11 +411,11 @@ export default function MenuScheduleWithMenuDayModel() {
           <div className="flex items-center space-x-2">
             <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
             <label htmlFor="allDay" className="text-sm font-semibold">
-              Abierto 24 horas
+              {t('menu.createMenu.fields.allDay')}
             </label>
           </div>
         </div>
-        <h2 className="mt-4 mb-2 text-lg font-semibold">Categorías</h2>
+        <h2 className="mt-4 mb-2 text-lg font-semibold">{t('menu.createMenu.fields.categories')}</h2>
 
         <MultipleSelector
           options={(categories ?? []).map(category => ({
@@ -422,8 +424,8 @@ export default function MenuScheduleWithMenuDayModel() {
             disabled: false,
           }))}
           hidePlaceholderWhenSelected
-          placeholder="Selecciona las categorías"
-          emptyIndicator="No se han encontrado mas categorías"
+          placeholder={t('menu.createMenu.fields.selectCategories')}
+          emptyIndicator={t('menu.createMenu.fields.noCategoriesFound')}
         />
       </div>
     </div>

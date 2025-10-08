@@ -526,7 +526,7 @@ export default function Overview() {
       <div className="grid grid-cols-12 gap-4">
         {/* Left: Tree */}
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
-          <div className="text-xs font-medium text-muted-foreground mb-2">Tree</div>
+          <div className="text-xs font-medium text-muted-foreground mb-2">{t('menu.overview.tree')}</div>
           <ul className="space-y-1">
             {/* All menus root to enable menu-level reordering */}
             <li>
@@ -537,7 +537,7 @@ export default function Overview() {
                   setSelectedCategoryId(null)
                 }}
               >
-                <span className="font-medium">All Menus</span>
+                <span className="font-medium">{t('menu.overview.allMenus')}</span>
               </button>
             </li>
             {filteredMenus.map(menu => (
@@ -571,11 +571,11 @@ export default function Overview() {
         <main className="col-span-6 rounded-lg border bg-card">
           <div className="flex items-center justify-between px-3 py-2 border-b">
             <div className="text-sm font-medium">
-              {viewLevel === 'menus' && 'Menus'}
-              {viewLevel === 'menu' && 'Categories'}
-              {viewLevel === 'category' && 'Products'}
+              {viewLevel === 'menus' && t('menu.overview.menus')}
+              {viewLevel === 'menu' && t('menu.overview.categories')}
+              {viewLevel === 'category' && t('menu.overview.products')}
             </div>
-            <div className="text-xs text-muted-foreground">{filteredCenterItems.length} items</div>
+            <div className="text-xs text-muted-foreground">{t('menu.overview.itemsCount', { count: filteredCenterItems.length })}</div>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <SortableContext items={centerItemIds} strategy={verticalListSortingStrategy}>
@@ -629,17 +629,17 @@ export default function Overview() {
         {/* Right: Inspector */}
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
           <div className="flex items-center gap-2 text-sm font-medium mb-2">
-            <Info className="h-4 w-4" /> Inspector
+            <Info className="h-4 w-4" /> {t('menu.overview.inspector')}
           </div>
           {viewLevel === 'menus' && (
-            <p className="text-sm text-muted-foreground">Select a menu to see details.</p>
+            <p className="text-sm text-muted-foreground">{t('menu.overview.selectMenuPrompt')}</p>
           )}
           {viewLevel === 'menu' && selectedMenuId && (
             <div className="space-y-2 text-sm">
-              <div className="font-medium">Menu</div>
+              <div className="font-medium">{t('menu.overview.menu')}</div>
               <div className="text-muted-foreground">{menusData?.find(m => m.id === selectedMenuId)?.name}</div>
               <div className="flex items-center gap-2 pt-2">
-                <span className="text-muted-foreground">Active</span>
+                <span className="text-muted-foreground">{t('menu.overview.active')}</span>
                 <Switch
                   checked={!!menusData?.find(m => m.id === selectedMenuId)?.active}
                   onCheckedChange={checked => toggleMenuActiveMutation.mutate({ menuId: selectedMenuId, active: checked })}
@@ -649,11 +649,11 @@ export default function Overview() {
           )}
           {viewLevel === 'category' && selectedCategoryId && (
             <div className="space-y-2 text-sm">
-              <div className="font-medium">Category</div>
+              <div className="font-medium">{t('menu.overview.category')}</div>
               <div className="text-muted-foreground">
                 {menusData?.flatMap(m => m.categories?.map(c => c.category)).find(c => c.id === selectedCategoryId)?.name}
               </div>
-              <div className="text-xs text-muted-foreground">Drag to reorder products within this category.</div>
+              <div className="text-xs text-muted-foreground">{t('menu.overview.dragToReorderProducts')}</div>
             </div>
           )}
         </aside>

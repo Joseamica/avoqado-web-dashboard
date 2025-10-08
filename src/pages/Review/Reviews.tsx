@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
 import { useState } from 'react'
 import { useThemeClasses } from '@/hooks/use-theme-classes'
+import { useTranslation } from 'react-i18next'
 
 // Review interface based on new backend structure
 interface Review {
@@ -28,6 +29,7 @@ interface Review {
 export default function ReviewSummary() {
   const { venueId } = useCurrentVenue()
   const theme = useThemeClasses()
+  const { t } = useTranslation()
 
   const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>(null)
 
@@ -65,7 +67,7 @@ export default function ReviewSummary() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-foreground">Reseñas</h1>
+      <h1 className="text-xl font-bold text-foreground">{t('reviews.title')}</h1>
       <DateRangePicker
         showCompare={false}
         onUpdate={({ range }) => {
@@ -79,25 +81,25 @@ export default function ReviewSummary() {
       <Card className={`p-4 grid grid-cols-1 md:grid-cols-2 gap-6 ${theme.card}`}>
         <div>
           <CardHeader>
-            <CardTitle>Establecimientos</CardTitle>
+            <CardTitle>{t('reviews.establishments')}</CardTitle>
             <CardDescription>
-              Media de las valoraciones basadas en <span className="font-semibold">{filteredReviews?.length} reseñas.</span>
+              {t('reviews.averageDescription', { count: filteredReviews?.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2 text-foreground">Cargando reseñas...</span>
+                <span className="ml-2 text-foreground">{t('reviews.loading')}</span>
               </div>
             ) : error ? (
               <div className="text-center py-8 text-destructive">
-                <p>Error al cargar reseñas.</p>
-                <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : 'Error desconocido'}</p>
+                <p>{t('reviews.error')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : t('reviews.unknownError')}</p>
               </div>
             ) : filteredReviews.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>No hay reseñas disponibles para el período seleccionado.</p>
+                <p>{t('reviews.noReviews')}</p>
               </div>
             ) : (
               <>
@@ -118,7 +120,7 @@ export default function ReviewSummary() {
                       return (
                         <li key={stars} className="flex items-center space-x-2 flex-row">
                           <span className="shrink-0 w-20 text-foreground">
-                            {stars} {stars === 1 ? 'estrella' : 'estrellas'}
+                            {stars} {t(stars === 1 ? 'reviews.star' : 'reviews.stars')}
                           </span>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -127,7 +129,7 @@ export default function ReviewSummary() {
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{`${count} reseña${count === 1 ? '' : 's'}`}</p>
+                              <p>{t('reviews.reviewCount', { count })}</p>
                             </TooltipContent>
                           </Tooltip>
                         </li>
@@ -137,10 +139,6 @@ export default function ReviewSummary() {
                 </TooltipProvider>
               </>
             )}
-            {/* 
-            <Button className="mt-4" variant="outline">
-              Ver opiniones <ArrowRight className="ml-2" size={16} />
-            </Button> */}
           </CardContent>
         </div>
       </Card>

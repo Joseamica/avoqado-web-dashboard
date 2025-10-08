@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea'
 import countryList from 'react-select-country-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 // Define venue types as string literals instead of enums to avoid linting errors
 const VENUE_TYPES = {
@@ -45,7 +46,7 @@ const POS_NAMES = {
 
 // Extended schema with editable feature flags for SuperAdmin
 const superAdminVenueFormSchema = z.object({
-  name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
+  name: z.string().min(3, { message: 'Name must be at least 3 characters.' }),
   posName: z.string().nullable().optional(),
   posUniqueId: z.string().nullable().optional(),
 
@@ -127,6 +128,7 @@ function VenueSkeleton() {
 }
 
 export default function SuperAdminVenueEdit() {
+  const { t } = useTranslation()
   const { venueId } = useParams()
   const location = useLocation()
   const { toast } = useToast()
@@ -284,15 +286,15 @@ export default function SuperAdminVenueEdit() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue actualizado',
-        description: 'El venue se ha actualizado correctamente.',
+        title: t('admin.venueEdit.venueUpdated'),
+        description: t('admin.venueEdit.venueUpdatedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['get-venue-data-superadmin', venueId] })
     },
     onError: error => {
       toast({
-        title: 'Error al actualizar venue',
-        description: 'Hubo un error al actualizar el venue.',
+        title: t('admin.venueEdit.updateError'),
+        description: t('admin.venueEdit.updateErrorDesc'),
         variant: 'destructive',
       })
       console.error('Error updating venue:', error)
@@ -312,8 +314,8 @@ export default function SuperAdminVenueEdit() {
     },
     onSuccess: () => {
       toast({
-        title: 'Venue eliminado',
-        description: 'El venue se ha eliminado correctamente.',
+        title: t('admin.venueEdit.venueDeleted'),
+        description: t('admin.venueEdit.venueDeletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['status'] })
       navigate(from)
@@ -333,7 +335,7 @@ export default function SuperAdminVenueEdit() {
     <div className={`p-4 md:p-6 lg:p-8 bg-background min-h-screen`}>
       <Link to="/admin" className={`inline-flex items-center text-sm text-foregroundMuted hover:text-foreground mb-6`}>
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Volver al Panel de Administración
+        {t('admin.venueEdit.backToAdmin')}
       </Link>
       {/* Original content starts here */}
       <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
@@ -342,7 +344,7 @@ export default function SuperAdminVenueEdit() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <span className={`font-medium truncate max-w-[200px] md:max-w-none text-foreground`}>
-            {venue?.name} <span className={`text-xs text-foregroundMuted`}>(SUPERADMIN)</span>
+            {venue?.name} <span className={`text-xs text-foregroundMuted`}>({t('admin.venueEdit.superadmin')})</span>
           </span>
         </div>
         <div className="space-x-2 flex items-center">
@@ -353,10 +355,10 @@ export default function SuperAdminVenueEdit() {
             disabled={!form.formState.isDirty || saveVenue.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
-            {saveVenue.isPending ? 'Guardando...' : 'Guardar'}
+            {saveVenue.isPending ? t('admin.venueEdit.saving') : t('admin.venueEdit.save')}
           </Button>
           <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
-            Eliminar
+            {t('admin.venueEdit.delete')}
           </Button>
         </div>
       </div>
@@ -364,9 +366,9 @@ export default function SuperAdminVenueEdit() {
       <AlertDialog open={showDeleteDialog} onOpenChange={handleDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro de que deseas eliminar este venue?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.venueEdit.deleteConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Para confirmar, escribe "delete {venue?.name}" a continuación:
+              {t('admin.venueEdit.deleteConfirmDesc', { venueName: venue?.name })}
             </AlertDialogDescription>
             <div className="mt-4">
               <Input
@@ -378,13 +380,13 @@ export default function SuperAdminVenueEdit() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.venueEdit.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteVenue.mutate()}
               disabled={!isDeleteConfirmed}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteVenue.isPending ? 'Eliminando...' : 'Eliminar'}
+              {deleteVenue.isPending ? t('admin.venueEdit.deleting') : t('admin.venueEdit.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -392,15 +394,15 @@ export default function SuperAdminVenueEdit() {
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         <div>
-          <h2 className={`text-3xl font-semibold text-foreground`}>Gestión de Venue - SUPERADMIN</h2>
-          <p className={`text-foregroundMuted`}>Edición avanzada con acceso a características premium</p>
+          <h2 className={`text-3xl font-semibold text-foreground`}>{t('admin.venueEdit.title')}</h2>
+          <p className={`text-foregroundMuted`}>{t('admin.venueEdit.subtitle')}</p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Información básica</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.basicInfo')}</h3>
                 <Separator />
 
                 <FormField
@@ -408,9 +410,9 @@ export default function SuperAdminVenueEdit() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.name')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nombre del venue" {...field} />
+                        <Input placeholder={t('admin.venueEdit.namePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -422,19 +424,19 @@ export default function SuperAdminVenueEdit() {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.type')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un tipo" />
+                            <SelectValue placeholder={t('admin.venueEdit.selectType')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={VENUE_TYPES.RESTAURANT}>Restaurante</SelectItem>
-                          <SelectItem value={VENUE_TYPES.STUDIO}>Estudio</SelectItem>
-                          <SelectItem value={VENUE_TYPES.BAR}>Bar</SelectItem>
-                          <SelectItem value={VENUE_TYPES.CAFE}>Café</SelectItem>
-                          <SelectItem value={VENUE_TYPES.OTHER}>Otro</SelectItem>
+                          <SelectItem value={VENUE_TYPES.RESTAURANT}>{t('admin.venueEdit.types.restaurant')}</SelectItem>
+                          <SelectItem value={VENUE_TYPES.STUDIO}>{t('admin.venueEdit.types.studio')}</SelectItem>
+                          <SelectItem value={VENUE_TYPES.BAR}>{t('admin.venueEdit.types.bar')}</SelectItem>
+                          <SelectItem value={VENUE_TYPES.CAFE}>{t('admin.venueEdit.types.cafe')}</SelectItem>
+                          <SelectItem value={VENUE_TYPES.OTHER}>{t('admin.venueEdit.types.other')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -447,9 +449,9 @@ export default function SuperAdminVenueEdit() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Dirección</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.address')}</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Dirección completa" className="resize-none" {...field} />
+                        <Textarea placeholder={t('admin.venueEdit.addressPlaceholder')} className="resize-none" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -462,9 +464,9 @@ export default function SuperAdminVenueEdit() {
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ciudad</FormLabel>
+                        <FormLabel>{t('admin.venueEdit.city')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ciudad" {...field} />
+                          <Input placeholder={t('admin.venueEdit.cityPlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -476,11 +478,11 @@ export default function SuperAdminVenueEdit() {
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>País</FormLabel>
+                        <FormLabel>{t('admin.venueEdit.country')}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un país" />
+                              <SelectValue placeholder={t('admin.venueEdit.selectCountry')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -499,14 +501,13 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Características premium (SUPERADMIN)</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.premiumFeatures')}</h3>
                 <Separator />
 
                 <div className="p-4 mb-6 border-l-4 border-amber-500/30 rounded-sm bg-amber-500/10">
-                  <h4 className={`text-base font-medium mb-1 text-foreground`}>Configuración de características de pago</h4>
+                  <h4 className={`text-base font-medium mb-1 text-foreground`}>{t('admin.venueEdit.featureConfigTitle')}</h4>
                   <p className={`text-sm text-foregroundMuted`}>
-                    Estas opciones solo están disponibles para administradores con nivel SUPERADMIN y permiten habilitar/deshabilitar
-                    características de pago para este venue.
+                    {t('admin.venueEdit.featureConfigDesc')}
                   </p>
                 </div>
 
@@ -519,9 +520,9 @@ export default function SuperAdminVenueEdit() {
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Ordenar desde TPV</FormLabel>
+                        <FormLabel>{t('admin.venueEdit.orderingFeature')}</FormLabel>
                         <p className={`text-sm text-foregroundMuted`}>
-                          Permite ordenar desde el Terminal Punto de Venta (característica premium)
+                          {t('admin.venueEdit.orderingFeatureDesc')}
                         </p>
                       </div>
                     </FormItem>
@@ -537,9 +538,9 @@ export default function SuperAdminVenueEdit() {
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Chatbot de Asistencia</FormLabel>
+                        <FormLabel>{t('admin.venueEdit.chatbotFeature')}</FormLabel>
                         <p className={`text-sm text-foregroundMuted`}>
-                          Habilita el chatbot de asistencia en el dashboard (característica premium)
+                          {t('admin.venueEdit.chatbotFeatureDesc')}
                         </p>
                       </div>
                     </FormItem>
@@ -552,7 +553,7 @@ export default function SuperAdminVenueEdit() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Contacto e imágenes</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.contactAndImages')}</h3>
                 <Separator />
 
                 <FormField
@@ -560,9 +561,9 @@ export default function SuperAdminVenueEdit() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.email')}</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="email@ejemplo.com" {...field} />
+                        <Input type="email" placeholder={t('admin.venueEdit.emailPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -574,9 +575,9 @@ export default function SuperAdminVenueEdit() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.phone')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="+52 123 456 7890" {...field} />
+                        <Input placeholder={t('admin.venueEdit.phonePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -588,9 +589,9 @@ export default function SuperAdminVenueEdit() {
                   name="website"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sitio web</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.website')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://tusitio.com" {...field} />
+                        <Input placeholder={t('admin.venueEdit.websitePlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -602,9 +603,9 @@ export default function SuperAdminVenueEdit() {
                   name="instagram"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Instagram</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.instagram')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="@tusitio" {...field} />
+                        <Input placeholder={t('admin.venueEdit.instagramPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -613,7 +614,7 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Configuración de pagos</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.paymentConfig')}</h3>
                 <Separator />
 
                 <FormField
@@ -621,9 +622,9 @@ export default function SuperAdminVenueEdit() {
                   name="stripeAccountId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ID de cuenta Stripe</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.stripeAccountId')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="acct_..." {...field} />
+                        <Input placeholder={t('admin.venueEdit.stripeAccountIdPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -639,8 +640,8 @@ export default function SuperAdminVenueEdit() {
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Pago especial</FormLabel>
-                        <p className={cn('text-foregroundMuted')}>Habilitar pago especial para este venue</p>
+                        <FormLabel>{t('admin.venueEdit.specialPayment')}</FormLabel>
+                        <p className={cn('text-foregroundMuted')}>{t('admin.venueEdit.specialPaymentDesc')}</p>
                       </div>
                     </FormItem>
                   )}
@@ -650,7 +651,7 @@ export default function SuperAdminVenueEdit() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Integración con Menta (Pasarela de pagos)</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.mentaIntegration')}</h3>
                 <Separator />
 
                 <FormField
@@ -658,9 +659,9 @@ export default function SuperAdminVenueEdit() {
                   name="merchantIdA"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Menta Merchant ID A</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.merchantIdA')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Menta Merchant ID A" {...field} />
+                        <Input placeholder={t('admin.venueEdit.merchantIdAPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -672,9 +673,9 @@ export default function SuperAdminVenueEdit() {
                   name="merchantIdB"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Menta Merchant ID B (opcional)</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.merchantIdB')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Menta Merchant ID B" {...field} />
+                        <Input placeholder={t('admin.venueEdit.merchantIdBPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -686,9 +687,9 @@ export default function SuperAdminVenueEdit() {
                   name="apiKeyA"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Menta API Key A</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.apiKeyA')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Menta API Key A" {...field} type="password" />
+                        <Input placeholder={t('admin.venueEdit.apiKeyAPlaceholder')} {...field} type="password" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -700,9 +701,9 @@ export default function SuperAdminVenueEdit() {
                   name="apiKeyB"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Menta API Key B (opcional)</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.apiKeyB')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Menta API Key B" {...field} type="password" />
+                        <Input placeholder={t('admin.venueEdit.apiKeyBPlaceholder')} {...field} type="password" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -711,7 +712,7 @@ export default function SuperAdminVenueEdit() {
               </div>
 
               <div className="space-y-6">
-                <h3 className={`text-lg font-medium text-foreground`}>Configuración del sistema</h3>
+                <h3 className={`text-lg font-medium text-foreground`}>{t('admin.venueEdit.systemConfig')}</h3>
                 <Separator />
 
                 <FormField
@@ -719,17 +720,17 @@ export default function SuperAdminVenueEdit() {
                   name="posName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sistema POS</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.posSystem')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un sistema POS" />
+                            <SelectValue placeholder={t('admin.venueEdit.selectPosSystem')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={POS_NAMES.WANSOFT}>Wansoft</SelectItem>
-                          <SelectItem value={POS_NAMES.SOFTRESTAURANT}>Soft Restaurant</SelectItem>
-                          <SelectItem value={POS_NAMES.NONE}>Ninguno</SelectItem>
+                          <SelectItem value={POS_NAMES.WANSOFT}>{t('admin.venueEdit.posNames.wansoft')}</SelectItem>
+                          <SelectItem value={POS_NAMES.SOFTRESTAURANT}>{t('admin.venueEdit.posNames.softRestaurant')}</SelectItem>
+                          <SelectItem value={POS_NAMES.NONE}>{t('admin.venueEdit.posNames.none')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -742,9 +743,9 @@ export default function SuperAdminVenueEdit() {
                   name="posUniqueId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ID Único POS</FormLabel>
+                      <FormLabel>{t('admin.venueEdit.posUniqueId')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="ID único del sistema POS" {...field} />
+                        <Input placeholder={t('admin.venueEdit.posUniqueIdPlaceholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

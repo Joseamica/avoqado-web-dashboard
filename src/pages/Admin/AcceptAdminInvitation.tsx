@@ -11,26 +11,28 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-
-// Define a schema for password validation
-const passwordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, 'La contraseña debe tener al menos 8 caracteres')
-      .regex(/[A-Z]/, 'La contraseña debe contener al menos una letra mayúscula')
-      .regex(/[a-z]/, 'La contraseña debe contener al menos una letra minúscula')
-      .regex(/[0-9]/, 'La contraseña debe contener al menos un número'),
-    confirmPassword: z.string(),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  })
-
-type PasswordFormValues = z.infer<typeof passwordSchema>
+import { useTranslation } from 'react-i18next'
 
 export default function AcceptAdminInvitation() {
+  const { t } = useTranslation()
+
+  // Define a schema for password validation with i18n
+  const passwordSchema = z
+    .object({
+      password: z
+        .string()
+        .min(8, t('adminInvitation.validation.passwordMin'))
+        .regex(/[A-Z]/, t('adminInvitation.validation.passwordUppercase'))
+        .regex(/[a-z]/, t('adminInvitation.validation.passwordLowercase'))
+        .regex(/[0-9]/, t('adminInvitation.validation.passwordNumber')),
+      confirmPassword: z.string(),
+    })
+    .refine(data => data.password === data.confirmPassword, {
+      message: t('adminInvitation.validation.passwordsMismatch'),
+      path: ['confirmPassword'],
+    })
+
+  type PasswordFormValues = z.infer<typeof passwordSchema>
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
   const navigate = useNavigate()
@@ -72,7 +74,7 @@ export default function AcceptAdminInvitation() {
     },
     onError: (error: any) => {
       console.error('Error verifying invitation:', error)
-      setTokenError(error.response?.data?.message || 'Invitación inválida o expirada')
+      setTokenError(error.response?.data?.message || t('adminInvitation.invalidToken'))
       setIsVerifying(false)
     },
   })
@@ -102,8 +104,8 @@ export default function AcceptAdminInvitation() {
       }
 
       toast({
-        title: '¡Invitación aceptada!',
-        description: 'Has sido añadido como administrador exitosamente.',
+        title: t('adminInvitation.invitationAccepted'),
+        description: t('adminInvitation.invitationAcceptedDesc'),
       })
 
       // Redirect after a short delay
@@ -114,8 +116,8 @@ export default function AcceptAdminInvitation() {
     onError: (error: any) => {
       console.error('Error accepting invitation:', error)
       toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Ocurrió un error al procesar la invitación',
+        title: t('adminInvitation.error'),
+        description: error.response?.data?.message || t('adminInvitation.processingError'),
         variant: 'destructive',
       })
     },
@@ -124,7 +126,7 @@ export default function AcceptAdminInvitation() {
   // Verify the token when component loads
   useEffect(() => {
     if (!token) {
-      setTokenError('No se encontró un token de invitación válido')
+      setTokenError(t('adminInvitation.noToken'))
       setIsVerifying(false)
       return
     }
@@ -159,7 +161,7 @@ export default function AcceptAdminInvitation() {
     tokenError ||
     (verifyInvitationMutation.error as any)?.response?.data?.message ||
     (acceptInvitationMutation.error as any)?.response?.data?.message ||
-    'Ocurrió un error al procesar la invitación'
+    t('adminInvitation.processingError')
 
   const needsPassword = invitationData.needsPassword
 
@@ -167,15 +169,15 @@ export default function AcceptAdminInvitation() {
     <div className="flex items-center justify-center min-h-screen bg-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-xl">Invitación para Administrador</CardTitle>
-          <CardDescription>{invitationData.email && <>Has sido invitado como administrador de Avoqado</>}</CardDescription>
+          <CardTitle className="text-xl">{t('adminInvitation.title')}</CardTitle>
+          <CardDescription>{invitationData.email && <>{t('adminInvitation.subtitle')}</>}</CardDescription>
         </CardHeader>
 
         <CardContent>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <p>{isVerifying ? 'Verificando invitación...' : 'Procesando solicitud...'}</p>
+              <p>{isVerifying ? t('adminInvitation.verifying') : t('adminInvitation.processing')}</p>
             </div>
           ) : hasError ? (
             <div className="flex flex-col items-center justify-center py-8 text-red-600">
@@ -185,22 +187,22 @@ export default function AcceptAdminInvitation() {
           ) : isSuccess ? (
             <div className="flex flex-col items-center justify-center py-8 text-green-600">
               <CheckCircle className="h-12 w-12 mb-4" />
-              <p className="text-center">¡Tu cuenta ha sido activada exitosamente!</p>
-              <p className="text-center text-sm text-muted-foreground mt-2">Serás redirigido en un momento...</p>
+              <p className="text-center">{t('adminInvitation.accountActivated')}</p>
+              <p className="text-center text-sm text-muted-foreground mt-2">{t('adminInvitation.redirecting')}</p>
             </div>
           ) : (
             <div className="py-4">
               <p className="mb-4">
-                Has recibido una invitación para unirte como administrador
+                {t('adminInvitation.youHaveBeenInvited')}
                 {invitationData.venueName && (
                   <span>
                     {' '}
-                    de <strong>{invitationData.venueName}</strong>
+                    {t('adminInvitation.of')} <strong>{invitationData.venueName}</strong>
                   </span>
                 )}
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                Al aceptar esta invitación, tendrás acceso a gestionar este lugar en la plataforma Avoqado.
+                {t('adminInvitation.acceptDescription')}
               </p>
 
               {needsPassword && (
@@ -210,8 +212,8 @@ export default function AcceptAdminInvitation() {
                       <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
                       <p className="text-sm text-amber-400">
                         {invitationData.isExistingUser
-                          ? 'Tu cuenta existe pero necesitas definir una contraseña para continuar.'
-                          : 'Necesitas crear una contraseña para tu nueva cuenta.'}
+                          ? t('adminInvitation.existingUserNeedsPassword')
+                          : t('adminInvitation.newUserNeedsPassword')}
                       </p>
                     </div>
                   </div>
@@ -223,10 +225,10 @@ export default function AcceptAdminInvitation() {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Contraseña</FormLabel>
+                            <FormLabel>{t('adminInvitation.password')}</FormLabel>
                             <div className="relative">
                               <FormControl>
-                                <Input type={showPassword ? 'text' : 'password'} placeholder="Ingresa tu nueva contraseña" {...field} />
+                                <Input type={showPassword ? 'text' : 'password'} placeholder={t('adminInvitation.passwordPlaceholder')} {...field} />
                               </FormControl>
                               <Button
                                 type="button"
@@ -248,10 +250,10 @@ export default function AcceptAdminInvitation() {
                         name="confirmPassword"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Confirmar Contraseña</FormLabel>
+                            <FormLabel>{t('adminInvitation.confirmPassword')}</FormLabel>
                             <div className="relative">
                               <FormControl>
-                                <Input type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirma tu contraseña" {...field} />
+                                <Input type={showConfirmPassword ? 'text' : 'password'} placeholder={t('adminInvitation.confirmPasswordPlaceholder')} {...field} />
                               </FormControl>
                               <Button
                                 type="button"
@@ -273,10 +275,10 @@ export default function AcceptAdminInvitation() {
                           {acceptInvitationMutation.isPending ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Procesando...
+                              {t('adminInvitation.processing')}
                             </>
                           ) : (
-                            'Definir contraseña y aceptar'
+                            t('adminInvitation.setPasswordAndAccept')
                           )}
                         </Button>
                       </div>
@@ -291,16 +293,16 @@ export default function AcceptAdminInvitation() {
         {!isLoading && !hasError && !isSuccess && !needsPassword && (
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={() => window.close()}>
-              Cancelar
+              {t('adminInvitation.cancel')}
             </Button>
             <Button onClick={handleAcceptInvitation} disabled={acceptInvitationMutation.isPending}>
               {acceptInvitationMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
+                  {t('adminInvitation.processing')}
                 </>
               ) : (
-                'Aceptar Invitación'
+                t('adminInvitation.acceptInvitation')
               )}
             </Button>
           </CardFooter>
@@ -309,7 +311,7 @@ export default function AcceptAdminInvitation() {
         {needsPassword && (
           <CardFooter>
             <Button variant="outline" className="w-full" onClick={() => window.close()}>
-              Cancelar
+              {t('adminInvitation.cancel')}
             </Button>
           </CardFooter>
         )}
@@ -317,7 +319,7 @@ export default function AcceptAdminInvitation() {
         {hasError && (
           <CardFooter>
             <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
-              Ir al inicio de sesión
+              {t('adminInvitation.goToLogin')}
             </Button>
           </CardFooter>
         )}
