@@ -37,6 +37,10 @@ function isTSX(file) {
   return file.endsWith('.tsx')
 }
 
+function isDeprecated(file) {
+  return file.includes('DEPRECATED')
+}
+
 function looksLikeText(s) {
   const t = s.trim()
   if (!t) return false
@@ -57,6 +61,9 @@ function scanFile(file) {
 
     // Skip lines that already call t('...')
     if (line.includes("t('") || line.includes('t("')) return
+
+    // Skip SVG title tags (metadata from design tools)
+    if (line.includes('<title>') && line.includes('</title>')) return
 
     // 1) JSX text nodes between > and < (not starting with {)
     // Match JSX text nodes where the next tag is a proper closing tag
@@ -100,6 +107,7 @@ function main() {
       .map(p => path.join(ROOT, p))
       .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
       .filter(isTSX)
+      .filter(f => !isDeprecated(f))
   } else if (isCI) {
     // In CI: scan only changed TSX files
     try {
@@ -116,6 +124,7 @@ function main() {
       files = changed
         .filter(f => f && isTSX(f))
         .map(f => path.join(ROOT, f))
+        .filter(f => !isDeprecated(f))
 
       if (files.length === 0) {
         console.log('i18n check skipped: no changed .tsx files detected.')
@@ -127,6 +136,7 @@ function main() {
         .map(p => path.join(ROOT, p))
         .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
         .filter(isTSX)
+        .filter(f => !isDeprecated(f))
     }
   } else {
     // Local default: full repo scan under src/
@@ -134,6 +144,7 @@ function main() {
       .map(p => path.join(ROOT, p))
       .flatMap(p => (fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? listFiles(p) : [p]) : []))
       .filter(isTSX)
+      .filter(f => !isDeprecated(f))
   }
 
   const allIssues = []
