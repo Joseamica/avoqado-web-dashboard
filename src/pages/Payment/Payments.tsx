@@ -88,47 +88,7 @@ export default function Payments() {
         header: t('payments.columns.waiter'),
         cell: info => <>{info.getValue() as string}</>,
       },
-      {
-        // CAMBIO: La propina ahora es un campo numérico directo `tipAmount`
-        // Usamos número para poder calcular porcentajes y ordenar correctamente
-        accessorFn: row => Number(row.tipAmount) || 0,
-        id: 'totalTipAmount',
-        meta: { label: t('payments.columns.tip') },
-        header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.tip')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
-        ),
-        cell: ({ cell, row }) => {
-          const totalTip = (cell.getValue() as number) || 0
-          // CAMBIO: El subtotal ahora es el campo `amount` (numérico)
-          const subtotal = Number(row.original.amount) || 0
-          const tipPercentage = subtotal > 0 ? (totalTip / subtotal) * 100 : 0
 
-          // La lógica de colores no necesita cambios
-          let tipClasses = {
-            bg: 'bg-green-100 dark:bg-green-900/30',
-            text: 'text-green-800 dark:text-green-400',
-          }
-          if (tipPercentage < 7) {
-            tipClasses = { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-800 dark:text-red-400' }
-          } else if (tipPercentage >= 7 && tipPercentage < 10) {
-            tipClasses = { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-400' }
-          }
-
-          return (
-            <div className="flex flex-col space-y-1 items-center">
-              <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
-              {/* Formatear propina en unidades (Currency ya maneja decimales) */}
-              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
-                {Currency(totalTip)}
-              </Badge>
-            </div>
-          )
-        },
-        sortingFn: 'basic',
-      },
       {
         // CAMBIO: `source` ahora viene del objeto `order` anidado.
         accessorFn: row => row.order?.source || 'UNKNOWN',
@@ -229,6 +189,47 @@ export default function Payments() {
           // Convert to number, Currency function handles null/undefined
           return Currency(Number(value) || 0)
         },
+      },
+      {
+        // CAMBIO: La propina ahora es un campo numérico directo `tipAmount`
+        // Usamos número para poder calcular porcentajes y ordenar correctamente
+        accessorFn: row => Number(row.tipAmount) || 0,
+        id: 'totalTipAmount',
+        meta: { label: t('payments.columns.tip') },
+        header: ({ column }) => (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('payments.columns.tip')}
+            <ArrowUpDown className="w-4 h-4 ml-2" />
+          </Button>
+        ),
+        cell: ({ cell, row }) => {
+          const totalTip = (cell.getValue() as number) || 0
+          // CAMBIO: El subtotal ahora es el campo `amount` (numérico)
+          const subtotal = Number(row.original.amount) || 0
+          const tipPercentage = subtotal > 0 ? (totalTip / subtotal) * 100 : 0
+
+          // La lógica de colores no necesita cambios
+          let tipClasses = {
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-800 dark:text-green-400',
+          }
+          if (tipPercentage < 7) {
+            tipClasses = { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-800 dark:text-red-400' }
+          } else if (tipPercentage >= 7 && tipPercentage < 10) {
+            tipClasses = { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-400' }
+          }
+
+          return (
+            <div className="flex flex-col space-y-1 items-center">
+              <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+              {/* Formatear propina en unidades (Currency ya maneja decimales) */}
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
+                {Currency(totalTip)}
+              </Badge>
+            </div>
+          )
+        },
+        sortingFn: 'basic',
       },
       {
         // CAMBIO: El total es la suma de `amount` y `tipAmount`.
