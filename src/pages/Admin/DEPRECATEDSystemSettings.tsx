@@ -10,8 +10,8 @@ import { useTranslation } from 'react-i18next'
 
 // Import new component modules
 
-import LogsSettings from './SystemSettings/LogsSettings'
-import ServerSettings from './SystemSettings/ServerSettings'
+import LogsSettings from './SystemSettings/DEPRECATEDLogsSettings'
+import ServerSettings from './SystemSettings/DEPRECATEDServerSettings'
 
 export default function SystemSettings() {
   const { t } = useTranslation()
