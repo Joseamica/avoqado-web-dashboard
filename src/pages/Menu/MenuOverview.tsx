@@ -6,13 +6,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
@@ -172,8 +166,6 @@ function SortableProduct({
     </div>
   )
 }
-
-
 
 export default function Overview() {
   const { t } = useTranslation()
@@ -418,7 +410,6 @@ export default function Overview() {
     })
   }
 
-
   const collapseAll = () => {
     const allCollapsed = Object.keys(expandedMenus).reduce((acc, key) => ({ ...acc, [key]: false }), {})
     setExpandedMenus(allCollapsed)
@@ -496,8 +487,12 @@ export default function Overview() {
               <Button>{t('menu.overview.create')}</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>{t('menu.overview.newMenu')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>{t('menu.overview.newCategory')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
+                {t('menu.overview.newMenu')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>
+                {t('menu.overview.newCategory')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
                 {t('menu.overview.createNewProduct')}
               </DropdownMenuItem>
@@ -518,8 +513,12 @@ export default function Overview() {
             className="pl-9 bg-background border-input w-full"
           />
         </div>
-        <Button variant="outline" onClick={expandAll}>{t('menu.overview.expandAll')}</Button>
-        <Button variant="outline" onClick={collapseAll}>{t('menu.overview.collapseAll')}</Button>
+        <Button variant="outline" onClick={expandAll}>
+          {t('menu.overview.expandAll')}
+        </Button>
+        <Button variant="outline" onClick={collapseAll}>
+          {t('menu.overview.collapseAll')}
+        </Button>
       </div>
 
       {/* Three-column layout */}
@@ -543,7 +542,9 @@ export default function Overview() {
             {filteredMenus.map(menu => (
               <li key={menu.id}>
                 <button
-                  className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${selectedMenuId === menu.id && viewLevel !== 'menus' ? 'bg-accent' : ''}`}
+                  className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${
+                    selectedMenuId === menu.id && viewLevel !== 'menus' ? 'bg-accent' : ''
+                  }`}
                   onClick={() => handleSelectMenu(menu.id)}
                 >
                   <span className="font-medium">{menu.name}</span>
@@ -553,7 +554,9 @@ export default function Overview() {
                     {(menu.categories || []).map(mc => (
                       <li key={mc.category.id}>
                         <button
-                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${selectedCategoryId === mc.category.id ? 'bg-accent' : ''}`}
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-accent ${
+                            selectedCategoryId === mc.category.id ? 'bg-accent' : ''
+                          }`}
                           onClick={() => handleSelectCategory(mc.category.id, menu.id)}
                         >
                           {mc.category.name}
@@ -594,7 +597,11 @@ export default function Overview() {
                   } else if (viewLevel === 'menu') {
                     return (
                       <div key={item.id} className="flex items-center p-2 rounded hover:bg-muted">
-                        <CategoryRow category={item} menuId={selectedMenuId!} onSelect={() => handleSelectCategory(item.id, selectedMenuId!)} />
+                        <CategoryRow
+                          category={item}
+                          menuId={selectedMenuId!}
+                          onSelect={() => handleSelectCategory(item.id, selectedMenuId!)}
+                        />
                       </div>
                     )
                   } else {
@@ -618,7 +625,9 @@ export default function Overview() {
                 <div className="p-2 rounded-md shadow-2xl bg-card border-border border bg-opacity-95 backdrop-blur-sm">
                   <div className="flex items-center space-x-2">
                     <GripVertical className="text-muted-foreground" size={18} />
-                    <p className="font-semibold text-sm">{'name' in activeItem ? (activeItem as any).name : t('menu.overview.draggedItem')}</p>
+                    <p className="font-semibold text-sm">
+                      {'name' in activeItem ? (activeItem as any).name : t('menu.overview.draggedItem')}
+                    </p>
                   </div>
                 </div>
               )}
@@ -631,9 +640,7 @@ export default function Overview() {
           <div className="flex items-center gap-2 text-sm font-medium mb-2">
             <Info className="h-4 w-4" /> {t('menu.overview.inspector')}
           </div>
-          {viewLevel === 'menus' && (
-            <p className="text-sm text-muted-foreground">{t('menu.overview.selectMenuPrompt')}</p>
-          )}
+          {viewLevel === 'menus' && <p className="text-sm text-muted-foreground">{t('menu.overview.selectMenuPrompt')}</p>}
           {viewLevel === 'menu' && selectedMenuId && (
             <div className="space-y-2 text-sm">
               <div className="font-medium">{t('menu.overview.menu')}</div>
@@ -663,12 +670,24 @@ export default function Overview() {
 }
 
 // Presentation-only rows with drag handle restricted to the grip
-function MenuRow({ menu, onToggleActive, onSelect }: { menu: Menu; onToggleActive: (id: string, active: boolean) => void; onSelect: () => void }) {
+function MenuRow({
+  menu,
+  onToggleActive,
+  onSelect,
+}: {
+  menu: Menu
+  onToggleActive: (id: string, active: boolean) => void
+  onSelect: () => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: menu.id, data: { type: 'menu' } })
   const style = { transform: CSS.Transform.toString(transform), transition }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center w-full">
-      <button {...attributes} {...listeners} className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+      >
         <GripVertical size={18} />
       </button>
       <button className="text-left flex-1" onClick={onSelect}>
@@ -684,7 +703,11 @@ function CategoryRow({ category, menuId, onSelect }: { category: MenuCategory; m
   const style = { transform: CSS.Transform.toString(transform), transition }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center w-full">
-      <button {...attributes} {...listeners} className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+      >
         <GripVertical size={18} />
       </button>
       <button className="text-left flex-1" onClick={onSelect}>

@@ -41,14 +41,20 @@ jobs:
         run: |
           echo "🔍 Checking production frontend..."
 
-          # Check if site loads
-          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code};SIZE:%{size_download};TIME:%{time_total}" $PRODUCTION_URL || echo "FAILED")
+          # Check if site loads with proper headers to bypass Cloudflare bot protection
+          RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code};SIZE:%{size_download};TIME:%{time_total}" \
+            -H "User-Agent: Mozilla/5.0 (compatible; AvoqadoHealthCheck/1.0; +https://avoqado.io)" \
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            -H "Accept-Language: en-US,en;q=0.5" \
+            -L \
+            $PRODUCTION_URL || echo "FAILED")
 
-          if [[ $RESPONSE == *"HTTPSTATUS:200"* ]]; then
+          # Check for successful response (200, 301, 302 are acceptable)
+          if [[ $RESPONSE == *"HTTPSTATUS:200"* ]] || [[ $RESPONSE == *"HTTPSTATUS:301"* ]] || [[ $RESPONSE == *"HTTPSTATUS:302"* ]]; then
             echo "✅ Production frontend loads successfully"
             echo "Response: $RESPONSE"
             echo "status=healthy" >> $GITHUB_OUTPUT
-            
+
             # Extract metrics
             SIZE=$(echo $RESPONSE | sed 's/.*SIZE:\([0-9]*\).*/\1/')
             TIME=$(echo $RESPONSE | sed 's/.*TIME:\([0-9.]*\).*/\1/')
@@ -57,6 +63,8 @@ jobs:
           else
             echo "❌ Production frontend health check failed"
             echo "Response: $RESPONSE"
+            echo "Full curl output for debugging:"
+            curl -v -H "User-Agent: Mozilla/5.0 (compatible; AvoqadoHealthCheck/1.0)" -L $PRODUCTION_URL || true
             echo "status=unhealthy" >> $GITHUB_OUTPUT
           fi
 
