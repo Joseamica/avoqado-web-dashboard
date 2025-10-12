@@ -56,6 +56,17 @@ export function useImageUploader(
   const handleCropConfirm = async () => {
     if (!imageForCrop || !croppedAreaPixels) return
 
+    // Check if storage is available
+    if (!storage) {
+      toast({
+        title: 'Error',
+        description: 'Firebase Storage is not available. Please contact support.',
+        variant: 'destructive',
+      })
+      console.error('Firebase Storage is not available')
+      return
+    }
+
     // Verificamos el tamaño mínimo
     if (croppedAreaPixels.width < minWidth || croppedAreaPixels.height < minHeight) {
       toast({

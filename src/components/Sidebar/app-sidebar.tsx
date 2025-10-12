@@ -13,6 +13,7 @@ import {
   Zap,
   AlertTriangle,
   TrendingUp,
+  FlaskConical,
 } from 'lucide-react'
 import * as React from 'react'
 
@@ -61,6 +62,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar.revenue'), isActive: true, url: '/superadmin/revenue', icon: DollarSign },
       { title: t('sidebar.analytics'), isActive: true, url: '/superadmin/analytics', icon: TrendingUp },
       { title: t('sidebar.alerts'), isActive: true, url: '/superadmin/alerts', icon: AlertTriangle },
+      { title: t('sidebar.testing'), isActive: true, url: '/superadmin/testing', icon: FlaskConical },
       { title: t('sidebar.legacy_admin'), isActive: true, url: '/admin', icon: Settings2 },
     ],
     [t],

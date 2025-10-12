@@ -12,7 +12,7 @@ import getIcon from '@/utils/getIcon'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { AppWindow, ArrowUpDown, Banknote, Computer, Globe, QrCode, Smartphone, TabletSmartphone } from 'lucide-react'
+import { AppWindow, ArrowUpDown, Banknote, Computer, Globe, QrCode, Smartphone, TabletSmartphone, TestTube } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -90,8 +90,8 @@ export default function Payments() {
       },
 
       {
-        // CAMBIO: `source` ahora viene del objeto `order` anidado.
-        accessorFn: row => row.order?.source || 'UNKNOWN',
+        // Source viene directamente del campo `source` del Payment
+        accessorKey: 'source',
         id: 'source',
         meta: { label: t('payments.columns.source') },
         header: ({ column }) => (
@@ -128,6 +128,10 @@ export default function Payments() {
             APP: {
               icon: iconBox(<AppWindow className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
               label: t('payments.sources.APP'),
+            },
+            DASHBOARD_TEST: {
+              icon: iconBox(<TestTube className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+              label: t('payments.sources.DASHBOARD_TEST'),
             },
             UNKNOWN: {
               icon: iconBox(<Smartphone className="h-4 w-4 text-muted-foreground" />, 'bg-muted'),
@@ -279,7 +283,7 @@ export default function Payments() {
         methodOriginal.includes(lowerSearchTerm) || methodTranslated.includes(lowerSearchTerm) || methodEnglish.includes(lowerSearchTerm)
 
       // Búsqueda por fuente - buscar en valores originales y traducciones
-      const source = payment.order?.source || 'UNKNOWN'
+      const source = payment.source || 'UNKNOWN'
       const sourceOriginal = source.toLowerCase()
       const sourceTranslated = t(`payments.sources.${source}`, { defaultValue: source }).toLowerCase()
 

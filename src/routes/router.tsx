@@ -59,6 +59,7 @@ import {
   SuperadminVenueManagement,
   RevenueDashboard,
   ProfitAnalyticsDashboard,
+  TestingPayments,
   Terms,
   Privacy,
   AnalyticsLayout,
@@ -252,6 +253,10 @@ const router = createBrowserRouter(
                     {
                       path: 'settings',
                       element: <ComingSoon feature="Superadmin Settings" />,
+                    },
+                    {
+                      path: 'testing',
+                      element: <TestingPayments />,
                     },
                   ],
                 },

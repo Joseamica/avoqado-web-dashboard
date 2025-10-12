@@ -755,9 +755,23 @@ export interface Payment {
   // Payment details
   method: PaymentMethod
   status: PaymentStatus
+  source: string // De dónde se procesó el pago: AVOQADO_TPV, DASHBOARD_TEST, QR, WEB, APP, POS
   processorName: string | null
   processorPaymentId: string | null
-  processorData: any | null
+  posRawData: {
+    staffId?: string
+    splitType?: string
+    paidProductsId?: string[]
+    [key: string]: any
+  } | null
+  processorData: {
+    currency?: string
+    cardBrand?: string
+    typeOfCard?: string
+    isInternational?: boolean
+    bank?: string
+    [key: string]: any // Otros campos del procesador
+  } | null
 
   // Receipt
   receiptEmailSent: boolean
