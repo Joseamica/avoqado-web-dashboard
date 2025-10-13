@@ -33,6 +33,7 @@ export const Reviews = React.lazy(() => import('@/pages/Review/Reviews'))
 export const Teams = React.lazy(() => import('@/pages/Team/Teams'))
 export const TeamMemberDetails = React.lazy(() => import('@/pages/Team/TeamMemberDetails'))
 export const EditVenue = React.lazy(() => import('@/pages/Venue/Venue.edit'))
+export const VenuePaymentConfig = React.lazy(() => import('@/pages/Venue/VenuePaymentConfig'))
 export const Shifts = React.lazy(() => import('@/pages/Shift/Shifts'))
 // export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'))
 export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'))
@@ -64,6 +65,11 @@ export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueMa
 export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'
 export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAnalyticsDashboard'
 export { default as TestingPayments } from '@/pages/Superadmin/Testing/TestingPayments'
+export { default as PaymentProviders } from '@/pages/Superadmin/PaymentProviders'
+export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts'
+export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
+export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
+export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
 
 // Legal components
 export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))

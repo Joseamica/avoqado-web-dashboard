@@ -158,7 +158,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: VenueFormData) => {
-      const response = await api.post('/v2/dashboard/venue/enhanced', data)
+      const response = await api.post('/api/v1/dashboard/venues/enhanced', data)
       return response.data
     },
     onSuccess: (result) => {

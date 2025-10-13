@@ -40,7 +40,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
   const [fileRef, setFileRef] = useState<any>(null)
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      const response = await api.post(`/v2/dashboard/venue`, data)
+      const response = await api.post(`/api/v1/dashboard/venues`, data)
       return response.data
     },
     onSuccess: () => {

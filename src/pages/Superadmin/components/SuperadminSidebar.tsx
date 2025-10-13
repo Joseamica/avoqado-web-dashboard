@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   FileText,
   Headphones,
-  Calculator
+  Calculator,
+  CreditCard,
+  Wallet,
+  Receipt,
+  Tags
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -36,6 +40,11 @@ const SuperadminSidebar: React.FC = () => {
         { name: t('sidebar.venues'), href: '/superadmin/venues', icon: Building2 },
         { name: t('sidebar.revenue'), href: '/superadmin/revenue', icon: DollarSign },
         { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator },
+        { name: t('sidebar.paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard },
+        { name: t('sidebar.merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet },
+        { name: t('sidebar.costStructures'), href: '/superadmin/cost-structures', icon: Receipt },
+        { name: t('sidebar.venuePricing'), href: '/superadmin/venue-pricing', icon: Tags },
+        { name: t('sidebar.paymentAnalytics'), href: '/superadmin/payment-analytics', icon: TrendingUp },
         { name: t('sidebar.customers'), href: '/superadmin/customers', icon: Users },
         { name: t('sidebar.growth'), href: '/superadmin/growth', icon: TrendingUp },
       ]

@@ -26,6 +26,7 @@ import {
   Tpv,
   TpvId,
   Account,
+  VenuePaymentConfig,
   Payments,
   PaymentId,
   ReceiptViewer,
@@ -60,6 +61,11 @@ import {
   RevenueDashboard,
   ProfitAnalyticsDashboard,
   TestingPayments,
+  PaymentProviders,
+  MerchantAccounts,
+  PaymentAnalytics,
+  CostStructures,
+  VenuePricing,
   Terms,
   Privacy,
   AnalyticsLayout,
@@ -255,6 +261,26 @@ const router = createBrowserRouter(
                       element: <ComingSoon feature="Superadmin Settings" />,
                     },
                     {
+                      path: 'payment-providers',
+                      element: <PaymentProviders />,
+                    },
+                    {
+                      path: 'merchant-accounts',
+                      element: <MerchantAccounts />,
+                    },
+                    {
+                      path: 'payment-analytics',
+                      element: <PaymentAnalytics />,
+                    },
+                    {
+                      path: 'cost-structures',
+                      element: <CostStructures />,
+                    },
+                    {
+                      path: 'venue-pricing',
+                      element: <VenuePricing />,
+                    },
+                    {
                       path: 'testing',
                       element: <TestingPayments />,
                     },
@@ -346,6 +372,10 @@ const router = createBrowserRouter(
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
                   children: [{ path: 'editVenue', element: <EditVenue /> }],
+                },
+                {
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
+                  children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
                 },
                 { path: 'tpv', element: <Tpv /> },
                 { path: 'tpv/create', element: <CreateTpv /> },

@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   TrendingUp,
   FlaskConical,
+  CreditCard,
 } from 'lucide-react'
 import * as React from 'react'
 
@@ -46,12 +47,13 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         items: [
           { title: t('routes.editvenue'), url: 'editVenue' },
           { title: t('routes.teams'), url: 'teams' },
-          { title: t('routes.billing'), url: '#' },
-          { title: t('routes.limits'), url: '#' },
+          ...(user.role === 'SUPERADMIN' ? [{ title: t('sidebar.paymentConfig'), url: 'payment-config' }] : []),
+          { title: t('routes.billing'), url: '#billing' },
+          { title: t('routes.limits'), url: '#limits' },
         ],
       },
     ],
-    [t],
+    [t, user.role],
   )
 
   const superAdminRoutes = React.useMemo(
