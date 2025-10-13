@@ -1,0 +1,370 @@
+{
+  "title": "Pagos",
+  "searchPlaceholder": "Buscar por mesero, total o método...",
+  "errorPrefix": "Error al cargar pagos",
+  "columns": {
+    "date": "Fecha",
+    "waiter": "Mesero",
+    "tip": "Propina",
+    "source": "Origen",
+    "method": "Método",
+    "subtotal": "Subtotal",
+    "total": "Total"
+  },
+  "methods": {
+    "cash": "Efectivo",
+    "card": "Tarjeta",
+    "credit_card": "Tarjeta de crédito",
+    "digitalWallet": "Monedero Digital",
+    "bankTransfer": "Transferencia Bancaria"
+  },
+  "sources": {
+    "POS": "Punto de venta",
+    "TPV": "Terminal",
+    "QR": "QR",
+    "WEB": "Web",
+    "APP": "App",
+    "PHONE": "Teléfono",
+    "DASHBOARD_TEST": "Pago de Prueba",
+    "OTHER": "Otro",
+    "UNKNOWN": "Desconocido"
+  },
+  "receipt": {
+    "loading": "Cargando tu recibo digital...",
+    "statuses": {
+      "VIEWED": "Visto",
+      "SENT": "Enviado",
+      "PENDING": "Pendiente",
+      "ERROR": "Error"
+    },
+    "methods": {
+      "CASH": "Efectivo",
+      "CREDIT_CARD": "Tarjeta de crédito",
+      "DEBIT_CARD": "Tarjeta de débito",
+      "DIGITAL_WALLET": "Billetera digital",
+      "BANK_TRANSFER": "Transferencia bancaria"
+    },
+    "labels": {
+      "receipt": "Recibo",
+      "order": "Orden",
+      "date": "Fecha",
+      "time": "Hora",
+      "servedBy": "Atendido por",
+      "customer": "Cliente",
+      "itemsTitle": "Productos ordenados",
+      "quantity": "Cantidad: {{count}}",
+      "unitPrice": "{{count}}× {{price}}",
+      "noItems": "No se registraron productos individuales",
+      "orderTotal": "Total de la orden",
+      "subtotal": "Subtotal",
+      "taxes": "Impuestos",
+      "tips": "Propina",
+      "totalPaid": "Total pagado",
+      "shareThisReceipt": "Compartir este recibo"
+    },
+    "actions": {
+      "copied": "¡Copiado!",
+      "copyLink": "Copiar enlace",
+      "shared": "¡Compartido!",
+      "share": "Compartir",
+      "print": "Imprimir"
+    },
+    "footer": {
+      "thanks": "¡Gracias por tu preferencia!",
+      "seeYou": "Esperamos verte pronto en {{venue}}",
+      "generatedBy": "Recibo digital generado por Avoqado",
+      "sentTo": "Enviado a: {{email}}"
+    },
+    "paymentStatus": {
+      "COMPLETED": "Pago completado",
+      "UNKNOWN": "Estado desconocido"
+    },
+    "errors": {
+      "invalidResponse": "Formato de respuesta inválido del servidor",
+      "notImplemented": "La visualización de recibos en el panel aún no está implementada",
+      "invalidIdentifier": "Identificador de recibo inválido",
+      "load": "Error al cargar el recibo"
+    },
+    "toasts": {
+      "linkCopied": {
+        "title": "¡Enlace copiado!",
+        "desc": "El enlace del recibo se ha copiado al portapapeles"
+      },
+      "copyError": {
+        "title": "Error",
+        "desc": "No se pudo copiar el enlace"
+      },
+      "shared": {
+        "title": "¡Compartido!",
+        "desc": "El recibo ha sido compartido exitosamente"
+      }
+    },
+    "share": {
+      "title": "Recibo de {{venue}}",
+      "text": "Recibo digital de {{venue}}"
+    },
+    "printing": {
+      "title": "Imprimiendo...",
+      "desc": "Se ha enviado el recibo a la impresora"
+    },
+    "email": {
+      "soon": {
+        "title": "Función en desarrollo",
+        "desc": "La funcionalidad de email estará disponible pronto"
+      }
+    },
+    "unknownVenue": "Restaurante"
+  },
+  "detail": {
+    "title": "Detalles del Pago",
+    "idLabel": "ID",
+    "backToList": "Volver a pagos",
+    "loading": "Cargando detalles del pago...",
+    "copiedToClipboard": "Se copió {{label}} al portapapeles",
+    "actions": {
+      "title": "Acciones del Pago",
+      "sendReceipt": "Enviar Recibo Digital",
+      "viewReceipt": "Ver Recibo",
+      "copyId": "Copiar ID",
+      "export": "Exportar",
+      "paymentIdLabel": "ID de Pago"
+    },
+    "overview": {
+      "base": "Monto Base",
+      "tips": "Propinas",
+      "method": "Método",
+      "waiter": "Mesero",
+      "waiterUnknown": "N/A"
+    },
+    "totals": {
+      "total": "Total"
+    },
+    "sections": {
+      "transactionInfo": "Información de la Transacción",
+      "transactionInfoDesc": "Detalles completos de la transacción y metadatos",
+      "billInfo": "Información de la Cuenta"
+    },
+    "fields": {
+      "dateTime": "Fecha y Hora",
+      "authNumber": "Número de Autorización",
+      "notAvailable": "No disponible",
+      "table": "Mesa",
+      "noTable": "Sin mesa",
+      "referenceNumber": "Número de Referencia",
+      "orderId": "ID de Orden",
+      "shiftId": "ID de Turno",
+      "entryMode": "Modo de Entrada"
+    },
+    "entryModes": {
+      "contactless": "Sin contacto",
+      "chip": "Chip",
+      "swipe": "Deslizar",
+      "manual": "Manual",
+      "online": "En línea"
+    },
+    "status": {
+      "title": "Estado del Pago",
+      "completed": "Pago Completado",
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "failed": "Fallido",
+      "refunded": "Reembolsado",
+      "unknown": "Estado Desconocido",
+      "successTitle": "Procesado Exitosamente",
+      "successDesc": "Este pago ha sido completado y registrado exitosamente.",
+      "lastUpdatePrefix": "Última actualización:"
+    },
+    "summary": {
+      "title": "Resumen Financiero",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "tipsOfSubtotal": "{{percent}}% del subtotal",
+      "progressBase": "Base"
+    },
+    "receipts": {
+      "title": "Recibos Digitales",
+      "description": "Historial completo de recibos enviados para esta transacción",
+      "loading": "Cargando recibos...",
+      "noReceipts": "Sin recibos",
+      "noReceiptsDesc": "No hay recibos disponibles para este pago.",
+      "view": "Ver recibo",
+      "openPublic": "Abrir enlace público",
+      "copyLink": "Copiar enlace",
+      "none": "No se han enviado recibos digitales para esta transacción.",
+      "noRecipient": "Sin destinatario"
+    },
+    "receiptsDialog": {
+      "title": "Detalles del Recibo",
+      "receiptId": "ID del Recibo",
+      "status": "Estado",
+      "recipient": "Destinatario",
+      "createdDate": "Fecha de Creación",
+      "publicLink": "Enlace Público",
+      "receiptLink": "Enlace del recibo",
+      "viewFull": "Ver Recibo Completo"
+    },
+    "tipsDetail": {
+      "description": "Información de propina para esta transacción",
+      "amount": "Monto de Propina",
+      "percentage": "Porcentaje",
+      "beneficiary": "Beneficiario"
+    },
+    "footer": {
+      "copyright": "© 2025 Avoqado. Todos los derechos reservados.",
+      "paymentId": "ID de Pago: {{id}}",
+      "generated": "Generado el {{date}}"
+    },
+    "email": {
+      "recipientLabel": "Correo electrónico del destinatario",
+      "placeholder": "correo@ejemplo.com",
+      "sending": "Enviando...",
+      "send": "Enviar"
+    },
+    "toast": {
+      "receiptSentTitle": "Recibo enviado",
+      "receiptSentDesc": "El recibo digital ha sido enviado exitosamente.",
+      "receiptErrorDesc": "Error al enviar el recibo. Por favor intenta de nuevo."
+    }
+  },
+  "paymentProviders": {
+    "title": "Proveedores de Pago",
+    "subtitle": "Gestiona procesadores de pagos e integraciones de pasarelas",
+    "create": "Agregar Proveedor",
+    "stats": {
+      "total": "Proveedores Totales",
+      "activeCount": "activos"
+    },
+    "tableTitle": "Proveedores de Pago",
+    "tableDesc": "Ver y gestionar todas las integraciones de proveedores de pago",
+    "searchPlaceholder": "Buscar proveedores...",
+    "columns": {
+      "provider": "Proveedor",
+      "type": "Tipo",
+      "countries": "Países",
+      "status": "Estado",
+      "accounts": "Cuentas"
+    }
+  },
+  "merchantAccounts": {
+    "title": "Cuentas de Comercio",
+    "subtitle": "Gestiona credenciales de comercio y cuentas de procesadores de pago",
+    "create": "Agregar Cuenta",
+    "encrypted": "Encriptado",
+    "none": "Ninguno",
+    "stats": {
+      "total": "Cuentas Totales",
+      "activeCount": "activas"
+    },
+    "tableTitle": "Cuentas de Comercio",
+    "tableDesc": "Credenciales seguras de cuentas de comercio para procesamiento de pagos",
+    "searchPlaceholder": "Buscar cuentas...",
+    "filterByVenue": "Filtrar por sucursal",
+    "allVenues": "Todas las Sucursales",
+    "columns": {
+      "account": "Cuenta",
+      "provider": "Proveedor",
+      "status": "Estado",
+      "credentials": "Credenciales",
+      "costStructures": "Estructuras de Costo"
+    }
+  },
+  "paymentAnalytics": {
+    "title": "Análisis de Pagos",
+    "subtitle": "Rastrea costos de procesamiento de pagos y márgenes de beneficio",
+    "fixedFeesInfo": "El beneficio incluye tanto tarifas porcentuales como tarifas fijas por transacción. Las tarifas fijas se configuran en Estructuras de Costos (lo que los proveedores cobran a Avoqado) y Precios de Sucursal (lo que Avoqado cobra a las sucursales).",
+    "metrics": {
+      "totalVolume": "Volumen Total",
+      "transactions": "transacciones",
+      "totalProfit": "Beneficio Total",
+      "providerCost": "Costo del Proveedor",
+      "averageMargin": "Margen Promedio",
+      "marginDesc": "Margen de beneficio",
+      "avgTransaction": "Transacción Promedio",
+      "perTransaction": "por transacción"
+    },
+    "cardTypes": {
+      "title": "Desglose de Métodos de Pago",
+      "transactions": "transacciones",
+      "average": "prom"
+    },
+    "topVenues": {
+      "title": "Sucursales Más Rentables",
+      "transactions": "transacciones",
+      "margin": "margen",
+      "volume": "volumen"
+    }
+  },
+  "venuePaymentConfig": {
+    "title": "Configuración de Pagos",
+    "subtitle": "Configura el procesamiento de pagos para esta sucursal",
+    "configure": "Configurar Pagos",
+    "create": "Crear Configuración",
+    "editConfig": "Editar Configuración de Pagos",
+    "createConfig": "Crear Configuración de Pagos",
+    "configDescription": "Configura las cuentas de comerciante y el enrutamiento de pagos para esta sucursal",
+    "noConfig": "No se encontró configuración de pagos para esta sucursal. Crea una para comenzar a procesar pagos.",
+    "primaryAccount": "Cuenta Principal",
+    "primaryAccountDesc": "Cuenta principal para todas las transacciones",
+    "secondaryAccount": "Cuenta Secundaria",
+    "secondaryAccountDesc": "Cuenta de respaldo para redundancia",
+    "tertiaryAccount": "Cuenta Terciaria",
+    "tertiaryAccountDesc": "Tercera cuenta para transacciones especializadas",
+    "notConfigured": "No configurado",
+    "optional": "Opcional",
+    "merchantId": "ID de Comerciante",
+    "selectAccount": "Seleccionar cuenta de comerciante",
+    "preferredProcessor": "Procesador Preferido",
+    "processorAuto": "Automático (Enrutamiento Inteligente)",
+    "processorLegacy": "Sistema Heredado",
+    "processorMenta": "Menta",
+    "processorClip": "Clip",
+    "venuePricing": "Precios de Sucursal",
+    "venuePricingDesc": "Tarifas cobradas a esta sucursal",
+    "providerCosts": "Costos de Proveedor",
+    "providerCostsDesc": "Costos pagados a proveedores de pago",
+    "viewFullPricing": "Ver estructuras de precios detalladas →",
+    "viewFullCosts": "Ver estructuras de costos detalladas →",
+    "createSuccess": "Configuración de pagos creada exitosamente",
+    "createError": "Error al crear la configuración de pagos",
+    "updateSuccess": "Configuración de pagos actualizada exitosamente",
+    "updateError": "Error al actualizar la configuración de pagos",
+    "deleteSuccess": "Configuración de pagos eliminada exitosamente",
+    "deleteError": "Error al eliminar la configuración de pagos",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar esta configuración de pagos? Esta acción no se puede deshacer.",
+    "noCostStructures": "No hay estructuras de costos configuradas para las cuentas de comercio",
+    "noPricingStructures": "No hay estructuras de precios configuradas para esta sucursal",
+    "debitRate": "Tarifa Débito",
+    "creditRate": "Tarifa Crédito",
+    "amexRate": "Tarifa Amex",
+    "internationalRate": "Tarifa Internacional",
+    "fixedFee": "Tarifa Fija",
+    "editPricing": "Editar Precios",
+    "createPricing": "Crear Precios",
+    "effectiveFrom": "Vigente Desde",
+    "effectiveTo": "Vigente Hasta",
+    "currentPricing": "Precios Actuales",
+    "inactive": "Inactivo",
+    "pricingDescription": "Establece las tarifas que cobrarás a esta sucursal por procesamiento de pagos",
+    "percentageRates": "Tarifas Porcentuales",
+    "fixedFees": "Tarifas Fijas",
+    "fixedFeePerTransaction": "Tarifa Fija por Transacción",
+    "fixedFeeHelp": "Monto fijo opcional cobrado por transacción (ej: $0.50)",
+    "monthlyServiceFee": "Tarifa de Servicio Mensual",
+    "effectiveFromHelp": "Fecha en que estos precios se activan. Los precios anteriores finalizarán automáticamente.",
+    "notes": "Notas",
+    "notesPlaceholder": "Referencia de contrato, términos especiales, etc.",
+    "profitCalculator": "Calculadora de Beneficio",
+    "profitCalculatorDesc": "Calcula márgenes de beneficio para diferentes escenarios de transacción",
+    "configureToCalculate": "Configura costos de proveedor y precios de sucursal para usar la calculadora",
+    "transactionAmount": "Monto de Transacción",
+    "cardType": "Tipo de Tarjeta",
+    "debit": "Débito",
+    "credit": "Crédito",
+    "amex": "Amex",
+    "international": "Internacional",
+    "providerCost": "Costo de Proveedor",
+    "venueCharge": "Cargo a Sucursal",
+    "netProfit": "Beneficio Neto",
+    "margin": "margen"
+  }
+}

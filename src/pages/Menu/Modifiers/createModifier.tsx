@@ -23,7 +23,7 @@ type FormValues = {
 
 // Schema will be created inside component to access t() function
 const createFormSchema = (t: any) => z.object({
-  name: z.string().min(1, { message: t('menu.modifiers.create.nameRequired') }),
+  name: z.string().min(1, { message: t('modifiers.create.nameRequired') }),
   extraPrice: z.number().min(0).default(0),
   available: z.boolean().default(true),
   active: z.boolean().default(true),
@@ -37,7 +37,7 @@ interface CreateModifierProps {
 }
 
 export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuccess }: CreateModifierProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -66,8 +66,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     },
     onSuccess: _data => {
       toast({
-        title: t('menu.modifiers.create.toasts.created'),
-        description: t('menu.modifiers.create.toasts.createdDesc'),
+        title: t('modifiers.create.toasts.created'),
+        description: t('modifiers.create.toasts.createdDesc'),
       })
 
       // Invalidate and force refetch the relevant queries
@@ -91,8 +91,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     },
     onError: error => {
       toast({
-        title: t('menu.modifiers.create.toasts.createError'),
-        description: error.message || t('menu.modifiers.create.toasts.createErrorDesc'),
+        title: t('modifiers.create.toasts.createError'),
+        description: error.message || t('modifiers.create.toasts.createErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -109,23 +109,23 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('menu.modifiers.create.cardTitle')}</CardTitle>
+              <CardTitle>{t('modifiers.create.cardTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Name field */}
               <FormField
                 control={form.control}
                 name="name"
-                rules={{ required: { value: true, message: t('menu.modifiers.create.nameRequired') } }}
+                rules={{ required: { value: true, message: t('modifiers.create.nameRequired') } }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.forms.name')}</FormLabel>
+                    <FormLabel>{t('forms.name')}</FormLabel>
                     <FormControl>
                       <div>
-                        <Input placeholder={t('menu.modifiers.create.namePlaceholder')} {...field} />
+                        <Input placeholder={t('modifiers.create.namePlaceholder')} {...field} />
                       </div>
                     </FormControl>
-                    <FormDescription>{t('menu.modifiers.create.nameDescription')}</FormDescription>
+                    <FormDescription>{t('modifiers.create.nameDescription')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -137,7 +137,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                 name="extraPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.modifiers.create.extraPrice')}</FormLabel>
+                    <FormLabel>{t('modifiers.create.extraPrice')}</FormLabel>
                     <FormControl>
                       <div>
                         <Input
@@ -152,7 +152,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                         />
                       </div>
                     </FormControl>
-                    <FormDescription>{t('menu.modifiers.create.extraPriceDescription')}</FormDescription>
+                    <FormDescription>{t('modifiers.create.extraPriceDescription')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -165,8 +165,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FormLabel>{t('menu.modifiers.create.available')}</FormLabel>
-                      <FormDescription>{t('menu.modifiers.create.availableDescription')}</FormDescription>
+                      <FormLabel>{t('modifiers.create.available')}</FormLabel>
+                      <FormDescription>{t('modifiers.create.availableDescription')}</FormDescription>
                     </div>
                     <FormControl>
                       <div>
@@ -184,8 +184,8 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FormLabel>{t('menu.modifiers.create.active')}</FormLabel>
-                      <FormDescription>{t('menu.modifiers.create.activeDescription')}</FormDescription>
+                      <FormLabel>{t('modifiers.create.active')}</FormLabel>
+                      <FormDescription>{t('modifiers.create.activeDescription')}</FormDescription>
                     </div>
                     <FormControl>
                       <div>
@@ -200,10 +200,10 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onBack}>
-              {t('menu.forms.buttons.cancel')}
+              {t('forms.buttons.cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>
-              {form.formState.isSubmitting ? t('menu.modifiers.create.creating') : t('menu.modifiers.create.createButton')}
+              {form.formState.isSubmitting ? t('modifiers.create.creating') : t('modifiers.create.createButton')}
             </Button>
           </div>
         </form>

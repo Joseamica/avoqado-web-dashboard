@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
@@ -25,43 +25,44 @@ import { useTranslation } from 'react-i18next'
 
 const SuperadminSidebar: React.FC = () => {
   const { t } = useTranslation()
+  const { t: tSidebar } = useTranslation('sidebar')
   const navigationItems = [
     {
-      title: t('sidebar.summary'),
+      title: tSidebar('summary'),
       items: [
-        { name: t('sidebar.main'), href: '/superadmin', icon: LayoutDashboard },
-        { name: t('sidebar.analytics'), href: '/superadmin/analytics', icon: BarChart3 },
-        { name: t('sidebar.alerts'), href: '/superadmin/alerts', icon: AlertTriangle },
+        { name: tSidebar('main'), href: '/superadmin', icon: LayoutDashboard },
+        { name: tSidebar('analytics'), href: '/superadmin/analytics', icon: BarChart3 },
+        { name: tSidebar('alerts'), href: '/superadmin/alerts', icon: AlertTriangle },
       ]
     },
     {
-      title: t('sidebar.business'),
+      title: tSidebar('business'),
       items: [
-        { name: t('sidebar.venues'), href: '/superadmin/venues', icon: Building2 },
-        { name: t('sidebar.revenue'), href: '/superadmin/revenue', icon: DollarSign },
+        { name: tSidebar('venues'), href: '/superadmin/venues', icon: Building2 },
+        { name: tSidebar('revenue'), href: '/superadmin/revenue', icon: DollarSign },
         { name: 'Profit Analytics', href: '/superadmin/profit-analytics', icon: Calculator },
-        { name: t('sidebar.paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard },
-        { name: t('sidebar.merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet },
-        { name: t('sidebar.costStructures'), href: '/superadmin/cost-structures', icon: Receipt },
-        { name: t('sidebar.venuePricing'), href: '/superadmin/venue-pricing', icon: Tags },
-        { name: t('sidebar.paymentAnalytics'), href: '/superadmin/payment-analytics', icon: TrendingUp },
-        { name: t('sidebar.customers'), href: '/superadmin/customers', icon: Users },
-        { name: t('sidebar.growth'), href: '/superadmin/growth', icon: TrendingUp },
+        { name: tSidebar('paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard },
+        { name: tSidebar('merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet },
+        { name: tSidebar('costStructures'), href: '/superadmin/cost-structures', icon: Receipt },
+        { name: tSidebar('venuePricing'), href: '/superadmin/venue-pricing', icon: Tags },
+        { name: tSidebar('paymentAnalytics'), href: '/superadmin/payment-analytics', icon: TrendingUp },
+        { name: tSidebar('customers'), href: '/superadmin/customers', icon: Users },
+        { name: tSidebar('growth'), href: '/superadmin/growth', icon: TrendingUp },
       ]
     },
     {
-      title: t('sidebar.platform'),
+      title: tSidebar('platform'),
       items: [
-        { name: t('sidebar.features'), href: '/superadmin/features', icon: Zap },
-        { name: t('sidebar.system'), href: '/superadmin/system', icon: Shield },
-        { name: t('sidebar.reports'), href: '/superadmin/reports', icon: FileText },
-        { name: t('sidebar.support'), href: '/superadmin/support', icon: Headphones },
+        { name: tSidebar('features'), href: '/superadmin/features', icon: Zap },
+        { name: tSidebar('system'), href: '/superadmin/system', icon: Shield },
+        { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText },
+        { name: tSidebar('support'), href: '/superadmin/support', icon: Headphones },
       ]
     },
     {
-      title: t('sidebar.admin'),
+      title: tSidebar('admin'),
       items: [
-        { name: t('sidebar.config'), href: '/superadmin/settings', icon: Settings },
+        { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings },
       ]
     }
   ]

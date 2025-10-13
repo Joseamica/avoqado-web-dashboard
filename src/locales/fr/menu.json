@@ -1,0 +1,93 @@
+{
+  "overview": {
+    "title": "Aperçu du Menu",
+    "newCategory": "Nouvelle Catégorie",
+    "newMenu": "Nouveau Menu",
+    "searchPlaceholder": "Rechercher des menus ou catégories...",
+    "expandAll": "Tout Développer",
+    "collapseAll": "Tout Réduire",
+    "createNewProduct": "Créer un Nouveau Produit",
+    "manageCategories": "Gérer les Catégories",
+    "create": "Créer",
+    "errorLoading": "Erreur lors du chargement des données: {{message}}",
+    "draggedItem": "Élément",
+    "tree": "Arbre",
+    "allMenus": "Tous les Menus",
+    "menus": "Menus",
+    "categories": "Catégories",
+    "products": "Produits",
+    "itemsCount": "{{count}} éléments",
+    "inspector": "Inspecteur",
+    "selectMenuPrompt": "Sélectionnez un menu pour voir les détails.",
+    "menu": "Menu",
+    "category": "Catégorie",
+    "active": "Actif",
+    "dragToReorderProducts": "Glisser pour réorganiser les produits dans cette catégorie."
+  },
+  "menus": {
+    "title": "Menus",
+    "newMenu": "Nouveau Menu",
+    "searchPlaceholder": "Rechercher...",
+    "columns": {
+      "name": "Nom",
+      "schedules": "Horaires du Menu",
+      "categories": "Catégories",
+      "alwaysAvailable": "Toujours disponible"
+    }
+  },
+  "categories": {
+    "title": "Catégories",
+    "newCategory": "Nouvelle Catégorie",
+    "searchPlaceholder": "Rechercher...",
+    "columns": {
+      "name": "Nom",
+      "lastModification": "Dernière Modification"
+    },
+    "toasts": {
+      "activated": "Catégorie activée",
+      "deactivated": "Catégorie désactivée",
+      "saved": "Les modifications ont été enregistrées avec succès."
+    }
+  },
+  "forms": {
+    "name": "Nom",
+    "description": "Description",
+    "price": "Prix",
+    "selectCategories": "Sélectionner des catégories...",
+    "selectProducts": "Sélectionner des produits...",
+    "selectMenus": "Sélectionner des menus...",
+    "daysOfWeek": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    }
+  },
+  "products": {
+    "title": "Produits",
+    "new": "Nouveau produit",
+    "imageAlt": "Produit",
+    "columns": {
+      "photo": "Photo",
+      "name": "Nom",
+      "price": "Prix",
+      "categories": "Catégories",
+      "modifierGroups": "Groupes Modificateurs",
+      "updatedAt": "Dernière mise à jour"
+    },
+    "toasts": {
+      "activated": "Produit activé",
+      "deactivated": "Produit désactivé",
+      "saved": "Les changements ont été enregistrés avec succès."
+    },
+    "create": {
+      "title": "Nouveau produit"
+    },
+    "detail": {
+      "notFound": "Produit non trouvé"
+    }
+  }
+}

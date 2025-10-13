@@ -53,7 +53,7 @@ interface ModernReceiptDesignProps {
 
 // Animated Loading Component
 const ReceiptLoader = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -70,7 +70,7 @@ const ReceiptLoader = () => {
             <div className="h-4 bg-muted rounded-full animate-pulse" />
             <div className="h-3 bg-muted/70 rounded-full w-3/4 mx-auto animate-pulse" />
           </div>
-          <p className="text-sm text-muted-foreground">{t('payments.receipt.loading')}</p>
+          <p className="text-sm text-muted-foreground">{t('receipt.loading')}</p>
         </CardContent>
       </Card>
     </div>
@@ -93,28 +93,28 @@ const ReceiptError = ({ error }: { error: string }) => (
 
 // Receipt Status Badge
 const StatusBadge = ({ status }: { status: string }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const configs = {
     VIEWED: {
       className:
         'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
       icon: Check,
-      text: t('payments.receipt.statuses.VIEWED'),
+      text: t('receipt.statuses.VIEWED'),
     },
     SENT: {
       className: 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-800',
       icon: Mail,
-      text: t('payments.receipt.statuses.SENT'),
+      text: t('receipt.statuses.SENT'),
     },
     PENDING: {
       className: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200 border border-amber-200 dark:border-amber-800',
       icon: Clock,
-      text: t('payments.receipt.statuses.PENDING'),
+      text: t('receipt.statuses.PENDING'),
     },
     ERROR: {
       className: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800',
       icon: AlertCircle,
-      text: t('payments.receipt.statuses.ERROR'),
+      text: t('receipt.statuses.ERROR'),
     },
   }
 
@@ -154,7 +154,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   const [logoError, setLogoError] = useState(false)
   const receiptRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('payment')
 
   // Extract data
   const data = receipt?.dataSnapshot || receiptData
@@ -166,7 +166,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   if (isLoading) return <ReceiptLoader />
 
   // Error state
-  if (error || !data) return <ReceiptError error={error || t('payments.receipt.errors.load')} />
+  if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
 
   const { payment, venue, order, processedBy, customer } = data
 
@@ -200,11 +200,11 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
 
   const formatPaymentMethod = (method: string, cardBrand?: string, maskedPan?: string) => {
     const methods = {
-      CASH: { text: t('payments.receipt.methods.CASH'), icon: '💵' },
-      CREDIT_CARD: { text: t('payments.receipt.methods.CREDIT_CARD'), icon: '💳' },
-      DEBIT_CARD: { text: t('payments.receipt.methods.DEBIT_CARD'), icon: '💳' },
-      DIGITAL_WALLET: { text: t('payments.receipt.methods.DIGITAL_WALLET'), icon: '📱' },
-      BANK_TRANSFER: { text: t('payments.receipt.methods.BANK_TRANSFER'), icon: '🏦' },
+      CASH: { text: t('receipt.methods.CASH'), icon: '💵' },
+      CREDIT_CARD: { text: t('receipt.methods.CREDIT_CARD'), icon: '💳' },
+      DEBIT_CARD: { text: t('receipt.methods.DEBIT_CARD'), icon: '💳' },
+      DIGITAL_WALLET: { text: t('receipt.methods.DIGITAL_WALLET'), icon: '📱' },
+      BANK_TRANSFER: { text: t('receipt.methods.BANK_TRANSFER'), icon: '🏦' },
     }
 
     const methodInfo = methods[method as keyof typeof methods] || { text: method, icon: '💳' }
@@ -226,13 +226,13 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
       setTimeout(() => setCopied(false), 2000)
       onCopy?.(publicUrl)
       toast({
-        title: t('payments.receipt.toasts.linkCopied.title'),
-        description: t('payments.receipt.toasts.linkCopied.desc'),
+        title: t('receipt.toasts.linkCopied.title'),
+        description: t('receipt.toasts.linkCopied.desc'),
       })
     } catch {
       toast({
-        title: t('payments.receipt.toasts.copyError.title'),
-        description: t('payments.receipt.toasts.copyError.desc'),
+        title: t('receipt.toasts.copyError.title'),
+        description: t('receipt.toasts.copyError.desc'),
         variant: 'destructive',
       })
     }
@@ -244,8 +244,8 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: t('payments.receipt.share.title', { venue: venue?.name || t('payments.receipt.unknownVenue') }),
-          text: t('payments.receipt.share.text', { venue: venue?.name || t('payments.receipt.unknownVenue') }),
+          title: t('receipt.share.title', { venue: venue?.name || t('receipt.unknownVenue') }),
+          text: t('receipt.share.text', { venue: venue?.name || t('receipt.unknownVenue') }),
           url: publicUrl,
         })
         setShared(true)
@@ -297,7 +297,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   {venue?.logo && !logoError ? (
                     <img
                       src={venue.logo}
-                      alt={venue?.name || t('payments.receipt.unknownVenue')}
+                      alt={venue?.name || t('receipt.unknownVenue')}
                       className="w-full h-full object-cover"
                       onError={() => setLogoError(true)}
                     />
@@ -314,7 +314,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
 
                 {/* Venue Info */}
                 <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground mb-2">
-                  {venue?.name || t('payments.receipt.unknownVenue')}
+                  {venue?.name || t('receipt.unknownVenue')}
                 </h1>
 
                 <div className="space-y-1 text-muted-foreground text-sm">
@@ -346,7 +346,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       <ReceiptIcon className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('payments.receipt.labels.receipt')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.receipt')}</p>
                       <p className="font-mono text-sm font-medium">#{receipt?.id?.slice(0, 8) || t('common.na')}</p>
                     </div>
                   </div>
@@ -356,7 +356,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       <Building2 className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('payments.receipt.labels.order')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.order')}</p>
                       <p className="font-mono text-sm font-medium">#{order?.number ?? t('common.na')}</p>
                     </div>
                   </div>
@@ -368,7 +368,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       <Calendar className="w-4 h-4 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('payments.receipt.labels.date')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
                       <p className="text-sm font-medium capitalize">{datetime?.date ?? t('common.na')}</p>
                     </div>
                   </div>
@@ -378,7 +378,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       <Clock className="w-4 h-4 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('payments.receipt.labels.time')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.time')}</p>
                       <p className="text-sm font-medium">{datetime?.time ?? t('common.na')}</p>
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                     <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                       <User className="w-5 h-5 text-blue-600" />
                       <div>
-                        <p className="text-xs text-muted-foreground">{t('payments.receipt.labels.servedBy')}</p>
+                        <p className="text-xs text-muted-foreground">{t('receipt.labels.servedBy')}</p>
                         <p className="font-medium text-sm">{processedBy.name}</p>
                       </div>
                     </div>
@@ -402,7 +402,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                     <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                       <Star className="w-5 h-5 text-green-600" />
                       <div>
-                        <p className="text-xs text-muted-foreground">{t('payments.receipt.labels.customer')}</p>
+                        <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
                         <p className="font-medium text-sm">{customer.name}</p>
                       </div>
                     </div>
@@ -414,7 +414,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  {t('payments.receipt.labels.itemsTitle')}
+                  {t('receipt.labels.itemsTitle')}
                 </h2>
 
                 {(order?.items?.length ?? 0) > 0 ? (
@@ -428,14 +428,14 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                               <div className="text-right ml-4">
                                 <div className="font-bold text-lg">{formatCurrency(item.totalPrice)}</div>
                                 <div className="text-xs text-muted-foreground">
-                                  {t('payments.receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
+                                  {t('receipt.labels.unitPrice', { count: item.quantity, price: formatCurrency(item.price) })}
                                 </div>
                               </div>
                             </div>
 
                             {/* Quantity Badge */}
                             <Badge variant="secondary" className="w-fit text-xs">
-                              {t('payments.receipt.labels.quantity', { count: item.quantity })}
+                              {t('receipt.labels.quantity', { count: item.quantity })}
                             </Badge>
 
                             {/* Modifiers */}
@@ -457,9 +457,9 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                 ) : (
                   <div className="text-center py-12 bg-muted/30 rounded-xl">
                     <ReceiptIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-muted-foreground">{t('payments.receipt.labels.noItems')}</p>
+                    <p className="text-muted-foreground">{t('receipt.labels.noItems')}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {t('payments.receipt.labels.orderTotal')}: {formatCurrency(order?.total)}
+                      {t('receipt.labels.orderTotal')}: {formatCurrency(order?.total)}
                     </p>
                   </div>
                 )}
@@ -470,18 +470,18 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               {/* Totals */}
               <div className="space-y-3">
                 <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">{t('payments.receipt.labels.subtotal')}</span>
+                  <span className="text-muted-foreground">{t('receipt.labels.subtotal')}</span>
                   <span className="font-medium">{formatCurrency(order?.subtotal)}</span>
                 </div>
 
                 <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">{t('payments.receipt.labels.taxes')}</span>
+                  <span className="text-muted-foreground">{t('receipt.labels.taxes')}</span>
                   <span className="font-medium">{formatCurrency(order?.taxAmount)}</span>
                 </div>
 
                 {(payment?.tipAmount ?? 0) > 0 && (
                   <div className="flex justify-between text-base">
-                    <span className="text-muted-foreground">{t('payments.receipt.labels.tips')}</span>
+                    <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
                     <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
                   </div>
                 )}
@@ -489,7 +489,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                 <Separator />
 
                 <div className="flex justify-between items-center text-xl font-bold bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-xl">
-                  <span>{t('payments.receipt.labels.totalPaid')}</span>
+                  <span>{t('receipt.labels.totalPaid')}</span>
                   <span className="text-primary">{Currency(payment?.amount + (payment?.tipAmount ?? 0))}</span>
                 </div>
               </div>
@@ -508,9 +508,9 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       <div className={`w-2 h-2 rounded-full ${payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />
                       <span className="text-sm text-muted-foreground">
                         {payment?.status === 'COMPLETED'
-                          ? t('payments.receipt.paymentStatus.COMPLETED')
+                          ? t('receipt.paymentStatus.COMPLETED')
                           : t(`payments.receipt.paymentStatus.${payment?.status}`, {
-                              defaultValue: t('payments.receipt.paymentStatus.UNKNOWN'),
+                              defaultValue: t('receipt.paymentStatus.UNKNOWN'),
                             })}
                       </span>
                     </div>
@@ -521,7 +521,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               {/* Actions */}
               {showActions && publicUrl && (
                 <div className="space-y-3 pt-4 border-t">
-                  <p className="text-center text-sm text-muted-foreground font-medium">{t('payments.receipt.labels.shareThisReceipt')}</p>
+                  <p className="text-center text-sm text-muted-foreground font-medium">{t('receipt.labels.shareThisReceipt')}</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Button
@@ -534,12 +534,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       {copied ? (
                         <>
                           <Check className="w-4 h-4 mr-2 text-green-600" />
-                          {t('payments.receipt.actions.copied')}
+                          {t('receipt.actions.copied')}
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4 mr-2" />
-                          {t('payments.receipt.actions.copyLink')}
+                          {t('receipt.actions.copyLink')}
                         </>
                       )}
                     </Button>
@@ -554,19 +554,19 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       {shared ? (
                         <>
                           <Check className="w-4 h-4 mr-2 text-blue-600" />
-                          {t('payments.receipt.actions.shared')}
+                          {t('receipt.actions.shared')}
                         </>
                       ) : (
                         <>
                           <Share2 className="w-4 h-4 mr-2" />
-                          {t('payments.receipt.actions.share')}
+                          {t('receipt.actions.share')}
                         </>
                       )}
                     </Button>
 
                     <Button variant="outline" size="lg" onClick={handlePrint} className="w-full h-12 bg-background hover:bg-muted">
                       <Download className="w-4 h-4 mr-2" />
-                      {t('payments.receipt.actions.print')}
+                      {t('receipt.actions.print')}
                     </Button>
                   </div>
                 </div>
@@ -580,18 +580,18 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 text-primary">
                   <Sparkles className="w-5 h-5" />
-                  <span className="font-semibold text-lg">{t('payments.receipt.footer.thanks')}</span>
+                  <span className="font-semibold text-lg">{t('receipt.footer.thanks')}</span>
                   <Sparkles className="w-5 h-5" />
                 </div>
 
                 <p className="text-muted-foreground">
-                  {t('payments.receipt.footer.seeYou', { venue: venue?.name || t('payments.receipt.unknownVenue') })}
+                  {t('receipt.footer.seeYou', { venue: venue?.name || t('receipt.unknownVenue') })}
                 </p>
 
                 <div className="pt-3 space-y-1 text-xs text-muted-foreground">
-                  <p>{t('payments.receipt.footer.generatedBy')}</p>
+                  <p>{t('receipt.footer.generatedBy')}</p>
                   <p>{datetime ? `${datetime.date} • ${datetime.time}` : t('common.na')}</p>
-                  {customer?.email && <p>{t('payments.receipt.footer.sentTo', { email: customer.email })}</p>}
+                  {customer?.email && <p>{t('receipt.footer.sentTo', { email: customer.email })}</p>}
                 </div>
               </div>
             </CardContent>

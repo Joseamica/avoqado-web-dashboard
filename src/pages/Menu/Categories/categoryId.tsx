@@ -17,7 +17,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function CategoryId() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { categoryId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -27,13 +27,13 @@ export default function CategoryId() {
 
   const getDayLabel = (day: string) => {
     const dayLabels: Record<string, string> = {
-      MON: t('menu.forms.daysOfWeek.monday'),
-      TUE: t('menu.forms.daysOfWeek.tuesday'),
-      WED: t('menu.forms.daysOfWeek.wednesday'),
-      THU: t('menu.forms.daysOfWeek.thursday'),
-      FRI: t('menu.forms.daysOfWeek.friday'),
-      SAT: t('menu.forms.daysOfWeek.saturday'),
-      SUN: t('menu.forms.daysOfWeek.sunday'),
+      MON: t('forms.daysOfWeek.monday'),
+      TUE: t('forms.daysOfWeek.tuesday'),
+      WED: t('forms.daysOfWeek.wednesday'),
+      THU: t('forms.daysOfWeek.thursday'),
+      FRI: t('forms.daysOfWeek.friday'),
+      SAT: t('forms.daysOfWeek.saturday'),
+      SUN: t('forms.daysOfWeek.sunday'),
     }
     return dayLabels[day] || day
   }
@@ -62,15 +62,15 @@ export default function CategoryId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.categoryDetail.toasts.saved'),
-        description: t('menu.categories.toasts.saved'),
+        title: t('categoryDetail.toasts.saved'),
+        description: t('categories.toasts.saved'),
       })
       queryClient.invalidateQueries({ queryKey: ['category', categoryId] }) // Refetch product data
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.forms.messages.saveError'),
-        description: error.message || t('menu.forms.messages.saveErrorDesc'),
+        title: t('forms.messages.saveError'),
+        description: error.message || t('forms.messages.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -82,8 +82,8 @@ export default function CategoryId() {
     },
     onSuccess: (_, newActiveState) => {
       toast({
-        title: newActiveState ? t('menu.categoryDetail.toasts.activated') : t('menu.categoryDetail.toasts.paused'),
-        description: newActiveState ? t('menu.categoryDetail.toasts.activatedDesc') : t('menu.categoryDetail.toasts.pausedDesc'),
+        title: newActiveState ? t('categoryDetail.toasts.activated') : t('categoryDetail.toasts.paused'),
+        description: newActiveState ? t('categoryDetail.toasts.activatedDesc') : t('categoryDetail.toasts.pausedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['category', categoryId] })
       form.setValue('active', newActiveState) // Update form state
@@ -92,8 +92,8 @@ export default function CategoryId() {
       const currentActive = form.getValues('active')
       form.setValue('active', currentActive) // Revert on error
       toast({
-        title: t('menu.categoryDetail.toasts.statusError'),
-        description: error.message || t('menu.categoryDetail.toasts.statusErrorDesc'),
+        title: t('categoryDetail.toasts.statusError'),
+        description: error.message || t('categoryDetail.toasts.statusErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -105,8 +105,8 @@ export default function CategoryId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.categoryDetail.toasts.deleted'),
-        description: t('menu.categoryDetail.toasts.deletedDesc'),
+        title: t('categoryDetail.toasts.deleted'),
+        description: t('categoryDetail.toasts.deletedDesc'),
       })
       navigate(from)
     },
@@ -171,8 +171,8 @@ export default function CategoryId() {
 
       if (fromMinutes >= untilMinutes) {
         toast({
-          title: t('menu.forms.messages.invalidSchedule'),
-          description: t('menu.forms.messages.invalidScheduleDesc'),
+          title: t('forms.messages.invalidSchedule'),
+          description: t('forms.messages.invalidScheduleDesc'),
           variant: 'destructive',
         })
         return // Don't submit if time range is invalid
@@ -250,25 +250,25 @@ export default function CategoryId() {
               toggleActive.mutate(newActiveState)
             }}
           >
-            {toggleActive.isPending ? '...' : form.watch('active') ? t('menu.forms.labels.active') : t('menu.forms.labels.inactive')}
+            {toggleActive.isPending ? '...' : form.watch('active') ? t('forms.labels.active') : t('forms.labels.inactive')}
           </Button>
           <AlertDialogWrapper
-            triggerTitle={t('menu.categoryDetail.buttons.delete')}
-            title={t('menu.categoryDetail.dialogs.deleteTitle')}
+            triggerTitle={t('categoryDetail.buttons.delete')}
+            title={t('categoryDetail.dialogs.deleteTitle')}
             // description="Al eliminar el producto, no podrás recuperarlo."
-            message={t('menu.categoryDetail.dialogs.deleteMessage')}
-            rightButtonLabel={t('menu.categoryDetail.buttons.delete')}
+            message={t('categoryDetail.dialogs.deleteMessage')}
+            rightButtonLabel={t('categoryDetail.buttons.delete')}
             rightButtonVariant="default"
             onRightButtonClick={() => deleteCategory.mutate()}
           />
-          <Button variant="outline">{t('menu.categoryDetail.buttons.duplicate')}</Button>
+          <Button variant="outline">{t('categoryDetail.buttons.duplicate')}</Button>
           <LoadingButton
             disabled={!form.formState.isDirty || saveCategory.isPending}
             loading={saveCategory.isPending}
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
           >
-            {saveCategory.isPending ? t('menu.categoryDetail.buttons.saving') : t('menu.categoryDetail.buttons.save')}
+            {saveCategory.isPending ? t('categoryDetail.buttons.saving') : t('categoryDetail.buttons.save')}
           </LoadingButton>
         </div>
       </div>
@@ -288,7 +288,7 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.labels.menusForCategory')}</FormLabel>
+                  <FormLabel>{t('forms.labels.menusForCategory')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
@@ -298,8 +298,8 @@ export default function CategoryId() {
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
-                      placeholder={t('menu.forms.labels.selectMenus')}
-                      emptyIndicator={t('menu.forms.labels.noMoreMenus')}
+                      placeholder={t('forms.labels.selectMenus')}
+                      emptyIndicator={t('forms.labels.noMoreMenus')}
                     />
                   </FormControl>
                   <FormMessage />
@@ -318,7 +318,7 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.labels.addProductsToCategory')}</FormLabel>
+                  <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
@@ -328,8 +328,8 @@ export default function CategoryId() {
                         disabled: false,
                       }))}
                       hidePlaceholderWhenSelected
-                      placeholder={t('menu.forms.labels.selectProducts')}
-                      emptyIndicator={t('menu.forms.labels.noMoreProducts')}
+                      placeholder={t('forms.labels.selectProducts')}
+                      emptyIndicator={t('forms.labels.noMoreProducts')}
                     />
                   </FormControl>
                   <FormMessage />
@@ -344,9 +344,9 @@ export default function CategoryId() {
                 defaultValue={data.availableFrom || ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.forms.availableFrom')}</FormLabel>
+                    <FormLabel>{t('forms.availableFrom')}</FormLabel>
                     <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectStartTime')} />
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectStartTime')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -359,9 +359,9 @@ export default function CategoryId() {
                 defaultValue={data.availableUntil || ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.forms.availableUntil')}</FormLabel>
+                    <FormLabel>{t('forms.availableUntil')}</FormLabel>
                     <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectEndTime')} />
+                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectEndTime')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -383,7 +383,7 @@ export default function CategoryId() {
                 if (fromMinutes >= untilMinutes) {
                   return (
                     <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
-                      ⚠️ {t('menu.forms.messages.invalidScheduleDesc')}
+                      ⚠️ {t('forms.messages.invalidScheduleDesc')}
                     </div>
                   )
                 }
@@ -403,22 +403,22 @@ export default function CategoryId() {
               }
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('menu.categoryDetail.labels.availableDays')}</FormLabel>
+                  <FormLabel>{t('categoryDetail.labels.availableDays')}</FormLabel>
                   <FormControl>
                     <MultipleSelector
                       {...field}
                       options={[
-                        { label: t('menu.forms.daysOfWeek.monday'), value: 'MON', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
-                        { label: t('menu.forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
+                        { label: t('forms.daysOfWeek.monday'), value: 'MON', disabled: false },
+                        { label: t('forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
+                        { label: t('forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
+                        { label: t('forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
+                        { label: t('forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
+                        { label: t('forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
+                        { label: t('forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
                       ]}
                       hidePlaceholderWhenSelected
-                      placeholder={t('menu.categoryDetail.placeholders.selectDays')}
-                      emptyIndicator={t('menu.categoryDetail.placeholders.noMoreDays')}
+                      placeholder={t('categoryDetail.placeholders.selectDays')}
+                      emptyIndicator={t('categoryDetail.placeholders.noMoreDays')}
                     />
                   </FormControl>
                   <FormMessage />

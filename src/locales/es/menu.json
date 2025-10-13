@@ -1,0 +1,368 @@
+{
+  "overview": {
+    "title": "Resumen del Menú",
+    "newCategory": "Nueva Categoría",
+    "newMenu": "Nuevo Menú",
+    "searchPlaceholder": "Buscar menús o categorías...",
+    "expandAll": "Expandir Todo",
+    "collapseAll": "Contraer Todo",
+    "createNewProduct": "Crear Nuevo Producto",
+    "manageCategories": "Gestionar Categorías",
+    "create": "Crear",
+    "errorLoading": "Error al cargar los datos: {{message}}",
+    "draggedItem": "Elemento",
+    "tree": "Secciones",
+    "allMenus": "Todos los Menús",
+    "menus": "Menús",
+    "categories": "Categorías",
+    "products": "Productos",
+    "itemsCount": "{{count}} elementos",
+    "inspector": "Inspector",
+    "selectMenuPrompt": "Selecciona un menú para ver los detalles.",
+    "menu": "Menú",
+    "category": "Categoría",
+    "active": "Activo",
+    "dragToReorderProducts": "Arrastra para reordenar productos dentro de esta categoría."
+  },
+  "menus": {
+    "title": "Menús",
+    "newMenu": "Nuevo menú",
+    "searchPlaceholder": "Buscar...",
+    "columns": {
+      "name": "Nombre",
+      "schedules": "Horarios del menú",
+      "categories": "Categorías",
+      "alwaysAvailable": "Siempre disponible"
+    }
+  },
+  "categories": {
+    "title": "Categorías",
+    "newCategory": "Nueva categoría",
+    "searchPlaceholder": "Buscar...",
+    "columns": {
+      "name": "Nombre",
+      "lastModification": "Última modificación"
+    },
+    "toasts": {
+      "activated": "Categoría activada",
+      "deactivated": "Categoría desactivada",
+      "saved": "Los cambios se han guardado correctamente."
+    }
+  },
+  "forms": {
+    "name": "Nombre",
+    "description": "Descripción",
+    "price": "Precio",
+    "selectCategories": "Seleccionar categorías...",
+    "selectProducts": "Seleccionar productos...",
+    "selectMenus": "Seleccionar menús...",
+    "availableFrom": "Disponible desde",
+    "availableUntil": "Disponible hasta",
+    "scheduleOptional": "Horario (opcional)",
+    "alwaysAvailable": "Siempre disponible",
+    "daysOfWeek": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo",
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb",
+      "sun": "Dom"
+    },
+    "messages": {
+      "categoryCreated": "Categoría {{name}} creada.",
+      "categoryCreatedDesc": "La categoría se ha creado correctamente.",
+      "menuCreated": "Menú creado exitosamente.",
+      "menuCreatedDesc": "El menú se ha creado correctamente.",
+      "modifierCreated": "Modificador creado exitosamente.",
+      "modifierCreatedDesc": "El modificador se ha creado correctamente.",
+      "modifierGroupCreated": "Grupo modificador creado exitosamente.",
+      "modifierGroupCreatedDesc": "El grupo modificador se ha creado correctamente.",
+      "saveError": "Error al guardar",
+      "saveErrorDesc": "Hubo un problema al guardar los cambios.",
+      "invalidSchedule": "Horario inválido",
+      "invalidScheduleDesc": "La hora de inicio debe ser anterior a la hora de cierre.",
+      "loading": "Cargando..."
+    },
+    "labels": {
+      "newCategory": "Nueva categoría",
+      "active": "✓ Activa",
+      "inactive": "✗ Inactiva",
+      "menusForCategory": "Menús en los que aparecerá la categoría",
+      "addProductsToCategory": "Agregar productos a esta categoría",
+      "selectMenus": "Selecciona los menús",
+      "selectProducts": "Selecciona los productos",
+      "noMoreMenus": "No se han encontrado más menús",
+      "noMoreProducts": "No se han encontrado más productos",
+      "enterName": "Introduce un nombre"
+    },
+    "validation": {
+      "nameRequired": "El nombre es requerido.",
+      "nameMinLength": "El nombre debe tener al menos 3 caracteres.",
+      "nameMaxLength": "El nombre no debe tener más de 30 caracteres."
+    },
+    "buttons": {
+      "create": "Crear",
+      "goBack": "Volver",
+      "cancel": "Cancelar"
+    }
+  },
+  "categoryDetail": {
+    "toasts": {
+      "saved": "Categoría guardada",
+      "activated": "Categoría activada",
+      "paused": "Categoría pausada",
+      "activatedDesc": "La categoría está ahora activa.",
+      "pausedDesc": "La categoría ha sido pausada.",
+      "statusError": "Error al cambiar estado",
+      "statusErrorDesc": "Hubo un problema al cambiar el estado de la categoría.",
+      "deleted": "Categoría eliminada",
+      "deletedDesc": "La categoría se ha eliminado correctamente."
+    },
+    "buttons": {
+      "delete": "Eliminar",
+      "duplicate": "Duplicar",
+      "save": "Guardar",
+      "saving": "Guardando..."
+    },
+    "dialogs": {
+      "deleteTitle": "Eliminar categoría",
+      "deleteMessage": "¿Estás seguro de que deseas eliminar esta categoría?"
+    },
+    "labels": {
+      "availableDays": "Días disponibles"
+    },
+    "placeholders": {
+      "selectStartTime": "Seleccionar hora de inicio",
+      "selectEndTime": "Seleccionar hora de cierre",
+      "selectDays": "Selecciona los días",
+      "noMoreDays": "No se han encontrado más días"
+    }
+  },
+  "modifiers": {
+    "title": "Grupos modificadores",
+    "newModifierGroup": "Nuevo grupo modificador",
+    "searchPlaceholder": "Buscar...",
+    "columns": {
+      "name": "Nombre",
+      "modifiers": "Modificadores",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "edit": "Editar",
+      "assignModifiers": "Asignar modificadores y productos",
+      "delete": "Eliminar",
+      "openMenu": "Abrir menú"
+    },
+    "dialogs": {
+      "deleteTitle": "Eliminar grupo modificador",
+      "deleteDescription": "¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.",
+      "deleteConfirm": "Eliminar",
+      "deleteCancel": "Cancelar",
+      "deleting": "Eliminando..."
+    },
+    "toasts": {
+      "updated": "Grupo modificador actualizado",
+      "updateError": "Error al guardar",
+      "deleted": "Grupo modificador eliminado",
+      "deleteError": "Error al eliminar",
+      "saved": "Los cambios se han guardado correctamente.",
+      "saving": "Guardando..."
+    },
+    "forms": {
+      "assignTitle": "Asigna modificadores y productos a este grupo.",
+      "createNewModifier": "Crear nuevo modificador",
+      "modifiersInGroup": "Modificadores en este grupo",
+      "productsUsingGroup": "Productos que usan este grupo de modificadores",
+      "noModifiers": "No hay modificadores asignados a este grupo",
+      "noProducts": "No hay productos asignados a este grupo modificador",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "detail": {
+      "groupInformation": "Información del grupo",
+      "groupName": "Nombre del Grupo",
+      "groupNamePlaceholder": "Nombre del grupo",
+      "nameRequired": "El nombre es obligatorio",
+      "descriptionPlaceholder": "Descripción opcional",
+      "assignModifiers": "Asignar modificadores",
+      "assignProducts": "Asignar productos",
+      "modifierTooltip": "Para crear un modificador haz click en la barra y selecciona Agregar modificador",
+      "productTooltip": "Para crear un producto haz click en la barra y selecciona Agregar producto",
+      "modifierItem": "modificador",
+      "productItem": "producto",
+      "selectModifiersPlaceholder": "Seleccionar modificadores...",
+      "selectProductsPlaceholder": "Seleccionar productos...",
+      "errorLoading": "Error al cargar grupo modificador",
+      "errorFetching": "Fallo al obtener datos del grupo modificador",
+      "noData": "No se recibieron datos del servidor",
+      "unknownError": "Error desconocido",
+      "backToGroups": "← Volver a Grupos Modificadores",
+      "toasts": {
+        "updatedDesc": "Los detalles del grupo se han actualizado correctamente.",
+        "updateErrorDesc": "Hubo un problema al actualizar el grupo modificador.",
+        "deletedDesc": "El grupo modificador se ha eliminado correctamente.",
+        "deleteErrorDesc": "Hubo un problema al eliminar el grupo modificador."
+      }
+    },
+    "create": {
+      "cardTitle": "Información del modificador",
+      "nameRequired": "El nombre es obligatorio",
+      "namePlaceholder": "Ej: Sin sal, Con queso extra...",
+      "nameDescription": "Nombre que identifica este modificador",
+      "extraPrice": "Precio extra",
+      "extraPriceDescription": "Costo adicional por este modificador (0 si no tiene costo extra)",
+      "available": "Disponible",
+      "availableDescription": "Indica si este modificador está disponible para selección",
+      "active": "Activo",
+      "activeDescription": "Indica si este modificador está activo en el sistema",
+      "creating": "Creando...",
+      "createButton": "Crear Modificador",
+      "toasts": {
+        "created": "Modificador creado",
+        "createdDesc": "El modificador se ha creado correctamente y añadido al grupo.",
+        "createError": "Error al crear",
+        "createErrorDesc": "Hubo un problema al crear el modificador."
+      }
+    },
+    "createGroup": {
+      "title": "Crear Grupo Modificador",
+      "basicInfo": "Información Básica",
+      "basicInfoDesc": "Configura la información principal del grupo modificador",
+      "nameRequired": "El nombre es obligatorio",
+      "groupName": "Nombre del grupo",
+      "namePlaceholder": "Ej: Tipo de pan, Ingredientes extra...",
+      "nameDescription": "Nombre que identifica este grupo de modificadores",
+      "requiredSelection": "Selección obligatoria",
+      "requiredSelectionDesc": "El cliente debe seleccionar al menos un modificador",
+      "selectionRules": "Reglas de Selección",
+      "selectionRulesDesc": "Define cómo los clientes pueden seleccionar los modificadores",
+      "minSelections": "Mínimo de selecciones",
+      "minSelectionsDesc": "Cantidad mínima que el cliente debe seleccionar",
+      "maxSelections": "Máximo de selecciones",
+      "maxSelectionsDesc": "Cantidad máxima que el cliente puede seleccionar",
+      "multipleSelection": "Selección múltiple",
+      "multipleSelectionPlaceholder": "0 significa sin límite",
+      "multipleSelectionDesc": "0 significa un modificador, cualquier otro número permite selección múltiple",
+      "maxPerModifier": "Máximo por modificador",
+      "maxPerModifierDesc": "Cantidad máxima de veces que se puede seleccionar un mismo modificador",
+      "modifiers": "Modificadores",
+      "modifiersDesc": "Selecciona los modificadores para este grupo",
+      "selectExistingModifiers": "Seleccionar modificadores existentes",
+      "selectExistingPlaceholder": "Selecciona modificadores existentes...",
+      "addNewModifiers": "Agregar nuevos modificadores",
+      "newModifiers": "Nuevos Modificadores",
+      "modifierNamePlaceholder": "Nombre del modificador",
+      "remove": "Eliminar",
+      "addAnother": "Agregar otro modificador",
+      "creating": "Creando...",
+      "createButton": "Crear Grupo Modificador",
+      "toasts": {
+        "created": "Grupo modificador creado",
+        "createdDesc": "El grupo modificador se ha creado correctamente.",
+        "createError": "Error al crear",
+        "createErrorDesc": "Hubo un problema al crear el grupo modificador."
+      }
+    }
+  },
+  "products": {
+    "title": "Productos",
+    "new": "Nuevo producto",
+    "imageAlt": "Producto",
+    "columns": {
+      "photo": "Foto",
+      "name": "Nombre",
+      "price": "Precio",
+      "categories": "Categorías",
+      "modifierGroups": "Grupos Modificadores",
+      "updatedAt": "Última actualización"
+    },
+    "toasts": {
+      "activated": "Producto activado",
+      "deactivated": "Producto desactivado",
+      "saved": "Los cambios se han guardado correctamente."
+    },
+    "create": {
+      "title": "Nuevo producto",
+      "sku": "SKU",
+      "skuPlaceholder": "SKU (p.ej., TACO-001)",
+      "skuRequired": "El SKU es requerido.",
+      "skuPattern": "El SKU solo puede contener letras mayúsculas, números, guiones y guiones bajos.",
+      "namePlaceholder": "Introduce un nombre",
+      "descriptionOptional": "Descripción (opcional)",
+      "descriptionPlaceholder": "Introduce una descripción",
+      "priceRequired": "El precio es requerido.",
+      "priceValid": "El precio debe ser un número válido.",
+      "pricePositive": "El precio debe ser mayor que cero.",
+      "priceDecimals": "El precio puede tener hasta dos decimales.",
+      "pricePlaceholder": "Introduce un precio",
+      "type": "Tipo",
+      "typeRequired": "El tipo es requerido.",
+      "typePlaceholder": "Selecciona el tipo de producto",
+      "selectType": "Selecciona un tipo",
+      "types": {
+        "food": "Comida",
+        "beverage": "Bebida",
+        "alcohol": "Alcohol",
+        "retail": "Retail",
+        "service": "Servicio",
+        "other": "Otro"
+      },
+      "photo": "Foto",
+      "photoVisible": "Los clientes pueden ver esta foto en la app de Avoqado.",
+      "photoGuidelines": "Consulta las directrices completas sobre fotografía",
+      "photoRequirements": "Requisitos del archivo: JPG, PNG, GIF o WEBP hasta 10 MB. Número mínimo de píxeles obligatorio: 320 de ancho y alto.",
+      "photoHelp": "Las fotos ayudan a los clientes a decidir qué pedir y pueden aumentar las ventas.",
+      "dropImage": "Suelta la imagen aquí para cargarla",
+      "or": "o",
+      "browseFile": "Examinar Archivo",
+      "replace": "Sustituir",
+      "delete": "Eliminar",
+      "confirm": "Confirmar",
+      "addPhoto": "Añadir Foto",
+      "saving": "Guardando...",
+      "category": "Categoría",
+      "categoryRequired": "Selecciona una categoría.",
+      "categoryPlaceholder": "Selecciona la categoría",
+      "selectCategory": "Selecciona una categoría",
+      "modifierGroups": "Grupos Modificadores",
+      "selectGroups": "Selecciona los grupos",
+      "toasts": {
+        "created": "Producto {{name}} creado",
+        "createdDesc": "El producto se ha creado correctamente.",
+        "createError": "Error al guardar",
+        "createErrorDesc": "Hubo un problema al guardar los cambios."
+      }
+    },
+    "detail": {
+      "notFound": "Producto no encontrado",
+      "delete": "Eliminar",
+      "deleteTitle": "Eliminar producto",
+      "deleteMessage": "¿Estás seguro de que deseas eliminar este producto?",
+      "deleteConfirm": "Eliminar",
+      "duplicate": "Duplicar",
+      "saving": "Guardando...",
+      "skuPlaceholder": "SKU (p.ej., TACO-001 o Prod-abc123)",
+      "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
+      "imageUnavailable": "Imagen no disponible",
+      "imageCouldNotLoad": "La imagen no pudo cargarse",
+      "toasts": {
+        "saved": "Producto guardado",
+        "savedDesc": "Los cambios se han guardado correctamente.",
+        "saveError": "Error al guardar",
+        "saveErrorDesc": "Hubo un problema al guardar los cambios.",
+        "imageDeleted": "Imagen eliminada",
+        "imageDeletedDesc": "La imagen se ha eliminado correctamente.",
+        "deleted": "Producto eliminado",
+        "deletedDesc": "El producto se ha eliminado correctamente."
+      }
+    }
+  }
+}

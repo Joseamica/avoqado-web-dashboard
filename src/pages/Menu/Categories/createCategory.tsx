@@ -16,7 +16,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 
 export default function CreateCategory() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -43,15 +43,15 @@ export default function CreateCategory() {
     },
     onSuccess: (_, data: any) => {
       toast({
-        title: t('menu.forms.messages.categoryCreated', { name: data.name.toLowerCase() }),
-        description: t('menu.forms.messages.categoryCreatedDesc'),
+        title: t('forms.messages.categoryCreated', { name: data.name.toLowerCase() }),
+        description: t('forms.messages.categoryCreatedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message || error.message || t('menu.forms.messages.saveErrorDesc')
+      const errorMessage = error?.response?.data?.message || error.message || t('forms.messages.saveErrorDesc')
       toast({
-        title: t('menu.forms.messages.saveError'),
+        title: t('forms.messages.saveError'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -132,8 +132,8 @@ export default function CreateCategory() {
 
       if (fromMinutes >= untilMinutes) {
         toast({
-          title: t('menu.forms.messages.invalidSchedule'),
-          description: t('menu.forms.messages.invalidScheduleDesc'),
+          title: t('forms.messages.invalidSchedule'),
+          description: t('forms.messages.invalidScheduleDesc'),
           variant: 'destructive',
         })
         return // Don't submit if time range is invalid
@@ -144,7 +144,7 @@ export default function CreateCategory() {
   }
 
   if (isMenusLoading || isProductsLoading) {
-    return <LoadingScreen message={t('menu.forms.messages.loading')} />
+    return <LoadingScreen message={t('forms.messages.loading')} />
   }
 
   return (
@@ -165,7 +165,7 @@ export default function CreateCategory() {
               form.setValue('active', !currentActive)
             }}
           >
-            {form.watch('active') ? t('menu.forms.labels.active') : t('menu.forms.labels.inactive')}
+            {form.watch('active') ? t('forms.labels.active') : t('forms.labels.inactive')}
           </Button>
           <LoadingButton loading={createCategory.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
             {createCategory.isPending ? t('common.saving') : t('common.save')}
@@ -174,22 +174,22 @@ export default function CreateCategory() {
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
-          <h1 className="text-xl font-semibold">{t('menu.forms.labels.newCategory')}</h1>
+          <h1 className="text-xl font-semibold">{t('forms.labels.newCategory')}</h1>
 
           <FormField
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: t('menu.forms.validation.nameRequired') },
-              minLength: { value: 3, message: t('menu.forms.validation.nameMinLength') },
-              maxLength: { value: 30, message: t('menu.forms.validation.nameMaxLength') },
+              required: { value: true, message: t('forms.validation.nameRequired') },
+              minLength: { value: 3, message: t('forms.validation.nameMinLength') },
+              maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.name')}</FormLabel>
+                  <FormLabel>{t('forms.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('menu.forms.labels.enterName')} className="max-w-96" {...field} />
+                    <Input placeholder={t('forms.labels.enterName')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,7 +201,7 @@ export default function CreateCategory() {
             name="avoqadoMenus"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.forms.labels.menusForCategory')}</FormLabel>
+                <FormLabel>{t('forms.labels.menusForCategory')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
@@ -211,8 +211,8 @@ export default function CreateCategory() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder={t('menu.forms.labels.selectMenus')}
-                    emptyIndicator={t('menu.forms.labels.noMoreMenus')}
+                    placeholder={t('forms.labels.selectMenus')}
+                    emptyIndicator={t('forms.labels.noMoreMenus')}
                   />
                 </FormControl>
                 <FormMessage />
@@ -224,7 +224,7 @@ export default function CreateCategory() {
             name="avoqadoProducts"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.forms.labels.addProductsToCategory')}</FormLabel>
+                <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
@@ -234,8 +234,8 @@ export default function CreateCategory() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder={t('menu.forms.labels.selectProducts')}
-                    emptyIndicator={t('menu.forms.labels.noMoreProducts')}
+                    placeholder={t('forms.labels.selectProducts')}
+                    emptyIndicator={t('forms.labels.noMoreProducts')}
                   />
                 </FormControl>
                 <FormMessage />
@@ -249,9 +249,9 @@ export default function CreateCategory() {
               name="availableFrom"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.availableFrom')}</FormLabel>
+                  <FormLabel>{t('forms.availableFrom')}</FormLabel>
                   <FormControl>
-                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectStartTime')} />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectStartTime')} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -263,9 +263,9 @@ export default function CreateCategory() {
               name="availableUntil"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.availableUntil')}</FormLabel>
+                  <FormLabel>{t('forms.availableUntil')}</FormLabel>
                   <FormControl>
-                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('menu.categoryDetail.placeholders.selectEndTime')} />
+                    <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectEndTime')} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -287,7 +287,7 @@ export default function CreateCategory() {
               if (fromMinutes >= untilMinutes) {
                 return (
                   <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
-                    ⚠️ {t('menu.forms.messages.invalidScheduleDesc')}
+                    ⚠️ {t('forms.messages.invalidScheduleDesc')}
                   </div>
                 )
               }
@@ -300,22 +300,22 @@ export default function CreateCategory() {
             name="availableDays"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.categoryDetail.labels.availableDays')}</FormLabel>
+                <FormLabel>{t('categoryDetail.labels.availableDays')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
                     options={[
-                      { label: t('menu.forms.daysOfWeek.monday'), value: 'MON', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
-                      { label: t('menu.forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
+                      { label: t('forms.daysOfWeek.monday'), value: 'MON', disabled: false },
+                      { label: t('forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
+                      { label: t('forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
+                      { label: t('forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
+                      { label: t('forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
+                      { label: t('forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
+                      { label: t('forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
                     ]}
                     hidePlaceholderWhenSelected
-                    placeholder={t('menu.categoryDetail.placeholders.selectDays')}
-                    emptyIndicator={t('menu.categoryDetail.placeholders.noMoreDays')}
+                    placeholder={t('categoryDetail.placeholders.selectDays')}
+                    emptyIndicator={t('categoryDetail.placeholders.noMoreDays')}
                   />
                 </FormControl>
                 <FormMessage />

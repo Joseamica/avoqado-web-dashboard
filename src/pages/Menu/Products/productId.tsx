@@ -40,7 +40,7 @@ import api from '@/api'
 // })
 
 export default function ProductId() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { productId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -90,15 +90,15 @@ export default function ProductId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.products.detail.toasts.saved'),
-        description: t('menu.products.detail.toasts.savedDesc'),
+        title: t('products.detail.toasts.saved'),
+        description: t('products.detail.toasts.savedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] }) // Refetch product data
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.products.detail.toasts.saveError'),
-        description: error.message || t('menu.products.detail.toasts.saveErrorDesc'),
+        title: t('products.detail.toasts.saveError'),
+        description: error.message || t('products.detail.toasts.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -110,8 +110,8 @@ export default function ProductId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.products.detail.toasts.imageDeleted'),
-        description: t('menu.products.detail.toasts.imageDeletedDesc'),
+        title: t('products.detail.toasts.imageDeleted'),
+        description: t('products.detail.toasts.imageDeletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
     },
@@ -122,8 +122,8 @@ export default function ProductId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.products.detail.toasts.deleted'),
-        description: t('menu.products.detail.toasts.deletedDesc'),
+        title: t('products.detail.toasts.deleted'),
+        description: t('products.detail.toasts.deletedDesc'),
       })
       navigate(from)
     },
@@ -219,11 +219,11 @@ export default function ProductId() {
 
   // Imagen a mostrar: si hay una nueva (subida) úsala, si no usa la de la BD
   if (!venueId || !productId || isLoading) {
-    return <div>{t('menu.forms.messages.loading')}</div>
+    return <div>{t('forms.messages.loading')}</div>
   }
 
   if (!data) {
-    return <div>{t('menu.products.detail.notFound')}</div>
+    return <div>{t('products.detail.notFound')}</div>
   }
 
   const displayedImageUrl = imageUrl || data.imageUrl
@@ -239,22 +239,22 @@ export default function ProductId() {
         </div>
         <div className="space-x-3 flex-row-center ">
           <AlertDialogWrapper
-            triggerTitle={t('menu.products.detail.delete')}
-            title={t('menu.products.detail.deleteTitle')}
+            triggerTitle={t('products.detail.delete')}
+            title={t('products.detail.deleteTitle')}
             // description="Al eliminar el producto, no podrás recuperarlo."
-            message={t('menu.products.detail.deleteMessage')}
-            rightButtonLabel={t('menu.products.detail.deleteConfirm')}
+            message={t('products.detail.deleteMessage')}
+            rightButtonLabel={t('products.detail.deleteConfirm')}
             rightButtonVariant="default"
             onRightButtonClick={() => deleteProduct.mutate()}
           />
-          <Button variant="outline">{t('menu.products.detail.duplicate')}</Button>
+          <Button variant="outline">{t('products.detail.duplicate')}</Button>
           <LoadingButton
             loading={saveProduct.isPending}
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
             disabled={!form.formState.isDirty || saveProduct.isPending}
           >
-            {saveProduct.isPending ? t('menu.products.detail.saving') : t('menu.modifiers.forms.save')}
+            {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
           </LoadingButton>
         </div>
       </div>
@@ -265,19 +265,19 @@ export default function ProductId() {
             control={form.control}
             name="sku"
             rules={{
-              required: { value: true, message: t('menu.products.create.skuRequired') },
+              required: { value: true, message: t('products.create.skuRequired') },
               pattern: {
                 value: /^[A-Za-z0-9_-]+$/,
-                message: t('menu.products.detail.skuPattern'),
+                message: t('products.detail.skuPattern'),
               },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.products.create.sku')}</FormLabel>
+                  <FormLabel>{t('products.create.sku')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={t('menu.products.detail.skuPlaceholder')}
+                      placeholder={t('products.detail.skuPlaceholder')}
                       className="max-w-96"
                       {...field}
                     />
@@ -293,15 +293,15 @@ export default function ProductId() {
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: t('menu.forms.validation.nameRequired') },
-              minLength: { value: 3, message: t('menu.forms.validation.nameMinLength') },
-              maxLength: { value: 30, message: t('menu.forms.validation.nameMaxLength') },
+              required: { value: true, message: t('forms.validation.nameRequired') },
+              minLength: { value: 3, message: t('forms.validation.nameMinLength') },
+              maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
             }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.forms.name')}</FormLabel>
+                <FormLabel>{t('forms.name')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('menu.products.create.namePlaceholder')} className="max-w-96" {...field} />
+                  <Input placeholder={t('products.create.namePlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -313,9 +313,9 @@ export default function ProductId() {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.descriptionOptional')}</FormLabel>
+                <FormLabel>{t('products.create.descriptionOptional')}</FormLabel>
                 <FormControl>
-                  <Textarea placeholder={t('menu.products.create.descriptionPlaceholder')} className="max-w-96" {...field} />
+                  <Textarea placeholder={t('products.create.descriptionPlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -326,11 +326,11 @@ export default function ProductId() {
             control={form.control}
             name="price"
             rules={{
-              required: t('menu.products.create.priceRequired'),
+              required: t('products.create.priceRequired'),
               validate: {
-                esNumero: value => !isNaN(parseFloat(value)) || t('menu.products.create.priceValid'),
-                esPositivo: value => parseFloat(value) > 0 || t('menu.products.create.pricePositive'),
-                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('menu.products.create.priceDecimals'),
+                esNumero: value => !isNaN(parseFloat(value)) || t('products.create.priceValid'),
+                esPositivo: value => parseFloat(value) > 0 || t('products.create.pricePositive'),
+                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('products.create.priceDecimals'),
                 // Opcional: valor máximo
                 // max: value =>
                 //   parseFloat(value) <= 10000 || 'El precio no debe exceder $10,000.'
@@ -339,9 +339,9 @@ export default function ProductId() {
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.price')}</FormLabel>
+                  <FormLabel>{t('forms.price')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('menu.products.create.pricePlaceholder')} className="max-w-96" {...field} />
+                    <Input placeholder={t('products.create.pricePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -352,27 +352,27 @@ export default function ProductId() {
             control={form.control}
             name="type"
             rules={{
-              required: t('menu.products.create.typeRequired'),
+              required: t('products.create.typeRequired'),
             }}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
-                  <FormLabel>{t('menu.products.create.type')}</FormLabel>
+                  <FormLabel>{t('products.create.type')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={t('menu.products.create.typePlaceholder')} />
+                        <SelectValue placeholder={t('products.create.typePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>{t('menu.products.create.selectType')}</SelectLabel>
-                        <SelectItem value="FOOD">{t('menu.products.create.types.food')}</SelectItem>
-                        <SelectItem value="BEVERAGE">{t('menu.products.create.types.beverage')}</SelectItem>
-                        <SelectItem value="ALCOHOL">{t('menu.products.create.types.alcohol')}</SelectItem>
-                        <SelectItem value="RETAIL">{t('menu.products.create.types.retail')}</SelectItem>
-                        <SelectItem value="SERVICE">{t('menu.products.create.types.service')}</SelectItem>
-                        <SelectItem value="OTHER">{t('menu.products.create.types.other')}</SelectItem>
+                        <SelectLabel>{t('products.create.selectType')}</SelectLabel>
+                        <SelectItem value="FOOD">{t('products.create.types.food')}</SelectItem>
+                        <SelectItem value="BEVERAGE">{t('products.create.types.beverage')}</SelectItem>
+                        <SelectItem value="ALCOHOL">{t('products.create.types.alcohol')}</SelectItem>
+                        <SelectItem value="RETAIL">{t('products.create.types.retail')}</SelectItem>
+                        <SelectItem value="SERVICE">{t('products.create.types.service')}</SelectItem>
+                        <SelectItem value="OTHER">{t('products.create.types.other')}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -388,7 +388,7 @@ export default function ProductId() {
             name="imageUrl"
             render={() => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.photo')}</FormLabel>
+                <FormLabel>{t('products.create.photo')}</FormLabel>
                 <FormControl>
                   <div className="pb-4">
                     {/* 1) Si el usuario ya seleccionó una imagen pero todavía no la recorta, mostramos el Cropper */}
@@ -408,7 +408,7 @@ export default function ProductId() {
                         </div>
                         <div className="flex justify-between mt-4">
                           <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                            {t('menu.forms.buttons.cancel')}
+                            {t('forms.buttons.cancel')}
                           </Button>
                           <Button
                             type="button"
@@ -418,7 +418,7 @@ export default function ProductId() {
                             }}
                             disabled={uploading}
                           >
-                            {t('menu.products.create.confirm')}
+                            {t('products.create.confirm')}
                           </Button>
                         </div>
                       </div>
@@ -429,7 +429,7 @@ export default function ProductId() {
                         <div className="w-1/3">
                           <img
                             src={displayedImageUrl}
-                            alt={t('menu.products.imageAlt')}
+                            alt={t('products.imageAlt')}
                             className="object-cover w-full h-auto rounded-md"
                             onError={() => setImageError(true)}
                           />
@@ -437,15 +437,15 @@ export default function ProductId() {
 
                         {/* Sección Derecha: Texto y Botones */}
                         <div className="flex-1 space-y-2">
-                          <p className="text-base">{t('menu.products.create.photoVisible')}</p>
+                          <p className="text-base">{t('products.create.photoVisible')}</p>
                           <p className="text-sm text-green-600">
                             <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                              {t('menu.products.create.photoGuidelines')}
+                              {t('products.create.photoGuidelines')}
                             </a>
                             .
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {t('menu.products.create.photoRequirements')}
+                            {t('products.create.photoRequirements')}
                           </p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
@@ -469,10 +469,10 @@ export default function ProductId() {
                                 fileInput.click()
                               }}
                             >
-                              {t('menu.products.create.replace')}
+                              {t('products.create.replace')}
                             </Button>
                             <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
-                              {t('menu.products.create.delete')}
+                              {t('products.create.delete')}
                             </Button>
                           </div>
                         </div>
@@ -483,21 +483,21 @@ export default function ProductId() {
                         {/* Sección Izquierda: Placeholder para imagen rota */}
                         <div className="w-64 h-64 flex flex-col items-center justify-center bg-muted border-2 border-border rounded-md">
                           <ImageIcon className="w-12 h-12 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground text-center">{t('menu.products.detail.imageUnavailable')}</p>
-                          <p className="text-xs text-muted-foreground text-center mt-1">{t('menu.products.detail.imageCouldNotLoad')}</p>
+                          <p className="text-sm text-muted-foreground text-center">{t('products.detail.imageUnavailable')}</p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">{t('products.detail.imageCouldNotLoad')}</p>
                         </div>
 
                         {/* Sección Derecha: Texto y Botones */}
                         <div className="flex-1 space-y-2">
-                          <p className="text-base">{t('menu.products.create.photoVisible')}</p>
+                          <p className="text-base">{t('products.create.photoVisible')}</p>
                           <p className="text-sm text-green-600">
                             <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                              {t('menu.products.create.photoGuidelines')}
+                              {t('products.create.photoGuidelines')}
                             </a>
                             .
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {t('menu.products.create.photoRequirements')}
+                            {t('products.create.photoRequirements')}
                           </p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
@@ -521,10 +521,10 @@ export default function ProductId() {
                                 fileInput.click()
                               }}
                             >
-                              {t('menu.products.create.replace')}
+                              {t('products.create.replace')}
                             </Button>
                             <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
-                              {t('menu.products.create.delete')}
+                              {t('products.create.delete')}
                             </Button>
                           </div>
                         </div>
@@ -534,8 +534,8 @@ export default function ProductId() {
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: recuadro para subir imagen */}
                         <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-border border-dashed rounded-md ">
-                          <p className="text-sm text-center text-muted-foreground">{t('menu.products.create.dropImage')}</p>
-                          <p className="text-muted-foreground">{t('menu.products.create.or')}</p>
+                          <p className="text-sm text-center text-muted-foreground">{t('products.create.dropImage')}</p>
+                          <p className="text-muted-foreground">{t('products.create.or')}</p>
 
                           {/* Input "invisible" sobre la zona de drag & drop para que sea clickeable */}
                           <Input
@@ -553,19 +553,19 @@ export default function ProductId() {
                           />
 
                           {/* Texto que se ve (debajo del input invisible) */}
-                          <p className="font-[400] text-sm text-green-600">{t('menu.products.create.browseFile')}</p>
+                          <p className="font-[400] text-sm text-green-600">{t('products.create.browseFile')}</p>
                         </div>
 
                         {/* Sección Derecha: descripción y botones */}
                         <div className="flex-1 space-y-2 ">
-                          <p className="text-base">{t('menu.products.create.photoHelp')}</p>
+                          <p className="text-base">{t('products.create.photoHelp')}</p>
                           <p className="text-sm text-green-600">
                             <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                              {t('menu.products.create.photoGuidelines')}
+                              {t('products.create.photoGuidelines')}
                             </a>
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {t('menu.products.create.photoRequirements')}
+                            {t('products.create.photoRequirements')}
                           </p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
@@ -587,7 +587,7 @@ export default function ProductId() {
                                 fileInput.click()
                               }}
                             >
-                              {t('menu.products.create.addPhoto')}
+                              {t('products.create.addPhoto')}
                             </Button>
                           </div>
                         </div>
@@ -603,11 +603,11 @@ export default function ProductId() {
             control={form.control}
             name="categoryId"
             rules={{
-              required: { value: true, message: t('menu.products.create.categoryRequired') },
+              required: { value: true, message: t('products.create.categoryRequired') },
             }}
             render={({ field }) => (
               <FormItem className="max-w-96">
-                <FormLabel>{t('menu.products.create.category')}</FormLabel>
+                <FormLabel>{t('products.create.category')}</FormLabel>
                 <FormControl>
                   <Select
                     onValueChange={value => {
@@ -617,11 +617,11 @@ export default function ProductId() {
                     value={field.value || ''}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={t('menu.products.create.categoryPlaceholder')} />
+                      <SelectValue placeholder={t('products.create.categoryPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>{t('menu.products.create.selectCategory')}</SelectLabel>
+                        <SelectLabel>{t('products.create.selectCategory')}</SelectLabel>
                         {(categories || []).map(category => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -640,13 +640,13 @@ export default function ProductId() {
             name="modifierGroups"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.modifierGroups')}</FormLabel>
+                <FormLabel>{t('products.create.modifierGroups')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
                     options={modifierGroups?.map(mg => ({ label: mg.name, value: mg.id, disabled: false })) || []}
                     hidePlaceholderWhenSelected
-                    placeholder={t('menu.products.create.selectGroups')}
+                    placeholder={t('products.create.selectGroups')}
                   />
                 </FormControl>
                 <FormMessage />

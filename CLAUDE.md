@@ -228,3 +228,178 @@ creating, modifying, or updating any user interface element, i18n support MUST b
 
 **CRITICAL**: When asked to create ANY UI element (component, dialog, form, button, etc.), i18n implementation is automatically part of that
 request. Never deliver UI work without complete translation support.
+
+### Namespace-Based Translation Architecture
+
+To improve maintainability and reduce the size of the central `i18n.ts` file, translations are organized using **namespaces** for large feature domains. This approach creates modular, self-contained translation bundles that are dynamically registered.
+
+#### When to Use Namespaces
+
+Use namespace-based translations for:
+- **Large feature modules** with 50+ translation keys (e.g., Menu, Venue, Payment management)
+- **Self-contained domains** with minimal cross-references to other features
+- **Complex nested structures** (forms, tables, dialogs, workflows within a single domain)
+
+Keep in main `i18n.ts` for:
+- **Shared/common translations** (buttons, actions, statuses)
+- **Small features** with <30 translation keys
+- **Cross-cutting concerns** (navigation, authentication, notifications)
+
+#### Implementation Pattern
+
+**1. Create separate translation files:**
+
+```typescript
+// src/i18n/namespaces/menu.ts
+export const menuTranslations = {
+  en: {
+    menu: {
+      overview: {
+        title: 'Menu Overview',
+        subtitle: 'Manage products and categories',
+      },
+      categories: {
+        title: 'Categories',
+        addButton: 'Add Category',
+        // ...
+      },
+      products: {
+        title: 'Products',
+        columns: {
+          name: 'Name',
+          price: 'Price',
+          // ...
+        },
+      },
+    },
+  },
+  es: {
+    menu: {
+      overview: {
+        title: 'Vista General del Menú',
+        subtitle: 'Administrar productos y categorías',
+      },
+      // ... Spanish translations
+    },
+  },
+};
+```
+
+**2. Register namespace in `i18n.ts`:**
+
+```typescript
+import { menuTranslations } from './i18n/namespaces/menu';
+
+// After i18n initialization
+i18n.addResourceBundle('en', 'menu', menuTranslations.en.menu);
+i18n.addResourceBundle('es', 'menu', menuTranslations.es.menu);
+```
+
+**3. Use namespace in components:**
+
+```typescript
+// Before (default namespace):
+const { t } = useTranslation();
+return <h1>{t('menu.overview.title')}</h1>;
+
+// After (menu namespace):
+const { t } = useTranslation('menu');
+return <h1>{t('overview.title')}</h1>;  // Simplified key path
+```
+
+#### Translation Structure Best Practices
+
+Organize translations hierarchically by UI structure:
+
+```typescript
+{
+  featureName: {
+    // Page/section level
+    title: 'Feature Title',
+    subtitle: 'Feature description',
+
+    // Table columns
+    columns: {
+      name: 'Name',
+      status: 'Status',
+      actions: 'Actions',
+    },
+
+    // Status/enum mappings
+    status: {
+      active: 'Active',
+      inactive: 'Inactive',
+    },
+
+    // User feedback
+    toasts: {
+      success: 'Success',
+      createSuccess: 'Created successfully',
+      updateSuccess: 'Updated successfully',
+      deleteSuccess: 'Deleted successfully',
+      error: 'Error',
+      createError: 'Failed to create',
+    },
+
+    // Confirmation dialogs
+    confirmations: {
+      delete: 'Are you sure you want to delete this item?',
+      deactivate: 'Are you sure you want to deactivate this item?',
+    },
+
+    // Forms
+    form: {
+      fields: {
+        name: 'Name',
+        description: 'Description',
+      },
+      placeholders: {
+        name: 'Enter name...',
+      },
+      validation: {
+        nameRequired: 'Name is required',
+      },
+    },
+  },
+}
+```
+
+#### Migration Checklist
+
+When converting a component to use namespace translations:
+
+1. **Read component** - Identify all hardcoded strings (titles, labels, toasts, confirmations, table columns)
+2. **Create namespace structure** - Organize translations by UI section (overview, table, form, etc.)
+3. **Add English translations** - Add complete English key structure to namespace file
+4. **Add Spanish translations** - Add corresponding Spanish translations (verify quality)
+5. **Register namespace** - Add `i18n.addResourceBundle()` calls in `i18n.ts`
+6. **Update component** - Change `useTranslation()` to `useTranslation('namespace')`
+7. **Update translation keys** - Remove namespace prefix from all `t()` calls (e.g., `t('menu.title')` → `t('title')`)
+8. **Test in both languages** - Verify all strings display correctly in English and Spanish
+9. **Build verification** - Run `npm run build` to ensure no TypeScript errors
+
+#### Current Namespace Organization
+
+**Active namespaces:**
+- `menu` - Menu management (categories, products, modifiers)
+- `venue` - Venue management and configuration
+- `payment` - Payment provider and cost structure management
+- `sidebar` - Sidebar navigation and menu items
+- `testing` - Testing and payment analytics
+
+**Main i18n.ts contains:**
+- Common translations (buttons, actions, statuses)
+- Dashboard overview
+- Orders and shifts
+- Staff management
+- Reports and analytics
+- Superadmin features (except payment management)
+
+#### Benefits of Namespace Approach
+
+- **Reduced file size**: Main `i18n.ts` reduced from 6,012 to ~5,000 lines
+- **Better organization**: Related translations grouped together
+- **Easier maintenance**: Changes to a feature only affect its namespace file
+- **Simplified keys**: Shorter translation key paths in components
+- **Lazy loading potential**: Namespaces can be loaded on-demand in future
+- **Team collaboration**: Multiple developers can work on different namespaces without conflicts

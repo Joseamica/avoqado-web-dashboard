@@ -1,0 +1,124 @@
+{
+  "venueMgmt": {
+    "title": "Gestion des lieux",
+    "subtitle": "Surveillez et gérez tous les lieux",
+    "stats": {
+      "totalRevenue": "Revenus totaux",
+      "commissionPrefix": "Commission:",
+      "activeVenues": "Lieux actifs",
+      "totalVenuesSuffix": "lieux au total",
+      "pendingApprovals": "Approbations en attente",
+      "requireAction": "Requièrent une action",
+      "avgRevenue": "Revenu moy. par lieu",
+      "perActiveVenue": "Par lieu actif"
+    },
+    "tableTitle": "Tous les lieux",
+    "tableDesc": "Gérer inscriptions, abonnements et statuts",
+    "searchPlaceholder": "Rechercher lieux, propriétaires ou organisations...",
+    "filterByStatus": "Filtrer par statut",
+    "allStatuses": "Tous les statuts",
+    "columns": {
+      "venue": "Lieu",
+      "status": "Statut",
+      "subscriptionPlan": "Plan",
+      "monthlyRevenue": "Revenu mensuel",
+      "payment": "Paiement",
+      "users": "Utilisateurs",
+      "actions": "Actions"
+    },
+    "dropdown": {
+      "viewDetails": "Voir les détails",
+      "approve": "Approuver le lieu",
+      "manageFeatures": "Gérer les fonctionnalités",
+      "viewAnalytics": "Voir les analyses",
+      "suspend": "Suspendre le lieu"
+    },
+    "loadingVenues": "Chargement des lieux...",
+    "statuses": {
+      "ACTIVE": "Actif",
+      "PENDING": "En attente",
+      "SUSPENDED": "Suspendu",
+      "CANCELLED": "Annulé",
+      "TRIAL": "Essai"
+    },
+    "paymentStatuses": {
+      "PAID": "Payé",
+      "PENDING": "En attente",
+      "OVERDUE": "En retard"
+    },
+    "planLabels": {
+      "STARTER": "Démarrage",
+      "PROFESSIONAL": "Professionnel",
+      "ENTERPRISE": "Entreprise"
+    },
+    "dialogs": {
+      "detailsTitle": "Détails du lieu",
+      "detailsDescPrefix": "Informations complètes sur",
+      "approveTitle": "Approuver le lieu",
+      "approveDescPrefix": "Êtes-vous sûr de vouloir approuver",
+      "approveReasonLabel": "Raison (facultatif)",
+      "approveReasonPlaceholder": "Raison facultative",
+      "cancel": "Annuler",
+      "approve": "Approuver le lieu",
+      "approving": "Approbation...",
+      "suspendTitle": "Suspendre le lieu",
+      "suspendDescPrefix": "Veuillez fournir une raison pour suspendre",
+      "suspendReasonLabel": "Raison",
+      "suspendReasonPlaceholder": "Raison de la suspension",
+      "suspend": "Suspendre le lieu",
+      "suspending": "Suspension..."
+    },
+    "toasts": {
+      "approveSuccessTitle": "Lieu approuvé",
+      "approveFailedTitle": "Échec de l'approbation",
+      "suspendSuccessTitle": "Lieu suspendu",
+      "suspendFailedTitle": "Échec de la suspension",
+      "successDescSuffix": "a été",
+      "approved": "approuvé.",
+      "suspended": "suspendu."
+    }
+  },
+  "detailsView": {
+    "tabs": {
+      "overview": "Aperçu",
+      "billing": "Facturation",
+      "features": "Fonctionnalités",
+      "analytics": "Analyses"
+    },
+    "venueInfo": {
+      "title": "Informations du lieu",
+      "name": "Nom",
+      "slug": "Slug",
+      "status": "Statut",
+      "plan": "Plan"
+    },
+    "ownerInfo": {
+      "title": "Informations du propriétaire",
+      "name": "Nom",
+      "email": "Email",
+      "phone": "Téléphone",
+      "na": "N/A"
+    },
+    "billingInfo": {
+      "title": "Informations de facturation",
+      "subscriptionFee": "Frais d'abonnement",
+      "featuresCost": "Coût des fonctionnalités",
+      "totalMonthly": "Total mensuel",
+      "paymentStatus": "Statut de paiement"
+    },
+    "revenueInfo": {
+      "title": "Informations sur les revenus",
+      "monthlyRevenue": "Revenu mensuel",
+      "totalRevenue": "Revenu total",
+      "commissionRate": "Taux de commission",
+      "commissionEarned": "Commission gagnée"
+    },
+    "featuresComingSoon": "Gestion des fonctionnalités à venir...",
+    "analytics": {
+      "title": "Métriques de performance",
+      "monthlyTransactions": "Transactions mensuelles",
+      "avgOrderValue": "Valeur moyenne de commande",
+      "activeUsers": "Utilisateurs actifs"
+    }
+  }
+}

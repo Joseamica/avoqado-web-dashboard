@@ -1,0 +1,368 @@
+{
+  "overview": {
+    "title": "Menu Overview",
+    "newCategory": "New Category",
+    "newMenu": "New Menu",
+    "searchPlaceholder": "Search menus or categories...",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "createNewProduct": "Create New Product",
+    "manageCategories": "Manage Categories",
+    "create": "Create",
+    "errorLoading": "Error loading data: {{message}}",
+    "draggedItem": "Item",
+    "tree": "Tree",
+    "allMenus": "All Menus",
+    "menus": "Menus",
+    "categories": "Categories",
+    "products": "Products",
+    "itemsCount": "{{count}} items",
+    "inspector": "Inspector",
+    "selectMenuPrompt": "Select a menu to see details.",
+    "menu": "Menu",
+    "category": "Category",
+    "active": "Active",
+    "dragToReorderProducts": "Drag to reorder products within this category."
+  },
+  "menus": {
+    "title": "Menus",
+    "newMenu": "New Menu",
+    "searchPlaceholder": "Search...",
+    "columns": {
+      "name": "Name",
+      "schedules": "Menu Schedules",
+      "categories": "Categories",
+      "alwaysAvailable": "Always available"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "newCategory": "New Category",
+    "searchPlaceholder": "Search...",
+    "columns": {
+      "name": "Name",
+      "lastModification": "Last Modification"
+    },
+    "toasts": {
+      "activated": "Category activated",
+      "deactivated": "Category deactivated",
+      "saved": "Changes have been saved successfully."
+    }
+  },
+  "forms": {
+    "name": "Name",
+    "description": "Description",
+    "price": "Price",
+    "selectCategories": "Select categories...",
+    "selectProducts": "Select products...",
+    "selectMenus": "Select menus...",
+    "availableFrom": "Available from",
+    "availableUntil": "Available until",
+    "scheduleOptional": "Schedule (optional)",
+    "alwaysAvailable": "Always available",
+    "daysOfWeek": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "messages": {
+      "categoryCreated": "Category {{name}} created.",
+      "categoryCreatedDesc": "The category has been created successfully.",
+      "menuCreated": "Menu created successfully.",
+      "menuCreatedDesc": "The menu has been created successfully.",
+      "modifierCreated": "Modifier created successfully.",
+      "modifierCreatedDesc": "The modifier has been created successfully.",
+      "modifierGroupCreated": "Modifier group created successfully.",
+      "modifierGroupCreatedDesc": "The modifier group has been created successfully.",
+      "saveError": "Error saving",
+      "saveErrorDesc": "There was a problem saving the changes.",
+      "invalidSchedule": "Invalid schedule",
+      "invalidScheduleDesc": "Start time must be before end time.",
+      "loading": "Loading..."
+    },
+    "labels": {
+      "newCategory": "New Category",
+      "active": "âœ“ Active",
+      "inactive": "âœ— Inactive",
+      "menusForCategory": "Menus where the category will appear",
+      "addProductsToCategory": "Add products to this category",
+      "selectMenus": "Select menus",
+      "selectProducts": "Select products",
+      "noMoreMenus": "No more menus found",
+      "noMoreProducts": "No more products found",
+      "enterName": "Enter a name"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "nameMinLength": "Name must be at least 3 characters.",
+      "nameMaxLength": "Name must not exceed 30 characters."
+    },
+    "buttons": {
+      "create": "Create",
+      "goBack": "Go back",
+      "cancel": "Cancel"
+    }
+  },
+  "categoryDetail": {
+    "toasts": {
+      "saved": "Category saved",
+      "activated": "Category activated",
+      "paused": "Category paused",
+      "activatedDesc": "The category is now active.",
+      "pausedDesc": "The category has been paused.",
+      "statusError": "Error changing status",
+      "statusErrorDesc": "There was a problem changing the category status.",
+      "deleted": "Category deleted",
+      "deletedDesc": "The category has been deleted successfully."
+    },
+    "buttons": {
+      "delete": "Delete",
+      "duplicate": "Duplicate",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "dialogs": {
+      "deleteTitle": "Delete category",
+      "deleteMessage": "Are you sure you want to delete this category?"
+    },
+    "labels": {
+      "availableDays": "Available days"
+    },
+    "placeholders": {
+      "selectStartTime": "Select start time",
+      "selectEndTime": "Select end time",
+      "selectDays": "Select days",
+      "noMoreDays": "No more days found"
+    }
+  },
+  "modifiers": {
+    "title": "Modifier Groups",
+    "newModifierGroup": "New Modifier Group",
+    "searchPlaceholder": "Search...",
+    "columns": {
+      "name": "Name",
+      "modifiers": "Modifiers",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "assignModifiers": "Assign modifiers and products",
+      "delete": "Delete",
+      "openMenu": "Open menu"
+    },
+    "dialogs": {
+      "deleteTitle": "Delete modifier group",
+      "deleteDescription": "Are you sure you want to delete this modifier group? This action cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "deleting": "Deleting..."
+    },
+    "toasts": {
+      "updated": "Modifier group updated",
+      "updateError": "Error saving",
+      "deleted": "Modifier group deleted",
+      "deleteError": "Error deleting",
+      "saved": "Changes have been saved correctly.",
+      "saving": "Saving..."
+    },
+    "forms": {
+      "assignTitle": "Assign modifiers and products to this group.",
+      "createNewModifier": "Create new modifier",
+      "modifiersInGroup": "Modifiers in this group",
+      "productsUsingGroup": "Products that use this modifier group",
+      "noModifiers": "No modifiers assigned to this group",
+      "noProducts": "No products assigned to this modifier group",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "detail": {
+      "groupInformation": "Group Information",
+      "groupName": "Group Name",
+      "groupNamePlaceholder": "Group name",
+      "nameRequired": "Name is required",
+      "descriptionPlaceholder": "Optional description",
+      "assignModifiers": "Assign modifiers",
+      "assignProducts": "Assign products",
+      "modifierTooltip": "To create a modifier click on the bar and select Add modifier",
+      "productTooltip": "To create a product click on the bar and select Add product",
+      "modifierItem": "modifier",
+      "productItem": "product",
+      "selectModifiersPlaceholder": "Select modifiers...",
+      "selectProductsPlaceholder": "Select products...",
+      "errorLoading": "Error loading modifier group",
+      "errorFetching": "Failed to fetch modifier group data",
+      "noData": "No data returned from server",
+      "unknownError": "Unknown error",
+      "backToGroups": "â† Back to Modifier Groups",
+      "toasts": {
+        "updatedDesc": "The group details have been updated successfully.",
+        "updateErrorDesc": "There was a problem updating the modifier group.",
+        "deletedDesc": "The modifier group has been deleted successfully.",
+        "deleteErrorDesc": "There was a problem deleting the modifier group."
+      }
+    },
+    "create": {
+      "cardTitle": "Modifier Information",
+      "nameRequired": "Name is required",
+      "namePlaceholder": "E.g.: No salt, Extra cheese...",
+      "nameDescription": "Name that identifies this modifier",
+      "extraPrice": "Extra price",
+      "extraPriceDescription": "Additional cost for this modifier (0 if no extra cost)",
+      "available": "Available",
+      "availableDescription": "Indicates if this modifier is available for selection",
+      "active": "Active",
+      "activeDescription": "Indicates if this modifier is active in the system",
+      "creating": "Creating...",
+      "createButton": "Create Modifier",
+      "toasts": {
+        "created": "Modifier created",
+        "createdDesc": "The modifier has been created successfully and added to the group.",
+        "createError": "Error creating",
+        "createErrorDesc": "There was a problem creating the modifier."
+      }
+    },
+    "createGroup": {
+      "title": "Create Modifier Group",
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Configure the main information of the modifier group",
+      "nameRequired": "Name is required",
+      "groupName": "Group name",
+      "namePlaceholder": "E.g.: Type of bread, Extra ingredients...",
+      "nameDescription": "Name that identifies this group of modifiers",
+      "requiredSelection": "Required selection",
+      "requiredSelectionDesc": "The customer must select at least one modifier",
+      "selectionRules": "Selection Rules",
+      "selectionRulesDesc": "Define how customers can select modifiers",
+      "minSelections": "Minimum selections",
+      "minSelectionsDesc": "Minimum quantity the customer must select",
+      "maxSelections": "Maximum selections",
+      "maxSelectionsDesc": "Maximum quantity the customer can select",
+      "multipleSelection": "Multiple selection",
+      "multipleSelectionPlaceholder": "0 means no limit",
+      "multipleSelectionDesc": "0 means one modifier, any other number allows multiple selection",
+      "maxPerModifier": "Maximum per modifier",
+      "maxPerModifierDesc": "Maximum number of times the same modifier can be selected",
+      "modifiers": "Modifiers",
+      "modifiersDesc": "Select the modifiers for this group",
+      "selectExistingModifiers": "Select existing modifiers",
+      "selectExistingPlaceholder": "Select existing modifiers...",
+      "addNewModifiers": "Add new modifiers",
+      "newModifiers": "New Modifiers",
+      "modifierNamePlaceholder": "Modifier name",
+      "remove": "Remove",
+      "addAnother": "Add another modifier",
+      "creating": "Creating...",
+      "createButton": "Create Modifier Group",
+      "toasts": {
+        "created": "Modifier group created",
+        "createdDesc": "The modifier group has been created successfully.",
+        "createError": "Error creating",
+        "createErrorDesc": "There was a problem creating the modifier group."
+      }
+    }
+  },
+  "products": {
+    "title": "Products",
+    "new": "New product",
+    "imageAlt": "Product",
+    "columns": {
+      "photo": "Photo",
+      "name": "Name",
+      "price": "Price",
+      "categories": "Categories",
+      "modifierGroups": "Modifier Groups",
+      "updatedAt": "Last update"
+    },
+    "toasts": {
+      "activated": "Product activated",
+      "deactivated": "Product deactivated",
+      "saved": "Changes have been saved successfully."
+    },
+    "create": {
+      "title": "New product",
+      "sku": "SKU",
+      "skuPlaceholder": "SKU (e.g., TACO-001)",
+      "skuRequired": "SKU is required.",
+      "skuPattern": "SKU can only contain uppercase letters, numbers, hyphens and underscores.",
+      "namePlaceholder": "Enter a name",
+      "descriptionOptional": "Description (optional)",
+      "descriptionPlaceholder": "Enter a description",
+      "priceRequired": "Price is required.",
+      "priceValid": "Price must be a valid number.",
+      "pricePositive": "Price must be greater than zero.",
+      "priceDecimals": "Price can have up to two decimals.",
+      "pricePlaceholder": "Enter a price",
+      "type": "Type",
+      "typeRequired": "Type is required.",
+      "typePlaceholder": "Select product type",
+      "selectType": "Select a type",
+      "types": {
+        "food": "Food",
+        "beverage": "Beverage",
+        "alcohol": "Alcohol",
+        "retail": "Retail",
+        "service": "Service",
+        "other": "Other"
+      },
+      "photo": "Photo",
+      "photoVisible": "Customers can see this photo in the Avoqado app.",
+      "photoGuidelines": "Check the complete photography guidelines",
+      "photoRequirements": "File requirements: JPG, PNG, GIF or WEBP up to 10 MB. Minimum required pixels: 320 wide and high.",
+      "photoHelp": "Photos help customers decide what to order and can increase sales.",
+      "dropImage": "Drop the image here to upload",
+      "or": "or",
+      "browseFile": "Browse File",
+      "replace": "Replace",
+      "delete": "Delete",
+      "confirm": "Confirm",
+      "addPhoto": "Add Photo",
+      "saving": "Saving...",
+      "category": "Category",
+      "categoryRequired": "Select a category.",
+      "categoryPlaceholder": "Select the category",
+      "selectCategory": "Select a category",
+      "modifierGroups": "Modifier Groups",
+      "selectGroups": "Select the groups",
+      "toasts": {
+        "created": "Product {{name}} created",
+        "createdDesc": "The product has been created successfully.",
+        "createError": "Error saving",
+        "createErrorDesc": "There was a problem saving the changes."
+      }
+    },
+    "detail": {
+      "notFound": "Product not found",
+      "delete": "Delete",
+      "deleteTitle": "Delete product",
+      "deleteMessage": "Are you sure you want to delete this product?",
+      "deleteConfirm": "Delete",
+      "duplicate": "Duplicate",
+      "saving": "Saving...",
+      "skuPlaceholder": "SKU (e.g., TACO-001 or Prod-abc123)",
+      "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
+      "imageUnavailable": "Image unavailable",
+      "imageCouldNotLoad": "The image could not be loaded",
+      "toasts": {
+        "saved": "Product saved",
+        "savedDesc": "The changes have been saved successfully.",
+        "saveError": "Error saving",
+        "saveErrorDesc": "There was a problem saving the changes.",
+        "imageDeleted": "Image deleted",
+        "imageDeletedDesc": "The image has been deleted successfully.",
+        "deleted": "Product deleted",
+        "deletedDesc": "The product has been deleted successfully."
+      }
+    }
+  }
+}

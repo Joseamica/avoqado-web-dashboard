@@ -40,7 +40,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
   venueId,
   onSave,
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const [primaryAccountId, setPrimaryAccountId] = useState('')
   const [secondaryAccountId, setSecondaryAccountId] = useState('')
   const [tertiaryAccountId, setTertiaryAccountId] = useState('')

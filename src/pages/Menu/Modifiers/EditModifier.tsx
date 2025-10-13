@@ -32,7 +32,7 @@ interface EditModifierProps {
 }
 
 export default function EditModifier({ venueId, modifierId, modifierGroupId, onBack, onSuccess, initialValues }: EditModifierProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -66,8 +66,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.editModifier.toast.updated'),
-        description: t('menu.modifiers.editModifier.toast.updatedDesc'),
+        title: t('modifiers.editModifier.toast.updated'),
+        description: t('modifiers.editModifier.toast.updatedDesc'),
       })
 
       // Invalidate and force refetch the relevant queries
@@ -91,8 +91,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
     },
     onError: error => {
       toast({
-        title: t('menu.modifiers.editModifier.toast.error'),
-        description: t('menu.modifiers.editModifier.toast.errorDesc', { message: error.message }),
+        title: t('modifiers.editModifier.toast.error'),
+        description: t('modifiers.editModifier.toast.errorDesc', { message: error.message }),
         variant: 'destructive',
       })
     },
@@ -106,9 +106,9 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{t('menu.modifiers.editModifier.title')}</h2>
+        <h2 className="text-2xl font-bold">{t('modifiers.editModifier.title')}</h2>
         <Button variant="outline" onClick={onBack}>
-          {t('menu.modifiers.editModifier.buttons.back')}
+          {t('modifiers.editModifier.buttons.back')}
         </Button>
       </div>
 
@@ -117,12 +117,12 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
           <FormField
             control={form.control}
             name="name"
-            rules={{ required: t('menu.modifiers.editModifier.validation.nameRequired') }}
+            rules={{ required: t('modifiers.editModifier.validation.nameRequired') }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.modifiers.editModifier.fields.name')}</FormLabel>
+                <FormLabel>{t('modifiers.editModifier.fields.name')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('menu.modifiers.editModifier.fields.namePlaceholder')} {...field} />
+                  <Input placeholder={t('modifiers.editModifier.fields.namePlaceholder')} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -132,10 +132,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
           <FormField
             control={form.control}
             name="price"
-            rules={{ required: t('menu.modifiers.editModifier.validation.priceRequired') }}
+            rules={{ required: t('modifiers.editModifier.validation.priceRequired') }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.modifiers.editModifier.fields.price')}</FormLabel>
+                <FormLabel>{t('modifiers.editModifier.fields.price')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -161,8 +161,8 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">{t('menu.modifiers.editModifier.fields.active')}</FormLabel>
-                  <FormDescription>{t('menu.modifiers.editModifier.fields.activeDesc')}</FormDescription>
+                  <FormLabel className="text-base">{t('modifiers.editModifier.fields.active')}</FormLabel>
+                  <FormDescription>{t('modifiers.editModifier.fields.activeDesc')}</FormDescription>
                 </div>
                 <FormControl>
                   <div>
@@ -175,10 +175,10 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onBack}>
-              {t('menu.modifiers.editModifier.buttons.cancel')}
+              {t('modifiers.editModifier.buttons.cancel')}
             </Button>
             <Button type="submit" disabled={updateModifierMutation.isPending || !form.formState.isDirty}>
-              {updateModifierMutation.isPending ? t('menu.modifiers.editModifier.buttons.saving') : t('menu.modifiers.editModifier.buttons.save')}
+              {updateModifierMutation.isPending ? t('modifiers.editModifier.buttons.saving') : t('modifiers.editModifier.buttons.save')}
             </Button>
           </div>
         </form>

@@ -20,7 +20,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import EditModifier from './EditModifier'
 
 export default function ModifierGroupId() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { modifierGroupId } = useParams()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -74,8 +74,8 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.toasts.updated'),
-        description: t('menu.modifiers.detail.toasts.updatedDesc'),
+        title: t('modifiers.toasts.updated'),
+        description: t('modifiers.detail.toasts.updatedDesc'),
       })
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -83,8 +83,8 @@ export default function ModifierGroupId() {
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.modifiers.toasts.updateError'),
-        description: error.message || t('menu.modifiers.detail.toasts.updateErrorDesc'),
+        title: t('modifiers.toasts.updateError'),
+        description: error.message || t('modifiers.detail.toasts.updateErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -97,8 +97,8 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.toasts.updated'),
-        description: t('menu.modifiers.toasts.saved'),
+        title: t('modifiers.toasts.updated'),
+        description: t('modifiers.toasts.saved'),
       })
       // Invalidate all relevant queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -107,8 +107,8 @@ export default function ModifierGroupId() {
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.modifiers.toasts.updateError'),
-        description: error.message || t('menu.forms.messages.saveErrorDesc'),
+        title: t('modifiers.toasts.updateError'),
+        description: error.message || t('forms.messages.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -121,15 +121,15 @@ export default function ModifierGroupId() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.toasts.deleted'),
-        description: t('menu.modifiers.detail.toasts.deletedDesc'),
+        title: t('modifiers.toasts.deleted'),
+        description: t('modifiers.detail.toasts.deletedDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.modifiers.toasts.deleteError'),
-        description: error.message || t('menu.modifiers.detail.toasts.deleteErrorDesc'),
+        title: t('modifiers.toasts.deleteError'),
+        description: error.message || t('modifiers.detail.toasts.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -211,22 +211,22 @@ export default function ModifierGroupId() {
   }
 
   if (isLoading) {
-    return <div className="p-4">{t('menu.forms.messages.loading')}</div>
+    return <div className="p-4">{t('forms.messages.loading')}</div>
   }
 
   if (isError || !data) {
     return (
       <div className="p-4">
-        <div className="text-destructive mb-2">{t('menu.modifiers.detail.errorLoading')}</div>
+        <div className="text-destructive mb-2">{t('modifiers.detail.errorLoading')}</div>
         <div className="text-sm text-muted-foreground mb-2">
-          {isError ? t('menu.modifiers.detail.errorFetching') : t('menu.modifiers.detail.noData')}
+          {isError ? t('modifiers.detail.errorFetching') : t('modifiers.detail.noData')}
         </div>
         {error && (
-          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-4">{error instanceof Error ? error.message : t('menu.modifiers.detail.unknownError')}</div>
+          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-4">{error instanceof Error ? error.message : t('modifiers.detail.unknownError')}</div>
         )}
         <div className="mt-4">
           <Link to={from} className="text-primary hover:underline">
-            {t('menu.modifiers.detail.backToGroups')}
+            {t('modifiers.detail.backToGroups')}
           </Link>
         </div>
       </div>
@@ -245,10 +245,10 @@ export default function ModifierGroupId() {
         </div>
         <div className="space-x-3 flex items-center">
           <AlertDialogWrapper
-            triggerTitle={t('menu.modifiers.actions.delete')}
-            title={t('menu.modifiers.dialogs.deleteTitle')}
-            message={t('menu.modifiers.dialogs.deleteDescription')}
-            rightButtonLabel={t('menu.modifiers.dialogs.deleteConfirm')}
+            triggerTitle={t('modifiers.actions.delete')}
+            title={t('modifiers.dialogs.deleteTitle')}
+            message={t('modifiers.dialogs.deleteDescription')}
+            rightButtonLabel={t('modifiers.dialogs.deleteConfirm')}
             rightButtonVariant="destructive"
             onRightButtonClick={() => deleteModifierGroupMutation.mutate()}
           />
@@ -256,7 +256,7 @@ export default function ModifierGroupId() {
             disabled={!form.formState.isDirty || updateModifierGroupDetails.isPending || saveModifierGroup.isPending}
             onClick={form.handleSubmit(onSubmit)}
           >
-            {updateModifierGroupDetails.isPending || saveModifierGroup.isPending ? t('menu.modifiers.toasts.saving') : t('menu.modifiers.forms.save')}
+            {updateModifierGroupDetails.isPending || saveModifierGroup.isPending ? t('modifiers.toasts.saving') : t('modifiers.forms.save')}
           </Button>
         </div>
       </div>
@@ -265,7 +265,7 @@ export default function ModifierGroupId() {
       <Sheet open={isCreateModifierSheetOpen} onOpenChange={setIsCreateModifierSheetOpen}>
         <SheetContent className="sm:max-w-md md:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{t('menu.modifiers.forms.createNewModifier')}</SheetTitle>
+            <SheetTitle>{t('modifiers.forms.createNewModifier')}</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
             <CreateModifier
@@ -311,20 +311,20 @@ export default function ModifierGroupId() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">{t('menu.modifiers.detail.groupInformation')}</h3>
+              <h3 className="text-lg font-medium">{t('modifiers.detail.groupInformation')}</h3>
               <FormField
                 control={form.control}
                 name="groupName"
                 defaultValue={typeof data.name === 'string' ? data.name : ''}
                 rules={{
-                  required: { value: true, message: t('menu.modifiers.detail.nameRequired') },
+                  required: { value: true, message: t('modifiers.detail.nameRequired') },
                 }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.modifiers.detail.groupName')}</FormLabel>
+                    <FormLabel>{t('modifiers.detail.groupName')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={t('menu.modifiers.detail.groupNamePlaceholder')}
+                        placeholder={t('modifiers.detail.groupNamePlaceholder')}
                         value={typeof field.value === 'string' ? field.value : ''}
                         onChange={field.onChange}
                         onBlur={field.onBlur}
@@ -344,10 +344,10 @@ export default function ModifierGroupId() {
                 defaultValue={typeof data.description === 'string' ? data.description : ''}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.forms.description')}</FormLabel>
+                    <FormLabel>{t('forms.description')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={t('menu.modifiers.detail.descriptionPlaceholder')}
+                        placeholder={t('modifiers.detail.descriptionPlaceholder')}
                         name={field.name}
                         value={typeof field.value === 'string' ? field.value : ''}
                         onChange={field.onChange}
@@ -371,14 +371,14 @@ export default function ModifierGroupId() {
               render={({ field }) => (
                 <FormItem className="mt-4">
                   <div className="flex items-center gap-2">
-                    <FormLabel>{t('menu.modifiers.detail.assignModifiers')}</FormLabel>
+                    <FormLabel>{t('modifiers.detail.assignModifiers')}</FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="rounded-full border bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold">
                           ?
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{t('menu.modifiers.detail.modifierTooltip')}</p>
+                          <p>{t('modifiers.detail.modifierTooltip')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -386,7 +386,7 @@ export default function ModifierGroupId() {
                   <FormControl>
                     <DnDMultipleSelector
                       showAddItemText={true}
-                      itemName={t('menu.modifiers.detail.modifierItem')}
+                      itemName={t('modifiers.detail.modifierItem')}
                       // showViewIcon={true}
                       onViewOption={option => {
                         if (option.value === '_new') {
@@ -397,7 +397,7 @@ export default function ModifierGroupId() {
                           navigate(`/venues/${venueId}/menumaker/modifier-groups/${option.value}`)
                         }
                       }}
-                      placeholder={t('menu.modifiers.detail.selectModifiersPlaceholder')}
+                      placeholder={t('modifiers.detail.selectModifiersPlaceholder')}
                       options={
                         allModifiers
                           ? allModifiers.map(modifier => ({
@@ -424,14 +424,14 @@ export default function ModifierGroupId() {
               render={({ field }) => (
                 <FormItem className="mt-4">
                   <div className="flex items-center gap-2">
-                    <FormLabel>{t('menu.modifiers.detail.assignProducts')}</FormLabel>
+                    <FormLabel>{t('modifiers.detail.assignProducts')}</FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="rounded-full bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold border">
                           ?
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{t('menu.modifiers.detail.productTooltip')}</p>
+                          <p>{t('modifiers.detail.productTooltip')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -440,7 +440,7 @@ export default function ModifierGroupId() {
                     <DnDMultipleSelector
                       showViewIcon={true}
                       showAddItemText={true}
-                      itemName={t('menu.modifiers.detail.productItem')}
+                      itemName={t('modifiers.detail.productItem')}
                       onViewOption={option => {
                         if (option.value === '_new') {
                           // Handle "Add new product" click
@@ -450,7 +450,7 @@ export default function ModifierGroupId() {
                           navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
                         }
                       }}
-                      placeholder={t('menu.modifiers.detail.selectProductsPlaceholder')}
+                      placeholder={t('modifiers.detail.selectProductsPlaceholder')}
                       options={
                         allProducts
                           ? allProducts.map(product => ({

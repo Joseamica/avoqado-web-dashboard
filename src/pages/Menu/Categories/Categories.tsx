@@ -15,7 +15,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
 
 export default function Categories() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -55,8 +55,8 @@ export default function Categories() {
     },
     onSuccess: data => {
       toast({
-        title: data.status ? t('menu.categories.toasts.activated') : t('menu.categories.toasts.deactivated'),
-        description: t('menu.categories.toasts.saved'),
+        title: data.status ? t('categories.toasts.activated') : t('categories.toasts.deactivated'),
+        description: t('categories.toasts.saved'),
       })
     },
   })
@@ -66,10 +66,10 @@ export default function Categories() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
-      meta: { label: t('menu.categories.columns.name') },
+      meta: { label: t('categories.columns.name') },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
-          {t('menu.categories.columns.name')}
+          {t('categories.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -81,8 +81,8 @@ export default function Categories() {
     {
       id: 'updatedAt',
       accessorKey: 'updatedAt',
-      meta: { label: t('menu.categories.columns.lastModification') },
-      header: t('menu.categories.columns.lastModification'),
+      meta: { label: t('categories.columns.lastModification') },
+      header: t('categories.columns.lastModification'),
       enableColumnFilter: false,
       cell: ({ cell }) => {
         const updatedAt = cell.getValue() as string
@@ -136,7 +136,7 @@ export default function Categories() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('menu.categories.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('categories.title')}</h1>
         <Button asChild>
           <Link
             to={`create`}
@@ -145,7 +145,7 @@ export default function Categories() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>{t('menu.categories.newCategory')}</span>
+            <span>{t('categories.newCategory')}</span>
           </Link>
         </Button>
       </div>
@@ -156,7 +156,7 @@ export default function Categories() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('menu.categories.searchPlaceholder')}
+        searchPlaceholder={t('categories.searchPlaceholder')}
         onSearch={handleSearch}
         tableId="menu:categories"
         clickableRow={row => ({

@@ -1,4 +1,4 @@
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
+﻿import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -40,7 +40,7 @@ export function NavMain({
 }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { t } = useTranslation()
+  const { t } = useTranslation('sidebar')
 
   // Determine if a primary item is active based on current pathname.
   const isItemActive = (url: string) => {
@@ -63,7 +63,7 @@ export function NavMain({
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>{t('sidebar.platform')}</SidebarGroupLabel>
+        <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
         <SidebarMenu>
           {items.map(item =>
             item.items ? (
@@ -123,7 +123,7 @@ export function NavMain({
 
       {superadminItems && superadminItems.length > 0 && (
         <SidebarGroup>
-          <SidebarGroupLabel>{t('sidebar.superadmin')}</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('superadmin')}</SidebarGroupLabel>
           <SidebarMenu>
             {superadminItems.map(item =>
               item.items ? (

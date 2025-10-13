@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { VenuePricingStructure } from '@/services/paymentProvider.service'
 
 const VenuePaymentConfig: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const { toast } = useToast()
   const { slug } = useParams<{ slug: string }>()
   const { getVenueBySlug } = useAuth()

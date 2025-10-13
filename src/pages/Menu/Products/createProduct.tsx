@@ -31,7 +31,7 @@ type CreateProductPayload = {
 }
 
 export default function CreateProduct() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
 
@@ -65,15 +65,15 @@ export default function CreateProduct() {
     },
     onSuccess: (product: Product) => {
       toast({
-        title: t('menu.products.create.toasts.created', { name: product.name }),
-        description: t('menu.products.create.toasts.createdDesc'),
+        title: t('products.create.toasts.created', { name: product.name }),
+        description: t('products.create.toasts.createdDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.products.create.toasts.createError'),
-        description: error.message || t('menu.products.create.toasts.createErrorDesc'),
+        title: t('products.create.toasts.createError'),
+        description: error.message || t('products.create.toasts.createErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -161,7 +161,7 @@ export default function CreateProduct() {
   }
 
   if (isCategoriesLoading || isModifierGroupsLoading) {
-    return <LoadingScreen message={t('menu.forms.messages.loading')} />
+    return <LoadingScreen message={t('forms.messages.loading')} />
   }
   return (
     <div className="">
@@ -180,33 +180,33 @@ export default function CreateProduct() {
             variant="default"
             disabled={!form.formState.isDirty || createProductMutation.isPending}
           >
-            {createProductMutation.isPending ? t('menu.products.create.saving') : t('menu.modifiers.forms.save')}
+            {createProductMutation.isPending ? t('products.create.saving') : t('modifiers.forms.save')}
           </LoadingButton>
         </div>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
-          <h1 className="text-xl font-semibold">{t('menu.products.create.title')}</h1>
+          <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
 
           {/* SKU */}
           <FormField
             control={form.control}
             name="sku"
             rules={{
-              required: { value: true, message: t('menu.products.create.skuRequired') },
+              required: { value: true, message: t('products.create.skuRequired') },
               pattern: {
                 value: /^[A-Z0-9_-]+$/,
-                message: t('menu.products.create.skuPattern'),
+                message: t('products.create.skuPattern'),
               },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.products.create.sku')}</FormLabel>
+                  <FormLabel>{t('products.create.sku')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={t('menu.products.create.skuPlaceholder')}
+                      placeholder={t('products.create.skuPlaceholder')}
                       className="max-w-96 uppercase"
                       {...field}
                       onChange={e => field.onChange(e.target.value.toUpperCase())}
@@ -222,16 +222,16 @@ export default function CreateProduct() {
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: t('menu.forms.validation.nameRequired') },
-              minLength: { value: 3, message: t('menu.forms.validation.nameMinLength') },
-              maxLength: { value: 30, message: t('menu.forms.validation.nameMaxLength') },
+              required: { value: true, message: t('forms.validation.nameRequired') },
+              minLength: { value: 3, message: t('forms.validation.nameMinLength') },
+              maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.name')}</FormLabel>
+                  <FormLabel>{t('forms.name')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('menu.products.create.namePlaceholder')} className="max-w-96" {...field} />
+                    <Input placeholder={t('products.create.namePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -245,9 +245,9 @@ export default function CreateProduct() {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.descriptionOptional')}</FormLabel>
+                <FormLabel>{t('products.create.descriptionOptional')}</FormLabel>
                 <FormControl>
-                  <Textarea placeholder={t('menu.products.create.descriptionPlaceholder')} className="max-w-96" {...field} />
+                  <Textarea placeholder={t('products.create.descriptionPlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -257,19 +257,19 @@ export default function CreateProduct() {
             control={form.control}
             name="price"
             rules={{
-              required: t('menu.products.create.priceRequired'),
+              required: t('products.create.priceRequired'),
               validate: {
-                esNumero: value => !isNaN(parseFloat(value)) || t('menu.products.create.priceValid'),
-                esPositivo: value => parseFloat(value) > 0 || t('menu.products.create.pricePositive'),
-                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('menu.products.create.priceDecimals'),
+                esNumero: value => !isNaN(parseFloat(value)) || t('products.create.priceValid'),
+                esPositivo: value => parseFloat(value) > 0 || t('products.create.pricePositive'),
+                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('products.create.priceDecimals'),
               },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('menu.forms.price')}</FormLabel>
+                  <FormLabel>{t('forms.price')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('menu.products.create.pricePlaceholder')} className="max-w-96" {...field} />
+                    <Input placeholder={t('products.create.pricePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -280,27 +280,27 @@ export default function CreateProduct() {
             control={form.control}
             name="type"
             rules={{
-              required: t('menu.products.create.typeRequired'),
+              required: t('products.create.typeRequired'),
             }}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
-                  <FormLabel>{t('menu.products.create.type')}</FormLabel>
+                  <FormLabel>{t('products.create.type')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={t('menu.products.create.typePlaceholder')} />
+                        <SelectValue placeholder={t('products.create.typePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>{t('menu.products.create.selectType')}</SelectLabel>
-                        <SelectItem value="FOOD">{t('menu.products.create.types.food')}</SelectItem>
-                        <SelectItem value="BEVERAGE">{t('menu.products.create.types.beverage')}</SelectItem>
-                        <SelectItem value="ALCOHOL">{t('menu.products.create.types.alcohol')}</SelectItem>
-                        <SelectItem value="RETAIL">{t('menu.products.create.types.retail')}</SelectItem>
-                        <SelectItem value="SERVICE">{t('menu.products.create.types.service')}</SelectItem>
-                        <SelectItem value="OTHER">{t('menu.products.create.types.other')}</SelectItem>
+                        <SelectLabel>{t('products.create.selectType')}</SelectLabel>
+                        <SelectItem value="FOOD">{t('products.create.types.food')}</SelectItem>
+                        <SelectItem value="BEVERAGE">{t('products.create.types.beverage')}</SelectItem>
+                        <SelectItem value="ALCOHOL">{t('products.create.types.alcohol')}</SelectItem>
+                        <SelectItem value="RETAIL">{t('products.create.types.retail')}</SelectItem>
+                        <SelectItem value="SERVICE">{t('products.create.types.service')}</SelectItem>
+                        <SelectItem value="OTHER">{t('products.create.types.other')}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -316,7 +316,7 @@ export default function CreateProduct() {
             name="imageUrl"
             render={() => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.photo')}</FormLabel>
+                <FormLabel>{t('products.create.photo')}</FormLabel>
                 <FormControl>
                   <div className="pb-4">
                     {/* 1) Si el usuario ya seleccionó una imagen pero todavía no la recorta, mostramos el Cropper */}
@@ -336,7 +336,7 @@ export default function CreateProduct() {
                         </div>
                         <div className="flex justify-between mt-4">
                           <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                            {t('menu.forms.buttons.cancel')}
+                            {t('forms.buttons.cancel')}
                           </Button>
                           <Button
                             type="button"
@@ -346,7 +346,7 @@ export default function CreateProduct() {
                             }}
                             disabled={uploading}
                           >
-                            {t('menu.products.create.confirm')}
+                            {t('products.create.confirm')}
                           </Button>
                         </div>
                       </div>
@@ -355,20 +355,20 @@ export default function CreateProduct() {
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: Imagen */}
                         <div className="w-1/3">
-                          <img src={imageUrl} alt={t('menu.products.imageAlt')} className="object-cover w-full h-auto rounded-md" />
+                          <img src={imageUrl} alt={t('products.imageAlt')} className="object-cover w-full h-auto rounded-md" />
                         </div>
 
                         {/* Sección Derecha: Texto y Botones */}
                         <div className="flex-1 space-y-2">
-                          <p className="text-base">{t('menu.products.create.photoVisible')}</p>
+                          <p className="text-base">{t('products.create.photoVisible')}</p>
                           <p className="text-sm text-green-600">
                             <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                              {t('menu.products.create.photoGuidelines')}
+                              {t('products.create.photoGuidelines')}
                             </a>
                             .
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {t('menu.products.create.photoRequirements')}
+                            {t('products.create.photoRequirements')}
                           </p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
@@ -391,10 +391,10 @@ export default function CreateProduct() {
                                 fileInput.click()
                               }}
                             >
-                              {t('menu.products.create.replace')}
+                              {t('products.create.replace')}
                             </Button>
                             <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
-                              {t('menu.products.create.delete')}
+                              {t('products.create.delete')}
                             </Button>
                           </div>
                         </div>
@@ -404,8 +404,8 @@ export default function CreateProduct() {
                       <div className="relative flex space-x-4">
                         {/* Sección Izquierda: recuadro para subir imagen */}
                         <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-border border-dashed rounded-md ">
-                          <p className="text-sm text-center text-muted-foreground">{t('menu.products.create.dropImage')}</p>
-                          <p className="text-muted-foreground">{t('menu.products.create.or')}</p>
+                          <p className="text-sm text-center text-muted-foreground">{t('products.create.dropImage')}</p>
+                          <p className="text-muted-foreground">{t('products.create.or')}</p>
 
                           {/* Input "invisible" sobre la zona de drag & drop para que sea clickeable */}
                           <Input
@@ -417,19 +417,19 @@ export default function CreateProduct() {
                           />
 
                           {/* Texto que se ve (debajo del input invisible) */}
-                          <p className="font-[400] text-sm text-green-600">{t('menu.products.create.browseFile')}</p>
+                          <p className="font-[400] text-sm text-green-600">{t('products.create.browseFile')}</p>
                         </div>
 
                         {/* Sección Derecha: descripción y botones */}
                         <div className="flex-1 space-y-2 ">
-                          <p className="text-base">{t('menu.products.create.photoHelp')}</p>
+                          <p className="text-base">{t('products.create.photoHelp')}</p>
                           <p className="text-sm text-green-600">
                             <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                              {t('menu.products.create.photoGuidelines')}
+                              {t('products.create.photoGuidelines')}
                             </a>
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {t('menu.products.create.photoRequirements')}
+                            {t('products.create.photoRequirements')}
                           </p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
@@ -450,7 +450,7 @@ export default function CreateProduct() {
                                 fileInput.click()
                               }}
                             >
-                              {t('menu.products.create.addPhoto')}
+                              {t('products.create.addPhoto')}
                             </Button>
                           </div>
                         </div>
@@ -466,19 +466,19 @@ export default function CreateProduct() {
             control={form.control}
             name="categoryId"
             rules={{
-              required: { value: true, message: t('menu.products.create.categoryRequired') },
+              required: { value: true, message: t('products.create.categoryRequired') },
             }}
             render={({ field }) => (
               <FormItem className="max-w-96">
-                <FormLabel>{t('menu.products.create.category')}</FormLabel>
+                <FormLabel>{t('products.create.category')}</FormLabel>
                 <FormControl>
                   <Select onValueChange={value => { field.onChange(value); form.clearErrors('categoryId') }} defaultValue={field.value}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t('menu.products.create.categoryPlaceholder')} />
+                      <SelectValue placeholder={t('products.create.categoryPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>{t('menu.products.create.selectCategory')}</SelectLabel>
+                        <SelectLabel>{t('products.create.selectCategory')}</SelectLabel>
                         {(categories ?? []).map(category => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
@@ -497,7 +497,7 @@ export default function CreateProduct() {
             name="modifierGroups"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('menu.products.create.modifierGroups')}</FormLabel>
+                <FormLabel>{t('products.create.modifierGroups')}</FormLabel>
                 <FormControl>
                   <MultipleSelector
                     {...field}
@@ -507,7 +507,7 @@ export default function CreateProduct() {
                       disabled: false,
                     }))}
                     hidePlaceholderWhenSelected
-                    placeholder={t('menu.products.create.selectGroups')}
+                    placeholder={t('products.create.selectGroups')}
                   />
                 </FormControl>
                 <FormMessage />

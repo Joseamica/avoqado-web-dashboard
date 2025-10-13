@@ -21,7 +21,7 @@ import { createModifierGroup as createModifierGroupService } from '@/services/me
 
 // Schema for the form validation - will be created inside component to access t()
 const createFormSchema = (t: any) => z.object({
-  name: z.string().min(1, { message: t('menu.modifiers.createGroup.nameRequired') }),
+  name: z.string().min(1, { message: t('modifiers.createGroup.nameRequired') }),
   required: z.boolean().default(false),
   min: z.number().int().min(0).default(0),
   max: z.number().int().min(1).default(1),
@@ -48,7 +48,7 @@ const createFormSchema = (t: any) => z.object({
 })
 
 export default function CreateModifierGroup() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -86,15 +86,15 @@ export default function CreateModifierGroup() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.createGroup.toasts.created'),
-        description: t('menu.modifiers.createGroup.toasts.createdDesc'),
+        title: t('modifiers.createGroup.toasts.created'),
+        description: t('modifiers.createGroup.toasts.createdDesc'),
       })
       navigate(`/venues/${venueId}/menumaker/modifier-groups`)
     },
     onError: error => {
       toast({
-        title: t('menu.modifiers.createGroup.toasts.createError'),
-        description: error.message || t('menu.modifiers.createGroup.toasts.createErrorDesc'),
+        title: t('modifiers.createGroup.toasts.createError'),
+        description: error.message || t('modifiers.createGroup.toasts.createErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -154,32 +154,32 @@ export default function CreateModifierGroup() {
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/venues/${venueId}/menumaker/modifier-groups`}>
             <ChevronLeft className="w-4 h-4" />
-            <span>{t('menu.forms.buttons.goBack')}</span>
+            <span>{t('forms.buttons.goBack')}</span>
           </Link>
         </Button>
-        <h1 className="text-xl font-semibold">{t('menu.modifiers.createGroup.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('modifiers.createGroup.title')}</h1>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('menu.modifiers.createGroup.basicInfo')}</CardTitle>
-              <CardDescription>{t('menu.modifiers.createGroup.basicInfoDesc')}</CardDescription>
+              <CardTitle>{t('modifiers.createGroup.basicInfo')}</CardTitle>
+              <CardDescription>{t('modifiers.createGroup.basicInfoDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Name field */}
               <FormField
                 control={form.control}
                 name="name"
-                rules={{ required: { value: true, message: t('menu.modifiers.createGroup.nameRequired') } }}
+                rules={{ required: { value: true, message: t('modifiers.createGroup.nameRequired') } }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.modifiers.createGroup.groupName')}</FormLabel>
+                    <FormLabel>{t('modifiers.createGroup.groupName')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('menu.modifiers.createGroup.namePlaceholder')} {...field} />
+                      <Input placeholder={t('modifiers.createGroup.namePlaceholder')} {...field} />
                     </FormControl>
-                    <FormDescription>{t('menu.modifiers.createGroup.nameDescription')}</FormDescription>
+                    <FormDescription>{t('modifiers.createGroup.nameDescription')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -192,8 +192,8 @@ export default function CreateModifierGroup() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                     <div className="space-y-0.5">
-                      <FormLabel>{t('menu.modifiers.createGroup.requiredSelection')}</FormLabel>
-                      <FormDescription>{t('menu.modifiers.createGroup.requiredSelectionDesc')}</FormDescription>
+                      <FormLabel>{t('modifiers.createGroup.requiredSelection')}</FormLabel>
+                      <FormDescription>{t('modifiers.createGroup.requiredSelectionDesc')}</FormDescription>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -206,8 +206,8 @@ export default function CreateModifierGroup() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('menu.modifiers.createGroup.selectionRules')}</CardTitle>
-              <CardDescription>{t('menu.modifiers.createGroup.selectionRulesDesc')}</CardDescription>
+              <CardTitle>{t('modifiers.createGroup.selectionRules')}</CardTitle>
+              <CardDescription>{t('modifiers.createGroup.selectionRulesDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Min and Max Fields */}
@@ -217,7 +217,7 @@ export default function CreateModifierGroup() {
                   name="min"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('menu.modifiers.createGroup.minSelections')}</FormLabel>
+                      <FormLabel>{t('modifiers.createGroup.minSelections')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -226,7 +226,7 @@ export default function CreateModifierGroup() {
                           onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                         />
                       </FormControl>
-                      <FormDescription>{t('menu.modifiers.createGroup.minSelectionsDesc')}</FormDescription>
+                      <FormDescription>{t('modifiers.createGroup.minSelectionsDesc')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -237,11 +237,11 @@ export default function CreateModifierGroup() {
                   name="max"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('menu.modifiers.createGroup.maxSelections')}</FormLabel>
+                      <FormLabel>{t('modifiers.createGroup.maxSelections')}</FormLabel>
                       <FormControl>
                         <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} />
                       </FormControl>
-                      <FormDescription>{t('menu.modifiers.createGroup.maxSelectionsDesc')}</FormDescription>
+                      <FormDescription>{t('modifiers.createGroup.maxSelectionsDesc')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -254,17 +254,17 @@ export default function CreateModifierGroup() {
                 name="multipleSelectionAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.modifiers.createGroup.multipleSelection')}</FormLabel>
+                    <FormLabel>{t('modifiers.createGroup.multipleSelection')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={0}
-                        placeholder={t('menu.modifiers.createGroup.multipleSelectionPlaceholder')}
+                        placeholder={t('modifiers.createGroup.multipleSelectionPlaceholder')}
                         {...field}
                         onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
-                    <FormDescription>{t('menu.modifiers.createGroup.multipleSelectionDesc')}</FormDescription>
+                    <FormDescription>{t('modifiers.createGroup.multipleSelectionDesc')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -275,11 +275,11 @@ export default function CreateModifierGroup() {
                 name="multiMax"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('menu.modifiers.createGroup.maxPerModifier')}</FormLabel>
+                    <FormLabel>{t('modifiers.createGroup.maxPerModifier')}</FormLabel>
                     <FormControl>
                       <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} />
                     </FormControl>
-                    <FormDescription>{t('menu.modifiers.createGroup.maxPerModifierDesc')}</FormDescription>
+                    <FormDescription>{t('modifiers.createGroup.maxPerModifierDesc')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -289,8 +289,8 @@ export default function CreateModifierGroup() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('menu.modifiers.createGroup.modifiers')}</CardTitle>
-              <CardDescription>{t('menu.modifiers.createGroup.modifiersDesc')}</CardDescription>
+              <CardTitle>{t('modifiers.createGroup.modifiers')}</CardTitle>
+              <CardDescription>{t('modifiers.createGroup.modifiersDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Existing Modifiers Selector */}
@@ -300,7 +300,7 @@ export default function CreateModifierGroup() {
                   name="modifiers"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('menu.modifiers.createGroup.selectExistingModifiers')}</FormLabel>
+                      <FormLabel>{t('modifiers.createGroup.selectExistingModifiers')}</FormLabel>
                       <FormControl>
                         <DnDMultipleSelector
                           {...field}
@@ -310,7 +310,7 @@ export default function CreateModifierGroup() {
                             disabled: false,
                           }))}
                           hidePlaceholderWhenSelected
-                          placeholder={t('menu.modifiers.createGroup.selectExistingPlaceholder')}
+                          placeholder={t('modifiers.createGroup.selectExistingPlaceholder')}
                           enableReordering={true}
                           creatable={false}
                         />
@@ -324,27 +324,27 @@ export default function CreateModifierGroup() {
               {/* Add New Modifiers Toggle */}
               <div className="flex items-center space-x-2">
                 <Switch id="new-modifiers" checked={showNewModifierForm} onCheckedChange={setShowNewModifierForm} />
-                <Label htmlFor="new-modifiers">{t('menu.modifiers.createGroup.addNewModifiers')}</Label>
+                <Label htmlFor="new-modifiers">{t('modifiers.createGroup.addNewModifiers')}</Label>
               </div>
 
               {/* New Modifiers Form */}
               {showNewModifierForm && (
                 <div className="space-y-3 mt-4 border p-4 rounded-md">
-                  <h3 className="text-sm font-medium">{t('menu.modifiers.createGroup.newModifiers')}</h3>
+                  <h3 className="text-sm font-medium">{t('modifiers.createGroup.newModifiers')}</h3>
 
                   {newModifiersList.map((modifier, index) => (
                     <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                       <div className="col-span-2">
-                        <Label htmlFor={`modifier-name-${index}`}>{t('menu.forms.name')}</Label>
+                        <Label htmlFor={`modifier-name-${index}`}>{t('forms.name')}</Label>
                         <Input
                           id={`modifier-name-${index}`}
                           value={modifier.name}
                           onChange={e => handleModifierChange(index, 'name', e.target.value)}
-                          placeholder={t('menu.modifiers.createGroup.modifierNamePlaceholder')}
+                          placeholder={t('modifiers.createGroup.modifierNamePlaceholder')}
                         />
                       </div>
                       <div>
-                        <Label htmlFor={`modifier-price-${index}`}>{t('menu.modifiers.create.extraPrice')}</Label>
+                        <Label htmlFor={`modifier-price-${index}`}>{t('modifiers.create.extraPrice')}</Label>
                         <Input
                           id={`modifier-price-${index}`}
                           type="number"
@@ -356,14 +356,14 @@ export default function CreateModifierGroup() {
                       </div>
                       {index > 0 && (
                         <Button type="button" variant="destructive" size="sm" onClick={() => removeNewModifier(index)} className="mt-1">
-                          {t('menu.modifiers.createGroup.remove')}
+                          {t('modifiers.createGroup.remove')}
                         </Button>
                       )}
                     </div>
                   ))}
 
                   <Button type="button" variant="outline" size="sm" onClick={addNewModifier} className="mt-2">
-                    {t('menu.modifiers.createGroup.addAnother')}
+                    {t('modifiers.createGroup.addAnother')}
                   </Button>
                 </div>
               )}
@@ -372,10 +372,10 @@ export default function CreateModifierGroup() {
 
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/modifier-groups`)}>
-              {t('menu.forms.buttons.cancel')}
+              {t('forms.buttons.cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>
-              {form.formState.isSubmitting ? t('menu.modifiers.createGroup.creating') : t('menu.modifiers.createGroup.createButton')}
+              {form.formState.isSubmitting ? t('modifiers.createGroup.creating') : t('modifiers.createGroup.createButton')}
             </Button>
           </div>
         </form>

@@ -36,7 +36,7 @@ import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
 
 export default function ModifierGroups() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const navigate = useNavigate()
@@ -110,8 +110,8 @@ export default function ModifierGroups() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.toasts.updated'),
-        description: t('menu.modifiers.toasts.saved'),
+        title: t('modifiers.toasts.updated'),
+        description: t('modifiers.toasts.saved'),
       })
       // Invalidate all relevant queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -122,8 +122,8 @@ export default function ModifierGroups() {
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.modifiers.toasts.saveError'),
-        description: error.message || t('menu.modifiers.toasts.saveErrorDesc'),
+        title: t('modifiers.toasts.saveError'),
+        description: error.message || t('modifiers.toasts.saveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -136,8 +136,8 @@ export default function ModifierGroups() {
     },
     onSuccess: () => {
       toast({
-        title: t('menu.modifiers.toasts.deleted'),
-        description: t('menu.modifiers.toasts.deletedDesc'),
+        title: t('modifiers.toasts.deleted'),
+        description: t('modifiers.toasts.deletedDesc'),
       })
       // Invalidate and refetch data
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
@@ -146,8 +146,8 @@ export default function ModifierGroups() {
     },
     onError: (error: any) => {
       toast({
-        title: t('menu.modifiers.toasts.deleteError'),
-        description: error.message || t('menu.modifiers.toasts.deleteErrorDesc'),
+        title: t('modifiers.toasts.deleteError'),
+        description: error.message || t('modifiers.toasts.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -160,7 +160,7 @@ export default function ModifierGroups() {
       sortDescFirst: true,
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="flex items-center cursor-pointer">
-          {t('menu.modifiers.columns.name')}
+          {t('modifiers.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -170,28 +170,28 @@ export default function ModifierGroups() {
     {
       id: 'modifiers',
       accessorKey: 'modifiers',
-      header: t('menu.modifiers.columns.modifiers'),
+      header: t('modifiers.columns.modifiers'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
     {
       id: 'actions',
-      header: t('menu.modifiers.columns.actions'),
+      header: t('modifiers.columns.actions'),
       cell: ({ row }) => {
         return (
           <div className="flex justify-end" onClick={e => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 dropdown-menu-trigger">
-                  <span className="sr-only">{t('menu.modifiers.actions.openMenu')}</span>
+                  <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('menu.modifiers.actions.title')}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('modifiers.actions.title')}</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
                   <Pencil className="h-4 w-4 mr-2" />
-                  {t('menu.modifiers.actions.edit')}
+                  {t('modifiers.actions.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -200,7 +200,7 @@ export default function ModifierGroups() {
                   }}
                 >
                   <Link2 className="h-4 w-4 mr-2" />
-                  {t('menu.modifiers.actions.assignModifiersAndProducts')}
+                  {t('modifiers.actions.assignModifiersAndProducts')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -211,7 +211,7 @@ export default function ModifierGroups() {
                   className="text-red-600 focus:text-red-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  {t('menu.modifiers.actions.delete')}
+                  {t('modifiers.actions.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -281,7 +281,7 @@ export default function ModifierGroups() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('menu.modifiers.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('modifiers.title')}</h1>
 
         <Button asChild>
           <Link
@@ -291,7 +291,7 @@ export default function ModifierGroups() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>{t('menu.modifiers.newModifierGroup')}</span>
+            <span>{t('modifiers.newModifierGroup')}</span>
           </Link>
         </Button>
 
@@ -299,9 +299,9 @@ export default function ModifierGroups() {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t('menu.modifiers.dialogs.delete.title')}</DialogTitle>
+              <DialogTitle>{t('modifiers.dialogs.delete.title')}</DialogTitle>
               <DialogDescription>
-                {t('menu.modifiers.dialogs.delete.description')}
+                {t('modifiers.dialogs.delete.description')}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -313,7 +313,7 @@ export default function ModifierGroups() {
                 onClick={() => modifierGroupToDelete && deleteModifierGroupMutation.mutate(modifierGroupToDelete)}
                 disabled={deleteModifierGroupMutation.isPending}
               >
-                {deleteModifierGroupMutation.isPending ? t('menu.modifiers.dialogs.delete.deleting') : t('menu.modifiers.dialogs.delete.delete')}
+                {deleteModifierGroupMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -326,7 +326,7 @@ export default function ModifierGroups() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('menu.modifiers.searchPlaceholder')}
+        searchPlaceholder={t('modifiers.searchPlaceholder')}
         onSearch={handleSearch}
         tableId="modifier-groups:list"
         clickableRow={row => ({
@@ -382,10 +382,10 @@ export default function ModifierGroups() {
                   <SheetHeader>
                     <SheetTitle>{modifierGroup.name}</SheetTitle>
                     <SheetDescription>
-                      {t('menu.modifiers.forms.assignDescription')}
+                      {t('modifiers.forms.assignDescription')}
                       <div className="flex justify-end">
                         <Button type="button" variant="outline" size="sm" onClick={() => setCreateModifier(true)} className="mt-4">
-                          {t('menu.modifiers.forms.createNewModifier')}
+                          {t('modifiers.forms.createNewModifier')}
                         </Button>
                       </div>
                     </SheetDescription>
@@ -397,18 +397,18 @@ export default function ModifierGroups() {
                       name="modifiers"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('menu.modifiers.forms.modifiersInGroup')}</FormLabel>
+                          <FormLabel>{t('modifiers.forms.modifiersInGroup')}</FormLabel>
                           <FormControl>
                             {field.value && field.value.length > 0 ? (
                               <DnDMultipleSelector
-                                placeholder={t('menu.modifiers.forms.selectModifiers')}
+                                placeholder={t('modifiers.forms.selectModifiers')}
                                 options={allModifierOptions}
                                 value={field.value}
                                 onChange={field.onChange}
                               />
                             ) : (
                               <div className="flex items-center justify-center h-20 text-muted-foreground">
-                                {t('menu.modifiers.forms.noModifiersAssigned')}
+                                {t('modifiers.forms.noModifiersAssigned')}
                               </div>
                             )}
                           </FormControl>
@@ -422,11 +422,11 @@ export default function ModifierGroups() {
                       name="avoqadoProduct"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('menu.modifiers.forms.productsUsingGroup')}</FormLabel>
+                          <FormLabel>{t('modifiers.forms.productsUsingGroup')}</FormLabel>
                           <FormControl>
                             {field.value && field.value.length > 0 ? (
                               <DnDMultipleSelector
-                                placeholder={t('menu.modifiers.forms.selectProducts')}
+                                placeholder={t('modifiers.forms.selectProducts')}
                                 options={
                                   allProducts
                                     ? allProducts.map(product => ({
@@ -441,7 +441,7 @@ export default function ModifierGroups() {
                               />
                             ) : (
                               <div className="flex items-center justify-center h-20 text-muted-foreground">
-                                {t('menu.modifiers.forms.noProductsAssigned')}
+                                {t('modifiers.forms.noProductsAssigned')}
                               </div>
                             )}
                           </FormControl>

@@ -1,0 +1,124 @@
+{
+  "venueMgmt": {
+    "title": "Venue Management",
+    "subtitle": "Monitor and manage all venues on the platform",
+    "stats": {
+      "totalRevenue": "Total Revenue",
+      "commissionPrefix": "Commission:",
+      "activeVenues": "Active Venues",
+      "totalVenuesSuffix": "total venues",
+      "pendingApprovals": "Pending Approvals",
+      "requireAction": "Require action",
+      "avgRevenue": "Avg Revenue per Venue",
+      "perActiveVenue": "Per active venue"
+    },
+    "tableTitle": "All Venues",
+    "tableDesc": "Manage venue registrations, subscriptions, and status",
+    "searchPlaceholder": "Search venues, owners, or organizations...",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All Statuses",
+    "columns": {
+      "venue": "Venue",
+      "status": "Status",
+      "subscriptionPlan": "Plan",
+      "monthlyRevenue": "Monthly Revenue",
+      "payment": "Payment",
+      "users": "Users",
+      "actions": "Actions"
+    },
+    "dropdown": {
+      "viewDetails": "View Details",
+      "approve": "Approve Venue",
+      "manageFeatures": "Manage Features",
+      "viewAnalytics": "View Analytics",
+      "suspend": "Suspend Venue"
+    },
+    "loadingVenues": "Loading venues...",
+    "statuses": {
+      "ACTIVE": "Active",
+      "PENDING": "Pending",
+      "SUSPENDED": "Suspended",
+      "CANCELLED": "Cancelled",
+      "TRIAL": "Trial"
+    },
+    "paymentStatuses": {
+      "PAID": "Paid",
+      "PENDING": "Pending",
+      "OVERDUE": "Overdue"
+    },
+    "planLabels": {
+      "STARTER": "Starter",
+      "PROFESSIONAL": "Professional",
+      "ENTERPRISE": "Enterprise"
+    },
+    "dialogs": {
+      "detailsTitle": "Venue Details",
+      "detailsDescPrefix": "Complete information about",
+      "approveTitle": "Approve Venue",
+      "approveDescPrefix": "Are you sure you want to approve",
+      "approveReasonLabel": "Reason (optional)",
+      "approveReasonPlaceholder": "Optional reason",
+      "cancel": "Cancel",
+      "approve": "Approve Venue",
+      "approving": "Approving...",
+      "suspendTitle": "Suspend Venue",
+      "suspendDescPrefix": "Please provide a reason to suspend",
+      "suspendReasonLabel": "Reason",
+      "suspendReasonPlaceholder": "Reason for suspension",
+      "suspend": "Suspend Venue",
+      "suspending": "Suspending..."
+    },
+    "toasts": {
+      "approveSuccessTitle": "Venue approved",
+      "approveFailedTitle": "Failed to approve venue",
+      "suspendSuccessTitle": "Venue suspended",
+      "suspendFailedTitle": "Failed to suspend venue",
+      "successDescSuffix": "has been",
+      "approved": "approved.",
+      "suspended": "suspended."
+    }
+  },
+  "detailsView": {
+    "tabs": {
+      "overview": "Overview",
+      "billing": "Billing",
+      "features": "Features",
+      "analytics": "Analytics"
+    },
+    "venueInfo": {
+      "title": "Venue Information",
+      "name": "Name",
+      "slug": "Slug",
+      "status": "Status",
+      "plan": "Plan"
+    },
+    "ownerInfo": {
+      "title": "Owner Information",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "na": "N/A"
+    },
+    "billingInfo": {
+      "title": "Billing Information",
+      "subscriptionFee": "Subscription Fee",
+      "featuresCost": "Features Cost",
+      "totalMonthly": "Total Monthly",
+      "paymentStatus": "Payment Status"
+    },
+    "revenueInfo": {
+      "title": "Revenue Information",
+      "monthlyRevenue": "Monthly Revenue",
+      "totalRevenue": "Total Revenue",
+      "commissionRate": "Commission Rate",
+      "commissionEarned": "Commission Earned"
+    },
+    "featuresComingSoon": "Feature management coming soon...",
+    "analytics": {
+      "title": "Performance Metrics",
+      "monthlyTransactions": "Monthly Transactions",
+      "avgOrderValue": "Average Order Value",
+      "activeUsers": "Active Users"
+    }
+  }
+}

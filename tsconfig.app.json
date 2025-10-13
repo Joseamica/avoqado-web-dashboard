@@ -16,6 +16,7 @@
     "strict": false,
     /* Bundler mode */
     "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",

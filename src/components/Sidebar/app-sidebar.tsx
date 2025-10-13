@@ -1,4 +1,4 @@
-import {
+﻿import {
   Banknote,
   BookOpen,
   Building,
@@ -28,12 +28,12 @@ import { useTranslation } from 'react-i18next'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const { allVenues } = useAuth()
-  const { t } = useTranslation()
+  const { t } = useTranslation(['translation', 'sidebar'])
 
   const navMain = React.useMemo(
     () => [
       { title: t('routes.home'), isActive: true, url: 'home', icon: Home },
-      { title: t('sidebar.analytics'), isActive: true, url: 'analytics', icon: TrendingUp },
+      { title: t('sidebar:analytics'), isActive: true, url: 'analytics', icon: TrendingUp },
       { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen },
       { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote },
       { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame },
@@ -47,7 +47,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         items: [
           { title: t('routes.editvenue'), url: 'editVenue' },
           { title: t('routes.teams'), url: 'teams' },
-          ...(user.role === 'SUPERADMIN' ? [{ title: t('sidebar.paymentConfig'), url: 'payment-config' }] : []),
+          ...(user.role === 'SUPERADMIN' ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config' }] : []),
           { title: t('routes.billing'), url: '#billing' },
           { title: t('routes.limits'), url: '#limits' },
         ],
@@ -58,14 +58,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   const superAdminRoutes = React.useMemo(
     () => [
-      { title: t('sidebar.summary'), isActive: true, url: '/superadmin', icon: BarChart3 },
-      { title: t('sidebar.venues'), isActive: true, url: '/superadmin/venues', icon: Building },
-      { title: t('sidebar.features'), isActive: true, url: '/superadmin/features', icon: Zap },
-      { title: t('sidebar.revenue'), isActive: true, url: '/superadmin/revenue', icon: DollarSign },
-      { title: t('sidebar.analytics'), isActive: true, url: '/superadmin/analytics', icon: TrendingUp },
-      { title: t('sidebar.alerts'), isActive: true, url: '/superadmin/alerts', icon: AlertTriangle },
-      { title: t('sidebar.testing'), isActive: true, url: '/superadmin/testing', icon: FlaskConical },
-      { title: t('sidebar.legacy_admin'), isActive: true, url: '/admin', icon: Settings2 },
+      { title: t('sidebar:summary'), isActive: true, url: '/superadmin', icon: BarChart3 },
+      { title: t('sidebar:venues'), isActive: true, url: '/superadmin/venues', icon: Building },
+      { title: t('sidebar:features'), isActive: true, url: '/superadmin/features', icon: Zap },
+      { title: t('sidebar:revenue'), isActive: true, url: '/superadmin/revenue', icon: DollarSign },
+      { title: t('sidebar:analytics'), isActive: true, url: '/superadmin/analytics', icon: TrendingUp },
+      { title: t('sidebar:alerts'), isActive: true, url: '/superadmin/alerts', icon: AlertTriangle },
+      { title: t('sidebar:testing'), isActive: true, url: '/superadmin/testing', icon: FlaskConical },
+      { title: t('sidebar:legacy_admin'), isActive: true, url: '/admin', icon: Settings2 },
     ],
     [t],
   )

@@ -15,7 +15,7 @@ interface CostStructuresDisplayProps {
 }
 
 export const CostStructuresDisplay: React.FC<CostStructuresDisplayProps> = ({ costStructures, isLoading }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
 
   if (isLoading) {
     return (

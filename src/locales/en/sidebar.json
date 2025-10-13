@@ -1,0 +1,33 @@
+﻿{
+  "summary": "Summary",
+  "main": "Main Dashboard",
+  "analytics": "Analytics",
+  "alerts": "Alerts",
+  "superadmin": "Superadmin",
+  "business": "Business Management",
+  "venues": "Venues",
+  "revenue": "Revenue",
+  "customers": "Customers",
+  "growth": "Growth",
+  "paymentProviders": "Payment Providers",
+  "merchantAccounts": "Merchant Accounts",
+  "costStructures": "Cost Structures",
+  "venuePricing": "Venue Pricing",
+  "paymentAnalytics": "Payment Analytics",
+  "paymentConfig": "Payment Config",
+  "platform": "Platform",
+  "features": "Features",
+  "system": "System Status",
+  "reports": "Reports",
+  "support": "Support",
+  "admin": "Administration",
+  "config": "Settings",
+  "legacy_admin": "Legacy Admin",
+  "testing": "Testing",
+  "projects": {
+    "title": "Projects",
+    "view": "View",
+    "share": "Share",
+    "delete": "Delete"
+  }
+}

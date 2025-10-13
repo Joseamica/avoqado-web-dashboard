@@ -16,8 +16,7 @@ import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 
 export default function Products() {
-  const { t } = useTranslation()
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()

@@ -1,0 +1,124 @@
+{
+  "venueMgmt": {
+    "title": "Gestión de Establecimientos",
+    "subtitle": "Monitorea y gestiona todos los establecimientos en la plataforma",
+    "stats": {
+      "totalRevenue": "Ingresos Totales",
+      "commissionPrefix": "Comisión:",
+      "activeVenues": "Establecimientos Activos",
+      "totalVenuesSuffix": "establecimientos totales",
+      "pendingApprovals": "Aprobaciones Pendientes",
+      "requireAction": "Requieren acción",
+      "avgRevenue": "Ingresos Promedio por Establecimiento",
+      "perActiveVenue": "Por establecimiento activo"
+    },
+    "tableTitle": "Todos los Establecimientos",
+    "tableDesc": "Gestiona registros, suscripciones y estado de establecimientos",
+    "searchPlaceholder": "Buscar establecimientos, propietarios u organizaciones...",
+    "filterByStatus": "Filtrar por estado",
+    "allStatuses": "Todos los Estados",
+    "columns": {
+      "venue": "Establecimiento",
+      "status": "Estado",
+      "subscriptionPlan": "Plan",
+      "monthlyRevenue": "Ingresos Mensuales",
+      "payment": "Pago",
+      "users": "Usuarios",
+      "actions": "Acciones"
+    },
+    "dropdown": {
+      "viewDetails": "Ver Detalles",
+      "approve": "Aprobar Establecimiento",
+      "manageFeatures": "Gestionar Funcionalidades",
+      "viewAnalytics": "Ver Analíticas",
+      "suspend": "Suspender Establecimiento"
+    },
+    "loadingVenues": "Cargando establecimientos...",
+    "statuses": {
+      "ACTIVE": "Activo",
+      "PENDING": "Pendiente",
+      "SUSPENDED": "Suspendido",
+      "CANCELLED": "Cancelado",
+      "TRIAL": "Prueba"
+    },
+    "paymentStatuses": {
+      "PAID": "Pagado",
+      "PENDING": "Pendiente",
+      "OVERDUE": "Vencido"
+    },
+    "planLabels": {
+      "STARTER": "Inicial",
+      "PROFESSIONAL": "Profesional",
+      "ENTERPRISE": "Empresarial"
+    },
+    "dialogs": {
+      "detailsTitle": "Detalles del Establecimiento",
+      "detailsDescPrefix": "Información completa sobre",
+      "approveTitle": "Aprobar Establecimiento",
+      "approveDescPrefix": "¿Estás seguro de que deseas aprobar",
+      "approveReasonLabel": "Motivo (opcional)",
+      "approveReasonPlaceholder": "Motivo opcional",
+      "cancel": "Cancelar",
+      "approve": "Aprobar Establecimiento",
+      "approving": "Aprobando...",
+      "suspendTitle": "Suspender Establecimiento",
+      "suspendDescPrefix": "Por favor proporciona un motivo para suspender",
+      "suspendReasonLabel": "Motivo",
+      "suspendReasonPlaceholder": "Motivo de suspensión",
+      "suspend": "Suspender Establecimiento",
+      "suspending": "Suspendiendo..."
+    },
+    "toasts": {
+      "approveSuccessTitle": "Establecimiento aprobado",
+      "approveFailedTitle": "Error al aprobar establecimiento",
+      "suspendSuccessTitle": "Establecimiento suspendido",
+      "suspendFailedTitle": "Error al suspender establecimiento",
+      "successDescSuffix": "ha sido",
+      "approved": "aprobado.",
+      "suspended": "suspendido."
+    }
+  },
+  "detailsView": {
+    "tabs": {
+      "overview": "Resumen",
+      "billing": "Facturación",
+      "features": "Funcionalidades",
+      "analytics": "Analíticas"
+    },
+    "venueInfo": {
+      "title": "Información del Establecimiento",
+      "name": "Nombre",
+      "slug": "Slug",
+      "status": "Estado",
+      "plan": "Plan"
+    },
+    "ownerInfo": {
+      "title": "Información del Propietario",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "na": "N/D"
+    },
+    "billingInfo": {
+      "title": "Información de Facturación",
+      "subscriptionFee": "Tarifa de Suscripción",
+      "featuresCost": "Costo de Funcionalidades",
+      "totalMonthly": "Total Mensual",
+      "paymentStatus": "Estado de Pago"
+    },
+    "revenueInfo": {
+      "title": "Información de Ingresos",
+      "monthlyRevenue": "Ingresos Mensuales",
+      "totalRevenue": "Ingresos Totales",
+      "commissionRate": "Tasa de Comisión",
+      "commissionEarned": "Comisión Ganada"
+    },
+    "featuresComingSoon": "Gestión de funcionalidades próximamente...",
+    "analytics": {
+      "title": "Métricas de Rendimiento",
+      "monthlyTransactions": "Transacciones Mensuales",
+      "avgOrderValue": "Valor Promedio de Orden",
+      "activeUsers": "Usuarios Activos"
+    }
+  }
+}

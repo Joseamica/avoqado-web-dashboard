@@ -35,7 +35,7 @@ export default function ShiftId() {
   const { user } = useAuth()
   const { venueId } = useCurrentVenue()
   const isSuperAdmin = user?.role === 'SUPERADMIN'
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('payment')
   const [isEditing, setIsEditing] = useState(false)
   const [editedShift, setEditedShift] = useState<any>(null)
 
@@ -301,8 +301,8 @@ export default function ShiftId() {
                       <p className="font-medium">
                         {(() => {
                           const type = String(payment.paymentType)
-                          if (type === 'CARD') return t('payments.methods.card', { defaultValue: 'Tarjeta' })
-                          if (type === 'CASH') return t('payments.methods.cash', { defaultValue: 'Efectivo' })
+                          if (type === 'CARD') return t('methods.card', { defaultValue: 'Tarjeta' })
+                          if (type === 'CASH') return t('methods.cash', { defaultValue: 'Efectivo' })
                           return type
                         })()}
                       </p>

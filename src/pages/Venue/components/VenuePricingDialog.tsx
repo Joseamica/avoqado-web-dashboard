@@ -41,7 +41,7 @@ export const VenuePricingDialog: React.FC<VenuePricingDialogProps> = ({
   venueId,
   onSave,
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state (percentages as actual numbers, not decimals)

@@ -17,7 +17,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 export default function ReceiptViewer() {
   const { receiptId, accessKey } = useParams<{ receiptId?: string; accessKey?: string }>()
   const { toast } = useToast()
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const { venueId } = useCurrentVenue()
 
   // Determine if we're in public view or dashboard view
@@ -40,7 +40,7 @@ export default function ReceiptViewer() {
         if (response.data?.success && response.data?.data) {
           return response.data.data
         }
-        throw new Error(t('payments.receipt.errors.invalidResponse'))
+        throw new Error(t('receipt.errors.invalidResponse'))
       } else if (!isPublicView && receiptId) {
         // Dashboard route: GET /api/v1/dashboard/venues/{venueId}/receipts/{receiptId}
         if (!venueId) throw new Error(t('dashboardShell.loadingVenue'))
@@ -52,9 +52,9 @@ export default function ReceiptViewer() {
         if (response.data && (response.data.id || response.data.accessKey || response.data.dataSnapshot)) {
           return response.data
         }
-        throw new Error(t('payments.receipt.errors.invalidResponse'))
+        throw new Error(t('receipt.errors.invalidResponse'))
       }
-      throw new Error(t('payments.receipt.errors.invalidIdentifier'))
+      throw new Error(t('receipt.errors.invalidIdentifier'))
     },
     enabled: !!identifier,
     retry: 2,
@@ -62,7 +62,7 @@ export default function ReceiptViewer() {
 
   // Transform any query errors into a readable message
   const error = queryError
-    ? (queryError as any)?.response?.data?.message || (queryError as any)?.message || t('payments.receipt.errors.load')
+    ? (queryError as any)?.response?.data?.message || (queryError as any)?.message || t('receipt.errors.load')
     : null
 
   // Copy public link to clipboard
@@ -74,13 +74,13 @@ export default function ReceiptViewer() {
     try {
       await navigator.clipboard.writeText(publicUrl)
       toast({
-        title: t('payments.receipt.toasts.linkCopied.title'),
-        description: t('payments.receipt.toasts.linkCopied.desc'),
+        title: t('receipt.toasts.linkCopied.title'),
+        description: t('receipt.toasts.linkCopied.desc'),
       })
     } catch {
       toast({
-        title: t('payments.receipt.toasts.copyError.title'),
-        description: t('payments.receipt.toasts.copyError.desc'),
+        title: t('receipt.toasts.copyError.title'),
+        description: t('receipt.toasts.copyError.desc'),
         variant: 'destructive',
       })
     }
@@ -91,13 +91,13 @@ export default function ReceiptViewer() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: t('payments.receipt.share.title', { venue: receipt?.dataSnapshot?.venue?.name || t('payments.receipt.unknownVenue') }),
-          text: t('payments.receipt.share.text', { venue: receipt?.dataSnapshot?.venue?.name || t('payments.receipt.unknownVenue') }),
+          title: t('receipt.share.title', { venue: receipt?.dataSnapshot?.venue?.name || t('receipt.unknownVenue') }),
+          text: t('receipt.share.text', { venue: receipt?.dataSnapshot?.venue?.name || t('receipt.unknownVenue') }),
           url: url,
         })
         toast({
-          title: t('payments.receipt.toasts.shared.title'),
-          description: t('payments.receipt.toasts.shared.desc'),
+          title: t('receipt.toasts.shared.title'),
+          description: t('receipt.toasts.shared.desc'),
         })
       } catch {
         // User cancelled sharing or error occurred
@@ -115,8 +115,8 @@ export default function ReceiptViewer() {
   const handlePrint = () => {
     window.print()
     toast({
-      title: t('payments.receipt.printing.title'),
-      description: t('payments.receipt.printing.desc'),
+      title: t('receipt.printing.title'),
+      description: t('receipt.printing.desc'),
     })
   }
 
@@ -124,8 +124,8 @@ export default function ReceiptViewer() {
     // This would integrate with your existing email functionality
     // For now, just show a message
     toast({
-      title: t('payments.receipt.email.soon.title'),
-      description: t('payments.receipt.email.soon.desc'),
+      title: t('receipt.email.soon.title'),
+      description: t('receipt.email.soon.desc'),
     })
   }
 

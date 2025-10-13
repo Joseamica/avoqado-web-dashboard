@@ -168,7 +168,7 @@ function SortableProduct({
 }
 
 export default function Overview() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const navigate = useNavigate()
   const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
@@ -451,7 +451,7 @@ export default function Overview() {
     return (
       <div className="text-red-500 p-4">
         <AlertCircle className="inline-block mr-2" />
-        {t('menu.overview.errorLoading', { message: menusError?.message || productsError?.message })}
+        {t('overview.errorLoading', { message: menusError?.message || productsError?.message })}
       </div>
     )
   }
@@ -477,24 +477,24 @@ export default function Overview() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">{t('menu.overview.title')}</h1>
+        <h1 className="text-3xl font-bold">{t('overview.title')}</h1>
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
-            {t('menu.overview.manageCategories')}
+            {t('overview.manageCategories')}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>{t('menu.overview.create')}</Button>
+              <Button>{t('overview.create')}</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
-                {t('menu.overview.newMenu')}
+                {t('overview.newMenu')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>
-                {t('menu.overview.newCategory')}
+                {t('overview.newCategory')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
-                {t('menu.overview.createNewProduct')}
+                {t('overview.createNewProduct')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -507,17 +507,17 @@ export default function Overview() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder={t('menu.overview.searchPlaceholder')}
+            placeholder={t('overview.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="pl-9 bg-background border-input w-full"
           />
         </div>
         <Button variant="outline" onClick={expandAll}>
-          {t('menu.overview.expandAll')}
+          {t('overview.expandAll')}
         </Button>
         <Button variant="outline" onClick={collapseAll}>
-          {t('menu.overview.collapseAll')}
+          {t('overview.collapseAll')}
         </Button>
       </div>
 
@@ -525,7 +525,7 @@ export default function Overview() {
       <div className="grid grid-cols-12 gap-4">
         {/* Left: Tree */}
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
-          <div className="text-xs font-medium text-muted-foreground mb-2">{t('menu.overview.tree')}</div>
+          <div className="text-xs font-medium text-muted-foreground mb-2">{t('overview.tree')}</div>
           <ul className="space-y-1">
             {/* All menus root to enable menu-level reordering */}
             <li>
@@ -536,7 +536,7 @@ export default function Overview() {
                   setSelectedCategoryId(null)
                 }}
               >
-                <span className="font-medium">{t('menu.overview.allMenus')}</span>
+                <span className="font-medium">{t('overview.allMenus')}</span>
               </button>
             </li>
             {filteredMenus.map(menu => (
@@ -574,11 +574,11 @@ export default function Overview() {
         <main className="col-span-6 rounded-lg border bg-card">
           <div className="flex items-center justify-between px-3 py-2 border-b">
             <div className="text-sm font-medium">
-              {viewLevel === 'menus' && t('menu.overview.menus')}
-              {viewLevel === 'menu' && t('menu.overview.categories')}
-              {viewLevel === 'category' && t('menu.overview.products')}
+              {viewLevel === 'menus' && t('overview.menus')}
+              {viewLevel === 'menu' && t('overview.categories')}
+              {viewLevel === 'category' && t('overview.products')}
             </div>
-            <div className="text-xs text-muted-foreground">{t('menu.overview.itemsCount', { count: filteredCenterItems.length })}</div>
+            <div className="text-xs text-muted-foreground">{t('overview.itemsCount', { count: filteredCenterItems.length })}</div>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <SortableContext items={centerItemIds} strategy={verticalListSortingStrategy}>
@@ -626,7 +626,7 @@ export default function Overview() {
                   <div className="flex items-center space-x-2">
                     <GripVertical className="text-muted-foreground" size={18} />
                     <p className="font-semibold text-sm">
-                      {'name' in activeItem ? (activeItem as any).name : t('menu.overview.draggedItem')}
+                      {'name' in activeItem ? (activeItem as any).name : t('overview.draggedItem')}
                     </p>
                   </div>
                 </div>
@@ -638,15 +638,15 @@ export default function Overview() {
         {/* Right: Inspector */}
         <aside className="col-span-3 rounded-lg border p-3 bg-card">
           <div className="flex items-center gap-2 text-sm font-medium mb-2">
-            <Info className="h-4 w-4" /> {t('menu.overview.inspector')}
+            <Info className="h-4 w-4" /> {t('overview.inspector')}
           </div>
-          {viewLevel === 'menus' && <p className="text-sm text-muted-foreground">{t('menu.overview.selectMenuPrompt')}</p>}
+          {viewLevel === 'menus' && <p className="text-sm text-muted-foreground">{t('overview.selectMenuPrompt')}</p>}
           {viewLevel === 'menu' && selectedMenuId && (
             <div className="space-y-2 text-sm">
-              <div className="font-medium">{t('menu.overview.menu')}</div>
+              <div className="font-medium">{t('overview.menu')}</div>
               <div className="text-muted-foreground">{menusData?.find(m => m.id === selectedMenuId)?.name}</div>
               <div className="flex items-center gap-2 pt-2">
-                <span className="text-muted-foreground">{t('menu.overview.active')}</span>
+                <span className="text-muted-foreground">{t('overview.active')}</span>
                 <Switch
                   checked={!!menusData?.find(m => m.id === selectedMenuId)?.active}
                   onCheckedChange={checked => toggleMenuActiveMutation.mutate({ menuId: selectedMenuId, active: checked })}
@@ -656,11 +656,11 @@ export default function Overview() {
           )}
           {viewLevel === 'category' && selectedCategoryId && (
             <div className="space-y-2 text-sm">
-              <div className="font-medium">{t('menu.overview.category')}</div>
+              <div className="font-medium">{t('overview.category')}</div>
               <div className="text-muted-foreground">
                 {menusData?.flatMap(m => m.categories?.map(c => c.category)).find(c => c.id === selectedCategoryId)?.name}
               </div>
-              <div className="text-xs text-muted-foreground">{t('menu.overview.dragToReorderProducts')}</div>
+              <div className="text-xs text-muted-foreground">{t('overview.dragToReorderProducts')}</div>
             </div>
           )}
         </aside>

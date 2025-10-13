@@ -1,0 +1,33 @@
+﻿{
+  "summary": "Resumen",
+  "main": "Panel principal",
+  "analytics": "Analíticas",
+  "alerts": "Alertas",
+  "superadmin": "Superadmin",
+  "business": "Gestión del negocio",
+  "venues": "Sucursales",
+  "revenue": "Ingresos",
+  "customers": "Clientes",
+  "growth": "Crecimiento",
+  "paymentProviders": "Proveedores de pago",
+  "merchantAccounts": "Cuentas de comercio",
+  "costStructures": "Estructuras de costos",
+  "venuePricing": "Precios por sucursal",
+  "paymentAnalytics": "Análisis de pagos",
+  "paymentConfig": "Configuración de pagos",
+  "platform": "Plataforma",
+  "features": "Funciones",
+  "system": "Estado del sistema",
+  "reports": "Reportes",
+  "support": "Soporte",
+  "admin": "Administración",
+  "config": "Configuración",
+  "legacy_admin": "Administración heredada",
+  "testing": "Pruebas",
+  "projects": {
+    "title": "Proyectos",
+    "view": "Ver",
+    "share": "Compartir",
+    "delete": "Eliminar"
+  }
+}

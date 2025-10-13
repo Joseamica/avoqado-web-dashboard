@@ -1,0 +1,33 @@
+﻿{
+  "summary": "Résumé",
+  "main": "Tableau de bord principal",
+  "analytics": "Analytique",
+  "alerts": "Alertes",
+  "superadmin": "Superadministrateur",
+  "business": "Gestion commerciale",
+  "venues": "Établissements",
+  "revenue": "Revenus",
+  "customers": "Clients",
+  "growth": "Croissance",
+  "paymentProviders": "Fournisseurs de paiement",
+  "merchantAccounts": "Comptes commerçant",
+  "costStructures": "Structures de coûts",
+  "venuePricing": "Tarification des établissements",
+  "paymentAnalytics": "Analytique des paiements",
+  "paymentConfig": "Configuration des paiements",
+  "platform": "Plateforme",
+  "features": "Fonctionnalités",
+  "system": "État du système",
+  "reports": "Rapports",
+  "support": "Support",
+  "admin": "Administration",
+  "config": "Paramètres",
+  "legacy_admin": "Administration héritée",
+  "testing": "Tests",
+  "projects": {
+    "title": "Projets",
+    "view": "Afficher",
+    "share": "Partager",
+    "delete": "Supprimer"
+  }
+}

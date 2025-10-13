@@ -1,4 +1,4 @@
-import { Folder, Forward, MoreHorizontal, Trash2, type LucideIcon } from 'lucide-react'
+﻿import { Folder, Forward, MoreHorizontal, Trash2, type LucideIcon } from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -29,11 +29,11 @@ export function NavProjects({
   }[]
 }) {
   const { isMobile } = useSidebar()
-  const { t } = useTranslation()
+  const { t } = useTranslation(['translation', 'sidebar'])
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>{t('sidebar.projects.title')}</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('sidebar:projects.title')}</SidebarGroupLabel>
       <SidebarMenu>
         {projects.map(item => (
           <SidebarMenuItem key={item.name}>
@@ -53,16 +53,16 @@ export function NavProjects({
               <DropdownMenuContent className="w-48 rounded-lg" side={isMobile ? 'bottom' : 'right'} align={isMobile ? 'end' : 'start'}>
                 <DropdownMenuItem>
                   <Folder className="text-zinc-500 dark:text-zinc-400" />
-                  <span>{t('sidebar.projects.view')}</span>
+                  <span>{t('sidebar:projects.view')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Forward className="text-zinc-500 dark:text-zinc-400" />
-                  <span>{t('sidebar.projects.share')}</span>
+                  <span>{t('sidebar:projects.share')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Trash2 className="text-zinc-500 dark:text-zinc-400" />
-                  <span>{t('sidebar.projects.delete')}</span>
+                  <span>{t('sidebar:projects.delete')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

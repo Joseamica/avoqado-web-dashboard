@@ -38,7 +38,7 @@ const VenueManagement: React.FC = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { t } = useTranslation()
+  const { t } = useTranslation('venue')
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ['superadmin-venues'],
     queryFn: superadminAPI.getAllVenues,
@@ -459,7 +459,7 @@ const VenueManagement: React.FC = () => {
 
 // Venue Details Component
 const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('venue')
   const numberFormat = new Intl.NumberFormat(i18n.language)
 
   function getStatusLabelLocal(status: VenueStatus) {

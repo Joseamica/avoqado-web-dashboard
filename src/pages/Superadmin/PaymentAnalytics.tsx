@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Currency } from '@/utils/currency'
 
 const PaymentAnalytics: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ['payment-analytics-profit-metrics'],

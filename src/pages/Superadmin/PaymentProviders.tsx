@@ -13,7 +13,7 @@ import { PaymentProviderDialog } from './components/PaymentProviderDialog'
 import { useToast } from '@/hooks/use-toast'
 
 const PaymentProviders: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: providers = [], isLoading } = useQuery({

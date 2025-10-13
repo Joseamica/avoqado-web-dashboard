@@ -24,7 +24,7 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
   onCreate,
   showActions = true,
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
 
   // Group by account type
   const groupedPricing = {

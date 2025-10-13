@@ -14,7 +14,7 @@ interface ProfitCalculatorProps {
 }
 
 export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ venuePricing, costStructure }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const [transactionAmount, setTransactionAmount] = useState('100')
   const [cardType, setCardType] = useState<'debit' | 'credit' | 'amex' | 'international'>('debit')
 

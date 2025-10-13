@@ -13,7 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { FlaskConical, Receipt, Trash2, CheckCircle, AlertCircle, ExternalLink, Loader2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { FlaskConical, Receipt, Trash2, CheckCircle, AlertCircle, ExternalLink, Loader2, Banknote, CreditCard } from 'lucide-react'
 import { format } from 'date-fns'
 import { PaymentMethod } from '@/types'
 import { useToast } from '@/hooks/use-toast'
@@ -46,14 +47,20 @@ interface TestPayment {
   }
 }
 
-const PAYMENT_METHODS = [
-  { value: PaymentMethod.CASH, label: 'Cash', icon: '💵' },
-  { value: PaymentMethod.CREDIT_CARD, label: 'Credit Card', icon: '💳' },
-  { value: PaymentMethod.DEBIT_CARD, label: 'Debit Card', icon: '💳' },
+type PaymentMethodOption = {
+  value: PaymentMethod
+  label: string
+  Icon: LucideIcon
+}
+
+const PAYMENT_METHODS: PaymentMethodOption[] = [
+  { value: PaymentMethod.CASH, label: 'Cash', Icon: Banknote },
+  { value: PaymentMethod.CREDIT_CARD, label: 'Credit Card', Icon: CreditCard },
+  { value: PaymentMethod.DEBIT_CARD, label: 'Debit Card', Icon: CreditCard },
 ]
 
 export default function TestingPayments() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('testing')
   const { allVenues } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -87,8 +94,8 @@ export default function TestingPayments() {
     },
     onSuccess: data => {
       toast({
-        title: t('testing.paymentCreated'),
-        description: t('testing.paymentCreatedDesc'),
+        title: t('paymentCreated'),
+        description: t('paymentCreatedDesc'),
       })
       setLastCreatedPayment(data.data.payment)
       queryClient.invalidateQueries({ queryKey: ['testPayments'] })
@@ -96,8 +103,8 @@ export default function TestingPayments() {
     onError: error => {
       console.error('Error creating test payment:', error)
       toast({
-        title: t('testing.paymentFailed'),
-        description: t('testing.paymentFailedDesc'),
+        title: t('paymentFailed'),
+        description: t('paymentFailedDesc'),
         variant: 'destructive',
       })
     },
@@ -110,16 +117,16 @@ export default function TestingPayments() {
     },
     onSuccess: () => {
       toast({
-        title: t('testing.paymentDeleted'),
-        description: t('testing.paymentDeletedDesc'),
+        title: t('paymentDeleted'),
+        description: t('paymentDeletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['testPayments'] })
     },
     onError: error => {
       console.error('Error deleting test payment:', error)
       toast({
-        title: t('testing.deleteFailed'),
-        description: t('testing.deleteFailedDesc'),
+        title: t('deleteFailed'),
+        description: t('deleteFailedDesc'),
         variant: 'destructive',
       })
     },
@@ -128,8 +135,8 @@ export default function TestingPayments() {
   const handleCreatePayment = () => {
     if (!selectedVenue) {
       toast({
-        title: t('testing.selectVenue'),
-        description: t('testing.selectVenueDesc'),
+        title: t('selectVenue'),
+        description: t('selectVenueDesc'),
         variant: 'destructive',
       })
       return
@@ -183,8 +190,8 @@ export default function TestingPayments() {
       <div className="flex items-center gap-3">
         <FlaskConical className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('testing.title')}</h1>
-          <p className="text-muted-foreground">{t('testing.subtitle')}</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -192,16 +199,16 @@ export default function TestingPayments() {
         {/* Configuration Panel */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>{t('testing.configuration')}</CardTitle>
-            <CardDescription>{t('testing.configDescription')}</CardDescription>
+            <CardTitle>{t('configuration')}</CardTitle>
+            <CardDescription>{t('configDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Venue Selection */}
             <div className="space-y-2">
-              <Label htmlFor="venue">{t('testing.selectVenue')}</Label>
+              <Label htmlFor="venue">{t('selectVenue')}</Label>
               <Select value={selectedVenue} onValueChange={setSelectedVenue}>
                 <SelectTrigger id="venue">
-                  <SelectValue placeholder={t('testing.selectVenuePlaceholder')} />
+                  <SelectValue placeholder={t('selectVenuePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {allVenues.map(venue => (
@@ -217,20 +224,20 @@ export default function TestingPayments() {
 
             {/* Payment Method */}
             <div className="space-y-2">
-              <Label>{t('testing.paymentMethod')}</Label>
+              <Label>{t('paymentMethod')}</Label>
               <div className="grid grid-cols-3 gap-2">
-                {PAYMENT_METHODS.map(method => (
+                {PAYMENT_METHODS.map(({ value, label, Icon }) => (
                   <button
-                    key={method.value}
-                    onClick={() => setPaymentMethod(method.value as PaymentMethod)}
+                    key={value}
+                    onClick={() => setPaymentMethod(value)}
                     className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                      paymentMethod === method.value
+                      paymentMethod === value
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-card hover:border-muted-foreground/50'
                     }`}
                   >
-                    <span className="text-2xl">{method.icon}</span>
-                    <span className="text-xs font-medium">{method.label}</span>
+                    <Icon className="h-6 w-6" />
+                    <span className="text-xs font-medium">{label}</span>
                   </button>
                 ))}
               </div>
@@ -240,7 +247,7 @@ export default function TestingPayments() {
 
             {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">{t('testing.amount')}</Label>
+              <Label htmlFor="amount">{t('amount')}</Label>
               <Input
                 id="amount"
                 type="number"
@@ -252,14 +259,14 @@ export default function TestingPayments() {
                 className="text-lg font-semibold"
               />
               <p className="text-xs text-muted-foreground">
-                {t('testing.total')}: {formatCurrency(parseFloat(amount || '0'))}
+                {t('total')}: {formatCurrency(parseFloat(amount || '0'))}
               </p>
             </div>
 
             {/* Tip Toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
               <Label htmlFor="includeTip" className="cursor-pointer">
-                {t('testing.includeTip')}
+                {t('includeTip')}
               </Label>
               <Switch id="includeTip" checked={includeTip} onCheckedChange={setIncludeTip} />
             </div>
@@ -267,7 +274,7 @@ export default function TestingPayments() {
             {/* Tip Amount (conditional) */}
             {includeTip && (
               <div className="space-y-2">
-                <Label htmlFor="tipAmount">{t('testing.tipAmount')}</Label>
+                <Label htmlFor="tipAmount">{t('tipAmount')}</Label>
                 <Input
                   id="tipAmount"
                   type="number"
@@ -278,7 +285,7 @@ export default function TestingPayments() {
                   placeholder="50.00"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t('testing.tipTotal')}: {formatCurrency(parseFloat(tipAmount || '0'))}
+                  {t('tipTotal')}: {formatCurrency(parseFloat(tipAmount || '0'))}
                 </p>
               </div>
             )}
@@ -290,12 +297,12 @@ export default function TestingPayments() {
               {createPaymentMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('testing.creating')}
+                  {t('creating')}
                 </>
               ) : (
                 <>
                   <FlaskConical className="mr-2 h-4 w-4" />
-                  {t('testing.executeTest')}
+                  {t('executeTest')}
                 </>
               )}
             </Button>
@@ -303,7 +310,7 @@ export default function TestingPayments() {
             {/* Total Summary */}
             <div className="rounded-lg bg-muted p-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">{t('testing.grandTotal')}:</span>
+                <span className="text-sm text-muted-foreground">{t('grandTotal')}:</span>
                 <span className="text-xl font-bold text-foreground">
                   {formatCurrency(parseFloat(amount || '0') + (includeTip ? parseFloat(tipAmount || '0') : 0))}
                 </span>
@@ -320,19 +327,19 @@ export default function TestingPayments() {
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <AlertDescription>
                 <div className="flex flex-col gap-2">
-                  <div className="font-semibold text-green-800 dark:text-green-200">{t('testing.lastPayment')}</div>
+                  <div className="font-semibold text-green-800 dark:text-green-200">{t('lastPayment')}</div>
                   <div className="grid grid-cols-2 gap-2 text-sm text-green-700 dark:text-green-300">
                     <div>
-                      <span className="font-medium">{t('testing.paymentId')}:</span> {lastCreatedPayment.id.slice(0, 8)}...
+                      <span className="font-medium">{t('paymentId')}:</span> {lastCreatedPayment.id.slice(0, 8)}...
                     </div>
                     <div>
-                      <span className="font-medium">{t('testing.orderNumber')}:</span> {lastCreatedPayment.order.orderNumber}
+                      <span className="font-medium">{t('orderNumber')}:</span> {lastCreatedPayment.order.orderNumber}
                     </div>
                     <div>
-                      <span className="font-medium">{t('testing.amount')}:</span> {formatCurrency(lastCreatedPayment.amount)}
+                      <span className="font-medium">{t('amount')}:</span> {formatCurrency(lastCreatedPayment.amount)}
                     </div>
                     <div>
-                      <span className="font-medium">{t('testing.tip')}:</span> {formatCurrency(lastCreatedPayment.tipAmount)}
+                      <span className="font-medium">{t('tip')}:</span> {formatCurrency(lastCreatedPayment.tipAmount)}
                     </div>
                   </div>
                   {lastCreatedPayment.digitalReceipt && (
@@ -343,7 +350,7 @@ export default function TestingPayments() {
                       onClick={() => window.open(lastCreatedPayment.digitalReceipt!.receiptUrl, '_blank')}
                     >
                       <Receipt className="mr-2 h-4 w-4" />
-                      {t('testing.viewReceipt')}
+                      {t('viewReceipt')}
                       <ExternalLink className="ml-2 h-3 w-3" />
                     </Button>
                   )}
@@ -355,9 +362,9 @@ export default function TestingPayments() {
           {/* Recent Tests Table */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('testing.recentTests')}</CardTitle>
+              <CardTitle>{t('recentTests')}</CardTitle>
               <CardDescription>
-                {t('testing.showingTests', { count: testPayments?.length || 0 })}
+                {t('showingTests', { count: testPayments?.length || 0 })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -370,14 +377,14 @@ export default function TestingPayments() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>{t('testing.id')}</TableHead>
-                        <TableHead>{t('testing.venue')}</TableHead>
-                        <TableHead className="text-right">{t('testing.amount')}</TableHead>
-                        <TableHead className="text-right">{t('testing.tip')}</TableHead>
-                        <TableHead>{t('testing.method')}</TableHead>
-                        <TableHead>{t('testing.status')}</TableHead>
-                        <TableHead>{t('testing.date')}</TableHead>
-                        <TableHead className="text-right">{t('testing.actions')}</TableHead>
+                        <TableHead>{t('id')}</TableHead>
+                        <TableHead>{t('venue')}</TableHead>
+                        <TableHead className="text-right">{t('amount')}</TableHead>
+                        <TableHead className="text-right">{t('tip')}</TableHead>
+                        <TableHead>{t('method')}</TableHead>
+                        <TableHead>{t('status')}</TableHead>
+                        <TableHead>{t('date')}</TableHead>
+                        <TableHead className="text-right">{t('actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -423,8 +430,8 @@ export default function TestingPayments() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <FlaskConical className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">{t('testing.noTests')}</p>
-                  <p className="text-sm text-muted-foreground">{t('testing.createFirst')}</p>
+                  <p className="text-muted-foreground">{t('noTests')}</p>
+                  <p className="text-sm text-muted-foreground">{t('createFirst')}</p>
                 </div>
               )}
             </CardContent>

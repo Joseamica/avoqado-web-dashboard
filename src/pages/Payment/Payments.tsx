@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 export default function Payments() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('payment')
   const { venueId } = useCurrentVenue()
   const location = useLocation()
   const [pagination, setPagination] = useState({
@@ -62,8 +62,8 @@ export default function Payments() {
     () => [
       {
         accessorKey: 'createdAt', // Sin cambios
-        meta: { label: t('payments.columns.date') },
-        header: t('payments.columns.date'),
+        meta: { label: t('columns.date') },
+        header: t('columns.date'),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
           const date = new Date(value)
@@ -84,8 +84,8 @@ export default function Payments() {
         // CAMBIO: Accedemos al mesero a través de `processedBy`
         accessorFn: row => (row.processedBy ? `${row.processedBy.firstName} ${row.processedBy.lastName}` : '-'),
         id: 'waiterName', // Es buena práctica dar un ID único al usar accessorFn
-        meta: { label: t('payments.columns.waiter') },
-        header: t('payments.columns.waiter'),
+        meta: { label: t('columns.waiter') },
+        header: t('columns.waiter'),
         cell: info => <>{info.getValue() as string}</>,
       },
 
@@ -93,10 +93,10 @@ export default function Payments() {
         // Source viene directamente del campo `source` del Payment
         accessorKey: 'source',
         id: 'source',
-        meta: { label: t('payments.columns.source') },
+        meta: { label: t('columns.source') },
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.source')}
+            {t('columns.source')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -111,31 +111,31 @@ export default function Payments() {
           const map = {
             POS: {
               icon: iconBox(<Computer className="h-4 w-4 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
-              label: t('payments.sources.POS'),
+              label: t('sources.POS'),
             },
             TPV: {
               icon: iconBox(<TabletSmartphone className="h-4 w-4 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
-              label: t('payments.sources.TPV'),
+              label: t('sources.TPV'),
             },
             QR: {
               icon: iconBox(<QrCode className="h-4 w-4 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
-              label: t('payments.sources.QR'),
+              label: t('sources.QR'),
             },
             WEB: {
               icon: iconBox(<Globe className="h-4 w-4 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
-              label: t('payments.sources.WEB'),
+              label: t('sources.WEB'),
             },
             APP: {
               icon: iconBox(<AppWindow className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-              label: t('payments.sources.APP'),
+              label: t('sources.APP'),
             },
             DASHBOARD_TEST: {
               icon: iconBox(<TestTube className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-              label: t('payments.sources.DASHBOARD_TEST'),
+              label: t('sources.DASHBOARD_TEST'),
             },
             UNKNOWN: {
               icon: iconBox(<Smartphone className="h-4 w-4 text-muted-foreground" />, 'bg-muted'),
-              label: t('payments.sources.UNKNOWN'),
+              label: t('sources.UNKNOWN'),
             },
           } as const
 
@@ -151,13 +151,13 @@ export default function Payments() {
       },
       {
         accessorKey: 'method',
-        meta: { label: t('payments.columns.method') },
-        header: t('payments.columns.method'),
+        meta: { label: t('columns.method') },
+        header: t('columns.method'),
         cell: ({ row }) => {
           const payment = row.original
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
-          const methodDisplay = payment.method === 'CASH' ? t('payments.methods.cash') : t('payments.methods.card')
+          const methodDisplay = payment.method === 'CASH' ? t('methods.cash') : t('methods.card')
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
@@ -169,7 +169,7 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('payments.methods.card')}</span>
+                  <span className="text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('methods.card')}</span>
                 </>
               ) : (
                 <>
@@ -186,8 +186,8 @@ export default function Payments() {
       {
         // CAMBIO: `amount` ahora es el subtotal del pago. Es numérico.
         accessorKey: 'amount',
-        meta: { label: t('payments.columns.subtotal') },
-        header: t('payments.columns.subtotal'),
+        meta: { label: t('columns.subtotal') },
+        header: t('columns.subtotal'),
         cell: ({ cell }) => {
           const value = cell.getValue()
           // Convert to number, Currency function handles null/undefined
@@ -199,10 +199,10 @@ export default function Payments() {
         // Usamos número para poder calcular porcentajes y ordenar correctamente
         accessorFn: row => Number(row.tipAmount) || 0,
         id: 'totalTipAmount',
-        meta: { label: t('payments.columns.tip') },
+        meta: { label: t('columns.tip') },
         header: ({ column }) => (
           <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('payments.columns.tip')}
+            {t('columns.tip')}
             <ArrowUpDown className="w-4 h-4 ml-2" />
           </Button>
         ),
@@ -243,8 +243,8 @@ export default function Payments() {
           return amount + tipAmount
         },
         id: 'totalAmount',
-        meta: { label: t('payments.columns.total') },
-        header: t('payments.columns.total'),
+        meta: { label: t('columns.total') },
+        header: t('columns.total'),
         cell: ({ cell }) => {
           const value = cell.getValue()
           // Convert to number, Currency function handles null/undefined
@@ -275,7 +275,7 @@ export default function Payments() {
       // Búsqueda por método de pago - buscar en ambos idiomas y valores originales
       const methodOriginal = payment.method?.toLowerCase() || ''
       const methodTranslated =
-        payment.method === 'CASH' ? t('payments.methods.cash').toLowerCase() : t('payments.methods.card').toLowerCase()
+        payment.method === 'CASH' ? t('methods.cash').toLowerCase() : t('methods.card').toLowerCase()
 
       // También buscar en términos comunes en inglés
       const methodEnglish = payment.method === 'CASH' ? 'cash' : 'card'
@@ -285,7 +285,7 @@ export default function Payments() {
       // Búsqueda por fuente - buscar en valores originales y traducciones
       const source = payment.source || 'UNKNOWN'
       const sourceOriginal = source.toLowerCase()
-      const sourceTranslated = t(`payments.sources.${source}`, { defaultValue: source }).toLowerCase()
+      const sourceTranslated = t(`sources.${source}`, { defaultValue: source }).toLowerCase()
 
       // Términos en inglés para fuentes
       const sourceEnglishTerms = {
@@ -311,12 +311,12 @@ export default function Payments() {
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('payments.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('title')}</h1>
       </div>
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
-          {t('payments.errorPrefix')}: {(error as Error).message}
+          {t('errorPrefix')}: {(error as Error).message}
         </div>
       )}
 
@@ -327,7 +327,7 @@ export default function Payments() {
         isLoading={isLoading}
         tableId="payments:main"
         enableSearch={true}
-        searchPlaceholder={t('payments.searchPlaceholder')}
+        searchPlaceholder={t('searchPlaceholder')}
         onSearch={handleSearch}
         clickableRow={row => ({
           // CAMBIO: Asegurarse de que el ID de la fila sea el correcto

@@ -29,10 +29,10 @@ const CostStructures: React.FC = () => {
     mutationFn: paymentProviderAPI.createProviderCostStructure,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-cost-structures'] })
-      toast({ title: 'Success', description: 'Cost structure created successfully' })
+      toast({ title: t('costStructures.toasts.success'), description: t('costStructures.toasts.createSuccess') })
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to create cost structure', variant: 'destructive' })
+      toast({ title: t('costStructures.toasts.error'), description: t('costStructures.toasts.createError'), variant: 'destructive' })
     },
   })
 
@@ -42,10 +42,10 @@ const CostStructures: React.FC = () => {
       paymentProviderAPI.updateProviderCostStructure(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-cost-structures'] })
-      toast({ title: 'Success', description: 'Cost structure updated successfully' })
+      toast({ title: t('costStructures.toasts.success'), description: t('costStructures.toasts.updateSuccess') })
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to update cost structure', variant: 'destructive' })
+      toast({ title: t('costStructures.toasts.error'), description: t('costStructures.toasts.updateError'), variant: 'destructive' })
     },
   })
 
@@ -54,10 +54,10 @@ const CostStructures: React.FC = () => {
     mutationFn: paymentProviderAPI.deactivateProviderCostStructure,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-cost-structures'] })
-      toast({ title: 'Success', description: 'Cost structure deactivated' })
+      toast({ title: t('costStructures.toasts.success'), description: t('costStructures.toasts.deactivateSuccess') })
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to deactivate cost structure', variant: 'destructive' })
+      toast({ title: t('costStructures.toasts.error'), description: t('costStructures.toasts.deactivateError'), variant: 'destructive' })
     },
   })
 
@@ -66,10 +66,10 @@ const CostStructures: React.FC = () => {
     mutationFn: paymentProviderAPI.deleteProviderCostStructure,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-cost-structures'] })
-      toast({ title: 'Success', description: 'Cost structure deleted successfully' })
+      toast({ title: t('costStructures.toasts.success'), description: t('costStructures.toasts.deleteSuccess') })
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to delete cost structure', variant: 'destructive' })
+      toast({ title: t('costStructures.toasts.error'), description: t('costStructures.toasts.deleteError'), variant: 'destructive' })
     },
   })
 
@@ -92,13 +92,13 @@ const CostStructures: React.FC = () => {
   }
 
   const handleDeactivate = async (id: string) => {
-    if (confirm('Are you sure you want to deactivate this cost structure?')) {
+    if (confirm(t('costStructures.confirmations.deactivate'))) {
       await deactivateMutation.mutateAsync(id)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this cost structure?')) {
+    if (confirm(t('costStructures.confirmations.delete'))) {
       await deleteMutation.mutateAsync(id)
     }
   }
@@ -113,7 +113,7 @@ const CostStructures: React.FC = () => {
   const columns: ColumnDef<ProviderCostStructure>[] = [
     {
       accessorKey: 'merchantAccount.provider.name',
-      header: 'Provider / Account',
+      header: t('costStructures.columns.providerAccount'),
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.merchantAccount.provider.name}</div>
@@ -125,43 +125,43 @@ const CostStructures: React.FC = () => {
     },
     {
       accessorKey: 'effectiveFrom',
-      header: 'Effective From',
+      header: t('costStructures.columns.effectiveFrom'),
       cell: ({ row }) => new Date(row.original.effectiveFrom).toLocaleDateString(),
     },
     {
       accessorKey: 'debitRate',
-      header: 'Debit',
+      header: t('costStructures.columns.debit'),
       cell: ({ row }) => `${(Number(row.original.debitRate) * 100).toFixed(2)}%`,
     },
     {
       accessorKey: 'creditRate',
-      header: 'Credit',
+      header: t('costStructures.columns.credit'),
       cell: ({ row }) => `${(Number(row.original.creditRate) * 100).toFixed(2)}%`,
     },
     {
       accessorKey: 'amexRate',
-      header: 'Amex',
+      header: t('costStructures.columns.amex'),
       cell: ({ row }) => `${(Number(row.original.amexRate) * 100).toFixed(2)}%`,
     },
     {
       accessorKey: 'internationalRate',
-      header: 'International',
+      header: t('costStructures.columns.international'),
       cell: ({ row }) => `${(Number(row.original.internationalRate) * 100).toFixed(2)}%`,
     },
     {
       accessorKey: 'active',
-      header: 'Status',
+      header: t('costStructures.columns.status'),
       cell: ({ row }) => (
         <Badge className={row.original.active ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200' : 'bg-muted text-muted-foreground'}>
           {row.original.active ? (
             <>
               <CheckCircle className="w-3 h-3 mr-1" />
-              Active
+              {t('costStructures.status.active')}
             </>
           ) : (
             <>
               <XCircle className="w-3 h-3 mr-1" />
-              Inactive
+              {t('costStructures.status.inactive')}
             </>
           )}
         </Badge>
@@ -169,7 +169,7 @@ const CostStructures: React.FC = () => {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('costStructures.columns.actions'),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Button
@@ -205,12 +205,12 @@ const CostStructures: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Provider Cost Structures</h1>
-          <p className="text-muted-foreground">Manage payment provider rates and costs</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('costStructures.title')}</h1>
+          <p className="text-muted-foreground">{t('costStructures.subtitle')}</p>
         </div>
         <Button onClick={handleAdd}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Cost Structure
+          {t('costStructures.addButton')}
         </Button>
       </div>
 
@@ -226,13 +226,13 @@ const CostStructures: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Structures</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('costStructures.stats.totalStructures')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{costStructures.length}</div>
             <p className="text-xs text-muted-foreground">
-              {costStructures.filter(cs => cs.active).length} active
+              {costStructures.filter(cs => cs.active).length} {t('costStructures.stats.active')}
             </p>
           </CardContent>
         </Card>
@@ -241,14 +241,14 @@ const CostStructures: React.FC = () => {
       {/* Cost Structures Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Cost Structures</CardTitle>
-          <CardDescription>View and manage provider cost rates and structures</CardDescription>
+          <CardTitle>{t('costStructures.table.title')}</CardTitle>
+          <CardDescription>{t('costStructures.table.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex-1">
               <Input
-                placeholder="Search by provider, account, or proposal..."
+                placeholder={t('costStructures.table.searchPlaceholder')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />

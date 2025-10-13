@@ -15,7 +15,7 @@ import { Menu } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
 
 export default function Menus() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -30,10 +30,10 @@ export default function Menus() {
       id: 'name',
       accessorKey: 'name',
       sortDescFirst: true,
-      meta: { label: t('menu.menus.columns.name') },
+      meta: { label: t('menus.columns.name') },
       header: ({ column }) => (
         <div onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="cursor-pointer flex-row-center">
-          {t('menu.menus.columns.name')}
+          {t('menus.columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </div>
       ),
@@ -44,14 +44,14 @@ export default function Menus() {
     },
     {
       id: 'timeRange',
-      meta: { label: t('menu.menus.columns.schedules') },
-      header: t('menu.menus.columns.schedules'),
+      meta: { label: t('menus.columns.schedules') },
+      header: t('menus.columns.schedules'),
       // No accessorKey since we're accessing multiple fields
       cell: ({ row }) => {
         const { availableFrom, availableUntil } = row.original
 
         if (!availableFrom || !availableUntil) {
-          return <span>{t('menu.menus.columns.alwaysAvailable')}</span>
+          return <span>{t('menus.columns.alwaysAvailable')}</span>
         }
 
         const formattedStart = formatDateInTimeZone(availableFrom, 'America/Mexico_City')
@@ -67,8 +67,8 @@ export default function Menus() {
     {
       id: 'categories',
       accessorKey: 'categories',
-      meta: { label: t('menu.menus.columns.categories') },
-      header: t('menu.menus.columns.categories'),
+      meta: { label: t('menus.columns.categories') },
+      header: t('menus.columns.categories'),
       enableColumnFilter: false,
       cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
     },
@@ -90,7 +90,7 @@ export default function Menus() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('menu.menus.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('menus.title')}</h1>
         <Button asChild>
           <Link
             to={`create`}
@@ -99,7 +99,7 @@ export default function Menus() {
             }}
             className="flex items-center space-x-2"
           >
-            <span>{t('menu.menus.newMenu')}</span>
+            <span>{t('menus.newMenu')}</span>
           </Link>
         </Button>
       </div>
@@ -110,7 +110,7 @@ export default function Menus() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('menu.menus.searchPlaceholder')}
+        searchPlaceholder={t('menus.searchPlaceholder')}
         onSearch={handleSearch}
         tableId="menu:menus"
         clickableRow={row => ({

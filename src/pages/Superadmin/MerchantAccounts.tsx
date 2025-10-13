@@ -21,7 +21,7 @@ import { MerchantAccountDialog } from './components/MerchantAccountDialog'
 import { useToast } from '@/hooks/use-toast'
 
 const MerchantAccounts: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('payment')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
