@@ -6,10 +6,10 @@ import { getStorage } from 'firebase/storage'
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN
 
-console.log('🔍 Firebase Environment Variables Check:', {
-  VITE_FIREBASE_API_KEY: apiKey ? `✅ ${apiKey.substring(0, 10)}...` : '❌ MISSING',
-  VITE_FIREBASE_AUTH_DOMAIN: authDomain ? `✅ ${authDomain}` : '❌ MISSING',
-})
+// console.log('🔍 Firebase Environment Variables Check:', {
+//   VITE_FIREBASE_API_KEY: apiKey ? `✅ ${apiKey.substring(0, 10)}...` : '❌ MISSING',
+//   VITE_FIREBASE_AUTH_DOMAIN: authDomain ? `✅ ${authDomain}` : '❌ MISSING',
+// })
 
 if (!apiKey || !authDomain) {
   console.error('❌ CRITICAL: Firebase environment variables are missing!')
@@ -35,10 +35,10 @@ try {
   app = initializeApp(firebaseConfig)
   console.log('✅ Firebase app initialized successfully')
   console.log('📦 App name:', app.name)
-  console.log('📦 App options:', {
-    projectId: app.options.projectId,
-    storageBucket: app.options.storageBucket,
-  })
+  // console.log('📦 App options:', {
+  //   projectId: app.options.projectId,
+  //   storageBucket: app.options.storageBucket,
+  // })
 } catch (error) {
   console.error('❌ Firebase app initialization failed:', error)
   if (error instanceof Error) {

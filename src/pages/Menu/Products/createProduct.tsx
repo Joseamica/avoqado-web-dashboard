@@ -11,13 +11,14 @@ import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
 import { createProduct as createProductService, getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
-import { useEffect } from 'react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Product, ProductType } from '@/types'
+import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 
 type CreateProductPayload = {
   sku: string
@@ -34,6 +35,7 @@ export default function CreateProduct() {
   const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   const location = useLocation()
   const { toast } = useToast()
@@ -187,7 +189,18 @@ export default function CreateProduct() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
-          <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWizardOpen(true)}
+              className="border-primary text-primary hover:bg-primary/10"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {t('products.create.useWizard')}
+            </Button>
+          </div>
 
           {/* SKU */}
           <FormField
@@ -516,6 +529,20 @@ export default function CreateProduct() {
           />
         </form>
       </Form>
+
+      {/* Product Wizard Dialog */}
+      <ProductWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        mode="create"
+        onSuccess={(_productId) => {
+          toast({
+            title: t('products.create.toasts.created', { name: t('common.product') }),
+            description: t('products.create.toasts.createdDesc'),
+          })
+          navigate(from)
+        }}
+      />
     </div>
   )
 }

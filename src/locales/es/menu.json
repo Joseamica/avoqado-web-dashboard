@@ -24,6 +24,16 @@
     "active": "Activo",
     "dragToReorderProducts": "Arrastra para reordenar productos dentro de esta categoría."
   },
+  "menumaker": {
+    "nav": {
+      "overview": "Resumen",
+      "menus": "Menús",
+      "categories": "Categorías",
+      "products": "Productos",
+      "modifierGroups": "Grupos Modificadores",
+      "customers": "Clientes"
+    }
+  },
   "menus": {
     "title": "Menús",
     "newMenu": "Nuevo menú",
@@ -334,6 +344,7 @@
       "selectCategory": "Selecciona una categoría",
       "modifierGroups": "Grupos Modificadores",
       "selectGroups": "Selecciona los grupos",
+      "useWizard": "Usar Asistente Guiado",
       "toasts": {
         "created": "Producto {{name}} creado",
         "createdDesc": "El producto se ha creado correctamente.",
@@ -348,6 +359,9 @@
       "deleteMessage": "¿Estás seguro de que deseas eliminar este producto?",
       "deleteConfirm": "Eliminar",
       "duplicate": "Duplicar",
+      "configureInventory": "Configurar Inventario",
+      "configureInventoryDesc": "Configura el seguimiento de inventario y la gestión de recetas para este producto.",
+      "inventoryConfigured": "La configuración de inventario se ha actualizado correctamente.",
       "saving": "Guardando...",
       "skuPlaceholder": "SKU (p.ej., TACO-001 o Prod-abc123)",
       "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
@@ -364,5 +378,12 @@
         "deletedDesc": "El producto se ha eliminado correctamente."
       }
     }
+  },
+  "common": {
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "search": "Buscar",
+    "error": "Error"
   }
 }

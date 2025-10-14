@@ -85,7 +85,6 @@ function DataTable<TData>({
   const table = useReactTable({
     data: filteredData,
     columns,
-    pageCount: pagination ? Math.ceil(rowCount / pagination.pageSize) : Math.ceil(rowCount / defaultPagination.pageSize),
     state: {
       pagination: pagination || defaultPagination,
       rowSelection,
@@ -94,8 +93,7 @@ function DataTable<TData>({
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
-    manualPagination: !!pagination, // Enable server-side pagination when pagination prop is provided
-    rowCount: rowCount || 0,
+    manualPagination: false, // Always use client-side pagination since we fetch all data at once
     getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
       size: 10,

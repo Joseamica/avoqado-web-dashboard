@@ -1,0 +1,502 @@
+{
+  "title": "Inventory Management",
+  "subtitle": "Manage raw materials, recipes, and stock levels",
+
+  "tabs": {
+    "rawMaterials": "Raw Materials",
+    "recipes": "Recipes",
+    "pricing": "Pricing",
+    "suppliers": "Suppliers",
+    "purchaseOrders": "Purchase Orders",
+    "alerts": "Alerts",
+    "reports": "Reports"
+  },
+
+  "nav": {
+    "rawMaterials": "Raw Materials",
+    "recipes": "Recipes",
+    "pricing": "Pricing"
+  },
+
+  "rawMaterials": {
+    "title": "Raw Materials",
+    "subtitle": "Manage ingredients and supplies",
+    "add": "Add Raw Material",
+    "edit": "Edit Raw Material",
+    "delete": "Delete Raw Material",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "adjustStock": "Adjust Stock",
+    "viewMovements": "View Movements",
+    "fields": {
+      "name": "Name",
+      "sku": "SKU",
+      "category": "Category",
+      "currentStock": "Current Stock",
+      "unit": "Unit",
+      "minimumStock": "Minimum Stock",
+      "reorderPoint": "Reorder Point",
+      "maximumStock": "Maximum Stock",
+      "costPerUnit": "Cost Per Unit",
+      "avgCostPerUnit": "Average Cost",
+      "perishable": "Perishable",
+      "shelfLifeDays": "Shelf Life (days)",
+      "active": "Active",
+      "description": "Description"
+    },
+    "categories": {
+      "MEAT": "Meat",
+      "POULTRY": "Poultry",
+      "SEAFOOD": "Seafood",
+      "DAIRY": "Dairy",
+      "CHEESE": "Cheese",
+      "EGGS": "Eggs",
+      "VEGETABLES": "Vegetables",
+      "FRUITS": "Fruits",
+      "GRAINS": "Grains",
+      "BREAD": "Bread",
+      "PASTA": "Pasta",
+      "RICE": "Rice",
+      "BEANS": "Beans",
+      "SPICES": "Spices",
+      "HERBS": "Herbs",
+      "OILS": "Oils",
+      "SAUCES": "Sauces",
+      "CONDIMENTS": "Condiments",
+      "BEVERAGES": "Beverages",
+      "ALCOHOL": "Alcohol",
+      "CLEANING": "Cleaning",
+      "PACKAGING": "Packaging",
+      "OTHER": "Other"
+    },
+    "filters": {
+      "all": "All",
+      "lowStock": "Low Stock",
+      "active": "Active",
+      "inactive": "Inactive",
+      "search": "Search by name or SKU"
+    },
+    "movements": {
+      "title": "Stock Movements",
+      "type": "Type",
+      "quantity": "Quantity",
+      "previousStock": "Previous",
+      "newStock": "New Stock",
+      "reason": "Reason",
+      "reference": "Reference",
+      "date": "Date",
+      "types": {
+        "PURCHASE": "Purchase",
+        "USAGE": "Usage",
+        "ADJUSTMENT": "Adjustment",
+        "SPOILAGE": "Spoilage",
+        "TRANSFER": "Transfer",
+        "RETURN": "Return",
+        "COUNT": "Stock Count"
+      }
+    },
+    "messages": {
+      "created": "Raw material created successfully",
+      "updated": "Raw material updated successfully",
+      "deleted": "Raw material deleted successfully",
+      "deleteFailed": "Failed to delete raw material",
+      "cannotDelete": "Cannot Delete Raw Material",
+      "usedInRecipes": "This raw material is used in {{count}} recipe(s). Please remove it from all recipes before deleting.",
+      "activated": "Raw material activated successfully",
+      "deactivated": "Raw material deactivated successfully",
+      "stockAdjusted": "Stock adjusted successfully"
+    },
+    "usage": {
+      "column": "Usage",
+      "title": "Recipe Usage",
+      "usedIn": "Used in {{count}} recipe(s)",
+      "inRecipes": "In {{count}} recipe(s)",
+      "notUsed": "Not used",
+      "noRecipes": "This raw material is not used in any recipes yet."
+    },
+    "fieldHelp": {
+      "sku": "Stock Keeping Unit - A unique code to identify and track this ingredient in your inventory system. Example: TOM-001, BEEF-500G",
+      "unit": "Unit of measurement for this ingredient. This defines how you'll track stock, make purchases, and calculate costs. Choose the unit that makes most sense for this ingredient.",
+      "currentStock": "The quantity you currently have in inventory right now. This will be measured in the unit you selected above.",
+      "minimumStock": "The absolute lowest quantity you want in stock. System triggers alerts when stock falls below this level.",
+      "reorderPoint": "The stock level that triggers a purchase order. Should be higher than minimum stock to account for delivery time. Example: If minimum is 5kg and delivery takes 3 days, set reorder point to 10kg.",
+      "maximumStock": "Maximum storage capacity for this ingredient. Helps prevent over-ordering and waste. Optional but recommended for perishable items.",
+      "costPerUnit": "The cost per unit of measurement you selected. For example, if you selected 'kg', enter the cost per kilogram. If 'liters', enter cost per liter.",
+      "perishable": "Check this if the ingredient has an expiration date or limited shelf life (meat, dairy, produce). Enables expiration tracking and alerts.",
+      "shelfLifeDays": "The number of days this ingredient stays fresh after receiving it. This is used to automatically calculate expiration dates for each batch you receive. For example, if milk has a 7-day shelf life, a batch received today will expire in 7 days."
+    }
+  },
+
+  "recipes": {
+    "title": "Recipes",
+    "subtitle": "Manage product recipes and ingredients",
+    "add": "Add Recipe",
+    "edit": "Edit Recipe",
+    "delete": "Delete Recipe",
+    "addIngredient": "Add Ingredient",
+    "removeIngredient": "Remove Ingredient",
+    "filters": {
+      "withRecipe": "With Recipe",
+      "withoutRecipe": "Without Recipe"
+    },
+    "fields": {
+      "product": "Product",
+      "currentPrice": "Current Price",
+      "portionYield": "Portion Yield",
+      "prepTime": "Prep Time (min)",
+      "cookTime": "Cook Time (min)",
+      "notes": "Notes",
+      "totalCost": "Total Cost",
+      "costPerServing": "Cost Per Serving"
+    },
+    "portionYieldHelp": {
+      "title": "What is Portion Yield?",
+      "description": "The number of servings this recipe produces. Used to calculate cost per serving and profitability.",
+      "examples": "Examples:",
+      "example1": "Hamburger = 1 serving",
+      "example2": "Large Pizza = 8 servings (8 slices)",
+      "example3": "Soup Pot = 10 servings"
+    },
+    "ingredients": {
+      "title": "Ingredients",
+      "ingredient": "Ingredient",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "cost": "Cost",
+      "optional": "Optional",
+      "substituteNotes": "Substitute Notes"
+    },
+    "messages": {
+      "created": "Recipe created successfully",
+      "updated": "Recipe updated successfully",
+      "deleted": "Recipe deleted successfully",
+      "ingredientAdded": "Ingredient added successfully",
+      "ingredientRemoved": "Ingredient removed successfully",
+      "noRecipe": "This product doesn't have a recipe yet",
+      "noRecipeShort": "No recipe",
+      "productsWithoutRecipes": "{{count}} products without recipes"
+    }
+  },
+
+  "pricing": {
+    "title": "Pricing Analysis",
+    "subtitle": "Analyze product profitability and pricing",
+    "viewPolicy": "View Pricing Policy",
+    "createPolicy": "Create Pricing Policy",
+    "updatePolicy": "Update Pricing Policy",
+    "calculatePrice": "Calculate Price",
+    "applySuggested": "Apply Suggested Price",
+    "fields": {
+      "strategy": "Pricing Strategy",
+      "targetFoodCost": "Target Food Cost %",
+      "targetMarkup": "Target Markup %",
+      "minimumPrice": "Minimum Price",
+      "currentPrice": "Current Price",
+      "suggestedPrice": "Suggested Price",
+      "recipeCost": "Recipe Cost",
+      "foodCostPercentage": "Food Cost %",
+      "markupPercentage": "Markup %",
+      "contribution": "Contribution Margin"
+    },
+    "strategies": {
+      "MANUAL": "Manual",
+      "AUTO_MARKUP": "Auto Markup",
+      "AUTO_TARGET_MARGIN": "Auto Target Margin"
+    },
+    "profitabilityStatus": {
+      "EXCELLENT": "Excellent",
+      "GOOD": "Good",
+      "ACCEPTABLE": "Acceptable",
+      "POOR": "Poor"
+    },
+    "recommendations": {
+      "INCREASE": "Increase Price",
+      "DECREASE": "Decrease Price",
+      "MAINTAIN": "Maintain Price"
+    },
+    "messages": {
+      "policyCreated": "Pricing policy created successfully",
+      "policyUpdated": "Pricing policy updated successfully",
+      "priceApplied": "Suggested price applied successfully"
+    }
+  },
+
+  "suppliers": {
+    "title": "Suppliers",
+    "subtitle": "Manage suppliers and pricing",
+    "add": "Add Supplier",
+    "edit": "Edit Supplier",
+    "delete": "Delete Supplier",
+    "addPricing": "Add Pricing",
+    "viewPerformance": "View Performance",
+    "getRecommendations": "Get Recommendations",
+    "fields": {
+      "name": "Name",
+      "contactName": "Contact Name",
+      "email": "Email",
+      "phone": "Phone",
+      "website": "Website",
+      "address": "Address",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "zipCode": "Zip Code",
+      "taxId": "Tax ID",
+      "rating": "Rating",
+      "reliabilityScore": "Reliability Score",
+      "leadTimeDays": "Lead Time (days)",
+      "minimumOrder": "Minimum Order",
+      "active": "Active",
+      "notes": "Notes"
+    },
+    "performance": {
+      "title": "Supplier Performance",
+      "orderCount": "Total Orders",
+      "totalSpent": "Total Spent",
+      "averageOrderValue": "Avg Order Value",
+      "onTimeDeliveryRate": "On-Time Delivery",
+      "qualityScore": "Quality Score"
+    },
+    "messages": {
+      "created": "Supplier created successfully",
+      "updated": "Supplier updated successfully",
+      "deleted": "Supplier deleted successfully",
+      "pricingAdded": "Pricing added successfully"
+    }
+  },
+
+  "purchaseOrders": {
+    "title": "Purchase Orders",
+    "subtitle": "Manage purchase orders and receiving",
+    "add": "Create Purchase Order",
+    "edit": "Edit Purchase Order",
+    "approve": "Approve",
+    "receive": "Receive",
+    "cancel": "Cancel",
+    "viewDetails": "View Details",
+    "fields": {
+      "orderNumber": "Order Number",
+      "supplier": "Supplier",
+      "orderDate": "Order Date",
+      "expectedDeliveryDate": "Expected Delivery",
+      "receivedDate": "Received Date",
+      "status": "Status",
+      "subtotal": "Subtotal",
+      "taxRate": "Tax Rate",
+      "taxAmount": "Tax Amount",
+      "totalAmount": "Total Amount",
+      "notes": "Notes"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
+      "CONFIRMED": "Confirmed",
+      "SHIPPED": "Shipped",
+      "RECEIVED": "Received",
+      "PARTIAL": "Partially Received",
+      "CANCELLED": "Cancelled"
+    },
+    "items": {
+      "title": "Order Items",
+      "rawMaterial": "Raw Material",
+      "quantityOrdered": "Qty Ordered",
+      "quantityReceived": "Qty Received",
+      "unit": "Unit",
+      "unitPrice": "Unit Price",
+      "subtotal": "Subtotal"
+    },
+    "messages": {
+      "created": "Purchase order created successfully",
+      "updated": "Purchase order updated successfully",
+      "approved": "Purchase order approved successfully",
+      "received": "Purchase order received successfully",
+      "cancelled": "Purchase order cancelled successfully"
+    }
+  },
+
+  "alerts": {
+    "title": "Inventory Alerts",
+    "subtitle": "Manage stock alerts and notifications",
+    "acknowledge": "Acknowledge",
+    "resolve": "Resolve",
+    "dismiss": "Dismiss",
+    "createManual": "Create Manual Alert",
+    "fields": {
+      "rawMaterial": "Raw Material",
+      "alertType": "Alert Type",
+      "status": "Status",
+      "threshold": "Threshold",
+      "currentLevel": "Current Level",
+      "notes": "Notes",
+      "createdAt": "Created At"
+    },
+    "types": {
+      "LOW_STOCK": "Low Stock",
+      "OUT_OF_STOCK": "Out of Stock",
+      "EXPIRING_SOON": "Expiring Soon",
+      "OVER_STOCK": "Over Stock"
+    },
+    "statuses": {
+      "ACTIVE": "Active",
+      "ACKNOWLEDGED": "Acknowledged",
+      "RESOLVED": "Resolved",
+      "DISMISSED": "Dismissed"
+    },
+    "messages": {
+      "acknowledged": "Alert acknowledged successfully",
+      "resolved": "Alert resolved successfully",
+      "dismissed": "Alert dismissed successfully",
+      "created": "Alert created successfully"
+    }
+  },
+
+  "reports": {
+    "title": "Inventory Reports",
+    "subtitle": "Analytics and insights",
+    "pmix": {
+      "title": "Product Mix (PMIX) Report",
+      "description": "Sales volume and profitability analysis",
+      "totalRevenue": "Total Revenue",
+      "totalCost": "Total Cost",
+      "totalProfit": "Total Profit",
+      "overallMargin": "Overall Margin",
+      "quantitySold": "Quantity Sold",
+      "uniqueProducts": "Unique Products"
+    },
+    "profitability": {
+      "title": "Profitability Report",
+      "description": "Product-level profitability analysis",
+      "needsReview": "Needs Review",
+      "totalProducts": "Total Products",
+      "avgFoodCost": "Avg Food Cost %"
+    },
+    "ingredientUsage": {
+      "title": "Ingredient Usage Report",
+      "description": "Track ingredient consumption and costs",
+      "totalMaterials": "Total Materials",
+      "totalCost": "Total Cost",
+      "totalUsage": "Total Usage",
+      "totalWaste": "Total Waste",
+      "totalPurchases": "Total Purchases"
+    },
+    "costVariance": {
+      "title": "Cost Variance Report",
+      "description": "Compare expected vs actual costs",
+      "revenue": "Revenue",
+      "expectedCost": "Expected Cost",
+      "actualCost": "Actual Cost",
+      "variance": "Variance",
+      "expectedFoodCost": "Expected Food Cost %",
+      "actualFoodCost": "Actual Food Cost %"
+    },
+    "valuation": {
+      "title": "Inventory Valuation",
+      "description": "Current stock value",
+      "totalItems": "Total Items",
+      "totalValue": "Total Value",
+      "byCategory": "By Category"
+    },
+    "dateRange": {
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "generate": "Generate Report"
+    }
+  },
+
+  "wizard": {
+    "title": "Product Wizard",
+    "subtitle": "Create a new product with optional inventory tracking",
+    "progress": "Step {{current}} of {{total}}",
+    "finish": "Finish",
+    "success": "Product created successfully!",
+    "successMessage": "Your product has been created and is ready to use",
+    "error": "Failed to create product",
+    "step1": {
+      "title": "Basic Information",
+      "name": "Product Name",
+      "namePlaceholder": "e.g., Latte, Gold Ring, Yoga Class",
+      "nameRequired": "Product name is required",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional product description",
+      "price": "Price",
+      "priceRequired": "Price is required",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category",
+      "categoryRequired": "Category is required",
+      "imageUrl": "Product Image",
+      "photoHelp": "Photos help customers decide what to order and can increase sales.",
+      "photoVisible": "Customers can see this photo in the Avoqado app.",
+      "photoGuidelines": "Check the complete photography guidelines",
+      "photoRequirements": "File requirements: JPG, PNG, GIF or WEBP up to 10 MB. Minimum required pixels: 320 wide and high.",
+      "dropImage": "Drop the image here to upload",
+      "or": "or",
+      "browseFile": "Browse File",
+      "addPhoto": "Add Photo",
+      "confirm": "Confirm",
+      "replace": "Replace",
+      "delete": "Delete",
+      "success": "Product created successfully!",
+      "error": "Failed to create product"
+    },
+    "step2": {
+      "title": "Inventory Configuration",
+      "recommendation": "Recommendation",
+      "recommendationEnabled": "Your venue has inventory management enabled. Would you like to track inventory for this product?",
+      "recommendationDisabled": "Inventory management is not enabled for your venue. Contact support to enable this feature.",
+      "question": "Do you want to track inventory for this product?",
+      "noInventory": "No Inventory Tracking",
+      "noInventoryDesc": "Best for services, classes, or digital products",
+      "useInventory": "Track Inventory",
+      "useInventoryDesc": "Track stock levels and costs",
+      "inventoryTypeQuestion": "How do you want to track inventory?",
+      "simpleStock": "Simple Stock",
+      "simpleStockDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
+      "recipeBased": "Recipe-Based",
+      "recipeBasedDesc": "For restaurants - tracks ingredients and calculates costs",
+      "success": "Inventory configured successfully!",
+      "error": "Failed to configure inventory"
+    },
+    "step3": {
+      "title": "Setup Inventory",
+      "simpleStockInfo": "Set up initial stock levels for this product. Each sale will deduct 1 unit.",
+      "recipeInfo": "Configure the recipe for this product. You can add ingredients later.",
+      "initialStock": "Initial Stock",
+      "initialStockHelp": "How many units do you currently have in stock? (tracked as unit count)",
+      "costPerUnit": "Cost Per Unit",
+      "reorderPoint": "Reorder Point",
+      "notesPlaceholder": "Preparation instructions, cooking notes, etc.",
+      "ingredientsNote": "You can add ingredients after creating the product",
+      "successSimple": "Simple stock setup completed!",
+      "successRecipe": "Recipe setup completed!",
+      "errorSimple": "Failed to setup simple stock",
+      "errorRecipe": "Failed to setup recipe"
+    }
+  },
+
+  "common": {
+    "actions": "Actions",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "print": "Print",
+    "refresh": "Refresh",
+    "total": "Total",
+    "error": "Error",
+    "yes": "Yes",
+    "no": "No",
+    "status": "Status",
+    "add": "Add",
+    "subtract": "Subtract"
+  }
+}

@@ -17,13 +17,14 @@ import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ImageIcon } from 'lucide-react'
+import { ArrowLeft, ImageIcon, Package } from 'lucide-react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import api from '@/api'
+import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -50,6 +51,7 @@ export default function ProductId() {
 
   // State to handle broken images
   const [imageError, setImageError] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
@@ -248,6 +250,14 @@ export default function ProductId() {
             onRightButtonClick={() => deleteProduct.mutate()}
           />
           <Button variant="outline">{t('products.detail.duplicate')}</Button>
+          <Button
+            variant="outline"
+            onClick={() => setWizardOpen(true)}
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <Package className="mr-2 h-4 w-4" />
+            {t('products.detail.configureInventory')}
+          </Button>
           <LoadingButton
             loading={saveProduct.isPending}
             onClick={form.handleSubmit(onSubmit)}
@@ -655,6 +665,21 @@ export default function ProductId() {
           />
         </form>
       </Form>
+
+      {/* Product Wizard Dialog */}
+      <ProductWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        mode="edit"
+        productId={productId}
+        onSuccess={() => {
+          toast({
+            title: t('products.detail.toasts.saved'),
+            description: t('products.detail.inventoryConfigured'),
+          })
+          queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+        }}
+      />
     </div>
   )
 }

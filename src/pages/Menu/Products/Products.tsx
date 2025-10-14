@@ -1,17 +1,35 @@
-import { getProducts, updateProduct } from '@/services/menu.service'
+import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon } from 'lucide-react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 
@@ -20,10 +38,17 @@ export default function Products() {
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
+  const navigate = useNavigate()
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', venueId],
@@ -61,6 +86,30 @@ export default function Products() {
       toast({
         title: data.status ? t('products.toasts.activated') : t('products.toasts.deactivated'),
         description: t('products.toasts.saved'),
+      })
+    },
+  })
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      await deleteProduct(venueId!, productId)
+      return productId
+    },
+    onSuccess: () => {
+      setDeleteDialogOpen(false)
+      setProductToDelete(null)
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+      toast({
+        title: t('products.detail.toasts.deleted'),
+        description: t('products.detail.toasts.deletedDesc'),
+      })
+    },
+    onError: () => {
+      setDeleteDialogOpen(false)
+      toast({
+        title: t('common.error'),
+        description: t('products.detail.toasts.saveErrorDesc'),
+        variant: 'destructive',
       })
     },
   })
@@ -169,6 +218,50 @@ export default function Products() {
       },
     },
     {
+      id: 'actions',
+      header: t('common.actions'),
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0" onClick={e => e.stopPropagation()}>
+                <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={e => {
+                  e.stopPropagation()
+                  navigate(product.id, { state: { from: location.pathname } })
+                }}
+                className="cursor-pointer"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                {t('common.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={e => {
+                  e.stopPropagation()
+                  setProductToDelete(product)
+                  setDeleteDialogOpen(true)
+                }}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('common.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+    {
       id: 'id',
       accessorKey: 'active',
       header: '',
@@ -231,11 +324,35 @@ export default function Products() {
         searchPlaceholder={t('common.search')}
         onSearch={handleSearch}
         tableId="menu:products"
+        pagination={pagination}
+        setPagination={setPagination}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
         })}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('products.detail.deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('products.detail.deleteMessage')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('forms.buttons.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (productToDelete) {
+                  deleteProductMutation.mutate(productToDelete.id)
+                }
+              }}
+              disabled={deleteProductMutation.isPending}
+            >
+              {deleteProductMutation.isPending ? t('products.detail.toasts.deleted') : t('products.detail.deleteConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

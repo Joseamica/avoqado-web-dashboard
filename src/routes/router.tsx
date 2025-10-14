@@ -70,6 +70,10 @@ import {
   Privacy,
   AnalyticsLayout,
   AnalyticsOverview,
+  InventoryLayout,
+  RawMaterials,
+  Recipes,
+  Pricing,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -77,6 +81,7 @@ import Root from '@/root'
 
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
+import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { Layout } from '@/Layout'
 
 const router = createBrowserRouter(
@@ -112,11 +117,17 @@ const router = createBrowserRouter(
           element: <ProtectedRoute />, // Protected routes
           children: [
             // Executive Analytics (org/venue scoped via backend auth)
+            // Requires MANAGER+ or VIEWER role
             {
               path: '/analytics',
-              element: <AnalyticsLayout />,
+              element: <ManagerProtectedRoute allowViewer={true} />,
               children: [
-                { index: true, element: <AnalyticsOverview /> },
+                {
+                  element: <AnalyticsLayout />,
+                  children: [
+                    { index: true, element: <AnalyticsOverview /> },
+                  ],
+                },
               ],
             },
             // Add venues route before venues/:slug
@@ -362,11 +373,17 @@ const router = createBrowserRouter(
                 { path: 'orders', element: <Orders /> },
                 { path: 'orders/:orderId', element: <OrderId /> },
                 // Analytics nested under venue for dashboard context
+                // Requires MANAGER+ or VIEWER role
                 {
                   path: 'analytics',
-                  element: <AnalyticsLayout />,
+                  element: <ManagerProtectedRoute allowViewer={true} />,
                   children: [
-                    { index: true, element: <AnalyticsOverview /> },
+                    {
+                      element: <AnalyticsLayout />,
+                      children: [
+                        { index: true, element: <AnalyticsOverview /> },
+                      ],
+                    },
                   ],
                 },
                 {
@@ -377,9 +394,16 @@ const router = createBrowserRouter(
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
                 },
-                { path: 'tpv', element: <Tpv /> },
-                { path: 'tpv/create', element: <CreateTpv /> },
-                { path: 'tpv/:tpvId', element: <TpvId /> },
+                // TPV Management (requires MANAGER level or higher)
+                {
+                  path: 'tpv',
+                  element: <ManagerProtectedRoute />,
+                  children: [
+                    { index: true, element: <Tpv /> },
+                    { path: 'create', element: <CreateTpv /> },
+                    { path: ':tpvId', element: <TpvId /> },
+                  ],
+                },
                 // { path: 'waiters', element: <Waiters /> },
                 // { path: 'waiters/:waiterId', element: <WaiterId /> },
                 { path: 'reviews', element: <Reviews /> },
@@ -387,6 +411,22 @@ const router = createBrowserRouter(
                 { path: 'teams/:memberId', element: <TeamMemberDetails /> },
                 { path: 'notifications', element: <Notifications /> },
                 { path: 'notifications/preferences', element: <NotificationPreferences /> },
+
+                // Inventory Management (ADMIN access only)
+                {
+                  path: 'inventory',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [
+                    {
+                      element: <InventoryLayout />,
+                      children: [
+                        { path: 'raw-materials', element: <RawMaterials /> },
+                        { path: 'recipes', element: <Recipes /> },
+                        { path: 'pricing', element: <Pricing /> },
+                      ],
+                    },
+                  ],
+                },
 
                 // Esta sección pasa a ser parte del nuevo panel de administración
                 {

@@ -16,6 +16,8 @@ import menuFr from '@/locales/fr/menu.json'
 import venueEn from '@/locales/en/venue.json'
 import venueEs from '@/locales/es/venue.json'
 import venueFr from '@/locales/fr/venue.json'
+import inventoryEn from '@/locales/en/inventory.json'
+import inventoryEs from '@/locales/es/inventory.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -54,6 +56,7 @@ const resources = {
         orders: 'Orders',
         home: 'Home',
         menu: 'Menu',
+        inventory: 'Inventory',
         settings: 'Settings',
         shifts: 'Shifts',
         categories: 'Categories',
@@ -705,6 +708,8 @@ const resources = {
         contactOwner: 'If you need access to this feature, contact an Owner (OWNER).',
         superadminOnlyMessage: 'This section is available only for System Administrators (SUPERADMIN).',
         contactSuperadmin: 'If you need access to this feature, contact a System Administrator (SUPERADMIN).',
+        managerOnlyMessage: 'This section requires Manager level access or higher (MANAGER, ADMIN, OWNER, SUPERADMIN).',
+        managerOrViewerOnlyMessage: 'This section requires Manager level access or Viewer role (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).',
         noVenuesAssigned: 'You have no venues assigned!',
         contactAdminForVenue: 'To start using the platform, contact the administrator to have one assigned to you.',
         needHelp: 'Need help?',
@@ -1089,7 +1094,8 @@ const resources = {
           },
           deleteDialog: {
             title: 'Delete Venue',
-            description: 'Are you sure you want to delete {{venueName}}? Type "delete {{venueName}}" to confirm. This action cannot be undone.',
+            description:
+              'Are you sure you want to delete {{venueName}}? Type "delete {{venueName}}" to confirm. This action cannot be undone.',
           },
           notFound: 'Venue not found',
           notFoundDesc: 'The venue you are looking for does not exist or has been deleted.',
@@ -2811,6 +2817,7 @@ const resources = {
         orders: 'Cuentas',
         home: 'Inicio',
         menu: 'Menú',
+        inventory: 'Inventario',
         settings: 'Configuración',
         shifts: 'Turnos',
         categories: 'Categorías',
@@ -2949,7 +2956,7 @@ const resources = {
         },
       },
       orders: {
-        title: 'Ã“rdenes',
+        title: 'Ordenes',
         searchPlaceholder: 'Buscar por folio, cliente o mesero...',
         errorPrefix: 'Error al cargar órdenes',
         counter: 'Mostrador',
@@ -3521,6 +3528,8 @@ const resources = {
         contactOwner: 'Si necesitas acceso a esta funcionalidad, contacta a un Propietario (OWNER).',
         superadminOnlyMessage: 'Esta sección está disponible solo para Administradores de Sistema (SUPERADMIN).',
         contactSuperadmin: 'Si necesitas acceso a esta funcionalidad, contacta a un Administrador de Sistema (SUPERADMIN).',
+        managerOnlyMessage: 'Esta sección requiere acceso de nivel Gerente o superior (MANAGER, ADMIN, OWNER, SUPERADMIN).',
+        managerOrViewerOnlyMessage: 'Esta sección requiere acceso de nivel Gerente o rol Visualizador (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).',
         noVenuesAssigned: '¡No tienes sucursales asignadas!',
         contactAdminForVenue: 'Para comenzar a usar la plataforma, contacta al administrador para que te asigne uno.',
         needHelp: '¿Necesitas ayuda?',
@@ -3919,7 +3928,8 @@ const resources = {
           },
           deleteDialog: {
             title: 'Eliminar Establecimiento',
-            description: '¿Estás seguro de que deseas eliminar {{venueName}}? Escribe "delete {{venueName}}" para confirmar. Esta acción no se puede deshacer.',
+            description:
+              '¿Estás seguro de que deseas eliminar {{venueName}}? Escribe "delete {{venueName}}" para confirmar. Esta acción no se puede deshacer.',
           },
           notFound: 'Establecimiento no encontrado',
           notFoundDesc: 'El establecimiento que buscas no existe o ha sido eliminado.',
@@ -5383,6 +5393,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'venue', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', inventoryEn],
+    ['es', inventoryEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'inventory', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

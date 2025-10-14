@@ -78,3 +78,9 @@ export const Privacy = React.lazy(() => import('@/pages/Legal/Privacy'))
 // Analytics
 export const AnalyticsLayout = React.lazy(() => import('@/pages/Analytics/AnalyticsLayout'))
 export const AnalyticsOverview = React.lazy(() => import('@/pages/Analytics/AnalyticsOverview'))
+
+// Inventory
+export const InventoryLayout = React.lazy(() => import('@/pages/Inventory/InventoryLayout'))
+export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMaterials'))
+export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
+export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))

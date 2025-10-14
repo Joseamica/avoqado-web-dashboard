@@ -14,7 +14,7 @@ export default function MenuMakerLayout() {
 }
 
 export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('menu')
   return (
     <nav className={cn("flex items-center space-x-6 lg:space-x-8 border-y border-border p-4", className)} {...props}>
       <NavLink

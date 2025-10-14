@@ -24,6 +24,16 @@
     "active": "Active",
     "dragToReorderProducts": "Drag to reorder products within this category."
   },
+  "menumaker": {
+    "nav": {
+      "overview": "Overview",
+      "menus": "Menus",
+      "categories": "Categories",
+      "products": "Products",
+      "modifierGroups": "Modifier Groups",
+      "customers": "Customers"
+    }
+  },
   "menus": {
     "title": "Menus",
     "newMenu": "New Menu",
@@ -334,6 +344,7 @@
       "selectCategory": "Select a category",
       "modifierGroups": "Modifier Groups",
       "selectGroups": "Select the groups",
+      "useWizard": "Use Guided Wizard",
       "toasts": {
         "created": "Product {{name}} created",
         "createdDesc": "The product has been created successfully.",
@@ -348,6 +359,9 @@
       "deleteMessage": "Are you sure you want to delete this product?",
       "deleteConfirm": "Delete",
       "duplicate": "Duplicate",
+      "configureInventory": "Configure Inventory",
+      "configureInventoryDesc": "Set up inventory tracking and recipe management for this product.",
+      "inventoryConfigured": "Inventory configuration has been updated successfully.",
       "saving": "Saving...",
       "skuPlaceholder": "SKU (e.g., TACO-001 or Prod-abc123)",
       "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
@@ -364,5 +378,12 @@
         "deletedDesc": "The product has been deleted successfully."
       }
     }
+  },
+  "common": {
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "error": "Error"
   }
 }
