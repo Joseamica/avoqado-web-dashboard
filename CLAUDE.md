@@ -165,6 +165,307 @@ Currently no automated test suite is configured. Code quality is maintained thro
 - Production build requires environment variables
 - Firebase authentication requires proper domain configuration
 
+## 📦 Inventory Management System
+
+### Overview
+
+The inventory management system tracks raw materials, recipes, stock batches, and provides FIFO (First-In-First-Out) inventory costing. This is a **core business feature** that automatically deducts stock when orders are paid.
+
+### Architecture
+
+```
+Raw Materials (Ingredients)
+  ├─ Stock Batches (FIFO tracking)
+  │   ├─ Batch 1 (oldest - used first)
+  │   ├─ Batch 2
+  │   └─ Batch 3 (newest - used last)
+  ├─ Stock Movements (audit trail)
+  └─ Low Stock Alerts
+
+Recipes (Product composition)
+  ├─ Recipe Lines (ingredients + quantities)
+  └─ Total Cost calculation
+
+Products
+  ├─ Has Recipe? → Recipe-based inventory
+  ├─ Simple Stock? → Count-based inventory
+  └─ No Inventory? → Services/digital products
+```
+
+### Key Components
+
+**Pages:**
+- `src/pages/Inventory/RawMaterials.tsx` - Manage raw materials/ingredients
+- `src/pages/Inventory/Recipes.tsx` - Manage product recipes
+- `src/pages/Inventory/Pricing.tsx` - Pricing analysis & profitability
+- `src/pages/Menu/Products/createProduct.tsx` - Product wizard with inventory
+
+**Dialogs:**
+- `src/pages/Inventory/components/RawMaterialDialog.tsx` - Add/edit raw materials
+- `src/pages/Inventory/components/RecipeDialog.tsx` - Add/edit recipes
+- `src/pages/Inventory/components/AdjustStockDialog.tsx` - Manual stock adjustments
+- `src/pages/Inventory/components/StockMovementsDialog.tsx` - View movement history
+- `src/pages/Inventory/components/ProductWizardDialog.tsx` - Guided product creation
+
+**Services:**
+- `src/services/inventory.service.ts` - API client for inventory operations
+
+**Constants:**
+- `src/lib/inventory-constants.ts` - Units, categories, enums
+
+### Data Flow: Order → Inventory Deduction
+
+**Important:** The dashboard displays inventory data but does NOT trigger deductions directly. Stock deduction happens automatically on the **backend** when an order is fully paid.
+
+```
+1. Dashboard: Create Product with Recipe
+   └─ Define ingredients and quantities
+
+2. Dashboard or TPV: Create Order
+   └─ Order status: PENDING
+
+3. TPV: Process Payment
+   └─ Backend: Automatically deducts stock (FIFO)
+
+4. Dashboard: View Results
+   ├─ Updated stock levels (RawMaterials page)
+   ├─ Stock movements (AdjustStockDialog)
+   ├─ Low stock alerts (if any)
+   └─ Batch depletion (oldest batches used first)
+```
+
+### Raw Material Fields
+
+| Field | Description | Required | Notes |
+|-------|-------------|----------|-------|
+| `name` | Ingredient name | ✅ | e.g., "Hamburger Buns" |
+| `sku` | Stock keeping unit | ✅ | Unique identifier |
+| `category` | Ingredient category | ✅ | MEAT, DAIRY, VEGETABLES, etc. |
+| `unit` | Measurement unit | ✅ | KILOGRAM, LITER, UNIT, etc. |
+| `currentStock` | Current quantity | ✅ | Auto-calculated from batches |
+| `minimumStock` | Safety stock level | ✅ | Alert threshold |
+| `reorderPoint` | Reorder trigger | ✅ | When to reorder |
+| `costPerUnit` | Purchase cost | ✅ | Used in recipe costing |
+| `perishable` | Has expiration? | ⬜ | Enables batch tracking |
+| `shelfLifeDays` | Days until expiry | ⬜ | Auto-calculates batch expiration |
+
+**Critical:** `expirationDate` is NOT on RawMaterial! It's calculated per batch:
+```typescript
+// Each StockBatch has its own expiration:
+batch.expirationDate = batch.receivedDate + rawMaterial.shelfLifeDays
+```
+
+### Recipe System
+
+**Recipe Structure:**
+```typescript
+Recipe {
+  productId: string           // One recipe per product
+  portionYield: number        // How many servings
+  totalCost: Decimal          // Calculated from ingredients
+  lines: RecipeLine[] {       // Individual ingredients
+    rawMaterialId: string
+    quantity: Decimal         // Amount needed
+    unit: Unit
+    isOptional: boolean       // Skip if unavailable?
+  }
+}
+```
+
+**Example: Hamburger Recipe**
+```typescript
+{
+  productId: "prod_123",
+  portionYield: 1,            // Makes 1 burger
+  totalCost: 3.60,            // Sum of ingredients
+  lines: [
+    { rawMaterialId: "buns_001", quantity: 1, unit: UNIT },      // $0.50
+    { rawMaterialId: "beef_001", quantity: 1, unit: UNIT },      // $2.00
+    { rawMaterialId: "cheese_001", quantity: 2, unit: UNIT },    // $0.60
+    { rawMaterialId: "lettuce_001", quantity: 50, unit: GRAM },  // $0.50
+  ]
+}
+```
+
+**When Order Paid:**
+```typescript
+// Backend automatically:
+for (const line of recipe.lines) {
+  const needed = line.quantity * order.quantity
+  deductStockFIFO(line.rawMaterialId, needed)
+}
+```
+
+### FIFO Batch Tracking
+
+**Why FIFO?**
+- Uses oldest inventory first (prevents waste)
+- Accurate cost tracking per batch
+- Proper expiration management
+- Compliance with accounting standards
+
+**How It Works:**
+```typescript
+// User receives 3 shipments of buns:
+Batch 1: 50 units @ $0.50, received Oct 4, expires Oct 9
+Batch 2: 100 units @ $0.50, received Oct 9, expires Oct 14
+Batch 3: 150 units @ $0.50, received Oct 14, expires Oct 19
+
+// Order requires 60 buns:
+Step 1: Use 50 from Batch 1 (oldest) → Batch 1 DEPLETED
+Step 2: Use 10 from Batch 2 → Batch 2 has 90 remaining
+Step 3: Batch 3 untouched
+
+// Result: Oldest stock used first, reducing waste!
+```
+
+**Visual in Dashboard:**
+- `StockMovementsDialog` shows which batches were used
+- `RawMaterials` page shows current stock (sum of active batches)
+- Low stock alerts appear when stock ≤ reorderPoint
+
+### Pricing & Profitability
+
+**Cost Calculation:**
+```typescript
+// Recipe cost (from ingredients):
+const recipeCost = recipe.lines.reduce((sum, line) =>
+  sum + (line.quantity * line.rawMaterial.costPerUnit), 0
+)
+
+// Product profit:
+const profit = product.price - recipeCost
+const margin = (profit / product.price) * 100
+
+// Example:
+// Hamburger: $12.99 price - $3.60 cost = $9.39 profit (72% margin)
+```
+
+**Pricing Analysis Page:**
+- Shows cost vs price for all products
+- Identifies unprofitable items (cost > price)
+- Suggests pricing adjustments
+- Tracks margin percentages
+
+### Common UI Tasks
+
+**Add New Raw Material:**
+1. Navigate to Inventory → Raw Materials
+2. Click "Add Raw Material"
+3. Fill required fields (name, SKU, unit, costs, stock levels)
+4. If perishable: Set `shelfLifeDays` (NOT `expirationDate`!)
+5. Save → Backend creates initial stock batch
+
+**Create Product Recipe:**
+1. Navigate to Menu → Products
+2. Find product → Click "Edit" → "Recipe" tab
+3. Add ingredients with quantities
+4. System calculates total cost
+5. Save → Recipe active for inventory deduction
+
+**Adjust Stock Manually:**
+1. Navigate to Inventory → Raw Materials
+2. Find item → Click "..." → "Adjust Stock"
+3. Enter quantity (positive or negative)
+4. Select reason (PURCHASE, SPOILAGE, COUNT, etc.)
+5. Save → Creates movement + updates batches
+
+**View Stock Movements:**
+1. Navigate to Inventory → Raw Materials
+2. Find item → Click "..." → "View Movements"
+3. See complete audit trail:
+   - PURCHASE (received from supplier)
+   - USAGE (used in order)
+   - ADJUSTMENT (manual change)
+   - SPOILAGE (waste/expiry)
+   - COUNT (inventory count correction)
+
+### Translation Keys (i18n)
+
+All inventory UI uses the `inventory` namespace:
+
+```typescript
+import { useTranslation } from 'react-i18next'
+const { t } = useTranslation('inventory')
+
+// Examples:
+t('rawMaterials.add')                    // "Add Raw Material"
+t('rawMaterials.fields.shelfLifeDays')   // "Shelf Life (days)"
+t('rawMaterials.fieldHelp.unit')         // Help text for unit field
+t('recipes.ingredients.quantity')         // "Quantity"
+```
+
+**Namespace location:** `src/locales/[en|es]/inventory.json`
+
+### Testing Inventory Flow
+
+**Manual Test:**
+1. **Setup:**
+   - Create raw material: "Test Buns" with stock 100
+   - Create product: "Test Burger" at $10
+   - Create recipe: 1 bun per burger
+   - Note initial stock: 100 buns
+
+2. **Create Order:**
+   - Add "Test Burger" (qty: 5)
+   - Total: $50
+
+3. **Process Payment:**
+   - Pay full amount ($50)
+   - Order status → COMPLETED
+
+4. **Verify Deduction:**
+   - Go to Inventory → Raw Materials
+   - Find "Test Buns"
+   - Stock should be: 95 (100 - 5)
+   - Click "View Movements" → See USAGE entry
+
+5. **Check FIFO:**
+   - If multiple batches exist, oldest should be used first
+   - View movements to see batch references
+
+**API Testing:**
+```bash
+# From browser console (dashboard must be logged in):
+// Check raw material stock
+fetch('/api/v1/dashboard/venues/{venueId}/raw-materials')
+  .then(r => r.json())
+  .then(console.log)
+
+// View stock movements
+fetch('/api/v1/dashboard/venues/{venueId}/raw-materials/{id}/movements')
+  .then(r => r.json())
+  .then(console.log)
+```
+
+### Common Issues
+
+**Stock Not Updating:**
+- ✅ Check: Payment status is "PAID" (not PENDING)
+- ✅ Check: Product has a recipe defined
+- ✅ Check: Recipe has ingredients
+- ✅ Check: Raw materials have sufficient stock
+- ✅ Check: Backend logs for errors
+
+**Wrong Cost Calculation:**
+- ✅ Check: Raw material `costPerUnit` is correct
+- ✅ Check: Recipe quantities match reality
+- ✅ Check: Units match (don't mix KILOGRAM with GRAM)
+
+**FIFO Not Working:**
+- ✅ Check: Multiple batches exist with different `receivedDate`
+- ✅ Check: Batches have status "ACTIVE" (not DEPLETED)
+- ✅ Check: `receivedDate` ordering in database
+
+### Best Practices
+
+1. **Always set `shelfLifeDays` for perishables** - Enables automatic expiration tracking
+2. **Use consistent units** - Don't mix grams and kilograms in same recipe
+3. **Set realistic reorder points** - Account for delivery time + buffer
+4. **Test recipes before going live** - Verify costs and quantities
+5. **Review low stock alerts daily** - Prevents stockouts
+6. **Use optional ingredients sparingly** - Only for true substitutions
+
 ### Theme System Guidelines (Summary)
 
 Follow the design-token based theme system to ensure light/dark mode compatibility. See full details in `THEME-GUIDELINES.md`.
