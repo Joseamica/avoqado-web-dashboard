@@ -1181,6 +1181,8 @@ export interface SessionVenue {
   currency: string
   // El rol que el usuario logueado tiene EN ESTE venue específico
   role: StaffRole
+  // Custom permissions for this user in this venue (from StaffVenue.permissions)
+  permissions?: string[] | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
   features: Array<{
     feature: {

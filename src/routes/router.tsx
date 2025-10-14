@@ -394,16 +394,11 @@ const router = createBrowserRouter(
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
                 },
-                // TPV Management (requires MANAGER level or higher)
-                {
-                  path: 'tpv',
-                  element: <ManagerProtectedRoute />,
-                  children: [
-                    { index: true, element: <Tpv /> },
-                    { path: 'create', element: <CreateTpv /> },
-                    { path: ':tpvId', element: <TpvId /> },
-                  ],
-                },
+                // TPV Management (accessible to all authenticated users)
+                // Permission-based UI controls via PermissionGate
+                { path: 'tpv', element: <Tpv /> },
+                { path: 'tpv/create', element: <CreateTpv /> },
+                { path: 'tpv/:tpvId', element: <TpvId /> },
                 // { path: 'waiters', element: <Waiters /> },
                 // { path: 'waiters/:waiterId', element: <WaiterId /> },
                 { path: 'reviews', element: <Reviews /> },

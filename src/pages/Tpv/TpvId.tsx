@@ -40,6 +40,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { useTranslation } from 'react-i18next'
+import { PermissionGate } from '@/components/PermissionGate'
 
 // Type for the form values
 type TpvFormValues = {
@@ -409,53 +410,59 @@ export default function TpvId() {
                     )}
 
                     {/* Update Status Button */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => sendTpvCommand('UPDATE_STATUS')}
-                          disabled={!terminalOnline || commandMutation.isPending}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          {t('tpv.actions.update')}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{terminalOnline ? t('tpv.detail.tooltips.updateStatus') : t('tpv.actions.offline')}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <PermissionGate permission="tpv:command">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => sendTpvCommand('UPDATE_STATUS')}
+                            disabled={!terminalOnline || commandMutation.isPending}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            {t('tpv.actions.update')}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{terminalOnline ? t('tpv.detail.tooltips.updateStatus') : t('tpv.actions.offline')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </PermissionGate>
 
                     {/* Edit Button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="border-primary/30 text-primary hover:bg-primary/5"
-                    >
-                      <PencilIcon className="w-4 h-4 mr-2" />
-                      {t('common.edit')}
-                    </Button>
+                    <PermissionGate permission="tpv:update">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="border-primary/30 text-primary hover:bg-primary/5"
+                      >
+                        <PencilIcon className="w-4 h-4 mr-2" />
+                        {t('common.edit')}
+                      </Button>
+                    </PermissionGate>
                   </div>
                 )}
 
                 {/* Save/Cancel Buttons when editing */}
                 {isEditing && (
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
-                      <XIcon className="w-4 h-4 mr-2" />
-                      {t('common.cancel')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={form.handleSubmit(onSubmit)}
-                      disabled={updateTpvMutation.isPending}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <SaveIcon className="w-4 h-4 mr-2" />
-                      {updateTpvMutation.isPending ? t('common.saving') : t('common.save')}
-                    </Button>
-                  </div>
+                  <PermissionGate permission="tpv:update">
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
+                        <XIcon className="w-4 h-4 mr-2" />
+                        {t('common.cancel')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={form.handleSubmit(onSubmit)}
+                        disabled={updateTpvMutation.isPending}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <SaveIcon className="w-4 h-4 mr-2" />
+                        {updateTpvMutation.isPending ? t('common.saving') : t('common.save')}
+                      </Button>
+                    </div>
+                  </PermissionGate>
                 )}
               </div>
             </div>
@@ -721,16 +728,18 @@ export default function TpvId() {
                       </div>
 
                       {isEditing && (
-                        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
-                          <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
-                            <XIcon className="w-4 h-4 mr-2" />
-                            {t('common.cancel')}
-                          </Button>
-                          <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
-                            <SaveIcon className="w-4 h-4 mr-2" />
-                            {updateTpvMutation.isPending ? t('common.saving') : t('tpv.detail.saveChanges')}
-                          </Button>
-                        </div>
+                        <PermissionGate permission="tpv:update">
+                          <div className="flex justify-end space-x-3 pt-6 border-t border-border">
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
+                              <XIcon className="w-4 h-4 mr-2" />
+                              {t('common.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
+                              <SaveIcon className="w-4 h-4 mr-2" />
+                              {updateTpvMutation.isPending ? t('common.saving') : t('tpv.detail.saveChanges')}
+                            </Button>
+                          </div>
+                        </PermissionGate>
                       )}
                     </form>
                   </Form>
@@ -747,61 +756,65 @@ export default function TpvId() {
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
                   {/* Status Actions */}
-                  {isInMaintenance ? (
-                    <Alert className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent">
-                      <Wrench className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{t('tpv.detail.alerts.inMaintenanceMode')}</span>
-                          <Button
-                            size="sm"
-                            onClick={() => sendTpvCommand('EXIT_MAINTENANCE')}
-                            disabled={commandMutation.isPending}
-                            className="ml-2 bg-green-600 hover:bg-green-700 text-background  h-7 px-3 "
-                          >
-                            {t('tpv.detail.alerts.reactivate')}
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  ) : isInactive ? (
-                    <Alert className="bg-muted text-muted-foreground border border-border">
-                      <XIcon className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{t('tpv.detail.alerts.terminalInactive')}</span>
-                          <Button
-                            size="sm"
-                            onClick={() => sendTpvCommand('REACTIVATE')}
-                            disabled={commandMutation.isPending}
-                            className="ml-2 bg-green-600 hover:bg-green-700 text-background h-7 px-3"
-                          >
-                            {t('tpv.detail.alerts.reactivate')}
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
+                  <PermissionGate permission="tpv:command">
+                    {isInMaintenance ? (
+                      <Alert className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent">
+                        <Wrench className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">{t('tpv.detail.alerts.inMaintenanceMode')}</span>
+                            <Button
+                              size="sm"
+                              onClick={() => sendTpvCommand('EXIT_MAINTENANCE')}
+                              disabled={commandMutation.isPending}
+                              className="ml-2 bg-green-600 hover:bg-green-700 text-background  h-7 px-3 "
+                            >
+                              {t('tpv.detail.alerts.reactivate')}
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ) : isInactive ? (
+                      <Alert className="bg-muted text-muted-foreground border border-border">
+                        <XIcon className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">{t('tpv.detail.alerts.terminalInactive')}</span>
+                            <Button
+                              size="sm"
+                              onClick={() => sendTpvCommand('REACTIVATE')}
+                              disabled={commandMutation.isPending}
+                              className="ml-2 bg-green-600 hover:bg-green-700 text-background h-7 px-3"
+                            >
+                              {t('tpv.detail.alerts.reactivate')}
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent"
+                        onClick={() => sendTpvCommand('MAINTENANCE_MODE')}
+                        disabled={!terminalOnline || commandMutation.isPending}
+                      >
+                        <Wrench className="w-4 h-4 mr-2" />
+                        {t('tpv.detail.activateMaintenance')}
+                      </Button>
+                    )}
+                  </PermissionGate>
+
+                  <PermissionGate permission="tpv:command">
                     <Button
                       variant="outline"
-                      className="w-full justify-start bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent"
-                      onClick={() => sendTpvCommand('MAINTENANCE_MODE')}
+                      className="w-full justify-start"
+                      onClick={() => sendTpvCommand('UPDATE_STATUS')}
                       disabled={!terminalOnline || commandMutation.isPending}
                     >
-                      <Wrench className="w-4 h-4 mr-2" />
-                      {t('tpv.detail.activateMaintenance')}
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      {t('tpv.detail.updateStatus')}
                     </Button>
-                  )}
-
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => sendTpvCommand('UPDATE_STATUS')}
-                    disabled={!terminalOnline || commandMutation.isPending}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    {t('tpv.detail.updateStatus')}
-                  </Button>
+                  </PermissionGate>
                 </CardContent>
               </Card>
 

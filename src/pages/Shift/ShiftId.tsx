@@ -1,10 +1,10 @@
 import api from '@/api'
+import { PermissionGate } from '@/components/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
@@ -32,9 +32,7 @@ export default function ShiftId() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { user } = useAuth()
   const { venueId } = useCurrentVenue()
-  const isSuperAdmin = user?.role === 'SUPERADMIN'
   const { t, i18n } = useTranslation('payment')
   const [isEditing, setIsEditing] = useState(false)
   const [editedShift, setEditedShift] = useState<any>(null)
@@ -190,52 +188,52 @@ export default function ShiftId() {
             </span>
           )}
 
-          {isSuperAdmin && (
-            <>
-              {isEditing ? (
-                <>
-                  <Button variant="default" size="sm" onClick={handleSave}>
-                    <Save className="size-4 mr-1" />
-                    {t('common.save', { defaultValue: 'Guardar' })}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleCancel}>
-                    <X className="size-4 mr-1" />
-                    {t('common.cancel', { defaultValue: 'Cancelar' })}
-                  </Button>
-                </>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <PencilIcon className="size-4 mr-1" />
-                  {t('common.edit', { defaultValue: 'Editar' })}
+          <PermissionGate permission="shifts:update">
+            {isEditing ? (
+              <>
+                <Button variant="default" size="sm" onClick={handleSave}>
+                  <Save className="size-4 mr-1" />
+                  {t('common.save', { defaultValue: 'Guardar' })}
                 </Button>
-              )}
-            </>
-          )}
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="size-4 mr-1" />
-                {t('common.delete', { defaultValue: 'Eliminar' })}
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  <X className="size-4 mr-1" />
+                  {t('common.cancel', { defaultValue: 'Cancelar' })}
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <PencilIcon className="size-4 mr-1" />
+                {t('common.edit', { defaultValue: 'Editar' })}
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('shifts.detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('shifts.detail.deleteConfirm', {
-                    defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.',
-                  })}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">
+            )}
+          </PermissionGate>
+
+          <PermissionGate permission="shifts:delete">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="size-4 mr-1" />
                   {t('common.delete', { defaultValue: 'Eliminar' })}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('shifts.detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('shifts.detail.deleteConfirm', {
+                      defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.',
+                    })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteShift.mutate()} className="bg-red-500 hover:bg-red-600">
+                    {t('common.delete', { defaultValue: 'Eliminar' })}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </PermissionGate>
         </div>
       </div>
 

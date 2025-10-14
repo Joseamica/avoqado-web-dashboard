@@ -16,10 +16,12 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { productWizardApi, rawMaterialsApi, type InventoryType } from '@/services/inventory.service'
-import { getMenuCategories } from '@/services/menu.service'
-import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store } from 'lucide-react'
+import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
+import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store, Plus, Trash2 } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
+import { AddIngredientDialog } from './AddIngredientDialog'
+import MultipleSelector from '@/components/multi-selector'
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -37,6 +39,7 @@ interface Step1FormData {
   price: number
   categoryId: string
   imageUrl?: string
+  modifierGroups?: Array<{ label: string; value: string }>
 }
 
 interface Step2FormData {
@@ -57,6 +60,7 @@ interface Step3RecipeFormData {
   notes?: string
   ingredients: Array<{
     rawMaterialId: string
+    rawMaterialName?: string
     quantity: number
     unit: string
     isOptional: boolean
@@ -74,6 +78,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [currentStep, setCurrentStep] = useState<WizardStep>(mode === 'edit' ? 2 : 1)
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
   const [selectedInventoryType, setSelectedInventoryType] = useState<InventoryType | null>(null)
+  const [addIngredientOpen, setAddIngredientOpen] = useState(false)
 
   // Store wizard data in state (only submit on final step)
   const [step1Data, setStep1Data] = useState<Step1FormData | null>(null)
@@ -87,6 +92,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       price: undefined,
       categoryId: '',
       imageUrl: '',
+      modifierGroups: [],
     },
   })
 
@@ -171,6 +177,13 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     enabled: !!venueId && open && currentStep === 1,
   })
 
+  // Fetch modifier groups for modifier groups dropdown
+  const { data: modifierGroups, isLoading: isModifierGroupsLoading } = useQuery({
+    queryKey: ['modifier-groups', venueId],
+    queryFn: () => getModifierGroups(venueId!),
+    enabled: !!venueId && open && currentStep === 1,
+  })
+
   // Single mutation: Create product with inventory in one call
   const createProductWithInventoryMutation = useMutation({
     mutationFn: (data: {
@@ -185,6 +198,42 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       const productId = response.data.data.productId
       setCreatedProductId(productId)
 
+      toast({
+        title: t('wizard.success'),
+        description: t('wizard.successMessage'),
+        variant: 'default',
+      })
+
+      handleWizardComplete()
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common.error'),
+        description: error.response?.data?.message || t('wizard.error'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Mutation for configuring inventory on existing product (edit mode)
+  const configureInventoryMutation = useMutation({
+    mutationFn: async (data: {
+      inventoryType: InventoryType
+      simpleStock?: Step3SimpleStockFormData
+      recipe?: Step3RecipeFormData
+    }) => {
+      if (!createdProductId) {
+        throw new Error('Product ID is required')
+      }
+
+      if (data.inventoryType === 'SIMPLE_STOCK' && data.simpleStock) {
+        return productWizardApi.configureSimpleStock(venueId, createdProductId, data.simpleStock)
+      } else if (data.inventoryType === 'RECIPE_BASED' && data.recipe) {
+        return productWizardApi.configureRecipe(venueId, createdProductId, data.recipe)
+      }
+      throw new Error('Invalid inventory configuration')
+    },
+    onSuccess: () => {
       toast({
         title: t('wizard.success'),
         description: t('wizard.successMessage'),
@@ -236,17 +285,31 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
   }, [open])
 
+  // Helper function to clean recipe data for backend (remove rawMaterialName)
+  const cleanRecipeDataForBackend = (recipeData: Step3RecipeFormData) => {
+    return {
+      ...recipeData,
+      ingredients: recipeData.ingredients.map(({ rawMaterialName, ...ingredient }) => ingredient)
+    }
+  }
+
   // Step 1 Submit Handler - Store data and move to Step 2
   const handleStep1Submit = (data: Step1FormData) => {
     // Use imageUrl from uploader hook if available, otherwise use form value
     const finalImageUrl = imageUrl || data.imageUrl
 
+    // Extract modifier group IDs from the form
+    const modifierGroupIds = Array.isArray(data.modifierGroups)
+      ? data.modifierGroups.map((m) => m.value)
+      : []
+
     // Create product data without imageUrl field initially
-    const productData: Step1FormData = {
+    const productData: any = {
       name: data.name,
       description: data.description,
       price: data.price,
       categoryId: data.categoryId,
+      modifierGroupIds,
     }
 
     // Only add imageUrl if it's a non-empty string (backend requires valid URL or field omitted)
@@ -262,8 +325,19 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const handleStep2Submit = (data: Step2FormData) => {
     setStep2Data(data)
 
-    // If not using inventory, submit everything now
+    // If not using inventory
     if (!data.useInventory) {
+      if (mode === 'edit') {
+        // In edit mode, just close the wizard without changes
+        toast({
+          title: t('common.info'),
+          description: 'No inventory configuration applied',
+        })
+        handleWizardComplete()
+        return
+      }
+
+      // In create mode, submit product without inventory
       if (!step1Data) {
         toast({
           title: t('common.error'),
@@ -273,7 +347,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         return
       }
 
-      // Submit product without inventory
       createProductWithInventoryMutation.mutate({
         product: step1Data,
         inventory: { useInventory: false },
@@ -290,6 +363,46 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Step 3 Submit Handler - Collect all data and submit
   const handleStep3Submit = () => {
+    // In edit mode, we only need step2Data and the inventory configuration
+    if (mode === 'edit') {
+      if (!selectedInventoryType) {
+        toast({
+          title: t('common.error'),
+          description: 'Missing inventory type',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (selectedInventoryType === 'SIMPLE_STOCK') {
+        const simpleStockData = step3SimpleForm.getValues()
+        configureInventoryMutation.mutate({
+          inventoryType: 'SIMPLE_STOCK',
+          simpleStock: simpleStockData,
+        })
+      } else if (selectedInventoryType === 'RECIPE_BASED') {
+        const recipeData = step3RecipeForm.getValues()
+
+        // Validate that at least one ingredient is added
+        if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
+          toast({
+            title: t('common.error'),
+            description: t('recipes.messages.noRecipe'),
+            variant: 'destructive',
+          })
+          return
+        }
+
+        // Clean data before sending to backend
+        configureInventoryMutation.mutate({
+          inventoryType: 'RECIPE_BASED',
+          recipe: cleanRecipeDataForBackend(recipeData),
+        })
+      }
+      return
+    }
+
+    // In create mode, we need all wizard data
     if (!step1Data || !step2Data) {
       toast({
         title: t('common.error'),
@@ -308,10 +421,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       })
     } else if (selectedInventoryType === 'RECIPE_BASED') {
       const recipeData = step3RecipeForm.getValues()
+
+      // Validate that at least one ingredient is added
+      if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
+        toast({
+          title: t('common.error'),
+          description: t('recipes.messages.noRecipe'),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Clean data before sending to backend
       createProductWithInventoryMutation.mutate({
         product: step1Data,
         inventory: step2Data,
-        recipe: recipeData,
+        recipe: cleanRecipeDataForBackend(recipeData),
       })
     }
   }
@@ -326,9 +451,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Calculate progress
   const progressPercentage = (currentStep / 3) * 100
 
-  const isLoading = createProductWithInventoryMutation.isPending
+  const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -411,6 +537,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   <p className="text-xs text-destructive">{t('wizard.step1.categoryRequired')}</p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modifierGroups">{t('wizard.step1.modifierGroups')}</Label>
+              <MultipleSelector
+                value={step1Form.watch('modifierGroups') || []}
+                onChange={(value) => step1Form.setValue('modifierGroups', value)}
+                options={(modifierGroups ?? []).map(modifierGroup => ({
+                  label: modifierGroup.name,
+                  value: modifierGroup.id,
+                  disabled: false,
+                }))}
+                hidePlaceholderWhenSelected
+                placeholder={t('wizard.step1.selectModifierGroups')}
+                disabled={isModifierGroupsLoading}
+              />
             </div>
 
             <div className="space-y-2">
@@ -817,13 +959,82 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>{t('recipes.ingredients.title')}</Label>
-                  <Alert>
-                    <AlertDescription>
-                      {t('wizard.step3.ingredientsNote')}
-                    </AlertDescription>
-                  </Alert>
+                {/* Ingredients List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>{t('recipes.ingredients.title')}</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddIngredientOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {t('recipes.addIngredient')}
+                    </Button>
+                  </div>
+
+                  {step3RecipeForm.watch('ingredients').length === 0 ? (
+                    <Alert>
+                      <AlertDescription>
+                        {t('recipes.messages.noRecipe')} - {t('recipes.addIngredient').toLowerCase()}
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <ScrollArea className="max-h-[300px]">
+                      <div className="space-y-2">
+                        {step3RecipeForm.watch('ingredients').map((ingredient, index) => {
+                          const rawMaterial = rawMaterialsData?.find(rm => rm.id === ingredient.rawMaterialId)
+                          const ingredientName = ingredient.rawMaterialName || rawMaterial?.name || ingredient.rawMaterialId
+                          const costPerUnit = rawMaterial ? Number(rawMaterial.costPerUnit) : 0
+                          const lineCost = costPerUnit * Number(ingredient.quantity)
+
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
+                                <Package className="h-5 w-5 text-primary" />
+                              </div>
+
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">
+                                  {ingredientName}
+                                  {ingredient.isOptional && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                      ({t('recipes.ingredients.optional')})
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {Number(ingredient.quantity).toFixed(2)} {ingredient.unit}
+                                  {rawMaterial && (
+                                    <> × {Currency(costPerUnit)} = {Currency(lineCost)}</>
+                                  )}
+                                </p>
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const current = step3RecipeForm.getValues('ingredients')
+                                  step3RecipeForm.setValue(
+                                    'ingredients',
+                                    current.filter((_, i) => i !== index)
+                                  )
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+                  )}
                 </div>
 
                 <DialogFooter className="flex justify-between">
@@ -848,5 +1059,24 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Add Ingredient Dialog */}
+    {createdProductId && (
+      <AddIngredientDialog
+        open={addIngredientOpen}
+        onOpenChange={setAddIngredientOpen}
+        product={{ id: createdProductId, name: step1Data?.name || 'Product' }}
+        mode="create"
+        onAddTempIngredient={(ingredient) => {
+          const current = step3RecipeForm.getValues('ingredients')
+          step3RecipeForm.setValue('ingredients', [...current, ingredient])
+          toast({
+            title: t('recipes.messages.ingredientAdded'),
+            variant: 'default',
+          })
+        }}
+      />
+    )}
+  </>
   )
 }

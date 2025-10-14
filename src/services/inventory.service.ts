@@ -529,6 +529,13 @@ export const productWizardApi = {
 
   // All-in-one: Create product with inventory in single call
   createProductWithInventory: (venueId: string, data: CreateProductWithInventoryDto) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/wizard/complete`, data),
+
+  // Convenience methods for edit mode (configure inventory on existing product)
+  configureSimpleStock: (venueId: string, productId: string, data: ProductWizardStep3SimpleStockData) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/wizard/step3-simple`, data),
+
+  configureRecipe: (venueId: string, productId: string, data: ProductWizardStep3RecipeData) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/wizard/step3-recipe`, data),
 }
 
 // ===========================================

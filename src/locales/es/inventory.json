@@ -403,6 +403,13 @@
     }
   },
 
+  "products": {
+    "detail": {
+      "configureInventory": "Configurar Inventario",
+      "configureInventoryDesc": "Configurar el seguimiento de inventario para este producto"
+    }
+  },
+
   "wizard": {
     "title": "Asistente de Productos",
     "subtitle": "Crea un nuevo producto con seguimiento de inventario opcional",
@@ -423,6 +430,8 @@
       "category": "Categoría",
       "categoryPlaceholder": "Selecciona una categoría",
       "categoryRequired": "La categoría es requerida",
+      "modifierGroups": "Grupos Modificadores",
+      "selectModifierGroups": "Selecciona grupos modificadores (opcional)",
       "imageUrl": "Imagen del Producto",
       "photoHelp": "Las fotos ayudan a los clientes a decidir qué pedir y pueden aumentar las ventas.",
       "photoVisible": "Los clientes pueden ver esta foto en la app de Avoqado.",

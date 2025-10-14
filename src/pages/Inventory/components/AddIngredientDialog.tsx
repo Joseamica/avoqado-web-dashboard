@@ -28,6 +28,7 @@ interface AddIngredientDialogProps {
   mode: 'create' | 'edit'
   onAddTempIngredient?: (ingredient: {
     rawMaterialId: string
+    rawMaterialName?: string
     quantity: number
     unit: string
     isOptional?: boolean
@@ -161,8 +162,11 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     }
 
     if (mode === 'create') {
-      // For create mode, just add to temp array
-      onAddTempIngredient?.(ingredientData)
+      // For create mode, just add to temp array with raw material name
+      onAddTempIngredient?.({
+        ...ingredientData,
+        rawMaterialName: selectedRawMaterial.name,
+      })
       toast({
         title: t('recipes.messages.ingredientAdded'),
         variant: 'default',

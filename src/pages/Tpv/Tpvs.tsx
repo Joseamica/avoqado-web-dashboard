@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()
@@ -214,32 +215,61 @@ export default function Tpvs() {
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
         const isOnline = statusStyle.label === t('tpv.status.online', { defaultValue: 'En línea' })
         const isInMaintenance = terminal.status === 'MAINTENANCE'
-        
+
         return (
           <div className="flex items-center space-x-2">
-            {isInMaintenance ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      sendTpvCommand(terminal.id, 'EXIT_MAINTENANCE')
-                    }}
-                    className="h-8 px-3 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                  >
-                    <CheckCircle2 className="w-4 h-4 mr-1" />
-                    {t('tpv.actions.exitMaintenance', { defaultValue: 'Salir Mantenimiento' })}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>
-                    {t('tpv.actions.exit_maintenance', { defaultValue: 'Salir del modo mantenimiento' })}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
+            {/* Only show command buttons if user has permission */}
+            <PermissionGate permission="tpv:command">
+              {isInMaintenance ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        sendTpvCommand(terminal.id, 'EXIT_MAINTENANCE')
+                      }}
+                      className="h-8 px-3 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      {t('tpv.actions.exitMaintenance', { defaultValue: 'Salir Mantenimiento' })}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {t('tpv.actions.exit_maintenance', { defaultValue: 'Salir del modo mantenimiento' })}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!isOnline}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
+                      }}
+                      className="h-8 px-3"
+                    >
+                      <Wrench className="w-4 h-4 mr-1" />
+                      {t('tpv.actions.maintenanceMode', { defaultValue: 'Mantenimiento' })}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {isOnline
+                        ? t('tpv.actions.maintenance', { defaultValue: 'Poner en modo mantenimiento' })
+                        : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
+                      }
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -248,50 +278,24 @@ export default function Tpvs() {
                     disabled={!isOnline}
                     onClick={(e) => {
                       e.stopPropagation()
-                      sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
+                      sendTpvCommand(terminal.id, 'UPDATE_STATUS')
                     }}
                     className="h-8 px-3"
                   >
-                    <Wrench className="w-4 h-4 mr-1" />
-                    {t('tpv.actions.maintenanceMode', { defaultValue: 'Mantenimiento' })}
+                    <AlertTriangle className="w-4 h-4 mr-1" />
+                    {t('tpv.actions.update', { defaultValue: 'Actualizar' })}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
-                    {isOnline 
-                      ? t('tpv.actions.maintenance', { defaultValue: 'Poner en modo mantenimiento' })
+                    {isOnline
+                      ? t('tpv.actions.update_status', { defaultValue: 'Forzar actualización de estado' })
                       : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
                     }
                   </p>
                 </TooltipContent>
               </Tooltip>
-            )}
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!isOnline}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    sendTpvCommand(terminal.id, 'UPDATE_STATUS')
-                  }}
-                  className="h-8 px-3"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  {t('tpv.actions.update', { defaultValue: 'Actualizar' })}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {isOnline 
-                    ? t('tpv.actions.update_status', { defaultValue: 'Forzar actualización de estado' })
-                    : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
-                  }
-                </p>
-              </TooltipContent>
-            </Tooltip>
+            </PermissionGate>
           </div>
         )
       },
@@ -326,17 +330,20 @@ export default function Tpvs() {
             {t('tpv.subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
           </p>
         </div>
-        <Button asChild>
-          <Link
-            to={`create`}
-            state={{
-              from: location.pathname,
-            }}
-            className="flex items-center space-x-2"
-          >
-            <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
-          </Link>
-        </Button>
+        {/* Only show "Create" button if user has permission */}
+        <PermissionGate permission="tpv:create">
+          <Button asChild>
+            <Link
+              to={`create`}
+              state={{
+                from: location.pathname,
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
+            </Link>
+          </Button>
+        </PermissionGate>
       </div>
 
       <DataTable

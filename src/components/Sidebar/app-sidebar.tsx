@@ -14,7 +14,6 @@
   AlertTriangle,
   TrendingUp,
   FlaskConical,
-  CreditCard,
   Package,
 } from 'lucide-react'
 import * as React from 'react'
@@ -35,19 +34,19 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     () => [
       { title: t('routes.home'), isActive: true, url: 'home', icon: Home },
       // Analytics only visible for MANAGER+, VIEWER (matches ManagerProtectedRoute with allowViewer)
-      ...((['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN', 'VIEWER'] as const).includes(user.role)
+      ...(['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN', 'VIEWER'].includes(user.role)
         ? [{ title: t('sidebar:analytics'), isActive: true, url: 'analytics', icon: TrendingUp }]
         : []),
       { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen },
       // Inventory only visible for ADMIN, OWNER, SUPERADMIN (matches AdminAccessLevel.ADMIN route protection)
-      ...((['ADMIN', 'OWNER', 'SUPERADMIN'] as const).includes(user.role)
+      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('routes.inventory'), isActive: true, url: 'inventory/raw-materials', icon: Package }]
         : []),
       { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote },
       { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame },
       { title: t('routes.shifts'), isActive: true, url: 'shifts', icon: Ungroup },
-      // TPV Management only visible for MANAGER+ (matches ManagerProtectedRoute)
-      ...((['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'] as const).includes(user.role)
+      // TPV Management visible for WAITER+ (WAITER can view, MANAGER+ can manage)
+      ...(['WAITER', 'MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('routes.tpv'), isActive: true, url: 'tpv', icon: Smartphone }]
         : []),
       { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star },

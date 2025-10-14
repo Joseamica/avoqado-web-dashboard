@@ -42,6 +42,123 @@
 - Format numbers/dates/currency with `Intl.*` using `i18n.language`; do not render raw enums—map to translation keys.
 - Reuse `src/components/language-switcher.tsx`; do not add duplicate toggles.
 
+## 🔒 Permission System (Granular UI Controls)
+
+### Overview
+
+The dashboard uses a **granular, action-based permission system** to control what users can SEE and DO within each page. This works alongside route protection to provide fine-grained access control.
+
+**Permission Format**: `"resource:action"` (e.g., `"tpv:create"`, `"menu:update"`, `"analytics:export"`)
+
+### Key Components
+
+- `src/lib/permissions/defaultPermissions.ts` - Default permissions by role
+- `src/hooks/usePermissions.ts` - React hook for permission checks
+- `src/components/PermissionGate.tsx` - Component for conditional rendering
+
+### Quick Start
+
+**Hiding UI elements based on permissions:**
+```typescript
+import { PermissionGate } from '@/components/PermissionGate'
+
+// Hide create button from users without permission
+<PermissionGate permission="tpv:create">
+  <Button>Create Terminal</Button>
+</PermissionGate>
+
+// Hide edit/delete buttons
+<PermissionGate permission="tpv:update">
+  <Button>Edit</Button>
+</PermissionGate>
+<PermissionGate permission="tpv:delete">
+  <Button>Delete</Button>
+</PermissionGate>
+```
+
+**Using the hook for conditional logic:**
+```typescript
+import { usePermissions } from '@/hooks/usePermissions'
+
+const { can } = usePermissions()
+
+// Conditional rendering
+{can('tpv:create') && <CreateButton />}
+
+// Disable instead of hide
+<Button disabled={!can('tpv:update')}>Edit</Button>
+```
+
+### Adding Permissions to New Features
+
+1. **Add permission to defaults** (`src/lib/permissions/defaultPermissions.ts`):
+```typescript
+[StaffRole.MANAGER]: [
+  // ... existing permissions
+  'reports:create',
+  'reports:export',
+]
+```
+
+2. **Wrap UI elements with PermissionGate**:
+```typescript
+<PermissionGate permission="reports:create">
+  <Button>Create Report</Button>
+</PermissionGate>
+```
+
+3. **Add backend protection** (see `avoqado-server/CLAUDE.md`):
+```typescript
+router.post('/venues/:venueId/reports',
+  authenticateTokenMiddleware,
+  checkPermission('reports:create'),
+  controller.create
+)
+```
+
+4. **Keep in sync**: Frontend `defaultPermissions.ts` MUST match backend `src/lib/permissions.ts` exactly!
+
+### Common Patterns
+
+**Conditional sections:**
+```typescript
+<PermissionGate permission="inventory:read">
+  <InventorySection />
+</PermissionGate>
+```
+
+**Multiple permissions (any):**
+```typescript
+<PermissionGate permissions={['menu:create', 'menu:update']}>
+  <EditForm />
+</PermissionGate>
+```
+
+**Multiple permissions (all):**
+```typescript
+<PermissionGate permissions={['admin:write', 'admin:delete']} requireAll={true}>
+  <DangerousAction />
+</PermissionGate>
+```
+
+### Permission Naming Convention
+
+- Resource: singular noun (`tpv`, `menu`, `order`, `payment`, `inventory`)
+- Action: standard CRUD + custom (`read`, `create`, `update`, `delete`, `command`, `export`, `respond`)
+- Wildcards: `*:*` (all), `tpv:*` (all TPV), `*:read` (read all)
+
+### Best Practices
+
+1. **Use PermissionGate for declarative UI** - More readable than conditionals
+2. **Hide vs Disable**: Hide for cleaner UI, disable to show locked features
+3. **Test with different roles**: Verify WAITER can't see MANAGER buttons
+4. **Never skip backend validation**: Frontend is UX, backend is security
+5. **Document new permissions**: Update CLAUDE.md when adding permissions
+
+### Full Documentation
+
+See `CLAUDE.md` → "Granular Permission System (UI Controls)" for complete API reference, examples, and implementation guides.
+
 ## 📦 Inventory Management (UI Guidelines)
 
 ### Overview

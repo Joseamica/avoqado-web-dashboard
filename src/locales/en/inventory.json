@@ -403,6 +403,13 @@
     }
   },
 
+  "products": {
+    "detail": {
+      "configureInventory": "Configure Inventory",
+      "configureInventoryDesc": "Set up inventory tracking for this product"
+    }
+  },
+
   "wizard": {
     "title": "Product Wizard",
     "subtitle": "Create a new product with optional inventory tracking",
@@ -423,6 +430,8 @@
       "category": "Category",
       "categoryPlaceholder": "Select a category",
       "categoryRequired": "Category is required",
+      "modifierGroups": "Modifier Groups",
+      "selectModifierGroups": "Select modifier groups (optional)",
       "imageUrl": "Product Image",
       "photoHelp": "Photos help customers decide what to order and can increase sales.",
       "photoVisible": "Customers can see this photo in the Avoqado app.",

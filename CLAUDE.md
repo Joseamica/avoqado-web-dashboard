@@ -49,6 +49,263 @@ src/
 - `SuperProtectedRoute`: Requires OWNER role or higher
 - Routes are nested with role-based access control
 
+#### Granular Permission System (UI Controls)
+
+The dashboard implements a **granular permission system** that works alongside route protection to control what users can SEE and DO within each page.
+
+**Permission Format**: `"resource:action"` (e.g., `"tpv:create"`, `"menu:update"`, `"analytics:export"`)
+
+**Key Components**:
+- `src/lib/permissions/defaultPermissions.ts` - Default permissions by role
+- `src/hooks/usePermissions.ts` - React hook for permission checks
+- `src/components/PermissionGate.tsx` - Component for conditional rendering
+- `src/types.ts` - SessionVenue includes `permissions?: string[]` field
+
+##### usePermissions Hook
+
+**Basic usage**:
+```typescript
+import { usePermissions } from '@/hooks/usePermissions'
+
+function TpvPage() {
+  const { can } = usePermissions()
+
+  return (
+    <>
+      {/* All users see the list */}
+      <TpvList />
+
+      {/* Only users with create permission see this button */}
+      {can('tpv:create') && <Button>Create Terminal</Button>}
+
+      {/* Disable edit if no permission */}
+      <Button disabled={!can('tpv:update')}>Edit</Button>
+    </>
+  )
+}
+```
+
+**Hook API**:
+```typescript
+const {
+  can,           // (permission: string) => boolean
+  canAny,        // (permissions: string[]) => boolean
+  canAll,        // (permissions: string[]) => boolean
+  cannot,        // (permission: string) => boolean
+  permissions,   // string[] - All user permissions
+  role,          // StaffRole - User's role
+} = usePermissions()
+
+// Examples:
+can('tpv:create')                  // Single permission
+canAny(['menu:create', 'menu:update'])  // Has at least one
+canAll(['admin:write', 'admin:delete']) // Has all
+```
+
+##### PermissionGate Component
+
+**Declarative UI control** (preferred method):
+```typescript
+import { PermissionGate } from '@/components/PermissionGate'
+
+function TpvPage() {
+  return (
+    <>
+      {/* Single permission */}
+      <PermissionGate permission="tpv:create">
+        <Button>Create Terminal</Button>
+      </PermissionGate>
+
+      {/* Multiple permissions (any) */}
+      <PermissionGate permissions={['menu:create', 'menu:update']}>
+        <EditButton />
+      </PermissionGate>
+
+      {/* Multiple permissions (all) */}
+      <PermissionGate permissions={['admin:write', 'admin:delete']} requireAll={true}>
+        <DangerousButton />
+      </PermissionGate>
+
+      {/* With fallback */}
+      <PermissionGate
+        permission="analytics:export"
+        fallback={<p>Upgrade to export data</p>}
+      >
+        <ExportButton />
+      </PermissionGate>
+    </>
+  )
+}
+```
+
+##### Wildcard Permissions
+
+- `"*:*"` - All permissions (ADMIN, OWNER, SUPERADMIN)
+- `"tpv:*"` - All TPV actions
+- `"*:read"` - Read access to all resources
+
+##### Default Permissions by Role
+
+From `src/lib/permissions/defaultPermissions.ts`:
+
+```typescript
+// VIEWER - Read-only
+'home:read', 'analytics:read', 'menu:read', 'orders:read', 'payments:read', 'shifts:read', 'tpv:read'
+
+// WAITER - Order and table management
+'menu:read', 'menu:create', 'menu:update', 'orders:*', 'payments:read', 'payments:create',
+'tables:*', 'tpv:read'
+
+// MANAGER - Operations
+'analytics:read', 'analytics:export', 'menu:*', 'orders:*', 'payments:refund',
+'shifts:*', 'tpv:read', 'tpv:create', 'tpv:update', 'tpv:command'
+
+// ADMIN, OWNER, SUPERADMIN - Full access
+'*:*'
+```
+
+##### Custom Permissions (Database)
+
+Venues can assign custom permissions to staff via `SessionVenue.permissions`:
+
+```typescript
+interface SessionVenue {
+  id: string
+  name: string
+  role: StaffRole
+  permissions?: string[]  // Custom overrides/additions
+}
+```
+
+**How it works**:
+```typescript
+// Default WAITER permissions:
+['menu:read', 'orders:create', 'tpv:read', ...]
+
+// WAITER with custom permissions:
+{
+  role: 'WAITER',
+  permissions: ['inventory:read', 'analytics:export']  // Extra permissions
+}
+
+// Final permissions = Default + Custom:
+['menu:read', 'orders:create', 'tpv:read', ..., 'inventory:read', 'analytics:export']
+```
+
+##### Permission Flow
+
+**Full stack permission check**:
+```
+1. User clicks "Create Terminal"
+   └─ Frontend: PermissionGate checks 'tpv:create'
+       ├─ Has permission? Show button
+       └─ No permission? Hide button
+
+2. User submits form
+   └─ API call: POST /api/v1/dashboard/venues/{venueId}/tpvs
+       └─ Backend: checkPermission('tpv:create') middleware
+           ├─ Has permission? Process request
+           └─ No permission? 403 Forbidden
+```
+
+**⚠️ Important**: Frontend permissions are for UX only! Backend ALWAYS validates.
+
+##### Implementing Permission-Based Features
+
+**Step-by-step example** (Adding permission to new feature):
+
+1. **Add permission to defaults** (`src/lib/permissions/defaultPermissions.ts`):
+```typescript
+[StaffRole.MANAGER]: [
+  // ... existing permissions
+  'reports:create',
+  'reports:export',
+]
+```
+
+2. **Use PermissionGate in component**:
+```typescript
+<PermissionGate permission="reports:create">
+  <Button onClick={createReport}>Create Report</Button>
+</PermissionGate>
+
+<PermissionGate permission="reports:export">
+  <Button onClick={exportReport}>Export</Button>
+</PermissionGate>
+```
+
+3. **Backend protection** (see backend CLAUDE.md):
+```typescript
+router.post('/venues/:venueId/reports',
+  authenticateTokenMiddleware,
+  checkPermission('reports:create'),
+  reportController.create
+)
+```
+
+4. **Keep in sync**: Ensure frontend and backend DEFAULT_PERMISSIONS match exactly!
+
+##### Common Patterns
+
+**Conditional rendering**:
+```typescript
+// Hide entire section
+<PermissionGate permission="inventory:read">
+  <InventorySection />
+</PermissionGate>
+
+// Show/hide action buttons
+<PermissionGate permission="tpv:update">
+  <Button onClick={edit}>Edit</Button>
+</PermissionGate>
+<PermissionGate permission="tpv:delete">
+  <Button onClick={del}>Delete</Button>
+</PermissionGate>
+```
+
+**Disable vs Hide**:
+```typescript
+// Hide button (better UX - less clutter)
+{can('tpv:create') && <Button>Create</Button>}
+
+// Disable button (shows feature exists but locked)
+<Tooltip content="Manager access required">
+  <Button disabled={!can('tpv:create')}>Create</Button>
+</Tooltip>
+```
+
+**Complex conditions**:
+```typescript
+const canModify = canAny(['menu:update', 'admin:write'])
+const isOwner = role === 'OWNER'
+const canDelete = canAll(['menu:delete', 'admin:delete'])
+
+<PermissionGate permission="menu:update">
+  {isOwner ? <OwnerEditForm /> : <BasicEditForm />}
+</PermissionGate>
+```
+
+##### Best Practices
+
+1. **Use PermissionGate for declarative UI** - More readable than conditionals
+2. **Keep frontend/backend permissions synced** - Same permissions in both files
+3. **Test with different roles** - Verify WAITER can't see MANAGER buttons
+4. **Never skip backend validation** - Frontend is UX, backend is security
+5. **Document new permissions** - Update CLAUDE.md when adding permissions
+
+##### Future: Admin Permission Management UI
+
+The `SessionVenue.permissions` field enables building an admin UI to assign custom permissions:
+
+**Potential features**:
+- Checkbox grid: Resources (rows) × Actions (columns)
+- Visual diff: Role defaults vs custom overrides
+- Per-staff permission assignment
+- Permission templates/presets
+- Audit log of permission changes
+
+**Implementation guide**: See backend CLAUDE.md for API endpoint examples.
+
 #### State Management Strategy
 
 - **Server State**: TanStack Query for API data with caching and invalidation
