@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
 import { createProduct as createProductService, getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Sparkles } from 'lucide-react'
@@ -19,6 +20,14 @@ import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Product, ProductType } from '@/types'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import {
+  getSkuValidationRules,
+  getNameValidationRules,
+  getPriceValidationRules,
+  getCategoryValidationRules,
+  getTypeValidationRules,
+  transformSkuToUppercase,
+} from '@/lib/validators/product'
 
 type CreateProductPayload = {
   sku: string
@@ -33,9 +42,11 @@ type CreateProductPayload = {
 
 export default function CreateProduct() {
   const { t } = useTranslation('menu')
-  const { venueId } = useCurrentVenue()
+  const { venue, venueId } = useCurrentVenue()
+  const { checkFeatureAccess } = useAuth()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [hasAutoOpenedWizard, setHasAutoOpenedWizard] = useState(false)
 
   const location = useLocation()
   const { toast } = useToast()
@@ -109,6 +120,31 @@ export default function CreateProduct() {
       }
     }
   }, [categories, location.search, form])
+
+  // Auto-open wizard for restaurants with inventory feature
+  useEffect(() => {
+    // Only run once per mount
+    if (hasAutoOpenedWizard) return
+
+    // Check if venue is a restaurant/food service type
+    const isRestaurantType = venue?.type && [
+      'RESTAURANT',
+      'BAR',
+      'CAFE',
+      'FAST_FOOD',
+      'FOOD_TRUCK',
+      'HOTEL_RESTAURANT'
+    ].includes(venue.type)
+
+    // Check if venue has inventory management feature
+    const hasInventoryFeature = checkFeatureAccess('inventory_management')
+
+    // Auto-open wizard if both conditions are met
+    if (isRestaurantType && hasInventoryFeature) {
+      setWizardOpen(true)
+      setHasAutoOpenedWizard(true)
+    }
+  }, [venue, checkFeatureAccess, hasAutoOpenedWizard])
 
   const {
     uploading,
@@ -189,30 +225,32 @@ export default function CreateProduct() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setWizardOpen(true)}
-              className="border-primary text-primary hover:bg-primary/10"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {t('products.create.useWizard')}
-            </Button>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('products.create.wizardRecommendation')}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => setWizardOpen(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {t('products.create.useWizard')}
+              </Button>
+            </div>
+            <div className="h-px bg-border" />
           </div>
 
           {/* SKU */}
           <FormField
             control={form.control}
             name="sku"
-            rules={{
-              required: { value: true, message: t('products.create.skuRequired') },
-              pattern: {
-                value: /^[A-Z0-9_-]+$/,
-                message: t('products.create.skuPattern'),
-              },
-            }}
+            rules={getSkuValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -222,7 +260,7 @@ export default function CreateProduct() {
                       placeholder={t('products.create.skuPlaceholder')}
                       className="max-w-96 uppercase"
                       {...field}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
+                      onChange={e => field.onChange(transformSkuToUppercase(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -234,11 +272,7 @@ export default function CreateProduct() {
           <FormField
             control={form.control}
             name="name"
-            rules={{
-              required: { value: true, message: t('forms.validation.nameRequired') },
-              minLength: { value: 3, message: t('forms.validation.nameMinLength') },
-              maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
-            }}
+            rules={getNameValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -269,14 +303,7 @@ export default function CreateProduct() {
           <FormField
             control={form.control}
             name="price"
-            rules={{
-              required: t('products.create.priceRequired'),
-              validate: {
-                esNumero: value => !isNaN(parseFloat(value)) || t('products.create.priceValid'),
-                esPositivo: value => parseFloat(value) > 0 || t('products.create.pricePositive'),
-                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('products.create.priceDecimals'),
-              },
-            }}
+            rules={getPriceValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -292,9 +319,7 @@ export default function CreateProduct() {
           <FormField
             control={form.control}
             name="type"
-            rules={{
-              required: t('products.create.typeRequired'),
-            }}
+            rules={getTypeValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
@@ -478,9 +503,7 @@ export default function CreateProduct() {
           <FormField
             control={form.control}
             name="categoryId"
-            rules={{
-              required: { value: true, message: t('products.create.categoryRequired') },
-            }}
+            rules={getCategoryValidationRules(t)}
             render={({ field }) => (
               <FormItem className="max-w-96">
                 <FormLabel>{t('products.create.category')}</FormLabel>

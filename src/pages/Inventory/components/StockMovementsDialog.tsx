@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Loader2, TrendingUp, TrendingDown, Package } from 'lucide-react'
@@ -29,6 +30,7 @@ interface Movement {
 export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockMovementsDialogProps) {
   const { t, i18n } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
+  const { formatUnitWithQuantity } = useUnitTranslation()
   const localeCode = getIntlLocale(i18n.language)
 
   // Fetch stock movements
@@ -72,7 +74,7 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
         <DialogHeader>
           <DialogTitle>{t('rawMaterials.movements.title')}</DialogTitle>
           <DialogDescription>
-            {rawMaterial.name} ({rawMaterial.sku}) - {t('rawMaterials.fields.currentStock')}: {Number(rawMaterial.currentStock).toFixed(2)} {rawMaterial.unit}
+            {rawMaterial.name} ({rawMaterial.sku}) - {t('rawMaterials.fields.currentStock')}: {Number(rawMaterial.currentStock).toFixed(2)} {formatUnitWithQuantity(Number(rawMaterial.currentStock), rawMaterial.unit)}
           </DialogDescription>
         </DialogHeader>
 
@@ -127,7 +129,7 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
                         </div>
                         <div className="text-right">
                           <p className={`text-lg font-bold ${quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {quantity > 0 ? '+' : ''}{quantity.toFixed(2)} {movement.unit}
+                            {quantity > 0 ? '+' : ''}{quantity.toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity), movement.unit)}
                           </p>
                         </div>
                       </div>
@@ -137,7 +139,7 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
                         <span className="text-muted-foreground">{previousStock.toFixed(2)}</span>
                         <span className="text-muted-foreground">→</span>
                         <span className="font-semibold text-foreground">{newStock.toFixed(2)}</span>
-                        <span className="text-muted-foreground">{movement.unit}</span>
+                        <span className="text-muted-foreground">{formatUnitWithQuantity(newStock, movement.unit)}</span>
                       </div>
 
                       {/* Reason & Reference */}

@@ -301,6 +301,7 @@
     },
     "create": {
       "title": "New product",
+      "wizardRecommendation": "We recommend using the guided wizard for products with inventory tracking",
       "sku": "SKU",
       "skuPlaceholder": "SKU (e.g., TACO-001)",
       "skuRequired": "SKU is required.",

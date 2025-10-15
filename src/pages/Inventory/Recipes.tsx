@@ -1,16 +1,18 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, ChefHat, Plus, Edit, AlertCircle, DollarSign, RefreshCcw } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { type Recipe } from '@/services/inventory.service'
+import { type Recipe, productInventoryApi } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { RecipeDialog } from './components/RecipeDialog'
+import { SimpleConfirmDialog } from './components/SimpleConfirmDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -25,17 +27,23 @@ interface ProductWithRecipe {
     name: string
   }
   recipe?: Recipe
+  externalData?: {
+    inventoryType?: 'NONE' | 'SIMPLE_STOCK' | 'RECIPE_BASED'
+    [key: string]: any
+  }
 }
 
 export default function Recipes() {
   const { t } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductWithRecipe | null>(null)
+  const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -89,6 +97,31 @@ export default function Recipes() {
       return response.data
     },
     enabled: !!venueId,
+  })
+
+  // Mutation to switch inventory type
+  const switchInventoryTypeMutation = useMutation({
+    mutationFn: () => productInventoryApi.switchInventoryType(venueId, selectedProduct!.id, 'RECIPE_BASED'),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['products-with-recipes'] })
+
+      toast({
+        title: t('conversion.toRecipe.success'),
+        variant: 'default',
+      })
+
+      // Close conversion dialog and open recipe dialog
+      setConversionDialogOpen(false)
+      setCreateDialogOpen(true)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('conversion.toRecipe.error'),
+        description: error.response?.data?.message || 'Failed to switch inventory type',
+        variant: 'destructive',
+      })
+    },
   })
 
   // Column definitions
@@ -258,6 +291,7 @@ export default function Recipes() {
         cell: ({ row }) => {
           const product = row.original
           const hasRecipe = !!product.recipe
+          const hasSimpleStock = product.externalData?.inventoryType === 'SIMPLE_STOCK'
 
           return (
             <Button
@@ -266,10 +300,18 @@ export default function Recipes() {
               onClick={e => {
                 e.stopPropagation()
                 setSelectedProduct(product)
-                if (hasRecipe) {
-                  setEditDialogOpen(true)
+
+                // Pre-check: If product has SIMPLE_STOCK and we're trying to add/edit recipe
+                if (hasSimpleStock && !hasRecipe) {
+                  // Show conversion dialog
+                  setConversionDialogOpen(true)
                 } else {
-                  setCreateDialogOpen(true)
+                  // Normal flow
+                  if (hasRecipe) {
+                    setEditDialogOpen(true)
+                  } else {
+                    setCreateDialogOpen(true)
+                  }
                 }
               }}
             >
@@ -392,6 +434,18 @@ export default function Recipes() {
         onOpenChange={setEditDialogOpen}
         mode="edit"
         product={selectedProduct}
+      />
+
+      {/* Conversion Dialog */}
+      <SimpleConfirmDialog
+        open={conversionDialogOpen}
+        onOpenChange={setConversionDialogOpen}
+        title={t('conversion.toRecipe.title')}
+        message={t('conversion.toRecipe.message')}
+        confirmLabel={t('conversion.toRecipe.confirm')}
+        cancelLabel={t('conversion.toRecipe.cancel')}
+        onConfirm={() => switchInventoryTypeMutation.mutate()}
+        isLoading={switchInventoryTypeMutation.isPending}
       />
     </div>
   )

@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { RawMaterialDialog } from './components/RawMaterialDialog'
@@ -26,6 +27,7 @@ export default function RawMaterials() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -36,7 +38,7 @@ export default function RawMaterials() {
   const [recipeUsageDialogOpen, setRecipeUsageDialogOpen] = useState(false)
   const [recipeEditDialogOpen, setRecipeEditDialogOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(null)
-  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{id: string, name: string} | null>(null)
+  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{id: string, name: string, price: number} | null>(null)
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -129,8 +131,8 @@ export default function RawMaterials() {
     }
   }
 
-  const handleRecipeClick = (productId: string, productName: string) => {
-    setSelectedProductForRecipe({ id: productId, name: productName })
+  const handleRecipeClick = (productId: string, productName: string, productPrice: number) => {
+    setSelectedProductForRecipe({ id: productId, name: productName, price: productPrice })
     setRecipeEditDialogOpen(true)
   }
 
@@ -200,7 +202,7 @@ export default function RawMaterials() {
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end">
                 <span className={`text-sm font-semibold ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'}`}>
-                  {stock.toFixed(2)} {material.unit}
+                  {stock.toFixed(2)} {formatUnitWithQuantity(stock, material.unit)}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {t('rawMaterials.fields.minimumStock')}: {minimumStock.toFixed(2)}
@@ -357,7 +359,7 @@ export default function RawMaterials() {
         },
       },
     ],
-    [t, deleteMutation.isPending, toggleActiveMutation.isPending, toggleActiveMutation.mutate],
+    [t, formatUnit, formatUnitWithQuantity, deleteMutation.isPending, toggleActiveMutation],
   )
 
   return (

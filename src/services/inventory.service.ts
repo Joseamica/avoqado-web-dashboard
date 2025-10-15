@@ -569,6 +569,11 @@ export const productInventoryApi = {
 
   // Set inventory type
   setType: (venueId: string, productId: string, inventoryType: InventoryType) => api.put(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-type`, { inventoryType }),
+
+  // Switch inventory type (auto-conversion between SIMPLE_STOCK ↔ RECIPE_BASED)
+  // Automatically removes old configuration and switches to new type
+  switchInventoryType: (venueId: string, productId: string, newType: InventoryType) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/switch-inventory-type`, { inventoryType: newType }),
 }
 
 // ===========================================

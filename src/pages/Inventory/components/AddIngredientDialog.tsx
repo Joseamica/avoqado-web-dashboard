@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { recipesApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
 import { Loader2, Search } from 'lucide-react'
 import { Currency } from '@/utils/currency'
@@ -49,6 +50,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatUnit } = useUnitTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterial | null>(null)
@@ -63,7 +65,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
   } = useForm<AddIngredientForm>({
     defaultValues: {
       rawMaterialId: '',
-      quantity: 0,
+      quantity: undefined, // No default value - user must enter
       unit: '',
       isOptional: false,
       substituteNotes: '',
@@ -99,7 +101,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     if (open) {
       reset({
         rawMaterialId: '',
-        quantity: 0,
+        quantity: undefined, // No default value - user must enter
         unit: '',
         isOptional: false,
         substituteNotes: '',
@@ -222,7 +224,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   <div>
                     <p className="text-sm font-medium text-foreground">{selectedRawMaterial.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {selectedRawMaterial.unit} · {Currency(Number(selectedRawMaterial.costPerUnit))} / {selectedRawMaterial.unit}
+                      {t('rawMaterials.fields.currentStock')}: {Number(selectedRawMaterial.currentStock).toFixed(2)} {formatUnit(selectedRawMaterial.unit)} · {Currency(Number(selectedRawMaterial.costPerUnit))} / {formatUnit(selectedRawMaterial.unit)}
                     </p>
                   </div>
                   <Button
@@ -259,11 +261,11 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-foreground">{material.name}</p>
-                            <p className="text-xs text-muted-foreground">{material.sku} · {material.unit}</p>
+                            <p className="text-xs text-muted-foreground">{material.sku} · {formatUnit(material.unit)}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-foreground">{Currency(Number(material.costPerUnit))}</p>
-                            <p className="text-xs text-muted-foreground">{Number(material.currentStock).toFixed(2)} {material.unit}</p>
+                            <p className="text-xs text-muted-foreground">{Number(material.currentStock).toFixed(2)} {formatUnit(material.unit)}</p>
                           </div>
                         </div>
                       </button>
@@ -288,6 +290,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                     id="quantity"
                     type="number"
                     step="0.01"
+                    placeholder="0"
                     {...register('quantity', { required: true, valueAsNumber: true, min: 0.01 })}
                   />
                   {errors.quantity && <p className="text-xs text-destructive">Required (min: 0.01)</p>}
@@ -295,7 +298,13 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
 
                 <div className="space-y-2">
                   <Label htmlFor="unit">{t('recipes.ingredients.unit')} *</Label>
-                  <Input id="unit" {...register('unit', { required: true })} readOnly />
+                  <Input
+                    id="unit-display"
+                    value={watch('unit') ? formatUnit(watch('unit')) : ''}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                  />
+                  <input type="hidden" {...register('unit', { required: true })} />
                 </div>
               </div>
 

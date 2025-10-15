@@ -13,7 +13,7 @@ interface RecipeUsageDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   rawMaterial: RawMaterial | null
-  onRecipeClick: (productId: string, productName: string) => void
+  onRecipeClick: (productId: string, productName: string, productPrice: number) => void
 }
 
 interface ProductWithRecipe {
@@ -78,7 +78,7 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
                   <button
                     key={product.id}
                     onClick={() => {
-                      onRecipeClick(product.id, product.name)
+                      onRecipeClick(product.id, product.name, product.price)
                       onOpenChange(false)
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors text-left"

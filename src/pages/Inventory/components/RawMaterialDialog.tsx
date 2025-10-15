@@ -230,7 +230,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                 <SelectContent>
                   {ALL_UNIT_OPTIONS.map(unit => (
                     <SelectItem key={unit.value} value={unit.value}>
-                      {unit.label} ({unit.fullLabel})
+                      {unit.label} ({t(`units.${unit.value}`)})
                     </SelectItem>
                   ))}
                 </SelectContent>

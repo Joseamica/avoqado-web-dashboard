@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial, type AdjustStockDto } from '@/services/inventory.service'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -26,6 +27,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
 
   const {
     register,
@@ -37,7 +39,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
   } = useForm<AdjustStockDto>({
     defaultValues: {
       type: 'ADJUSTMENT',
-      quantity: 0,
+      quantity: undefined, // No default value - user must enter
       reason: '',
       reference: '',
     },
@@ -51,7 +53,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
     if (open) {
       reset({
         type: 'ADJUSTMENT',
-        quantity: 0,
+        quantity: undefined, // No default value - user must enter
         reason: '',
         reference: '',
       })
@@ -87,7 +89,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
   if (!rawMaterial) return null
 
   const currentStock = Number(rawMaterial.currentStock)
-  const newStock = currentStock + quantity
+  const newStock = currentStock + (quantity || 0)
   const isNegativeStock = newStock < 0
 
   return (
@@ -107,13 +109,13 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
               <div>
                 <p className="text-sm text-muted-foreground">{t('rawMaterials.fields.currentStock')}</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {currentStock.toFixed(2)} {rawMaterial.unit}
+                  {currentStock.toFixed(2)} {formatUnitWithQuantity(currentStock, rawMaterial.unit)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">{t('rawMaterials.movements.newStock')}</p>
                 <p className={`text-2xl font-bold ${isNegativeStock ? 'text-destructive' : 'text-foreground'}`}>
-                  {newStock.toFixed(2)} {rawMaterial.unit}
+                  {newStock.toFixed(2)} {formatUnitWithQuantity(newStock, rawMaterial.unit)}
                 </p>
               </div>
             </div>
@@ -147,7 +149,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setValue('quantity', Number((quantity - 1).toFixed(2)))}
+                onClick={() => setValue('quantity', Number(((quantity || 0) - 1).toFixed(2)))}
               >
                 -
               </Button>
@@ -155,6 +157,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
                 id="quantity"
                 type="number"
                 step="0.01"
+                placeholder="0"
                 {...register('quantity', { required: true, valueAsNumber: true })}
                 className="flex-1 text-center"
               />
@@ -162,13 +165,13 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setValue('quantity', Number((quantity + 1).toFixed(2)))}
+                onClick={() => setValue('quantity', Number(((quantity || 0) + 1).toFixed(2)))}
               >
                 +
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''} {Math.abs(quantity).toFixed(2)} {rawMaterial.unit}
+              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''} {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity || 0), rawMaterial.unit)}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">Required</p>}
           </div>

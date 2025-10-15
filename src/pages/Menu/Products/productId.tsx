@@ -25,6 +25,14 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import api from '@/api'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import {
+  getSkuValidationRules,
+  getNameValidationRules,
+  getPriceValidationRules,
+  getCategoryValidationRules,
+  getTypeValidationRules,
+  transformSkuToUppercase,
+} from '@/lib/validators/product'
 
 // Esquema de validación
 // const FormSchema = z.object({
@@ -274,13 +282,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="sku"
-            rules={{
-              required: { value: true, message: t('products.create.skuRequired') },
-              pattern: {
-                value: /^[A-Za-z0-9_-]+$/,
-                message: t('products.detail.skuPattern'),
-              },
-            }}
+            rules={getSkuValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -288,8 +290,9 @@ export default function ProductId() {
                   <FormControl>
                     <Input
                       placeholder={t('products.detail.skuPlaceholder')}
-                      className="max-w-96"
+                      className="max-w-96 uppercase"
                       {...field}
+                      onChange={e => field.onChange(transformSkuToUppercase(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -302,11 +305,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="name"
-            rules={{
-              required: { value: true, message: t('forms.validation.nameRequired') },
-              minLength: { value: 3, message: t('forms.validation.nameMinLength') },
-              maxLength: { value: 30, message: t('forms.validation.nameMaxLength') },
-            }}
+            rules={getNameValidationRules(t)}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('forms.name')}</FormLabel>
@@ -335,17 +334,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="price"
-            rules={{
-              required: t('products.create.priceRequired'),
-              validate: {
-                esNumero: value => !isNaN(parseFloat(value)) || t('products.create.priceValid'),
-                esPositivo: value => parseFloat(value) > 0 || t('products.create.pricePositive'),
-                tieneDosDecimales: value => /^\d+(\.\d{1,2})?$/.test(value) || t('products.create.priceDecimals'),
-                // Opcional: valor máximo
-                // max: value =>
-                //   parseFloat(value) <= 10000 || 'El precio no debe exceder $10,000.'
-              },
-            }}
+            rules={getPriceValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem>
@@ -361,9 +350,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="type"
-            rules={{
-              required: t('products.create.typeRequired'),
-            }}
+            rules={getTypeValidationRules(t)}
             render={({ field }) => {
               return (
                 <FormItem className="max-w-96">
@@ -612,9 +599,7 @@ export default function ProductId() {
           <FormField
             control={form.control}
             name="categoryId"
-            rules={{
-              required: { value: true, message: t('products.create.categoryRequired') },
-            }}
+            rules={getCategoryValidationRules(t)}
             render={({ field }) => (
               <FormItem className="max-w-96">
                 <FormLabel>{t('products.create.category')}</FormLabel>
