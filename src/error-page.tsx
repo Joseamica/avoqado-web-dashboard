@@ -15,8 +15,8 @@ export default function ErrorPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
       <div className="rounded-lg bg-card p-8 shadow-lg">
-        <h1 className="mb-4 text-4xl font-bold text-red-500">{t('common.error.oops')}</h1>
-        <p className="mb-6 text-lg text-foreground">{t('common.error.unexpected')}</p>
+        <h1 className="mb-4 text-4xl font-bold text-red-500">{t('common.errorOops')}</h1>
+        <p className="mb-6 text-lg text-foreground">{t('common.errorUnexpected')}</p>
         {error && (error.statusText || error.message) && (
           <p className="mb-6 rounded-md bg-muted p-4 text-muted-foreground">
             <span className="font-medium">{error.status ? `${error.status}: ` : ''}</span>

@@ -1,4 +1,5 @@
 import api from '@/api'
+import { TFunction } from 'i18next'
 
 // ===== TYPES =====
 
@@ -284,65 +285,17 @@ export async function sendVenueNotification(
 // ===== UTILITY FUNCTIONS =====
 
 /**
- * Format notification type for display (Spanish)
+ * Format notification type for display
  */
-export function formatNotificationType(type: NotificationType): string {
-  const translations = {
-    // Order notifications
-    [NotificationType.NEW_ORDER]: 'Nuevo Pedido',
-    [NotificationType.ORDER_UPDATED]: 'Pedido Actualizado',
-    [NotificationType.ORDER_READY]: 'Pedido Listo',
-    [NotificationType.ORDER_CANCELLED]: 'Pedido Cancelado',
-    
-    // Payment notifications
-    [NotificationType.PAYMENT_RECEIVED]: 'Pago Recibido',
-    [NotificationType.PAYMENT_FAILED]: 'Pago Fallido',
-    [NotificationType.REFUND_PROCESSED]: 'Reembolso Procesado',
-    
-    // Review notifications
-    [NotificationType.NEW_REVIEW]: 'Nueva Reseña',
-    [NotificationType.BAD_REVIEW]: 'Reseña Negativa',
-    [NotificationType.REVIEW_RESPONSE_NEEDED]: 'Respuesta de Reseña Requerida',
-    
-    // Staff notifications
-    [NotificationType.SHIFT_REMINDER]: 'Recordatorio de Turno',
-    [NotificationType.SHIFT_ENDED]: 'Turno Finalizado',
-    [NotificationType.NEW_STAFF_JOINED]: 'Nuevo Personal Unido',
-    
-    // System notifications
-    [NotificationType.POS_DISCONNECTED]: 'POS Desconectado',
-    [NotificationType.POS_RECONNECTED]: 'POS Reconectado',
-    [NotificationType.LOW_INVENTORY]: 'Inventario Bajo',
-    [NotificationType.SYSTEM_MAINTENANCE]: 'Mantenimiento del Sistema',
-    [NotificationType.FEATURE_UPDATED]: 'Función Actualizada',
-    
-    // Admin notifications
-    [NotificationType.VENUE_APPROVAL_NEEDED]: 'Aprobación de Venue Requerida',
-    [NotificationType.VENUE_SUSPENDED]: 'Venue Suspendido',
-    [NotificationType.HIGH_COMMISSION_ALERT]: 'Alerta de Comisión Alta',
-    [NotificationType.REVENUE_MILESTONE]: 'Hito de Ingresos',
-    
-    // General
-    [NotificationType.ANNOUNCEMENT]: 'Anuncio',
-    [NotificationType.REMINDER]: 'Recordatorio',
-    [NotificationType.ALERT]: 'Alerta'
-  }
-  
-  return translations[type] || type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+export function formatNotificationType(type: NotificationType, t: TFunction): string {
+  return t(`dashboard.notifications.types.${type}`)
 }
 
 /**
- * Format notification priority for display (Spanish)
+ * Format notification priority for display
  */
-export function formatNotificationPriority(priority: NotificationPriority): string {
-  const translations = {
-    [NotificationPriority.LOW]: 'Baja',
-    [NotificationPriority.NORMAL]: 'Normal', 
-    [NotificationPriority.HIGH]: 'Alta',
-    [NotificationPriority.URGENT]: 'Urgente'
-  }
-  
-  return translations[priority] || priority
+export function formatNotificationPriority(priority: NotificationPriority, t: TFunction): string {
+  return t(`dashboard.notifications.priorities.${priority}`)
 }
 
 /**

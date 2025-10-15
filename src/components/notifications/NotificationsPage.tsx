@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
 import { useNotifications } from '@/context/NotificationContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   formatNotificationTime,
   getNotificationPriorityColor,
@@ -32,6 +33,7 @@ interface NotificationsPageProps {
 
 export function NotificationsPage({ className }: NotificationsPageProps) {
   const { t } = useTranslation()
+  const { venueSlug } = useCurrentVenue()
   const {
     notifications,
     unreadCount,
@@ -94,7 +96,13 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
     }
 
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl
+      // Handle absolute URLs (http/https) and relative URLs differently
+      if (notification.actionUrl.startsWith('http')) {
+        window.location.href = notification.actionUrl
+      } else {
+        // Prepend venue slug to relative URLs
+        window.location.href = `/venues/${venueSlug}${notification.actionUrl}`
+      }
     }
   }
 
@@ -220,7 +228,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectItem value="all">{t('dashboard.notifications.allTypes')}</SelectItem>
                       {Object.values(NotificationType).map((type) => (
                         <SelectItem key={type} value={type}>
-                          {formatNotificationType(type)}
+                          {formatNotificationType(type, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -245,7 +253,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                       <SelectItem value="all">{t('dashboard.notifications.allPriorities')}</SelectItem>
                       {Object.values(NotificationPriority).map((priority) => (
                         <SelectItem key={priority} value={priority}>
-                          {formatNotificationPriority(priority)}
+                          {formatNotificationPriority(priority, t)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -371,10 +379,10 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
                                 variant="outline"
                                 className={getNotificationPriorityColor(notification.priority)}
                               >
-                                {formatNotificationPriority(notification.priority)}
+                                {formatNotificationPriority(notification.priority, t)}
                               </Badge>
                               <Badge variant="secondary">
-                                {formatNotificationType(notification.type)}
+                                {formatNotificationType(notification.type, t)}
                               </Badge>
                             </div>
                           </div>

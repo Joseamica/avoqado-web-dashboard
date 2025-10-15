@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bell } from 'lucide-react'
 import { useNotificationBadge, useNotifications } from '@/context/NotificationContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { formatNotificationTime } from '@/services/notification.service'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -15,6 +16,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
   const { notifications, markAsRead, loading } = useNotifications()
   const { t } = useTranslation()
+  const { venueSlug } = useCurrentVenue()
 
   const [isOpen, setIsOpen] = useState(false)
 
@@ -22,8 +24,13 @@ export function NotificationBell({ className }: NotificationBellProps) {
     await markAsRead(notificationId)
 
     if (actionUrl) {
-      // Navigate to the action URL
-      window.location.href = actionUrl
+      // Handle absolute URLs (http/https) and relative URLs differently
+      if (actionUrl.startsWith('http')) {
+        window.location.href = actionUrl
+      } else {
+        // Prepend venue slug to relative URLs
+        window.location.href = `/venues/${venueSlug}${actionUrl}`
+      }
     }
   }
 

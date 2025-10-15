@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat } from 'lucide-react'
@@ -28,6 +29,7 @@ export default function RawMaterials() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -65,6 +67,169 @@ export default function RawMaterials() {
     },
     enabled: !!venueId,
   })
+
+  // Handle highlight from notifications
+  const highlightId = searchParams.get('highlight')
+
+  useEffect(() => {
+    if (!highlightId || !rawMaterials || isLoading) {
+      console.log('Highlight check:', { highlightId, hasRawMaterials: !!rawMaterials, isLoading })
+      return
+    }
+
+    try {
+      // Find the material to highlight
+      const materialIndex = rawMaterials.findIndex(m => m.id === highlightId)
+      console.log('Looking for material with ID:', highlightId)
+      console.log('Material found at index:', materialIndex)
+      console.log('Current filters:', { categoryFilter, stockFilter, searchTerm })
+
+      if (materialIndex === -1) {
+        console.warn('Material not found in current list. ID:', highlightId)
+        console.log('Available materials:', rawMaterials.map(m => ({ id: m.id, name: m.name })))
+
+        // Check if filters are applied
+        const hasFilters = categoryFilter !== 'all' || stockFilter !== 'all' || searchTerm !== ''
+
+        if (hasFilters) {
+          console.log('Filters detected, clearing them to find material...')
+          // Clear filters to show all materials
+          setCategoryFilter('all')
+          setStockFilter('all')
+          setSearchTerm('')
+          // Don't remove highlight param yet - let it retry after filters clear
+          return
+        }
+
+        // If no filters are applied and still not found, material truly doesn't exist
+        console.error('Material not found even without filters')
+        const newParams = new URLSearchParams(searchParams)
+        newParams.delete('highlight')
+        setSearchParams(newParams, { replace: true })
+        return
+      }
+
+      const targetMaterial = rawMaterials[materialIndex]
+      console.log('Target material:', { id: targetMaterial.id, name: targetMaterial.name, sku: targetMaterial.sku })
+
+      // Calculate which page the material is on
+      const pageSize = pagination.pageSize
+      const targetPage = Math.floor(materialIndex / pageSize)
+      const rowIndexInPage = materialIndex % pageSize
+
+      console.log('Pagination info:', {
+        materialIndex,
+        pageSize,
+        currentPage: pagination.pageIndex,
+        targetPage,
+        rowIndexInPage
+      })
+
+      // If material is on a different page, change to that page
+      if (targetPage !== pagination.pageIndex) {
+        console.log(`Material is on page ${targetPage}, switching from page ${pagination.pageIndex}...`)
+        setPagination({ ...pagination, pageIndex: targetPage })
+        // Don't remove highlight param yet - let it retry after page changes
+        return
+      }
+
+      console.log('Material is on current page, proceeding to highlight...')
+
+      // Small delay to ensure table is rendered
+      const timeoutId = setTimeout(() => {
+        try {
+          console.log('Searching for row in DOM...')
+          // Find the row element - use row index within current page
+          const rowElements = document.querySelectorAll('tbody tr')
+          console.log('Total rows found:', rowElements.length)
+          console.log('Looking for row at index:', rowIndexInPage)
+
+          // Use the row index within the current page
+          const row = Array.from(rowElements)[rowIndexInPage]
+
+          if (row) {
+            console.log('Row found! Highlighting...')
+            try {
+              // Scroll into view
+              row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+              // Detect if dark mode is active
+              const isDarkMode = document.documentElement.classList.contains('dark')
+
+              // Apply theme-appropriate highlight color
+              if (isDarkMode) {
+                // Dark mode: use amber/orange glow
+                row.style.backgroundColor = 'rgba(251, 146, 60, 0.3)' // orange-400 with opacity
+                row.style.boxShadow = '0 0 20px rgba(251, 146, 60, 0.4)'
+              } else {
+                // Light mode: use yellow
+                row.style.backgroundColor = 'rgba(254, 243, 199, 0.9)' // yellow-100
+                row.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.3)'
+              }
+
+              row.style.transition = 'all 0.3s ease-in-out'
+              row.classList.add('animate-pulse')
+
+              // Remove animation after 3 seconds
+              setTimeout(() => {
+                try {
+                  console.log('Removing highlight animation')
+                  row.classList.remove('animate-pulse')
+                  row.style.backgroundColor = ''
+                  row.style.boxShadow = ''
+
+                  // Remove the highlight param from URL
+                  const newParams = new URLSearchParams(searchParams)
+                  newParams.delete('highlight')
+                  setSearchParams(newParams, { replace: true })
+                } catch (cleanupError) {
+                  console.error('Error cleaning up highlight:', cleanupError)
+                }
+              }, 3000)
+            } catch (animationError) {
+              console.error('Error applying highlight animation:', animationError)
+              // Remove highlight param even if animation fails
+              const newParams = new URLSearchParams(searchParams)
+              newParams.delete('highlight')
+              setSearchParams(newParams, { replace: true })
+            }
+          } else {
+            console.warn('Row element not found in DOM')
+            console.log('Row index in page:', rowIndexInPage, 'Available rows:', rowElements.length, 'Material global index:', materialIndex)
+            // Remove highlight param if row not found
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('highlight')
+            setSearchParams(newParams, { replace: true })
+          }
+        } catch (domError) {
+          console.error('Error in DOM manipulation:', domError)
+          // Remove highlight param on error
+          try {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('highlight')
+            setSearchParams(newParams, { replace: true })
+          } catch (paramError) {
+            console.error('Error removing highlight param after DOM error:', paramError)
+          }
+        }
+      }, 1000) // Increased delay to ensure table is fully rendered
+
+      // Cleanup function
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    } catch (error) {
+      console.error('Error in highlight detection:', error)
+      // Remove highlight param on any error to prevent infinite loops
+      try {
+        const newParams = new URLSearchParams(searchParams)
+        newParams.delete('highlight')
+        setSearchParams(newParams, { replace: true })
+      } catch (paramError) {
+        console.error('Error removing highlight param:', paramError)
+      }
+    }
+  }, [highlightId, rawMaterials, isLoading, searchParams, setSearchParams, categoryFilter, stockFilter, searchTerm, pagination])
 
   // Toggle active mutation
   const toggleActiveMutation = useMutation({

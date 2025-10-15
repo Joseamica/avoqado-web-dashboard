@@ -9,6 +9,7 @@ import { Info } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function Overview() {
   const [sp] = useSearchParams()
@@ -16,6 +17,7 @@ export default function Overview() {
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const { t, i18n } = useTranslation()
+  const { venueId } = useCurrentVenue()
 
   const query = useMemo(() => {
     const timeRange = (sp.get('timeRange') as any) || undefined
@@ -27,11 +29,20 @@ export default function Overview() {
       from,
       to,
       compareTo,
+      venueId, // Include venueId in query
     }
-  }, [sp])
+  }, [sp, venueId])
 
   useEffect(() => {
     let mounted = true
+
+    // Don't fetch if venueId is not available
+    if (!venueId) {
+      setLoading(false)
+      setErr(t('analytics.errorPrefix') + ' ' + t('common.error.noVenue', 'No venue selected'))
+      return
+    }
+
     setLoading(true)
     fetchAnalyticsOverview(query)
       .then(r => {
@@ -41,13 +52,13 @@ export default function Overview() {
         }
       })
       .catch(e => {
-        if (mounted) setErr(e.message)
+        if (mounted) setErr(e.message || e.response?.data?.message || t('common.errorUnexpected'))
       })
       .finally(() => mounted && setLoading(false))
     return () => {
       mounted = false
     }
-  }, [query])
+  }, [query, venueId, t])
 
   if (loading) return <div className="p-2">{t('analytics.loading')}</div>
   if (err) return (

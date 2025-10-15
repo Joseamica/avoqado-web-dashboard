@@ -14,7 +14,7 @@ import { recipesApi, rawMaterialsApi, type Recipe, type CreateRecipeDto } from '
 import { Loader2, Plus, Trash2, Package, Info } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { AddIngredientDialog } from './AddIngredientDialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -40,13 +40,15 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   // Track ingredients for create mode
-  const [tempIngredients, setTempIngredients] = useState<Array<{
-    rawMaterialId: string
-    quantity: number
-    unit: string
-    isOptional?: boolean
-    substituteNotes?: string
-  }>>([])
+  const [tempIngredients, setTempIngredients] = useState<
+    Array<{
+      rawMaterialId: string
+      quantity: number
+      unit: string
+      isOptional?: boolean
+      substituteNotes?: string
+    }>
+  >([])
 
   const {
     register,
@@ -111,7 +113,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Invalidate all products-with-recipes queries (includes all filter combinations)
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       // Invalidate raw materials to update usage count
@@ -129,7 +131,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Always invalidate cache on error to sync with backend state
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -156,7 +158,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Invalidate all products-with-recipes queries (includes all filter combinations)
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       // Invalidate raw materials to update usage count
@@ -170,7 +172,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Always invalidate cache on error to sync with backend state
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -190,7 +192,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Invalidate all products-with-recipes queries (includes all filter combinations)
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       // Invalidate raw materials to update usage count
@@ -206,7 +208,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Always invalidate cache on error to sync with backend state
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -226,7 +228,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Invalidate all products-with-recipes queries (includes all filter combinations)
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       // Invalidate raw materials to update usage count
@@ -240,7 +242,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Always invalidate cache on error to sync with backend state
       queryClient.invalidateQueries({
         queryKey: ['products-with-recipes'],
-        refetchType: 'active'
+        refetchType: 'active',
       })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product?.id] })
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -274,13 +276,14 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       // Lines are managed separately via add/remove ingredient
       const payload: CreateRecipeDto = {
         ...data,
-        lines: recipe?.lines.map(line => ({
-          rawMaterialId: line.rawMaterialId,
-          quantity: Number(line.quantity),
-          unit: line.unit,
-          isOptional: line.isOptional,
-          substituteNotes: line.substituteNotes || undefined,
-        })) || [],
+        lines:
+          recipe?.lines.map(line => ({
+            rawMaterialId: line.rawMaterialId,
+            quantity: Number(line.quantity),
+            unit: line.unit,
+            isOptional: line.isOptional,
+            substituteNotes: line.substituteNotes || undefined,
+          })) || [],
       }
       updateMutation.mutate(payload)
     }
@@ -310,9 +313,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
             <DialogTitle>
               {mode === 'create' ? t('recipes.add') : t('recipes.edit')} - {product.name}
             </DialogTitle>
-            <DialogDescription>
-              {mode === 'create' ? t('recipes.subtitle') : `${t('common.edit')} ${product.name}`}
-            </DialogDescription>
+            <DialogDescription>{mode === 'create' ? t('recipes.subtitle') : `${t('common.edit')} ${product.name}`}</DialogDescription>
           </DialogHeader>
 
           {recipeLoading && mode === 'edit' ? (
@@ -383,9 +384,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{t('pricing.fields.foodCostPercentage')}</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {((totalCost / Number(product.price)) * 100).toFixed(1)}%
-                      </p>
+                      <p className="text-lg font-bold text-foreground">{((totalCost / Number(product.price)) * 100).toFixed(1)}%</p>
                     </div>
                   </div>
                 </div>
@@ -395,12 +394,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>{t('recipes.ingredients.title')}</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAddIngredientOpen(true)}
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAddIngredientOpen(true)}>
                     <Plus className="h-4 w-4 mr-1" />
                     {t('recipes.addIngredient')}
                   </Button>
@@ -413,8 +407,8 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                     </AlertDescription>
                   </Alert>
                 ) : (
-                  <ScrollArea className="max-h-[300px]">
-                    <div className="space-y-2">
+                  <div className="max-h-[330px] overflow-y-auto rounded-md border border-border">
+                    <div className="space-y-2 p-3">
                       {mode === 'create'
                         ? tempIngredients.map((line, index) => {
                             // Find the raw material name from the fetched data
@@ -436,15 +430,16 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                   <p className="text-sm font-medium text-foreground">
                                     {ingredientName}
                                     {line.isOptional && (
-                                      <span className="ml-2 text-xs text-muted-foreground">
-                                        ({t('recipes.ingredients.optional')})
-                                      </span>
+                                      <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
                                     )}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
                                     {Number(line.quantity).toFixed(2)} {line.unit}
                                     {rawMaterial && (
-                                      <> × {Currency(costPerUnit)} = {Currency(lineCost)}</>
+                                      <>
+                                        {' '}
+                                        × {Currency(costPerUnit)} = {Currency(lineCost)}
+                                      </>
                                     )}
                                   </p>
                                 </div>
@@ -475,13 +470,12 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                   <p className="text-sm font-medium text-foreground">
                                     {line.rawMaterial.name}
                                     {line.isOptional && (
-                                      <span className="ml-2 text-xs text-muted-foreground">
-                                        ({t('recipes.ingredients.optional')})
-                                      </span>
+                                      <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
                                     )}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {Number(line.quantity).toFixed(2)} {line.unit} × {Currency(Number(line.rawMaterial.costPerUnit))} = {Currency(lineCost)}
+                                    {Number(line.quantity).toFixed(2)} {line.unit} × {Currency(Number(line.rawMaterial.costPerUnit))} ={' '}
+                                    {Currency(lineCost)}
                                   </p>
                                 </div>
 
@@ -496,10 +490,9 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                 </Button>
                               </div>
                             )
-                          })
-                      }
+                          })}
                     </div>
-                  </ScrollArea>
+                  </div>
                 )}
               </div>
 
@@ -512,12 +505,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
               <DialogFooter className="flex justify-between">
                 <div>
                   {mode === 'edit' && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={handleDeleteRecipe}
-                      disabled={isLoading}
-                    >
+                    <Button type="button" variant="destructive" onClick={handleDeleteRecipe} disabled={isLoading}>
                       {t('recipes.delete')}
                     </Button>
                   )}
@@ -543,7 +531,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
         onOpenChange={setAddIngredientOpen}
         product={product}
         mode={mode}
-        onAddTempIngredient={(ingredient) => {
+        onAddTempIngredient={ingredient => {
           if (mode === 'create') {
             setTempIngredients(prev => [...prev, ingredient])
           }
