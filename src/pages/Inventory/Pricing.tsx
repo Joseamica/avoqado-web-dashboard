@@ -419,7 +419,12 @@ export default function Pricing() {
 
         {/* Stats */}
         {productsNeedingReview > 0 && (
-          <div className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30">
+          <button
+            type="button"
+            onClick={() => setProfitabilityFilter('poor')}
+            className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors cursor-pointer w-full text-left"
+            aria-label={t('pricing.filterPoorProfitability', `Filter products with poor profitability (${productsNeedingReview} items)`)}
+          >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
               <div>
@@ -431,7 +436,7 @@ export default function Pricing() {
                 </p>
               </div>
             </div>
-          </div>
+          </button>
         )}
 
         {/* Filters */}

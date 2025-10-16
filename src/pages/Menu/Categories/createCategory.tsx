@@ -168,7 +168,7 @@ export default function CreateCategory() {
             {form.watch('active') ? t('forms.labels.active') : t('forms.labels.inactive')}
           </Button>
           <LoadingButton loading={createCategory.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createCategory.isPending ? t('common.saving') : t('common.save')}
+            {createCategory.isPending ? t('categoryDetail.buttons.saving') : t('categoryDetail.buttons.save')}
           </LoadingButton>
         </div>
       </div>

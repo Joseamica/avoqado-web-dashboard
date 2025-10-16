@@ -143,22 +143,12 @@ export default function CategoryId() {
         })) || [],
     }
 
-    // Debug logging
-    console.log('Original formValues:', formValues)
-    console.log('Transformed data before time cleanup:', transformedData)
-
     // Handle time values: send null for empty values, keep valid times
     if (!transformedData.availableFrom || transformedData.availableFrom.trim() === '') {
-      console.log('Setting availableFrom to null:', transformedData.availableFrom)
       transformedData.availableFrom = null
-    } else {
-      console.log('Keeping availableFrom:', transformedData.availableFrom)
     }
     if (!transformedData.availableUntil || transformedData.availableUntil.trim() === '') {
-      console.log('Setting availableUntil to null:', transformedData.availableUntil)
       transformedData.availableUntil = null
-    } else {
-      console.log('Keeping availableUntil:', transformedData.availableUntil)
     }
 
     // Validate time range - availableFrom should be before availableUntil
@@ -179,7 +169,6 @@ export default function CategoryId() {
       }
     }
 
-    console.log('Final data being sent to server:', transformedData)
     saveCategory.mutate(transformedData)
   }
 

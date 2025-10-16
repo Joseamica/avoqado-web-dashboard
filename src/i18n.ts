@@ -734,6 +734,13 @@ const resources = {
         confirmPassword: 'Confirm',
         active: 'Active',
         inactive: 'Inactive',
+        time: {
+          hour: 'Hour',
+          min: 'Min',
+          ampm: 'AM/PM',
+          am: 'AM',
+          pm: 'PM',
+        },
       },
       routeProtection: {
         accessDenied: 'Access Denied',
@@ -3734,6 +3741,13 @@ const resources = {
         confirmPassword: 'Confirmar',
         active: 'Activo',
         inactive: 'Inactivo',
+        time: {
+          hour: 'Hora',
+          min: 'Min',
+          ampm: 'AM/PM',
+          am: 'AM',
+          pm: 'PM',
+        },
       },
       routeProtection: {
         accessDenied: 'Acceso denegado',

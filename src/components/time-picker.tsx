@@ -77,16 +77,10 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className = ""
   const handleTimeChange = (field: 'hour' | 'minute' | 'period', newValue: string) => {
     const updatedTime = { ...internalState, [field]: newValue }
     setInternalState(updatedTime)
-    
-    console.log('TimePicker - Field changed:', field, '=', newValue)
-    console.log('TimePicker - Updated time:', updatedTime)
-    
+
     if (updatedTime.hour && updatedTime.minute && updatedTime.period) {
       const time24 = formatTo24Hour(updatedTime.hour, updatedTime.minute, updatedTime.period)
-      console.log('TimePicker - Formatted 24h time:', time24)
       onChange?.(time24)
-    } else {
-      console.log('TimePicker - Incomplete time, not calling onChange')
     }
   }
 
