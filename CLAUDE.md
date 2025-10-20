@@ -44,10 +44,61 @@ src/
 
 #### Route Protection System
 
-- `ProtectedRoute`: Requires authentication
+The application uses multiple layers of route protection to ensure proper access control:
+
+**Authentication & Role-Based Routes:**
+- `ProtectedRoute`: Requires authentication (any logged-in user)
 - `AdminProtectedRoute`: Requires admin-level access with role checking
 - `SuperProtectedRoute`: Requires OWNER role or higher
 - Routes are nested with role-based access control
+
+**Permission-Based Route Protection:**
+- `PermissionProtectedRoute`: Requires specific permissions to access entire pages
+- Works in conjunction with backend `checkPermission` middleware
+- Prevents URL bypass attacks (users directly accessing URLs without permission)
+- Shows "Access Denied" page instead of rendering protected content
+
+**Usage Example:**
+```typescript
+import { PermissionProtectedRoute } from '@/routes/PermissionProtectedRoute'
+
+// In router.tsx:
+<Route element={<PermissionProtectedRoute permission="menu:read" />}>
+  <Route path="menu" element={<MenuOverview />} />
+  <Route path="categories" element={<Categories />} />
+  <Route path="products" element={<Products />} />
+</Route>
+
+// Multiple permissions (requires ANY):
+<Route element={<PermissionProtectedRoute permissions={['orders:read', 'orders:update']} />}>
+  <Route path="orders" element={<Orders />} />
+</Route>
+
+// Multiple permissions (requires ALL):
+<Route element={<PermissionProtectedRoute permissions={['admin:write', 'admin:delete']} requireAll />}>
+  <Route path="dangerous" element={<DangerousAction />} />
+</Route>
+```
+
+**How it works:**
+```
+1. User navigates to /venues/:slug/menu
+   └─ PermissionProtectedRoute checks 'menu:read' permission
+       ├─ Has permission? → Render <Outlet /> (MenuOverview page)
+       └─ No permission? → Show AccessDeniedPage
+
+2. User tries direct URL access
+   └─ Same permission check occurs
+       └─ No backend request if no permission (saves API calls)
+```
+
+**Key Features:**
+- **Prevents URL bypass**: Users can't access pages by typing URLs directly
+- **Reduces backend load**: Blocks requests before they reach the server
+- **Better UX**: Shows clear "Access Denied" message instead of errors
+- **Synced with backend**: Uses same permission logic as `checkPermission` middleware
+
+**⚠️ Critical:** Both frontend route protection AND backend middleware validation are required. Frontend prevents UX issues, backend ensures security.
 
 #### Granular Permission System (UI Controls)
 

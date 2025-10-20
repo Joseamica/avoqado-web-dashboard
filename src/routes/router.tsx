@@ -83,6 +83,7 @@ import Root from '@/root'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
+import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import { Layout } from '@/Layout'
 
 const router = createBrowserRouter(
@@ -310,59 +311,65 @@ const router = createBrowserRouter(
                 { path: 'home', element: <Home /> },
                 { path: 'account', element: <Account /> },
 
+                // Menu Management (requires menu:read permission)
                 {
                   path: 'menumaker',
-                  element: <MenuMakerLayout />,
+                  element: <PermissionProtectedRoute permission="menu:read" />,
                   children: [
                     {
-                      index: true,
-                      element: <MenuOverview />,
-                    },
-                    {
-                      path: 'overview',
-                      element: <MenuOverview />,
-                    },
-                    {
-                      path: 'menus',
-                      element: <Menus />,
-                    },
-                    {
-                      path: 'menus/:menuId',
-                      element: <MenuId />,
-                    },
-                    {
-                      path: 'menus/create',
-                      element: <CreateMenu />,
-                    },
-                    {
-                      path: 'categories',
-                      element: <Categories />,
-                    },
-                    {
-                      path: 'categories/:categoryId',
-                      element: <CategoryId />,
-                    },
-                    {
-                      path: 'categories/create',
-                      element: <CreateCategory />,
-                    },
-                    { path: 'products', element: <Products /> },
-                    {
-                      path: 'products/:productId',
-                      element: <ProductId />,
-                    },
-                    {
-                      path: 'products/create',
-                      element: <CreateProduct />,
-                    },
-                    { path: 'modifier-groups', element: <ModifierGroups /> },
-                    {
-                      path: 'modifier-groups/:modifierGroupId',
-                      element: <ModifierGroupId />,
-                    },
-                    {
-                      path: 'modifier-groups/create',
-                      element: <CreateModifierGroup />,
+                      element: <MenuMakerLayout />,
+                      children: [
+                        {
+                          index: true,
+                          element: <MenuOverview />,
+                        },
+                        {
+                          path: 'overview',
+                          element: <MenuOverview />,
+                        },
+                        {
+                          path: 'menus',
+                          element: <Menus />,
+                        },
+                        {
+                          path: 'menus/:menuId',
+                          element: <MenuId />,
+                        },
+                        {
+                          path: 'menus/create',
+                          element: <CreateMenu />,
+                        },
+                        {
+                          path: 'categories',
+                          element: <Categories />,
+                        },
+                        {
+                          path: 'categories/:categoryId',
+                          element: <CategoryId />,
+                        },
+                        {
+                          path: 'categories/create',
+                          element: <CreateCategory />,
+                        },
+                        { path: 'products', element: <Products /> },
+                        {
+                          path: 'products/:productId',
+                          element: <ProductId />,
+                        },
+                        {
+                          path: 'products/create',
+                          element: <CreateProduct />,
+                        },
+                        { path: 'modifier-groups', element: <ModifierGroups /> },
+                        {
+                          path: 'modifier-groups/:modifierGroupId',
+                          element: <ModifierGroupId />,
+                        },
+                        {
+                          path: 'modifier-groups/create',
+                          element: <CreateModifierGroup />,
+                        },
+                      ],
                     },
                   ],
                 },
@@ -403,8 +410,17 @@ const router = createBrowserRouter(
                 // { path: 'waiters', element: <Waiters /> },
                 // { path: 'waiters/:waiterId', element: <WaiterId /> },
                 { path: 'reviews', element: <Reviews /> },
-                { path: 'teams', element: <Teams /> },
-                { path: 'teams/:memberId', element: <TeamMemberDetails /> },
+
+                // Team Management (requires teams:read permission)
+                {
+                  path: 'teams',
+                  element: <PermissionProtectedRoute permission="teams:read" />,
+                  children: [
+                    { index: true, element: <Teams /> },
+                    { path: ':memberId', element: <TeamMemberDetails /> },
+                  ],
+                },
+
                 { path: 'notifications', element: <Notifications /> },
                 { path: 'notifications/preferences', element: <NotificationPreferences /> },
 
@@ -420,17 +436,22 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Inventory Management (ADMIN access only)
+                // Inventory Management (ADMIN access + inventory:read permission)
                 {
                   path: 'inventory',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
                   children: [
                     {
-                      element: <InventoryLayout />,
+                      element: <PermissionProtectedRoute permission="inventory:read" />,
                       children: [
-                        { path: 'raw-materials', element: <RawMaterials /> },
-                        { path: 'recipes', element: <Recipes /> },
-                        { path: 'pricing', element: <Pricing /> },
+                        {
+                          element: <InventoryLayout />,
+                          children: [
+                            { path: 'raw-materials', element: <RawMaterials /> },
+                            { path: 'recipes', element: <Recipes /> },
+                            { path: 'pricing', element: <Pricing /> },
+                          ],
+                        },
                       ],
                     },
                   ],

@@ -37,8 +37,21 @@ export function usePermissions() {
       }
     }
 
+    // OVERRIDE MODE for wildcard roles:
+    // If role has wildcard (*:*) in defaults AND custom permissions exist,
+    // use ONLY custom permissions (complete override, not merge)
+    // This allows removing permissions from high-level roles (OWNER/ADMIN/SUPERADMIN)
+    const hasWildcardDefaults = defaultPermissions.includes('*:*')
+    const hasCustomPermissions = customPermissions.length > 0
+
+    if (hasWildcardDefaults && hasCustomPermissions) {
+      // Override mode: custom permissions replace defaults entirely
+      return customPermissions
+    }
+
+    // MERGE MODE for non-wildcard roles:
     // Merge permissions: default + custom
-    // Custom permissions can add new permissions but NOT remove default ones
+    // Custom permissions can add new permissions on top of defaults
     const merged = [...new Set([...defaultPermissions, ...customPermissions])]
 
     return merged
