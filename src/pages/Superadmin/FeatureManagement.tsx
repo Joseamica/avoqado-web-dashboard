@@ -27,6 +27,8 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
+  CreditCard,
+  Megaphone,
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { FeatureCategory, FeatureStatus, PricingModel, type PlatformFeature } from '@/types/superadmin'
@@ -58,14 +60,16 @@ const FeatureManagement: React.FC = () => {
 
   const getCategoryIcon = (category: FeatureCategory) => {
     switch (category) {
-      case FeatureCategory.AI:
-        return <Bot className="w-4 h-4" />
+      case FeatureCategory.OPERATIONS:
+        return <Cpu className="w-4 h-4" />
+      case FeatureCategory.PAYMENTS:
+        return <CreditCard className="w-4 h-4" />
+      case FeatureCategory.MARKETING:
+        return <Megaphone className="w-4 h-4" />
       case FeatureCategory.ANALYTICS:
         return <BarChart3 className="w-4 h-4" />
       case FeatureCategory.INTEGRATIONS:
         return <Globe className="w-4 h-4" />
-      case FeatureCategory.PREMIUM:
-        return <Crown className="w-4 h-4" />
       default:
         return <Cpu className="w-4 h-4" />
     }
@@ -137,7 +141,11 @@ const FeatureManagement: React.FC = () => {
     {
       accessorKey: 'isCore',
       header: t('featureMgmt.columns.type'),
-      cell: ({ row }) => <Badge variant={row.original.isCore ? 'default' : 'secondary'}>{row.original.isCore ? t('featureMgmt.core') : t('featureMgmt.addOn')}</Badge>,
+      cell: ({ row }) => (
+        <Badge variant={row.original.isCore ? 'default' : 'secondary'}>
+          {row.original.isCore ? t('featureMgmt.core') : t('featureMgmt.addOn')}
+        </Badge>
+      ),
     },
     {
       id: 'actions',
@@ -208,7 +216,9 @@ const FeatureManagement: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{features.length}</div>
-            <p className="text-xs text-muted-foreground">{features.filter(f => f.isCore).length} {t('featureMgmt.stats.coreCountSuffix')}</p>
+            <p className="text-xs text-muted-foreground">
+              {features.filter(f => f.isCore).length} {t('featureMgmt.stats.coreCountSuffix')}
+            </p>
           </CardContent>
         </Card>
 
@@ -219,7 +229,9 @@ const FeatureManagement: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{features.filter(f => f.status === FeatureStatus.ACTIVE).length}</div>
-            <p className="text-xs text-muted-foreground">{features.filter(f => f.status === FeatureStatus.BETA).length} {t('featureMgmt.stats.betaCountSuffix')}</p>
+            <p className="text-xs text-muted-foreground">
+              {features.filter(f => f.status === FeatureStatus.BETA).length} {t('featureMgmt.stats.betaCountSuffix')}
+            </p>
           </CardContent>
         </Card>
 
@@ -229,9 +241,11 @@ const FeatureManagement: React.FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{
-              Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(8450)
-            }</div>
+            <div className="text-2xl font-bold">
+              {Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(
+                8450,
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.avgRevenueChange')}</p>
           </CardContent>
         </Card>
@@ -242,9 +256,9 @@ const FeatureManagement: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{
-              Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'percent', maximumFractionDigits: 0 }).format(0.67)
-            }</div>
+            <div className="text-2xl font-bold">
+              {Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'percent', maximumFractionDigits: 0 }).format(0.67)}
+            </div>
             <p className="text-xs text-muted-foreground">{t('featureMgmt.stats.adoptionAvg')}</p>
           </CardContent>
         </Card>
@@ -267,11 +281,11 @@ const FeatureManagement: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('featureMgmt.allCategories')}</SelectItem>
-                <SelectItem value={FeatureCategory.CORE}>{t('categories.CORE')}</SelectItem>
-                <SelectItem value={FeatureCategory.AI}>{t('categories.AI')}</SelectItem>
+                <SelectItem value={FeatureCategory.OPERATIONS}>{t('categories.OPERATIONS')}</SelectItem>
+                <SelectItem value={FeatureCategory.PAYMENTS}>{t('categories.PAYMENTS')}</SelectItem>
+                <SelectItem value={FeatureCategory.MARKETING}>{t('categories.MARKETING')}</SelectItem>
                 <SelectItem value={FeatureCategory.ANALYTICS}>{t('categories.ANALYTICS')}</SelectItem>
                 <SelectItem value={FeatureCategory.INTEGRATIONS}>{t('categories.INTEGRATIONS')}</SelectItem>
-                <SelectItem value={FeatureCategory.PREMIUM}>{t('categories.PREMIUM')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -350,7 +364,12 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       <div>
         <Label htmlFor="description">{t('featureMgmt.form.descLabel')}</Label>
-        <Textarea id="description" placeholder={t('featureMgmt.form.descPlaceholder')} value={description} onChange={e => setDescription(e.target.value)} />
+        <Textarea
+          id="description"
+          placeholder={t('featureMgmt.form.descPlaceholder')}
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -361,11 +380,11 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <SelectValue placeholder={t('featureMgmt.form.categoryPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={FeatureCategory.AI}>{t('categories.AI')}</SelectItem>
+              <SelectItem value={FeatureCategory.OPERATIONS}>{t('categories.OPERATIONS')}</SelectItem>
+              <SelectItem value={FeatureCategory.PAYMENTS}>{t('categories.PAYMENTS')}</SelectItem>
+              <SelectItem value={FeatureCategory.MARKETING}>{t('categories.MARKETING')}</SelectItem>
               <SelectItem value={FeatureCategory.ANALYTICS}>{t('categories.ANALYTICS')}</SelectItem>
               <SelectItem value={FeatureCategory.INTEGRATIONS}>{t('categories.INTEGRATIONS')}</SelectItem>
-              <SelectItem value={FeatureCategory.PREMIUM}>{t('categories.PREMIUM')}</SelectItem>
-              <SelectItem value={FeatureCategory.CORE}>{t('categories.CORE')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -388,7 +407,13 @@ const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="price">{t('featureMgmt.form.basePriceLabel')}</Label>
-          <Input id="price" type="number" placeholder={t('featureMgmt.form.basePricePlaceholder')} value={basePrice} onChange={e => setBasePrice(e.target.value)} />
+          <Input
+            id="price"
+            type="number"
+            placeholder={t('featureMgmt.form.basePricePlaceholder')}
+            value={basePrice}
+            onChange={e => setBasePrice(e.target.value)}
+          />
         </div>
         <div className="flex items-center space-x-2 pt-6">
           <Switch id="core" checked={isCore} onCheckedChange={setIsCore} />

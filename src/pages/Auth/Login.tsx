@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -7,9 +7,14 @@ import CoverLogin from '@/assets/cover-login.png'
 import { UserAuthForm } from './components/UserAuthForm'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
+import { clearAllChatStorage } from '@/services/chatService'
 
 const Login: React.FC = () => {
   const { t } = useTranslation()
+
+  useEffect(() => {
+    clearAllChatStorage()
+  }, [])
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background text-foreground">

@@ -3,6 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { usePermissions } from '@/hooks/usePermissions'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -110,6 +111,7 @@ function SortableProduct({
   handlePriceBlur,
   imageErrors,
   setImageErrors,
+  canEdit,
 }: {
   product: Product
   editedPrices: Record<string, string>
@@ -117,10 +119,12 @@ function SortableProduct({
   handlePriceBlur: (id: string, value: string) => void
   imageErrors: Record<string, boolean>
   setImageErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  canEdit: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: product.id,
     data: { type: 'product', categoryId: product.categoryId },
+    disabled: !canEdit, // Disable dragging if user can't edit
   })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -132,13 +136,15 @@ function SortableProduct({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center p-2 my-1 rounded-md hover:bg-muted ${
-        isDragging ? 'shadow-lg z-30' : 'z-20'
-      } cursor-grab active:cursor-grabbing relative pointer-events-auto`}
+      className={`flex items-center p-2 my-1 rounded-md hover:bg-muted ${isDragging ? 'shadow-lg z-30' : 'z-20'} ${
+        canEdit ? 'cursor-grab active:cursor-grabbing' : ''
+      } relative pointer-events-auto`}
     >
-      <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors" {...attributes} {...listeners}>
-        <GripVertical size={18} />
-      </div>
+      {canEdit && (
+        <div className="p-1 mr-2 text-muted-foreground hover:text-foreground transition-colors" {...attributes} {...listeners}>
+          <GripVertical size={18} />
+        </div>
+      )}
       <div className="w-12 h-12 bg-muted rounded-md mr-4 flex items-center justify-center">
         {product.imageUrl && !imageErrors[product.id] ? (
           <img
@@ -160,6 +166,7 @@ function SortableProduct({
           onBlur={e => handlePriceBlur(product.id, e.target.value)}
           className="w-24 text-right"
           onClick={e => e.stopPropagation()} // Prevent drag from starting on click
+          disabled={!canEdit} // Disable price editing if user can't edit
         />
         {/* Add more actions if needed */}
       </div>
@@ -172,6 +179,7 @@ export default function Overview() {
   const navigate = useNavigate()
   const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
+  const { can } = usePermissions()
 
   const [activeId, setActiveId] = useState<string | null>(null)
   const [menuOrder, setMenuOrder] = useState<string[]>([])
@@ -482,22 +490,25 @@ export default function Overview() {
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
             {t('overview.manageCategories')}
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>{t('overview.create')}</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
-                {t('overview.newMenu')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>
-                {t('overview.newCategory')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
-                {t('overview.createNewProduct')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Create buttons - Requires menu:create permission (MANAGER+) */}
+          {can('menu:create') && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>{t('overview.create')}</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
+                  {t('overview.newMenu')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>
+                  {t('overview.newCategory')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
+                  {t('overview.createNewProduct')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -591,6 +602,7 @@ export default function Overview() {
                           menu={item}
                           onToggleActive={(id, active) => toggleMenuActiveMutation.mutate({ menuId: id, active })}
                           onSelect={() => handleSelectMenu(item.id)}
+                          canEdit={can('menu:update')}
                         />
                       </div>
                     )
@@ -601,6 +613,7 @@ export default function Overview() {
                           category={item}
                           menuId={selectedMenuId!}
                           onSelect={() => handleSelectCategory(item.id, selectedMenuId!)}
+                          canEdit={can('menu:update')}
                         />
                       </div>
                     )
@@ -614,6 +627,7 @@ export default function Overview() {
                         handlePriceBlur={handlePriceBlur}
                         imageErrors={imageErrors}
                         setImageErrors={setImageErrors}
+                        canEdit={can('menu:update')}
                       />
                     )
                   }
@@ -645,13 +659,15 @@ export default function Overview() {
             <div className="space-y-2 text-sm">
               <div className="font-medium">{t('overview.menu')}</div>
               <div className="text-muted-foreground">{menusData?.find(m => m.id === selectedMenuId)?.name}</div>
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-muted-foreground">{t('overview.active')}</span>
-                <Switch
-                  checked={!!menusData?.find(m => m.id === selectedMenuId)?.active}
-                  onCheckedChange={checked => toggleMenuActiveMutation.mutate({ menuId: selectedMenuId, active: checked })}
-                />
-              </div>
+              {can('menu:update') && (
+                <div className="flex items-center gap-2 pt-2">
+                  <span className="text-muted-foreground">{t('overview.active')}</span>
+                  <Switch
+                    checked={!!menusData?.find(m => m.id === selectedMenuId)?.active}
+                    onCheckedChange={checked => toggleMenuActiveMutation.mutate({ menuId: selectedMenuId, active: checked })}
+                  />
+                </div>
+              )}
             </div>
           )}
           {viewLevel === 'category' && selectedCategoryId && (
@@ -674,42 +690,66 @@ function MenuRow({
   menu,
   onToggleActive,
   onSelect,
+  canEdit,
 }: {
   menu: Menu
   onToggleActive: (id: string, active: boolean) => void
   onSelect: () => void
+  canEdit: boolean
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: menu.id, data: { type: 'menu' } })
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: menu.id,
+    data: { type: 'menu' },
+    disabled: !canEdit,
+  })
   const style = { transform: CSS.Transform.toString(transform), transition }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center w-full">
-      <button
-        {...attributes}
-        {...listeners}
-        className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-      >
-        <GripVertical size={18} />
-      </button>
+      {canEdit && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical size={18} />
+        </button>
+      )}
       <button className="text-left flex-1" onClick={onSelect}>
         <div className="font-medium">{menu.name}</div>
       </button>
-      <Switch checked={menu.active} onCheckedChange={checked => onToggleActive(menu.id, checked)} />
+      <Switch checked={menu.active} onCheckedChange={checked => onToggleActive(menu.id, checked)} disabled={!canEdit} />
     </div>
   )
 }
 
-function CategoryRow({ category, menuId, onSelect }: { category: MenuCategory; menuId: string; onSelect: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: category.id, data: { type: 'category', menuId } })
+function CategoryRow({
+  category,
+  menuId,
+  onSelect,
+  canEdit,
+}: {
+  category: MenuCategory
+  menuId: string
+  onSelect: () => void
+  canEdit: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: category.id,
+    data: { type: 'category', menuId },
+    disabled: !canEdit,
+  })
   const style = { transform: CSS.Transform.toString(transform), transition }
   return (
     <div ref={setNodeRef} style={style} className="flex items-center w-full">
-      <button
-        {...attributes}
-        {...listeners}
-        className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-      >
-        <GripVertical size={18} />
-      </button>
+      {canEdit && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-1 mr-2 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical size={18} />
+        </button>
+      )}
       <button className="text-left flex-1" onClick={onSelect}>
         <div className="font-medium">{category.name}</div>
       </button>

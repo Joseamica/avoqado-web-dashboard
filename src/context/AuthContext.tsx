@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import * as authService from '@/services/auth.service'
+import { clearAllChatStorage } from '@/services/chatService'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import { User, Venue, StaffRole } from '@/types'
@@ -154,6 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
+      clearAllChatStorage()
       queryClient.clear()
       setActiveVenue(null)
       navigate('/login', { replace: true })

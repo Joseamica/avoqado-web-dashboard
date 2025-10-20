@@ -29,6 +29,13 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
+const isDevEnvironment = import.meta.env.DEV
+const devLog = (...args: unknown[]) => {
+  if (isDevEnvironment) {
+    console.log(...args)
+  }
+}
+
 // Global flag used to debounce cache toast notifications
 declare global {
   interface Window {
@@ -51,7 +58,7 @@ interface ChatMessage {
 function convertHistoryToMessages(history: any[], welcomeText: string): ChatMessage[] {
   const messages: ChatMessage[] = []
 
-  console.log('🔄 Converting history to messages:', {
+  devLog('🔄 Converting history to messages:', {
     historyLength: history.length,
     historyPreview: history.slice(0, 3),
   })
@@ -66,7 +73,7 @@ function convertHistoryToMessages(history: any[], welcomeText: string): ChatMess
       feedbackGiven: null, // Initialize feedback state
     }
     messages.push(welcomeMessage)
-    console.log('👋 No history found, adding welcome message')
+    devLog('👋 No history found, adding welcome message')
   } else {
     // Add welcome message first, then history
     messages.push({
@@ -92,7 +99,7 @@ function convertHistoryToMessages(history: any[], welcomeText: string): ChatMess
       }
     })
 
-    console.log('✅ History converted, total messages:', messages.length)
+    devLog('✅ History converted, total messages:', messages.length)
   }
 
   return messages
@@ -101,14 +108,16 @@ function convertHistoryToMessages(history: any[], welcomeText: string): ChatMess
 // Chat interface component inside the same file to avoid TypeScript module errors
 function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
+  const { slug } = useParams<{ slug: string }>()
+  const venueSlug = slug ?? null
   const [showConversations, setShowConversations] = useState(false)
-  const [savedConversations, setSavedConversations] = useState(() => getSavedConversations())
+  const [savedConversations, setSavedConversations] = useState(() => getSavedConversations(venueSlug))
   const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId())
   const [isExpanded, setIsExpanded] = useState(true)
   // Initialize messages with conversation history
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
-      const history = getConversationHistory()
+      const history = getConversationHistory(venueSlug)
       return convertHistoryToMessages(history, t('chat.welcome'))
     } catch (error) {
       console.warn('Error loading chat history:', error)
@@ -141,7 +150,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const { toast } = useToast()
 
   // Memoize usage stats; function reads external store, not component state
-  const usageStats = useMemo(() => getUsageStats(), [])
+  const usageStats = useMemo(() => getUsageStats(venueSlug), [venueSlug])
 
   // Check if there's something to save or clear
   const canSaveConversation = useMemo(() => {
@@ -181,8 +190,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
       // Debug: verificar estado de autenticación antes de enviar
-      console.log('Enviando mensaje al asistente:', message)
-      return await sendChatMessage(message)
+      devLog('Enviando mensaje al asistente:', message, { venueSlug })
+      return await sendChatMessage(message, { venueSlug })
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
@@ -255,7 +264,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         }
 
         setMessages(prev => [...prev, correctedMessage])
-        addMessageToHistory('assistant', result.correctedResponse, undefined, result.trainingDataId)
+        addMessageToHistory('assistant', result.correctedResponse, venueSlug, result.trainingDataId)
       }
 
       // Close dialog
@@ -291,7 +300,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   const handleClearHistory = useCallback(() => {
     if (clearingRef.current) {
-      console.log('🚫 Clear operation already in progress')
+      devLog('🚫 Clear operation already in progress')
       return
     }
 
@@ -304,9 +313,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       clearingRef.current = true
       setIsClearing(true)
 
-      console.log('🗑️ Starting chat history clear operation')
+      devLog('🗑️ Starting chat history clear operation')
 
-      clearConversationHistory()
+      clearConversationHistory(venueSlug)
       setCurrentConversationId(null)
       setLastSavedMessageCount(0) // Reset save tracking when clearing
 
@@ -321,7 +330,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
       setMessages([welcomeMessage])
 
-      console.log('✅ Chat history cleared successfully')
+      devLog('✅ Chat history cleared successfully')
 
       toast({
         title: t('chat.toast.historyCleared.title'),
@@ -341,12 +350,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsClearing(false)
       }, 100)
     }
-  }, [toast, t])
+  }, [toast, t, venueSlug])
 
   const handleSaveConversation = useCallback(async () => {
     if (isSaving) return
 
-    const currentHistory = getConversationHistory()
+    const currentHistory = getConversationHistory(venueSlug)
     if (currentHistory.length <= 1) {
       toast({
         variant: 'destructive',
@@ -359,27 +368,28 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     setIsSaving(true)
 
     try {
-      console.log('💾 Intentando guardar conversación:', {
+      devLog('💾 Intentando guardar conversación:', {
         currentConversationId,
         messageCount: messages.filter(msg => msg.id !== 'welcome').length,
         lastSavedCount: lastSavedMessageCount,
-        isUpdate: !!currentConversationId
+        isUpdate: !!currentConversationId,
+        venueSlug,
       })
-      
-      const conversationId = await saveConversation(undefined, undefined, currentConversationId)
-      
-      console.log('✅ Conversación guardada con ID:', conversationId)
-      
+
+      const conversationId = await saveConversation(undefined, venueSlug, currentConversationId)
+
+      devLog('✅ Conversación guardada con ID:', conversationId)
+
       if (conversationId) {
         const wasUpdate = currentConversationId === conversationId
         setCurrentConversationId(conversationId)
-        setSavedConversations(getSavedConversations())
+        setSavedConversations(getSavedConversations(venueSlug))
         
         // Update last saved message count to prevent re-saving the same content
         const currentMessageCount = messages.filter(msg => msg.id !== 'welcome').length
         setLastSavedMessageCount(currentMessageCount)
         
-        console.log('📋 Estado actualizado:', {
+        devLog('📋 Estado actualizado:', {
           wasUpdate,
           newConversationId: conversationId,
           savedCount: currentMessageCount
@@ -405,7 +415,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsSaving(false)
       }, 1000)
     }
-  }, [toast, isSaving, messages, currentConversationId, lastSavedMessageCount, t])
+  }, [toast, isSaving, messages, currentConversationId, lastSavedMessageCount, t, venueSlug])
 
   const handleNewConversation = useCallback(() => {
     if (isCreatingNew) return
@@ -424,9 +434,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     setIsCreatingNew(true)
 
     try {
-      createNewConversation()
+      createNewConversation(venueSlug)
       setCurrentConversationId(null)
-      setSavedConversations(getSavedConversations())
+      setSavedConversations(getSavedConversations(venueSlug))
       setLastSavedMessageCount(0) // Reset save tracking for new conversation
 
       // Reload messages
@@ -456,12 +466,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setIsCreatingNew(false)
       }, 1000)
     }
-  }, [toast, messages, isCreatingNew, t])
+  }, [toast, messages, isCreatingNew, t, venueSlug])
 
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
-      if (loadConversation(conversationId)) {
-        const history = getConversationHistory()
+      if (loadConversation(conversationId, venueSlug)) {
+        const history = getConversationHistory(venueSlug)
         const convertedMessages = convertHistoryToMessages(history, t('chat.welcome'))
         setMessages(convertedMessages)
         setCurrentConversationId(conversationId)
@@ -478,7 +488,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         })
       }
     },
-    [savedConversations, toast, t],
+    [savedConversations, toast, t, venueSlug],
   )
 
   const handleDeleteConversation = useCallback((conversationId: string) => {
@@ -492,7 +502,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
 
     if (deleteConversation(conversationToDelete)) {
-      setSavedConversations(getSavedConversations())
+      setSavedConversations(getSavedConversations(venueSlug))
 
       // Si es la conversación actual, resetear
       if (conversationToDelete === currentConversationId) {
@@ -514,7 +524,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     }
 
     setConversationToDelete(null)
-  }, [conversationToDelete, savedConversations, currentConversationId, toast, t])
+  }, [conversationToDelete, savedConversations, currentConversationId, toast, t, venueSlug])
 
   // Handle feedback dialog submission
   const handleFeedbackSubmit = useCallback(
@@ -543,19 +553,20 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Add debug logging and sync check
   useEffect(() => {
-    const history = getConversationHistory()
-    console.log('📚 Chat history status:', {
+    const history = getConversationHistory(venueSlug)
+
+    devLog('📚 Chat history status:', {
+      venueSlug,
       historyLength: history.length,
       messagesLength: messages.length,
       lastHistoryEntry: history[history.length - 1],
       lastMessage: messages[messages.length - 1],
     })
 
-    // Additional logging for troubleshooting
     if (history.length > 0) {
-      console.log('💾 Current localStorage history:', history)
+      devLog('💾 Current localStorage history:', history)
     }
-  }, [messages])
+  }, [messages, venueSlug])
 
   const onSubmit = async (values: { message: string }) => {
     if (!values.message.trim()) return
@@ -570,7 +581,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     // Add user message to UI and localStorage immediately
     setMessages(prev => [...prev, userMessage])
-    addMessageToHistory('user', values.message)
+    addMessageToHistory('user', values.message, venueSlug)
     form.reset()
 
     // Use TanStack Query mutation to send the message
@@ -587,11 +598,11 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         }
 
         // Debug: Log trainingDataId to console
-        console.log('🔍 Bot message trainingDataId:', result.trainingDataId)
+        devLog('🔍 Bot message trainingDataId:', result.trainingDataId)
 
         // Add bot message to UI and localStorage
         setMessages(prev => [...prev, botMessage])
-        addMessageToHistory('assistant', result.response, undefined, result.trainingDataId)
+        addMessageToHistory('assistant', result.response, venueSlug, result.trainingDataId)
 
         // Show cache indicator if response was cached (debounced)
         if (result.cached && !window.__cache_toast_shown) {
@@ -606,7 +617,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           }, 5000)
         }
 
-        console.log('✅ Message exchange completed and saved to history')
+        devLog('✅ Message exchange completed and saved to history')
       },
     })
   }
@@ -774,14 +785,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                         }`}
                         aria-label={t('chat.a11y.positiveFeedback')}
                         onClick={() => {
-                          console.log('👍 Thumbs up clicked, trainingDataId:', message.trainingDataId)
+                          devLog('👍 Thumbs up clicked, trainingDataId:', message.trainingDataId)
                           if (message.trainingDataId) {
                             positiveFeedbackMutation.mutate({
                               trainingDataId: message.trainingDataId,
                               messageId: message.id,
                             })
                           } else {
-                            console.log('❌ No trainingDataId found for message:', message)
+                            devLog('❌ No trainingDataId found for message:', message)
                             toast({
                               title: t('chat.feedback.unavailableTitle'),
                               description: t('chat.feedback.unavailableDesc'),
@@ -803,12 +814,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                         }`}
                         aria-label={t('chat.a11y.negativeFeedback')}
                         onClick={() => {
-                          console.log('👎 Thumbs down clicked, trainingDataId:', message.trainingDataId)
+                          devLog('👎 Thumbs down clicked, trainingDataId:', message.trainingDataId)
                           if (message.trainingDataId) {
                             setFeedbackMessage(message)
                             setShowFeedbackDialog(true)
                           } else {
-                            console.log('❌ No trainingDataId found for message:', message)
+                            devLog('❌ No trainingDataId found for message:', message)
                             toast({
                               title: t('chat.feedback.unavailableTitle'),
                               description: t('chat.feedback.unavailableDesc'),

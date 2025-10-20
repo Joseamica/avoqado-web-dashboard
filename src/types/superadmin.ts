@@ -1,11 +1,11 @@
 // SaaS Superadmin System Types
 
 export enum FeatureCategory {
-  CORE = 'CORE',           // Basic platform features
-  AI = 'AI',               // AI-powered features
-  ANALYTICS = 'ANALYTICS', // Advanced analytics
-  INTEGRATIONS = 'INTEGRATIONS', // Third-party integrations
-  PREMIUM = 'PREMIUM',     // Premium features
+  OPERATIONS = 'OPERATIONS',       // Operations and core business features
+  PAYMENTS = 'PAYMENTS',           // Payment processing features
+  MARKETING = 'MARKETING',         // Marketing and customer engagement
+  ANALYTICS = 'ANALYTICS',         // Analytics and reporting
+  INTEGRATIONS = 'INTEGRATIONS',   // Third-party integrations
 }
 
 export enum FeatureStatus {

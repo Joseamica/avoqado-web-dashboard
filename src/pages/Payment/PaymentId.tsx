@@ -40,6 +40,7 @@ import { Progress } from '@/components/ui/progress'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export default function PaymentId() {
   const { paymentId } = useParams<{ paymentId: string }>()
@@ -51,6 +52,7 @@ export default function PaymentId() {
   const [selectedReceiptForDetail, setSelectedReceiptForDetail] = useState<any>(null)
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
+  const { can } = usePermissions()
 
   const { t, i18n } = useTranslation('payment')
   const {
@@ -391,57 +393,61 @@ export default function PaymentId() {
                     </span>
                   </div>
                   <div className="flex space-x-2">
-                    <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50">
-                          <Mail className="w-4 h-4 mr-2" />
-                          {t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle className="flex items-center space-x-2">
-                            <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            <span>{t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}</span>
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="mt-4 space-y-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="email">
-                              {t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}
-                            </Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              placeholder={t('detail.email.placeholder', { defaultValue: 'correo@ejemplo.com' })}
-                              value={recipientEmail}
-                              onChange={e => setRecipientEmail(e.target.value)}
-                              className="w-full"
-                            />
+                    {/* Send Receipt - Requires payments:refund or higher permission (MANAGER+) */}
+                    {can('payments:refund') && (
+                      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50">
+                            <Mail className="w-4 h-4 mr-2" />
+                            {t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center space-x-2">
+                              <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              <span>{t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}</span>
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-4 space-y-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="email">
+                                {t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}
+                              </Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                placeholder={t('detail.email.placeholder', { defaultValue: 'correo@ejemplo.com' })}
+                                value={recipientEmail}
+                                onChange={e => setRecipientEmail(e.target.value)}
+                                className="w-full"
+                              />
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
+                                {t('common.cancel', { defaultValue: 'Cancelar' })}
+                              </Button>
+                              <Button
+                                disabled={!recipientEmail || sendReceiptMutation.isPending}
+                                onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })}
+                                className="flex-1"
+                              >
+                                {sendReceiptMutation.isPending ? (
+                                  <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                    {t('detail.email.sending')}
+                                  </>
+                                ) : (
+                                  <>{t('detail.email.send')}</>
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
-                              {t('common.cancel', { defaultValue: 'Cancelar' })}
-                            </Button>
-                            <Button
-                              disabled={!recipientEmail || sendReceiptMutation.isPending}
-                              onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })}
-                              className="flex-1"
-                            >
-                              {sendReceiptMutation.isPending ? (
-                                <>
-                                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                  {t('detail.email.sending')}
-                                </>
-                              ) : (
-                                <>{t('detail.email.send')}</>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                        </DialogContent>
+                      </Dialog>
+                    )}
 
+                    {/* View Receipt - Read-only action, visible to all with payments:read */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -466,6 +472,7 @@ export default function PaymentId() {
                       {t('detail.actions.viewReceipt')}
                     </Button>
 
+                    {/* Copy ID - Read-only action, visible to all with payments:read */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -476,25 +483,28 @@ export default function PaymentId() {
                       {t('detail.actions.copyId')}
                     </Button>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                      onClick={() => {
-                        // Export payment details as JSON
-                        const data = JSON.stringify(payment, null, 2)
-                        const blob = new Blob([data], { type: 'application/json' })
-                        const url = URL.createObjectURL(blob)
-                        const a = document.createElement('a')
-                        a.href = url
-                        a.download = `payment-${payment?.id}.json`
-                        a.click()
-                        URL.revokeObjectURL(url)
-                      }}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      {t('detail.actions.export')}
-                    </Button>
+                    {/* Export - Requires analytics:export permission (MANAGER+) */}
+                    {can('analytics:export') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                        onClick={() => {
+                          // Export payment details as JSON
+                          const data = JSON.stringify(payment, null, 2)
+                          const blob = new Blob([data], { type: 'application/json' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `payment-${payment?.id}.json`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        }}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        {t('detail.actions.export')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
