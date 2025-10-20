@@ -18,6 +18,8 @@ import venueEs from '@/locales/es/venue.json'
 import venueFr from '@/locales/fr/venue.json'
 import inventoryEn from '@/locales/en/inventory.json'
 import inventoryEs from '@/locales/es/inventory.json'
+import settingsEn from '@/locales/en/settings.json'
+import settingsEs from '@/locales/es/settings.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -5713,6 +5715,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'inventory', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', settingsEn],
+    ['es', settingsEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'settings', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

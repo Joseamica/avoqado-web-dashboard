@@ -17,6 +17,20 @@
 - `npm run lint:i18n` — Verify missing/unused translation keys.
 - `npm run deploy` / `deploy:preview` — Deploy via Cloudflare Pages (wrangler).
 
+## Database Access (psql)
+
+- Conexión rápida:  
+  `psql "postgresql://postgres:exitosoy777@localhost:5432/av-db-25"`
+- Pasando parámetros por separado:  
+  `psql -h localhost -p 5432 -U postgres -d av-db-25`
+- Ejecutar una consulta puntual:  
+  `psql "postgresql://postgres:exitosoy777@localhost:5432/av-db-25" -c 'SELECT * FROM "Venue" LIMIT 5;'`
+- Exportar la URL y reutilizarla:  
+  `export DATABASE_URL="postgresql://postgres:exitosoy777@localhost:5432/av-db-25"`  
+  `psql "$DATABASE_URL"`
+- Comandos útiles dentro de `psql`:  
+  `\dt` (tablas), `\d "User"` (estructura), `\l` (bases), `\conninfo`, `\q` (salir).
+
 ## Coding Style & Naming Conventions
 
 - TypeScript + React 18; Vite bundling; Tailwind CSS v4. Use Prettier (`.prettierrc`) and ESLint (`eslint.config.js`).

@@ -74,6 +74,7 @@ import {
   RawMaterials,
   Recipes,
   Pricing,
+  RolePermissions,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -406,6 +407,18 @@ const router = createBrowserRouter(
                 { path: 'teams/:memberId', element: <TeamMemberDetails /> },
                 { path: 'notifications', element: <Notifications /> },
                 { path: 'notifications/preferences', element: <NotificationPreferences /> },
+
+                // Role Permissions Management (OWNER and ADMIN only)
+                {
+                  path: 'settings/role-permissions',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [
+                    {
+                      index: true,
+                      element: <RolePermissions />,
+                    },
+                  ],
+                },
 
                 // Inventory Management (ADMIN access only)
                 {

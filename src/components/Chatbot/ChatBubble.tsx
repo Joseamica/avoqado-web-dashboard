@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Button } from '../../components/ui/button'
-import { MessageSquare, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save, Maximize2, Minimize2 } from 'lucide-react'
+import { MessageSquare, Sparkles, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save, Maximize2, Minimize2 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
@@ -980,7 +980,7 @@ export function ChatBubble() {
         className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
         aria-label={isOpen ? t('chat.a11y.close') : t('chat.a11y.open')}
       >
-        <MessageSquare className="h-5 w-5" />
+        <Sparkles className="h-5 w-5" />
       </Button>
     </div>
   )

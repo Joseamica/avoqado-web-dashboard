@@ -84,3 +84,6 @@ export const InventoryLayout = React.lazy(() => import('@/pages/Inventory/Invent
 export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMaterials'))
 export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
+
+// Settings
+export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))

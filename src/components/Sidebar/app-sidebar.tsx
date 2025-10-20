@@ -5,6 +5,7 @@
   Frame,
   Home,
   Settings2,
+  Shield,
   Smartphone,
   Star,
   Ungroup,
@@ -57,6 +58,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         items: [
           { title: t('routes.editvenue'), url: 'editVenue' },
           { title: t('routes.teams'), url: 'teams' },
+          ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
+            ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions' }]
+            : []),
           ...(user.role === 'SUPERADMIN' ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config' }] : []),
           { title: t('routes.billing'), url: '#billing' },
           { title: t('routes.limits'), url: '#limits' },
