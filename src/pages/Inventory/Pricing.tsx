@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import api from '@/api'
 import { Loader2 } from 'lucide-react'
+import { PermissionGate } from '@/components/PermissionGate'
 
 interface ProductPricingAnalysis {
   id: string
@@ -364,33 +365,37 @@ export default function Pricing() {
 
           return (
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={e => {
-                  e.stopPropagation()
-                  setSelectedProduct(product)
-                  setPolicyDialogOpen(true)
-                }}
-              >
-                <Settings className="h-4 w-4 mr-1" />
-                {hasPolicy ? t('common.edit') : t('pricing.createPolicy')}
-              </Button>
+              <PermissionGate permission="inventory:update">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation()
+                    setSelectedProduct(product)
+                    setPolicyDialogOpen(true)
+                  }}
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  {hasPolicy ? t('common.edit') : t('pricing.createPolicy')}
+                </Button>
+              </PermissionGate>
 
               {product.pricingPolicy?.suggestedPrice &&
                 Number(product.pricingPolicy.suggestedPrice) !== Number(product.price) && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={e => {
-                      e.stopPropagation()
-                      applySuggestedPriceMutation.mutate(product.id)
-                    }}
-                    disabled={applySuggestedPriceMutation.isPending}
-                  >
-                    {applySuggestedPriceMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {t('pricing.applySuggested')}
-                  </Button>
+                  <PermissionGate permission="inventory:update">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={e => {
+                        e.stopPropagation()
+                        applySuggestedPriceMutation.mutate(product.id)
+                      }}
+                      disabled={applySuggestedPriceMutation.isPending}
+                    >
+                      {applySuggestedPriceMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t('pricing.applySuggested')}
+                    </Button>
+                  </PermissionGate>
                 )}
             </div>
           )

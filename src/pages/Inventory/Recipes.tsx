@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { PermissionGate } from '@/components/PermissionGate'
 
 interface ProductWithRecipe {
   id: string
@@ -294,39 +295,41 @@ export default function Recipes() {
           const hasSimpleStock = product.externalData?.inventoryType === 'SIMPLE_STOCK'
 
           return (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={e => {
-                e.stopPropagation()
-                setSelectedProduct(product)
+            <PermissionGate permission={hasRecipe ? "inventory:update" : "inventory:create"}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={e => {
+                  e.stopPropagation()
+                  setSelectedProduct(product)
 
-                // Pre-check: If product has SIMPLE_STOCK and we're trying to add/edit recipe
-                if (hasSimpleStock && !hasRecipe) {
-                  // Show conversion dialog
-                  setConversionDialogOpen(true)
-                } else {
-                  // Normal flow
-                  if (hasRecipe) {
-                    setEditDialogOpen(true)
+                  // Pre-check: If product has SIMPLE_STOCK and we're trying to add/edit recipe
+                  if (hasSimpleStock && !hasRecipe) {
+                    // Show conversion dialog
+                    setConversionDialogOpen(true)
                   } else {
-                    setCreateDialogOpen(true)
+                    // Normal flow
+                    if (hasRecipe) {
+                      setEditDialogOpen(true)
+                    } else {
+                      setCreateDialogOpen(true)
+                    }
                   }
-                }
-              }}
-            >
-              {hasRecipe ? (
-                <>
-                  <Edit className="h-4 w-4 mr-1" />
-                  {t('common.edit')}
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('recipes.add')}
-                </>
-              )}
-            </Button>
+                }}
+              >
+                {hasRecipe ? (
+                  <>
+                    <Edit className="h-4 w-4 mr-1" />
+                    {t('common.edit')}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('recipes.add')}
+                  </>
+                )}
+              </Button>
+            </PermissionGate>
           )
         },
       },

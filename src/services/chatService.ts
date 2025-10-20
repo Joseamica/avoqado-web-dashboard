@@ -145,10 +145,7 @@ const getVenueSpecificKey = (baseKey: string, venueSlug?: string | null): string
 }
 
 // Gestión del historial de conversación por venue y usuario
-export const getConversationHistory = (
-  venueSlug?: string | null,
-  userId?: string | null,
-): ConversationEntry[] => {
+export const getConversationHistory = (venueSlug?: string | null, userId?: string | null): ConversationEntry[] => {
   try {
     const currentVenue = venueSlug ?? getCurrentVenueSlug()
     const currentUserId = userId ?? getCurrentUserId()
@@ -183,11 +180,7 @@ export const getConversationHistory = (
   return []
 }
 
-const saveConversationHistory = (
-  history: ConversationEntry[],
-  venueSlug?: string | null,
-  userId?: string | null,
-) => {
+const saveConversationHistory = (history: ConversationEntry[], venueSlug?: string | null, userId?: string | null) => {
   try {
     // Mantener solo los últimos mensajes para reducir tokens
     const recentHistory = history.slice(-CHAT_CONFIG.MAX_HISTORY_LENGTH)
@@ -359,10 +352,7 @@ interface SendChatMessageOptions {
 }
 
 // Función principal para enviar mensajes usando API directamente
-export const sendChatMessage = async (
-  message: string,
-  options?: SendChatMessageOptions,
-): Promise<ChatResponse> => {
+export const sendChatMessage = async (message: string, options?: SendChatMessageOptions): Promise<ChatResponse> => {
   // Validaciones
   if (!message.trim()) {
     throw new Error('El mensaje no puede estar vacío')
@@ -557,10 +547,7 @@ export const clearChatHistory = async (): Promise<boolean> => {
 // === GESTIÓN DE CONVERSACIONES MÚLTIPLES ===
 
 // Obtener lista de conversaciones guardadas
-export const getSavedConversations = (
-  venueSlug?: string | null,
-  userId?: string | null,
-): SavedConversation[] => {
+export const getSavedConversations = (venueSlug?: string | null, userId?: string | null): SavedConversation[] => {
   try {
     const currentVenue = venueSlug ?? getCurrentVenueSlug()
     const currentUserId = userId ?? getCurrentUserId()
@@ -678,11 +665,7 @@ export const saveConversation = async (
 }
 
 // Cargar una conversación específica
-export const loadConversation = (
-  conversationId: string,
-  venueSlug?: string | null,
-  userId?: string | null,
-): boolean => {
+export const loadConversation = (conversationId: string, venueSlug?: string | null, userId?: string | null): boolean => {
   const currentVenue = venueSlug ?? getCurrentVenueSlug()
   const currentUserId = userId ?? getCurrentUserId()
   const conversations = getSavedConversations(currentVenue, currentUserId)
@@ -960,7 +943,6 @@ export const clearAllChatStorage = (): void => {
     }
 
     keysToRemove.forEach(key => localStorage.removeItem(key))
-    devLog('🧹 Chat storage cleared for logout')
   } catch (error) {
     console.error('Error clearing chat storage:', error)
   }

@@ -1,33 +1,33 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { useMutation } from '@tanstack/react-query'
+import { History, Loader2, Maximize2, Minimize2, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
-import { MessageSquare, Sparkles, X, Send, Loader2, ThumbsUp, ThumbsDown, Trash2, History, Plus, Save, Maximize2, Minimize2 } from 'lucide-react'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
+import { ConfirmDialog } from '../../components/ui/confirm-dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
 import { Textarea } from '../../components/ui/textarea'
-import { ConfirmDialog } from '../../components/ui/confirm-dialog'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
-import { useForm } from 'react-hook-form'
 import { useToast } from '../../hooks/use-toast'
 import {
-  sendChatMessage,
-  clearConversationHistory,
-  getUsageStats,
-  getConversationHistory,
   addMessageToHistory,
-  getSavedConversations,
-  loadConversation,
-  deleteConversation,
+  clearConversationHistory,
   createNewConversation,
-  saveConversation,
+  deleteConversation,
+  getConversationHistory,
   getCurrentConversationId,
+  getSavedConversations,
+  getUsageStats,
+  loadConversation,
+  saveConversation,
+  sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
 } from '../../services/chatService'
-import { useMutation } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
 
 const isDevEnvironment = import.meta.env.DEV
 const devLog = (...args: unknown[]) => {
@@ -155,18 +155,17 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   // Check if there's something to save or clear
   const canSaveConversation = useMemo(() => {
     const hasUserMessages = messages.some(msg => msg.isUser)
-    
+
     // If no user messages, can't save
     if (!hasUserMessages) return false
-    
+
     // Count current messages (excluding welcome message)
     const currentMessageCount = messages.filter(msg => msg.id !== 'welcome').length
-    
+
     // Can save if there are messages and either:
     // 1. It's a new conversation (no ID yet)
     // 2. There are new messages since last save
-    return currentMessageCount > 0 && 
-           (!currentConversationId || currentMessageCount > lastSavedMessageCount)
+    return currentMessageCount > 0 && (!currentConversationId || currentMessageCount > lastSavedMessageCount)
   }, [messages, currentConversationId, lastSavedMessageCount])
 
   const canClearConversation = useMemo(() => {
@@ -274,9 +273,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
       toast({
         title: t('chat.feedback.sentTitle'),
-        description: result.correctedResponse
-          ? t('chat.feedback.correctedDesc')
-          : t('chat.feedback.recordedDesc'),
+        description: result.correctedResponse ? t('chat.feedback.correctedDesc') : t('chat.feedback.recordedDesc'),
       })
     },
     onError: error => {
@@ -384,22 +381,20 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         const wasUpdate = currentConversationId === conversationId
         setCurrentConversationId(conversationId)
         setSavedConversations(getSavedConversations(venueSlug))
-        
+
         // Update last saved message count to prevent re-saving the same content
         const currentMessageCount = messages.filter(msg => msg.id !== 'welcome').length
         setLastSavedMessageCount(currentMessageCount)
-        
+
         devLog('📋 Estado actualizado:', {
           wasUpdate,
           newConversationId: conversationId,
-          savedCount: currentMessageCount
+          savedCount: currentMessageCount,
         })
-        
+
         toast({
           title: wasUpdate ? t('chat.toast.conversationUpdated.title') : t('chat.toast.conversationSaved.title'),
-          description: wasUpdate
-            ? t('chat.toast.conversationUpdated.desc')
-            : t('chat.toast.conversationSaved.desc'),
+          description: wasUpdate ? t('chat.toast.conversationUpdated.desc') : t('chat.toast.conversationSaved.desc'),
         })
       }
     } catch (error) {
@@ -422,7 +417,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     // Check if current conversation has any user messages (more than just welcome)
     const hasUserMessages = messages.some(msg => msg.isUser)
-    
+
     if (!hasUserMessages) {
       toast({
         title: t('chat.toast.alreadyNew.title'),
@@ -476,7 +471,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         setMessages(convertedMessages)
         setCurrentConversationId(conversationId)
         setShowConversations(false)
-        
+
         // Set last saved count to current count since we're loading a saved conversation
         const currentMessageCount = convertedMessages.filter(msg => msg.id !== 'welcome').length
         setLastSavedMessageCount(currentMessageCount)
@@ -499,20 +494,20 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const confirmDeleteConversation = useCallback(() => {
     if (!conversationToDelete) return
 
-      const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
+    const conversation = savedConversations.find(conv => conv.id === conversationToDelete)
 
     if (deleteConversation(conversationToDelete)) {
       setSavedConversations(getSavedConversations(venueSlug))
 
       // Si es la conversación actual, resetear
       if (conversationToDelete === currentConversationId) {
-      const welcomeMessage = {
-        id: 'welcome',
-        text: t('chat.welcome'),
-        isUser: false,
-        timestamp: new Date(),
-        feedbackGiven: null, // Initialize feedback state
-      }
+        const welcomeMessage = {
+          id: 'welcome',
+          text: t('chat.welcome'),
+          isUser: false,
+          timestamp: new Date(),
+          feedbackGiven: null, // Initialize feedback state
+        }
         setMessages([welcomeMessage])
         setCurrentConversationId(null)
       }
@@ -646,7 +641,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
           <Button
-            variant={showConversations ? "default" : "ghost"}
+            variant={showConversations ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
             onClick={() => setShowConversations(!showConversations)}
@@ -665,9 +660,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             title={
               !messages.some(msg => msg.isUser)
                 ? t('chat.actions.nothing_to_save')
-                : canSaveConversation 
-                  ? t('chat.actions.save_current') 
-                  : t('chat.actions.already_saved')
+                : canSaveConversation
+                ? t('chat.actions.save_current')
+                : t('chat.actions.already_saved')
             }
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -882,7 +877,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
         title={t('chat.confirm.delete.title')}
-        description={t('chat.confirm.delete.desc', { title: savedConversations.find(conv => conv.id === conversationToDelete)?.title || '' })}
+        description={t('chat.confirm.delete.desc', {
+          title: savedConversations.find(conv => conv.id === conversationToDelete)?.title || '',
+        })}
         confirmText={t('chat.confirm.delete.confirm')}
         cancelText={t('common.cancel')}
         variant="destructive"

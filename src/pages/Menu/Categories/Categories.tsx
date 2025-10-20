@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function Categories() {
   const { t, i18n } = useTranslation('menu')
@@ -137,17 +138,19 @@ export default function Categories() {
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('categories.title')}</h1>
-        <Button asChild>
-          <Link
-            to={`create`}
-            state={{
-              from: location.pathname,
-            }}
-            className="flex items-center space-x-2"
-          >
-            <span>{t('categories.newCategory')}</span>
-          </Link>
-        </Button>
+        <PermissionGate permission="menu:create">
+          <Button asChild>
+            <Link
+              to={`create`}
+              state={{
+                from: location.pathname,
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>{t('categories.newCategory')}</span>
+            </Link>
+          </Button>
+        </PermissionGate>
       </div>
 
       <DataTable

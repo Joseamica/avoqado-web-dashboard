@@ -22,6 +22,7 @@ import { RecipeUsageDialog } from './components/RecipeUsageDialog'
 import { RecipeDialog } from './components/RecipeDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function RawMaterials() {
   const { t } = useTranslation('inventory')
@@ -467,20 +468,22 @@ export default function RawMaterials() {
           const material = row.original
           return (
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={e => {
-                  e.stopPropagation()
-                  setSelectedMaterial(material)
-                  setAdjustStockDialogOpen(true)
-                }}
-                className="gap-2 whitespace-nowrap"
-                title={t('rawMaterials.adjustStock')}
-              >
-                <TrendingDown className="h-4 w-4 shrink-0" />
-                <span className="hidden lg:inline">{t('rawMaterials.adjustStock')}</span>
-              </Button>
+              <PermissionGate permission="inventory:adjust">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation()
+                    setSelectedMaterial(material)
+                    setAdjustStockDialogOpen(true)
+                  }}
+                  className="gap-2 whitespace-nowrap"
+                  title={t('rawMaterials.adjustStock')}
+                >
+                  <TrendingDown className="h-4 w-4 shrink-0" />
+                  <span className="hidden lg:inline">{t('rawMaterials.adjustStock')}</span>
+                </Button>
+              </PermissionGate>
               <Button
                 variant="ghost"
                 size="sm"
@@ -495,30 +498,34 @@ export default function RawMaterials() {
                 <History className="h-4 w-4 shrink-0" />
                 <span className="hidden lg:inline">{t('rawMaterials.viewMovements')}</span>
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={e => {
-                  e.stopPropagation()
-                  setSelectedMaterial(material)
-                  setEditDialogOpen(true)
-                }}
-                title={t('common.edit')}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={e => {
-                  e.stopPropagation()
-                  handleDeleteClick(material)
-                }}
-                disabled={deleteMutation.isPending}
-                title={t('common.delete')}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <PermissionGate permission="inventory:update">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation()
+                    setSelectedMaterial(material)
+                    setEditDialogOpen(true)
+                  }}
+                  title={t('common.edit')}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </PermissionGate>
+              <PermissionGate permission="inventory:delete">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleDeleteClick(material)
+                  }}
+                  disabled={deleteMutation.isPending}
+                  title={t('common.delete')}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </PermissionGate>
             </div>
           )
         },
@@ -536,10 +543,12 @@ export default function RawMaterials() {
             <h1 className="text-xl font-semibold">{t('rawMaterials.title')}</h1>
             <p className="text-sm text-muted-foreground">{t('rawMaterials.subtitle')}</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('rawMaterials.add')}
-          </Button>
+          <PermissionGate permission="inventory:create">
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('rawMaterials.add')}
+            </Button>
+          </PermissionGate>
         </div>
 
         {/* Filters */}

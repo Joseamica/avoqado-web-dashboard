@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function Products() {
   const { t, i18n } = useTranslation('menu')
@@ -235,27 +236,31 @@ export default function Products() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={e => {
-                  e.stopPropagation()
-                  navigate(product.id, { state: { from: location.pathname } })
-                }}
-                className="cursor-pointer"
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                {t('common.edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={e => {
-                  e.stopPropagation()
-                  setProductToDelete(product)
-                  setDeleteDialogOpen(true)
-                }}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t('common.delete')}
-              </DropdownMenuItem>
+              <PermissionGate permission="menu:update">
+                <DropdownMenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    navigate(product.id, { state: { from: location.pathname } })
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  {t('common.edit')}
+                </DropdownMenuItem>
+              </PermissionGate>
+              <PermissionGate permission="menu:delete">
+                <DropdownMenuItem
+                  onClick={e => {
+                    e.stopPropagation()
+                    setProductToDelete(product)
+                    setDeleteDialogOpen(true)
+                  }}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t('common.delete')}
+                </DropdownMenuItem>
+              </PermissionGate>
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -302,17 +307,19 @@ export default function Products() {
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('products.title')}</h1>
-        <Button asChild>
-          <Link
-            to={`create`}
-            state={{
-              from: location.pathname,
-            }}
-            className="flex items-center space-x-2"
-          >
-            <span>{t('products.new')}</span>
-          </Link>
-        </Button>
+        <PermissionGate permission="menu:create">
+          <Button asChild>
+            <Link
+              to={`create`}
+              state={{
+                from: location.pathname,
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>{t('products.new')}</span>
+            </Link>
+          </Button>
+        </PermissionGate>
       </div>
 
       <DataTable

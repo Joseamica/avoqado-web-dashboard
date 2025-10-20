@@ -38,6 +38,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import InviteTeamMemberForm from './components/InviteTeamMemberForm'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function Teams() {
   const { venueId } = useCurrentVenue()
@@ -220,15 +221,19 @@ export default function Teams() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              {t('teams.actions.edit')}
-            </DropdownMenuItem>
+            <PermissionGate permission="teams:update">
+              <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                {t('teams.actions.edit')}
+              </DropdownMenuItem>
+            </PermissionGate>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t('teams.actions.delete')}
-            </DropdownMenuItem>
+            <PermissionGate permission="teams:delete">
+              <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('teams.actions.delete')}
+              </DropdownMenuItem>
+            </PermissionGate>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -317,13 +322,14 @@ export default function Teams() {
           <p className="text-muted-foreground">{t('teams.header.subtitle')}</p>
         </div>
 
-        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogTrigger asChild>
-            <Button id="invite-member-button">
-              <UserPlus className="h-4 w-4 mr-2" />
-              {t('teams.header.inviteButton')}
-            </Button>
-          </DialogTrigger>
+        <PermissionGate permission="teams:invite">
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogTrigger asChild>
+              <Button id="invite-member-button">
+                <UserPlus className="h-4 w-4 mr-2" />
+                {t('teams.header.inviteButton')}
+              </Button>
+            </DialogTrigger>
           <DialogContent
             className="max-w-md"
             onCloseAutoFocus={e => {
@@ -347,6 +353,7 @@ export default function Teams() {
             />
           </DialogContent>
         </Dialog>
+        </PermissionGate>
       </div>
 
       <Tabs defaultValue="members" className="space-y-6">

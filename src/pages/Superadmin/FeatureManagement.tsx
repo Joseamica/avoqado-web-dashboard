@@ -1,42 +1,40 @@
-import React, { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import DataTable from '@/components/data-table'
-import { type ColumnDef } from '@tanstack/react-table'
-import {
-  Zap,
-  Plus,
-  Settings,
-  Eye,
-  TrendingUp,
-  Users,
-  DollarSign,
-  Cpu,
-  Bot,
-  BarChart3,
-  Globe,
-  Crown,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  CreditCard,
-  Megaphone,
-} from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
+import { superadminAPI } from '@/services/superadmin.service'
 import { FeatureCategory, FeatureStatus, PricingModel, type PlatformFeature } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
-import { superadminAPI } from '@/services/superadmin.service'
-import { useToast } from '@/hooks/use-toast'
-import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type ColumnDef } from '@tanstack/react-table'
+import {
+  BarChart3,
+  Cpu,
+  CreditCard,
+  DollarSign,
+  Eye,
+  Globe,
+  Megaphone,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Settings,
+  Trash2,
+  TrendingUp,
+  Users,
+  Zap,
+} from 'lucide-react'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Data now fetched from API via React Query
 

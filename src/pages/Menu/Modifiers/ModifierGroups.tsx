@@ -34,6 +34,7 @@ import {
 import { useForm } from 'react-hook-form'
 import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
@@ -189,30 +190,36 @@ export default function ModifierGroups() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t('modifiers.actions.title')}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  {t('modifiers.actions.edit')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSearchParams({ modifierGroup: row.original.id })
-                    setCreateModifier(false)
-                  }}
-                >
-                  <Link2 className="h-4 w-4 mr-2" />
-                  {t('modifiers.actions.assignModifiersAndProducts')}
-                </DropdownMenuItem>
+                <PermissionGate permission="menu:update">
+                  <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    {t('modifiers.actions.edit')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+                <PermissionGate permission="menu:update">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSearchParams({ modifierGroup: row.original.id })
+                      setCreateModifier(false)
+                    }}
+                  >
+                    <Link2 className="h-4 w-4 mr-2" />
+                    {t('modifiers.actions.assignModifiersAndProducts')}
+                  </DropdownMenuItem>
+                </PermissionGate>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    setModifierGroupToDelete(row.original.id)
-                    setDeleteDialogOpen(true)
-                  }}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('modifiers.actions.delete')}
-                </DropdownMenuItem>
+                <PermissionGate permission="menu:delete">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setModifierGroupToDelete(row.original.id)
+                      setDeleteDialogOpen(true)
+                    }}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('modifiers.actions.delete')}
+                  </DropdownMenuItem>
+                </PermissionGate>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -283,17 +290,19 @@ export default function ModifierGroups() {
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('modifiers.title')}</h1>
 
-        <Button asChild>
-          <Link
-            to={`create`}
-            state={{
-              from: location.pathname,
-            }}
-            className="flex items-center space-x-2"
-          >
-            <span>{t('modifiers.newModifierGroup')}</span>
-          </Link>
-        </Button>
+        <PermissionGate permission="menu:create">
+          <Button asChild>
+            <Link
+              to={`create`}
+              state={{
+                from: location.pathname,
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>{t('modifiers.newModifierGroup')}</span>
+            </Link>
+          </Button>
+        </PermissionGate>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
