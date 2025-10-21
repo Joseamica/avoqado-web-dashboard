@@ -25,49 +25,59 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const { allVenues } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
+  const { can } = usePermissions()
 
-  const navMain = React.useMemo(
-    () => [
-      { title: t('routes.home'), isActive: true, url: 'home', icon: Home },
-      // Analytics only visible for MANAGER+, VIEWER (matches ManagerProtectedRoute with allowViewer)
-      ...(['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN', 'VIEWER'].includes(user.role)
-        ? [{ title: t('sidebar:analytics'), isActive: true, url: 'analytics', icon: TrendingUp }]
-        : []),
-      { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen },
-      // Inventory only visible for ADMIN, OWNER, SUPERADMIN (matches AdminAccessLevel.ADMIN route protection)
+  const navMain = React.useMemo(() => {
+    // Define all possible items with their required permissions
+    const allItems = [
+      { title: t('routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read' },
+      { title: t('sidebar:analytics'), isActive: true, url: 'analytics', icon: TrendingUp, permission: 'analytics:read' },
+      { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read' },
+      { title: t('routes.inventory'), isActive: true, url: 'inventory/raw-materials', icon: Package, permission: 'inventory:read' },
+      { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote, permission: 'payments:read' },
+      { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame, permission: 'orders:read' },
+      { title: t('routes.shifts'), isActive: true, url: 'shifts', icon: Ungroup, permission: 'shifts:read' },
+      { title: t('routes.tpv'), isActive: true, url: 'tpv', icon: Smartphone, permission: 'tpv:read' },
+      { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read' },
+    ]
+
+    // Filter items based on permissions
+    const filteredItems = allItems.filter(item => can(item.permission))
+
+    // Settings submenu - filter subitems based on permissions
+    const settingsSubItems = [
+      { title: t('routes.editvenue'), url: 'editVenue', permission: 'venues:read' },
+      { title: t('routes.teams'), url: 'teams', permission: 'teams:read' },
+      // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
-        ? [{ title: t('routes.inventory'), isActive: true, url: 'inventory/raw-materials', icon: Package }]
+        ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
         : []),
-      { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote },
-      { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame },
-      { title: t('routes.shifts'), isActive: true, url: 'shifts', icon: Ungroup },
-      // TPV Management visible for WAITER+ (WAITER can view, MANAGER+ can manage)
-      ...(['WAITER', 'MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
-        ? [{ title: t('routes.tpv'), isActive: true, url: 'tpv', icon: Smartphone }]
+      // Payment config only for SUPERADMIN
+      ...(user.role === 'SUPERADMIN'
+        ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null }]
         : []),
-      { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star },
-      {
+      { title: t('routes.billing'), url: '#billing', permission: null },
+      { title: t('routes.limits'), url: '#limits', permission: null },
+    ].filter(item => !item.permission || can(item.permission))
+
+    // Only show Settings menu if user has at least one subitem
+    if (settingsSubItems.length > 0) {
+      filteredItems.push({
         title: t('routes.settings'),
         url: '#',
         icon: Settings2,
-        items: [
-          { title: t('routes.editvenue'), url: 'editVenue' },
-          { title: t('routes.teams'), url: 'teams' },
-          ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
-            ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions' }]
-            : []),
-          ...(user.role === 'SUPERADMIN' ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config' }] : []),
-          { title: t('routes.billing'), url: '#billing' },
-          { title: t('routes.limits'), url: '#limits' },
-        ],
-      },
-    ],
-    [t, user.role],
-  )
+        items: settingsSubItems,
+        permission: null as any,
+      })
+    }
+
+    return filteredItems
+  }, [t, user.role, can])
 
   const superAdminRoutes = React.useMemo(
     () => [
