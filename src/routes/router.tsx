@@ -423,10 +423,18 @@ const router = createBrowserRouter(
                     },
                   ],
                 },
+
+                // Edit Venue (requires ADMIN role + venues:read permission)
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [{ path: 'editVenue', element: <EditVenue /> }],
+                  children: [
+                    {
+                      element: <PermissionProtectedRoute permission="venues:read" />,
+                      children: [{ path: 'editVenue', element: <EditVenue /> }],
+                    },
+                  ],
                 },
+
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
