@@ -28,6 +28,12 @@ export function usePermissions() {
     // Get default permissions for the user's role
     const defaultPermissions = DEFAULT_PERMISSIONS[user.role as StaffRole] || []
 
+    // SUPERADMIN EXCEPTION: Always use wildcard, never custom permissions
+    // This prevents accidental lockout if SUPERADMIN permissions are customized
+    if (user.role === 'SUPERADMIN') {
+      return ['*:*']
+    }
+
     // Get custom permissions from the current venue (if any)
     // StaffVenue.permissions is stored as JSON array: ["tpv:create", "analytics:export", ...]
     let customPermissions: string[] = []
@@ -39,10 +45,10 @@ export function usePermissions() {
       }
     }
 
-    // OVERRIDE MODE for wildcard roles:
+    // OVERRIDE MODE for wildcard roles (OWNER, ADMIN):
     // If role has wildcard (*:*) in defaults AND custom permissions exist,
     // use ONLY custom permissions (complete override, not merge)
-    // This allows removing permissions from high-level roles (OWNER/ADMIN/SUPERADMIN)
+    // This allows removing permissions from high-level roles
     const hasWildcardDefaults = defaultPermissions.includes('*:*')
     const hasCustomPermissions = customPermissions.length > 0
 
