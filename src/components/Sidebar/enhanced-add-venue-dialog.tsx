@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import Cropper from 'react-easy-crop'
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
 import { storage } from '@/firebase'
@@ -8,19 +8,18 @@ import { useForm } from 'react-hook-form'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Input } from '../ui/input'
-import { Textarea } from '../ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Switch } from '../ui/switch'
 import { getCroppedImg } from '@/utils/cropImage'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/context/AuthContext'
 import api from '@/api'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
+import { TimezoneCombobox } from '@/components/timezone-combobox'
 import * as costManagementAPI from '@/services/cost-management.service'
-import { Building, CreditCard, DollarSign, Settings, Calculator, Info } from 'lucide-react'
+import { Building, CreditCard, DollarSign, Calculator, Info } from 'lucide-react'
 
 interface EnhancedAddVenueDialogProps {
   onClose: () => void
@@ -41,14 +40,14 @@ interface VenueFormData {
   phone: string
   email: string
   website?: string
-  
+
   // Payment configuration
   enablePaymentProcessing: boolean
   primaryAccountId?: string
   secondaryAccountId?: string
   tertiaryAccountId?: string
   routingRules?: any
-  
+
   // Pricing configuration
   setupPricingStructure: boolean
   pricingTier: 'STANDARD' | 'PREMIUM' | 'ENTERPRISE' | 'CUSTOM'
@@ -59,7 +58,7 @@ interface VenueFormData {
   fixedFeePerTransaction?: number
   monthlyServiceFee?: number
   minimumMonthlyVolume?: number
-  
+
   // Business configuration
   currency: string
   timezone: string
@@ -67,7 +66,7 @@ interface VenueFormData {
 }
 
 export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDialogProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const form = useForm<VenueFormData>({
     defaultValues: {
       name: '',
@@ -90,23 +89,17 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
       businessType: 'RESTAURANT',
     },
   })
-  
+
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { user } = useAuth()
 
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [fileRef, setFileRef] = useState<any>(null)
   const [currentStep, setCurrentStep] = useState('basic')
 
-  // Fetch payment providers and merchant accounts for configuration
-  const { data: providers } = useQuery({
-    queryKey: ['payment-providers'],
-    queryFn: () => costManagementAPI.getProvidersList(),
-  })
-
+  // Fetch merchant accounts for configuration
   const { data: merchantAccounts } = useQuery({
     queryKey: ['merchant-accounts'],
     queryFn: () => costManagementAPI.getMerchantAccountsList(),
@@ -117,32 +110,32 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
     STANDARD: {
       name: 'Standard',
       description: 'Basic rates for most venues',
-      debitRate: 0.020,      // 2.0%
-      creditRate: 0.030,     // 3.0%
-      amexRate: 0.040,       // 4.0%
+      debitRate: 0.02, // 2.0%
+      creditRate: 0.03, // 3.0%
+      amexRate: 0.04, // 4.0%
       internationalRate: 0.045, // 4.5%
       fixedFeePerTransaction: 0.75,
-      monthlyServiceFee: 799.00,
+      monthlyServiceFee: 799.0,
     },
     PREMIUM: {
       name: 'Premium',
       description: 'Reduced rates for high-volume venues',
-      debitRate: 0.018,      // 1.8%
-      creditRate: 0.028,     // 2.8%
-      amexRate: 0.038,       // 3.8%
+      debitRate: 0.018, // 1.8%
+      creditRate: 0.028, // 2.8%
+      amexRate: 0.038, // 3.8%
       internationalRate: 0.043, // 4.3%
-      fixedFeePerTransaction: 0.70,
-      monthlyServiceFee: 1299.00,
+      fixedFeePerTransaction: 0.7,
+      monthlyServiceFee: 1299.0,
     },
     ENTERPRISE: {
       name: 'Enterprise',
       description: 'Best rates for enterprise clients',
-      debitRate: 0.015,      // 1.5%
-      creditRate: 0.025,     // 2.5%
-      amexRate: 0.035,       // 3.5%
-      internationalRate: 0.040, // 4.0%
+      debitRate: 0.015, // 1.5%
+      creditRate: 0.025, // 2.5%
+      amexRate: 0.035, // 3.5%
+      internationalRate: 0.04, // 4.0%
       fixedFeePerTransaction: 0.65,
-      monthlyServiceFee: 1999.00,
+      monthlyServiceFee: 1999.0,
     },
     CUSTOM: {
       name: 'Custom',
@@ -161,7 +154,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
       const response = await api.post('/api/v1/dashboard/venues/enhanced', data)
       return response.data
     },
-    onSuccess: (result) => {
+    onSuccess: result => {
       toast({
         title: 'Venue Created Successfully',
         description: 'Venue has been created with payment processing and pricing configuration.',
@@ -256,7 +249,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
   }
 
   function onSubmit(formValues: VenueFormData) {
-    mutate({ ...formValues, userId: user?.id })
+    mutate(formValues)
   }
 
   const formatCurrency = (amount: number) => {
@@ -277,20 +270,18 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
           <Building className="w-5 h-5" />
           <span>{t('venueMgmt.addVenue.title')}</span>
         </DialogTitle>
-        <DialogDescription>
-          {t('venueMgmt.addVenue.description')}
-        </DialogDescription>
+        <DialogDescription>{t('venueMgmt.addVenue.description')}</DialogDescription>
       </DialogHeader>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs value={currentStep} onValueChange={setCurrentStep} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">{t('venueMgmt.tabs.basicInfo')}</TabsTrigger>
-                <TabsTrigger value="location">{t('venueMgmt.tabs.location')}</TabsTrigger>
-                <TabsTrigger value="payment">{t('venueMgmt.tabs.payment')}</TabsTrigger>
-                <TabsTrigger value="pricing">{t('venueMgmt.tabs.pricing')}</TabsTrigger>
-              </TabsList>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="basic">{t('venueMgmt.tabs.basicInfo')}</TabsTrigger>
+              <TabsTrigger value="location">{t('venueMgmt.tabs.location')}</TabsTrigger>
+              <TabsTrigger value="payment">{t('venueMgmt.tabs.payment')}</TabsTrigger>
+              <TabsTrigger value="pricing">{t('venueMgmt.tabs.pricing')}</TabsTrigger>
+            </TabsList>
 
             <TabsContent value="basic" className="space-y-4">
               <Card>
@@ -365,12 +356,12 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     <FormField
                       control={form.control}
                       name="email"
-                      rules={{ 
+                      rules={{
                         required: 'Email is required',
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Invalid email address'
-                        }
+                          message: 'Invalid email address',
+                        },
                       }}
                       render={({ field }) => (
                         <FormItem>
@@ -409,7 +400,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           <div className="pb-4">
                             {imageUrl ? (
                               <div className="flex flex-col items-center space-y-2">
-                                <img src={imageUrl} alt={t('venueMgmt.basicInfo.logoAlt')} className="object-cover rounded-md max-w-32 max-h-32" />
+                                <img
+                                  src={imageUrl}
+                                  alt={t('venueMgmt.basicInfo.logoAlt')}
+                                  className="object-cover rounded-md max-w-32 max-h-32"
+                                />
                                 <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
                                   Remove Logo
                                 </Button>
@@ -530,18 +525,12 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('venueMgmt.location.timezone')}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="America/Mexico_City">{t('venueMgmt.timezones.mexicoCity')}</SelectItem>
-                              <SelectItem value="America/Cancun">{t('venueMgmt.timezones.cancun')}</SelectItem>
-                              <SelectItem value="America/Tijuana">{t('venueMgmt.timezones.tijuana')}</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <TimezoneCombobox
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -574,8 +563,8 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     control={form.control}
                     name="pos"
                     render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('venueMgmt.location.posIntegration')}</FormLabel>
+                      <FormItem>
+                        <FormLabel>{t('venueMgmt.location.posIntegration')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -583,10 +572,10 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                              <SelectItem value="SOFTRESTAURANT">{t('venueMgmt.posProviders.SOFTRESTAURANT')}</SelectItem>
-                              <SelectItem value="SQUARE">{t('venueMgmt.posProviders.SQUARE')}</SelectItem>
-                              <SelectItem value="TOAST">{t('venueMgmt.posProviders.TOAST')}</SelectItem>
-                              <SelectItem value="NONE">{t('venueMgmt.posProviders.NONE')}</SelectItem>
+                            <SelectItem value="SOFTRESTAURANT">{t('venueMgmt.posProviders.SOFTRESTAURANT')}</SelectItem>
+                            <SelectItem value="SQUARE">{t('venueMgmt.posProviders.SQUARE')}</SelectItem>
+                            <SelectItem value="TOAST">{t('venueMgmt.posProviders.TOAST')}</SelectItem>
+                            <SelectItem value="NONE">{t('venueMgmt.posProviders.NONE')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -604,9 +593,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     <CreditCard className="w-4 h-4" />
                     <span>{t('venueMgmt.paymentSetup.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {t('venueMgmt.paymentSetup.description')}
-                  </CardDescription>
+                  <CardDescription>{t('venueMgmt.paymentSetup.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -615,18 +602,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">
-                            Enable Payment Processing
-                          </FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Allow this venue to process payments through Avoqado
-                          </div>
+                          <FormLabel className="text-base">Enable Payment Processing</FormLabel>
+                          <div className="text-sm text-muted-foreground">Allow this venue to process payments through Avoqado</div>
                         </div>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -719,9 +699,16 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           Configure automatic routing based on business rules (can be customized later).
                         </p>
                         <div className="text-sm space-y-1">
-                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.primary')}</strong> {t('venueMgmt.paymentSetup.rules.primaryDesc')}</div>
-                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.secondary')}</strong> {t('venueMgmt.paymentSetup.rules.secondaryDesc')}</div>
-                          <div>• <strong>{t('venueMgmt.paymentSetup.rules.tertiary')}</strong> {t('venueMgmt.paymentSetup.rules.tertiaryDesc')}</div>
+                          <div>
+                            • <strong>{t('venueMgmt.paymentSetup.rules.primary')}</strong> {t('venueMgmt.paymentSetup.rules.primaryDesc')}
+                          </div>
+                          <div>
+                            • <strong>{t('venueMgmt.paymentSetup.rules.secondary')}</strong>{' '}
+                            {t('venueMgmt.paymentSetup.rules.secondaryDesc')}
+                          </div>
+                          <div>
+                            • <strong>{t('venueMgmt.paymentSetup.rules.tertiary')}</strong> {t('venueMgmt.paymentSetup.rules.tertiaryDesc')}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -737,9 +724,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     <Calculator className="w-4 h-4" />
                     <span>{t('venueMgmt.pricing.title')}</span>
                   </CardTitle>
-                  <CardDescription>
-                    Set transaction fees and monthly charges for this venue.
-                  </CardDescription>
+                  <CardDescription>Set transaction fees and monthly charges for this venue.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -752,10 +737,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                           <div className="text-sm text-muted-foreground">{t('venueMgmt.pricing.setupDesc')}</div>
                         </div>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1009,11 +991,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   {t('common.next')}
                 </Button>
               ) : (
-                <Button 
-                  type="submit" 
-                  disabled={uploading || !imageUrl || isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
+                <Button type="submit" disabled={uploading || !imageUrl || isPending} className="bg-green-600 hover:bg-green-700">
                   {isPending ? t('venueMgmt.addVenue.creating') : t('venueMgmt.addVenue.create')}
                 </Button>
               )}

@@ -28,6 +28,7 @@ import countryList from 'react-select-country-list'
 import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
+import { TimezoneCombobox } from '@/components/timezone-combobox'
 // Image upload and crop support
 import Cropper from 'react-easy-crop'
 import { storage } from '@/firebase'
@@ -635,7 +636,11 @@ export default function EditVenue() {
                     <FormItem>
                       <FormLabel>{t('venues.edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.timezone', { defaultValue: 'America/Mexico_City' })} {...field} />
+                        <TimezoneCombobox
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={!canEdit}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
