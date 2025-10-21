@@ -37,7 +37,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
   open,
   onOpenChange,
   config,
-  venueId,
+  venueId: _venueId,
   onSave,
 }) => {
   const { t } = useTranslation('payment')

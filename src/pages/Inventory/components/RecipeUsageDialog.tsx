@@ -71,7 +71,7 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-3">
               {recipes.map((product) => {
-                const recipeLine = product.recipe.lines.find(line => line.id)
+                const _recipeLine = product.recipe.lines.find(line => line.id)
                 const foodCostPercentage = (Number(product.recipe.totalCost) / Number(product.price)) * 100
 
                 return (

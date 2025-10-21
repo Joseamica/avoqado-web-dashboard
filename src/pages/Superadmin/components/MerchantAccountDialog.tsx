@@ -50,7 +50,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
   account,
   onSave,
 }) => {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
 
@@ -121,7 +121,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
       if (formData.providerConfig) {
         try {
           providerConfig = JSON.parse(formData.providerConfig)
-        } catch (err) {
+        } catch (_err) {
           alert('Invalid JSON in provider config')
           setLoading(false)
           return

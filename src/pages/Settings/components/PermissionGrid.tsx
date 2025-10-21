@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Info, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -172,7 +172,7 @@ export function PermissionGrid({
                       checked={isFullySelected}
                       onCheckedChange={() => toggleCategory(category)}
                       disabled={disabled}
-                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white dark:data-[state=checked]:bg-green-600 dark:data-[state=checked]:border-green-600 data-[state=indeterminate]:bg-green-500 dark:data-[state=indeterminate]:bg-green-600"
+                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 dark:data-[state=checked]:bg-green-600 dark:data-[state=checked]:border-green-600 data-[state=indeterminate]:bg-green-500 dark:data-[state=indeterminate]:bg-green-600"
                       {...(isPartiallySelected && !isFullySelected ? { 'data-state': 'indeterminate' } : {})}
                     />
                     <div>
@@ -210,7 +210,7 @@ export function PermissionGrid({
                           onCheckedChange={() => togglePermission(permission)}
                           disabled={disabled || isCritical}
                           id={permission}
-                          className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white dark:data-[state=checked]:bg-green-600 dark:data-[state=checked]:border-green-600"
+                          className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 dark:data-[state=checked]:bg-green-600 dark:data-[state=checked]:border-green-600"
                         />
                         <Label
                           htmlFor={permission}
@@ -224,7 +224,7 @@ export function PermissionGrid({
                           </span>
                           <div className="flex items-center space-x-1">
                             {isCritical && (
-                              <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" title={t('rolePermissions.criticalPermission')} />
+                              <AlertTriangle className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
                             )}
                             {isModified && !isCritical && (
                               <Badge variant="outline" className="text-xs px-1 py-0">

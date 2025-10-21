@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle } from 'lucide-react'
@@ -13,13 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -27,20 +20,20 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
-import rolePermissionService, { RolePermission } from '@/services/rolePermission.service'
+import rolePermissionService from '@/services/rolePermission.service'
 import PermissionGrid from './components/PermissionGrid'
 import { getModifiableRoles, getRoleDisplayName, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
 
 export default function RolePermissions() {
   const { slug } = useParams<{ slug: string }>()
-  const { selectedVenue, staffInfo, user } = useAuth()
+  const { activeVenue, staffInfo, user } = useAuth()
   const { t } = useTranslation('settings')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // Get venueId from selectedVenue or find it from user's venues using slug
-  const venueId = selectedVenue?.id || user?.venues.find(v => v.slug === slug)?.id
+  // Get venueId from activeVenue or find it from user's venues using slug
+  const venueId = activeVenue?.id || user?.venues.find(v => v.slug === slug)?.id
 
   const [selectedRole, setSelectedRole] = useState<StaffRole | null>(null)
   const [modifiedPermissions, setModifiedPermissions] = useState<string[]>([])

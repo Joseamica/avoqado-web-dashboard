@@ -157,7 +157,7 @@ export default function SuperAdminManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('admins')
   const [selectedAdmin, setSelectedAdmin] = useState(null)
-  const [auditLogs, setAuditLogs] = useState(mockAuditLogs)
+  const [auditLogs, _setAuditLogs] = useState(mockAuditLogs)
   const [actionFilter, setActionFilter] = useState('')
   const isSuperAdmin = user?.role === 'SUPERADMIN'
 
@@ -193,7 +193,7 @@ export default function SuperAdminManagement() {
   }
 
   // Create new super admin
-  const handleCreateSuperAdmin = data => {
+  const handleCreateSuperAdmin = (_data) => {
     // In a real implementation, this would send a request to the server
     toast({
       title: t('admin.superAdminManagement.toast.created'),
@@ -207,7 +207,7 @@ export default function SuperAdminManagement() {
   }
 
   // Reset 2FA
-  const handleReset2FA = adminId => {
+  const handleReset2FA = (_adminId) => {
     toast({
       title: t('admin.superAdminManagement.toast.reset2FA'),
       description: t('admin.superAdminManagement.toast.reset2FADesc'),

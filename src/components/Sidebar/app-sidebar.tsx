@@ -1,21 +1,20 @@
 ﻿import {
+  AlertTriangle,
   Banknote,
+  BarChart3,
   BookOpen,
   Building,
+  DollarSign,
+  FlaskConical,
   Frame,
   Home,
+  Package,
   Settings2,
-  Shield,
   Smartphone,
   Star,
-  Ungroup,
-  BarChart3,
-  DollarSign,
-  Zap,
-  AlertTriangle,
   TrendingUp,
-  FlaskConical,
-  Package,
+  Ungroup,
+  Zap,
 } from 'lucide-react'
 import * as React from 'react'
 
@@ -24,7 +23,7 @@ import { NavUser } from '@/components/Sidebar/nav-user'
 import { VenuesSwitcher } from '@/components/Sidebar/venues-switcher'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar'
 import { useAuth } from '@/context/AuthContext'
-import { User, SessionVenue, Venue } from '@/types'
+import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
