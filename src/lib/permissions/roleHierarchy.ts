@@ -137,6 +137,10 @@ export const PERMISSION_CATEGORIES = {
     label: 'Settings',
     permissions: ['settings:read', 'settings:manage'],
   },
+  VENUES: {
+    label: 'Venue Settings',
+    permissions: ['venues:read', 'venues:update'],
+  },
 } as const
 
 /**

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
+import { resolvePermissions } from '@/lib/permissions/permissionDependencies'
 import { StaffRole } from '@/types'
 
 /**
@@ -9,6 +10,7 @@ import { StaffRole } from '@/types'
  * Combines:
  * 1. Default permissions based on role
  * 2. Custom permissions from StaffVenue.permissions (if any)
+ * 3. Implicit permissions from dependencies (e.g., orders:read includes products:read)
  *
  * @example
  * const { can, canAny, canAll } = usePermissions()
@@ -44,17 +46,23 @@ export function usePermissions() {
     const hasWildcardDefaults = defaultPermissions.includes('*:*')
     const hasCustomPermissions = customPermissions.length > 0
 
+    let basePermissions: string[]
+
     if (hasWildcardDefaults && hasCustomPermissions) {
       // Override mode: custom permissions replace defaults entirely
-      return customPermissions
+      basePermissions = customPermissions
+    } else {
+      // MERGE MODE for non-wildcard roles:
+      // Merge permissions: default + custom
+      // Custom permissions can add new permissions on top of defaults
+      basePermissions = [...new Set([...defaultPermissions, ...customPermissions])]
     }
 
-    // MERGE MODE for non-wildcard roles:
-    // Merge permissions: default + custom
-    // Custom permissions can add new permissions on top of defaults
-    const merged = [...new Set([...defaultPermissions, ...customPermissions])]
-
-    return merged
+    // RESOLVE IMPLICIT DEPENDENCIES:
+    // Expand base permissions to include their implicit dependencies
+    // Example: 'orders:read' automatically includes 'products:read', 'payments:read', etc.
+    const resolvedSet = resolvePermissions(basePermissions)
+    return Array.from(resolvedSet)
   }, [user, activeVenue])
 
   /**
