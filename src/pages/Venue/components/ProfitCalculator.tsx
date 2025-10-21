@@ -18,37 +18,42 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ venuePricing
   const [transactionAmount, setTransactionAmount] = useState('100')
   const [cardType, setCardType] = useState<'debit' | 'credit' | 'amex' | 'international'>('debit')
 
+  const toNumber = (value: number | string | null | undefined) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
   // Calculate costs and profit
-  const amount = parseFloat(transactionAmount) || 0
+  const amount = toNumber(transactionAmount)
 
   // Get rates based on card type
   const providerRate = costStructure
     ? cardType === 'debit'
-      ? costStructure.debitRate
+      ? toNumber(costStructure.debitRate)
       : cardType === 'credit'
-      ? costStructure.creditRate
+      ? toNumber(costStructure.creditRate)
       : cardType === 'amex'
-      ? costStructure.amexRate
-      : costStructure.internationalRate
+      ? toNumber(costStructure.amexRate)
+      : toNumber(costStructure.internationalRate)
     : 0
 
   const venueRate = venuePricing
     ? cardType === 'debit'
-      ? venuePricing.debitRate
+      ? toNumber(venuePricing.debitRate)
       : cardType === 'credit'
-      ? venuePricing.creditRate
+      ? toNumber(venuePricing.creditRate)
       : cardType === 'amex'
-      ? venuePricing.amexRate
-      : venuePricing.internationalRate
+      ? toNumber(venuePricing.amexRate)
+      : toNumber(venuePricing.internationalRate)
     : 0
 
   // Calculate fees
   const providerPercentageFee = amount * providerRate
-  const providerFixedFee = costStructure?.fixedCostPerTransaction || 0
+  const providerFixedFee = toNumber(costStructure?.fixedCostPerTransaction)
   const totalProviderCost = providerPercentageFee + providerFixedFee
 
   const venuePercentageFee = amount * venueRate
-  const venueFixedFee = venuePricing?.fixedFeePerTransaction || 0
+  const venueFixedFee = toNumber(venuePricing?.fixedFeePerTransaction)
   const totalVenueCharge = venuePercentageFee + venueFixedFee
 
   const profit = totalVenueCharge - totalProviderCost

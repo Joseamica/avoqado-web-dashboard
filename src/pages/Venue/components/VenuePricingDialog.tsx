@@ -41,7 +41,7 @@ export const VenuePricingDialog: React.FC<VenuePricingDialogProps> = ({
   venueId,
   onSave,
 }) => {
-  const { t } = useTranslation('payment')
+  const { t } = useTranslation(['payment', 'common'])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state (percentages as actual numbers, not decimals)
@@ -115,7 +115,7 @@ export const VenuePricingDialog: React.FC<VenuePricingDialogProps> = ({
         <DialogHeader>
           <DialogTitle>
             {pricing ? t('venuePaymentConfig.editPricing') : t('venuePaymentConfig.createPricing')} -{' '}
-            {t(`common.${accountType.toLowerCase()}`)}
+            {t(`common:${accountType.toLowerCase()}`)}
           </DialogTitle>
           <DialogDescription>
             {t('venuePaymentConfig.pricingDescription')}
@@ -302,13 +302,13 @@ export const VenuePricingDialog: React.FC<VenuePricingDialogProps> = ({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('common.cancel')}
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               disabled={!debitRate || !creditRate || !amexRate || !internationalRate || !effectiveFrom || isSubmitting}
             >
-              {isSubmitting ? t('common.saving') : t('common.save')}
+              {isSubmitting ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </form>

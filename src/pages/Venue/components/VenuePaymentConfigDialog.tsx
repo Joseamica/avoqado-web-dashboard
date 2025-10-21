@@ -40,7 +40,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
   venueId: _venueId,
   onSave,
 }) => {
-  const { t } = useTranslation('payment')
+  const { t } = useTranslation(['payment', 'common'])
   const [primaryAccountId, setPrimaryAccountId] = useState('')
   const [secondaryAccountId, setSecondaryAccountId] = useState('')
   const [tertiaryAccountId, setTertiaryAccountId] = useState('')
@@ -127,14 +127,14 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
             {/* Secondary Account */}
             <div className="space-y-2">
               <Label htmlFor="secondaryAccount">
-                {t('venuePaymentConfig.secondaryAccount')} ({t('common.optional')})
+                {t('venuePaymentConfig.secondaryAccount')} ({t('common:optional')})
               </Label>
               <Select value={secondaryAccountId} onValueChange={setSecondaryAccountId}>
                 <SelectTrigger id="secondaryAccount">
                   <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{t('common.none')}</SelectItem>
+                  <SelectItem value="none">{t('common:none')}</SelectItem>
                   {accounts
                     .filter(a => a.id !== primaryAccountId)
                     .map(account => (
@@ -152,14 +152,14 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
             {/* Tertiary Account */}
             <div className="space-y-2">
               <Label htmlFor="tertiaryAccount">
-                {t('venuePaymentConfig.tertiaryAccount')} ({t('common.optional')})
+                {t('venuePaymentConfig.tertiaryAccount')} ({t('common:optional')})
               </Label>
               <Select value={tertiaryAccountId} onValueChange={setTertiaryAccountId}>
                 <SelectTrigger id="tertiaryAccount">
                   <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{t('common.none')}</SelectItem>
+                  <SelectItem value="none">{t('common:none')}</SelectItem>
                   {accounts
                     .filter(a =>
                       a.id !== primaryAccountId &&
@@ -198,10 +198,10 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('common.cancel')}
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={!primaryAccountId || isSubmitting}>
-              {isSubmitting ? t('common.saving') : t('common.save')}
+              {isSubmitting ? t('common:saving') : t('common:save')}
             </Button>
           </DialogFooter>
         </form>

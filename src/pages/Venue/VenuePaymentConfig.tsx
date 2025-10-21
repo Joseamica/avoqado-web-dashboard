@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { VenuePricingStructure } from '@/services/paymentProvider.service'
 
 const VenuePaymentConfig: React.FC = () => {
-  const { t } = useTranslation('payment')
+  const { t } = useTranslation(['payment', 'common'])
   const { toast } = useToast()
   const { slug } = useParams<{ slug: string }>()
   const { getVenueBySlug } = useAuth()
@@ -57,10 +57,10 @@ const VenuePaymentConfig: React.FC = () => {
     mutationFn: (data: any) => paymentProviderAPI.createVenuePaymentConfigByVenueId(venue!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
-      toast({ title: t('common.success'), description: t('venuePaymentConfig.createSuccess') })
+      toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
     },
     onError: () => {
-      toast({ title: t('common.error'), description: t('venuePaymentConfig.createError'), variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('venuePaymentConfig.createError'), variant: 'destructive' })
     },
   })
 
@@ -70,10 +70,10 @@ const VenuePaymentConfig: React.FC = () => {
       paymentProviderAPI.updateVenuePaymentConfigByVenueId(venue!.id, paymentConfig!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
-      toast({ title: t('common.success'), description: t('venuePaymentConfig.updateSuccess') })
+      toast({ title: t('common:success'), description: t('venuePaymentConfig.updateSuccess') })
     },
     onError: () => {
-      toast({ title: t('common.error'), description: t('venuePaymentConfig.updateError'), variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('venuePaymentConfig.updateError'), variant: 'destructive' })
     },
   })
 
@@ -84,10 +84,10 @@ const VenuePaymentConfig: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-cost-structures', venue?.id] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
-      toast({ title: t('common.success'), description: t('venuePaymentConfig.deleteSuccess') })
+      toast({ title: t('common:success'), description: t('venuePaymentConfig.deleteSuccess') })
     },
     onError: () => {
-      toast({ title: t('common.error'), description: t('venuePaymentConfig.deleteError'), variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('venuePaymentConfig.deleteError'), variant: 'destructive' })
     },
   })
 
@@ -96,11 +96,11 @@ const VenuePaymentConfig: React.FC = () => {
     mutationFn: (data: any) => paymentProviderAPI.createVenuePricingStructure(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures', venue?.id] })
-      toast({ title: t('common.success'), description: t('venuePaymentConfig.createSuccess') })
+      toast({ title: t('common:success'), description: t('venuePaymentConfig.createSuccess') })
       setPricingDialogOpen(false)
     },
     onError: () => {
-      toast({ title: t('common.error'), description: t('venuePaymentConfig.createError'), variant: 'destructive' })
+      toast({ title: t('common:error'), description: t('venuePaymentConfig.createError'), variant: 'destructive' })
     },
   })
 
@@ -178,7 +178,7 @@ const VenuePaymentConfig: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{t('venuePaymentConfig.primaryAccount')}</span>
-                <Badge variant="default">{t('common.primary')}</Badge>
+                <Badge variant="default">{t('common:primary')}</Badge>
               </CardTitle>
               <CardDescription>{t('venuePaymentConfig.primaryAccountDesc')}</CardDescription>
             </CardHeader>
@@ -211,7 +211,7 @@ const VenuePaymentConfig: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{t('venuePaymentConfig.secondaryAccount')}</span>
-                <Badge variant="secondary">{t('common.secondary')}</Badge>
+                <Badge variant="secondary">{t('common:secondary')}</Badge>
               </CardTitle>
               <CardDescription>{t('venuePaymentConfig.secondaryAccountDesc')}</CardDescription>
             </CardHeader>
@@ -244,7 +244,7 @@ const VenuePaymentConfig: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{t('venuePaymentConfig.tertiaryAccount')}</span>
-                <Badge variant="outline">{t('common.tertiary')}</Badge>
+                <Badge variant="outline">{t('common:tertiary')}</Badge>
               </CardTitle>
               <CardDescription>{t('venuePaymentConfig.tertiaryAccountDesc')}</CardDescription>
             </CardHeader>
@@ -300,7 +300,7 @@ const VenuePaymentConfig: React.FC = () => {
         <div className="flex justify-end">
           <Button variant="destructive" onClick={handleDeleteConfig} disabled={deleteConfigMutation.isPending}>
             <Trash2 className="w-4 h-4 mr-2" />
-            {deleteConfigMutation.isPending ? t('common.deleting') : t('common.delete')}
+            {deleteConfigMutation.isPending ? t('common:deleting') : t('common:delete')}
           </Button>
         </div>
       )}

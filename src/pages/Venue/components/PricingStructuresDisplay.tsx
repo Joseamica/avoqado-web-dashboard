@@ -24,7 +24,7 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
   onCreate,
   showActions = true,
 }) => {
-  const { t } = useTranslation('payment')
+  const { t } = useTranslation(['payment', 'common'])
 
   // Group by account type
   const groupedPricing = {
@@ -43,7 +43,7 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
               <span>{t(`venuePaymentConfig.${accountType.toLowerCase()}Account`)}</span>
             </CardTitle>
             <Badge variant={accountType === 'PRIMARY' ? 'default' : 'secondary'}>
-              {t(`common.${accountType.toLowerCase()}`)}
+              {t(`common:${accountType.toLowerCase()}`)}
             </Badge>
           </div>
           <CardDescription>{t('venuePaymentConfig.venuePricingDesc')}</CardDescription>
@@ -127,7 +127,7 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
               <CardTitle>{t(`venuePaymentConfig.${type.toLowerCase()}Account`)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
+              <div className="text-sm text-muted-foreground">{t('common:loading')}</div>
             </CardContent>
           </Card>
         ))}

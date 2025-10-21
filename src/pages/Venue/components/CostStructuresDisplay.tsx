@@ -15,7 +15,7 @@ interface CostStructuresDisplayProps {
 }
 
 export const CostStructuresDisplay: React.FC<CostStructuresDisplayProps> = ({ costStructures, isLoading }) => {
-  const { t } = useTranslation('payment')
+  const { t } = useTranslation(['payment', 'common'])
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ export const CostStructuresDisplay: React.FC<CostStructuresDisplayProps> = ({ co
           <CardDescription>{t('venuePaymentConfig.providerCostsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
+          <div className="text-sm text-muted-foreground">{t('common:loading')}</div>
         </CardContent>
       </Card>
     )
@@ -62,14 +62,14 @@ export const CostStructuresDisplay: React.FC<CostStructuresDisplayProps> = ({ co
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Badge variant={cost.accountType === 'PRIMARY' ? 'default' : 'secondary'}>
-                    {t(`common.${cost.accountType.toLowerCase()}`)}
+                    {t(`common:${cost.accountType.toLowerCase()}`)}
                   </Badge>
                   <span className="font-medium">{cost.merchantAccount?.displayName || cost.merchantAccount?.alias}</span>
                   {cost.merchantAccount?.provider && (
                     <span className="text-sm text-muted-foreground">({cost.merchantAccount.provider.name})</span>
                   )}
                 </div>
-                {!cost.active && <Badge variant="outline">{t('common.inactive')}</Badge>}
+                {!cost.active && <Badge variant="outline">{t('common:inactive')}</Badge>}
               </div>
 
               {/* Rates Grid */}

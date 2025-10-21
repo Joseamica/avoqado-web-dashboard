@@ -68,7 +68,7 @@ const SuperadminSidebar: React.FC = () => {
   ]
 
   return (
-    <div className={cn('h-full border-r bg-card border-border')}>
+    <div className={cn('h-full border-r bg-card border-border flex flex-col')}>
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
@@ -83,7 +83,7 @@ const SuperadminSidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-6">
+      <nav className="p-4 space-y-6 flex-1 overflow-y-auto">
         {navigationItems.map((section) => (
           <div key={section.title}>
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">

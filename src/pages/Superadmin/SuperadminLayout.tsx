@@ -7,14 +7,14 @@ import SuperadminHeader from './components/SuperadminHeader'
 const SuperadminLayout: React.FC = () => {
   return (
     <div className={cn('min-h-screen bg-card')}>
-      <div className="flex h-screen">
+      <div className="flex min-h-screen">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0">
           <SuperadminSidebar />
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Header */}
           <SuperadminHeader />
 
