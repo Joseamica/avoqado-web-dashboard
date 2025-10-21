@@ -13,7 +13,7 @@ import { getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
 import { MenuType } from '@/types'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { enUS, es } from 'date-fns/locale'
 import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
@@ -23,41 +23,28 @@ import { useTranslation } from 'react-i18next'
 // ----------------------------
 // Helpers y datos iniciales
 // ----------------------------
+type DayCode = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN'
+
 type DayItem = {
-  label: string
+  value: DayCode
   selected: boolean
 }
 
-const getInitialDays = (t: (key: string) => string): DayItem[] => [
-  { label: t('menuId.days.mon'), selected: false },
-  { label: t('menuId.days.tue'), selected: false },
-  { label: t('menuId.days.wed'), selected: false },
-  { label: t('menuId.days.thu'), selected: false },
-  { label: t('menuId.days.fri'), selected: false },
-  { label: t('menuId.days.sat'), selected: false },
-  { label: t('menuId.days.sun'), selected: false },
-]
+const DAY_ORDER: DayCode[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-function dayLabelToEnum(label: string): string {
-  switch (label) {
-    case 'Lun':
-      return 'MON'
-    case 'Mar':
-      return 'TUE'
-    case 'Mié':
-      return 'WED'
-    case 'Jue':
-      return 'THU'
-    case 'Vie':
-      return 'FRI'
-    case 'Sáb':
-      return 'SAT'
-    case 'Dom':
-      return 'SUN'
-    default:
-      return 'MON'
-  }
+const DAY_TRANSLATION_KEYS: Record<DayCode, string> = {
+  MON: 'menuId.days.mon',
+  TUE: 'menuId.days.tue',
+  WED: 'menuId.days.wed',
+  THU: 'menuId.days.thu',
+  FRI: 'menuId.days.fri',
+  SAT: 'menuId.days.sat',
+  SUN: 'menuId.days.sun',
 }
+
+const getInitialDays = (): DayItem[] => DAY_ORDER.map(value => ({ value, selected: false }))
+
+const getDayLabel = (t: (key: string) => string, day: DayCode) => t(DAY_TRANSLATION_KEYS[day])
 
 function getHourOptions() {
   const options: string[] = []
@@ -71,11 +58,14 @@ function getHourOptions() {
   return options
 }
 
-function convertTo12h(time24: string) {
-  const [rawHours, minutes] = time24.split(':').map(Number)
-  const ampm = rawHours >= 12 ? 'PM' : 'AM'
-  const hours = rawHours % 12 || 12
-  return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`
+function formatTimeOption(time24: string, locale: string) {
+  const [hours, minutes] = time24.split(':').map(Number)
+  const tempDate = new Date()
+  tempDate.setHours(hours, minutes, 0, 0)
+  return new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(tempDate)
 }
 
 function parseTimeToMinutes(time: string) {
@@ -91,7 +81,9 @@ function timeToPercentage(time: string) {
 // Componente para editar el menú
 // ----------------------------
 export default function MenuId() {
-  const { t } = useTranslation('menu')
+  const { t, i18n } = useTranslation('menu')
+  const localeCode = i18n.language || 'en'
+  const dateLocale = i18n.language?.startsWith('es') ? es : enUS
   const { menuId } = useParams()
   const { venueId } = useCurrentVenue()
 
@@ -120,7 +112,7 @@ export default function MenuId() {
       avoqadoMenus: [],
       avoqadoProducts: [],
       categories: [],
-      days: getInitialDays(t),
+      days: getInitialDays(),
       startTime: '09:00',
       endTime: '19:30',
       isActive: true,
@@ -139,9 +131,9 @@ export default function MenuId() {
       const isAllDayValue = !menuData.availableFrom && !menuData.availableUntil
       const defaultStartTime = menuData.availableFrom || '09:00'
       const defaultEndTime = menuData.availableUntil || '19:30'
-      const formDays = getInitialDays(t).map(day => ({
-        ...day,
-        selected: availableDays.includes(dayLabelToEnum(day.label)),
+      const formDays = DAY_ORDER.map(dayValue => ({
+        value: dayValue,
+        selected: availableDays.includes(dayValue),
       }))
 
       // Map categories for the MultipleSelector
@@ -196,9 +188,10 @@ export default function MenuId() {
       return await updateMenu(venueId, menuId, { active })
     },
     onSuccess: (data: any) => {
+      const statusKey = data.active ? 'menuId.toast.menuStatusActive' : 'menuId.toast.menuStatusInactive'
       toast({
-        title: t(`menu.menuId.toast.menuStatus${data.active ? 'Active' : 'Inactive'}`),
-        description: t(`menu.menuId.toast.menuStatus${data.active ? 'Active' : 'Inactive'}Desc`),
+        title: t(statusKey),
+        description: t(`${statusKey}Desc`),
       })
     },
     onError: (error: any) => {
@@ -228,8 +221,8 @@ export default function MenuId() {
   const menuType = form.watch('type')
 
   // Funciones para manejar cambios en el formulario
-  function toggleDay(dayLabel: string) {
-    const updatedDays = days.map((d: DayItem) => (d.label === dayLabel ? { ...d, selected: !d.selected } : d))
+  function toggleDay(dayValue: DayCode) {
+    const updatedDays = days.map((d: DayItem) => (d.value === dayValue ? { ...d, selected: !d.selected } : d))
     form.setValue('days', updatedDays, { shouldDirty: true })
     if (updatedDays.some((d: DayItem) => d.selected)) {
       form.clearErrors('days')
@@ -295,7 +288,7 @@ export default function MenuId() {
     }
 
     const selectedDays = days.filter((day: DayItem) => day.selected)
-    const availableDaysPayload = selectedDays.map((day: DayItem) => dayLabelToEnum(day.label))
+    const availableDaysPayload = selectedDays.map((day: DayItem) => day.value)
 
     // Extract just the category IDs from the MultipleSelector value format
     const categoryIds = categories.map((category: any) => category.value)
@@ -412,7 +405,7 @@ export default function MenuId() {
                                 variant="outline"
                                 className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>{t('menuId.seasonal.selectDate')}</span>}
+                                {field.value ? format(field.value, 'PPP', { locale: dateLocale }) : <span>{t('menuId.seasonal.selectDate')}</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -422,6 +415,7 @@ export default function MenuId() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
+                              locale={dateLocale}
                               disabled={date => {
                                 const today = new Date()
                                 today.setHours(0, 0, 0, 0)
@@ -449,7 +443,7 @@ export default function MenuId() {
                                 variant="outline"
                                 className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
                               >
-                                {field.value ? format(field.value, 'PPP', { locale: es }) : <span>{t('menuId.seasonal.selectDate')}</span>}
+                                {field.value ? format(field.value, 'PPP', { locale: dateLocale }) : <span>{t('menuId.seasonal.selectDate')}</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
                             </FormControl>
@@ -459,6 +453,7 @@ export default function MenuId() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
+                              locale={dateLocale}
                               disabled={date => {
                                 const today = new Date()
                                 today.setHours(0, 0, 0, 0)
@@ -478,8 +473,8 @@ export default function MenuId() {
                 {startDate && endDate && (
                   <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/50 rounded text-sm text-blue-800 dark:text-blue-200">
                     <strong>{t('menuId.seasonal.preview')}:</strong> {t('menuId.seasonal.previewText', {
-                      startDate: format(startDate, 'PPP', { locale: es }),
-                      endDate: format(endDate, 'PPP', { locale: es })
+                      startDate: format(startDate, 'PPP', { locale: dateLocale }),
+                      endDate: format(endDate, 'PPP', { locale: dateLocale })
                     })}
                   </div>
                 )}
@@ -492,14 +487,14 @@ export default function MenuId() {
                 {days.map((day: DayItem) => (
                   <button
                     type="button"
-                    key={day.label}
-                    onClick={() => toggleDay(day.label)}
+                    key={day.value}
+                    onClick={() => toggleDay(day.value)}
                     className={
                       'px-3 py-1 cursor-pointer transition-colors w-full ' +
                       (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
                     }
                   >
-                    {day.label}
+                    {getDayLabel(t, day.value)}
                   </button>
                 ))}
               </div>
@@ -550,7 +545,7 @@ export default function MenuId() {
                           <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
                           {hourOptions.map(time => (
                             <SelectItem key={time} value={time}>
-                              {convertTo12h(time)}
+                              {formatTimeOption(time, localeCode)}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -585,7 +580,7 @@ export default function MenuId() {
                           <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
                           {hourOptions.map(time => (
                             <SelectItem key={time} value={time}>
-                              {convertTo12h(time)}
+                              {formatTimeOption(time, localeCode)}
                             </SelectItem>
                           ))}
                         </SelectGroup>

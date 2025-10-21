@@ -380,6 +380,74 @@
       }
     }
   },
+  "menuId": {
+    "loading": "Loading menu...",
+    "buttons": {
+      "save": "Save changes",
+      "saving": "Saving..."
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "fields": {
+      "menuActive": "Menu active",
+      "menuActiveDesc": "This menu is currently visible to your staff and customers.",
+      "menuInactiveDesc": "This menu is hidden. Activate it to make it available.",
+      "menuName": "Menu name",
+      "menuNamePlaceholder": "Enter a menu name",
+      "menuType": "Menu type",
+      "selectType": "Select a type",
+      "categories": "Categories",
+      "selectCategories": "Select categories",
+      "noCategoriesFound": "No categories found",
+      "availableDays": "Available days",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "selectTime": "Select a time",
+      "allDay": "Available all day"
+    },
+    "types": {
+      "regular": "Regular",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "seasonal": "Seasonal"
+    },
+    "seasonal": {
+      "title": "Seasonal availability",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "selectDate": "Select a date",
+      "preview": "Preview",
+      "previewText": "From {{startDate}} to {{endDate}}"
+    },
+    "toast": {
+      "menuUpdated": "Menu {{name}} updated",
+      "menuUpdatedDesc": "The menu was saved successfully.",
+      "menuStatusActive": "Menu activated",
+      "menuStatusActiveDesc": "The menu is now available.",
+      "menuStatusInactive": "Menu deactivated",
+      "menuStatusInactiveDesc": "The menu is now hidden.",
+      "errorSaving": "Error saving",
+      "errorSavingDesc": "We couldn't save the menu. Try again.",
+      "errorStatus": "Error updating status",
+      "errorStatusDesc": "We couldn't update the menu status. Try again later."
+    },
+    "validation": {
+      "nameRequired": "Menu name is required.",
+      "dayRequired": "Select at least one day.",
+      "startDateRequired": "Start date is required for seasonal menus.",
+      "endDateRequired": "End date is required for seasonal menus.",
+      "endDateAfterStart": "End date must be after the start date.",
+      "minInterval": "The menu must be available for at least one hour."
+    }
+  },
   "common": {
     "actions": "Actions",
     "edit": "Edit",

@@ -380,6 +380,74 @@
       }
     }
   },
+  "menuId": {
+    "loading": "Cargando menú...",
+    "buttons": {
+      "save": "Guardar cambios",
+      "saving": "Guardando..."
+    },
+    "days": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb",
+      "sun": "Dom"
+    },
+    "fields": {
+      "menuActive": "Menú activo",
+      "menuActiveDesc": "Este menú está visible para tu personal y clientes.",
+      "menuInactiveDesc": "Este menú está oculto. Actívalo para volverlo disponible.",
+      "menuName": "Nombre del menú",
+      "menuNamePlaceholder": "Introduce un nombre para el menú",
+      "menuType": "Tipo de menú",
+      "selectType": "Selecciona un tipo",
+      "categories": "Categorías",
+      "selectCategories": "Selecciona categorías",
+      "noCategoriesFound": "No se encontraron categorías",
+      "availableDays": "Días disponibles",
+      "startTime": "Hora de inicio",
+      "endTime": "Hora de cierre",
+      "selectTime": "Selecciona una hora",
+      "allDay": "Disponible todo el día"
+    },
+    "types": {
+      "regular": "Regular",
+      "breakfast": "Desayuno",
+      "lunch": "Comida",
+      "dinner": "Cena",
+      "seasonal": "Estacional"
+    },
+    "seasonal": {
+      "title": "Disponibilidad estacional",
+      "startDate": "Fecha de inicio",
+      "endDate": "Fecha de fin",
+      "selectDate": "Selecciona una fecha",
+      "preview": "Vista previa",
+      "previewText": "Del {{startDate}} al {{endDate}}"
+    },
+    "toast": {
+      "menuUpdated": "Menú {{name}} actualizado",
+      "menuUpdatedDesc": "El menú se guardó correctamente.",
+      "menuStatusActive": "Menú activado",
+      "menuStatusActiveDesc": "El menú ahora está disponible.",
+      "menuStatusInactive": "Menú desactivado",
+      "menuStatusInactiveDesc": "El menú ahora está oculto.",
+      "errorSaving": "Error al guardar",
+      "errorSavingDesc": "No pudimos guardar el menú. Intenta nuevamente.",
+      "errorStatus": "Error al actualizar el estado",
+      "errorStatusDesc": "No pudimos actualizar el estado del menú. Intenta de nuevo más tarde."
+    },
+    "validation": {
+      "nameRequired": "Debes ingresar el nombre del menú.",
+      "dayRequired": "Selecciona al menos un día.",
+      "startDateRequired": "Para menús estacionales debes definir la fecha de inicio.",
+      "endDateRequired": "Para menús estacionales debes definir la fecha de fin.",
+      "endDateAfterStart": "La fecha de fin debe ser posterior a la fecha de inicio.",
+      "minInterval": "El menú debe estar disponible al menos durante una hora."
+    }
+  },
   "common": {
     "actions": "Acciones",
     "edit": "Editar",
