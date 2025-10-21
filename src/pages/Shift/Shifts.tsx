@@ -10,11 +10,13 @@ import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
 export default function Shifts() {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
+  const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -70,23 +72,22 @@ export default function Shifts() {
     {
       accessorKey: 'startTime',
       sortDescFirst: true,
-      header: t('shifts.columns.openTime'),
+      header: () => (
+        <div className="flex flex-col">
+          <span>{t('shifts.columns.openTime')}</span>
+          <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+        </div>
+      ),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
-        const date = new Date(value)
-        const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
-        const year = date.getUTCFullYear()
-        const last2Year = year.toString().slice(-2)
-
-        const day = date.getDate()
-        const hour = date.getHours()
-        const minutes = date.getMinutes().toString().padStart(2, '0')
-        const ampm = date.getHours() >= 12 ? 'pm' : 'am'
+        // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
+        const time = formatTime(value)
+        const date = formatDate(value)
 
         return (
           <div className="flex flex-col space-y-2">
-            <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
-            <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
+            <span className="text-sm font-medium">{time}</span>
+            <span className="text-xs text-muted-foreground">{date}</span>
           </div>
         )
       },
@@ -96,25 +97,23 @@ export default function Shifts() {
     {
       accessorKey: 'endTime',
       sortDescFirst: true,
-      header: t('shifts.columns.closeTime'),
+      header: () => (
+        <div className="flex flex-col">
+          <span>{t('shifts.columns.closeTime')}</span>
+          <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+        </div>
+      ),
       cell: ({ cell }) => {
         if (!cell.getValue()) return '-'
         const value = cell.getValue() as string
-        const date = new Date(value)
-        const localeCode = getIntlLocale(i18n.language)
-        const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
-        const year = date.getUTCFullYear()
-        const last2Year = year.toString().slice(-2)
-
-        const day = date.getDate()
-        const hour = date.getHours()
-        const minutes = date.getMinutes().toString().padStart(2, '0')
-        const ampm = date.getHours() >= 12 ? 'pm' : 'am'
+        // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
+        const time = formatTime(value)
+        const date = formatDate(value)
 
         return (
           <div className="flex flex-col space-y-2">
-            <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
-            <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
+            <span className="text-sm font-medium">{time}</span>
+            <span className="text-xs text-muted-foreground">{date}</span>
           </div>
         )
       },

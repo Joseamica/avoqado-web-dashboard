@@ -7,6 +7,7 @@ import { useSocketEvents } from '@/hooks/use-socket-events'
 import * as orderService from '@/services/order.service'
 import { Order as OrderType } from '@/types' // CAMBIO: Usar el tipo Order
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -17,6 +18,7 @@ import { useLocation } from 'react-router-dom'
 export default function Orders() {
   const { t, i18n } = useTranslation()
   const { venueId } = useCurrentVenue()
+  const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -43,24 +45,23 @@ export default function Orders() {
   const columns = useMemo<ColumnDef<OrderType, unknown>[]>(
     () => [
       {
-        accessorKey: 'createdAt', // Sin cambios
+        accessorKey: 'createdAt',
         meta: { label: t('orders.columns.date') },
-        header: t('orders.columns.date'),
+        header: () => (
+          <div className="flex flex-col">
+            <span>{t('orders.columns.date')}</span>
+            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+          </div>
+        ),
         cell: ({ cell }) => {
-          // Lógica de formato de fecha sin cambios
           const value = cell.getValue() as string
-          const date = new Date(value)
-          const monthName = date.toLocaleString(localeCode, { month: 'short' }).toUpperCase()
-          const year = date.getUTCFullYear()
-          const last2Year = year.toString().slice(-2)
-          const day = date.getDate()
-          const hour = date.getHours()
-          const minutes = date.getMinutes().toString().padStart(2, '0')
-          const ampm = date.getHours() >= 12 ? 'pm' : 'am'
+          // ✅ Uses venue timezone instead of browser timezone
+          const time = formatTime(value)
+          const date = formatDate(value)
           return (
             <div className="flex flex-col space-y-2">
-              <span className="text-sm font-medium">{`${hour}:${minutes}${ampm}`}</span>
-              <span className="text-xs text-muted-foreground">{`${day}/${monthName}/${last2Year}`}</span>
+              <span className="text-sm font-medium">{time}</span>
+              <span className="text-xs text-muted-foreground">{date}</span>
             </div>
           )
         },
@@ -135,7 +136,7 @@ export default function Orders() {
         },
       },
     ],
-    [t, localeCode],
+    [t, localeCode, formatTime, formatDate, venueTimezoneShort],
   )
 
   // Search callback for DataTable

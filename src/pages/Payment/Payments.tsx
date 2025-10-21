@@ -8,6 +8,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Payment as PaymentType } from '@/types' // Asumiendo que actualizas este tipo
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 import getIcon from '@/utils/getIcon'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
@@ -20,6 +21,7 @@ import { useLocation } from 'react-router-dom'
 export default function Payments() {
   const { t, i18n } = useTranslation('payment')
   const { venueId } = useCurrentVenue()
+  const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -61,21 +63,24 @@ export default function Payments() {
   const columns = useMemo<ColumnDef<PaymentType, unknown>[]>(
     () => [
       {
-        accessorKey: 'createdAt', // Sin cambios
+        accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
-        header: t('columns.date'),
+        header: () => (
+          <div className="flex flex-col">
+            <span>{t('columns.date')}</span>
+            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+          </div>
+        ),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
-          const date = new Date(value)
-
-          // Localized time and date without hardcoded strings
-          const timeStr = date.toLocaleTimeString(localeCode, { hour: 'numeric', minute: '2-digit' })
-          const dateStr = date.toLocaleDateString(localeCode, { day: '2-digit', month: 'short', year: '2-digit' })
+          // ✅ Uses venue timezone instead of browser timezone
+          const time = formatTime(value)
+          const date = formatDate(value)
 
           return (
             <div className="flex flex-col space-y-2">
-              <span className="text-sm font-medium">{timeStr}</span>
-              <span className="text-xs text-muted-foreground">{dateStr}</span>
+              <span className="text-sm font-medium">{time}</span>
+              <span className="text-xs text-muted-foreground">{date}</span>
             </div>
           )
         },
@@ -252,7 +257,7 @@ export default function Payments() {
         },
       },
     ],
-    [t, localeCode],
+    [t, localeCode, formatTime, formatDate, venueTimezoneShort],
   )
 
   // Search callback for DataTable with multi-language support
