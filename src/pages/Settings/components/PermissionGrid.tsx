@@ -80,6 +80,14 @@ export function PermissionGrid({
       }
     }
 
+    // Check if user now has all permissions - if so, collapse to wildcard
+    const hasAllPermissions = allPermissions.every(p => newPermissions.has(p))
+    if (hasAllPermissions && !newPermissions.has('*:*')) {
+      // Clear all individual permissions and set wildcard
+      newPermissions.clear()
+      newPermissions.add('*:*')
+    }
+
     const permissionsArray = Array.from(newPermissions)
     setLocalPermissions(newPermissions)
     onChange(permissionsArray)
@@ -110,6 +118,14 @@ export function PermissionGrid({
     } else {
       // Select all
       categoryPermissions.forEach(p => newPermissions.add(p))
+    }
+
+    // Check if user now has all permissions - if so, collapse to wildcard
+    const hasAllPermissions = allPermissions.every(p => newPermissions.has(p))
+    if (hasAllPermissions && !newPermissions.has('*:*')) {
+      // Clear all individual permissions and set wildcard
+      newPermissions.clear()
+      newPermissions.add('*:*')
     }
 
     const permissionsArray = Array.from(newPermissions)
