@@ -127,6 +127,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reviews:respond',
     'teams:read',
     'teams:update',
+    'venues:read', // Can view venue settings (but not edit)
   ],
 
   /**
@@ -228,5 +229,9 @@ export const PERMISSION_CATEGORIES = {
   RESERVATIONS: {
     label: 'Reservations',
     permissions: ['reservations:read', 'reservations:create', 'reservations:update', 'reservations:cancel'],
+  },
+  VENUES: {
+    label: 'Venue Settings',
+    permissions: ['venues:read', 'venues:update'],
   },
 } as const
