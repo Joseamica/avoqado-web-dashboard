@@ -55,16 +55,17 @@ const simpleDetector = {
   },
 }
 
-// Load base translation namespace from locale JSON files (common strings)
+// Load base translation namespace from locale JSON files
+// Base namespace includes all general dashboard translations
 const resources = {
   en: {
-    translation: commonEn as Record<string, unknown>,
+    translation: superadminEn as Record<string, unknown>,
   },
   es: {
-    translation: commonEs as Record<string, unknown>,
+    translation: superadminEs as Record<string, unknown>,
   },
   fr: {
-    translation: commonFr as Record<string, unknown>,
+    translation: superadminFr as Record<string, unknown>,
   },
 }
 
@@ -149,15 +150,6 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'common', bundle as Record<string, unknown>, true, true)
-})
-;(
-  [
-    ['en', superadminEn],
-    ['es', superadminEs],
-    ['fr', superadminFr],
-  ] as const
-).forEach(([lng, bundle]) => {
-  i18n.addResourceBundle(lng, 'superadmin', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n
