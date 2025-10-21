@@ -307,8 +307,14 @@ const router = createBrowserRouter(
               element: <Dashboard />,
               errorElement: <ErrorPage />,
               children: [
-                { index: true, element: <Home /> },
-                { path: 'home', element: <Home /> },
+                // Home Dashboard (requires home:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="home:read" />,
+                  children: [
+                    { index: true, element: <Home /> },
+                    { path: 'home', element: <Home /> },
+                  ],
+                },
                 { path: 'account', element: <Account /> },
 
                 // Menu Management (requires menu:read permission)
@@ -373,13 +379,36 @@ const router = createBrowserRouter(
                     },
                   ],
                 },
-                { path: 'shifts', element: <Shifts /> },
-                { path: 'shifts/:shiftId', element: <ShiftId /> },
-                { path: 'payments', element: <Payments /> },
-                { path: 'payments/:paymentId', element: <PaymentId /> },
+
+                // Shifts Management (requires shifts:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="shifts:read" />,
+                  children: [
+                    { path: 'shifts', element: <Shifts /> },
+                    { path: 'shifts/:shiftId', element: <ShiftId /> },
+                  ],
+                },
+
+                // Payments (requires payments:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="payments:read" />,
+                  children: [
+                    { path: 'payments', element: <Payments /> },
+                    { path: 'payments/:paymentId', element: <PaymentId /> },
+                  ],
+                },
+
+                // Public receipts (no permission required)
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
-                { path: 'orders', element: <Orders /> },
-                { path: 'orders/:orderId', element: <OrderId /> },
+
+                // Orders (requires orders:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="orders:read" />,
+                  children: [
+                    { path: 'orders', element: <Orders /> },
+                    { path: 'orders/:orderId', element: <OrderId /> },
+                  ],
+                },
                 // Analytics nested under venue for dashboard context
                 // Requires MANAGER+ or VIEWER role
                 {
@@ -402,14 +431,27 @@ const router = createBrowserRouter(
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
                 },
-                // TPV Management (accessible to all authenticated users)
-                // Permission-based UI controls via PermissionGate
-                { path: 'tpv', element: <Tpv /> },
-                { path: 'tpv/create', element: <CreateTpv /> },
-                { path: 'tpv/:tpvId', element: <TpvId /> },
+
+                // TPV Management (requires tpv:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="tpv:read" />,
+                  children: [
+                    { path: 'tpv', element: <Tpv /> },
+                    { path: 'tpv/create', element: <CreateTpv /> },
+                    { path: 'tpv/:tpvId', element: <TpvId /> },
+                  ],
+                },
+
+                // Reviews (requires reviews:read permission)
+                {
+                  element: <PermissionProtectedRoute permission="reviews:read" />,
+                  children: [
+                    { path: 'reviews', element: <Reviews /> },
+                  ],
+                },
+
                 // { path: 'waiters', element: <Waiters /> },
                 // { path: 'waiters/:waiterId', element: <WaiterId /> },
-                { path: 'reviews', element: <Reviews /> },
 
                 // Team Management (requires teams:read permission)
                 {
