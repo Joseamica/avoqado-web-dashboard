@@ -42,6 +42,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reservations:read',
     'reservations:create',
     'reservations:update',
+    'reservations:cancel',
     'teams:read',
   ],
 
@@ -122,11 +123,20 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tpv:read',
     'tpv:create',
     'tpv:update',
+    'tpv:delete',
     'tpv:command',
+    'inventory:read',
+    'inventory:create',
+    'inventory:update',
+    'inventory:delete',
+    'inventory:adjust',
     'reviews:read',
     'reviews:respond',
     'teams:read',
+    'teams:create',
     'teams:update',
+    'teams:delete',
+    'teams:invite',
     'venues:read', // Can view venue settings (but not edit)
   ],
 

@@ -133,6 +133,11 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'inventory:adjust',
     'products:read',
   ],
+  'inventory:delete': [
+    'inventory:read',
+    'inventory:delete',
+    'products:read',
+  ],
 
   // ===========================
   // TEAMS - Staff Management
@@ -177,6 +182,10 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
     'tpv:read',
     'tpv:command',
     'orders:read',
+  ],
+  'tpv:delete': [
+    'tpv:read',
+    'tpv:delete',
   ],
 
   // ===========================
@@ -260,6 +269,7 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   'reservations:cancel': [
     'reservations:read',
     'reservations:cancel',
+    'tables:read',      // Need to see table when canceling
   ],
 
   // ===========================
