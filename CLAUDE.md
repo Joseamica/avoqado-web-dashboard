@@ -1012,3 +1012,321 @@ When converting a component to use namespace translations:
 - **Simplified keys**: Shorter translation key paths in components
 - **Lazy loading potential**: Namespaces can be loaded on-demand in future
 - **Team collaboration**: Multiple developers can work on different namespaces without conflicts
+
+### JSON-Based Translation Architecture (Modern Pattern)
+
+To further improve scalability and maintainability, translations are now organized using **JSON files** in a dedicated `locales/` directory. This approach provides better tooling support, easier collaboration, and cleaner separation of concerns.
+
+#### Directory Structure
+
+```
+src/
+├── locales/
+│   ├── en/
+│   │   ├── common.json        # Shared strings (buttons, actions, validation)
+│   │   ├── sidebar.json       # Navigation menu
+│   │   ├── menu.json          # Menu management
+│   │   ├── venue.json         # Venue configuration
+│   │   ├── payment.json       # Payment providers
+│   │   ├── inventory.json     # Inventory management
+│   │   ├── settings.json      # Settings pages
+│   │   ├── testing.json       # Testing features
+│   │   └── superadmin.json    # Superadmin dashboard
+│   ├── es/
+│   │   ├── common.json
+│   │   ├── sidebar.json
+│   │   └── ... (mirrors en/ structure)
+│   └── fr/
+│       ├── common.json
+│       └── ... (mirrors en/ structure)
+└── i18n.ts                    # i18next configuration
+```
+
+#### i18n.ts Configuration Pattern
+
+```typescript
+// Import JSON files
+import commonEn from '@/locales/en/common.json'
+import commonEs from '@/locales/es/common.json'
+import menuEn from '@/locales/en/menu.json'
+import menuEs from '@/locales/es/menu.json'
+// ... other imports
+
+// Base namespace uses 'common' translations (not feature-specific)
+const resources = {
+  en: {
+    translation: commonEn as Record<string, unknown>,
+  },
+  es: {
+    translation: commonEs as Record<string, unknown>,
+  },
+  fr: {
+    translation: commonFr as Record<string, unknown>,
+  },
+}
+
+i18n
+  .use(simpleDetector)
+  .use(initReactI18next)
+  .init({
+    resources,
+    fallbackLng: 'en',
+    supportedLngs: ['en', 'es', 'fr'],
+    interpolation: {
+      escapeValue: false,
+    },
+  })
+
+// Register feature-specific namespaces
+;([
+  ['en', menuEn],
+  ['es', menuEs],
+  ['fr', menuFr],
+] as const).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'menu', bundle as Record<string, unknown>, true, true)
+})
+
+// Repeat for other namespaces (venue, payment, inventory, etc.)
+```
+
+#### Component Usage Patterns
+
+**Using default namespace (common):**
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function MyComponent() {
+  const { t } = useTranslation()  // Uses 'translation' (common.json)
+
+  return (
+    <div>
+      <button>{t('save')}</button>        {/* "Save" */}
+      <button>{t('cancel')}</button>      {/* "Cancel" */}
+      <p>{t('optional')}</p>              {/* "Optional" */}
+    </div>
+  )
+}
+```
+
+**Using feature namespace:**
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function MenuPage() {
+  const { t } = useTranslation('menu')  // Uses menu.json namespace
+
+  return (
+    <div>
+      <h1>{t('overview.title')}</h1>           {/* "Menu Overview" */}
+      <button>{t('categories.addButton')}</button>  {/* "Add Category" */}
+    </div>
+  )
+}
+```
+
+**Using multiple namespaces:**
+```typescript
+import { useTranslation } from 'react-i18next'
+
+function ComplexComponent() {
+  const { t } = useTranslation(['menu', 'common'])  // Array of namespaces
+
+  return (
+    <div>
+      {/* Explicit namespace prefix */}
+      <h1>{t('menu:overview.title')}</h1>     {/* "Menu Overview" */}
+      <button>{t('common:save')}</button>     {/* "Save" */}
+
+      {/* Implicit - uses first namespace (menu) */}
+      <p>{t('overview.subtitle')}</p>         {/* "Manage products..." */}
+    </div>
+  )
+}
+```
+
+#### JSON File Structure Best Practices
+
+**common.json** (shared strings only):
+```json
+{
+  "cancel": "Cancel",
+  "save": "Save",
+  "saving": "Saving...",
+  "delete": "Delete",
+  "deleting": "Deleting...",
+  "success": "Success",
+  "error": "Error",
+  "optional": "Optional",
+  "none": "None"
+}
+```
+
+**menu.json** (feature-specific hierarchy):
+```json
+{
+  "overview": {
+    "title": "Menu Overview",
+    "subtitle": "Manage products and categories"
+  },
+  "categories": {
+    "title": "Categories",
+    "addButton": "Add Category",
+    "table": {
+      "columns": {
+        "name": "Name",
+        "productsCount": "Products"
+      }
+    }
+  },
+  "products": {
+    "title": "Products",
+    "form": {
+      "fields": {
+        "name": "Name",
+        "price": "Price"
+      },
+      "placeholders": {
+        "name": "Enter product name..."
+      },
+      "validation": {
+        "nameRequired": "Name is required",
+        "pricePositive": "Price must be positive"
+      }
+    }
+  },
+  "toasts": {
+    "createSuccess": "Product created successfully",
+    "updateSuccess": "Product updated successfully",
+    "deleteSuccess": "Product deleted successfully",
+    "error": "Failed to save product"
+  }
+}
+```
+
+#### Critical Rules for JSON-Based i18n
+
+**❌ WRONG - Base namespace using feature translations:**
+```typescript
+const resources = {
+  en: {
+    translation: superadminEn,  // ❌ Only superadmin strings available globally!
+  },
+}
+```
+
+**✅ CORRECT - Base namespace using common translations:**
+```typescript
+const resources = {
+  en: {
+    translation: commonEn,  // ✅ Common strings available everywhere
+  },
+}
+
+// Then register superadmin as separate namespace
+i18n.addResourceBundle('en', 'superadmin', superadminEn, true, true)
+```
+
+#### When to Split JSON Files
+
+**Create separate namespace when:**
+- Feature has 50+ translation keys
+- Feature is self-contained (menu, venue, payment, inventory)
+- Translations form logical hierarchy (page → sections → fields)
+
+**Keep in common.json when:**
+- Strings used across multiple features (buttons, validation, status labels)
+- Fewer than 20 keys
+- Generic UI components (dialogs, toasts, confirmations)
+
+**Split large JSON files when:**
+- Single JSON file exceeds 500 lines
+- Multiple distinct sub-features exist (e.g., split `superadmin.json` into `home.json`, `analytics.json`, `profitAnalytics.json`)
+
+#### Migration Checklist (TypeScript → JSON)
+
+When converting hardcoded TypeScript translations to JSON files:
+
+1. **Audit current state** - Check `i18n.ts` for embedded translation objects
+2. **Create JSON structure** - Extract translations to `src/locales/[lang]/[feature].json`
+3. **Import JSON files** - Add imports to `i18n.ts`
+4. **Update base namespace** - Ensure `resources.translation` uses `common` (not feature-specific)
+5. **Register namespaces** - Add `addResourceBundle()` for each feature namespace
+6. **Update components** - Change `useTranslation()` to use correct namespace
+7. **Verify completeness** - Ensure all languages (en, es, fr) have matching keys
+8. **Test language switching** - Verify UI updates correctly when language changes
+9. **Build verification** - Run `npm run build` to catch missing translation errors
+
+#### File Size Guidelines
+
+**Target sizes:**
+- `common.json`: < 50 keys (shared essentials only)
+- Feature namespaces: 50-300 keys (menu, venue, payment, etc.)
+- Large features: Split into sub-namespaces if > 500 keys
+
+**Example refactoring:**
+```
+Before: superadmin.json (2,855 lines)
+After:
+  ├── common.json (14 lines)
+  ├── superadmin/home.json (200 lines)
+  ├── superadmin/analytics.json (150 lines)
+  └── superadmin/profitAnalytics.json (180 lines)
+```
+
+#### Benefits of JSON-Based Architecture
+
+- **Editor support**: JSON validation, autocomplete, and formatting
+- **Version control**: Easier diffs and merge conflict resolution
+- **Translation tools**: Compatible with Crowdin, Lokalise, POEditor
+- **Type safety**: Can generate TypeScript types from JSON schemas
+- **Smaller bundles**: Tree-shaking potential with dynamic imports
+- **CI/CD checks**: Automated validation of missing keys across languages
+- **Team collaboration**: Translators can work directly in JSON files without touching code
+
+#### Common Pitfalls to Avoid
+
+**❌ Mixing namespaces in base translation:**
+```typescript
+const resources = {
+  en: {
+    translation: { ...commonEn, ...menuEn, ...venueEn }  // ❌ Don't merge!
+  }
+}
+```
+
+**✅ Keep namespaces separate:**
+```typescript
+const resources = {
+  en: { translation: commonEn }  // ✅ Only common
+}
+i18n.addResourceBundle('en', 'menu', menuEn)
+i18n.addResourceBundle('en', 'venue', venueEn)
+```
+
+**❌ Hardcoding strings in JSON:**
+```json
+{
+  "title": "Dashboard",
+  "subtitle": "Welcome back, {{name}}"  // ❌ Missing interpolation docs
+}
+```
+
+**✅ Document interpolation:**
+```json
+{
+  "title": "Dashboard",
+  "subtitle": "Welcome back, {{name}}",
+  "_subtitleComment": "{{name}} = User's first name"
+}
+```
+
+#### Internationalization Best Practices Summary
+
+1. **Always use JSON files** - No hardcoded strings in TypeScript
+2. **Base namespace = common** - Feature namespaces separate
+3. **Match all languages** - Every key in `en/` must exist in `es/` and `fr/`
+4. **Use interpolation** - `t('greeting', { name })` not string concatenation
+5. **Document complex keys** - Add `_comment` keys for translators
+6. **Test language switching** - Verify UI in all supported languages
+7. **Keep files focused** - One namespace per feature domain
+8. **Split large files** - Maximum 500 lines per JSON file

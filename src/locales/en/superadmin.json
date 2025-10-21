@@ -1,0 +1,2856 @@
+{
+  "routes": {
+    "payments": "Payments",
+    "orders": "Orders",
+    "home": "Home",
+    "menu": "Menu",
+    "inventory": "Inventory",
+    "settings": "Settings",
+    "shifts": "Shifts",
+    "categories": "Categories",
+    "products": "Products",
+    "users": "Users",
+    "waiters": "Waiters",
+    "tpv": "Terminals",
+    "overview": "Overview",
+    "menumaker": "Menu Maker",
+    "editvenue": "Edit Venue",
+    "reviews": "Reviews",
+    "teams": "Teams",
+    "billing": "Billing",
+    "limits": "Limits"
+  },
+  "dashboardShell": {
+    "loadingVenue": "Loading venue...",
+    "restoringAccess": "Restoring venue access...",
+    "accessDenied": "Access Denied",
+    "processingChange": "Processing venue change...",
+    "noPermission": "You do not have permission to access this venue."
+  },
+  "home": {
+    "title": "Dashboard",
+    "filters": {
+      "today": "Today",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "from": "From",
+      "to": "To",
+      "venue": "Venue",
+      "provider": "Provider",
+      "allVenues": "All Venues",
+      "allProviders": "All Providers"
+    },
+    "comparison": {
+      "previousPeriod": "previous period",
+      "yesterday": "yesterday",
+      "prev7days": "previous 7 days",
+      "prev30days": "previous 30 days"
+    },
+    "export": {
+      "exporting": "Exporting...",
+      "export": "Export",
+      "json": "Export as JSON",
+      "csv": "Export as CSV (Excel)",
+      "payments": "Payments",
+      "reviews": "Reviews",
+      "paymentMethods": "Payment Methods",
+      "summary": "Summary"
+    },
+    "noData": "No data available",
+    "currentPeriod": "Current period",
+    "total": "Total",
+    "noChange": "No change",
+    "table": "Table",
+    "tableTexts": {
+      "paymentsList": "List of payments made."
+    },
+    "chartContent": {
+      "placeholder": "Chart content for {{name}} would be rendered here"
+    },
+    "metricContent": {
+      "placeholder": "Metric content for {{name}} would be rendered here"
+    },
+    "sections": {
+      "bestSellers": "Best Selling Products",
+      "paymentMethods": "Payment Methods",
+      "peakHours": "Peak Sales Hours",
+      "peakHoursDesc": "Sales activity by hour of day",
+      "tipsOverTime": "Tips Over Time",
+      "tipsOverTimeDesc": "Evolution of received tips",
+      "revenueTrends": "Revenue Trends",
+      "revenueTrendsDesc": "Daily revenue and growth",
+      "staffEfficiency": "Staff Efficiency",
+      "staffEfficiencyDesc": "Top 5 team members by sales",
+      "tableEfficiency": "Table Efficiency",
+      "tableEfficiencyDesc": "Top 5 tables by revenue",
+      "productAnalytics": "Product Analytics",
+      "productAnalyticsDesc": "Top 5 most profitable products"
+    },
+    "charts": {
+      "sales": "Sales",
+      "transactions": "# Transactions",
+      "tips": "Tips",
+      "tipPercentage": "Tip %",
+      "revenue": "Revenue",
+      "hourOfDay": "Hour of day",
+      "transactionsSuffix": "transactions",
+      "avg": "average",
+      "orders": "orders",
+      "margin": "margin",
+      "sold": "sold",
+      "totalOrders": "Total orders",
+      "ordersLabel": "Orders",
+      "rating": "Rating",
+      "reviewCount": "Reviews",
+      "prepTime": "Actual Time",
+      "target": "Target"
+    },
+    "orderFrequency": {
+      "title": "Order Frequency",
+      "desc": "Number of orders by hour"
+    },
+    "aov": {
+      "title": "Average Ticket",
+      "desc": "Average value per order"
+    },
+    "customerSatisfaction": {
+      "title": "Customer Satisfaction",
+      "desc": "Average ratings and trends"
+    },
+    "kitchen": {
+      "title": "Kitchen Performance",
+      "desc": "Prep times versus targets"
+    },
+    "tooltips": {
+      "starsSuffix": "stars",
+      "reviewsSuffix": "reviews",
+      "minutesSuffix": "min"
+    },
+    "categories": {
+      "FOOD": "Food",
+      "BEVERAGE": "Beverage",
+      "OTHER": "Other"
+    },
+    "error": {
+      "failedTitle": "Failed to load dashboard data",
+      "unknown": "An unknown error occurred"
+    },
+    "cards": {
+      "totalSales": "Total sales",
+      "fiveStars": "Google 5-stars",
+      "totalTips": "Total tips",
+      "avgTipPercentage": "Average tips %"
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "searchPlaceholder": "Search by order number, customer or waiter...",
+    "errorPrefix": "Failed to load orders",
+    "counter": "Counter",
+    "columns": {
+      "date": "Date",
+      "orderNumber": "Order #",
+      "customer": "Customer",
+      "waiter": "Waiter",
+      "status": "Status",
+      "total": "Total"
+    },
+    "statuses": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PREPARING": "Preparing",
+      "READY": "Ready",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "detail": {
+      "title": "Order {{number}}",
+      "loading": "Loading order...",
+      "notFound": "Order not found",
+      "deleteWarning": "This action cannot be undone. This will permanently delete the order.",
+      "noTable": "No table",
+      "toast": {
+        "updatedTitle": "Order updated",
+        "updatedDesc": "The order has been updated successfully.",
+        "deletedTitle": "Order deleted",
+        "deletedDesc": "The order has been deleted successfully.",
+        "updateErrorTitle": "Error",
+        "updateErrorDesc": "Could not update order",
+        "deleteErrorTitle": "Error",
+        "deleteErrorDesc": "Could not delete order"
+      },
+      "fields": {
+        "orderId": "Order ID",
+        "createdAt": "Created at",
+        "orderNumber": "Order #",
+        "customerName": "Customer name",
+        "table": "Table",
+        "waiter": "Waiter"
+      },
+      "financialSummary": {
+        "title": "Financial Summary",
+        "subtotal": "Subtotal",
+        "tips": "Tips",
+        "total": "Total"
+      },
+      "associatedPayments": {
+        "title": "Associated Payments",
+        "fields": {
+          "paymentId": "Payment ID",
+          "amount": "Amount",
+          "tip": "Tip",
+          "method": "Method"
+        }
+      },
+      "statuses": {
+        "OPEN": "Open",
+        "PAID": "Paid",
+        "PENDING": "Pending",
+        "CLOSED": "Closed",
+        "COMPLETED": "Completed",
+        "CANCELED": "Cancelled",
+        "CANCELLED": "Cancelled",
+        "PRECREATED": "Pre-created",
+        "WITHOUT_TABLE": "Without table",
+        "DELETED": "Deleted",
+        "EARLYACCESS": "Early access",
+        "COURTESY": "Courtesy"
+      }
+    }
+  },
+  "shifts": {
+    "title": "Shifts",
+    "open": "Open",
+    "closed": "Closed",
+    "columns": {
+      "status": "Status",
+      "shiftId": "Shift ID",
+      "openTime": "Open time",
+      "closeTime": "Close time",
+      "totalTip": "Total tip",
+      "subtotal": "Subtotal",
+      "total": "Total"
+    },
+    "detail": {
+      "turnIdLabel": "Shift ID",
+      "systemIdLabel": "System ID",
+      "openTimeLabel": "Opening Time",
+      "closeTimeLabel": "Closing Time"
+    }
+  },
+  "reviews": {
+    "title": "Customer Reviews",
+    "establishments": "Overall Rating",
+    "averageDescription": "Based on {{count}} review(s)",
+    "loading": "Loading reviews...",
+    "error": "Error loading reviews",
+    "unknownError": "An unknown error occurred",
+    "noReviews": "No reviews available for this period",
+    "star": "star",
+    "stars": "stars",
+    "reviewCount": "{{count}} review(s)"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Monitor and manage the entire Avoqado ecosystem",
+    "refresh": "Refresh Data",
+    "refreshing": "Refreshing...",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Stay up to date with important events and activity",
+      "bell": "Notifications",
+      "bell_with_unread": "Notifications ({{count}} unread)",
+      "searchPlaceholder": "Search notifications...",
+      "browserTitle": "Browser Notifications",
+      "receiveInBrowser": "Receive notifications directly in your browser",
+      "permissionStatus": "Permission Status",
+      "browserEnabled": "Browser notifications are enabled",
+      "browserBlocked": "Browser notifications are blocked",
+      "browserNotSet": "Browser notification permission not set",
+      "enableInSettings": "Enable in Settings",
+      "enableNotifications": "Enable Notifications",
+      "enabled": "Enabled",
+      "inAppTitle": "In-App Notifications",
+      "inAppDesc": "Notifications shown within the dashboard",
+      "alwaysEnabled": "Always Enabled",
+      "inAppAlwaysActive": "In-app notifications are always active and cannot be disabled",
+      "active": "Active",
+      "quietHours": "Quiet Hours",
+      "quietHoursDesc": "Set times when you don't want to receive notifications",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "quietHoursNote": "During quiet hours, only urgent notifications will be shown",
+      "testTitle": "Test Notifications",
+      "testDesc": "Send a test notification to verify your settings",
+      "testBody": "Your notification settings are working correctly!",
+      "sendTest": "Send Test Notification",
+      "status": "Status",
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "type": "Type",
+      "allTypes": "All types",
+      "priority": "Priority",
+      "allPriorities": "All priorities",
+      "markAllAsRead": "Mark all as read",
+      "markRead": "Mark as read",
+      "view_all": "View all notifications",
+      "none": "No notifications",
+      "noneFound": "No notifications found",
+      "adjustFilters": "Try adjusting your search or filters",
+      "upToDate": "You're up to date! New notifications will show up here.",
+      "selectedCount": "{{count}} notification(s) selected",
+      "errorLoading": "Error loading notifications",
+      "settingsTitle": "Notification Settings",
+      "settingsDesc": "Configure your notification preferences here.",
+      "settingsSoon": "Notification preferences will be available in the next update.",
+      "types": {
+        "NEW_ORDER": "New Order",
+        "ORDER_UPDATED": "Order Updated",
+        "ORDER_READY": "Order Ready",
+        "ORDER_CANCELLED": "Order Cancelled",
+        "PAYMENT_RECEIVED": "Payment Received",
+        "PAYMENT_FAILED": "Payment Failed",
+        "REFUND_PROCESSED": "Refund Processed",
+        "NEW_REVIEW": "New Review",
+        "BAD_REVIEW": "Bad Review",
+        "REVIEW_RESPONSE_NEEDED": "Review Response Needed",
+        "SHIFT_REMINDER": "Shift Reminder",
+        "SHIFT_ENDED": "Shift Ended",
+        "NEW_STAFF_JOINED": "New Staff Joined",
+        "POS_DISCONNECTED": "POS Disconnected",
+        "POS_RECONNECTED": "POS Reconnected",
+        "LOW_INVENTORY": "Low Inventory",
+        "SYSTEM_MAINTENANCE": "System Maintenance",
+        "FEATURE_UPDATED": "Feature Updated",
+        "VENUE_APPROVAL_NEEDED": "Venue Approval Needed",
+        "VENUE_SUSPENDED": "Venue Suspended",
+        "HIGH_COMMISSION_ALERT": "High Commission Alert",
+        "REVENUE_MILESTONE": "Revenue Milestone",
+        "ANNOUNCEMENT": "Announcement",
+        "REMINDER": "Reminder",
+        "ALERT": "Alert"
+      },
+      "priorities": {
+        "LOW": "Low",
+        "NORMAL": "Normal",
+        "HIGH": "High",
+        "URGENT": "Urgent"
+      }
+    },
+    "systemSettings": {
+      "logs": {
+        "viewerTitle": "Logs Viewer",
+        "cardTitle": "System Logs",
+        "cardDesc": "View backend logs for diagnostics and troubleshooting",
+        "type": "Log Type",
+        "typePlaceholder": "Select type",
+        "types": {
+          "application": "Application",
+          "error": "Errors",
+          "access": "Access",
+          "system": "System"
+        },
+        "lineCount": "Number of lines",
+        "lineCountPlaceholder": "Number of lines",
+        "lines": "{{count}} lines",
+        "search": "Search logs",
+        "searchPlaceholder": "Search text or key...",
+        "newestFirst": "Newest first",
+        "deleteLogs": "Delete Logs",
+        "deleteConfirm": "This will delete the {{type}} logs file and cannot be undone. A new empty log file will be created.",
+        "lastUpdated": "Last updated",
+        "noData": "No data",
+        "download": "Download Logs",
+        "noLogs": "No logs available.",
+        "timeoutTitle": "Request timeout",
+        "timeoutDesc": "Loading logs took too long. Try fewer lines.",
+        "deletedTitle": "Logs deleted",
+        "deletedDesc": "The {{type}} logs have been deleted successfully.",
+        "deleteErrorFallback": "Could not delete logs. Contact the system administrator."
+      }
+    },
+    "kpis": {
+      "platformRevenue": "Platform Revenue",
+      "totalRevenue": "Total Revenue",
+      "activeVenues": "Active Venues",
+      "totalVenuesSuffix": "total venues",
+      "arpu": "Revenue per User",
+      "arpuSubtitle": "Average revenue per user",
+      "mrrChangeText": "+8.2% from last month",
+      "lastMonthSuffix": "from last month"
+    },
+    "revenueBreakdown": {
+      "title": "Revenue Breakdown",
+      "desc": "Platform revenue by source",
+      "subs": "Subscription Revenue",
+      "features": "Premium Features Revenue",
+      "commissions": "Commission Revenue"
+    },
+    "system": {
+      "title": "System Status",
+      "desc": "Platform performance metrics",
+      "status": "System Status",
+      "operational": "Operational",
+      "allServices": "All services running",
+      "activeVenues": "Active Venues",
+      "totalUsers": "Total Users"
+    },
+    "platformRevenueAnalytics": {
+      "title": "Avoqado Platform Revenue",
+      "desc": "Detailed analysis of what the platform actually earns",
+      "totalPlatform": "Total Platform Revenue",
+      "tagline": "What Avoqado actually earns",
+      "transCommissions": "Transaction Commissions",
+      "fromPayments": "From processed payments",
+      "venueSubscriptions": "Venue Subscriptions",
+      "monthlyFees": "Monthly fees",
+      "premiumFeatures": "Premium Features",
+      "additionalFeatures": "Additional features",
+      "financialMetrics": "Financial Metrics",
+      "invoicedRevenue": "Invoiced Revenue",
+      "settledRevenue": "Settled Revenue",
+      "processedTransactions": "Processed Transactions",
+      "projections": "Projections",
+      "avgPerVenue": "Average Revenue per Venue",
+      "newVenuesThisMonth": "New Venues this Month",
+      "growthRate": "Growth Rate"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "desc": "Latest platform events",
+      "empty": "No recent activity",
+      "relative": {
+        "lessThanMinute": "less than a minute ago",
+        "minutes": "{{count}} minute",
+        "minutes_plural": "{{count}} minutes",
+        "hours": "{{count}} hour",
+        "hours_plural": "{{count}} hours",
+        "days": "{{count}} day",
+        "days_plural": "{{count}} days"
+      }
+    },
+    "alerts": {
+      "title": "Alerts and Notifications",
+      "desc": "Important system alerts",
+      "empty": "No active alerts"
+    },
+    "topVenues": {
+      "title": "Top Performing Venues",
+      "desc": "Venues generating the most revenue this month",
+      "revenue": "Revenue:",
+      "commission": "Commission:",
+      "empty": "No venue data available"
+    }
+  },
+  "revenue": {
+    "loading": "Loading revenue data...",
+    "title": "Revenue Dashboard",
+    "subtitle": "Monitor revenue, commissions, and financial performance across all venues",
+    "export": "Export Report",
+    "dateRange": {
+      "title": "Date Range",
+      "from": "From:",
+      "to": "To:",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days"
+    },
+    "kpis": {
+      "totalRevenue": "Total Revenue",
+      "commissionRevenue": "Commission Revenue",
+      "commissionSubtitle": "From transaction commissions",
+      "subscriptionRevenue": "Subscription Revenue",
+      "subscriptionSubtitle": "From venue subscriptions",
+      "featureRevenue": "Feature Revenue",
+      "featureSubtitle": "From premium features",
+      "growthSuffix": "from previous period"
+    },
+    "transactions": {
+      "total": "Total Transactions",
+      "completed": "Completed transactions",
+      "aov": "Average Order Value",
+      "perTx": "Per transaction"
+    },
+    "tabs": {
+      "venues": "Revenue by Venue",
+      "features": "Revenue by Feature",
+      "timeline": "Revenue Timeline",
+      "commissions": "Commission Analysis"
+    },
+    "venues": {
+      "title": "Top Performing Venues",
+      "desc": "Venues ranked by total revenue",
+      "transactions": "transactions",
+      "commissionPrefix": "Commission:",
+      "empty": "No venue data available"
+    },
+    "features": {
+      "title": "Feature Revenue Performance",
+      "desc": "Revenue generated by premium features",
+      "meta": "{{count}} venues â€¢ {{amount}}/month",
+      "empty": "No feature data available"
+    },
+    "timeline": {
+      "title": "Revenue Timeline",
+      "desc": "Daily revenue breakdown for selected period",
+      "transactions": "transactions",
+      "commissionPrefix": "Commission:",
+      "empty": "No timeline data available"
+    },
+    "commissions": {
+      "title": "Commission Analysis",
+      "desc": "Detailed breakdown of commission earnings",
+      "total": "Total Commission",
+      "avgRate": "Average Rate",
+      "monthlyProjection": "Monthly Projection",
+      "byVenue": "Commission by Venue",
+      "empty": "No commission data available"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Enter your email and password to sign in",
+      "emailLabel": "Email",
+      "emailPlaceholder": "myemail@example.com",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot your password?",
+      "signInButton": "Sign in",
+      "orContinueWith": "Or continue with",
+      "continueWithGoogle": "Continue with Google",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "terms": "Terms and Conditions",
+      "privacy": "Privacy Policy",
+      "termsText": "By clicking continue, you agree to our",
+      "and": "and",
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required",
+      "imageAlt": "Authentication"
+    },
+    "toast": {
+      "login_success": "Login successful",
+      "login_error_title": "Login failed",
+      "login_error_desc": "Please check your credentials and try again",
+      "switched_to_venue": "Switched to {{name}}",
+      "switch_venue_error_title": "Failed to switch venue",
+      "switch_venue_error_desc": "Unable to switch venue. Please try again",
+      "auth_error_title": "Authentication error",
+      "google_login_error_desc": "Google login failed. Please try again"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "subtitle": "Manage your account settings and preferences",
+    "accountInfo": {
+      "title": "Account Information",
+      "description": "Your account details and membership information",
+      "email": "Email",
+      "role": "Role",
+      "memberSince": "Member Since",
+      "lastLogin": "Last Login"
+    },
+    "editProfile": {
+      "title": "Edit Profile",
+      "description": "Update your personal information",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "password": {
+      "title": "Password",
+      "description": "Change your password for security",
+      "changeButton": "Change Password",
+      "dialog": {
+        "title": "Change Password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "currentPasswordRequired": "Current password is required",
+        "newPasswordRequired": "New password is required"
+      }
+    },
+    "toast": {
+      "success": {
+        "title": "Success",
+        "description": "Profile updated successfully"
+      },
+      "error": {
+        "description": "Failed to update profile"
+      }
+    }
+  },
+  "common": {
+    "locale": "en-US",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "breadcrumb": "breadcrumb",
+    "pagination": "pagination",
+    "selectPlaceholder": "Select...",
+    "compare": "Compare",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "filters": "Filters",
+    "retry": "Try again",
+    "selectAll": "Select all",
+    "none": "None",
+    "optional": "Optional",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "tertiary": "Tertiary",
+    "comingSoon": "Coming Soon",
+    "save": "Save",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "goBack": "Go Back",
+    "tryAgain": "Try Again",
+    "dateRange": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "Last 7 days",
+      "last14": "Last 14 days",
+      "last30": "Last 30 days",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "lastYear": "Last year"
+    },
+    "error": "Error",
+    "success": "Success",
+    "errorOops": "Oops!",
+    "errorUnexpected": "An unexpected error has occurred.",
+    "errorLoading": "Error loading data",
+    "errorLoadingDashboard": "Error loading dashboard data",
+    "areYouSure": "Are you sure?",
+    "actions": "Actions",
+    "search": "Search",
+    "search_docs_placeholder": "Search the docs...",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "all": "All",
+    "category": "Category",
+    "status": "Status",
+    "price": "Price",
+    "type": "Type",
+    "users": "Users",
+    "payment": "Payment",
+    "unknown": "Unknown",
+    "na": "N/A",
+    "viewDetails": "View Details",
+    "remove": "Remove",
+    "clearAll": "Clear all",
+    "manage": "Manage",
+    "loading": "Loading...",
+    "no_results": "No results",
+    "close": "Close",
+    "loadingVenues": "Loading venues...",
+    "errorLoadingVenues": "Error loading venues",
+    "noVenuesFound": "No venues found",
+    "yes": "Yes",
+    "no": "No",
+    "previous": "Previous",
+    "next": "Next",
+    "more": "More",
+    "more_pages": "More pages",
+    "go_to_previous_page": "Go to previous page",
+    "go_to_next_page": "Go to next page",
+    "back_to_home": "Back to Home",
+    "toggle_sidebar": "Toggle Sidebar",
+    "toggle_theme": "Toggle theme",
+    "customize_columns": "Customize Columns",
+    "command_menu": "Command Menu",
+    "dialog_title_default": "Dialog",
+    "sheet_title_default": "Sheet",
+    "verifying_session": "Verifying session...",
+    "logout": "Log out",
+    "login": "Login",
+    "backToAdmin": "Back to Administration Panel",
+    "thisActionWillRestart": "This action will restart the application and may interrupt active user sessions.",
+    "restart": "Restart",
+    "restarting": "Restarting...",
+    "saved": "Configuration saved",
+    "savedDesc": "Global configuration has been updated successfully.",
+    "appRestarted": "Application restarted",
+    "appRestartedDesc": "Application has been restarted successfully.",
+    "saveConfiguration": "Save Configuration",
+    "details": "Details",
+    "name": "Name",
+    "confirmPassword": "Confirm",
+    "active": "Active",
+    "inactive": "Inactive",
+    "time": {
+      "hour": "Hour",
+      "min": "Min",
+      "ampm": "AM/PM",
+      "am": "AM",
+      "pm": "PM"
+    }
+  },
+  "routeProtection": {
+    "accessDenied": "Access Denied",
+    "noAdminPermission": "You do not have administrator permissions to access this page.",
+    "restrictedAccess": "Restricted Access",
+    "ownerOnlyMessage": "This section is available only for Owners (OWNER) and System Administrators (SUPERADMIN).",
+    "contactOwner": "If you need access to this feature, contact an Owner (OWNER).",
+    "superadminOnlyMessage": "This section is available only for System Administrators (SUPERADMIN).",
+    "contactSuperadmin": "If you need access to this feature, contact a System Administrator (SUPERADMIN).",
+    "managerOnlyMessage": "This section requires Manager level access or higher (MANAGER, ADMIN, OWNER, SUPERADMIN).",
+    "managerOrViewerOnlyMessage": "This section requires Manager level access or Viewer role (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
+    "noVenuesAssigned": "You have no venues assigned!",
+    "contactAdminForVenue": "To start using the platform, contact the administrator to have one assigned to you.",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "logout": "Log out",
+    "noPermissionSection": "You do not have permission to access this section."
+  },
+  "templates": {
+    "card": {
+      "title": "Card Title",
+      "description": "Card description text",
+      "main": "Main content text",
+      "secondary": "Secondary text"
+    },
+    "form": {
+      "title": "Form Title",
+      "description": "Form description or instructions",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "name": "Name",
+      "namePlaceholder": "Enter your name"
+    },
+    "list": {
+      "title": "Items List"
+    },
+    "alerts": {
+      "success": "âœ… Success message with proper theming",
+      "error": "âŒ Error message using destructive colors",
+      "warning": "âš ï¸ Warning message with dark theme support",
+      "info": "â„¹ï¸ Info message with proper contrast"
+    },
+    "modal": {
+      "title": "Modal Title",
+      "main": "Main modal content goes here.",
+      "secondary": "Additional information or form fields."
+    }
+  },
+  "header": {
+    "title": "Superadmin Panel",
+    "brand": "Avoqado",
+    "searchPlaceholder": "Search venues, features, users...",
+    "systemOperational": "All Systems Operational",
+    "venuePanel": "Venue Panel",
+    "notifications": "Notifications",
+    "notificationsError": "Failed to load notifications",
+    "noNotifications": "No notifications",
+    "notificationsSummary": "You have {{count}} unread notification",
+    "notificationsSummary_plural": "You have {{count}} unread notifications",
+    "unreadTooltip": "Unread",
+    "superadmin": "Superadmin",
+    "retry": "Retry",
+    "seeAllNotifications": "See all notifications",
+    "accountSettings": "Account Settings",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "layout": {
+    "noVenuesAssigned": "You have no assigned venues!",
+    "noVenuesAssignedDesc": "To start using the platform, create a venue or contact an administrator to assign one to you.",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "testPageTitle": "Test Page",
+    "authenticated": "Authenticated",
+    "notAuthenticated": "Not Authenticated"
+  },
+  "teams": {
+    "tabs": {
+      "members": "Team Members",
+      "invitations": "Pending Invitations"
+    },
+    "header": {
+      "title": "Team",
+      "subtitle": "Manage your team members and invitations",
+      "inviteButton": "Invite Member",
+      "inviteDialog": {
+        "title": "Invite New Member",
+        "desc": "Send an email invitation to join your team."
+      }
+    },
+    "columns": {
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "totalSales": "Total Sales",
+      "totalOrders": "Orders",
+      "email": "Email",
+      "invitedBy": "Invited by {{name}}",
+      "sent": "Sent",
+      "expires": "Expires"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "expired": "Expired"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "resend": "Resend",
+      "cancel": "Cancel"
+    },
+    "cards": {
+      "pendingInvitationsTitle": "Pending Invitations",
+      "pendingInvitationsDesc": "These invitations are awaiting response. They expire automatically after 7 days."
+    },
+    "dialogs": {
+      "editMemberTitle": "Edit Member",
+      "editMemberDesc": "Update the role and settings for {{firstName}} {{lastName}}.",
+      "removeTitle": "Remove team member?",
+      "removeDesc": "Are you sure you want to remove {{firstName}} {{lastName}} from the team? This action cannot be undone and the member will lose access to the dashboard.",
+      "removeConfirm": "Delete",
+      "removeCancel": "Cancel",
+      "removing": "Deleting..."
+    },
+    "toasts": {
+      "memberRemovedTitle": "Member removed",
+      "memberRemovedDesc": "The team member has been removed successfully.",
+      "memberRemoveErrorTitle": "Error",
+      "memberRemoveErrorDesc": "Could not remove the team member.",
+      "invitationCanceledTitle": "Invitation canceled",
+      "invitationCanceledDesc": "The invitation has been canceled successfully.",
+      "invitationCancelErrorTitle": "Error",
+      "invitationCancelErrorDesc": "Could not cancel the invitation.",
+      "invitationResentTitle": "Invitation resent",
+      "invitationResentDesc": "The invitation has been resent successfully.",
+      "invitationResendErrorTitle": "Error",
+      "invitationResendErrorDesc": "Could not resend the invitation."
+    },
+    "labels": {
+      "expiredTag": "(Expired)"
+    },
+    "detail": {
+      "labels": {
+        "pin": "PIN"
+      },
+      "errors": {
+        "memberNotFoundTitle": "Member not found",
+        "memberNotFoundDesc": "The team member you are looking for does not exist or has been removed.",
+        "accessDeniedTitle": "Access denied",
+        "accessDeniedDesc": "You do not have permission to view this team member.",
+        "backToTeam": "Back to Team"
+      },
+      "kpis": {
+        "totalSales": "Total Sales",
+        "totalOrders": "Total Orders",
+        "avgRating": "Average Rating"
+      },
+      "performance": {
+        "title": "Performance Metrics",
+        "desc": "Detailed statistics of the member’s performance",
+        "totalTips": "Total Tips",
+        "avgPerOrder": "Average per Order",
+        "activeDays": "Active Days",
+        "venue": "Venue"
+      },
+      "organization": {
+        "title": "Organization Information",
+        "organization": "Organization",
+        "establishment": "Establishment"
+      }
+    }
+  },
+  "chat": {
+    "welcome": "Hi! I am the Avoqado assistant. How can I help you?",
+    "assistant": "Assistant",
+    "input": {
+      "placeholder": "Type your question..."
+    },
+    "labels": {
+      "cache": "Cache"
+    },
+    "a11y": {
+      "open": "Open chat",
+      "close": "Close chat",
+      "positiveFeedback": "Positive feedback",
+      "negativeFeedback": "Negative feedback"
+    },
+    "errors": {
+      "assistantTitle": "Assistant Error",
+      "sendFailed": "Could not send the message. Please try again.",
+      "createConversation": "Could not create a new conversation.",
+      "clearFailed": "Unable to clear history. Please try again.",
+      "saveFailed": "Could not save the conversation."
+    },
+    "feedback": {
+      "thanksTitle": "Thanks for your feedback",
+      "thanksDesc": "Your input helps improve the AI assistant",
+      "sendError": "Could not submit feedback. Please try again.",
+      "sentTitle": "Feedback sent",
+      "correctedDesc": "I have provided a corrected response based on your feedback",
+      "recordedDesc": "Your feedback has been recorded to improve the assistant",
+      "unavailableTitle": "Feedback unavailable",
+      "unavailableDesc": "Cannot send feedback for this message",
+      "previousQuestion": "Previous question",
+      "dialog": {
+        "title": "What was wrong?",
+        "desc": "Describe the issue with the response so I can provide a better one."
+      },
+      "form": {
+        "label": "Describe the problem",
+        "placeholder": "E.g., The answer is incorrect because..."
+      },
+      "submit": "Send Feedback",
+      "sending": "Sending..."
+    },
+    "saved": {
+      "title": "Saved Conversations",
+      "back": "Back to Chat",
+      "empty": "No saved conversations yet."
+    },
+    "toast": {
+      "historyCleared": {
+        "title": "History cleared",
+        "desc": "The conversation history has been cleared."
+      },
+      "alreadyNew": {
+        "title": "You are already in a new conversation",
+        "desc": "There is nothing to clear in this conversation."
+      },
+      "newConversation": {
+        "title": "New conversation",
+        "desc": "A new conversation has been created."
+      },
+      "conversationLoaded": {
+        "title": "Conversation loaded",
+        "desc": "Loaded: {{title}}"
+      },
+      "conversationDeleted": {
+        "title": "Conversation deleted",
+        "desc": "Deleted: {{title}}"
+      }
+    },
+    "confirm": {
+      "clear": {
+        "title": "Clear history",
+        "desc": "Are you sure you want to clear the conversation history? This action cannot be undone.",
+        "confirm": "Yes, clear"
+      },
+      "delete": {
+        "title": "Delete conversation",
+        "desc": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+        "confirm": "Yes, delete"
+      }
+    }
+  },
+  "venuesSwitcher": {
+    "title": "Venues",
+    "addVenue": "Add venue",
+    "selectVenue": "Select venue",
+    "current": "(current)"
+  },
+  "venues": {
+    "addDialog": {
+      "title": "Add new venue",
+      "description": "Complete the information for the new venue to add it to the system.",
+      "fields": {
+        "requiredError": "This field is required",
+        "name": "Name",
+        "namePlaceholder": "Venue name",
+        "type": "Venue type",
+        "typePlaceholder": "Select a business type",
+        "typeOptions": {
+          "RESTAURANT": "Restaurant",
+          "STUDIO": "Studio",
+          "HOTEL": "Hotel"
+        },
+        "pos": "POS",
+        "posPlaceholder": "Select your POS",
+        "posOptions": {
+          "SOFTRESTAURANT": "Soft Restaurant",
+          "NONE": "None"
+        },
+        "logo": "Logo"
+      },
+      "upload": {
+        "remove": "Remove",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      },
+      "toast": {
+        "successTitle": "Venue created",
+        "successDesc": "The venue has been created successfully.",
+        "errorTitle": "Save error",
+        "errorDesc": "There was a problem saving your changes."
+      }
+    },
+    "edit": {
+      "readOnly": "Read-only mode: you do not have permission to edit this venue.",
+      "logoAlt": "Logo",
+      "sections": {
+        "basicInfo": "Basic Information",
+        "preferences": "Preferences",
+        "contact": "Contact & Images",
+        "pos": "POS Integration"
+      },
+      "labels": {
+        "name": "Name",
+        "type": "Type",
+        "address": "Address",
+        "city": "City",
+        "state": "State",
+        "country": "Country",
+        "zipCode": "Zip Code",
+        "phone": "Phone",
+        "email": "Email",
+        "timezone": "Time Zone",
+        "currency": "Currency",
+        "website": "Website",
+        "logo": "Logo",
+        "primaryColor": "Primary Color",
+        "secondaryColor": "Secondary Color",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "posType": "POS System"
+      },
+      "placeholders": {
+        "name": "Venue name",
+        "type": "Select a venue type",
+        "address": "Full address",
+        "city": "City",
+        "state": "State",
+        "country": "Select a country",
+        "zipCode": "Postal code",
+        "phone": "+52 123 456 7890",
+        "email": "email@example.com",
+        "timezone": "America/Mexico_City",
+        "currency": "Select a currency",
+        "website": "https://yourwebsite.com",
+        "logo": "https://example.com/logo.jpg",
+        "primaryColor": "#FF5733",
+        "secondaryColor": "#33C4FF",
+        "latitude": "19.432608",
+        "longitude": "-99.133209",
+        "posType": "Select a POS system"
+      },
+      "types": {
+        "restaurant": "Restaurant",
+        "bar": "Bar",
+        "cafe": "Café",
+        "fastFood": "Fast Food",
+        "foodTruck": "Food Truck",
+        "retailStore": "Retail Store",
+        "hotelRestaurant": "Hotel Restaurant",
+        "fitnessStudio": "Fitness Studio",
+        "spa": "Spa",
+        "other": "Other"
+      },
+      "currencies": {
+        "mxn": "MXN - Mexican Peso",
+        "usd": "USD - US Dollar",
+        "eur": "EUR - Euro",
+        "cad": "CAD - Canadian Dollar"
+      },
+      "posTypes": {
+        "softRestaurant": "Soft Restaurant",
+        "square": "Square",
+        "toast": "Toast",
+        "clover": "Clover",
+        "aloha": "Aloha",
+        "micros": "Micros",
+        "ncr": "NCR",
+        "custom": "Custom",
+        "none": "None"
+      },
+      "toast": {
+        "logoUploadedTitle": "Logo updated",
+        "logoUploadedDesc": "The logo was updated successfully.",
+        "logoRemovedTitle": "Logo removed",
+        "logoRemovedDesc": "The logo was removed successfully.",
+        "logoErrorTitle": "Logo error",
+        "logoErrorDesc": "Could not process the logo image.",
+        "updateSuccess": "Venue updated",
+        "updateSuccessDesc": "The venue has been updated successfully.",
+        "updateError": "Error updating venue",
+        "updateErrorTitle": "Update error",
+        "deleteSuccess": "Venue deleted",
+        "deleteSuccessDesc": "The venue has been deleted successfully.",
+        "deleteError": "Error deleting venue",
+        "deleteErrorTitle": "Delete error"
+      },
+      "deleteDialog": {
+        "title": "Delete Venue",
+        "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
+      },
+      "notFound": "Venue not found",
+      "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",
+      "noLogo": "No logo"
+    }
+  },
+  "featureMgmt": {
+    "title": "Feature Management",
+    "subtitle": "Manage platform features and venue access controls",
+    "create": "Create Feature",
+    "createTitle": "Create New Feature",
+    "createDesc": "Add a new feature to the platform that venues can subscribe to.",
+    "stats": {
+      "total": "Total Features",
+      "coreCountSuffix": "core features",
+      "active": "Active Features",
+      "betaCountSuffix": "in beta",
+      "avgRevenue": "Avg. Revenue per Feature",
+      "avgRevenueChange": "+12.5% from last month",
+      "adoption": "Feature Adoption",
+      "adoptionAvg": "Average adoption rate"
+    },
+    "tableTitle": "Platform Features",
+    "tableDesc": "Manage and monitor all platform features available to venues",
+    "searchPlaceholder": "Search features...",
+    "filterByCategory": "Filter by category",
+    "allCategories": "All Categories",
+    "columns": {
+      "feature": "Feature",
+      "category": "Category",
+      "status": "Status",
+      "pricing": "Pricing",
+      "type": "Type",
+      "actions": "Actions"
+    },
+    "dropdown": {
+      "viewDetails": "View Details",
+      "editFeature": "Edit Feature",
+      "manageVenues": "Manage Venues",
+      "deleteFeature": "Delete Feature"
+    },
+    "core": "Core",
+    "addOn": "Add-on",
+    "pricing": {
+      "free": "Free",
+      "from": "From",
+      "contactSales": "Contact Sales",
+      "fixed": "Fixed Price",
+      "usageBased": "Usage Based",
+      "tiered": "Tiered"
+    },
+    "form": {
+      "nameLabel": "Feature Name",
+      "namePlaceholder": "AI Chatbot",
+      "codeLabel": "Feature Code",
+      "codePlaceholder": "ai_chatbot",
+      "descLabel": "Description",
+      "descPlaceholder": "Describe what this feature does...",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Select category",
+      "pricingLabel": "Pricing Model",
+      "pricingPlaceholder": "Select pricing",
+      "basePriceLabel": "Base Price ($)",
+      "basePricePlaceholder": "e.g. 49.99",
+      "coreLabel": "Core Feature",
+      "cancel": "Cancel",
+      "submit": "Create Feature",
+      "creating": "Creating..."
+    },
+    "toast": {
+      "createdTitle": "Feature created",
+      "createdDescPrefix": "has been created.",
+      "createFailed": "Failed to create feature"
+    }
+  },
+  "categories": {
+    "OPERATIONS": "Operations",
+    "PAYMENTS": "Payments",
+    "MARKETING": "Marketing",
+    "ANALYTICS": "Analytics",
+    "INTEGRATIONS": "Integrations"
+  },
+  "featureStatuses": {
+    "ACTIVE": "Active",
+    "BETA": "Beta",
+    "INACTIVE": "Inactive",
+    "DEPRECATED": "Deprecated"
+  },
+  "tpv": {
+    "title": "TPV Terminals",
+    "subtitle": "Manage your restaurant's point-of-sale devices",
+    "actions": {
+      "createNew": "New Device",
+      "maintenance": "Put in maintenance mode",
+      "exit_maintenance": "Exit maintenance mode",
+      "update_status": "Force status update",
+      "offline": "Terminal disconnected",
+      "exitMaintenance": "Exit Maintenance",
+      "maintenanceMode": "Maintenance",
+      "update": "Update"
+    },
+    "search": {
+      "placeholder": "Search terminals..."
+    },
+    "table": {
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "serial": "Serial Number",
+        "version": "Version",
+        "actions": "Actions"
+      },
+      "noVersion": "Not specified"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "inactive": "Inactive",
+      "maintenance": "Maintenance",
+      "retired": "Retired",
+      "unknown": "Unknown",
+      "lastSeen": "Last seen"
+    },
+    "commandLabels": {
+      "SHUTDOWN": "Shutdown",
+      "RESTART": "Restart",
+      "MAINTENANCE_MODE": "Enter maintenance",
+      "EXIT_MAINTENANCE": "Exit maintenance",
+      "UPDATE_STATUS": "Update status",
+      "REACTIVATE": "Reactivate"
+    },
+    "commands": {
+      "sent": "Command sent",
+      "sentSuccess": "Command {{command}} sent successfully",
+      "error": "Error",
+      "sendError": "Error sending command: {{error}}",
+      "maintenancePayload": "Activated from dashboard"
+    },
+    "detail": {
+      "terminal": "Terminal",
+      "id": "ID",
+      "loading": "Loading terminal...",
+      "notFound": "Terminal Not Found",
+      "notFoundDesc": "The requested terminal could not be found with ID",
+      "goToTerminals": "Go to Terminals",
+      "noData": "No terminal data available",
+      "terminalStatus": "Terminal Status",
+      "connection": "Connection",
+      "inMaintenance": "In Maintenance",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "lastContact": "Last Contact",
+      "never": "Never",
+      "version": "Version",
+      "systemInfo": "System Information",
+      "platform": "Platform",
+      "memory": "Memory",
+      "uptime": "Uptime",
+      "ip": "IP Address",
+      "memoryUsage": "Memory Usage",
+      "terminalInfo": "Terminal Information",
+      "terminalName": "Terminal Name",
+      "systemId": "System ID",
+      "serialNumber": "Serial Number",
+      "terminalType": "Terminal Type",
+      "selectType": "Select type",
+      "types": {
+        "androidTablet": "Android Tablet",
+        "windowsPC": "Windows PC",
+        "linuxDevice": "Linux Device",
+        "mobileDevice": "Mobile Device",
+        "kiosk": "Kiosk",
+        "other": "Other"
+      },
+      "notSpecified": "Not specified",
+      "advancedConfig": "Advanced Configuration",
+      "noConfig": "No configuration available",
+      "saveChanges": "Save Changes",
+      "quickActions": "Quick Actions",
+      "alerts": {
+        "inMaintenanceMode": "In maintenance mode",
+        "reactivate": "Reactivate",
+        "terminalInactive": "Terminal is inactive"
+      },
+      "activateMaintenance": "Activate Maintenance Mode",
+      "updateStatus": "Update Status",
+      "systemDetails": "System Details",
+      "venueId": "Venue ID",
+      "created": "Created",
+      "lastUpdate": "Last Update",
+      "tooltips": {
+        "reactivate": "Reactivate terminal",
+        "maintenanceMode": "Put terminal in maintenance mode",
+        "updateStatus": "Request terminal to send updated status"
+      },
+      "validation": {
+        "nameRequired": "Terminal name is required",
+        "serialRequired": "Serial number is required"
+      },
+      "errors": {
+        "venueOrTpvUndefined": "Venue or TPV ID is undefined",
+        "updateFailed": "Failed to update terminal",
+        "loadError": "Failed to load terminal",
+        "tpvIdUndefined": "TPV ID is undefined"
+      },
+      "toast": {
+        "updateSuccess": "Terminal updated",
+        "updateSuccessDesc": "Terminal information has been updated successfully"
+      }
+    },
+    "pagination": {
+      "selectedRows": "{{selected}} of {{total}} row(s) selected.",
+      "rowsPerPage": "Rows per page",
+      "pageOf": "Page {{current}} of {{total}}",
+      "firstPage": "Go to first page",
+      "previousPage": "Go to previous page",
+      "nextPage": "Go to next page",
+      "lastPage": "Go to last page"
+    },
+    "userMenu": {
+      "account": "Account",
+      "notifications": "Notifications",
+      "logout": "Log out"
+    },
+    "admin": {
+      "superAdminManagement": {
+        "title": "SuperAdministrator Management",
+        "subtitle": "Manage users with superadministrator privileges",
+        "warningMessage": "This section allows you to manage users with full system access. Superadministrators have permissions to perform any action, including critical configuration changes and access to all data.",
+        "tabs": {
+          "admins": "SuperAdmins",
+          "audit": "Activity Log"
+        },
+        "searchPlaceholder": "Search superadmins...",
+        "newSuperAdmin": "New SuperAdmin",
+        "table": {
+          "administrator": "Superadministrator",
+          "status": "Status",
+          "lastAccess": "Last Access",
+          "permissions": "Permissions",
+          "actions": "Actions",
+          "active": "Active",
+          "inactive": "Inactive",
+          "deactivate": "Deactivate",
+          "activate": "Activate",
+          "details": "Details",
+          "noResults": "No superadministrators found with the search criteria."
+        },
+        "permissions": {
+          "all": "Full Access",
+          "users": "User Management",
+          "venues": "Venue Management",
+          "config": "Configuration",
+          "reports": "Reports"
+        },
+        "dialog": {
+          "create": {
+            "title": "Add New Superadministrator",
+            "description": "Create a new user with superadministrator permissions. Superadministrators have full access to all system functionalities.",
+            "name": "Name",
+            "email": "Email",
+            "password": "Password",
+            "confirm": "Confirm",
+            "button": "Create SuperAdmin"
+          },
+          "details": {
+            "title": "SuperAdmin Details",
+            "description": "Detailed information about the superadministrator",
+            "status": "Status",
+            "created": "Created",
+            "lastAccess": "Last access",
+            "type": "Type",
+            "masterSuperAdmin": "Master SuperAdmin",
+            "superAdmin": "SuperAdmin",
+            "permissions": "Permissions",
+            "securityActions": "Security actions",
+            "reset2FA": "Reset 2FA",
+            "reset2FATitle": "Reset two-factor authentication?",
+            "reset2FADescription": "This action will remove the current 2FA configuration for this user. They will need to set up 2FA again on their next login.",
+            "changePassword": "Change password",
+            "requirePasswordChange": "Require password change",
+            "requirePasswordChangeDesc": "On next login",
+            "close": "Close",
+            "cancel": "Cancel",
+            "reset": "Reset"
+          }
+        },
+        "audit": {
+          "filterPlaceholder": "Filter by action",
+          "allActions": "All actions",
+          "exportRecords": "Export Records",
+          "table": {
+            "dateTime": "Date & Time",
+            "action": "Action",
+            "administrator": "Administrator",
+            "details": "Details",
+            "ip": "IP",
+            "noResults": "No activity records match the search criteria."
+          },
+          "actions": {
+            "userUpdate": "User Update",
+            "userCreate": "User Creation",
+            "userDelete": "User Deletion",
+            "venueCreate": "Venue Creation",
+            "venueUpdate": "Venue Update",
+            "configUpdate": "Config Update",
+            "superadminCreate": "SuperAdmin Creation",
+            "superadminLogin": "SuperAdmin Login"
+          },
+          "showing": "Showing {{filtered}} of {{total}} activity records"
+        },
+        "toast": {
+          "activated": "SuperAdmin activated",
+          "activatedDesc": "The superadministrator has been successfully activated.",
+          "deactivated": "SuperAdmin deactivated",
+          "deactivatedDesc": "The superadministrator has been successfully deactivated.",
+          "created": "SuperAdmin created",
+          "createdDesc": "The new superadministrator has been successfully created.",
+          "reset2FA": "2FA reset",
+          "reset2FADesc": "Two-factor authentication has been successfully reset."
+        },
+        "accessDenied": {
+          "title": "Access restricted",
+          "description": "Only SuperAdministrators can access this section."
+        }
+      },
+      "venueEdit": {
+        "backToAdmin": "Back to Administration Panel",
+        "backToVenues": "Back to Venues",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Are you sure you want to delete this venue?",
+        "deleteConfirmDescription": "This action cannot be undone. To confirm, type \"delete {{name}}\" below:",
+        "deleting": "Deleting...",
+        "cancel": "Cancel",
+        "title": "Venue Management - SUPERADMIN",
+        "subtitle": "Advanced editing with access to premium features",
+        "sections": {
+          "basicInfo": {
+            "title": "Basic Information",
+            "name": "Name",
+            "namePlaceholder": "Venue name",
+            "type": "Type",
+            "typePlaceholder": "Select a type",
+            "types": {
+              "restaurant": "Restaurant",
+              "studio": "Studio",
+              "bar": "Bar",
+              "cafe": "Café",
+              "other": "Other"
+            },
+            "address": "Address",
+            "addressPlaceholder": "Full address",
+            "city": "City",
+            "cityPlaceholder": "City",
+            "country": "Country",
+            "countryPlaceholder": "Select a country"
+          },
+          "premiumFeatures": {
+            "title": "Premium Features (SUPERADMIN)",
+            "warningTitle": "Paid feature configuration",
+            "warningDescription": "These options are only available for administrators with SUPERADMIN level and allow enabling/disabling paid features for this venue.",
+            "ordering": "Order from POS",
+            "orderingDescription": "Allows ordering from Point of Sale Terminal (premium feature)",
+            "chatbot": "Assistance Chatbot",
+            "chatbotDescription": "Enable the assistance chatbot on the dashboard (premium feature)"
+          },
+          "contact": {
+            "title": "Contact & Images",
+            "email": "Email",
+            "emailPlaceholder": "email@example.com",
+            "phone": "Phone",
+            "phonePlaceholder": "+52 123 456 7890",
+            "website": "Website",
+            "websitePlaceholder": "https://yoursite.com",
+            "instagram": "Instagram",
+            "instagramPlaceholder": "@yoursite"
+          },
+          "payments": {
+            "title": "Payment Configuration",
+            "stripeAccountId": "Stripe Account ID",
+            "stripeAccountIdPlaceholder": "acct_...",
+            "specialPayment": "Special payment",
+            "specialPaymentDescription": "Enable special payment for this venue"
+          },
+          "menta": {
+            "title": "Menta Integration (Payment Gateway)",
+            "merchantIdA": "Menta Merchant ID A",
+            "merchantIdAPlaceholder": "Menta Merchant ID A",
+            "merchantIdB": "Menta Merchant ID B (optional)",
+            "merchantIdBPlaceholder": "Menta Merchant ID B",
+            "apiKeyA": "Menta API Key A",
+            "apiKeyAPlaceholder": "Menta API Key A",
+            "apiKeyB": "Menta API Key B (optional)",
+            "apiKeyBPlaceholder": "Menta API Key B"
+          },
+          "system": {
+            "title": "System Configuration",
+            "posName": "POS System",
+            "posNamePlaceholder": "Select a POS system",
+            "posOptions": {
+              "wansoft": "Wansoft",
+              "softrestaurant": "Soft Restaurant",
+              "none": "None"
+            },
+            "posUniqueId": "Unique POS ID",
+            "posUniqueIdPlaceholder": "Unique POS system ID"
+          }
+        },
+        "toast": {
+          "updated": "Venue updated",
+          "updatedDesc": "The venue has been successfully updated.",
+          "updateError": "Error updating venue",
+          "updateErrorDesc": "There was an error updating the venue.",
+          "deleted": "Venue deleted",
+          "deletedDesc": "The venue has been successfully deleted."
+        }
+      },
+      "systemSettings": {
+        "backToAdmin": "Back to Administration Panel",
+        "warningMessage": "This section contains advanced system settings. Incorrectly manipulating these values may affect platform functionality.",
+        "tabs": {
+          "database": "Database",
+          "server": "Server",
+          "logs": "Logs",
+          "security": "Security"
+        },
+        "database": {
+          "title": "Database Configuration",
+          "maintenance": "Maintenance",
+          "maintenanceDescription": "Database maintenance options",
+          "cache": {
+            "title": "Cache",
+            "description": "Clear the database cache to improve performance.",
+            "button": "Clear Cache"
+          },
+          "backup": {
+            "title": "Backup",
+            "description": "Create a manual backup of the current database.",
+            "button": "Create Backup"
+          },
+          "lastMaintenance": "Last maintenance: {{time}} ago",
+          "fullMaintenance": "Run Full Maintenance"
+        },
+        "server": {
+          "title": "Server Configuration",
+          "systemStatus": "System Status",
+          "systemStatusDescription": "Current server status and maintenance options",
+          "cpuUsage": "CPU Usage",
+          "average": "Average",
+          "limit": "Limit",
+          "memory": "RAM Memory",
+          "currentUsage": "Current memory usage",
+          "cpuHistory": "CPU History (last 60 minutes)",
+          "loading": "Loading...",
+          "loadingData": "Loading memory data...",
+          "noDataAvailable": "No data available",
+          "updateData": "Update Data"
+        },
+        "security": {
+          "title": "Security Configuration",
+          "options": "Security Options",
+          "optionsDescription": "Platform security configuration",
+          "content": "Security configuration content"
+        },
+        "accessDenied": {
+          "title": "Access restricted",
+          "description": "Only SuperAdministrators can access system settings."
+        }
+      },
+      "userManagement": {
+        "backToAdmin": "Back to Administration Panel",
+        "title": "User Management",
+        "newUser": "Add User",
+        "searchPlaceholder": "Search users...",
+        "filterByRole": "Filter by role",
+        "allRoles": "All roles",
+        "roles": {
+          "user": "User",
+          "admin": "Administrator",
+          "venueAdmin": "Venue Admin",
+          "waiter": "Waiter",
+          "superAdmin": "Super Admin"
+        },
+        "table": {
+          "name": "Name",
+          "email": "Email",
+          "role": "Role",
+          "venue": "Venue",
+          "status": "Status",
+          "actions": "Actions",
+          "active": "Active",
+          "inactive": "Inactive",
+          "deactivate": "Deactivate",
+          "activate": "Activate",
+          "assignToVenue": "Assign to venue",
+          "deleteUser": "Delete user",
+          "noVenue": "Not assigned"
+        },
+        "dialog": {
+          "create": {
+            "title": "Create New User",
+            "description": "Complete the details to create a new user.",
+            "name": "Name",
+            "email": "Email",
+            "role": "Role",
+            "rolePlaceholder": "Select a role",
+            "venue": "Venue",
+            "venuePlaceholder": "Select a venue (optional)",
+            "save": "Save User",
+            "saving": "Saving..."
+          },
+          "delete": {
+            "title": "Confirm Deletion",
+            "description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+            "cancel": "Cancel",
+            "delete": "Delete",
+            "deleting": "Deleting..."
+          },
+          "assignVenue": {
+            "title": "Assign to Venue",
+            "description": "Select a venue to assign to {{name}}.",
+            "venuePlaceholder": "Select a venue",
+            "cancel": "Cancel",
+            "assign": "Assign",
+            "assigning": "Assigning..."
+          }
+        },
+        "showing": "Showing {{filtered}} of {{total}} users",
+        "toast": {
+          "roleUpdated": "Role updated",
+          "roleUpdatedDesc": "The user role has been successfully updated.",
+          "roleUpdateError": "Error",
+          "roleUpdateErrorDesc": "Could not update the user role.",
+          "activated": "User activated",
+          "activatedDesc": "The user has been successfully activated.",
+          "deactivated": "User deactivated",
+          "deactivatedDesc": "The user has been successfully deactivated.",
+          "statusError": "Error",
+          "statusErrorDesc": "Could not change the user status.",
+          "created": "User created",
+          "createdDesc": "The new user has been successfully created.",
+          "createError": "Error",
+          "createErrorDesc": "Could not create the user.",
+          "deleted": "User deleted",
+          "deletedDesc": "The user has been successfully deleted.",
+          "deleteError": "Error",
+          "deleteErrorDesc": "Could not delete the user.",
+          "venueAssigned": "Venue assigned",
+          "venueAssignedDesc": "The user has been successfully assigned to the venue.",
+          "venueAssignError": "Error",
+          "venueAssignErrorDesc": "Could not assign the venue to the user."
+        }
+      },
+      "venueManagement": {
+        "backToAdmin": "Back to Administration Panel",
+        "title": "Venue Management",
+        "newVenue": "New Venue",
+        "searchPlaceholder": "Search venues...",
+        "filterByType": "Filter by type",
+        "allTypes": "All types",
+        "types": {
+          "restaurant": "Restaurant",
+          "bar": "Bar",
+          "cafe": "Café",
+          "pub": "Pub",
+          "other": "Other"
+        },
+        "table": {
+          "name": "Name",
+          "location": "Location",
+          "type": "Type",
+          "status": "Status",
+          "actions": "Actions",
+          "active": "Active",
+          "inactive": "Inactive",
+          "deactivate": "Deactivate",
+          "activate": "Activate"
+        },
+        "dialog": {
+          "create": {
+            "title": "Create New Venue",
+            "description": "Complete the data to create a new venue in the system",
+            "name": "Name",
+            "namePlaceholder": "Venue name",
+            "type": "Type",
+            "typePlaceholder": "Select a type",
+            "address": "Address",
+            "addressPlaceholder": "Full address",
+            "phone": "Phone",
+            "phonePlaceholder": "+34 000 000 000",
+            "descriptionPlaceholder": "Venue description",
+            "create": "Create Venue",
+            "creating": "Creating..."
+          }
+        },
+        "showing": "Showing {{filtered}} of {{total}} venues",
+        "toast": {
+          "activated": "Venue activated",
+          "activatedDesc": "The venue has been successfully activated.",
+          "deactivated": "Venue deactivated",
+          "deactivatedDesc": "The venue has been successfully deactivated.",
+          "statusError": "Error",
+          "statusErrorDesc": "Could not update the venue status.",
+          "created": "Venue created",
+          "createdDesc": "The new venue has been successfully created.",
+          "createError": "Error",
+          "createErrorDesc": "Could not create the venue.",
+          "adminAdded": "Administrator added",
+          "adminAddedDesc": "The administrator has been successfully assigned to the venue.",
+          "adminAddError": "Could not assign the administrator to the venue."
+        }
+      }
+    }
+  },
+  "legal": {
+    "backToLogin": "Back to Login",
+    "terms": {
+      "title": "Terms and Conditions",
+      "lastUpdated": "Last updated",
+      "date": "January 1, 2025",
+      "introduction": {
+        "title": "Introduction",
+        "content": "Welcome to Avoqado, a comprehensive restaurant management platform. These Terms and Conditions govern your use of our services. By accessing or using Avoqado, you agree to be bound by these terms."
+      },
+      "service": {
+        "title": "Service Description",
+        "description": "Avoqado provides a comprehensive restaurant management platform that includes:",
+        "features": {
+          "pos": "Point of Sale (POS) system for order processing",
+          "inventory": "Inventory management and tracking",
+          "orders": "Order management and kitchen coordination",
+          "payments": "Payment processing and financial reporting",
+          "analytics": "Business analytics and performance insights",
+          "staff": "Staff management and scheduling tools"
+        }
+      },
+      "responsibilities": {
+        "title": "User Responsibilities",
+        "intro": "As a user of Avoqado, you agree to:",
+        "account": "Maintain accurate account information and secure login credentials",
+        "accuracy": "Provide accurate business and financial information",
+        "compliance": "Comply with all applicable laws and regulations in your jurisdiction",
+        "security": "Implement appropriate security measures to protect customer data",
+        "misuse": "Not use the service for any illegal or unauthorized purposes"
+      },
+      "payment": {
+        "title": "Payment Terms",
+        "billing": "Subscription fees are billed monthly in advance. Payment processing fees may apply for transaction processing.",
+        "fees": "All fees are non-refundable except as required by law or as specifically stated in these terms.",
+        "refunds": "Refunds may be provided at our discretion for unused portions of prepaid services."
+      },
+      "privacy": {
+        "title": "Data and Privacy",
+        "content": "Your privacy is important to us. Our collection and use of personal information is governed by our",
+        "policyLink": "Privacy Policy"
+      },
+      "liability": {
+        "title": "Limitation of Liability",
+        "content": "Avoqado provides the service \"as is\" without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service."
+      },
+      "termination": {
+        "title": "Termination",
+        "content": "Either party may terminate this agreement at any time. Upon termination, your access to the service will cease, and you remain responsible for any outstanding fees."
+      },
+      "changes": {
+        "title": "Changes to Terms",
+        "content": "We reserve the right to modify these terms at any time. We will notify you of significant changes via email or through the platform."
+      },
+      "contact": {
+        "title": "Contact Information",
+        "intro": "If you have questions about these Terms and Conditions, please contact us:",
+        "email": "Email",
+        "address": "Address",
+        "addressLine": "Mexico City, Mexico"
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated",
+      "date": "January 1, 2025",
+      "introduction": {
+        "title": "Introduction",
+        "content": "This Privacy Policy describes how Avoqado collects, uses, and protects your information when you use our restaurant management platform."
+      },
+      "collection": {
+        "title": "Information We Collect",
+        "personal": {
+          "title": "Personal Information",
+          "name": "Name and contact information",
+          "email": "Email address and phone number",
+          "phone": "Business information and tax identification",
+          "business": "Payment and billing information"
+        },
+        "business": {
+          "title": "Business Data",
+          "sales": "Sales transactions and order history",
+          "inventory": "Inventory levels and product information",
+          "customers": "Customer data and preferences",
+          "staff": "Staff schedules and performance data",
+          "financial": "Financial reports and analytics"
+        },
+        "technical": {
+          "title": "Technical Information",
+          "ip": "IP addresses and device information",
+          "device": "Browser type and operating system",
+          "usage": "Usage patterns and feature interactions",
+          "cookies": "Cookies and similar tracking technologies"
+        }
+      },
+      "usage": {
+        "title": "How We Use Your Information",
+        "service": "Provide and maintain our restaurant management services",
+        "support": "Provide customer support and technical assistance",
+        "communication": "Send important updates and notifications",
+        "improvement": "Improve our services and develop new features",
+        "analytics": "Generate business insights and analytics",
+        "compliance": "Comply with legal obligations and prevent fraud"
+      },
+      "sharing": {
+        "title": "Information Sharing",
+        "intro": "We may share your information in the following circumstances:",
+        "consent": "With your explicit consent",
+        "providers": "With trusted service providers who assist in our operations",
+        "legal": "When required by law or to protect our rights",
+        "business": "In connection with a business transfer or acquisition",
+        "aggregated": "Aggregated, non-personally identifiable data for research"
+      },
+      "security": {
+        "title": "Data Security",
+        "intro": "We implement industry-standard security measures including:",
+        "encryption": "Encryption of data in transit and at rest",
+        "access": "Strict access controls and authentication",
+        "monitoring": "Regular security monitoring and audits",
+        "updates": "Regular security updates and patches",
+        "backups": "Secure data backup and recovery procedures"
+      },
+      "retention": {
+        "title": "Data Retention",
+        "content": "We retain your information for as long as necessary to provide our services and comply with legal obligations. You may request deletion of your data subject to certain limitations."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "access": "Access your personal information",
+        "correction": "Correct inaccurate information",
+        "deletion": "Request deletion of your data",
+        "portability": "Data portability and export",
+        "restriction": "Restrict processing of your data",
+        "objection": "Object to certain processing activities",
+        "withdraw": "Withdraw consent where applicable"
+      },
+      "cookies": {
+        "title": "Cookies and Tracking",
+        "intro": "We use cookies and similar technologies for:",
+        "essential": "Essential site functionality",
+        "functional": "Enhanced user experience",
+        "analytics": "Usage analytics and performance monitoring",
+        "marketing": "Marketing and advertising (with consent)"
+      },
+      "international": {
+        "title": "International Transfers",
+        "content": "Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers."
+      },
+      "changes": {
+        "title": "Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. We will notify you of any material changes via email or through our platform."
+      },
+      "contact": {
+        "title": "Contact Information",
+        "intro": "For privacy-related questions or requests, contact us:",
+        "email": "Email",
+        "dpo": "Data Protection Officer",
+        "address": "Address",
+        "addressLine": "Mexico City, Mexico"
+      }
+    }
+  },
+  "profitAnalytics": {
+    "title": "Profit Analytics",
+    "subtitle": "Track Avoqado's profit margins and cost management",
+    "exportData": "Export Data",
+    "recalculate": "Recalculate",
+    "filtersTitle": "Filters & Date Range",
+    "quickRange": "Quick Range",
+    "7days": "7D",
+    "30days": "30D",
+    "90days": "90D",
+    "totalGrossProfit": "Total Gross Profit",
+    "averageProfitMargin": "Average Profit Margin",
+    "providerCosts": "Provider Costs",
+    "venueCharges": "Venue Charges",
+    "tabs": {
+      "venues": "Venue Profitability",
+      "providers": "Provider Costs",
+      "monthly": "Monthly Analysis",
+      "costStructures": "Cost Structures"
+    },
+    "venueAnalysis": {
+      "title": "Venue Profit Analysis",
+      "description": "Profit performance by venue"
+    },
+    "providerAnalysis": {
+      "title": "Provider Cost Analysis",
+      "description": "Cost breakdown by payment provider"
+    },
+    "monthlyAnalysis": {
+      "title": "Monthly Profit Summary",
+      "description": "Monthly aggregated profit data by venue"
+    },
+    "costStructures": {
+      "title": "Current Cost Structures",
+      "description": "Active cost structures by provider and merchant account"
+    },
+    "totalCosts": "total costs",
+    "table": {
+      "venue": "Venue",
+      "period": "Period",
+      "volume": "Volume",
+      "transactions": "Transactions",
+      "providerCosts": "Provider Costs",
+      "venueCharges": "Venue Charges",
+      "grossProfit": "Gross Profit",
+      "margin": "Margin",
+      "status": "Status"
+    },
+    "debug": {
+      "info": "Debug: {{count}} venues loaded, Loading: {{loading}}",
+      "error": "Error: {{error}}"
+    },
+    "vsLastPeriod": "vs last period",
+    "whatWePayProviders": "What we pay providers",
+    "whatWeChargeVenues": "What we charge venues",
+    "profitRevenueRatio": "Profit / Revenue ratio",
+    "loadingAnalytics": "Loading profit analytics...",
+    "rates": {
+      "debit": "Debit",
+      "credit": "Credit",
+      "amex": "Amex",
+      "international": "International",
+      "fixed": "Fixed",
+      "monthly": "Monthly"
+    }
+  },
+  "costStructures": {
+    "title": "Provider Cost Structures",
+    "subtitle": "Manage payment provider rates and costs",
+    "addButton": "Add Cost Structure",
+    "columns": {
+      "providerAccount": "Provider / Account",
+      "effectiveFrom": "Effective From",
+      "debit": "Debit",
+      "credit": "Credit",
+      "amex": "Amex",
+      "international": "International",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "stats": {
+      "totalStructures": "Total Structures",
+      "active": "active"
+    },
+    "table": {
+      "title": "All Cost Structures",
+      "description": "View and manage provider cost rates and structures",
+      "searchPlaceholder": "Search by provider, account, or proposal..."
+    },
+    "toasts": {
+      "success": "Success",
+      "createSuccess": "Cost structure created successfully",
+      "createError": "Failed to create cost structure",
+      "updateSuccess": "Cost structure updated successfully",
+      "updateError": "Failed to update cost structure",
+      "deactivateSuccess": "Cost structure deactivated",
+      "deactivateError": "Failed to deactivate cost structure",
+      "deleteSuccess": "Cost structure deleted successfully",
+      "deleteError": "Failed to delete cost structure",
+      "error": "Error"
+    },
+    "confirmations": {
+      "deactivate": "Are you sure you want to deactivate this cost structure?",
+      "delete": "Are you sure you want to delete this cost structure?"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "overview": "Overview",
+    "loading": "Loading analyticsâ€¦",
+    "errorPrefix": "Failed to load:",
+    "lastRefreshed": "Last refreshed: {{date}}",
+    "refreshed": "Refreshed: {{date}}",
+    "range": {
+      "label": "Time range:",
+      "presets": {
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "qtd": "Quarter to date",
+        "ytd": "Year to date",
+        "12m": "Last 12 months"
+      }
+    },
+    "compare": {
+      "label": "Compare to:",
+      "previous_period": "previous period",
+      "previous_year": "previous year",
+      "badge": "Compare: {{label}}"
+    },
+    "overviewSection": {
+      "title": "Executive Overview"
+    },
+    "kpis": {
+      "arr": "ARR",
+      "mrr": "MRR",
+      "netNewArr": "Net New ARR",
+      "nrr": "NRR",
+      "churn": "Churn",
+      "signups": "Signups",
+      "activation": "Activation",
+      "winRate": "Win Rate",
+      "salesCycleDays": "Sales Cycle (d)",
+      "dau": "DAU",
+      "mau": "MAU",
+      "stickiness": "Stickiness",
+      "uptime": "Uptime"
+    },
+    "tooltips": {
+      "arr": "Annual Recurring Revenue. Total subscription revenue normalized to a 12â€‘month period.",
+      "mrr": "Monthly Recurring Revenue. Subscription revenue for the current month.",
+      "netNewArr": "New + Expansion â€“ Contraction â€“ Churn for the selected period.",
+      "nrr": "Net Revenue Retention = (Ending ARR + Churn + Contraction) ÷ Starting ARR.",
+      "churn": "Percentage of revenue lost to cancellations/downgrades during the period.",
+      "signups": "New accounts created in the selected period.",
+      "activation": "Percent of new accounts reaching key onboarding milestones.",
+      "winRate": "Closedâ€‘won opportunities ÷ total opportunities within the period.",
+      "salesCycleDays": "Average number of days from opportunity creation to closeâ€‘won.",
+      "dau": "Daily Active Users â€” unique users who engaged with core actions today.",
+      "mau": "Monthly Active Users â€” unique users active in the last 30 days.",
+      "stickiness": "DAU ÷ MAU. Higher means users return more frequently.",
+      "uptime": "Service availability over the period."
+    },
+    "revenueBridge": {
+      "title": "Revenue Bridge"
+    },
+    "activationFunnel": {
+      "title": "Activation Funnel",
+      "tooltip": "Dropâ€‘offs from signups to PQLs/SQLs/Won for the period."
+    },
+    "cohortRetention": {
+      "title": "Cohort Retention",
+      "tooltip": "Share of accounts active by months since signup (rows are cohorts)."
+    },
+    "insights": {
+      "title": "Insights"
+    },
+    "metricDefinitions": {
+      "title": "Metric Definitions"
+    },
+    "charts": {
+      "mrr12mTitle": "MRR (12m)",
+      "mrr12mTooltip": "Monthly Recurring Revenue trend for the last 12 months.",
+      "dauWindowTitle": "DAU ({{window}})",
+      "dauWindowTooltip": "Daily Active Users over the last {{days}} days.",
+      "aria": {
+        "aboutChart": "About {{name}} chart"
+      }
+    },
+    "aria": {
+      "aboutActivationFunnel": "About Activation Funnel",
+      "aboutCohortRetention": "About Cohort Retention"
+    }
+  },
+  "adminInvitation": {
+    "title": "Admin Invitation",
+    "subtitle": "You have been invited as an Avoqado administrator",
+    "verifying": "Verifying invitation...",
+    "processing": "Processing request...",
+    "invalidToken": "Invalid or expired invitation",
+    "noToken": "No valid invitation token found",
+    "accountActivated": "Your account has been activated successfully!",
+    "redirecting": "You will be redirected in a moment...",
+    "youHaveBeenInvited": "You have received an invitation to join as an administrator",
+    "of": "of",
+    "acceptDescription": "By accepting this invitation, you will have access to manage this venue on the Avoqado platform.",
+    "existingUserNeedsPassword": "Your account exists but you need to set a password to continue.",
+    "newUserNeedsPassword": "You need to create a password for your new account.",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "setPasswordAndAccept": "Set password and accept",
+    "acceptInvitation": "Accept Invitation",
+    "cancel": "Cancel",
+    "goToLogin": "Go to login",
+    "invitationAccepted": "Invitation accepted!",
+    "invitationAcceptedDesc": "You have been added as an administrator successfully.",
+    "error": "Error",
+    "processingError": "An error occurred while processing the invitation",
+    "validation": {
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordUppercase": "Password must contain at least one uppercase letter",
+      "passwordLowercase": "Password must contain at least one lowercase letter",
+      "passwordNumber": "Password must contain at least one number",
+      "passwordsMismatch": "Passwords do not match"
+    }
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "tabs": {
+      "overview": "Overview",
+      "overviewDesc": "General system overview",
+      "recentActivity": "Recent Activity",
+      "recentActivityDesc": "Latest actions performed",
+      "performance": "Performance",
+      "performanceDesc": "System metrics"
+    },
+    "cards": {
+      "userManagement": "User Management",
+      "userManagementDesc": "Manage system users",
+      "venueManagement": "Venue Management",
+      "venueManagementDesc": "Manage registered venues",
+      "systemSettings": "System Settings",
+      "systemSettingsDesc": "Manage system-level settings",
+      "globalConfig": "Global Configuration",
+      "globalConfigDesc": "Manage global platform settings",
+      "accountSettings": "Account Settings",
+      "accountSettingsDesc": "Manage your account and preferences"
+    },
+    "content": {
+      "overview": "General dashboard content",
+      "recentActivity": "Recent activity content",
+      "performance": "Performance content"
+    }
+  },
+  "globalConfig": {
+    "title": "Global Configuration",
+    "subtitle": "Manage global system configuration",
+    "restrictedAccess": "Restricted access",
+    "restrictedAccessDesc": "Only SuperAdministrators can access global configuration",
+    "tabs": {
+      "application": "Application",
+      "security": "Security",
+      "email": "Email",
+      "payments": "Payments",
+      "apis": "APIs"
+    },
+    "application": {
+      "title": "Application settings",
+      "appName": "Application name",
+      "version": "Version",
+      "current": "Current",
+      "defaultTheme": "Default theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "defaultLanguage": "Default language",
+      "spanish": "Spanish",
+      "english": "English",
+      "french": "French",
+      "german": "German",
+      "sessionTimeout": "Session Timeout (minutes)",
+      "maintenanceMode": "Maintenance Mode",
+      "maintenanceModeDesc": "If enabled, only administrators will be able to access",
+      "systemActions": "System Actions",
+      "restartApp": "Restart Application",
+      "restartAppDesc": "Restarts application services",
+      "areYouSure": "Are you sure?",
+      "cancel": "Cancel",
+      "clearCache": "Clear Cache",
+      "clearCacheDesc": "Clears system cache",
+      "restoreDefaults": "Restore Default Values"
+    },
+    "security": {
+      "title": "Password Policies",
+      "minLength": "Minimum Length",
+      "expiryDays": "Expiry (days)",
+      "neverExpires": "0 = Never expires",
+      "requireUppercase": "Require Uppercase",
+      "requireNumbers": "Require Numbers",
+      "requireSpecialChars": "Require Special Characters",
+      "authentication": "Authentication",
+      "twoFactorAuth": "Two-Factor Authentication",
+      "twoFactorAuthDesc": "Enable 2FA for all users",
+      "multipleDevices": "Multiple Devices",
+      "multipleDevicesDesc": "Allow simultaneous sessions",
+      "sessionTimeout": "Session Timeout (minutes)"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "senderEmail": "Sender Email",
+      "smtpServer": "SMTP Server",
+      "smtpPort": "SMTP Port",
+      "smtpUser": "SMTP User",
+      "smtpPassword": "SMTP Password",
+      "templatePath": "Template Path",
+      "emailVerification": "Email Verification",
+      "emailVerificationDesc": "Require email verification for new users",
+      "sendTestEmail": "Send Test Email"
+    },
+    "payments": {
+      "title": "Payment Configuration",
+      "stripe": "Stripe",
+      "stripeDesc": "Enable payments with Stripe",
+      "stripePublicKey": "Stripe Public Key",
+      "paypal": "PayPal",
+      "paypalDesc": "Enable payments with PayPal",
+      "paypalClientId": "PayPal Client ID",
+      "defaultCurrency": "Default Currency",
+      "euro": "Euro (â‚¬)",
+      "dollar": "Dollar ($)",
+      "pound": "Pound (Â£)"
+    },
+    "apis": {
+      "title": "External APIs Configuration",
+      "googleMapsApiKey": "Google Maps API Key",
+      "weatherApiKey": "Weather API Key",
+      "geocoding": "Geocoding",
+      "geocodingDesc": "General application configuration"
+    }
+  },
+  "superAdminManagement": {
+    "title": "SuperAdmin Management",
+    "subtitle": "Manage users with superadministrator privileges",
+    "restrictedAccess": "Restricted access",
+    "restrictedAccessDesc": "Only SuperAdministrators can access this section.",
+    "tabs": {
+      "superAdmins": "SuperAdmins",
+      "activityLog": "Activity Log"
+    },
+    "searchPlaceholder": "Search superadmins...",
+    "addNewSuperAdmin": "Add New SuperAdministrator",
+    "createSuperAdmin": "Create SuperAdmin",
+    "table": {
+      "superAdmin": "Superadministrator",
+      "status": "Status",
+      "lastAccess": "Last Access",
+      "permissions": "Permissions",
+      "actions": "Actions",
+      "master": "Master",
+      "fullAccess": "Full Access"
+    },
+    "details": {
+      "title": "SuperAdmin Details",
+      "subtitle": "Detailed superadministrator information",
+      "status": "Status",
+      "created": "Created",
+      "lastAccess": "Last access",
+      "type": "Type",
+      "permissions": "Permissions",
+      "fullAccess": "Full Access",
+      "securityActions": "Security actions",
+      "resetTwoFactor": "Reset Two-Factor Authentication?",
+      "cancel": "Cancel",
+      "reset": "Reset",
+      "requirePasswordChange": "Require password change",
+      "requirePasswordChangeDesc": "On next login"
+    },
+    "activityLog": {
+      "filterPlaceholder": "Filter by action",
+      "allActions": "All actions",
+      "userUpdate": "User update",
+      "userCreation": "User creation",
+      "userDeletion": "User deletion",
+      "venueCreation": "Venue creation",
+      "venueUpdate": "Venue update",
+      "configUpdate": "Config update",
+      "superadminCreation": "Superadmin creation",
+      "superadminLogin": "Superadmin login",
+      "columns": {
+        "dateTime": "Date and Time",
+        "action": "Action",
+        "administrator": "Administrator",
+        "details": "Details",
+        "ip": "IP"
+      }
+    }
+  },
+  "superAdminVenueEdit": {
+    "title": "Venue Management - SUPERADMIN",
+    "subtitle": "Advanced editing with access to premium features",
+    "superadminBadge": "(SUPERADMIN)",
+    "deleteConfirmation": "Are you sure you want to delete this venue?",
+    "cancel": "Cancel",
+    "sections": {
+      "basicInfo": "Basic information",
+      "premiumFeatures": "Premium features (SUPERADMIN)",
+      "premiumFeaturesDesc": "Paid features configuration",
+      "contactImages": "Contact and images",
+      "paymentsConfig": "Payment configuration",
+      "mentaIntegration": "Menta Integration (Payment Gateway)",
+      "systemConfig": "System configuration"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Venue name",
+      "type": "Type",
+      "typePlaceholder": "Select a type",
+      "restaurant": "Restaurant",
+      "studio": "Studio",
+      "bar": "Bar",
+      "cafe": "Café",
+      "other": "Other",
+      "address": "Address",
+      "addressPlaceholder": "Full address",
+      "city": "City",
+      "cityPlaceholder": "City",
+      "country": "Country",
+      "countryPlaceholder": "Select a country",
+      "tpvOrder": "Order from TPV",
+      "chatbot": "Assistance Chatbot",
+      "email": "Email",
+      "emailPlaceholder": "email@example.com",
+      "phone": "Phone",
+      "website": "Website",
+      "websitePlaceholder": "https://yourwebsite.com",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@yourwebsite",
+      "stripeAccountId": "Stripe account ID",
+      "stripeAccountIdPlaceholder": "acct_...",
+      "specialPayment": "Special payment",
+      "specialPaymentDesc": "Enable special payment for this venue",
+      "mentaMerchantIdA": "Menta Merchant ID A",
+      "mentaMerchantIdAPlaceholder": "Menta Merchant ID A",
+      "mentaMerchantIdB": "Menta Merchant ID B (optional)",
+      "mentaMerchantIdBPlaceholder": "Menta Merchant ID B",
+      "mentaApiKeyA": "Menta API Key A",
+      "mentaApiKeyAPlaceholder": "Menta API Key A",
+      "mentaApiKeyB": "Menta API Key B (optional)",
+      "mentaApiKeyBPlaceholder": "Menta API Key B",
+      "posSystem": "POS System",
+      "posSystemPlaceholder": "Select a POS system",
+      "wansoft": "Wansoft",
+      "softRestaurant": "Soft Restaurant",
+      "none": "None",
+      "uniquePosId": "Unique POS ID"
+    }
+  },
+  "userManagement": {
+    "title": "User Management",
+    "backToAdmin": "Back to Administration Panel",
+    "addUser": "Add User",
+    "createUser": "Create New User",
+    "createUserDesc": "Complete the details to create a new user.",
+    "searchPlaceholder": "Search users...",
+    "filterByRole": "Filter by role",
+    "allRoles": "All roles",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "venue": "Venue",
+      "status": "Status",
+      "actions": "Actions",
+      "noVenue": "Not assigned"
+    },
+    "roles": {
+      "user": "User",
+      "admin": "Administrator",
+      "venueAdmin": "Venue Admin",
+      "waiter": "Waiter",
+      "superAdmin": "Super Admin"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "assignToVenue": "Assign to venue",
+      "delete": "Delete user"
+    },
+    "dialogs": {
+      "deleteTitle": "Confirm Deletion",
+      "deleteDesc": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "assignVenueTitle": "Assign to Venue",
+      "assignVenueDesc": "Select a venue to assign to {{name}}.",
+      "selectVenue": "Select a venue",
+      "selectVenuePlaceholder": "Select a venue",
+      "selectRole": "Select a role",
+      "selectRolePlaceholder": "Select a role",
+      "selectVenueOptional": "Select a venue (optional)"
+    },
+    "toasts": {
+      "roleUpdated": "Role updated",
+      "roleUpdatedDesc": "User role has been updated successfully.",
+      "statusUpdated": "User {{status}}",
+      "statusUpdatedDesc": "User has been {{status}} successfully.",
+      "activated": "activated",
+      "deactivated": "deactivated",
+      "userCreated": "User created",
+      "userCreatedDesc": "New user has been created successfully.",
+      "userDeleted": "User deleted",
+      "userDeletedDesc": "User has been deleted successfully.",
+      "venueAssigned": "Venue assigned",
+      "venueAssignedDesc": "User has been assigned to venue successfully.",
+      "error": "Error",
+      "errorDesc": "Could not complete the operation."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "assign": "Assign",
+      "assigning": "Assigning...",
+      "saveUser": "Save User",
+      "saving": "Saving..."
+    },
+    "showing": "Showing {{count}} of {{total}} users"
+  },
+  "venueManagement": {
+    "title": "Venue Management",
+    "subtitle": "Manage registered venues",
+    "backToAdmin": "Back to Administration Panel",
+    "newVenue": "New Venue",
+    "createVenue": "Create New Venue",
+    "createVenueDesc": "Complete the details to create a new venue in the system",
+    "searchPlaceholder": "Search venues...",
+    "filterByType": "Filter by type",
+    "allTypes": "All types",
+    "table": {
+      "name": "Name",
+      "location": "Location",
+      "type": "Type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "types": {
+      "restaurant": "Restaurant",
+      "bar": "Bar",
+      "cafe": "Café",
+      "pub": "Pub",
+      "other": "Other"
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "edit": "Edit"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Venue name",
+      "type": "Type",
+      "typePlaceholder": "Select a type",
+      "address": "Address",
+      "addressPlaceholder": "Full address",
+      "phone": "Phone",
+      "phonePlaceholder": "+34 000 000 000",
+      "description": "Description",
+      "descriptionPlaceholder": "Venue description"
+    },
+    "toasts": {
+      "statusUpdated": "Venue {{status}}",
+      "statusUpdatedDesc": "Venue has been {{status}} successfully.",
+      "activated": "activated",
+      "deactivated": "deactivated",
+      "venueCreated": "Venue created",
+      "venueCreatedDesc": "New venue has been created successfully.",
+      "error": "Error",
+      "errorDesc": "Could not update venue status."
+    },
+    "buttons": {
+      "createVenue": "Create Venue",
+      "creating": "Creating..."
+    },
+    "showing": "Showing {{count}} of {{total}} venues"
+  },
+  "systemSettings": {
+    "title": "System Settings",
+    "backToAdmin": "Back to Administration Panel",
+    "restrictedAccess": "Restricted access",
+    "restrictedAccessDesc": "Only SuperAdministrators can access system settings.",
+    "warning": "This section contains advanced system settings. Manipulating these values incorrectly may affect platform functionality.",
+    "tabs": {
+      "database": "Database",
+      "server": "Server",
+      "logs": "Logs",
+      "security": "Security"
+    },
+    "database": {
+      "title": "Database Settings",
+      "maintenance": "Maintenance",
+      "maintenanceDesc": "Database maintenance options",
+      "cache": "Cache",
+      "cacheDesc": "Clear database cache to improve performance.",
+      "clearCache": "Clear Cache",
+      "backup": "Backup",
+      "backupDesc": "Create a manual backup of the current database.",
+      "createBackup": "Create Backup",
+      "lastMaintenance": "Last maintenance: {{time}} ago",
+      "runFullMaintenance": "Run Full Maintenance"
+    },
+    "server": {
+      "title": "Server Settings",
+      "systemStatus": "System Status",
+      "systemStatusDesc": "Current server status and maintenance options",
+      "cpuUsage": "CPU Usage",
+      "memoryRam": "Memory RAM",
+      "loading": "Loading...",
+      "average": "Average: {{value}}%",
+      "limit": "Limit: {{value}}%",
+      "currentUsage": "Current memory RAM usage",
+      "loadingData": "Loading memory data...",
+      "cpuHistory": "CPU History (last 60 minutes)",
+      "noData": "No data available",
+      "refreshData": "Refresh Data"
+    },
+    "security": {
+      "title": "Security Settings",
+      "securityOptions": "Security Options",
+      "securityOptionsDesc": "Platform security configuration",
+      "content": "Security configuration content"
+    }
+  },
+  "inviteAccept": {
+    "loading": "Loading invitation...",
+    "invalidTitle": "Invalid Invitation",
+    "goToLogin": "Go to login",
+    "expiredTitle": "Invitation Expired",
+    "expiredDescription": "This invitation expired on {{date}}. Contact the administrator to receive a new invitation.",
+    "joinTitle": "Join the Team",
+    "invitedTo": "You have been invited to join",
+    "at": "at",
+    "as": "as",
+    "emailLabel": "Email",
+    "termsText": "By accepting this invitation, you accept the terms of use.",
+    "haveAccount": "Already have an account?",
+    "loginHere": "Log in here",
+    "creatingAccount": "Creating account...",
+    "acceptButton": "Accept invitation and create account",
+    "pinHelp": "The PIN will allow you to quickly access from POS terminals",
+    "labels": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "pin": "PIN (optional)"
+    },
+    "placeholders": {
+      "firstName": "Your first name",
+      "lastName": "Your last name",
+      "password": "Minimum 8 characters",
+      "confirmPassword": "Confirm your password",
+      "pin": "4 digits for quick access"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "firstNameMax": "Maximum 50 characters",
+      "lastNameRequired": "Last name is required",
+      "lastNameMax": "Maximum 50 characters",
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordMatch": "Passwords do not match",
+      "pinFormat": "PIN must be exactly 4 digits"
+    },
+    "errors": {
+      "invalidToken": "Invalid invitation token",
+      "notFound": "Invitation not found or expired",
+      "alreadyUsed": "This invitation has already been used",
+      "loadError": "Error loading invitation",
+      "acceptError": "Could not accept invitation."
+    },
+    "success": {
+      "title": "Welcome to the team!",
+      "description": "Your account has been created successfully. You can log in now.",
+      "loginMessage": "Account created successfully. Log in to continue."
+    }
+  },
+  "team": {
+    "edit": {
+      "memberUpdated": "Member updated",
+      "memberUpdatedDesc": "Successfully updated {{firstName}} {{lastName}} information.",
+      "noChanges": "No changes",
+      "noChangesDesc": "No changes detected to save.",
+      "cannotChangeOwnerRole": "You cannot change the role of an Owner.",
+      "cannotChangeSuperadminRole": "You cannot change the role of a Super Administrator.",
+      "cannotDeactivateOwner": "You cannot deactivate the owner of the venue.",
+      "memberStatus": "Member Status",
+      "memberActive": "The member can access the system",
+      "memberInactive": "The member cannot access the system",
+      "changePin": "Change PIN (optional)",
+      "newPin": "New PIN of 4 digits",
+      "newPinSet": "A new PIN will be set for the member",
+      "totalSales": "Total Sales",
+      "orders": "Orders",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "role": "Role"
+    },
+    "invite": {
+      "invitationSent": "Invitation sent",
+      "invitationSentDesc": "An invitation was sent to {{email}}. The invitation expires in 7 days.",
+      "emailLabel": "Guest email",
+      "firstNameLabel": "First Name",
+      "lastNameLabel": "Last Name",
+      "roleLabel": "Role",
+      "messageLabel": "Custom message (optional)",
+      "messagePlaceholder": "Write a welcome message for the new team member...",
+      "infoAlert": "The guest will receive an email with a link to create their account and join the team. They can log in with their Google account or create a password. The invitation automatically expires in 7 days.",
+      "sending": "Sending...",
+      "sendButton": "Send Invitation",
+      "emailPlaceholder": "example@company.com",
+      "firstNamePlaceholder": "First Name",
+      "lastNamePlaceholder": "Last Name",
+      "roleSelectPlaceholder": "Select a role"
+    }
+  },
+  "config": {
+    "title": "Configuration"
+  },
+  "admin": {
+    "venueEdit": {
+      "backToAdmin": "Back to Admin Panel",
+      "superadmin": "SUPERADMIN",
+      "saving": "Saving...",
+      "save": "Save",
+      "delete": "Delete",
+      "venueUpdated": "Venue updated",
+      "venueUpdatedDesc": "The venue has been updated successfully.",
+      "updateError": "Error updating venue",
+      "updateErrorDesc": "There was an error updating the venue.",
+      "venueDeleted": "Venue deleted",
+      "venueDeletedDesc": "The venue has been deleted successfully.",
+      "deleteConfirmTitle": "Are you sure you want to delete this venue?",
+      "deleteConfirmDesc": "This action cannot be undone. To confirm, type \"delete {{venueName}}\" below:",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "title": "Venue Management - SUPERADMIN",
+      "subtitle": "Advanced editing with access to premium features",
+      "basicInfo": "Basic Information",
+      "name": "Name",
+      "namePlaceholder": "Venue name",
+      "type": "Type",
+      "selectType": "Select a type",
+      "types": {
+        "restaurant": "Restaurant",
+        "studio": "Studio",
+        "bar": "Bar",
+        "cafe": "Cafe",
+        "other": "Other"
+      },
+      "address": "Address",
+      "addressPlaceholder": "Full address",
+      "city": "City",
+      "cityPlaceholder": "City",
+      "country": "Country",
+      "selectCountry": "Select a country",
+      "premiumFeatures": "Premium Features (SUPERADMIN)",
+      "featureConfigTitle": "Premium Features Configuration",
+      "featureConfigDesc": "These options are only available for SUPERADMIN level administrators and allow enabling/disabling premium features for this venue.",
+      "orderingFeature": "Order from POS",
+      "orderingFeatureDesc": "Allows ordering from the Point of Sale Terminal (premium feature)",
+      "chatbotFeature": "Assistance Chatbot",
+      "chatbotFeatureDesc": "Enables the assistance chatbot in the dashboard (premium feature)",
+      "contactAndImages": "Contact and Images",
+      "email": "Email",
+      "emailPlaceholder": "email@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "+52 123 456 7890",
+      "website": "Website",
+      "websitePlaceholder": "https://yoursite.com",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@yoursite",
+      "paymentConfig": "Payment Configuration",
+      "stripeAccountId": "Stripe Account ID",
+      "stripeAccountIdPlaceholder": "acct_...",
+      "specialPayment": "Special Payment",
+      "specialPaymentDesc": "Enable special payment for this venue",
+      "mentaIntegration": "Menta Integration (Payment Gateway)",
+      "merchantIdA": "Menta Merchant ID A",
+      "merchantIdAPlaceholder": "Menta Merchant ID A",
+      "merchantIdB": "Menta Merchant ID B (optional)",
+      "merchantIdBPlaceholder": "Menta Merchant ID B",
+      "apiKeyA": "Menta API Key A",
+      "apiKeyAPlaceholder": "Menta API Key A",
+      "apiKeyB": "Menta API Key B (optional)",
+      "apiKeyBPlaceholder": "Menta API Key B",
+      "systemConfig": "System Configuration",
+      "posSystem": "POS System",
+      "selectPosSystem": "Select a POS system",
+      "posNames": {
+        "wansoft": "Wansoft",
+        "softRestaurant": "Soft Restaurant",
+        "none": "None"
+      },
+      "posUniqueId": "POS Unique ID",
+      "posUniqueIdPlaceholder": "POS system unique ID"
+    },
+    "systemSettings": {
+      "backToAdmin": "Back to Admin Panel",
+      "accessRestricted": "Restricted Access",
+      "accessRestrictedDesc": "Only SuperAdministrators can access system settings.",
+      "warningMessage": "This section contains advanced system settings. Manipulating these values incorrectly may affect the platform operation.",
+      "tabs": {
+        "database": "Database",
+        "server": "Server",
+        "logs": "Logs",
+        "security": "Security"
+      },
+      "database": {
+        "title": "Database Configuration",
+        "maintenanceTitle": "Maintenance",
+        "maintenanceDesc": "Database maintenance options",
+        "cache": "Cache",
+        "cacheDesc": "Clear database cache to improve performance.",
+        "clearCache": "Clear Cache",
+        "backup": "Backup",
+        "backupDesc": "Create a manual backup of the current database.",
+        "createBackup": "Create Backup",
+        "lastMaintenance": "Last maintenance: 5 days ago",
+        "runFullMaintenance": "Run Full Maintenance"
+      },
+      "server": {
+        "title": "Server Configuration",
+        "systemStatus": "System Status",
+        "systemStatusDesc": "Current server status and maintenance options",
+        "cpuUsage": "CPU Usage",
+        "loading": "Loading...",
+        "average": "Average",
+        "limit": "Limit",
+        "memoryRAM": "Memory RAM",
+        "loadingMemory": "Loading memory data...",
+        "currentMemoryUsage": "Current RAM memory usage",
+        "cpuHistory": "CPU History (last 60 minutes)",
+        "noDataAvailable": "No data available",
+        "refreshData": "Refresh Data",
+        "time": "Time"
+      },
+      "security": {
+        "title": "Security Configuration",
+        "optionsTitle": "Security Options",
+        "optionsDesc": "Platform security configuration",
+        "content": "Security configuration content"
+      }
+    },
+    "userManagement": {
+      "backToAdmin": "Back to Admin Panel",
+      "title": "User Management",
+      "addUser": "Add User",
+      "createNewUser": "Create New User",
+      "createNewUserDesc": "Complete the details to create a new user.",
+      "error": "Error",
+      "roleUpdated": "Role updated",
+      "roleUpdatedDesc": "The user role has been updated successfully.",
+      "roleUpdateError": "Could not update user role.",
+      "userActivated": "User activated",
+      "userActivatedDesc": "The user has been activated successfully.",
+      "userDeactivated": "User deactivated",
+      "userDeactivatedDesc": "The user has been deactivated successfully.",
+      "statusUpdateError": "Could not change user status.",
+      "userCreated": "User created",
+      "userCreatedDesc": "The new user has been created successfully.",
+      "createUserError": "Could not create user.",
+      "userDeleted": "User deleted",
+      "userDeletedDesc": "The user has been deleted successfully.",
+      "deleteUserError": "Could not delete user.",
+      "venueAssigned": "Venue assigned",
+      "venueAssignedDesc": "The user has been assigned to the venue successfully.",
+      "assignVenueError": "Could not assign venue to user.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "venue": "Venue",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "roles": {
+        "user": "User",
+        "admin": "Administrator",
+        "venueAdmin": "Venue Admin",
+        "waiter": "Waiter",
+        "superAdmin": "Super Admin"
+      },
+      "notAssigned": "Not assigned",
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "assignToVenue": "Assign to venue",
+      "deleteUser": "Delete user",
+      "form": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "selectRole": "Select a role",
+        "venue": "Venue",
+        "selectVenue": "Select a venue (optional)"
+      },
+      "saving": "Saving...",
+      "saveUser": "Save User",
+      "confirmDelete": "Confirm Deletion",
+      "confirmDeleteDesc": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "delete": "Delete",
+      "assignVenue": "Assign to Venue",
+      "assignVenueDesc": "Select a venue to assign to {{name}}.",
+      "selectVenue": "Select a venue",
+      "assigning": "Assigning...",
+      "assign": "Assign",
+      "searchPlaceholder": "Search users...",
+      "filterByRole": "Filter by role",
+      "allRoles": "All roles",
+      "showing": "Showing {{filtered}} of {{total}} users"
+    },
+    "venueManagement": {
+      "backToAdmin": "Back to Admin Panel",
+      "title": "Venue Management",
+      "newVenue": "New Venue",
+      "createNewVenue": "Create New Venue",
+      "createNewVenueDesc": "Complete the data to create a new venue in the system",
+      "name": "Name",
+      "namePlaceholder": "Venue name",
+      "type": "Type",
+      "selectType": "Select a type",
+      "types": {
+        "restaurant": "Restaurant",
+        "bar": "Bar",
+        "cafe": "Cafe",
+        "pub": "Pub",
+        "other": "Other"
+      },
+      "address": "Address",
+      "addressPlaceholder": "Full address",
+      "phone": "Phone",
+      "phonePlaceholder": "+34 000 000 000",
+      "description": "Description",
+      "descriptionPlaceholder": "Venue description",
+      "creating": "Creating...",
+      "createVenue": "Create Venue",
+      "searchPlaceholder": "Search venues...",
+      "filterByType": "Filter by type",
+      "allTypes": "All types",
+      "columns": {
+        "name": "Name",
+        "location": "Location",
+        "type": "Type",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "showing": "Showing {{filtered}} of {{total}} venues",
+      "venueActivated": "Venue activated",
+      "venueActivatedDesc": "The venue has been activated successfully.",
+      "venueDeactivated": "Venue deactivated",
+      "venueDeactivatedDesc": "The venue has been deactivated successfully.",
+      "error": "Error",
+      "statusUpdateError": "Could not update venue status.",
+      "venueCreated": "Venue created",
+      "venueCreatedDesc": "The new venue has been created successfully.",
+      "createVenueError": "Could not create venue."
+    }
+  }
+}

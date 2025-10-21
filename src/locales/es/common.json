@@ -1,0 +1,14 @@
+{
+  "cancel": "Cancelar",
+  "save": "Guardar",
+  "saving": "Guardando...",
+  "delete": "Eliminar",
+  "deleting": "Eliminando...",
+  "success": "Éxito",
+  "error": "Error",
+  "optional": "Opcional",
+  "none": "Ninguno",
+  "primary": "Principal",
+  "secondary": "Secundaria",
+  "tertiary": "Terciaria"
+}
