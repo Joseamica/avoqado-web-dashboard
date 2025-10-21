@@ -26,6 +26,7 @@ type DataTableProps<TData> = {
   columns: ColumnDef<TData, any>[]
   isLoading?: boolean
   clickableRow?: (row: TData) => { to: string; state?: Record<string, any> }
+  onRowClick?: (row: TData) => void
   pagination?: PaginationState
   setPagination?: Dispatch<SetStateAction<PaginationState>>
   showColumnCustomizer?: boolean
@@ -38,10 +39,11 @@ type DataTableProps<TData> = {
 
 function DataTable<TData>({
   data,
-  rowCount,
+  rowCount: _rowCount,
   columns,
   isLoading = false,
   clickableRow,
+  onRowClick,
   pagination,
   setPagination,
   showColumnCustomizer = true,
@@ -206,7 +208,8 @@ function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="bg-background border-border hover:bg-background data-[state=selected]:bg-background"
+                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map(cell => (
                     <TableCell key={cell.id} className="px-4 py-3">

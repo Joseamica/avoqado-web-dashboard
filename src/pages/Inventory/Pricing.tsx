@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { pricingApi, type PricingPolicy } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { PricingPolicyDialog } from './components/PricingPolicyDialog'
+import { RecipeDialog } from './components/RecipeDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import api from '@/api'
@@ -42,6 +43,7 @@ export default function Pricing() {
 
   // Dialog states
   const [policyDialogOpen, setPolicyDialogOpen] = useState(false)
+  const [recipeDialogOpen, setRecipeDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductPricingAnalysis | null>(null)
 
   // Filter states
@@ -494,12 +496,25 @@ export default function Pricing() {
         enableSearch={false}
         pagination={pagination}
         setPagination={setPagination}
+        onRowClick={(row) => {
+          // Open recipe dialog when clicking on a row
+          setSelectedProduct(row)
+          setRecipeDialogOpen(true)
+        }}
       />
 
       {/* Pricing Policy Dialog */}
       <PricingPolicyDialog
         open={policyDialogOpen}
         onOpenChange={setPolicyDialogOpen}
+        product={selectedProduct}
+      />
+
+      {/* Recipe Dialog */}
+      <RecipeDialog
+        open={recipeDialogOpen}
+        onOpenChange={setRecipeDialogOpen}
+        mode="edit"
         product={selectedProduct}
       />
     </div>
