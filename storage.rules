@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules para Avoqado
+// Estructura: venues/{venueSlug}/[productos|logo|staff]/...
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Estructura principal por venue (usando slug en lugar de ID)
+    match /venues/{venueSlug}/{allPaths=**} {
+      // Lectura pública para mostrar imágenes en web/apps
+      allow read: if true;
+
+      // TEMPORAL: Escritura abierta para debugging (TODO: cambiar a request.auth != null)
+      allow write: if true;
+    }
+
+    // Reglas específicas por tipo de contenido (opcional - más granular)
+
+    // Productos del venue
+    match /venues/{venueSlug}/productos/{fileName} {
+      allow read: if true;
+      allow write: if true; // TEMPORAL
+    }
+
+    // Logo del venue
+    match /venues/{venueSlug}/logo/{fileName} {
+      allow read: if true;
+      allow write: if true; // TEMPORAL
+    }
+
+    // Avatares de staff
+    match /venues/{venueSlug}/staff/{fileName} {
+      allow read: if true;
+      allow write: if true; // TEMPORAL
+    }
+  }
+}

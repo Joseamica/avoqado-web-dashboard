@@ -51,7 +51,7 @@ import {
 export default function ProductId() {
   const { t } = useTranslation('menu')
   const { productId } = useParams()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
@@ -86,6 +86,16 @@ export default function ProductId() {
 
   const saveProduct = useMutation({
     mutationFn: async (formValues: any) => {
+      // Filter out invalid modifier groups (ones deleted from database)
+      const requestedModifierIds = Array.isArray(formValues.modifierGroups) ? formValues.modifierGroups.map((o: any) => o?.value ?? o) : []
+
+      const validModifierIds = requestedModifierIds.filter((id: string) => modifierGroups?.some(mg => mg.id === id))
+
+      if (requestedModifierIds.length !== validModifierIds.length) {
+        const invalidIds = requestedModifierIds.filter((id: string) => !validModifierIds.includes(id))
+        console.warn('🗑️ Removed invalid modifier groups:', invalidIds)
+      }
+
       const payload = {
         name: formValues.name,
         description: formValues.description || undefined,
@@ -94,8 +104,9 @@ export default function ProductId() {
         imageUrl: imageUrl || formValues.imageUrl || data?.imageUrl || undefined,
         sku: formValues.sku,
         categoryId: formValues.categoryId,
-        modifierGroupIds: Array.isArray(formValues.modifierGroups) ? formValues.modifierGroups.map((o: any) => o?.value ?? o) : [],
+        modifierGroupIds: validModifierIds, // Only send valid modifier groups
       }
+      console.log('📦 Saving product with payload:', payload)
       return await updateProduct(venueId!, productId!, payload)
     },
     onSuccess: () => {
@@ -167,7 +178,7 @@ export default function ProductId() {
     setCrop,
     setZoom,
   } = useImageUploader(
-    `venues/${venueId}/productos`,
+    `venues/${venueSlug}/productos`,
     form.watch('name') || '',
     { minWidth: 320, minHeight: 320 }, // Aquí pasas tu configuración
   )
@@ -181,7 +192,7 @@ export default function ProductId() {
   useEffect(() => {
     // Only proceed if we have both product data AND categories loaded
     if (!data || !categories) return
-    
+
     const mappedModifierGroups = Array.isArray(data.modifierGroups)
       ? data.modifierGroups
           .map((mg: any) => ({
@@ -258,11 +269,7 @@ export default function ProductId() {
             onRightButtonClick={() => deleteProduct.mutate()}
           />
           <Button variant="outline">{t('products.detail.duplicate')}</Button>
-          <Button
-            variant="outline"
-            onClick={() => setWizardOpen(true)}
-            className="border-primary text-primary hover:bg-primary/10"
-          >
+          <Button variant="outline" onClick={() => setWizardOpen(true)} className="border-primary text-primary hover:bg-primary/10">
             <Package className="mr-2 h-4 w-4" />
             {t('products.detail.configureInventory')}
           </Button>
@@ -441,9 +448,7 @@ export default function ProductId() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('products.create.photoRequirements')}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('products.create.photoRequirements')}</p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
                             <Button
@@ -493,9 +498,7 @@ export default function ProductId() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('products.create.photoRequirements')}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('products.create.photoRequirements')}</p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
                             <Button
@@ -550,7 +553,7 @@ export default function ProductId() {
                           />
 
                           {/* Texto que se ve (debajo del input invisible) */}
-                          <p className="font-[400] text-sm text-green-600">{t('products.create.browseFile')}</p>
+                          <p className="font-normal text-sm text-green-600">{t('products.create.browseFile')}</p>
                         </div>
 
                         {/* Sección Derecha: descripción y botones */}
@@ -561,9 +564,7 @@ export default function ProductId() {
                               {t('products.create.photoGuidelines')}
                             </a>
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('products.create.photoRequirements')}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('products.create.photoRequirements')}</p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
                             <Button

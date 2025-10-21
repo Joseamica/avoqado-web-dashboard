@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'
 
+import { useTranslation } from 'react-i18next'
+
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 
@@ -11,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   AlertDialogPortal,
+  AlertDialogDescription,
   AlertDialogTrigger,
 } from './ui/alert-dialog'
 
@@ -32,38 +35,46 @@ const AlertDialogWrapper: React.FC<AlertDialogWrapperProps> = ({
   rightButtonLabel,
   rightButtonVariant = 'default',
   onRightButtonClick,
-}) => (
-  <AlertDialog>
-    <AlertDialogTrigger asChild>
-      <button className={cn(buttonVariants({ variant: 'outline' }), 'trigger-button')}>{triggerTitle}</button>
-    </AlertDialogTrigger>
-    <AlertDialogPortal>
-      <AlertDialogOverlay />
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogPrimitive.AlertDialogTitle>{title}</AlertDialogPrimitive.AlertDialogTitle>
-          {description && <AlertDialogPrimitive.AlertDialogDescription>{description}</AlertDialogPrimitive.AlertDialogDescription>}
-        </AlertDialogHeader>
-        {message && <p className="text-sm text-zinc-600 dark:text-zinc-400">{message}</p>}
-        <AlertDialogFooter className="flex space-x-5">
-          {/* Left Button - Always appears */}
-          <AlertDialogPrimitive.AlertDialogCancel className={cn(buttonVariants({ variant: 'outline' }))}>
-            Cancelar
-          </AlertDialogPrimitive.AlertDialogCancel>
+}) => {
+  const { t } = useTranslation('common')
+  const fallbackDescription = description ?? message ?? title
 
-          {/* Right Button - Appears only if rightButtonLabel is provided */}
-          {rightButtonLabel && onRightButtonClick && (
-            <AlertDialogPrimitive.AlertDialogAction
-              onClick={onRightButtonClick}
-              className={cn(buttonVariants({ variant: rightButtonVariant }))}
-            >
-              {rightButtonLabel}
-            </AlertDialogPrimitive.AlertDialogAction>
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <button className={cn(buttonVariants({ variant: 'outline' }), 'trigger-button')}>{triggerTitle}</button>
+      </AlertDialogTrigger>
+      <AlertDialogPortal>
+        <AlertDialogOverlay />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogPrimitive.AlertDialogTitle>{title}</AlertDialogPrimitive.AlertDialogTitle>
+            {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
+          </AlertDialogHeader>
+          {!description && (
+            <AlertDialogDescription className={cn('text-sm text-zinc-600 dark:text-zinc-400', !message && 'sr-only')}>
+              {fallbackDescription}
+            </AlertDialogDescription>
           )}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialogPortal>
-  </AlertDialog>
-)
+          {description && message && <p className="text-sm text-zinc-600 dark:text-zinc-400">{message}</p>}
+          <AlertDialogFooter className="flex space-x-5">
+            <AlertDialogPrimitive.AlertDialogCancel className={cn(buttonVariants({ variant: 'outline' }))}>
+              {t('cancel')}
+            </AlertDialogPrimitive.AlertDialogCancel>
+
+            {rightButtonLabel && onRightButtonClick && (
+              <AlertDialogPrimitive.AlertDialogAction
+                onClick={onRightButtonClick}
+                className={cn(buttonVariants({ variant: rightButtonVariant }))}
+              >
+                {rightButtonLabel}
+              </AlertDialogPrimitive.AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogPortal>
+    </AlertDialog>
+  )
+}
 
 export default AlertDialogWrapper

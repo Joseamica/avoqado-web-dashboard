@@ -51,7 +51,8 @@ try {
 // Initialize storage with error handling
 if (app) {
   try {
-    storage = getStorage(app)
+    // Firebase v12: Pass bucket URL explicitly
+    storage = getStorage(app, 'gs://avoqado-d0a24.appspot.com')
     console.log('✅ Firebase Storage initialized successfully')
     console.log('📦 Storage bucket:', storage.app.options.storageBucket)
   } catch (error) {

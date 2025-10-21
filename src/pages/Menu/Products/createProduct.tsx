@@ -42,7 +42,7 @@ type CreateProductPayload = {
 
 export default function CreateProduct() {
   const { t } = useTranslation('menu')
-  const { venue, venueId } = useCurrentVenue()
+  const { venue, venueId, venueSlug } = useCurrentVenue()
   const { checkFeatureAccess } = useAuth()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -52,19 +52,13 @@ export default function CreateProduct() {
   const { toast } = useToast()
   const navigate = useNavigate()
 
-  const {
-    data: categories,
-    isLoading: isCategoriesLoading,
-  } = useQuery({
+  const { data: categories, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['menu-categories', venueId],
     queryFn: () => getMenuCategories(venueId!),
     enabled: !!venueId,
   })
 
-  const {
-    data: modifierGroups,
-    isLoading: isModifierGroupsLoading,
-  } = useQuery({
+  const { data: modifierGroups, isLoading: isModifierGroupsLoading } = useQuery({
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
@@ -127,14 +121,8 @@ export default function CreateProduct() {
     if (hasAutoOpenedWizard) return
 
     // Check if venue is a restaurant/food service type
-    const isRestaurantType = venue?.type && [
-      'RESTAURANT',
-      'BAR',
-      'CAFE',
-      'FAST_FOOD',
-      'FOOD_TRUCK',
-      'HOTEL_RESTAURANT'
-    ].includes(venue.type)
+    const isRestaurantType =
+      venue?.type && ['RESTAURANT', 'BAR', 'CAFE', 'FAST_FOOD', 'FOOD_TRUCK', 'HOTEL_RESTAURANT'].includes(venue.type)
 
     // Check if venue has inventory management feature
     const hasInventoryFeature = checkFeatureAccess('inventory_management')
@@ -160,7 +148,7 @@ export default function CreateProduct() {
     setCrop,
     setZoom,
   } = useImageUploader(
-    `venues/${venueId}/productos`,
+    `venues/${venueSlug}/productos`,
     form.watch('name') || '',
     { minWidth: 320, minHeight: 320 }, // Aquí pasas tu configuración
   )
@@ -180,9 +168,7 @@ export default function CreateProduct() {
   // Manejador del submit
   // function onSubmit(formValues: z.infer<typeof FormSchema>) {
   function onSubmit(formValues) {
-    const modifierGroupIds = Array.isArray(formValues.modifierGroups)
-      ? formValues.modifierGroups.map((m: any) => m.value)
-      : []
+    const modifierGroupIds = Array.isArray(formValues.modifierGroups) ? formValues.modifierGroups.map((m: any) => m.value) : []
 
     const priceNumber = typeof formValues.price === 'string' ? parseFloat(formValues.price) : formValues.price
 
@@ -229,9 +215,7 @@ export default function CreateProduct() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-semibold">{t('products.create.title')}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('products.create.wizardRecommendation')}
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">{t('products.create.wizardRecommendation')}</p>
               </div>
               <Button
                 type="button"
@@ -405,9 +389,7 @@ export default function CreateProduct() {
                             </a>
                             .
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('products.create.photoRequirements')}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('products.create.photoRequirements')}</p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
                             <Button
@@ -455,7 +437,7 @@ export default function CreateProduct() {
                           />
 
                           {/* Texto que se ve (debajo del input invisible) */}
-                          <p className="font-[400] text-sm text-green-600">{t('products.create.browseFile')}</p>
+                          <p className="font-normal text-sm text-green-600">{t('products.create.browseFile')}</p>
                         </div>
 
                         {/* Sección Derecha: descripción y botones */}
@@ -466,9 +448,7 @@ export default function CreateProduct() {
                               {t('products.create.photoGuidelines')}
                             </a>
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('products.create.photoRequirements')}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('products.create.photoRequirements')}</p>
 
                           <div className="absolute bottom-0 flex mt-2 space-x-2">
                             <Button
@@ -508,7 +488,13 @@ export default function CreateProduct() {
               <FormItem className="max-w-96">
                 <FormLabel>{t('products.create.category')}</FormLabel>
                 <FormControl>
-                  <Select onValueChange={value => { field.onChange(value); form.clearErrors('categoryId') }} defaultValue={field.value}>
+                  <Select
+                    onValueChange={value => {
+                      field.onChange(value)
+                      form.clearErrors('categoryId')
+                    }}
+                    defaultValue={field.value}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder={t('products.create.categoryPlaceholder')} />
                     </SelectTrigger>
@@ -558,7 +544,7 @@ export default function CreateProduct() {
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         mode="create"
-        onSuccess={(_productId) => {
+        onSuccess={_productId => {
           toast({
             title: t('products.create.toasts.created', { name: t('common.product') }),
             description: t('products.create.toasts.createdDesc'),

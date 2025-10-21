@@ -64,14 +64,14 @@ interface Step3RecipeFormData {
     rawMaterialName?: string
     quantity: number
     unit: string
-    isOptional: boolean  // Always boolean, not optional
+    isOptional: boolean // Always boolean, not optional
     substituteNotes?: string
   }>
 }
 
 export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, productId }: ProductWizardDialogProps) {
   const { t } = useTranslation('inventory')
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -147,7 +147,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     setImageForCrop,
     setCrop,
     setZoom,
-  } = useImageUploader(`venues/${venueId}/productos`, step1Form.watch('name') || '', { minWidth: 320, minHeight: 320 })
+  } = useImageUploader(`venues/${venueSlug}/productos`, step1Form.watch('name') || '', { minWidth: 320, minHeight: 320 })
 
   // Handle image delete
   const handleDeleteImage = () => {
@@ -797,7 +797,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                         />
 
                         {/* Texto que se ve (debajo del input invisible) */}
-                        <p className="font-[400] text-sm text-green-600">{t('wizard.step1.browseFile')}</p>
+                        <p className="font-normal text-sm text-green-600">{t('wizard.step1.browseFile')}</p>
                       </div>
 
                       {/* Sección Derecha: descripción y botones */}

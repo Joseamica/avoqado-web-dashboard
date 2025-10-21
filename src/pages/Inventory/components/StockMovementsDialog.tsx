@@ -74,7 +74,8 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
         <DialogHeader>
           <DialogTitle>{t('rawMaterials.movements.title')}</DialogTitle>
           <DialogDescription>
-            {rawMaterial.name} ({rawMaterial.sku}) - {t('rawMaterials.fields.currentStock')}: {Number(rawMaterial.currentStock).toFixed(2)} {formatUnitWithQuantity(Number(rawMaterial.currentStock), rawMaterial.unit)}
+            {rawMaterial.name} ({rawMaterial.sku}) - {t('rawMaterials.fields.currentStock')}: {Number(rawMaterial.currentStock).toFixed(2)}{' '}
+            {formatUnitWithQuantity(Number(rawMaterial.currentStock), rawMaterial.unit)}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,7 +110,7 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
                     )}
 
                     {/* Icon */}
-                    <div className="relative flex-shrink-0">
+                    <div className="relative shrink-0">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-background border-2 border-border shadow-sm">
                         {getMovementIcon(quantity)}
                       </div>
@@ -128,8 +129,13 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className={`text-lg font-bold ${quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {quantity > 0 ? '+' : ''}{quantity.toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity), movement.unit)}
+                          <p
+                            className={`text-lg font-bold ${
+                              quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                            }`}
+                          >
+                            {quantity > 0 ? '+' : ''}
+                            {quantity.toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity), movement.unit)}
                           </p>
                         </div>
                       </div>
