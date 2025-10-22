@@ -380,6 +380,46 @@
       }
     }
   },
+  "createMenu": {
+    "loading": "Loading menu form...",
+    "buttons": {
+      "save": "Save menu",
+      "saving": "Saving..."
+    },
+    "toast": {
+      "categoryCreated": "Menu {{name}} created",
+      "categoryCreatedDesc": "The menu has been created successfully.",
+      "errorSaving": "Error saving",
+      "errorSavingDesc": "We couldn't save the menu. Try again."
+    },
+    "validation": {
+      "nameRequired": "Menu name is required.",
+      "dayRequired": "Select at least one day.",
+      "minInterval": "End time must be at least one hour after the start time."
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "fields": {
+      "menuActive": "Menu active",
+      "menuActiveDesc": "Enable this menu to make it visible to your staff and customers.",
+      "menuName": "Menu name",
+      "menuNamePlaceholder": "Enter a menu name",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "selectTime": "Select a time",
+      "allDay": "Available all day",
+      "categories": "Categories",
+      "selectCategories": "Select categories",
+      "noCategoriesFound": "No categories found"
+    }
+  },
   "menuId": {
     "loading": "Loading menu...",
     "buttons": {

@@ -380,6 +380,46 @@
       }
     }
   },
+  "createMenu": {
+    "loading": "Cargando formulario de menú...",
+    "buttons": {
+      "save": "Guardar menú",
+      "saving": "Guardando..."
+    },
+    "toast": {
+      "categoryCreated": "Menú {{name}} creado",
+      "categoryCreatedDesc": "El menú se creó correctamente.",
+      "errorSaving": "Error al guardar",
+      "errorSavingDesc": "No pudimos guardar el menú. Intenta nuevamente."
+    },
+    "validation": {
+      "nameRequired": "Debes ingresar el nombre del menú.",
+      "dayRequired": "Selecciona al menos un día.",
+      "minInterval": "La hora de cierre debe ser al menos una hora después de la hora de inicio."
+    },
+    "days": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb",
+      "sun": "Dom"
+    },
+    "fields": {
+      "menuActive": "Menú activo",
+      "menuActiveDesc": "Activa este menú para que sea visible para tu personal y clientes.",
+      "menuName": "Nombre del menú",
+      "menuNamePlaceholder": "Introduce un nombre para el menú",
+      "startTime": "Hora de inicio",
+      "endTime": "Hora de cierre",
+      "selectTime": "Selecciona una hora",
+      "allDay": "Disponible todo el día",
+      "categories": "Categorías",
+      "selectCategories": "Selecciona categorías",
+      "noCategoriesFound": "No se encontraron categorías"
+    }
+  },
   "menuId": {
     "loading": "Cargando menú...",
     "buttons": {
