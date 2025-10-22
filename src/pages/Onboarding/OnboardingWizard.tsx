@@ -7,8 +7,21 @@ import { OnboardingLayout } from './components/OnboardingLayout'
 import { WelcomeStep } from './steps/WelcomeStep'
 import { OnboardingTypeStep, OnboardingType } from './steps/OnboardingTypeStep'
 import { BusinessInfoStep, BusinessInfoData } from './steps/BusinessInfoStep'
+import { MenuDataStep, MenuDataStepData } from './steps/MenuDataStep'
+import { TeamInvitesStep, TeamInvitesStepData } from './steps/TeamInvitesStep'
+import { FeaturesStep, FeaturesStepData } from './steps/FeaturesStep'
+import { PaymentInfoStep, PaymentInfoData } from './steps/PaymentInfoStep'
 import { LoadingScreen } from '@/components/spinner'
-import { startOnboarding, updateStep2, updateStep3, completeOnboarding } from '@/services/onboarding.service'
+import {
+  startOnboarding,
+  updateStep2,
+  updateStep3,
+  updateStep4,
+  updateStep5,
+  updateStep6,
+  updateStep7,
+  completeOnboarding,
+} from '@/services/onboarding.service'
 import { useToast } from '@/hooks/use-toast'
 
 // Step definitions
@@ -32,7 +45,10 @@ export interface OnboardingStepProps {
 export interface OnboardingData {
   type?: OnboardingType
   businessInfo?: BusinessInfoData
-  // More fields will be added as we implement more steps
+  menuData?: MenuDataStepData
+  teamInvites?: TeamInvitesStepData
+  features?: FeaturesStepData
+  payment?: PaymentInfoData
 }
 
 const STEPS: OnboardingStepConfig[] = [
@@ -51,7 +67,26 @@ const STEPS: OnboardingStepConfig[] = [
     title: 'steps.businessInfo',
     component: BusinessInfoStep,
   },
-  // More steps will be added here in future phases
+  {
+    id: 'menuData',
+    title: 'steps.menuData',
+    component: MenuDataStep,
+  },
+  {
+    id: 'teamInvites',
+    title: 'steps.teamInvites',
+    component: TeamInvitesStep,
+  },
+  {
+    id: 'features',
+    title: 'steps.features',
+    component: FeaturesStep,
+  },
+  {
+    id: 'payment',
+    title: 'steps.payment',
+    component: PaymentInfoStep,
+  },
 ]
 
 export function OnboardingWizard() {
@@ -106,7 +141,15 @@ export function OnboardingWizard() {
 
   const handleNext = () => {
     if (currentStepIndex < STEPS.length - 1) {
-      setCurrentStepIndex(prev => prev + 1)
+      const currentStep = STEPS[currentStepIndex]
+
+      // If we're on BusinessInfo step and type is 'demo', skip MenuData step
+      if (currentStep.id === 'businessInfo' && onboardingData.type === 'demo') {
+        console.log('🎯 Modo Demo detectado - saltando MenuData step')
+        setCurrentStepIndex(prev => prev + 2) // Skip MenuData
+      } else {
+        setCurrentStepIndex(prev => prev + 1)
+      }
     } else {
       // Last step completed - navigate to venue creation or dashboard
       handleComplete()
@@ -115,7 +158,15 @@ export function OnboardingWizard() {
 
   const handlePrevious = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1)
+      const currentStep = STEPS[currentStepIndex]
+
+      // If we're on TeamInvites step and type is 'demo', skip MenuData step when going back
+      if (currentStep.id === 'teamInvites' && onboardingData.type === 'demo') {
+        console.log('🎯 Modo Demo detectado - saltando MenuData step (hacia atrás)')
+        setCurrentStepIndex(prev => prev - 2) // Skip MenuData
+      } else {
+        setCurrentStepIndex(prev => prev - 1)
+      }
     }
   }
 
@@ -168,7 +219,27 @@ export function OnboardingWizard() {
       // Step 2: Update business info (Step 3)
       await updateStep3(user.organizationId, currentData.businessInfo)
 
-      // Step 3: Complete onboarding and create venue
+      // Step 3 (Optional): Update menu data (Step 4) if provided
+      if (currentData.menuData && (currentData.menuData.categories?.length || currentData.menuData.products?.length || currentData.menuData.csvFile)) {
+        await updateStep4(user.organizationId, currentData.menuData)
+      }
+
+      // Step 4 (Optional): Update team invites (Step 5) if provided
+      if (currentData.teamInvites && currentData.teamInvites.invites.length > 0) {
+        await updateStep5(user.organizationId, currentData.teamInvites.invites)
+      }
+
+      // Step 5 (Optional): Update features (Step 6) if provided
+      if (currentData.features && currentData.features.features.length > 0) {
+        await updateStep6(user.organizationId, currentData.features.features)
+      }
+
+      // Step 6 (Optional): Update payment info (Step 7) if provided
+      if (currentData.payment && currentData.payment.clabe) {
+        await updateStep7(user.organizationId, currentData.payment)
+      }
+
+      // Step 7: Complete onboarding and create venue
       const result = await completeOnboarding(user.organizationId)
 
       // Show success message
@@ -255,6 +326,66 @@ export function OnboardingWizard() {
               })
             }}
             initialValue={onboardingData.businessInfo}
+          />
+        )
+
+      case 'menuData':
+        return (
+          <MenuDataStep
+            {...baseProps}
+            onSave={menuData => {
+              setOnboardingData(prev => {
+                const newData = { ...prev, menuData }
+                latestDataRef.current = newData // Update ref immediately
+                return newData
+              })
+            }}
+            initialValue={onboardingData.menuData}
+          />
+        )
+
+      case 'teamInvites':
+        return (
+          <TeamInvitesStep
+            {...baseProps}
+            onSave={teamInvites => {
+              setOnboardingData(prev => {
+                const newData = { ...prev, teamInvites }
+                latestDataRef.current = newData // Update ref immediately
+                return newData
+              })
+            }}
+            initialValue={onboardingData.teamInvites}
+          />
+        )
+
+      case 'features':
+        return (
+          <FeaturesStep
+            {...baseProps}
+            onSave={features => {
+              setOnboardingData(prev => {
+                const newData = { ...prev, features }
+                latestDataRef.current = newData // Update ref immediately
+                return newData
+              })
+            }}
+            initialValue={onboardingData.features}
+          />
+        )
+
+      case 'payment':
+        return (
+          <PaymentInfoStep
+            {...baseProps}
+            onSave={payment => {
+              setOnboardingData(prev => {
+                const newData = { ...prev, payment }
+                latestDataRef.current = newData // Update ref immediately
+                return newData
+              })
+            }}
+            initialValue={onboardingData.payment}
           />
         )
 

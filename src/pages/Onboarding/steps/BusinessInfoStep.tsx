@@ -315,6 +315,41 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                 )}
               />
 
+              {/* Optional Steps Notice */}
+              <Card className="border-muted bg-muted/30">
+                <CardContent className="pt-6">
+                  <div className="flex gap-3">
+                    <div className="mt-0.5 text-muted-foreground">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm font-medium text-foreground">{t('businessInfo.optionalSteps.title')}</p>
+                      <p className="text-sm text-muted-foreground">{t('businessInfo.optionalSteps.description')}</p>
+                      <ul className="ml-4 list-disc space-y-1 text-sm text-muted-foreground">
+                        <li>{t('businessInfo.optionalSteps.step4')}</li>
+                        <li>{t('businessInfo.optionalSteps.step5')}</li>
+                        <li>{t('businessInfo.optionalSteps.step6')}</li>
+                        <li>{t('businessInfo.optionalSteps.step7')}</li>
+                      </ul>
+                      <p className="text-sm font-medium text-foreground">{t('businessInfo.optionalSteps.choice')}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Navigation buttons */}
               <div className="flex justify-between pt-4">
                 {!isFirstStep && (
