@@ -29,11 +29,22 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
     }
   }, [isAuthenticated, navigate, from])
 
+  // Pre-fill demo credentials for demo environment
+  const isDemoEnvironment = window.location.hostname === 'demo.dashboard.avoqado.io'
+  const demoCredentials = isDemoEnvironment
+    ? {
+        email: 'owner@owner.com',
+        password: 'owner',
+      }
+    : {}
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Inputs>()
+  } = useForm<Inputs>({
+    defaultValues: demoCredentials,
+  })
 
   const onSubmit: SubmitHandler<Inputs> = async formData => {
     // No need for try/catch here since login is handled by React Query mutation
@@ -56,6 +67,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">{t('auth.login.title')}</h1>
         <p className="text-muted-foreground text-sm text-balance">{t('auth.login.subtitle')}</p>
+        {isDemoEnvironment && (
+          <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">
+              🎭 Demo Environment - Credentials pre-filled
+            </p>
+          </div>
+        )}
       </div>
       <div className="grid gap-6">
         <div className="grid gap-3">
