@@ -13,6 +13,7 @@ on:
         default: 'staging'
         type: choice
         options:
+          - demo
           - staging
           - production
 
@@ -168,6 +169,92 @@ jobs:
             echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"
           else
             echo "❌ 🚨 Staging deployment failed!"
+            exit 1
+          fi
+
+  # 🧪 Deploy to Demo Environment
+  deploy-demo:
+    name: 🧪 Deploy to Demo
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: |
+      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'demo')
+    environment:
+      name: demo
+      url: https://demo.dashboard.avoqado.io
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build for demo
+        run: npm run build
+        env:
+          # Demo environment variables
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_FRONTEND_URL: ${{ secrets.VITE_FRONTEND_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_FIREBASE_RECAPTCHA_SITE_KEY }}
+
+      - name: 🚀 Deploy to Cloudflare Pages (Demo)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name demo-avoqado-web-dashboard --branch develop
+
+      - name: ⏳ Wait for deployment to propagate
+        run: |
+          echo "⏳ Waiting for demo deployment to propagate..."
+          sleep 45
+
+      - name: 🏥 Demo health check
+        run: |
+          echo "🏥 Performing demo health checks..."
+
+          # Check if demo is accessible
+          for i in {1..10}; do
+            if curl -f -s -I https://demo.dashboard.avoqado.io; then
+              echo "✅ Demo deployment accessible!"
+
+              # Check if assets are loading
+              echo "🔍 Verifying static assets..."
+              if curl -f -s -I https://demo.dashboard.avoqado.io/assets/ > /dev/null 2>&1; then
+                echo "✅ Static assets loading correctly!"
+              fi
+
+              break
+            fi
+            echo "⏳ Demo health check attempt $i failed, retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "🎉 Demo deployment successful!"
+
+      - name: 📢 Notify demo deployment
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then
+            echo "🎉 ✅ Demo deployment completed successfully!"
+            echo "🌐 Environment: https://demo.dashboard.avoqado.io"
+            echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
+            echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
+            echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"
+          else
+            echo "❌ 🚨 Demo deployment failed!"
             exit 1
           fi
 
