@@ -54,6 +54,60 @@ export const updateStep3 = async (organizationId: string, data: BusinessInfoData
 }
 
 /**
+ * Update Step 4 - Menu Data
+ */
+export interface MenuDataStepData {
+  method: 'manual' | 'csv'
+  categories?: Array<{ name: string; slug: string }>
+  products?: Array<{
+    name: string
+    sku: string
+    price: number
+    categorySlug: string
+  }>
+}
+
+export const updateStep4 = async (organizationId: string, data: MenuDataStepData) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/4`, data)
+  return response.data
+}
+
+/**
+ * Update Step 5 - Team Invites
+ */
+export interface TeamInviteData {
+  email: string
+  role: string
+}
+
+export const updateStep5 = async (organizationId: string, invites: TeamInviteData[]) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/5`, { invites })
+  return response.data
+}
+
+/**
+ * Update Step 6 - Selected Features
+ */
+export const updateStep6 = async (organizationId: string, features: string[]) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/6`, { features })
+  return response.data
+}
+
+/**
+ * Update Step 7 - Payment Info
+ */
+export interface PaymentInfoData {
+  clabe: string
+  bankName?: string
+  accountHolder?: string
+}
+
+export const updateStep7 = async (organizationId: string, data: PaymentInfoData) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/7`, data)
+  return response.data
+}
+
+/**
  * Complete onboarding and create venue
  */
 export interface CompleteOnboardingResponse {

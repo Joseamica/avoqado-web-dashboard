@@ -43,6 +43,7 @@ export interface AuthStatusResponse {
       slug: string;
       logo: string | null;
       role: StaffRole;
+      isDemo?: boolean;
       features?: {
         active: boolean;
         feature: {
