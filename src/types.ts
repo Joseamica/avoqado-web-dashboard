@@ -374,6 +374,17 @@ export interface Venue {
   active: boolean
   operationalSince: string | null
 
+  // Demo mode
+  isDemo?: boolean
+  demoExpiresAt?: string | null
+
+  // Tax Information (for converting from demo to real)
+  rfc?: string | null // RFC (Tax ID) for Mexico
+  legalName?: string | null // Legal business name
+  fiscalRegime?: string | null // Fiscal regime code
+  taxDocumentUrl?: string | null // URL to tax document
+  idDocumentUrl?: string | null // URL to ID document
+
   // POS Integration
   posType: PosType | null
   posConfig: any | null // Json type
@@ -1182,6 +1193,8 @@ export interface SessionVenue {
   currency: string
   // El rol que el usuario logueado tiene EN ESTE venue específico
   role: StaffRole
+  // Whether this venue is in demo mode
+  isDemo?: boolean
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
