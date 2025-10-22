@@ -852,6 +852,95 @@ export default function EditVenue() {
               </div>
             </div>
 
+            {/* Tax Documents Section */}
+            {(venue.taxDocumentUrl || venue.idDocumentUrl || venue.rfc) && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium">{t('venues.edit.sections.taxInfo', { defaultValue: 'Información Fiscal' })}</h3>
+                <Separator />
+
+                {venue.rfc && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">RFC</p>
+                      <p className="text-sm text-foreground">{venue.rfc}</p>
+                    </div>
+                    {venue.legalName && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">{t('venues.edit.labels.legalName', { defaultValue: 'Razón Social' })}</p>
+                        <p className="text-sm text-foreground">{venue.legalName}</p>
+                      </div>
+                    )}
+                    {venue.fiscalRegime && (
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">{t('venues.edit.labels.fiscalRegime', { defaultValue: 'Régimen Fiscal' })}</p>
+                        <p className="text-sm text-foreground">{venue.fiscalRegime}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {venue.taxDocumentUrl && (
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                          <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{t('venues.edit.labels.taxDocument', { defaultValue: 'Constancia de Situación Fiscal' })}</p>
+                          <p className="text-xs text-muted-foreground">{t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}</p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.href = venue.taxDocumentUrl!
+                          link.download = `constancia-fiscal-${venue.slug}.pdf`
+                          link.click()
+                        }}
+                      >
+                        {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
+                      </Button>
+                    </div>
+                  )}
+
+                  {venue.idDocumentUrl && (
+                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                          <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{t('venues.edit.labels.idDocument', { defaultValue: 'Identificación Oficial (INE/IFE)' })}</p>
+                          <p className="text-xs text-muted-foreground">{t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}</p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.href = venue.idDocumentUrl!
+                          link.download = `identificacion-${venue.slug}.pdf`
+                          link.click()
+                        }}
+                      >
+                        {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-6">
               <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
               <Separator />
