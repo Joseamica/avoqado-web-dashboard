@@ -10,5 +10,13 @@
   "none": "Ninguno",
   "primary": "Principal",
   "secondary": "Secundaria",
-  "tertiary": "Terciaria"
+  "tertiary": "Terciaria",
+  "add": "Agregar",
+  "subtract": "Restar",
+  "there": "ahí",
+  "getStarted": "Comenzar",
+  "finish": "Finalizar",
+  "loading": "Cargando...",
+  "previous": "Anterior",
+  "continue": "Continuar"
 }

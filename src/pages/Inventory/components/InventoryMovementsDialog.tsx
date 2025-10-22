@@ -8,6 +8,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { Loader2, TrendingUp, TrendingDown, Package } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { Product } from '@/types'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 
 interface InventoryMovementsDialogProps {
   open: boolean
@@ -19,6 +20,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
   const { t, i18n } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
   const localeCode = getIntlLocale(i18n.language)
+  const { formatUnitWithQuantity } = useUnitTranslation()
 
   // Fetch inventory movements
   const { data: movements, isLoading } = useQuery({
@@ -32,6 +34,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
   })
 
   if (!product || !product.inventory) return null
+  const unitKey = (product.unit || 'UNIT').toUpperCase()
 
   const getMovementIcon = (quantity: number) => {
     if (quantity > 0) {
@@ -63,7 +66,8 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
         <DialogHeader>
           <DialogTitle>{t('rawMaterials.movements.title')}</DialogTitle>
           <DialogDescription>
-            {product.name} ({product.sku}) - {t('rawMaterials.fields.currentStock')}: {currentStock.toFixed(2)} {product.unit || 'units'}
+            {product.name} ({product.sku}) - {t('rawMaterials.fields.currentStock')}: {currentStock.toFixed(2)}{' '}
+            {formatUnitWithQuantity(currentStock, unitKey)}
           </DialogDescription>
         </DialogHeader>
 
@@ -117,7 +121,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
                             className={`text-lg font-bold ${quantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
                           >
                             {quantity > 0 ? '+' : ''}
-                            {quantity.toFixed(2)} {product.unit || 'units'}
+                            {quantity.toFixed(2)} {formatUnitWithQuantity(quantity, unitKey)}
                           </p>
                         </div>
                       </div>
@@ -127,7 +131,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
                         <span className="text-muted-foreground">{previousStock.toFixed(2)}</span>
                         <span className="text-muted-foreground">→</span>
                         <span className="font-semibold text-foreground">{newStock.toFixed(2)}</span>
-                        <span className="text-muted-foreground">{product.unit || 'units'}</span>
+                        <span className="text-muted-foreground">{formatUnitWithQuantity(newStock, unitKey)}</span>
                       </div>
 
                       {/* Reason & Reference */}

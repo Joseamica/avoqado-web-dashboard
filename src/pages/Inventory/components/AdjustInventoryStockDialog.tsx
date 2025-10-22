@@ -15,6 +15,7 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
 import type { Product } from '@/types'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 
 interface AdjustInventoryStockDialogProps {
   open: boolean
@@ -27,6 +28,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatUnitWithQuantity } = useUnitTranslation()
 
   const {
     register,
@@ -87,6 +89,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
 
   if (!product || !product.inventory) return null
 
+  const unitKey = (product.unit || 'UNIT').toUpperCase()
   const currentStock = Number(product.inventory.currentStock)
   const newStock = currentStock + (quantity || 0)
   const isNegativeStock = newStock < 0
@@ -108,13 +111,13 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               <div>
                 <p className="text-sm text-muted-foreground">{t('rawMaterials.fields.currentStock')}</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {currentStock.toFixed(2)} {product.unit || 'units'}
+                  {currentStock.toFixed(2)} {formatUnitWithQuantity(currentStock, unitKey)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">{t('rawMaterials.movements.newStock')}</p>
                 <p className={`text-2xl font-bold ${isNegativeStock ? 'text-destructive' : 'text-foreground'}`}>
-                  {newStock.toFixed(2)} {product.unit || 'units'}
+                  {newStock.toFixed(2)} {formatUnitWithQuantity(newStock, unitKey)}
                 </p>
               </div>
             </div>
@@ -167,8 +170,8 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''} {Math.abs(quantity || 0).toFixed(2)}{' '}
-              {product.unit || 'units'}
+              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''}{' '}
+              {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">Required</p>}
           </div>

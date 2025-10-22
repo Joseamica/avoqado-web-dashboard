@@ -10,5 +10,13 @@
   "none": "None",
   "primary": "Primary",
   "secondary": "Secondary",
-  "tertiary": "Tertiary"
+  "tertiary": "Tertiary",
+  "add": "Add",
+  "subtract": "Subtract",
+  "there": "there",
+  "getStarted": "Get Started",
+  "finish": "Finish",
+  "loading": "Loading...",
+  "previous": "Previous",
+  "continue": "Continue"
 }

@@ -1,18 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { Button } from '@/components/ui/button'
-import { Package, Search, TrendingDown, TrendingUp, DollarSign } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import DataTable from '@/components/data-table'
-import { ColumnDef } from '@tanstack/react-table'
 import { PermissionGate } from '@/components/PermissionGate'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { getProducts } from '@/services/menu.service'
 import { Product } from '@/types'
+import { useQuery } from '@tanstack/react-query'
+import { ColumnDef } from '@tanstack/react-table'
+import { DollarSign, Package, PackageX, Search, TrendingDown } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AdjustInventoryStockDialog } from './components/AdjustInventoryStockDialog'
 import { InventoryMovementsDialog } from './components/InventoryMovementsDialog'
 
@@ -58,35 +59,32 @@ interface ProductWithStock extends Product {
 }
 
 // Stock status helper function
-const getStockStatus = (
-  currentStock: number,
-  reorderPoint: number,
-  t: (key: string) => string
-) => {
+const getStockStatus = (currentStock: number, reorderPoint: number, t: (key: string) => string) => {
   if (currentStock === 0) {
     return {
       label: t('productStock.status.outOfStock'),
       variant: 'destructive' as const,
-      className: 'bg-destructive/10 border-destructive/20 text-destructive'
+      className: 'bg-destructive/10 border-destructive/20 text-destructive',
     }
   }
   if (currentStock <= reorderPoint) {
     return {
       label: t('productStock.status.lowStock'),
       variant: 'outline' as const,
-      className: 'bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200'
+      className: 'bg-yellow-50 dark:bg-yellow-950/50 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
     }
   }
   return {
     label: t('productStock.status.inStock'),
     variant: 'outline' as const,
-    className: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
+    className: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
   }
 }
 
 export default function ProductStock() {
   const { t } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
+  const { formatUnitWithQuantity } = useUnitTranslation()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterLowStock, setFilterLowStock] = useState(false)
@@ -128,7 +126,7 @@ export default function ProductStock() {
         currentStock: Number(inventory.currentStock),
         reorderPoint: Number(inventory.minimumStock),
         costPerUnit: Number(product.cost || 0),
-        unit: product.unit || 'UNIT',
+        unit: (product.unit || 'UNIT').toUpperCase(),
       } as ProductWithStock
     })
   }, [products])
@@ -137,8 +135,8 @@ export default function ProductStock() {
 
   // Apply filters
   const filteredItems = productStockItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sku.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesLowStock = !filterLowStock || item.currentStock <= item.reorderPoint
 
     return matchesSearch && matchesLowStock
@@ -146,17 +144,11 @@ export default function ProductStock() {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const lowStockCount = filteredItems.filter(item =>
-      item.currentStock > 0 && item.currentStock <= item.reorderPoint
-    ).length
+    const lowStockCount = filteredItems.filter(item => item.currentStock > 0 && item.currentStock <= item.reorderPoint).length
 
-    const outOfStockCount = filteredItems.filter(item =>
-      item.currentStock === 0
-    ).length
+    const outOfStockCount = filteredItems.filter(item => item.currentStock === 0).length
 
-    const totalValue = filteredItems.reduce((sum, item) =>
-      sum + (item.currentStock * item.costPerUnit), 0
-    )
+    const totalValue = filteredItems.reduce((sum, item) => sum + item.currentStock * item.costPerUnit, 0)
 
     return {
       total: filteredItems.length,
@@ -189,8 +181,16 @@ export default function ProductStock() {
           const status = getStockStatus(row.original.currentStock, row.original.reorderPoint, t)
           return (
             <div className="flex items-center gap-2">
-              <span className={`font-semibold ${status.className.includes('destructive') ? 'text-destructive' : status.className.includes('yellow') ? 'text-yellow-600 dark:text-yellow-500' : 'text-green-600 dark:text-green-500'}`}>
-                {row.original.currentStock} {t(`units.${row.original.unit}`)}
+              <span
+                className={`font-semibold ${
+                  status.className.includes('destructive')
+                    ? 'text-destructive'
+                    : status.className.includes('yellow')
+                    ? 'text-yellow-600 dark:text-yellow-500'
+                    : 'text-green-600 dark:text-green-500'
+                }`}
+              >
+                {row.original.currentStock} {formatUnitWithQuantity(row.original.currentStock, row.original.unit)}
               </span>
             </div>
           )
@@ -201,18 +201,14 @@ export default function ProductStock() {
         header: t('productStock.table.columns.reorderPoint'),
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {row.original.reorderPoint} {t(`units.${row.original.unit}`)}
+            {row.original.reorderPoint} {formatUnitWithQuantity(row.original.reorderPoint, row.original.unit)}
           </span>
         ),
       },
       {
         accessorKey: 'costPerUnit',
         header: t('productStock.table.columns.costPerUnit'),
-        cell: ({ row }) => (
-          <span className="font-medium">
-            ${row.original.costPerUnit.toFixed(2)}
-          </span>
-        ),
+        cell: ({ row }) => <span className="font-medium">${row.original.costPerUnit.toFixed(2)}</span>,
       },
       {
         accessorKey: 'status',
@@ -257,7 +253,7 @@ export default function ProductStock() {
         ),
       },
     ],
-    [t]
+    [t, formatUnitWithQuantity],
   )
 
   if (isLoading) {
@@ -308,7 +304,7 @@ export default function ProductStock() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('productStock.stats.outOfStock')}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-destructive" />
+            <PackageX className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{stats.outOfStock}</div>
@@ -333,39 +329,24 @@ export default function ProductStock() {
           <Input
             placeholder={t('productStock.searchPlaceholder')}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pl-8"
           />
         </div>
-        <Button
-          variant={filterLowStock ? 'default' : 'outline'}
-          onClick={() => setFilterLowStock(!filterLowStock)}
-        >
+        <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => setFilterLowStock(!filterLowStock)}>
           {t('productStock.stats.lowStock')}
         </Button>
       </div>
 
       {/* Data Table */}
       <div className="rounded-md border bg-card">
-        <DataTable
-          columns={columns}
-          data={filteredItems}
-          rowCount={filteredItems.length}
-        />
+        <DataTable columns={columns} data={filteredItems} rowCount={filteredItems.length} />
       </div>
 
       {/* Dialogs */}
-      <AdjustInventoryStockDialog
-        open={isAdjustStockDialogOpen}
-        onOpenChange={setIsAdjustStockDialogOpen}
-        product={selectedProduct}
-      />
+      <AdjustInventoryStockDialog open={isAdjustStockDialogOpen} onOpenChange={setIsAdjustStockDialogOpen} product={selectedProduct} />
 
-      <InventoryMovementsDialog
-        open={isMovementsDialogOpen}
-        onOpenChange={setIsMovementsDialogOpen}
-        product={selectedProduct}
-      />
+      <InventoryMovementsDialog open={isMovementsDialogOpen} onOpenChange={setIsMovementsDialogOpen} product={selectedProduct} />
     </div>
   )
 }
