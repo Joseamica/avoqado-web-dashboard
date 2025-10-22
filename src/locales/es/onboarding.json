@@ -3,7 +3,11 @@
   "steps": {
     "welcome": "Bienvenida",
     "type": "Elige Tu Camino",
-    "businessInfo": "Información del Negocio"
+    "businessInfo": "Información del Negocio",
+    "menuData": "Configuración del Menú",
+    "teamInvites": "Invitaciones de Equipo",
+    "features": "Funciones",
+    "payment": "Configuración de Pagos"
   },
   "welcome": {
     "greeting": "¡Bienvenido, {{name}}!",
@@ -136,6 +140,183 @@
       "emailInvalid": "Por favor ingresa un correo electrónico válido",
       "timezoneRequired": "La zona horaria es requerida",
       "currencyRequired": "La moneda es requerida"
+    },
+    "optionalSteps": {
+      "title": "Los Siguientes Pasos son Opcionales",
+      "description": "Los siguientes pasos te ayudan a configurar tu negocio de manera más completa, pero puedes omitirlos y agregar esta información después:",
+      "step4": "Configuración del Menú - Agrega tu menú manualmente o importa desde CSV",
+      "step5": "Invitaciones de Equipo - Invita a miembros del personal a unirse a tu negocio",
+      "step6": "Selección de Funciones - Elige funciones premium para mejorar tu negocio",
+      "step7": "Configuración de Pagos - Configura tu CLABE para recibir depósitos",
+      "choice": "Puedes continuar configurando estos ahora, o saltarlos y completar la configuración de tu negocio."
+    }
+  },
+  "menuData": {
+    "title": "Configura Tu Menú",
+    "subtitle": "Agrega tus productos y categorías, o saltalo y hazlo después",
+    "method": {
+      "title": "¿Cómo te gustaría agregar tu menú?",
+      "manual": {
+        "title": "Entrada Manual",
+        "description": "Agrega categorías y productos uno por uno",
+        "badge": "Recomendado"
+      },
+      "csv": {
+        "title": "Importar desde CSV",
+        "description": "Sube un archivo CSV con los datos de tu menú",
+        "badge": "Avanzado"
+      }
+    },
+    "manual": {
+      "categories": {
+        "title": "Categorías",
+        "description": "Agrega categorías del menú (ej: Entradas, Platos Principales, Bebidas)",
+        "add": "Agregar Categoría",
+        "name": "Nombre de la Categoría",
+        "namePlaceholder": "ej: Platos Principales",
+        "slug": "Slug",
+        "slugPlaceholder": "ej: platos-principales",
+        "slugHelp": "Identificador amigable para URLs (auto-generado del nombre)",
+        "empty": "Aún no hay categorías agregadas"
+      },
+      "products": {
+        "title": "Productos",
+        "description": "Agrega productos a tu menú",
+        "add": "Agregar Producto",
+        "name": "Nombre del Producto",
+        "namePlaceholder": "ej: Hamburguesa con Queso",
+        "sku": "SKU",
+        "skuPlaceholder": "ej: BURGER-001",
+        "skuHelp": "Unidad de Mantenimiento de Stock (identificador único)",
+        "price": "Precio",
+        "pricePlaceholder": "0.00",
+        "category": "Categoría",
+        "categoryPlaceholder": "Selecciona categoría",
+        "categoryRequired": "Por favor agrega al menos una categoría primero",
+        "empty": "Aún no hay productos agregados"
+      },
+      "validation": {
+        "categoryNameRequired": "El nombre de la categoría es requerido",
+        "categorySlugRequired": "El slug es requerido",
+        "productNameRequired": "El nombre del producto es requerido",
+        "productSkuRequired": "El SKU es requerido",
+        "productPriceRequired": "El precio es requerido",
+        "productPricePositive": "El precio debe ser positivo",
+        "productCategoryRequired": "La categoría es requerida"
+      }
+    },
+    "csv": {
+      "title": "Subir Archivo CSV",
+      "description": "Sube un archivo CSV con los datos de tu menú. El archivo debe tener las columnas: name, sku, price, category",
+      "download": "Descargar Plantilla",
+      "upload": "Elegir Archivo",
+      "uploaded": "Archivo subido: {{filename}}",
+      "dragDrop": "Arrastra y suelta un archivo CSV aquí, o haz clic para buscar",
+      "format": {
+        "title": "Requisitos de Formato CSV",
+        "description": "Tu archivo CSV debe tener estas columnas:",
+        "columns": {
+          "name": "name - Nombre del producto",
+          "sku": "sku - Identificador único del producto",
+          "price": "price - Precio del producto (numérico)",
+          "category": "category - Nombre de la categoría"
+        },
+        "example": "Ejemplo: Hamburguesa con Queso,BURGER-001,12.99,Platos Principales"
+      }
+    },
+    "actions": {
+      "skip": "Saltar por Ahora",
+      "skipDescription": "Puedes agregar tu menú más tarde desde el panel"
+    }
+  },
+  "teamInvites": {
+    "title": "Invita a Tu Equipo",
+    "subtitle": "Agrega miembros del equipo que ayudarán a administrar tu negocio, o salta y hazlo después",
+    "description": "Envía invitaciones a los miembros de tu equipo. Recibirán un correo con instrucciones para unirse a tu negocio.",
+    "form": {
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "equipo@ejemplo.com",
+      "role": "Rol",
+      "rolePlaceholder": "Selecciona el rol",
+      "add": "Agregar Invitación",
+      "empty": "Aún no hay invitaciones agregadas"
+    },
+    "roles": {
+      "ADMIN": "Admin - Acceso completo a todas las funciones",
+      "MANAGER": "Manager - Operaciones y gestión de personal",
+      "CASHIER": "Cajero - Procesamiento de pagos",
+      "WAITER": "Mesero - Gestión de órdenes",
+      "KITCHEN": "Cocina - Pantalla de cocina",
+      "HOST": "Anfitrión - Reservaciones y asientos",
+      "VIEWER": "Visor - Acceso de solo lectura"
+    },
+    "validation": {
+      "emailRequired": "El correo es requerido",
+      "emailInvalid": "Por favor ingresa un correo electrónico válido",
+      "roleRequired": "El rol es requerido",
+      "emailDuplicate": "Este correo ya está en la lista"
+    },
+    "actions": {
+      "skip": "Saltar por Ahora",
+      "skipDescription": "Puedes invitar a miembros del equipo más tarde desde el panel"
+    }
+  },
+  "features": {
+    "title": "Elige Tus Funciones",
+    "subtitle": "Selecciona funciones premium para mejorar tu negocio, o salta y hazlo después",
+    "description": "Estas funciones se pueden activar o desactivar en cualquier momento desde la configuración de tu panel.",
+    "available": {
+      "CHATBOT": {
+        "name": "Chatbot IA",
+        "description": "Asistente de IA 24/7 para responder preguntas de clientes y proporcionar insights del negocio"
+      },
+      "ADVANCED_ANALYTICS": {
+        "name": "Analíticas Avanzadas",
+        "description": "Insights profundos sobre ventas, comportamiento del cliente y métricas de rendimiento"
+      },
+      "INVENTORY_TRACKING": {
+        "name": "Seguimiento de Inventario",
+        "description": "Gestión de inventario en tiempo real con deducciones automáticas de stock"
+      },
+      "LOYALTY_PROGRAM": {
+        "name": "Programa de Lealtad",
+        "description": "Recompensa a tus clientes y aumenta la retención con puntos y premios"
+      },
+      "ONLINE_ORDERING": {
+        "name": "Pedidos en Línea",
+        "description": "Acepta pedidos directamente desde tu sitio web o aplicación móvil"
+      },
+      "RESERVATIONS": {
+        "name": "Reservaciones",
+        "description": "Gestiona las reservas de mesas y optimiza la disposición de asientos"
+      }
+    },
+    "actions": {
+      "skip": "Saltar por Ahora",
+      "skipDescription": "Puedes activar funciones más tarde desde el panel"
+    }
+  },
+  "payment": {
+    "title": "Configuración de Pagos",
+    "subtitle": "Configura tu CLABE para recibir pagos, o salta y hazlo después",
+    "description": "Tu CLABE (Clave Bancaria Estandarizada) es necesaria para recibir pagos de Avoqado directamente en tu cuenta bancaria.",
+    "form": {
+      "clabe": "CLABE",
+      "clabePlaceholder": "123456789012345678",
+      "clabeHelp": "Número de cuenta bancaria de 18 dígitos",
+      "bankName": "Nombre del Banco (Opcional)",
+      "bankNamePlaceholder": "ej: BBVA, Santander, HSBC",
+      "accountHolder": "Titular de la Cuenta (Opcional)",
+      "accountHolderPlaceholder": "Nombre completo del titular de la cuenta"
+    },
+    "validation": {
+      "clabeRequired": "La CLABE es requerida",
+      "clabeInvalid": "La CLABE debe tener exactamente 18 dígitos",
+      "clabeNumeric": "La CLABE debe contener solo números"
+    },
+    "actions": {
+      "skip": "Saltar por Ahora",
+      "skipDescription": "Puedes agregar tu información de pago más tarde desde el panel"
     }
   }
 }

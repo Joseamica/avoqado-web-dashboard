@@ -1,9 +1,13 @@
 {
-  "stepProgress": "Step {{current}} of {{total}}",
+  "stepProgress": "Étape {{current}} sur {{total}}",
   "steps": {
-    "welcome": "Welcome",
-    "type": "Choose Your Path",
-    "businessInfo": "Business Information"
+    "welcome": "Bienvenue",
+    "type": "Choisissez Votre Chemin",
+    "businessInfo": "Informations de l'Entreprise",
+    "menuData": "Configuration du Menu",
+    "teamInvites": "Invitations d'Équipe",
+    "features": "Fonctionnalités",
+    "payment": "Configuration des Paiements"
   },
   "welcome": {
     "greeting": "Welcome, {{name}}!",
@@ -136,6 +140,183 @@
       "emailInvalid": "Please enter a valid email address",
       "timezoneRequired": "Timezone is required",
       "currencyRequired": "Currency is required"
+    },
+    "optionalSteps": {
+      "title": "Les Étapes Suivantes Sont Optionnelles",
+      "description": "Les étapes suivantes vous aident à configurer votre entreprise plus complètement, mais vous pouvez les ignorer et ajouter ces informations plus tard:",
+      "step4": "Configuration du Menu - Ajoutez votre menu manuellement ou importez depuis CSV",
+      "step5": "Invitations d'Équipe - Invitez des membres du personnel à rejoindre votre entreprise",
+      "step6": "Sélection de Fonctionnalités - Choisissez des fonctionnalités premium pour améliorer votre entreprise",
+      "step7": "Configuration des Paiements - Configurez votre CLABE pour recevoir des dépôts",
+      "choice": "Vous pouvez continuer à les configurer maintenant, ou passer et compléter la configuration de votre entreprise."
+    }
+  },
+  "menuData": {
+    "title": "Configurez Votre Menu",
+    "subtitle": "Ajoutez vos produits et catégories, ou passez et faites-le plus tard",
+    "method": {
+      "title": "Comment souhaitez-vous ajouter votre menu?",
+      "manual": {
+        "title": "Saisie Manuelle",
+        "description": "Ajoutez des catégories et des produits un par un",
+        "badge": "Recommandé"
+      },
+      "csv": {
+        "title": "Importer depuis CSV",
+        "description": "Téléchargez un fichier CSV avec les données de votre menu",
+        "badge": "Avancé"
+      }
+    },
+    "manual": {
+      "categories": {
+        "title": "Catégories",
+        "description": "Ajoutez des catégories de menu (ex: Entrées, Plats Principaux, Boissons)",
+        "add": "Ajouter une Catégorie",
+        "name": "Nom de la Catégorie",
+        "namePlaceholder": "ex: Plats Principaux",
+        "slug": "Slug",
+        "slugPlaceholder": "ex: plats-principaux",
+        "slugHelp": "Identifiant convivial pour les URL (auto-généré à partir du nom)",
+        "empty": "Aucune catégorie ajoutée pour le moment"
+      },
+      "products": {
+        "title": "Produits",
+        "description": "Ajoutez des produits à votre menu",
+        "add": "Ajouter un Produit",
+        "name": "Nom du Produit",
+        "namePlaceholder": "ex: Cheeseburger",
+        "sku": "SKU",
+        "skuPlaceholder": "ex: BURGER-001",
+        "skuHelp": "Unité de Gestion de Stock (identifiant unique)",
+        "price": "Prix",
+        "pricePlaceholder": "0.00",
+        "category": "Catégorie",
+        "categoryPlaceholder": "Sélectionner une catégorie",
+        "categoryRequired": "Veuillez d'abord ajouter au moins une catégorie",
+        "empty": "Aucun produit ajouté pour le moment"
+      },
+      "validation": {
+        "categoryNameRequired": "Le nom de la catégorie est requis",
+        "categorySlugRequired": "Le slug est requis",
+        "productNameRequired": "Le nom du produit est requis",
+        "productSkuRequired": "Le SKU est requis",
+        "productPriceRequired": "Le prix est requis",
+        "productPricePositive": "Le prix doit être positif",
+        "productCategoryRequired": "La catégorie est requise"
+      }
+    },
+    "csv": {
+      "title": "Télécharger un Fichier CSV",
+      "description": "Téléchargez un fichier CSV avec les données de votre menu. Le fichier doit avoir les colonnes: name, sku, price, category",
+      "download": "Télécharger le Modèle",
+      "upload": "Choisir un Fichier",
+      "uploaded": "Fichier téléchargé: {{filename}}",
+      "dragDrop": "Glissez-déposez un fichier CSV ici, ou cliquez pour parcourir",
+      "format": {
+        "title": "Exigences du Format CSV",
+        "description": "Votre fichier CSV doit avoir ces colonnes:",
+        "columns": {
+          "name": "name - Nom du produit",
+          "sku": "sku - Identifiant unique du produit",
+          "price": "price - Prix du produit (numérique)",
+          "category": "category - Nom de la catégorie"
+        },
+        "example": "Exemple: Cheeseburger,BURGER-001,12.99,Plats Principaux"
+      }
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez ajouter votre menu plus tard depuis le tableau de bord"
+    }
+  },
+  "teamInvites": {
+    "title": "Invitez Votre Équipe",
+    "subtitle": "Ajoutez des membres de l'équipe qui aideront à gérer votre entreprise, ou passez et faites-le plus tard",
+    "description": "Envoyez des invitations aux membres de votre équipe. Ils recevront un e-mail avec des instructions pour rejoindre votre entreprise.",
+    "form": {
+      "email": "Adresse E-mail",
+      "emailPlaceholder": "equipe@exemple.com",
+      "role": "Rôle",
+      "rolePlaceholder": "Sélectionner le rôle",
+      "add": "Ajouter une Invitation",
+      "empty": "Aucune invitation ajoutée pour le moment"
+    },
+    "roles": {
+      "ADMIN": "Admin - Accès complet à toutes les fonctionnalités",
+      "MANAGER": "Manager - Opérations et gestion du personnel",
+      "CASHIER": "Caissier - Traitement des paiements",
+      "WAITER": "Serveur - Gestion des commandes",
+      "KITCHEN": "Cuisine - Affichage cuisine",
+      "HOST": "Hôte - Réservations et placement",
+      "VIEWER": "Observateur - Accès en lecture seule"
+    },
+    "validation": {
+      "emailRequired": "L'e-mail est requis",
+      "emailInvalid": "Veuillez entrer une adresse e-mail valide",
+      "roleRequired": "Le rôle est requis",
+      "emailDuplicate": "Cet e-mail est déjà dans la liste"
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez inviter des membres de l'équipe plus tard depuis le tableau de bord"
+    }
+  },
+  "features": {
+    "title": "Choisissez Vos Fonctionnalités",
+    "subtitle": "Sélectionnez des fonctionnalités premium pour améliorer votre entreprise, ou passez et faites-le plus tard",
+    "description": "Ces fonctionnalités peuvent être activées ou désactivées à tout moment depuis les paramètres de votre tableau de bord.",
+    "available": {
+      "CHATBOT": {
+        "name": "Chatbot IA",
+        "description": "Assistant IA 24/7 pour répondre aux questions des clients et fournir des insights d'entreprise"
+      },
+      "ADVANCED_ANALYTICS": {
+        "name": "Analytique Avancée",
+        "description": "Insights approfondis sur les ventes, le comportement des clients et les métriques de performance"
+      },
+      "INVENTORY_TRACKING": {
+        "name": "Suivi des Stocks",
+        "description": "Gestion des stocks en temps réel avec déductions automatiques"
+      },
+      "LOYALTY_PROGRAM": {
+        "name": "Programme de Fidélité",
+        "description": "Récompensez vos clients et augmentez la rétention avec des points et des récompenses"
+      },
+      "ONLINE_ORDERING": {
+        "name": "Commande en Ligne",
+        "description": "Acceptez les commandes directement depuis votre site web ou application mobile"
+      },
+      "RESERVATIONS": {
+        "name": "Réservations",
+        "description": "Gérez les réservations de tables et optimisez la disposition des sièges"
+      }
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez activer les fonctionnalités plus tard depuis le tableau de bord"
+    }
+  },
+  "payment": {
+    "title": "Configuration des Paiements",
+    "subtitle": "Configurez votre CLABE pour recevoir des paiements, ou passez et faites-le plus tard",
+    "description": "Votre CLABE (Clave Bancaria Estandarizada) est nécessaire pour recevoir les paiements d'Avoqado directement sur votre compte bancaire.",
+    "form": {
+      "clabe": "CLABE",
+      "clabePlaceholder": "123456789012345678",
+      "clabeHelp": "Numéro de compte bancaire à 18 chiffres",
+      "bankName": "Nom de la Banque (Facultatif)",
+      "bankNamePlaceholder": "ex: BBVA, Santander, HSBC",
+      "accountHolder": "Titulaire du Compte (Facultatif)",
+      "accountHolderPlaceholder": "Nom complet du titulaire du compte"
+    },
+    "validation": {
+      "clabeRequired": "La CLABE est requise",
+      "clabeInvalid": "La CLABE doit contenir exactement 18 chiffres",
+      "clabeNumeric": "La CLABE ne doit contenir que des chiffres"
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez ajouter vos informations de paiement plus tard depuis le tableau de bord"
     }
   }
 }
