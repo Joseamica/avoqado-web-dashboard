@@ -54,8 +54,8 @@ export default function ModifierGroups() {
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
 

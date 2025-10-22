@@ -189,13 +189,13 @@ export const BATCH_STATUS = {
 } as const
 
 // ============================================================================
-// INVENTORY TYPE
+// INVENTORY METHOD
+// ✅ WORLD-CLASS: Toast/Square/Shopify naming pattern
 // ============================================================================
 
-export const INVENTORY_TYPES = {
-  NONE: { label: 'No Tracking', description: 'Services, digital products' },
-  SIMPLE_STOCK: { label: 'Simple Stock', description: 'Retail items, finished goods' },
-  RECIPE_BASED: { label: 'Recipe-Based', description: 'Restaurants, recipes with ingredients' },
+export const INVENTORY_METHODS = {
+  QUANTITY: { label: 'Quantity Tracking', description: 'Retail items, finished goods' },
+  RECIPE: { label: 'Recipe-Based', description: 'Restaurants, recipes with ingredients' },
 } as const
 
 // ============================================================================

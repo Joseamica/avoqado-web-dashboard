@@ -62,8 +62,8 @@ export default function ModifierGroupId() {
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
 
@@ -92,8 +92,8 @@ export default function ModifierGroupId() {
 
   // Mutation to update modifiers and products for the group
   const saveModifierGroup = useMutation({
-    mutationFn: async (formValues: FormValues) => {
-      return await updateModifierGroup(venueId!, modifierGroupId!, formValues)
+    mutationFn: async (payload: ModifierGroupUpdatePayload) => {
+      return await updateModifierGroup(venueId!, modifierGroupId!, payload)
     },
     onSuccess: () => {
       toast({
@@ -141,6 +141,11 @@ export default function ModifierGroupId() {
     avoqadoProduct: { label: string; value: string; disabled: boolean }[]
     groupName?: string
     description?: string
+  }
+
+  type ModifierGroupUpdatePayload = {
+    avoqadoProduct: { label: string; value: string; disabled: boolean; order: number }[]
+    modifiers: { name: string; price: number; active: boolean; order: number }[]
   }
 
   // Initialize form
@@ -194,10 +199,30 @@ export default function ModifierGroupId() {
 
       // Process the modifiers - also add an order index
       const processedModifiers =
-        formValues.modifiers?.map((item, idx) => ({
-          ...item,
-          order: idx,
-        })) || []
+        formValues.modifiers
+          ?.map((item, idx) => {
+            if (!item?.value || item.value === '_new') {
+              return null
+            }
+
+            const modifierDetails = allModifiers?.find(modifier => modifier.id === item.value)
+            const name = modifierDetails?.name ?? item.label
+
+            if (!name || name.trim() === '') {
+              return null
+            }
+
+            return {
+              name,
+              price: Number(modifierDetails?.price ?? 0),
+              active: modifierDetails?.active ?? true,
+              order: idx,
+            }
+          })
+          .filter(
+            (modifier): modifier is { name: string; price: number; active: boolean; order: number } =>
+              modifier !== null,
+          ) || []
 
       // Create the payload with both processed arrays
       const payload = {

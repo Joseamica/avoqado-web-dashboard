@@ -50,8 +50,8 @@ export default function CategoryId() {
   })
 
   const { data: products, isLoading: isProductsLoading } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
   const from = (location.state as any)?.from || '/'

@@ -51,9 +51,10 @@ export default function Products() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
+  // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
   const { data: products, isLoading } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
   })
 
   const toggleActive = useMutation({

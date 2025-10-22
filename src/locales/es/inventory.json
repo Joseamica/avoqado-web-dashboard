@@ -500,9 +500,9 @@
       "noInventoryDesc": "Ideal para servicios, clases o productos digitales",
       "useInventory": "Rastrear Inventario",
       "useInventoryDesc": "Rastrea niveles de stock y costos",
-      "inventoryTypeQuestion": "¿Cómo deseas rastrear el inventario?",
-      "simpleStock": "Stock Simple",
-      "simpleStockDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
+      "inventoryMethodQuestion": "¿Cómo deseas rastrear el inventario?",
+      "quantityTracking": "Seguimiento de Cantidad",
+      "quantityTrackingDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
       "recipeBased": "Basado en Recetas",
       "recipeBasedDesc": "Para restaurantes - rastrea ingredientes y calcula costos",
       "success": "¡Inventario configurado exitosamente!",
@@ -510,7 +510,7 @@
     },
     "step3": {
       "title": "Configurar Inventario",
-      "simpleStockInfo": "Configura los niveles iniciales de stock para este producto. Cada venta deducirá 1 unidad.",
+      "simpleStockInfo": "Configura los niveles iniciales de stock para seguimiento de cantidad. Cada venta deducirá 1 unidad.",
       "recipeInfo": "Configura la receta para este producto. Puedes agregar ingredientes después.",
       "initialStock": "Stock Inicial",
       "initialStockHelp": "¿Cuántas unidades tienes actualmente en stock? (se rastrea como conteo de unidades)",
@@ -534,18 +534,18 @@
   "conversion": {
     "toRecipe": {
       "title": "¿Cambiar a Receta?",
-      "message": "Para agregar ingredientes, vamos a actualizar tu configuración. El stock simple actual se eliminará y se cambiará a seguimiento basado en recetas.",
+      "message": "Para agregar ingredientes, vamos a actualizar tu configuración. El seguimiento por cantidad actual se eliminará y se cambiará a seguimiento basado en recetas.",
       "confirm": "Sí, cambiar",
       "cancel": "Cancelar",
       "success": "Configuración actualizada a receta",
       "error": "Error al cambiar la configuración"
     },
-    "toSimpleStock": {
-      "title": "¿Cambiar a Stock Simple?",
-      "message": "Para usar stock simple, vamos a actualizar tu configuración. La receta actual y sus ingredientes se eliminarán y se cambiará a seguimiento por unidades.",
+    "toQuantity": {
+      "title": "¿Cambiar a Cantidad?",
+      "message": "Para usar seguimiento por cantidad, vamos a actualizar tu configuración. La receta actual y sus ingredientes se eliminarán y se cambiará a seguimiento por unidades.",
       "confirm": "Sí, cambiar",
       "cancel": "Cancelar",
-      "success": "Configuración actualizada a stock simple",
+      "success": "Configuración actualizada a cantidad",
       "error": "Error al cambiar la configuración"
     },
     "confirmationNeeded": "Confirmación Requerida",

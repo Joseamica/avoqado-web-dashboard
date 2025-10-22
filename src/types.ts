@@ -595,6 +595,7 @@ export interface Product {
 
   // Inventory tracking
   trackInventory: boolean
+  inventoryMethod: 'QUANTITY' | 'RECIPE' | null
   unit: string | null
 
   // Status

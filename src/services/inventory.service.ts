@@ -464,7 +464,7 @@ export const reportsApi = {
 // PRODUCT WIZARD API (NEW - for flexible inventory)
 // ===========================================
 
-export type InventoryType = 'NONE' | 'SIMPLE_STOCK' | 'RECIPE_BASED'
+export type InventoryMethod = 'QUANTITY' | 'RECIPE'
 
 export interface ProductWizardStep1Data {
   name: string
@@ -476,7 +476,7 @@ export interface ProductWizardStep1Data {
 
 export interface ProductWizardStep2Data {
   useInventory: boolean
-  inventoryType?: InventoryType
+  inventoryMethod?: InventoryMethod
 }
 
 export interface ProductWizardStep3SimpleStockData {
@@ -543,7 +543,7 @@ export const productWizardApi = {
 // ===========================================
 
 export interface ProductInventoryStatus {
-  inventoryType: InventoryType
+  inventoryMethod: InventoryMethod | null
   available: boolean
   currentStock?: number
   reorderPoint?: number
@@ -560,20 +560,47 @@ export interface ProductInventoryStatus {
   message: string
 }
 
+export interface AdjustInventoryStockDto {
+  type: 'PURCHASE' | 'USAGE' | 'ADJUSTMENT' | 'SPOILAGE' | 'TRANSFER' | 'RETURN' | 'COUNT'
+  quantity: number // Positive for additions, negative for reductions
+  reason?: string
+  reference?: string
+}
+
+export interface InventoryMovement {
+  id: string
+  type: string
+  quantity: number
+  previousStock: number
+  newStock: number
+  reason: string | null
+  reference: string | null
+  createdBy: string | null
+  createdAt: string
+}
+
 export const productInventoryApi = {
   // Get inventory status for a product
   getStatus: (venueId: string, productId: string) => api.get<ProductInventoryStatus>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-status`),
 
-  // Get inventory type
-  getType: (venueId: string, productId: string) => api.get<{ inventoryType: InventoryType }>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-type`),
+  // Get inventory method
+  getMethod: (venueId: string, productId: string) => api.get<{ inventoryMethod: InventoryMethod | null }>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-method`),
 
-  // Set inventory type
-  setType: (venueId: string, productId: string, inventoryType: InventoryType) => api.put(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-type`, { inventoryType }),
+  // Set inventory method
+  setMethod: (venueId: string, productId: string, inventoryMethod: InventoryMethod) => api.put(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/inventory-method`, { inventoryMethod }),
 
-  // Switch inventory type (auto-conversion between SIMPLE_STOCK ↔ RECIPE_BASED)
-  // Automatically removes old configuration and switches to new type
-  switchInventoryType: (venueId: string, productId: string, newType: InventoryType) =>
-    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/switch-inventory-type`, { inventoryType: newType }),
+  // Switch inventory method (auto-conversion between QUANTITY ↔ RECIPE)
+  // Automatically removes old configuration and switches to new method
+  switchInventoryMethod: (venueId: string, productId: string, newMethod: InventoryMethod) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/switch-inventory-method`, { inventoryMethod: newMethod }),
+
+  // Adjust stock for QUANTITY product
+  adjustStock: (venueId: string, productId: string, data: AdjustInventoryStockDto) =>
+    api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/adjust-stock`, data),
+
+  // Get movements for QUANTITY product
+  getMovements: (venueId: string, productId: string) =>
+    api.get<InventoryMovement[]>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/movements`),
 }
 
 // ===========================================

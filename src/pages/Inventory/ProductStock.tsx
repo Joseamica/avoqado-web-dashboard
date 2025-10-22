@@ -13,38 +13,40 @@ import { ColumnDef } from '@tanstack/react-table'
 import { PermissionGate } from '@/components/PermissionGate'
 import { getProducts } from '@/services/menu.service'
 import { Product } from '@/types'
+import { AdjustInventoryStockDialog } from './components/AdjustInventoryStockDialog'
+import { InventoryMovementsDialog } from './components/InventoryMovementsDialog'
 
 /**
  * ProductStock Page
  *
- * Displays products with Simple Stock inventory tracking (Inventory table).
+ * Displays products with Quantity Tracking inventory (Inventory table).
  * This is for products tracked by unit count, NOT recipe-based products.
  *
- * ✅ CORRECT 3-TIER INVENTORY ARCHITECTURE:
+ * ✅ WORLD-CLASS 3-TIER INVENTORY ARCHITECTURE:
  * ============================================
  * 1. NO INVENTORY (trackInventory = false)
  *    - Services, digital products, classes
  *    - No stock tracking at all
  *
- * 2. SIMPLE STOCK (trackInventory = true + inventoryType = 'SIMPLE_STOCK')
+ * 2. QUANTITY TRACKING (trackInventory = true + inventoryMethod = 'QUANTITY')
  *    - Count-based tracking (bottles, units, pieces)
  *    - Uses Inventory table OR RawMaterial table
  *    - This page shows these products
  *
- * 3. RECIPE-BASED (trackInventory = true + inventoryType = 'RECIPE_BASED')
+ * 3. RECIPE-BASED (trackInventory = true + inventoryMethod = 'RECIPE')
  *    - Ingredient-based tracking with FIFO costing
  *    - Uses Recipe + RawMaterial tables
  *    - NOT shown on this page
  *
- * Filter Logic:
+ * Filter Logic (✅ WORLD-CLASS):
  * =============
- * - Filter by: product.trackInventory === true AND product.externalData.inventoryType === 'SIMPLE_STOCK'
- * - NOT by table existence (Inventory/Recipe tables)
- * - Decision based on externalData.inventoryType field (set by ProductWizardDialog)
+ * - Filter by: product.trackInventory === true AND product.inventoryMethod === 'QUANTITY'
+ * - Uses dedicated column (NOT JSON externalData)
+ * - Follows Toast/Square/Shopify patterns
  *
  * See Documentation:
  * - /docs/INVENTORY_WORKFLOW.md (3-tier architecture explanation)
- * - /docs/MANUAL_INVENTORY_CONFIGURATION.md (externalData structure)
+ * - /docs/MANUAL_INVENTORY_CONFIGURATION.md (inventoryMethod column)
  */
 
 interface ProductWithStock extends Product {
@@ -89,29 +91,36 @@ export default function ProductStock() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterLowStock, setFilterLowStock] = useState(false)
 
+  // Dialog states
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isAdjustStockDialogOpen, setIsAdjustStockDialogOpen] = useState(false)
+  const [isMovementsDialogOpen, setIsMovementsDialogOpen] = useState(false)
+
   // Fetch all products (backend includes inventory relation)
+  // ✅ WORLD-CLASS: Order by name (alphabetically) from backend for better performance
   const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
-    queryKey: ['products', venueId],
+    queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: async () => {
-      const data = await getProducts(venueId)
+      const data = await getProducts(venueId, { orderBy: 'name' })
       return data
     },
     enabled: !!venueId,
   })
 
-  // Filter and map products with Simple Stock inventory
+  // Filter and map products with Quantity Tracking inventory
   const productStockItems: ProductWithStock[] = useMemo(() => {
-    // ✅ CORRECT FILTER: Based on externalData.inventoryType (3-tier architecture)
+    // ✅ WORLD-CLASS FILTER: Based on dedicated inventoryMethod column
     // - No Inventory: trackInventory = false (services, digital products)
-    // - Simple Stock: trackInventory = true + inventoryType = 'SIMPLE_STOCK'
-    // - Recipe-Based: trackInventory = true + inventoryType = 'RECIPE_BASED'
-    const simpleStockProducts = products.filter(p => {
-      const inventoryType = (p.externalData as any)?.inventoryType
-      return p.trackInventory === true && inventoryType === 'SIMPLE_STOCK'
+    // - Quantity Tracking: trackInventory = true + inventoryMethod = 'QUANTITY'
+    // - Recipe-Based: trackInventory = true + inventoryMethod = 'RECIPE'
+    const quantityTrackingProducts = products.filter(p => {
+      // Filter: Must have quantity tracking AND inventory relation loaded
+      return p.trackInventory === true && p.inventoryMethod === 'QUANTITY' && p.inventory
     })
 
     // Map products to include stock data from Inventory table
-    return simpleStockProducts.map(product => {
+    // Products are already sorted by name from backend query
+    return quantityTrackingProducts.map(product => {
       const inventory = product.inventory!
 
       return {
@@ -226,8 +235,10 @@ export default function ProductStock() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled
-                title="TODO: Implementar diálogo de ajuste de inventario"
+                onClick={() => {
+                  setSelectedProduct(row.original)
+                  setIsAdjustStockDialogOpen(true)
+                }}
               >
                 {t('productStock.actions.adjustStock')}
               </Button>
@@ -235,8 +246,10 @@ export default function ProductStock() {
             <Button
               variant="ghost"
               size="sm"
-              disabled
-              title="TODO: Implementar diálogo de movimientos"
+              onClick={() => {
+                setSelectedProduct(row.original)
+                setIsMovementsDialogOpen(true)
+              }}
             >
               {t('productStock.actions.viewMovements')}
             </Button>
@@ -341,9 +354,18 @@ export default function ProductStock() {
         />
       </div>
 
-      {/* TODO: Create dialogs for Simple Stock (Inventory table)
-          Current dialogs (AdjustStockDialog, StockMovementsDialog) are for RawMaterial system.
-          Need to create new dialogs for Inventory.adjustStock() and Inventory.movements */}
+      {/* Dialogs */}
+      <AdjustInventoryStockDialog
+        open={isAdjustStockDialogOpen}
+        onOpenChange={setIsAdjustStockDialogOpen}
+        product={selectedProduct}
+      />
+
+      <InventoryMovementsDialog
+        open={isMovementsDialogOpen}
+        onOpenChange={setIsMovementsDialogOpen}
+        product={selectedProduct}
+      />
     </div>
   )
 }

@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
-import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryType } from '@/services/inventory.service'
+import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod } from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
 import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store, Plus, Trash2 } from 'lucide-react'
 import { Currency } from '@/utils/currency'
@@ -23,6 +23,7 @@ import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
 import MultipleSelector from '@/components/multi-selector'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
+import api from '@/api'
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -45,7 +46,7 @@ interface Step1FormData {
 
 interface Step2FormData {
   useInventory: boolean
-  inventoryType?: InventoryType
+  inventoryMethod?: InventoryMethod
 }
 
 interface Step3SimpleStockFormData {
@@ -78,12 +79,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Start at step 2 when in edit mode (product already exists)
   const [currentStep, setCurrentStep] = useState<WizardStep>(mode === 'edit' ? 2 : 1)
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
-  const [selectedInventoryType, setSelectedInventoryType] = useState<InventoryType | null>(null)
+  const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
-  const [conversionDirection, setConversionDirection] = useState<'toRecipe' | 'toSimpleStock' | null>(null)
+  const [conversionDirection, setConversionDirection] = useState<'toRecipe' | 'toQuantity' | null>(null)
   const [pendingInventoryConfig, setPendingInventoryConfig] = useState<{
-    inventoryType: InventoryType
+    inventoryMethod: InventoryMethod
     simpleStock?: Step3SimpleStockFormData
     recipe?: Step3RecipeFormData
   } | null>(null)
@@ -92,6 +93,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const [step1Data, setStep1Data] = useState<Step1FormData | null>(null)
   const [step2Data, setStep2Data] = useState<Step2FormData | null>(null)
   const [highlightAddButton, setHighlightAddButton] = useState(false)
+
+  // ✅ FIX: Track if we've already loaded existing data to prevent overwriting user changes
+  const [hasLoadedExistingData, setHasLoadedExistingData] = useState(false)
 
   // Step 1 Form
   const step1Form = useForm<Step1FormData>({
@@ -109,7 +113,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const step2Form = useForm<Step2FormData>({
     defaultValues: {
       useInventory: false,
-      inventoryType: 'SIMPLE_STOCK' as InventoryType, // Default to avoid undefined
+      inventoryMethod: 'QUANTITY' as InventoryMethod, // Default to avoid undefined
     },
   })
 
@@ -172,7 +176,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       const response = await rawMaterialsApi.getAll(venueId)
       return response.data.data
     },
-    enabled: !!venueId && open && currentStep === 3 && selectedInventoryType === 'RECIPE_BASED',
+    enabled: !!venueId && open && currentStep === 3 && selectedInventoryMethod === 'RECIPE',
   })
 
   // Fetch existing product data in edit mode
@@ -186,7 +190,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     enabled: !!venueId && !!productId && mode === 'edit' && open,
   })
 
-  // Fetch full recipe data - always try to load in edit mode (recipe existence overrides inventoryType)
+  // Fetch full recipe data - always try to load in edit mode (recipe existence overrides inventoryMethod)
   const { data: existingRecipeData } = useQuery({
     queryKey: ['product-recipe', venueId, productId],
     queryFn: async () => {
@@ -249,24 +253,28 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Mutation for configuring inventory on existing product (edit mode)
   const configureInventoryMutation = useMutation({
-    mutationFn: async (data: { inventoryType: InventoryType; simpleStock?: Step3SimpleStockFormData; recipe?: Step3RecipeFormData }) => {
+    mutationFn: async (data: { inventoryMethod: InventoryMethod; simpleStock?: Step3SimpleStockFormData; recipe?: Step3RecipeFormData }) => {
       if (!createdProductId) {
         throw new Error('Product ID is required')
       }
 
-      if (data.inventoryType === 'SIMPLE_STOCK' && data.simpleStock) {
+      if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
         return productWizardApi.configureSimpleStock(venueId, createdProductId, data.simpleStock)
-      } else if (data.inventoryType === 'RECIPE_BASED' && data.recipe) {
+      } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
         return productWizardApi.configureRecipe(venueId, createdProductId, data.recipe)
       }
       throw new Error('Invalid inventory configuration')
     },
     onSuccess: () => {
-      toast({
-        title: t('wizard.success'),
-        description: t('wizard.successMessage'),
-        variant: 'default',
-      })
+      // ✅ FIX: In edit mode, don't show toast here - let parent handle it
+      // This prevents double toasts (wizard + parent onSuccess callback)
+      if (mode !== 'edit') {
+        toast({
+          title: t('wizard.success'),
+          description: t('wizard.successMessage'),
+          variant: 'default',
+        })
+      }
 
       handleWizardComplete()
     },
@@ -275,17 +283,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       if (error.response?.status === 409) {
         // Store the pending configuration to retry after conversion
         setPendingInventoryConfig({
-          inventoryType: error.config?.data ? JSON.parse(error.config.data).inventoryType : selectedInventoryType!,
+          inventoryMethod: error.config?.data ? JSON.parse(error.config.data).inventoryMethod : selectedInventoryMethod!,
           simpleStock: error.config?.data ? JSON.parse(error.config.data).simpleStock : undefined,
           recipe: error.config?.data ? JSON.parse(error.config.data).recipe : undefined,
         })
 
         // Determine conversion direction based on what we're trying to configure
-        const targetType = selectedInventoryType
-        if (targetType === 'RECIPE_BASED') {
+        const targetType = selectedInventoryMethod
+        if (targetType === 'RECIPE') {
           setConversionDirection('toRecipe')
-        } else if (targetType === 'SIMPLE_STOCK') {
-          setConversionDirection('toSimpleStock')
+        } else if (targetType === 'QUANTITY') {
+          setConversionDirection('toQuantity')
         }
 
         // Show conversion dialog
@@ -302,15 +310,15 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
   })
 
-  // Mutation to switch inventory type (auto-conversion)
-  const switchInventoryTypeMutation = useMutation({
+  // Mutation to switch inventory method (auto-conversion)
+  const switchInventoryMethodMutation = useMutation({
     mutationFn: () => {
       if (!createdProductId || !conversionDirection) {
         throw new Error('Missing required data for conversion')
       }
 
-      const newType: InventoryType = conversionDirection === 'toRecipe' ? 'RECIPE_BASED' : 'SIMPLE_STOCK'
-      return productInventoryApi.switchInventoryType(venueId, createdProductId, newType)
+      const newMethod: InventoryMethod = conversionDirection === 'toRecipe' ? 'RECIPE' : 'QUANTITY'
+      return productInventoryApi.switchInventoryMethod(venueId, createdProductId, newMethod)
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
@@ -335,7 +343,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     onError: (error: any) => {
       toast({
         title: t(`conversion.${conversionDirection}.error`),
-        description: error.response?.data?.message || 'Failed to switch inventory type',
+        description: error.response?.data?.message || 'Failed to switch inventory method',
         variant: 'destructive',
       })
     },
@@ -350,6 +358,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       onSuccess(createdProductId)
     }
 
+    // Reset flag before closing so next opening loads fresh data
+    setHasLoadedExistingData(false)
+
     // Reset and close
     resetWizard()
     onOpenChange(false)
@@ -359,10 +370,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const resetWizard = useCallback(() => {
     setCurrentStep(mode === 'edit' ? 2 : 1)
     setCreatedProductId(productId)
-    setSelectedInventoryType(null)
+    setSelectedInventoryMethod(null)
     setStep1Data(null)
     setStep2Data(null)
     setHighlightAddButton(false)
+    setHasLoadedExistingData(false) // ✅ Reset flag so next opening loads fresh data
     step1Form.reset()
     step2Form.reset()
     step3SimpleForm.reset()
@@ -378,56 +390,60 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Load existing data in edit mode
   useEffect(() => {
-    // Only load data when dialog is open, in edit mode, and data is available
-    if (open && mode === 'edit' && existingProductData && !isLoadingExistingData) {
-      const { inventoryType, details } = existingProductData
+    // ✅ FIX: Only load data ONCE when first opening the wizard
+    // This prevents overwriting user changes when they modify inventory settings
+    if (open && mode === 'edit' && currentStep === 2 && existingProductData && !isLoadingExistingData && !hasLoadedExistingData) {
+      const { inventoryMethod, details } = existingProductData
 
-      // PRIORITY 1: If product has a recipe, use RECIPE_BASED (recipe existence overrides inventoryType)
-      if (existingRecipeData && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
-        console.log('🍔 Recipe exists! Setting RECIPE_BASED')
+      console.log('🔄 Loading existing product data (first time only):', { inventoryMethod, details })
+
+      // ✅ WORLD-CLASS: inventoryMethod column is the SOURCE OF TRUTH
+      // Recipe data should only be loaded if inventoryMethod === 'RECIPE'
+      // This ensures the UI matches the database state, not orphaned recipe data
+
+      if (inventoryMethod) {
+        console.log('✅ Setting useInventory=true, inventoryMethod=', inventoryMethod)
         step2Form.setValue('useInventory', true)
-        step2Form.setValue('inventoryType', 'RECIPE_BASED')
-        setSelectedInventoryType('RECIPE_BASED')
+        step2Form.setValue('inventoryMethod', inventoryMethod as InventoryMethod)
+        setSelectedInventoryMethod(inventoryMethod as InventoryMethod)
 
-        // Load recipe data
-        step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
-        step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
-        step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
-        step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
-
-        const ingredients = existingRecipeData.lines.map((line: any) => ({
-          rawMaterialId: line.rawMaterialId,
-          rawMaterialName: line.rawMaterial?.name,
-          quantity: Number(line.quantity),
-          unit: line.unit,
-          isOptional: line.isOptional || false,
-          substituteNotes: line.substituteNotes,
-        }))
-        step3RecipeForm.setValue('ingredients', ingredients)
-        return // Exit early, recipe takes priority
-      }
-
-      // PRIORITY 2: If no recipe, check inventoryType from externalData
-      if (inventoryType && inventoryType !== 'NONE') {
-        console.log('✅ Setting useInventory=true, inventoryType=', inventoryType)
-        step2Form.setValue('useInventory', true)
-        step2Form.setValue('inventoryType', inventoryType as InventoryType)
-        setSelectedInventoryType(inventoryType as InventoryType)
-
-        // Load SIMPLE_STOCK data
-        if (inventoryType === 'SIMPLE_STOCK' && details) {
-          console.log('📦 Loading SIMPLE_STOCK data:', details)
+        // Load QUANTITY data
+        if (inventoryMethod === 'QUANTITY' && details) {
+          console.log('📦 Loading QUANTITY data:', details)
           step3SimpleForm.setValue('initialStock', details.currentStock || 0)
           step3SimpleForm.setValue('costPerUnit', details.costPerUnit || 0)
           step3SimpleForm.setValue('reorderPoint', details.reorderPoint || 10)
         }
+
+        // Load RECIPE data (only if inventoryMethod is RECIPE)
+        if (inventoryMethod === 'RECIPE' && existingRecipeData && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
+          console.log('🍔 Loading RECIPE data')
+          step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
+          step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
+          step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
+          step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
+
+          const ingredients = existingRecipeData.lines.map((line: any) => ({
+            rawMaterialId: line.rawMaterialId,
+            rawMaterialName: line.rawMaterial?.name,
+            quantity: Number(line.quantity),
+            unit: line.unit,
+            isOptional: line.isOptional || false,
+            substituteNotes: line.substituteNotes,
+          }))
+          step3RecipeForm.setValue('ingredients', ingredients)
+        }
       } else {
-        console.log('❌ Setting useInventory=false')
+        console.log('❌ Setting useInventory=false (no inventory method)')
         step2Form.setValue('useInventory', false)
-        step2Form.setValue('inventoryType', 'SIMPLE_STOCK' as InventoryType) // Keep a default to avoid undefined
+        step2Form.setValue('inventoryMethod', 'QUANTITY' as InventoryMethod) // Keep a default to avoid undefined
       }
+
+      // Mark that we've loaded the data once
+      setHasLoadedExistingData(true)
     }
-  }, [open, mode, existingProductData, existingRecipeData, isLoadingExistingData, step2Form, step3SimpleForm, step3RecipeForm])
+  }, [open, mode, currentStep, existingProductData, existingRecipeData, isLoadingExistingData, hasLoadedExistingData])
+  // Note: step2Form, step3SimpleForm, step3RecipeForm removed from deps - they're stable refs from useForm
 
   // Helper function to clean recipe data for backend (remove rawMaterialName)
   const cleanRecipeDataForBackend = (recipeData: Step3RecipeFormData) => {
@@ -465,17 +481,55 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Step 2 Submit Handler - Store data and move to Step 3 or complete
   const handleStep2Submit = (data: Step2FormData) => {
+    console.log('📝 Step 2 Submit:', {
+      data,
+      mode,
+      productId,
+      useInventory: data.useInventory,
+      inventoryMethod: data.inventoryMethod,
+    })
     setStep2Data(data)
 
     // If not using inventory
     if (!data.useInventory) {
       if (mode === 'edit') {
-        // In edit mode, just close the wizard without changes
-        toast({
-          title: t('common.info'),
-          description: 'No inventory configuration applied',
-        })
-        handleWizardComplete()
+        // In edit mode, disable inventory tracking
+        if (!productId) {
+          toast({
+            title: t('common.error'),
+            description: 'Missing product ID',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        // Call API to disable inventory tracking
+        api
+          .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
+            trackInventory: false,
+          })
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+            queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+            queryClient.invalidateQueries({ queryKey: ['product-wizard-progress', venueId, productId] })
+
+            // Don't show toast here - let the parent's onSuccess handler show it
+            // Just close the wizard
+            resetWizard()
+            onOpenChange(false)
+
+            // Call parent's onSuccess to trigger their toast
+            if (onSuccess && productId) {
+              onSuccess(productId)
+            }
+          })
+          .catch((error: any) => {
+            toast({
+              title: t('common.error'),
+              description: error.response?.data?.message || 'Failed to disable inventory tracking',
+              variant: 'destructive',
+            })
+          })
         return
       }
 
@@ -496,10 +550,48 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       return
     }
 
-    // If using inventory, set type and move to Step 3
-    if (data.inventoryType) {
-      setSelectedInventoryType(data.inventoryType)
+    // If using inventory, set method and move to Step 3
+    if (data.inventoryMethod) {
+      setSelectedInventoryMethod(data.inventoryMethod)
+
+      // ✅ FIX: In edit mode, save trackInventory + inventoryMethod to backend immediately
+      // This ensures the change is persisted even if user doesn't complete Step 3
+      if (mode === 'edit' && productId) {
+        console.log('🔧 Saving inventory config:', {
+          trackInventory: true,
+          inventoryMethod: data.inventoryMethod,
+          productId,
+          venueId,
+        })
+
+        api
+          .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
+            trackInventory: true,
+            inventoryMethod: data.inventoryMethod,
+          })
+          .then(response => {
+            console.log('✅ Inventory config saved successfully:', response.data)
+
+            queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+            queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+            queryClient.invalidateQueries({ queryKey: ['product-wizard-progress', venueId, productId] })
+
+            // Move to Step 3 after successful save
+            setCurrentStep(3)
+          })
+          .catch((error: any) => {
+            console.error('❌ Failed to save inventory config:', error)
+            toast({
+              title: t('common.error'),
+              description: error.response?.data?.message || 'Failed to enable inventory tracking',
+              variant: 'destructive',
+            })
+          })
+        return
+      }
     }
+
+    // In create mode, just move to Step 3 (will save on completion)
     setCurrentStep(3)
   }
 
@@ -507,22 +599,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const handleStep3Submit = () => {
     // In edit mode, we only need step2Data and the inventory configuration
     if (mode === 'edit') {
-      if (!selectedInventoryType) {
+      if (!selectedInventoryMethod) {
         toast({
           title: t('common.error'),
-          description: 'Missing inventory type',
+          description: 'Missing inventory method',
           variant: 'destructive',
         })
         return
       }
 
-      if (selectedInventoryType === 'SIMPLE_STOCK') {
+      if (selectedInventoryMethod === 'QUANTITY') {
         const simpleStockData = step3SimpleForm.getValues()
         configureInventoryMutation.mutate({
-          inventoryType: 'SIMPLE_STOCK',
+          inventoryMethod: 'QUANTITY',
           simpleStock: simpleStockData,
         })
-      } else if (selectedInventoryType === 'RECIPE_BASED') {
+      } else if (selectedInventoryMethod === 'RECIPE') {
         const recipeData = step3RecipeForm.getValues()
 
         // Validate that at least one ingredient is added
@@ -542,7 +634,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         // Clean data before sending to backend
         configureInventoryMutation.mutate({
-          inventoryType: 'RECIPE_BASED',
+          inventoryMethod: 'RECIPE',
           recipe: cleanRecipeDataForBackend(recipeData),
         })
       }
@@ -559,14 +651,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       return
     }
 
-    if (selectedInventoryType === 'SIMPLE_STOCK') {
+    if (selectedInventoryMethod === 'QUANTITY') {
       const simpleStockData = step3SimpleForm.getValues()
       createProductWithInventoryMutation.mutate({
         product: step1Data,
         inventory: step2Data,
         simpleStock: simpleStockData,
       })
-    } else if (selectedInventoryType === 'RECIPE_BASED') {
+    } else if (selectedInventoryMethod === 'RECIPE') {
       const recipeData = step3RecipeForm.getValues()
 
       // Validate that at least one ingredient is added
@@ -892,7 +984,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     const useInventory = value === 'true'
                     step2Form.setValue('useInventory', useInventory)
                     if (!useInventory) {
-                      step2Form.setValue('inventoryType', undefined)
+                      step2Form.setValue('inventoryMethod', undefined)
                     }
                   }}
                 >
@@ -930,35 +1022,35 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </RadioGroup>
               </div>
 
-              {/* Inventory Type Selection (conditional) */}
+              {/* Inventory Method Selection (conditional) */}
               {step2Form.watch('useInventory') && (
                 <div className="space-y-4 pl-4 border-l-2 border-primary">
-                  <Label>{t('wizard.step2.inventoryTypeQuestion')}</Label>
+                  <Label>{t('wizard.step2.inventoryMethodQuestion')}</Label>
 
                   <RadioGroup
-                    value={step2Form.watch('inventoryType') || undefined}
+                    value={step2Form.watch('inventoryMethod') || undefined}
                     onValueChange={value => {
-                      step2Form.setValue('inventoryType', value as InventoryType)
-                      setSelectedInventoryType(value as InventoryType)
+                      step2Form.setValue('inventoryMethod', value as InventoryMethod)
+                      setSelectedInventoryMethod(value as InventoryMethod)
                     }}
                   >
                     <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="SIMPLE_STOCK" id="simple-stock" />
-                      <Label htmlFor="simple-stock" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="QUANTITY" id="quantity-tracking" />
+                      <Label htmlFor="quantity-tracking" className="flex-1 cursor-pointer">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/50">
                             <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{t('wizard.step2.simpleStock')}</p>
-                            <p className="text-xs text-muted-foreground">{t('wizard.step2.simpleStockDesc')}</p>
+                            <p className="font-medium text-foreground">{t('wizard.step2.quantityTracking')}</p>
+                            <p className="text-xs text-muted-foreground">{t('wizard.step2.quantityTrackingDesc')}</p>
                           </div>
                         </div>
                       </Label>
                     </div>
 
                     <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="RECIPE_BASED" id="recipe-based" />
+                      <RadioGroupItem value="RECIPE" id="recipe-based" />
                       <Label htmlFor="recipe-based" className="flex-1 cursor-pointer">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-950/50">
@@ -994,10 +1086,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             </form>
           )}
 
-          {/* Step 3: Setup Inventory (Simple Stock or Recipe) */}
+          {/* Step 3: Setup Inventory (Quantity Tracking or Recipe) */}
           {currentStep === 3 && (
             <>
-              {selectedInventoryType === 'SIMPLE_STOCK' && (
+              {selectedInventoryMethod === 'QUANTITY' && (
                 <form onSubmit={step3SimpleForm.handleSubmit(handleStep3Submit)} className="space-y-4">
                   <Alert className="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800">
                     <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -1078,7 +1170,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </form>
               )}
 
-              {selectedInventoryType === 'RECIPE_BASED' && (
+              {selectedInventoryMethod === 'RECIPE' && (
                 <form onSubmit={step3RecipeForm.handleSubmit(handleStep3Submit)} className="space-y-4">
                   <Alert className="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800">
                     <Beef className="h-4 w-4 text-orange-600 dark:text-orange-400" />
@@ -1232,8 +1324,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           message={t(`conversion.${conversionDirection}.message`)}
           confirmLabel={t(`conversion.${conversionDirection}.confirm`)}
           cancelLabel={t(`conversion.${conversionDirection}.cancel`)}
-          onConfirm={() => switchInventoryTypeMutation.mutate()}
-          isLoading={switchInventoryTypeMutation.isPending}
+          onConfirm={() => switchInventoryMethodMutation.mutate()}
+          isLoading={switchInventoryMethodMutation.isPending}
         />
       )}
 

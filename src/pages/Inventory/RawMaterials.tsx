@@ -340,8 +340,12 @@ export default function RawMaterials() {
           const category = cell.getValue() as string
           const categoryInfo = getCategoryInfo(category as any)
           return (
-            <Badge variant="outline" className="bg-background">
-              {categoryInfo.icon} {t(`rawMaterials.categories.${category}`)}
+            <Badge
+              variant="outline"
+              className="bg-background flex-col items-center justify-center gap-1 px-2 py-2 text-[13px] leading-tight text-center sm:flex-row sm:justify-start sm:gap-2 sm:px-3 sm:py-1 sm:text-sm sm:text-left"
+            >
+              <span aria-hidden className="text-base sm:text-sm">{categoryInfo.icon}</span>
+              <span className="whitespace-normal">{t(`rawMaterials.categories.${category}`)}</span>
             </Badge>
           )
         },

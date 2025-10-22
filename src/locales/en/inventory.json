@@ -500,9 +500,9 @@
       "noInventoryDesc": "Best for services, classes, or digital products",
       "useInventory": "Track Inventory",
       "useInventoryDesc": "Track stock levels and costs",
-      "inventoryTypeQuestion": "How do you want to track inventory?",
-      "simpleStock": "Simple Stock",
-      "simpleStockDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
+      "inventoryMethodQuestion": "How do you want to track inventory?",
+      "quantityTracking": "Quantity Tracking",
+      "quantityTrackingDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
       "recipeBased": "Recipe-Based",
       "recipeBasedDesc": "For restaurants - tracks ingredients and calculates costs",
       "success": "Inventory configured successfully!",
@@ -510,7 +510,7 @@
     },
     "step3": {
       "title": "Setup Inventory",
-      "simpleStockInfo": "Set up initial stock levels for this product. Each sale will deduct 1 unit.",
+      "simpleStockInfo": "Set up initial stock levels for quantity tracking. Each sale will deduct 1 unit.",
       "recipeInfo": "Configure the recipe for this product. You can add ingredients later.",
       "initialStock": "Initial Stock",
       "initialStockHelp": "How many units do you currently have in stock? (tracked as unit count)",
@@ -534,18 +534,18 @@
   "conversion": {
     "toRecipe": {
       "title": "Switch to Recipe?",
-      "message": "To add ingredients, we'll update your configuration. Your current simple stock will be removed and switched to recipe-based tracking.",
+      "message": "To add ingredients, we'll update your configuration. Your current quantity tracking will be removed and switched to recipe-based tracking.",
       "confirm": "Yes, switch",
       "cancel": "Cancel",
       "success": "Configuration updated to recipe",
       "error": "Failed to change configuration"
     },
-    "toSimpleStock": {
-      "title": "Switch to Simple Stock?",
-      "message": "To use simple stock, we'll update your configuration. Your current recipe and its ingredients will be removed and switched to unit tracking.",
+    "toQuantity": {
+      "title": "Switch to Quantity Tracking?",
+      "message": "To use quantity tracking, we'll update your configuration. Your current recipe and its ingredients will be removed and switched to unit tracking.",
       "confirm": "Yes, switch",
       "cancel": "Cancel",
-      "success": "Configuration updated to simple stock",
+      "success": "Configuration updated to quantity tracking",
       "error": "Failed to change configuration"
     },
     "confirmationNeeded": "Confirmation Required",
