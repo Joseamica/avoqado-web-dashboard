@@ -1,0 +1,141 @@
+{
+  "stepProgress": "Paso {{current}} de {{total}}",
+  "steps": {
+    "welcome": "Bienvenida",
+    "type": "Elige Tu Camino",
+    "businessInfo": "Información del Negocio"
+  },
+  "welcome": {
+    "greeting": "¡Bienvenido, {{name}}!",
+    "subtitle": "Configuremos tu negocio en solo unos minutos",
+    "whatWeWillSetup": "Lo que configuraremos juntos:",
+    "setupItems": {
+      "venueInfo": "Información de tu negocio (nombre, ubicación, horarios)",
+      "menu": "Tu catálogo con categorías y productos",
+      "payment": "Procesamiento de pagos y detalles bancarios",
+      "team": "Miembros del equipo y sus roles (opcional)"
+    },
+    "keyFeatures": "Funciones poderosas que hacen a Avoqado excepcional:",
+    "features": {
+      "reconciliation": {
+        "title": "Conciliación Centralizada",
+        "description": "Todo en un solo lugar: POS, efectivo, terminales de pago. Sin conciliar múltiples sistemas"
+      },
+      "smartRouting": {
+        "title": "Enrutamiento Inteligente de Pagos",
+        "description": "IA optimiza cada transacción para minimizar comisiones. Ahorra 20-30% en costos"
+      },
+      "inventory": {
+        "title": "Inventarios Automatizados",
+        "description": "Control de stock en tiempo real con deducción automática en cada venta"
+      },
+      "chatbot": {
+        "title": "Asistente de IA para tu Negocio",
+        "description": "Pregunta sobre tu negocio y obtén insights instantáneos con inteligencia artificial"
+      },
+      "posIntegrations": {
+        "title": "Integraciones con POS",
+        "description": "Conecta fácilmente con tu sistema de punto de venta actual"
+      },
+      "automaticTips": {
+        "title": "Propinas Automáticas",
+        "description": "Propinas pagadas instantánea y automáticamente a tu personal. Sin cálculos manuales"
+      },
+      "competitivePricing": {
+        "title": "Precios Competitivos",
+        "description": "Comisiones más bajas que la competencía. Ellos cobran 3-3.5%, nosotros menos"
+      },
+      "smartPOS": {
+        "title": "TPV Inteligente",
+        "description": "Ordena, cobra, divide cuentas, enruta pagos y asigna propinas en una sola terminal"
+      }
+    },
+    "timeEstimate": "⏱️ Este proceso toma aproximadamente 5-10 minutos"
+  },
+  "footer": {
+    "needHelp": "¿Necesitas ayuda?",
+    "contactSupport": "Contactar Soporte"
+  },
+  "onboardingType": {
+    "title": "¿Cómo te gustaría empezar?",
+    "subtitle": "Elige la opción que mejor se adapte a tus necesidades",
+    "demo": {
+      "title": "Comenzar con Datos de Demo",
+      "description": "Empieza rápidamente con un negocio pre-configurado y catálogo de ejemplo",
+      "features": {
+        "preConfigured": "Negocio pre-configurado con todas las opciones",
+        "sampleMenu": "Catálogo completo de ejemplo con categorías y productos",
+        "quickStart": "Comienza a vender en minutos"
+      },
+      "badge": "Recomendado"
+    },
+    "manual": {
+      "title": "Comenzar Desde Cero",
+      "description": "Construye tu negocio desde cero con control completo",
+      "features": {
+        "fullControl": "Control completo sobre cada configuración",
+        "customSetup": "Configura tu negocio exactamente como lo deseas",
+        "yourWay": "Perfecto para usuarios experimentados"
+      }
+    },
+    "selected": "Seleccionado",
+    "helpText": "No te preocupes, siempre puedes cambiar tu catálogo y configuración más tarde"
+  },
+  "businessInfo": {
+    "title": "Cuéntanos sobre tu negocio",
+    "subtitle": "Esta información nos ayudará a personalizar tu experiencia",
+    "form": {
+      "businessName": "Nombre del Negocio",
+      "businessNamePlaceholder": "Ingresa el nombre de tu negocio",
+      "businessNameHelp": "Aparecerá en recibos y materiales de cara al cliente",
+      "businessType": "Tipo de Negocio",
+      "businessTypePlaceholder": "Selecciona el tipo de negocio",
+      "address": "Dirección",
+      "addressPlaceholder": "Calle Principal 123",
+      "city": "Ciudad",
+      "cityPlaceholder": "Ingresa la ciudad",
+      "state": "Estado/Provincia",
+      "statePlaceholder": "Ingresa el estado o provincia",
+      "country": "País",
+      "countryPlaceholder": "Selecciona el país",
+      "zipCode": "Código Postal",
+      "zipCodePlaceholder": "Ingresa el código postal",
+      "phone": "Teléfono",
+      "phonePlaceholder": "+52 123 456 7890",
+      "email": "Correo del Negocio",
+      "emailPlaceholder": "contacto@negocio.com",
+      "timezone": "Zona Horaria",
+      "timezoneHelp": "Utilizada para reportes y programación",
+      "currency": "Moneda",
+      "currencyHelp": "Moneda predeterminada para precios y pagos"
+    },
+    "businessTypes": {
+      "RESTAURANT": "Restaurante",
+      "BAR": "Bar",
+      "CAFE": "Café",
+      "FAST_FOOD": "Comida Rápida",
+      "FOOD_TRUCK": "Food Truck",
+      "RETAIL_STORE": "Tienda Minorista",
+      "HOTEL_RESTAURANT": "Restaurante de Hotel",
+      "FITNESS_STUDIO": "Estudio de Fitness",
+      "SPA": "Spa",
+      "OTHER": "Otro"
+    },
+    "validation": {
+      "nameRequired": "El nombre del negocio es requerido",
+      "nameMin": "El nombre del negocio debe tener al menos 2 caracteres",
+      "typeRequired": "El tipo de negocio es requerido",
+      "addressRequired": "La dirección es requerida",
+      "cityRequired": "La ciudad es requerida",
+      "stateRequired": "El estado/provincia es requerido",
+      "countryRequired": "El país es requerido",
+      "zipCodeRequired": "El código postal es requerido",
+      "phoneRequired": "El teléfono es requerido",
+      "phoneInvalid": "Por favor ingresa un número de teléfono válido",
+      "emailRequired": "El correo del negocio es requerido",
+      "emailInvalid": "Por favor ingresa un correo electrónico válido",
+      "timezoneRequired": "La zona horaria es requerida",
+      "currencyRequired": "La moneda es requerida"
+    }
+  }
+}

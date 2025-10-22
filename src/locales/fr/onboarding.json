@@ -1,0 +1,141 @@
+{
+  "stepProgress": "Step {{current}} of {{total}}",
+  "steps": {
+    "welcome": "Welcome",
+    "type": "Choose Your Path",
+    "businessInfo": "Business Information"
+  },
+  "welcome": {
+    "greeting": "Welcome, {{name}}!",
+    "subtitle": "Let's get your business set up in just a few minutes",
+    "whatWeWillSetup": "What we'll set up together:",
+    "setupItems": {
+      "venueInfo": "Your business information (name, location, hours)",
+      "menu": "Your catalog with categories and products",
+      "payment": "Payment processing and banking details",
+      "team": "Team members and their roles (optional)"
+    },
+    "keyFeatures": "Powerful features that set Avoqado apart:",
+    "features": {
+      "reconciliation": {
+        "title": "Centralized Reconciliation",
+        "description": "All in one place: POS, cash, payment terminals. No more reconciling multiple systems"
+      },
+      "smartRouting": {
+        "title": "Intelligent Payment Routing",
+        "description": "AI optimizes every transaction to minimize fees. Save 20-30% on commissions"
+      },
+      "inventory": {
+        "title": "Automated Inventory",
+        "description": "Real-time stock tracking with automatic deduction on every sale"
+      },
+      "chatbot": {
+        "title": "AI Business Assistant",
+        "description": "Ask questions about your business and get instant insights powered by AI"
+      },
+      "posIntegrations": {
+        "title": "POS Integrations",
+        "description": "Connect with your existing point-of-sale system seamlessly"
+      },
+      "automaticTips": {
+        "title": "Automatic Tips",
+        "description": "Tips paid instantly and automatically to your staff. No manual calculations"
+      },
+      "competitivePricing": {
+        "title": "Competitive Rates",
+        "description": "Lower fees than Mercado Pago, Clip, and Sr Pago. They charge 3-3.5%, we're better"
+      },
+      "smartPOS": {
+        "title": "Intelligent POS",
+        "description": "Order, pay, split bills, route payments, and assign tips all in one smart terminal"
+      }
+    },
+    "timeEstimate": "⏱️ This process takes about 5-10 minutes"
+  },
+  "footer": {
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support"
+  },
+  "onboardingType": {
+    "title": "How would you like to get started?",
+    "subtitle": "Choose the option that best fits your needs",
+    "demo": {
+      "title": "Start with Demo Data",
+      "description": "Get up and running quickly with a pre-configured business and sample catalog",
+      "features": {
+        "preConfigured": "Pre-configured business with all settings",
+        "sampleMenu": "Complete sample catalog with categories and products",
+        "quickStart": "Start selling in minutes"
+      },
+      "badge": "Recommended"
+    },
+    "manual": {
+      "title": "Start from Scratch",
+      "description": "Build your business from the ground up with complete control",
+      "features": {
+        "fullControl": "Complete control over every setting",
+        "customSetup": "Set up your business exactly how you want it",
+        "yourWay": "Perfect for experienced users"
+      }
+    },
+    "selected": "Selected",
+    "helpText": "Don't worry, you can always change your catalog and settings later"
+  },
+  "businessInfo": {
+    "title": "Tell us about your business",
+    "subtitle": "This information will help us personalize your experience",
+    "form": {
+      "businessName": "Business Name",
+      "businessNamePlaceholder": "Enter your business name",
+      "businessNameHelp": "This will appear on receipts and customer-facing materials",
+      "businessType": "Business Type",
+      "businessTypePlaceholder": "Select your business type",
+      "address": "Street Address",
+      "addressPlaceholder": "123 Main Street",
+      "city": "City",
+      "cityPlaceholder": "Enter city",
+      "state": "State/Province",
+      "statePlaceholder": "Enter state or province",
+      "country": "Country",
+      "countryPlaceholder": "Select country",
+      "zipCode": "Postal Code",
+      "zipCodePlaceholder": "Enter postal code",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+52 123 456 7890",
+      "email": "Business Email",
+      "emailPlaceholder": "contact@business.com",
+      "timezone": "Timezone",
+      "timezoneHelp": "Used for reporting and scheduling",
+      "currency": "Currency",
+      "currencyHelp": "Default currency for pricing and payments"
+    },
+    "businessTypes": {
+      "RESTAURANT": "Restaurant",
+      "BAR": "Bar",
+      "CAFE": "Café",
+      "FAST_FOOD": "Fast Food",
+      "FOOD_TRUCK": "Food Truck",
+      "RETAIL_STORE": "Retail Store",
+      "HOTEL_RESTAURANT": "Hotel Restaurant",
+      "FITNESS_STUDIO": "Fitness Studio",
+      "SPA": "Spa",
+      "OTHER": "Other"
+    },
+    "validation": {
+      "nameRequired": "Business name is required",
+      "nameMin": "Business name must be at least 2 characters",
+      "typeRequired": "Business type is required",
+      "addressRequired": "Street address is required",
+      "cityRequired": "City is required",
+      "stateRequired": "State/Province is required",
+      "countryRequired": "Country is required",
+      "zipCodeRequired": "Postal code is required",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Please enter a valid phone number",
+      "emailRequired": "Business email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "timezoneRequired": "Timezone is required",
+      "currencyRequired": "Currency is required"
+    }
+  }
+}

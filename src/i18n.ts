@@ -26,6 +26,9 @@ import commonFr from '@/locales/fr/common.json'
 import superadminEn from '@/locales/en/superadmin.json'
 import superadminEs from '@/locales/es/superadmin.json'
 import superadminFr from '@/locales/fr/superadmin.json'
+import onboardingEn from '@/locales/en/onboarding.json'
+import onboardingEs from '@/locales/es/onboarding.json'
+import onboardingFr from '@/locales/fr/onboarding.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -150,6 +153,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'common', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', onboardingEn],
+    ['es', onboardingEs],
+    ['fr', onboardingFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'onboarding', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

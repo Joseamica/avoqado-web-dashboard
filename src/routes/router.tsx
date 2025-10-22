@@ -8,7 +8,9 @@ import {
   Dashboard,
   ErrorPage,
   Login,
+  Signup,
   GoogleOAuthCallback,
+  OnboardingWizard,
   Home,
   Categories,
   CategoryId,
@@ -95,6 +97,14 @@ const router = createBrowserRouter(
         {
           path: '/login',
           element: <Login />,
+        },
+        {
+          path: '/signup',
+          element: <Signup />,
+        },
+        {
+          path: '/onboarding',
+          element: <OnboardingWizard />,
         },
         {
           path: '/terms',

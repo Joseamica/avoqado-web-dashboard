@@ -101,3 +101,34 @@ export const checkGoogleInvitation = async (email: string): Promise<{
   const response = await api.get(`/api/v1/dashboard/auth/google/check-invitation?email=${encodeURIComponent(email)}`)
   return response.data
 }
+
+// Signup
+export interface SignupDto {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  organizationName: string
+}
+
+export interface SignupResponse {
+  success: boolean
+  message: string
+  staff: {
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    organizationId: string
+    photoUrl?: string | null
+  }
+  organization: {
+    id: string
+    name: string
+  }
+}
+
+export const signup = async (data: SignupDto): Promise<SignupResponse> => {
+  const response = await api.post('/api/v1/onboarding/signup', data)
+  return response.data
+}

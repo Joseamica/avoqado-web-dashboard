@@ -12,12 +12,21 @@ import { User, Venue, StaffRole } from '@/types'
 // Tipos y la Interfaz del Contexto
 type LoginData = { email: string; password: string; venueSlug?: string }
 
+type SignupData = {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  organizationName: string
+}
+
 interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
   activeVenue: Venue | null
   isLoading: boolean
   login: (data: LoginData) => void
+  signup: (data: SignupData) => void
   loginWithGoogle: () => Promise<void>
   logout: () => void
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
@@ -120,7 +129,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
-      navigate('/venues/new', { replace: true })
+      // Don't redirect if user is on signup or onboarding flow (new signups need to complete onboarding first)
+      const isOnSignupRoute = location.pathname.startsWith('/signup')
+      const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
+      if (!isOnSignupRoute && !isOnOnboardingRoute) {
+        navigate('/venues/new', { replace: true })
+      }
     }
   }, [
     slug,
@@ -148,6 +162,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: t('auth.toast.login_error_title'),
         variant: 'destructive',
         description: error.response?.data?.message || t('auth.toast.login_error_desc'),
+      })
+    },
+  })
+
+  const signupMutation = useMutation({
+    mutationFn: (signupData: SignupData) => authService.signup(signupData),
+    onSuccess: () => {
+      toast({ title: t('auth.toast.signup_success') })
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+      // After successful signup, redirect to onboarding
+      navigate('/onboarding')
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('auth.toast.signup_error_title'),
+        variant: 'destructive',
+        description: error.response?.data?.message || t('auth.toast.signup_error_desc'),
       })
     },
   })
@@ -278,8 +309,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated,
     user,
     activeVenue,
-    isLoading: isStatusLoading || loginMutation.isPending || logoutMutation.isPending || switchVenueMutation.isPending,
+    isLoading:
+      isStatusLoading || loginMutation.isPending || signupMutation.isPending || logoutMutation.isPending || switchVenueMutation.isPending,
     login: loginMutation.mutate,
+    signup: signupMutation.mutate,
     loginWithGoogle,
     logout: logoutMutation.mutate,
     switchVenue,
