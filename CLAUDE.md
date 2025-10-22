@@ -466,12 +466,228 @@ Currently no automated test suite is configured. Code quality is maintained thro
 - ESLint static analysis
 - Manual testing with development server
 
-### Deployment Notes
+### Deployment & Environment Variables
 
-- Built artifacts in `dist/` directory
-- Static assets served from `public/`
-- Production build requires environment variables
-- Firebase authentication requires proper domain configuration
+#### Deployment Architecture
+
+The dashboard uses **GitHub Actions + Cloudflare Pages** for automated deployments. There are **three separate environments**:
+
+1. **Demo** (`demo.dashboard.avoqado.io`) - Connected to demo API (`demo.api.avoqado.io`)
+2. **Staging** (`staging.dashboard.avoqado.io`) - Connected to staging API
+3. **Production** (`dashboardv2.avoqado.io`) - Connected to production API
+
+Each environment is deployed as a **separate Cloudflare Pages project**:
+- `demo-avoqado-web-dashboard` (demo environment)
+- `avoqado-web-dashboard` (staging + production)
+
+#### ⚠️ CRITICAL: Environment Variables Flow
+
+**The Problem:**
+Cloudflare Pages with GitHub integration **does NOT use** Cloudflare Pages UI variables for auto-deploys. It uses **GitHub Environments** instead.
+
+**Why This Matters:**
+```
+❌ WRONG ASSUMPTION:
+Cloudflare Pages → Settings → Environment Variables
+  └─ These variables are ONLY used for manual wrangler deploys
+  └─ Auto-deploys from GitHub IGNORE these variables!
+
+✅ CORRECT FLOW:
+GitHub Push → GitHub Actions Workflow → GitHub Environment Secrets
+  └─ Workflow uses secrets from GitHub Environment (demo/staging/production)
+  └─ Passes secrets to build command via `env:` in workflow YAML
+  └─ Vite injects variables at BUILD TIME (not runtime)
+  └─ Deploys compiled dist/ to Cloudflare Pages
+```
+
+**Evidence from Build Logs:**
+```bash
+# Cloudflare auto-deploy (NO GitHub Actions):
+22:34:43.782    Build environment variables: (none found)
+# ❌ No variables available because Cloudflare doesn't inject them for auto-deploys
+
+# GitHub Actions deploy (CORRECT):
+env:
+  VITE_API_URL: ${{ secrets.VITE_API_URL }}
+  VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+# ✅ Variables injected from GitHub Environment secrets
+```
+
+#### GitHub Environments Configuration
+
+**Three GitHub Environments exist** (configured in GitHub repo settings):
+
+1. **demo** → `demo.dashboard.avoqado.io`
+   - `VITE_API_URL` = `https://demo.api.avoqado.io`
+   - `VITE_FRONTEND_URL` = `https://demo.dashboard.avoqado.io`
+   - + Firebase/Google OAuth secrets
+
+2. **staging** → `staging.dashboard.avoqado.io`
+   - `VITE_STAGING_API_URL` = `https://avoqado-server-staging-cm35.onrender.com`
+   - `VITE_STAGING_FRONTEND_URL` = `https://staging.dashboard.avoqado.io`
+   - + Firebase/Google OAuth secrets
+
+3. **production** → `dashboardv2.avoqado.io`
+   - `VITE_PRODUCTION_API_URL` = `https://api.avoqado.io`
+   - `VITE_PRODUCTION_FRONTEND_URL` = `https://dashboardv2.avoqado.io`
+   - + Firebase/Google OAuth secrets
+
+**To view/edit:**
+```bash
+# View GitHub secrets
+gh secret list --env demo
+gh secret list --env staging
+gh secret list --env production
+
+# Set a secret
+gh secret set VITE_API_URL --env demo --body "https://demo.api.avoqado.io"
+```
+
+Or via GitHub UI: **Repository Settings → Environments → [demo/staging/production] → Environment secrets**
+
+#### GitHub Actions Workflow (`.github/workflows/ci-cd.yml`)
+
+The CI/CD pipeline has **four jobs**:
+
+**1. `test-and-build`** (runs on every push/PR)
+- Lints, TypeScript check, test build
+- Produces build artifacts
+
+**2. `deploy-demo`** (runs on push to `develop` branch OR manual trigger)
+- Uses `demo` GitHub Environment
+- Builds with demo environment variables
+- Deploys to `demo-avoqado-web-dashboard` Cloudflare Pages project
+- Health checks `https://demo.dashboard.avoqado.io`
+
+**3. `deploy-staging`** (runs on push to `develop` branch OR manual trigger)
+- Uses `staging` GitHub Environment
+- Builds with staging environment variables
+- Deploys to `avoqado-web-dashboard` Cloudflare Pages project (develop branch)
+- Health checks `https://staging.dashboard.avoqado.io`
+
+**4. `deploy-production`** (runs on push to `main` branch OR manual trigger)
+- Uses `production` GitHub Environment
+- Builds with production environment variables
+- Deploys to `avoqado-web-dashboard` Cloudflare Pages project (main branch)
+- Health checks `https://dashboardv2.avoqado.io`
+
+**Trigger Conditions:**
+```yaml
+# Auto-deploy on push to develop
+if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+# OR manual trigger via GitHub UI
+if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'demo'
+```
+
+**Manual Deployment:**
+```bash
+# Via GitHub CLI (from any branch)
+gh workflow run ci-cd.yml --field environment=demo
+gh workflow run ci-cd.yml --field environment=staging
+gh workflow run ci-cd.yml --field environment=production
+```
+
+Or via GitHub UI: **Actions → CI/CD Pipeline → Run workflow → Select environment**
+
+#### How Vite Environment Variables Work
+
+**Build-time injection** (NOT runtime):
+```typescript
+// src/api.ts
+const api = axios.create({
+  baseURL: import.meta.env.MODE === 'production'
+    ? import.meta.env.VITE_API_URL        // Replaced at BUILD TIME
+    : import.meta.env.VITE_API_DEV_URL,
+  withCredentials: true,
+})
+```
+
+**During build:**
+```bash
+# GitHub Actions runs:
+VITE_API_URL="https://demo.api.avoqado.io" npm run build
+
+# Vite replaces:
+baseURL: import.meta.env.VITE_API_URL
+# With:
+baseURL: "https://demo.api.avoqado.io"
+
+# Final compiled code (in dist/assets/utils-*.js):
+const api = axios.create({
+  baseURL: "https://demo.api.avoqado.io",  // Hardcoded in bundle!
+  withCredentials: true,
+})
+```
+
+**⚠️ This means:**
+- You **CANNOT change API URL** after build (it's compiled into JS)
+- Each environment needs its **own build** with different variables
+- Cloudflare Pages UI variables **do NOT work** because they're not available at build time for auto-deploys
+
+#### Common Issues & Solutions
+
+**Problem: "POST /api/v1/dashboard/auth/login 405 (Method Not Allowed)"**
+- **Symptom**: Frontend sends API calls to itself (`demo.dashboard.avoqado.io/api/...`)
+- **Cause**: `VITE_API_URL` was `undefined` during build
+- **Why**: GitHub Environment secret missing or workflow not using environment
+- **Fix**: Verify GitHub Environment has the secret + workflow references correct environment
+
+**Problem: "Build environment variables: (none found)" in Cloudflare logs**
+- **Symptom**: Cloudflare Pages auto-deploy shows no variables
+- **Cause**: Using Cloudflare auto-deploy without GitHub Actions
+- **Why**: Cloudflare auto-deploys don't inject variables from Cloudflare UI
+- **Fix**: Disable auto-deploy in Cloudflare, rely on GitHub Actions instead
+
+**Problem: Variables updated in GitHub but not reflected**
+- **Symptom**: Changed secret in GitHub Environment but build still uses old value
+- **Cause**: Old build artifacts cached
+- **Fix**: Trigger new deployment via GitHub Actions
+
+**Problem: Demo using staging/production variables**
+- **Symptom**: Demo environment connecting to wrong API
+- **Cause**: Workflow job not using `demo` environment
+- **Fix**: Verify job has `environment: name: demo` in YAML
+
+#### Deployment Checklist
+
+**Adding a new environment:**
+1. ✅ Create GitHub Environment in repo settings
+2. ✅ Add all required secrets to environment:
+   - `VITE_API_URL`
+   - `VITE_FRONTEND_URL`
+   - `VITE_GOOGLE_CLIENT_ID`
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_RECAPTCHA_SITE_KEY`
+3. ✅ Add deployment job to `.github/workflows/ci-cd.yml`
+4. ✅ Create Cloudflare Pages project if needed
+5. ✅ Test deployment via GitHub Actions
+6. ✅ Verify environment variables in build logs
+7. ✅ Health check deployed URL
+
+**Updating environment variables:**
+1. ✅ Update secret in GitHub Environment (NOT Cloudflare Pages UI)
+2. ✅ Trigger new deployment via GitHub Actions
+3. ✅ Verify in build logs that new value is used
+4. ✅ Test deployed application
+
+**Debugging deployment issues:**
+1. ✅ Check GitHub Actions logs for build errors
+2. ✅ Verify environment secrets are set correctly
+3. ✅ Check Cloudflare Pages deployment logs
+4. ✅ Inspect compiled JavaScript bundle for hardcoded URLs
+5. ✅ Test with browser dev tools network tab
+
+#### Best Practices
+
+1. **Never use Cloudflare Pages UI variables** for environments with GitHub integration
+2. **Always use GitHub Environments** for all environment-specific secrets
+3. **Keep variable names consistent** across environments (e.g., `VITE_API_URL`)
+4. **Document all required variables** in this file when adding new ones
+5. **Test deployments** in non-production environments first
+6. **Monitor GitHub Actions logs** for build-time variable injection
+7. **Use `workflow_dispatch`** for emergency production deployments
 
 ## 📦 Inventory Management System
 
