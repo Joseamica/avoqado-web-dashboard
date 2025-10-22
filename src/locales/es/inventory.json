@@ -14,6 +14,7 @@
 
   "nav": {
     "rawMaterials": "Materias Primas",
+    "productStock": "Stock de Productos",
     "recipes": "Recetas",
     "pricing": "Precios"
   },
@@ -124,6 +125,44 @@
       "costPerUnit": "El costo por la unidad de medida que seleccionaste. Por ejemplo, si seleccionaste 'kg', ingresa el costo por kilogramo. Si 'litros', ingresa el costo por litro.",
       "perishable": "Marca esto si el ingrediente tiene fecha de vencimiento o vida útil limitada (carne, lácteos, frutas/verduras). Activa el seguimiento de vencimiento y alertas.",
       "shelfLifeDays": "El número de días que este ingrediente se mantiene fresco después de recibirlo. Esto se usa para calcular automáticamente las fechas de vencimiento de cada lote que recibas. Por ejemplo, si la leche tiene una vida útil de 7 días, un lote recibido hoy vencerá en 7 días."
+    }
+  },
+
+  "productStock": {
+    "title": "Stock de Productos",
+    "subtitle": "Ver y administrar el inventario de productos de stock simple",
+    "searchPlaceholder": "Buscar productos...",
+    "status": {
+      "inStock": "En Stock",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock",
+      "configError": "Error de Configuración"
+    },
+    "errors": {
+      "missingRawMaterial": "Materia prima no encontrada",
+      "cannotAdjustMissingRawMaterial": "No se puede ajustar: materia prima no existe",
+      "cannotViewMissingRawMaterial": "No se pueden ver movimientos: materia prima no existe"
+    },
+    "table": {
+      "columns": {
+        "product": "Producto",
+        "currentStock": "Stock Actual",
+        "reorderPoint": "Punto de Reorden",
+        "costPerUnit": "Costo por Unidad",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "noResults": "No se encontraron productos con seguimiento de inventario de stock simple"
+    },
+    "actions": {
+      "adjustStock": "Ajustar Stock",
+      "viewMovements": "Ver Movimientos"
+    },
+    "stats": {
+      "totalProducts": "Total de Productos",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock",
+      "totalValue": "Valor Total de Inventario"
     }
   },
 

@@ -28,10 +28,7 @@ interface ProductWithRecipe {
     name: string
   }
   recipe?: Recipe
-  externalData?: {
-    inventoryType?: 'NONE' | 'SIMPLE_STOCK' | 'RECIPE_BASED'
-    [key: string]: any
-  }
+  inventoryMethod?: 'QUANTITY' | 'RECIPE' | null
 }
 
 export default function Recipes() {
@@ -56,7 +53,7 @@ export default function Recipes() {
   })
 
   // Fetch products with recipes
-  const { data: products, isLoading, refetch } = useQuery({
+  const { data: products, isLoading } = useQuery({
     queryKey: ['products-with-recipes', venueId, categoryFilter, recipeFilter, searchTerm],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`, {
@@ -100,9 +97,9 @@ export default function Recipes() {
     enabled: !!venueId,
   })
 
-  // Mutation to switch inventory type
-  const switchInventoryTypeMutation = useMutation({
-    mutationFn: () => productInventoryApi.switchInventoryType(venueId, selectedProduct!.id, 'RECIPE_BASED'),
+  // Mutation to switch inventory method
+  const switchInventoryMethodMutation = useMutation({
+    mutationFn: () => productInventoryApi.switchInventoryMethod(venueId, selectedProduct!.id, 'RECIPE'),
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['products-with-recipes'] })
@@ -292,7 +289,7 @@ export default function Recipes() {
         cell: ({ row }) => {
           const product = row.original
           const hasRecipe = !!product.recipe
-          const hasSimpleStock = product.externalData?.inventoryType === 'SIMPLE_STOCK'
+          const hasQuantityTracking = product.inventoryMethod === 'QUANTITY'
 
           return (
             <PermissionGate permission={hasRecipe ? "inventory:update" : "inventory:create"}>
@@ -303,8 +300,8 @@ export default function Recipes() {
                   e.stopPropagation()
                   setSelectedProduct(product)
 
-                  // Pre-check: If product has SIMPLE_STOCK and we're trying to add/edit recipe
-                  if (hasSimpleStock && !hasRecipe) {
+                  // Pre-check: If product has QUANTITY tracking and we're trying to add/edit recipe
+                  if (hasQuantityTracking && !hasRecipe) {
                     // Show conversion dialog
                     setConversionDialogOpen(true)
                   } else {
@@ -447,8 +444,8 @@ export default function Recipes() {
         message={t('conversion.toRecipe.message')}
         confirmLabel={t('conversion.toRecipe.confirm')}
         cancelLabel={t('conversion.toRecipe.cancel')}
-        onConfirm={() => switchInventoryTypeMutation.mutate()}
-        isLoading={switchInventoryTypeMutation.isPending}
+        onConfirm={() => switchInventoryMethodMutation.mutate()}
+        isLoading={switchInventoryMethodMutation.isPending}
       />
     </div>
   )

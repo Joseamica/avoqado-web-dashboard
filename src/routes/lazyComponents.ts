@@ -82,6 +82,7 @@ export const AnalyticsOverview = React.lazy(() => import('@/pages/Analytics/Anal
 // Inventory
 export const InventoryLayout = React.lazy(() => import('@/pages/Inventory/InventoryLayout'))
 export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMaterials'))
+export const ProductStock = React.lazy(() => import('@/pages/Inventory/ProductStock'))
 export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
 

@@ -14,6 +14,7 @@
 
   "nav": {
     "rawMaterials": "Raw Materials",
+    "productStock": "Product Stock",
     "recipes": "Recipes",
     "pricing": "Pricing"
   },
@@ -124,6 +125,44 @@
       "costPerUnit": "The cost per unit of measurement you selected. For example, if you selected 'kg', enter the cost per kilogram. If 'liters', enter cost per liter.",
       "perishable": "Check this if the ingredient has an expiration date or limited shelf life (meat, dairy, produce). Enables expiration tracking and alerts.",
       "shelfLifeDays": "The number of days this ingredient stays fresh after receiving it. This is used to automatically calculate expiration dates for each batch you receive. For example, if milk has a 7-day shelf life, a batch received today will expire in 7 days."
+    }
+  },
+
+  "productStock": {
+    "title": "Product Stock",
+    "subtitle": "View and manage simple stock products inventory",
+    "searchPlaceholder": "Search products...",
+    "status": {
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "configError": "Configuration Error"
+    },
+    "errors": {
+      "missingRawMaterial": "Raw material not found",
+      "cannotAdjustMissingRawMaterial": "Cannot adjust: raw material does not exist",
+      "cannotViewMissingRawMaterial": "Cannot view movements: raw material does not exist"
+    },
+    "table": {
+      "columns": {
+        "product": "Product",
+        "currentStock": "Current Stock",
+        "reorderPoint": "Reorder Point",
+        "costPerUnit": "Cost Per Unit",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "noResults": "No products found with simple stock inventory tracking"
+    },
+    "actions": {
+      "adjustStock": "Adjust Stock",
+      "viewMovements": "View Movements"
+    },
+    "stats": {
+      "totalProducts": "Total Products",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "totalValue": "Total Inventory Value"
     }
   },
 

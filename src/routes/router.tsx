@@ -72,6 +72,7 @@ import {
   AnalyticsOverview,
   InventoryLayout,
   RawMaterials,
+  ProductStock,
   Recipes,
   Pricing,
   RolePermissions,
@@ -490,6 +491,7 @@ const router = createBrowserRouter(
                           element: <InventoryLayout />,
                           children: [
                             { path: 'raw-materials', element: <RawMaterials /> },
+                            { path: 'product-stock', element: <ProductStock /> },
                             { path: 'recipes', element: <Recipes /> },
                             { path: 'pricing', element: <Pricing /> },
                           ],

@@ -380,9 +380,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   useEffect(() => {
     // Only load data when dialog is open, in edit mode, and data is available
     if (open && mode === 'edit' && existingProductData && !isLoadingExistingData) {
-      console.log('🔄 Loading existing product data:', existingProductData)
-      console.log('🔄 Existing recipe data:', existingRecipeData)
-
       const { inventoryType, details } = existingProductData
 
       // PRIORITY 1: If product has a recipe, use RECIPE_BASED (recipe existence overrides inventoryType)
@@ -393,7 +390,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         setSelectedInventoryType('RECIPE_BASED')
 
         // Load recipe data
-        console.log('🍔 Loading RECIPE_BASED data:', existingRecipeData)
         step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
         step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
         step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
@@ -407,7 +403,6 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           isOptional: line.isOptional || false,
           substituteNotes: line.substituteNotes,
         }))
-        console.log('🥗 Loaded ingredients:', ingredients)
         step3RecipeForm.setValue('ingredients', ingredients)
         return // Exit early, recipe takes priority
       }
