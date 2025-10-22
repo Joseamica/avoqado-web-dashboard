@@ -2880,5 +2880,66 @@
       "venueCreatedDesc": "The new venue has been created successfully.",
       "createVenueError": "Could not create venue."
     }
+  },
+  "demoBanner": {
+    "title": "🎉 You're in Demo Mode",
+    "description": "This is a demo venue. Click below to convert to a real venue and start accepting payments.",
+    "convertButton": "Convert to Real",
+    "dismissButton": "Dismiss banner"
+  },
+  "conversionWizard": {
+    "title": "Convert to Real Venue",
+    "subtitle": "Complete the following steps to activate your venue and start accepting real payments.",
+    "step": "Step",
+    "of": "of",
+    "back": "Back",
+    "next": "Next",
+    "convert": "Convert Now",
+    "step1": {
+      "title": "Tax Information",
+      "description": "Enter your business tax information",
+      "rfcLabel": "RFC (Tax ID)",
+      "legalNameLabel": "Legal Business Name",
+      "legalNamePlaceholder": "Enter your business legal name",
+      "fiscalRegimeLabel": "Fiscal Regime",
+      "fiscalRegimePlaceholder": "e.g., General Tax Regime"
+    },
+    "step2": {
+      "title": "Tax Documents",
+      "description": "Upload your tax situation certificate",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)"
+    },
+    "step3": {
+      "title": "Identification",
+      "description": "Upload your official identification",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)"
+    },
+    "step4": {
+      "title": "Select Features",
+      "description": "Choose the features you want to activate",
+      "loading": "Loading features...",
+      "noFeatures": "No features available at this time",
+      "helpText": "Select the features you want to enable for your venue. You can change these settings later from the dashboard."
+    },
+    "step5": {
+      "title": "Review & Confirm",
+      "description": "Review your information before converting",
+      "summaryTitle": "Summary",
+      "venueName": "Venue Name",
+      "rfc": "RFC",
+      "legalName": "Legal Name",
+      "confirmationMessage": "By clicking 'Convert Now', you confirm that all information provided is accurate and you agree to our terms of service."
+    },
+    "success": {
+      "title": "Conversion Successful!",
+      "description": "Your venue has been converted successfully. You can now accept real payments."
+    },
+    "error": {
+      "title": "Conversion Failed",
+      "description": "There was an error converting your venue. Please try again or contact support.",
+      "fetchFeatures": "Failed to load features. Please try again."
+    }
   }
 }

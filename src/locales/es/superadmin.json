@@ -2470,5 +2470,66 @@
         }
       }
     }
+  },
+  "demoBanner": {
+    "title": "🎉 Estás en Modo Demo",
+    "description": "Este es un establecimiento de demostración. Haz clic abajo para convertirlo en un establecimiento real y comenzar a aceptar pagos.",
+    "convertButton": "Convertir a Real",
+    "dismissButton": "Cerrar banner"
+  },
+  "conversionWizard": {
+    "title": "Convertir a Establecimiento Real",
+    "subtitle": "Completa los siguientes pasos para activar tu establecimiento y comenzar a aceptar pagos reales.",
+    "step": "Paso",
+    "of": "de",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "convert": "Convertir Ahora",
+    "step1": {
+      "title": "Información Fiscal",
+      "description": "Ingresa la información fiscal de tu negocio",
+      "rfcLabel": "RFC",
+      "legalNameLabel": "Razón Social",
+      "legalNamePlaceholder": "Ingresa la razón social de tu negocio",
+      "fiscalRegimeLabel": "Régimen Fiscal",
+      "fiscalRegimePlaceholder": "ej., Régimen General de Ley"
+    },
+    "step2": {
+      "title": "Documentos Fiscales",
+      "description": "Sube tu constancia de situación fiscal",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)"
+    },
+    "step3": {
+      "title": "Identificación",
+      "description": "Sube tu identificación oficial",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)"
+    },
+    "step4": {
+      "title": "Seleccionar Funcionalidades",
+      "description": "Elige las funcionalidades que deseas activar",
+      "loading": "Cargando funcionalidades...",
+      "noFeatures": "No hay funcionalidades disponibles en este momento",
+      "helpText": "Selecciona las funcionalidades que deseas habilitar para tu establecimiento. Puedes cambiar esta configuración más tarde desde el panel de control."
+    },
+    "step5": {
+      "title": "Revisar y Confirmar",
+      "description": "Revisa tu información antes de convertir",
+      "summaryTitle": "Resumen",
+      "venueName": "Nombre del Establecimiento",
+      "rfc": "RFC",
+      "legalName": "Razón Social",
+      "confirmationMessage": "Al hacer clic en 'Convertir Ahora', confirmas que toda la información proporcionada es correcta y aceptas nuestros términos de servicio."
+    },
+    "success": {
+      "title": "¡Conversión Exitosa!",
+      "description": "Tu establecimiento ha sido convertido exitosamente. Ahora puedes aceptar pagos reales."
+    },
+    "error": {
+      "title": "Conversión Fallida",
+      "description": "Hubo un error al convertir tu establecimiento. Por favor intenta de nuevo o contacta a soporte.",
+      "fetchFeatures": "No se pudieron cargar las funcionalidades. Por favor intenta de nuevo."
+    }
   }
 }
