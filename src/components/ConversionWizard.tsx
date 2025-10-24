@@ -253,30 +253,26 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   const handleSubmit = async () => {
     try {
-      // Call API to convert venue from demo to real
+      // Convert feature IDs to feature codes BEFORE API call
+      const featureCodes = selectedFeatures
+        .map(featureId => {
+          const feature = availableFeatures.find(f => f.id === featureId)
+          return feature?.code
+        })
+        .filter(Boolean) as string[]
+
+      // Call API to convert venue from demo to real (SINGLE REQUEST with payment + features)
       const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, {
         rfc: formData.rfc,
         legalName: formData.legalName,
         fiscalRegime: formData.fiscalRegime,
         taxDocumentUrl: taxDocumentUrl,
         idDocumentUrl: idDocumentUrl,
-        stripePaymentMethodId: paymentMethodId, // Payment method for trial subscriptions
+        paymentMethodId: paymentMethodId, // ✅ Fixed: Correct field name (was stripePaymentMethodId)
+        selectedFeatures: featureCodes, // ✅ Added: Backend will create trial subscriptions
       })
 
       if (response.data.success) {
-        // Save selected features if any
-        if (selectedFeatures.length > 0) {
-          try {
-            await api.post(`/api/v1/dashboard/venues/${venueId}/features`, {
-              featureIds: selectedFeatures,
-              stripePaymentMethodId: paymentMethodId, // Include payment method for trial setup
-            })
-          } catch (featureError) {
-            console.error('Error saving features:', featureError)
-            // Don't fail the entire conversion if features fail
-          }
-        }
-
         toast({
           title: t('conversionWizard.success.title'),
           description: t('conversionWizard.success.description'),

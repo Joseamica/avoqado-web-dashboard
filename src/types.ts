@@ -470,6 +470,12 @@ export interface VenueFeature {
 
   startDate: string
   endDate: string | null
+
+  // Stripe subscription fields
+  stripeSubscriptionId?: string | null
+  stripeSubscriptionItemId?: string | null
+  stripePriceId?: string | null
+  trialEndDate?: string | null
 }
 
 // ANTERIOR: No existía o era parcial

@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext'
 import { useEffect, useState, useRef } from 'react'
 import { ChatBubble } from './components/Chatbot'
 import { DemoBanner } from './components/DemoBanner'
+import { TrialStatusBanner } from './components/TrialStatusBanner'
 import { StaffRole } from './types'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
@@ -239,6 +240,9 @@ export default function Dashboard() {
 
         {/* Demo Banner - only show if venue is in demo mode */}
         {venue?.isDemo && <DemoBanner />}
+
+        {/* Trial Status Banner - show if venue has active trials */}
+        {!venue?.isDemo && <TrialStatusBanner />}
 
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
