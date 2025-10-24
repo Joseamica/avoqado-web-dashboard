@@ -90,3 +90,4 @@ export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
 
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
+export const Billing = React.lazy(() => import('@/pages/Settings/Billing'))

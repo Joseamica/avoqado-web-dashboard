@@ -78,6 +78,7 @@ import {
   Recipes,
   Pricing,
   RolePermissions,
+  Billing,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -485,6 +486,18 @@ const router = createBrowserRouter(
                     {
                       index: true,
                       element: <RolePermissions />,
+                    },
+                  ],
+                },
+
+                // Billing Management (ADMIN only)
+                {
+                  path: 'settings/billing',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [
+                    {
+                      index: true,
+                      element: <Billing />,
                     },
                   ],
                 },

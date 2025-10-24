@@ -59,9 +59,12 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         : []),
       // Payment config only for SUPERADMIN
       ...(user.role === 'SUPERADMIN'
-        ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null }]
+        ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null, superadminOnly: true }]
         : []),
-      { title: t('routes.billing'), url: '#billing', permission: null },
+      // Billing only for ADMIN+
+      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
+        ? [{ title: t('routes.billing'), url: 'settings/billing', permission: null }]
+        : []),
       { title: t('routes.limits'), url: '#limits', permission: null },
     ].filter(item => !item.permission || can(item.permission))
 
@@ -88,7 +91,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:analytics'), isActive: true, url: '/superadmin/analytics', icon: TrendingUp },
       { title: t('sidebar:alerts'), isActive: true, url: '/superadmin/alerts', icon: AlertTriangle },
       { title: t('sidebar:testing'), isActive: true, url: '/superadmin/testing', icon: FlaskConical },
-      { title: t('sidebar:legacy_admin'), isActive: true, url: '/admin', icon: Settings2 },
+      { title: t('sidebar:legacy_admin'), isActive: true, url: '/admin', icon: Settings2, superadminOnly: true },
     ],
     [t],
   )
