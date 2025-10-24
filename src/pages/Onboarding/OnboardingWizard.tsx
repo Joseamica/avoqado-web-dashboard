@@ -240,7 +240,8 @@ export function OnboardingWizard() {
       }
 
       // Step 7: Complete onboarding and create venue
-      const result = await completeOnboarding(user.organizationId)
+      // Pass Stripe payment method ID if provided
+      const result = await completeOnboarding(user.organizationId, currentData.features?.stripePaymentMethodId)
 
       // Show success message
       if (result.summary.demoDataSeeded) {

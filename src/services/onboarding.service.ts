@@ -125,7 +125,12 @@ export interface CompleteOnboardingResponse {
   }
 }
 
-export const completeOnboarding = async (organizationId: string): Promise<CompleteOnboardingResponse> => {
-  const response = await api.post(`/api/v1/onboarding/organizations/${organizationId}/complete`)
+export const completeOnboarding = async (
+  organizationId: string,
+  stripePaymentMethodId?: string,
+): Promise<CompleteOnboardingResponse> => {
+  const response = await api.post(`/api/v1/onboarding/organizations/${organizationId}/complete`, {
+    stripePaymentMethodId,
+  })
   return response.data
 }

@@ -1,18 +1,18 @@
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
-import { pricingApi, type CreatePricingPolicyDto, type UpdatePricingPolicyDto, type PricingPolicy } from '@/services/inventory.service'
-import { Loader2, TrendingUp, TrendingDown, DollarSign, AlertCircle } from 'lucide-react'
+import { pricingApi, type CreatePricingPolicyDto, type PricingPolicy, type UpdatePricingPolicyDto } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, Loader2, TrendingDown, TrendingUp } from 'lucide-react'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 
 interface ProductWithPricing {
   id: string
@@ -187,9 +187,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {existingPolicy ? t('pricing.updatePolicy') : t('pricing.createPolicy')}
-          </DialogTitle>
+          <DialogTitle>{existingPolicy ? t('pricing.updatePolicy') : t('pricing.createPolicy')}</DialogTitle>
           <DialogDescription>{product.name}</DialogDescription>
         </DialogHeader>
 
@@ -216,10 +214,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
           {/* Pricing Strategy */}
           <div className="space-y-2">
             <Label htmlFor="pricingStrategy">{t('pricing.fields.strategy')} *</Label>
-            <Select
-              value={pricingStrategy}
-              onValueChange={(value: any) => setValue('pricingStrategy', value)}
-            >
+            <Select value={pricingStrategy} onValueChange={(value: any) => setValue('pricingStrategy', value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -251,9 +246,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
-              {errors.targetFoodCostPercentage && (
-                <p className="text-xs text-destructive">Required (1-100%)</p>
-              )}
+              {errors.targetFoodCostPercentage && <p className="text-xs text-destructive">Required (1-100%)</p>}
             </div>
           )}
 
@@ -270,25 +263,15 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
-              {errors.targetMarkupPercentage && (
-                <p className="text-xs text-destructive">Required (min: 0%)</p>
-              )}
+              {errors.targetMarkupPercentage && <p className="text-xs text-destructive">Required (min: 0%)</p>}
             </div>
           )}
 
           {/* Minimum Price */}
           <div className="space-y-2">
             <Label htmlFor="minimumPrice">{t('pricing.fields.minimumPrice')}</Label>
-            <Input
-              id="minimumPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('minimumPrice', { valueAsNumber: true, min: 0 })}
-            />
-            <p className="text-xs text-muted-foreground">
-              Optional price floor - suggested price will not go below this value
-            </p>
+            <Input id="minimumPrice" type="number" step="0.01" min="0" {...register('minimumPrice', { valueAsNumber: true, min: 0 })} />
+            <p className="text-xs text-muted-foreground">Optional price floor - suggested price will not go below this value</p>
           </div>
 
           {/* Suggested Price Preview */}
@@ -314,7 +297,8 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                       <>
                         <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                          +{Currency(priceDifference)} ({priceChangePercentage > 0 ? '+' : ''}{priceChangePercentage.toFixed(1)}%)
+                          +{Currency(priceDifference)} ({priceChangePercentage > 0 ? '+' : ''}
+                          {priceChangePercentage.toFixed(1)}%)
                         </span>
                       </>
                     ) : (
@@ -334,7 +318,8 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Food cost percentage is too high ({suggestedFoodCostPercentage.toFixed(1)}%). Consider increasing the price or reducing recipe costs.
+                    Food cost percentage is too high ({suggestedFoodCostPercentage.toFixed(1)}%). Consider increasing the price or reducing
+                    recipe costs.
                   </AlertDescription>
                 </Alert>
               )}
@@ -342,12 +327,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saveMutation.isPending}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={saveMutation.isPending}>
