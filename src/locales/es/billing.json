@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Facturación y Suscripciones",
+  "pageSubtitle": "Administra tus suscripciones activas, consulta el historial de facturación y explora funciones disponibles",
+  "activeSubscriptions": {
+    "title": "Suscripciones Activas",
+    "noSubscriptions": "Aún no tienes suscripciones activas",
+    "exploreFeatures": "Explora nuestras funciones a continuación para comenzar",
+    "trial": "Prueba",
+    "active": "Activa",
+    "canceled": "Cancelada",
+    "trialEnds": "Prueba termina el {{date}}",
+    "nextBilling": "Próximo cobro: {{date}}",
+    "canceledOn": "Cancelada el {{date}}",
+    "monthlyPrice": "{{price}}/mes",
+    "cancelButton": "Cancelar Suscripción",
+    "activateButton": "Activar",
+    "managingButton": "Administrando..."
+  },
+  "billingHistory": {
+    "title": "Historial de Facturación",
+    "noInvoices": "Aún no hay facturas",
+    "description": "Tu historial de facturas aparecerá aquí una vez que comiences a recibir cobros",
+    "columns": {
+      "date": "Fecha",
+      "description": "Descripción",
+      "amount": "Monto",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "status": {
+      "paid": "Pagado",
+      "open": "Abierto",
+      "draft": "Borrador",
+      "uncollectible": "Incobrable",
+      "void": "Anulado"
+    },
+    "downloadButton": "Descargar Factura",
+    "downloading": "Descargando..."
+  },
+  "availableFeatures": {
+    "title": "Funciones Disponibles",
+    "subtitle": "Explora funciones adicionales para mejorar la gestión de tu restaurante",
+    "noFeatures": "¡Todas las funciones ya están activas!",
+    "description": "Estás usando todas las funciones disponibles",
+    "startTrial": "Iniciar Prueba Gratuita de {{days}} días",
+    "subscribe": "Suscribirse Ahora",
+    "subscribing": "Activando...",
+    "perMonth": "/mes",
+    "features": "Características:",
+    "subscribeNoTrial": "Suscribirse (Sin Prueba)"
+  },
+  "confirmCancel": {
+    "title": "¿Cancelar Suscripción?",
+    "description": "¿Estás seguro de que deseas cancelar {{feature}}? Perderás el acceso a esta función al final de tu periodo de facturación actual ({{date}}).",
+    "confirm": "Sí, Cancelar Suscripción",
+    "cancel": "Mantener Suscripción"
+  },
+  "confirmSubscribe": {
+    "title": "Confirmar Suscripción",
+    "description": "Estás por suscribirte a {{feature}} por {{price}}/mes. El cargo será inmediato ya que has usado esta función anteriormente.",
+    "descriptionWithTrial": "Estás por iniciar una prueba gratuita de {{days}} días para {{feature}}. Después de la prueba, se te cobrará {{price}}/mes.",
+    "paymentMethod": "Método de Pago",
+    "cardEnding": "Tarjeta terminada en {{last4}}",
+    "cardExpires": "Vence {{month}}/{{year}}",
+    "noPaymentMethod": "No hay método de pago registrado",
+    "addPaymentMethod": "Agregar Método de Pago",
+    "immediateCharge": "⚠️ Se hará el cargo a tu tarjeta inmediatamente",
+    "trialInfo": "💳 Se hará el cargo a tu tarjeta después de que termine la prueba",
+    "confirm": "Confirmar Suscripción",
+    "cancel": "Cancelar"
+  },
+  "toast": {
+    "cancelSuccess": "Suscripción cancelada exitosamente",
+    "cancelError": "Error al cancelar suscripción",
+    "activateSuccess": "¡Función activada! Iniciando prueba gratuita de {{days}} días",
+    "activateSuccessGeneric": "Función activada exitosamente",
+    "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 5 días.",
+    "activateError": "Error al activar función",
+    "downloadError": "Error al descargar factura"
+  }
+}

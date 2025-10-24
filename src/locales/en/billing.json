@@ -1,0 +1,81 @@
+{
+  "pageTitle": "Billing & Subscriptions",
+  "pageSubtitle": "Manage your active subscriptions, view billing history, and explore available features",
+  "activeSubscriptions": {
+    "title": "Active Subscriptions",
+    "noSubscriptions": "You don't have any active subscriptions yet",
+    "exploreFeatures": "Explore our features below to get started",
+    "trial": "Trial",
+    "active": "Active",
+    "canceled": "Canceled",
+    "trialEnds": "Trial ends {{date}}",
+    "nextBilling": "Next billing: {{date}}",
+    "canceledOn": "Canceled on {{date}}",
+    "monthlyPrice": "{{price}}/month",
+    "cancelButton": "Cancel Subscription",
+    "activateButton": "Activate",
+    "managingButton": "Managing..."
+  },
+  "billingHistory": {
+    "title": "Billing History",
+    "noInvoices": "No invoices yet",
+    "description": "Your invoice history will appear here once you start getting charged",
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "paid": "Paid",
+      "open": "Open",
+      "draft": "Draft",
+      "uncollectible": "Uncollectible",
+      "void": "Void"
+    },
+    "downloadButton": "Download Invoice",
+    "downloading": "Downloading..."
+  },
+  "availableFeatures": {
+    "title": "Available Features",
+    "subtitle": "Explore additional features to enhance your restaurant management",
+    "noFeatures": "All features are already active!",
+    "description": "You're using all available features",
+    "startTrial": "Start {{days}}-day Free Trial",
+    "subscribe": "Subscribe Now",
+    "subscribing": "Activating...",
+    "perMonth": "/month",
+    "features": "Features:",
+    "subscribeNoTrial": "Subscribe (No Trial)"
+  },
+  "confirmCancel": {
+    "title": "Cancel Subscription?",
+    "description": "Are you sure you want to cancel {{feature}}? You'll lose access to this feature at the end of your current billing period ({{date}}).",
+    "confirm": "Yes, Cancel Subscription",
+    "cancel": "Keep Subscription"
+  },
+  "confirmSubscribe": {
+    "title": "Confirm Subscription",
+    "description": "You're about to subscribe to {{feature}} for {{price}}/month. This charge will be immediate since you've used this feature before.",
+    "descriptionWithTrial": "You're about to start a {{days}}-day free trial for {{feature}}. After the trial, you'll be charged {{price}}/month.",
+    "paymentMethod": "Payment Method",
+    "cardEnding": "Card ending in {{last4}}",
+    "cardExpires": "Expires {{month}}/{{year}}",
+    "noPaymentMethod": "No payment method on file",
+    "addPaymentMethod": "Add Payment Method",
+    "immediateCharge": "⚠️ Your card will be charged immediately",
+    "trialInfo": "💳 Your card will be charged after the trial ends",
+    "confirm": "Confirm Subscription",
+    "cancel": "Cancel"
+  },
+  "toast": {
+    "cancelSuccess": "Subscription canceled successfully",
+    "cancelError": "Failed to cancel subscription",
+    "activateSuccess": "Feature activated! Starting {{days}}-day free trial",
+    "activateSuccessGeneric": "Feature activated successfully",
+    "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 5-day free trial.",
+    "activateError": "Failed to activate feature",
+    "downloadError": "Failed to download invoice"
+  }
+}
