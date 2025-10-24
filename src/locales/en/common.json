@@ -18,5 +18,15 @@
   "finish": "Finish",
   "loading": "Loading...",
   "previous": "Previous",
-  "continue": "Continue"
+  "continue": "Continue",
+  "trialBanner": {
+    "urgentTitle": "⚠️ Only {{days}} day remaining in your free trial!",
+    "urgentTitle_plural": "⚠️ Only {{days}} days remaining in your free trial!",
+    "warningTitle": "🕐 {{days}} days remaining in your free trial",
+    "normalTitle": "✨ You have {{days}} days left in your free trial",
+    "description": "Enjoying {{feature}}? Add a payment method to continue using it after your trial ends.",
+    "manageButton": "Manage Billing",
+    "redirecting": "Redirecting...",
+    "dismissButton": "Dismiss"
+  }
 }

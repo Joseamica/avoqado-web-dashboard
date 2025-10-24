@@ -2887,6 +2887,15 @@
     "convertButton": "Convert to Real",
     "dismissButton": "Dismiss banner"
   },
+  "trialBanner": {
+    "urgentTitle": "⚠️ Trial ends in {{days}} day(s)!",
+    "warningTitle": "⏰ Trial ends in {{days}} days",
+    "normalTitle": "🎁 Free trial: {{days}} days remaining",
+    "description": "Your trial for {{feature}} is ending soon. Update your payment method to continue using this feature.",
+    "manageButton": "Manage Billing",
+    "dismissButton": "Dismiss",
+    "redirecting": "Redirecting..."
+  },
   "conversionWizard": {
     "title": "Convert to Real Venue",
     "subtitle": "Complete the following steps to activate your venue and start accepting real payments.",

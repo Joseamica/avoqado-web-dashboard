@@ -2477,6 +2477,15 @@
     "convertButton": "Convertir a Real",
     "dismissButton": "Cerrar banner"
   },
+  "trialBanner": {
+    "urgentTitle": "⚠️ ¡Tu prueba termina en {{days}} día(s)!",
+    "warningTitle": "⏰ Tu prueba termina en {{days}} días",
+    "normalTitle": "🎁 Prueba gratuita: {{days}} días restantes",
+    "description": "Tu prueba de {{feature}} está por terminar. Actualiza tu método de pago para continuar usando esta función.",
+    "manageButton": "Gestionar Facturación",
+    "dismissButton": "Cerrar",
+    "redirecting": "Redirigiendo..."
+  },
   "conversionWizard": {
     "title": "Convertir a Establecimiento Real",
     "subtitle": "Completa los siguientes pasos para activar tu establecimiento y comenzar a aceptar pagos reales.",

@@ -18,5 +18,15 @@
   "finish": "Finalizar",
   "loading": "Cargando...",
   "previous": "Anterior",
-  "continue": "Continuar"
+  "continue": "Continuar",
+  "trialBanner": {
+    "urgentTitle": "⚠️ ¡Solo queda {{days}} día en tu periodo de prueba!",
+    "urgentTitle_plural": "⚠️ ¡Solo quedan {{days}} días en tu periodo de prueba!",
+    "warningTitle": "🕐 Quedan {{days}} días en tu periodo de prueba",
+    "normalTitle": "✨ Tienes {{days}} días restantes en tu periodo de prueba",
+    "description": "¿Te gusta {{feature}}? Agrega un método de pago para seguir usándolo después de que termine tu prueba.",
+    "manageButton": "Gestionar Facturación",
+    "redirecting": "Redirigiendo...",
+    "dismissButton": "Descartar"
+  }
 }
