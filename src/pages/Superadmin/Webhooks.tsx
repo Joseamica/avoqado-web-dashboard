@@ -1,44 +1,26 @@
-import { useState, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import {
-  Activity,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  RefreshCw,
-  Filter,
-  X,
-  AlertTriangle,
-  TrendingUp,
-  Zap,
-  Eye,
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
-  listWebhookEvents,
-  getWebhookMetrics,
   getEventTypes,
+  getWebhookMetrics,
+  listWebhookEvents,
   retryWebhookEvent,
   type WebhookEvent,
   type WebhookMetrics,
 } from '@/services/webhook.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { format } from 'date-fns'
+import { Activity, AlertTriangle, CheckCircle2, Clock, Eye, Filter, RefreshCw, TrendingUp, X, XCircle, Zap } from 'lucide-react'
+import { useState } from 'react'
 
-export default function Webhooks() {
+function Webhooks() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -71,14 +53,7 @@ export default function Webhooks() {
 
   // Fetch webhook events
   const { data: webhookData, isLoading } = useQuery({
-    queryKey: [
-      'webhookEvents',
-      eventTypeFilter,
-      statusFilter,
-      startDate,
-      endDate,
-      page,
-    ],
+    queryKey: ['webhookEvents', eventTypeFilter, statusFilter, startDate, endDate, page],
     queryFn: () =>
       listWebhookEvents({
         eventType: eventTypeFilter !== 'all' ? eventTypeFilter : undefined,
@@ -128,8 +103,7 @@ export default function Webhooks() {
     setPage(0)
   }
 
-  const hasActiveFilters =
-    eventTypeFilter !== 'all' || statusFilter !== 'all' || startDate || endDate
+  const hasActiveFilters = eventTypeFilter !== 'all' || statusFilter !== 'all' || startDate || endDate
 
   // Status badge variant
   const getStatusVariant = (status: string) => {
@@ -159,9 +133,7 @@ export default function Webhooks() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Webhook Monitoring</h1>
-        <p className="text-muted-foreground mt-2">
-          Monitor Stripe webhook events, debug failures, and track system health
-        </p>
+        <p className="text-muted-foreground mt-2">Monitor Stripe webhook events, debug failures, and track system health</p>
       </div>
 
       {/* Metrics Cards */}
@@ -174,9 +146,7 @@ export default function Webhooks() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {metrics.summary.successRate.toFixed(1)}%
-              </div>
+              <div className="text-2xl font-bold">{metrics.summary.successRate.toFixed(1)}%</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {metrics.summary.successCount} / {metrics.summary.totalEvents} events
               </p>
@@ -190,9 +160,7 @@ export default function Webhooks() {
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatProcessingTime(metrics.summary.avgProcessingTime)}
-              </div>
+              <div className="text-2xl font-bold">{formatProcessingTime(metrics.summary.avgProcessingTime)}</div>
               <p className="text-xs text-muted-foreground mt-1">Per successful event</p>
             </CardContent>
           </Card>
@@ -204,9 +172,7 @@ export default function Webhooks() {
               <XCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">
-                {metrics.summary.failedCount}
-              </div>
+              <div className="text-2xl font-bold text-destructive">{metrics.summary.failedCount}</div>
               <p className="text-xs text-muted-foreground mt-1">Require attention</p>
             </CardContent>
           </Card>
@@ -234,16 +200,9 @@ export default function Webhooks() {
                 <Activity className="h-5 w-5" />
                 Webhook Events
               </CardTitle>
-              <CardDescription className="mt-1">
-                Real-time log of all Stripe webhook events
-              </CardDescription>
+              <CardDescription className="mt-1">Real-time log of all Stripe webhook events</CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="gap-2"
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
               <Filter className="h-4 w-4" />
               {showFilters ? 'Hide Filters' : 'Show Filters'}
               {hasActiveFilters && (
@@ -298,23 +257,13 @@ export default function Webhooks() {
                 {/* Start Date */}
                 <div className="space-y-2">
                   <Label htmlFor="start-date">From Date</Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                  />
+                  <Input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                 </div>
 
                 {/* End Date */}
                 <div className="space-y-2">
                   <Label htmlFor="end-date">To Date</Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    onChange={e => setEndDate(e.target.value)}
-                  />
+                  <Input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                 </div>
               </div>
 
@@ -355,13 +304,9 @@ export default function Webhooks() {
                 <TableBody>
                   {webhookData.events.map(event => (
                     <TableRow key={event.id}>
-                      <TableCell className="font-mono text-xs">
-                        {format(new Date(event.createdAt), 'MMM dd, HH:mm:ss')}
-                      </TableCell>
+                      <TableCell className="font-mono text-xs">{format(new Date(event.createdAt), 'MMM dd, HH:mm:ss')}</TableCell>
                       <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {event.eventType}
-                        </code>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">{event.eventType}</code>
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusVariant(event.status)}>
@@ -380,9 +325,7 @@ export default function Webhooks() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-mono">
-                          {formatProcessingTime(event.processingTime)}
-                        </span>
+                        <span className="text-sm font-mono">{formatProcessingTime(event.processingTime)}</span>
                       </TableCell>
                       <TableCell>
                         {event.retryCount > 0 ? (
@@ -396,11 +339,7 @@ export default function Webhooks() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedEvent(event)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedEvent(event)}>
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
@@ -411,9 +350,7 @@ export default function Webhooks() {
                               onClick={() => handleRetry(event.id)}
                               disabled={retryingEventId === event.id}
                             >
-                              <RefreshCw
-                                className={`h-4 w-4 mr-1 ${retryingEventId === event.id ? 'animate-spin' : ''}`}
-                              />
+                              <RefreshCw className={`h-4 w-4 mr-1 ${retryingEventId === event.id ? 'animate-spin' : ''}`} />
                               Retry
                             </Button>
                           )}
@@ -430,20 +367,10 @@ export default function Webhooks() {
                   Page {page + 1} of {Math.ceil((webhookData?.total || 0) / limit)}
                 </p>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
                     Previous
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={!webhookData?.hasMore}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={!webhookData?.hasMore}>
                     Next
                   </Button>
                 </div>
@@ -460,9 +387,7 @@ export default function Webhooks() {
             <>
               <SheetHeader>
                 <SheetTitle>Webhook Event Details</SheetTitle>
-                <SheetDescription>
-                  Event ID: {selectedEvent.stripeEventId}
-                </SheetDescription>
+                <SheetDescription>Event ID: {selectedEvent.stripeEventId}</SheetDescription>
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
@@ -478,21 +403,15 @@ export default function Webhooks() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Event Type:</span>
-                      <code className="ml-2 text-xs bg-muted px-2 py-1 rounded">
-                        {selectedEvent.eventType}
-                      </code>
+                      <code className="ml-2 text-xs bg-muted px-2 py-1 rounded">{selectedEvent.eventType}</code>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Created:</span>
-                      <span className="ml-2 font-mono">
-                        {format(new Date(selectedEvent.createdAt), 'MMM dd, yyyy HH:mm:ss')}
-                      </span>
+                      <span className="ml-2 font-mono">{format(new Date(selectedEvent.createdAt), 'MMM dd, yyyy HH:mm:ss')}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Processing Time:</span>
-                      <span className="ml-2 font-mono">
-                        {formatProcessingTime(selectedEvent.processingTime)}
-                      </span>
+                      <span className="ml-2 font-mono">{formatProcessingTime(selectedEvent.processingTime)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Venue:</span>
@@ -509,9 +428,7 @@ export default function Webhooks() {
                 {selectedEvent.errorMessage && (
                   <div className="space-y-2">
                     <h3 className="font-semibold text-destructive">Error Message</h3>
-                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-sm">
-                      {selectedEvent.errorMessage}
-                    </div>
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-sm">{selectedEvent.errorMessage}</div>
                   </div>
                 )}
 
@@ -525,14 +442,8 @@ export default function Webhooks() {
 
                 {/* Actions */}
                 {selectedEvent.status === 'FAILED' && (
-                  <Button
-                    className="w-full"
-                    onClick={() => handleRetry(selectedEvent.id)}
-                    disabled={retryingEventId === selectedEvent.id}
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${retryingEventId === selectedEvent.id ? 'animate-spin' : ''}`}
-                    />
+                  <Button className="w-full" onClick={() => handleRetry(selectedEvent.id)} disabled={retryingEventId === selectedEvent.id}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${retryingEventId === selectedEvent.id ? 'animate-spin' : ''}`} />
                     Retry Webhook Event
                   </Button>
                 )}
@@ -544,3 +455,5 @@ export default function Webhooks() {
     </div>
   )
 }
+
+export default Webhooks
