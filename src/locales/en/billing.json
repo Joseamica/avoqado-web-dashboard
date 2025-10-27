@@ -143,9 +143,15 @@
     "cancelError": "Failed to cancel subscription",
     "activateSuccess": "Feature activated! Starting {{days}}-day free trial",
     "activateSuccessGeneric": "Feature activated successfully",
-    "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 5-day free trial.",
+    "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 2-day free trial.",
+    "activateProcessing": "Processing payment...",
+    "activateProcessingDescription": "We're processing your payment. You'll be notified when the feature is active.",
     "activateError": "Failed to activate feature",
     "downloadError": "Failed to download invoice",
-    "billingPortalError": "Failed to open billing portal. Please try again."
+    "billingPortalError": "Failed to open billing portal. Please try again.",
+    "paymentSuccess": "✅ Payment successful!",
+    "paymentSuccessDescription": "{{feature}} is now active. Your subscription has been confirmed.",
+    "subscriptionDeactivated": "Subscription deactivated",
+    "subscriptionDeactivatedDescription": "{{feature}} subscription has been canceled or payment failed."
   }
 }

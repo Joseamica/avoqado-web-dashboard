@@ -19,6 +19,7 @@
   "loading": "Cargando...",
   "previous": "Anterior",
   "continue": "Continuar",
+  "skip": "Saltar por Ahora",
   "trialBanner": {
     "urgentTitle": "⚠️ ¡Solo queda {{days}} día en tu periodo de prueba!",
     "urgentTitle_plural": "⚠️ ¡Solo quedan {{days}} días en tu periodo de prueba!",

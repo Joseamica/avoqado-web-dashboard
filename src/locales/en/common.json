@@ -19,6 +19,7 @@
   "loading": "Loading...",
   "previous": "Previous",
   "continue": "Continue",
+  "skip": "Skip",
   "trialBanner": {
     "urgentTitle": "⚠️ Only {{days}} day remaining in your free trial!",
     "urgentTitle_plural": "⚠️ Only {{days}} days remaining in your free trial!",

@@ -257,11 +257,23 @@ export default function Billing() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
       const isTrial = variables.trialPeriodDays > 0
-      toast({
-        title: t('toast.activateSuccessGeneric'),
-        description: isTrial ? t('toast.activateSuccessDescription') : t('confirmSubscribe.immediateCharge'),
-        variant: 'default',
-      })
+
+      if (isTrial) {
+        // Trial subscription - feature is immediately active
+        toast({
+          title: t('toast.activateSuccessGeneric'),
+          description: t('toast.activateSuccessDescription'),
+          variant: 'default',
+        })
+      } else {
+        // Paid subscription - feature requires payment confirmation
+        toast({
+          title: t('toast.activateProcessing'),
+          description: t('toast.activateProcessingDescription'),
+          variant: 'default',
+        })
+      }
+
       setSubscribingFeatureCode(null)
     },
     onError: (error: any) => {

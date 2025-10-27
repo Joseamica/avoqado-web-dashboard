@@ -50,7 +50,7 @@ export const useAuth = (): AuthContextType => {
 
 // Componente Proveedor
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
@@ -154,14 +154,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginData) => authService.login(credentials),
     onSuccess: () => {
-      toast({ title: t('auth.toast.login_success') })
+      toast({ title: t('toast.login_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: (error: any) => {
       toast({
-        title: t('auth.toast.login_error_title'),
+        title: t('toast.login_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('auth.toast.login_error_desc'),
+        description: error.response?.data?.message || t('toast.login_error_desc'),
       })
     },
   })
@@ -169,16 +169,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signupMutation = useMutation({
     mutationFn: (signupData: SignupData) => authService.signup(signupData),
     onSuccess: () => {
-      toast({ title: t('auth.toast.signup_success') })
+      toast({ title: t('toast.signup_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
       // After successful signup, redirect to onboarding
       navigate('/onboarding')
     },
     onError: (error: any) => {
       toast({
-        title: t('auth.toast.signup_error_title'),
+        title: t('toast.signup_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('auth.toast.signup_error_desc'),
+        description: error.response?.data?.message || t('toast.signup_error_desc'),
       })
     },
   })
@@ -208,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newVenue = getVenueBySlug(newVenueSlug)
         if (newVenue) {
           setActiveVenue(newVenue)
-          toast({ title: t('auth.toast.switched_to_venue', { name: newVenue.name }) })
+          toast({ title: t('toast.switched_to_venue', { name: newVenue.name }) })
 
           // Navegar a la página correspondiente del nuevo venue
           const currentPath = location.pathname
@@ -219,9 +219,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
     onError: (error: any) => {
       toast({
-        title: t('auth.toast.switch_venue_error_title'),
+        title: t('toast.switch_venue_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('auth.toast.switch_venue_error_desc'),
+        description: error.response?.data?.message || t('toast.switch_venue_error_desc'),
       })
     },
   })
@@ -236,9 +236,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.location.href = authUrl
     } catch (error: any) {
       toast({
-        title: t('auth.toast.auth_error_title'),
+        title: t('toast.auth_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('auth.toast.google_login_error_desc'),
+        description: error.response?.data?.message || t('toast.google_login_error_desc'),
       })
       throw error
     }

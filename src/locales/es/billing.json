@@ -143,9 +143,15 @@
     "cancelError": "Error al cancelar suscripción",
     "activateSuccess": "¡Función activada! Iniciando prueba gratuita de {{days}} días",
     "activateSuccessGeneric": "Función activada exitosamente",
-    "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 5 días.",
+    "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 2 días.",
+    "activateProcessing": "Procesando pago...",
+    "activateProcessingDescription": "Estamos procesando tu pago. Te notificaremos cuando la función esté activa.",
     "activateError": "Error al activar función",
     "downloadError": "Error al descargar factura",
-    "billingPortalError": "No se pudo abrir el portal de facturación. Por favor, inténtalo de nuevo."
+    "billingPortalError": "No se pudo abrir el portal de facturación. Por favor, inténtalo de nuevo.",
+    "paymentSuccess": "✅ ¡Pago exitoso!",
+    "paymentSuccessDescription": "{{feature}} está activa. Tu suscripción ha sido confirmada.",
+    "subscriptionDeactivated": "Suscripción desactivada",
+    "subscriptionDeactivatedDescription": "La suscripción de {{feature}} ha sido cancelada o el pago falló."
   }
 }

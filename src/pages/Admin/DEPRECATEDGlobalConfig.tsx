@@ -149,12 +149,15 @@ export default function GlobalConfig() {
       {/* Warning banner */}
       <div className="bg-amber-500/10 border-l-4 border-amber-500/30 p-4">
         <div className="flex">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
           </div>
           <div className="ml-3">
             <p className="text-sm text-foreground">
-              {t('globalConfig.application.warningMessage', { defaultValue: 'Esta sección contiene configuraciones globales que afectan a todo el sistema. Manipular estos valores incorrectamente puede afectar el funcionamiento de la plataforma para todos los usuarios.' })}
+              {t('globalConfig.application.warningMessage', {
+                defaultValue:
+                  'Esta sección contiene configuraciones globales que afectan a todo el sistema. Manipular estos valores incorrectamente puede afectar el funcionamiento de la plataforma para todos los usuarios.',
+              })}
             </p>
           </div>
         </div>
@@ -163,23 +166,38 @@ export default function GlobalConfig() {
       <div className="bg-card rounded-md overflow-hidden shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-5">
-            <TabsTrigger value="app" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
+            <TabsTrigger
+              value="app"
+              className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none"
+            >
               <Settings className="h-4 w-4 mr-2" />
               <span>{t('globalConfig.tabs.application')}</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
+            <TabsTrigger
+              value="security"
+              className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none"
+            >
               <ShieldCheck className="h-4 w-4 mr-2" />
               <span>{t('globalConfig.tabs.security')}</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
+            <TabsTrigger
+              value="email"
+              className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none"
+            >
               <MailCheck className="h-4 w-4 mr-2" />
               <span>{t('globalConfig.tabs.email')}</span>
             </TabsTrigger>
-            <TabsTrigger value="payment" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
+            <TabsTrigger
+              value="payment"
+              className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none"
+            >
               <CreditCard className="h-4 w-4 mr-2" />
               <span>{t('globalConfig.tabs.payments')}</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none">
+            <TabsTrigger
+              value="api"
+              className="flex items-center data-[state=active]:bg-muted data-[state=active]:text-primary rounded-none"
+            >
               <Cloud className="h-4 w-4 mr-2" />
               <span>{t('globalConfig.tabs.apis')}</span>
             </TabsTrigger>
@@ -283,9 +301,7 @@ export default function GlobalConfig() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('common.thisActionWillRestart')}
-                          </AlertDialogDescription>
+                          <AlertDialogDescription>{t('common.thisActionWillRestart')}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
