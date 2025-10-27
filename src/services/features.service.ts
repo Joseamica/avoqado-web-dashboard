@@ -107,19 +107,10 @@ export const getVenueInvoices = async (venueId: string): Promise<StripeInvoice[]
 
 /**
  * Download a Stripe invoice PDF
+ * Opens Stripe's hosted PDF in a new window/tab
  */
 export const downloadInvoice = async (venueId: string, invoiceId: string): Promise<void> => {
-  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/invoices/${invoiceId}/download`, {
-    responseType: 'blob',
-  })
-
-  // Create download link
-  const url = window.URL.createObjectURL(new Blob([response.data]))
-  const link = document.createElement('a')
-  link.href = url
-  link.setAttribute('download', `invoice-${invoiceId}.pdf`)
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.URL.revokeObjectURL(url)
+  // Open download URL in new window - backend will redirect to Stripe's hosted PDF
+  const downloadUrl = `${api.defaults.baseURL}/api/v1/dashboard/venues/${venueId}/invoices/${invoiceId}/download`
+  window.open(downloadUrl, '_blank')
 }

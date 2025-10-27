@@ -79,6 +79,7 @@ import {
   Pricing,
   RolePermissions,
   Billing,
+  Webhooks,
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
@@ -308,6 +309,10 @@ const router = createBrowserRouter(
                     {
                       path: 'testing',
                       element: <TestingPayments />,
+                    },
+                    {
+                      path: 'webhooks',
+                      element: <Webhooks />,
                     },
                   ],
                 },

@@ -35,7 +35,11 @@
       "void": "Anulado"
     },
     "downloadButton": "Descargar Factura",
-    "downloading": "Descargando..."
+    "downloading": "Descargando...",
+    "retryButton": "Reintentar Pago",
+    "retrying": "Reintentando...",
+    "retrySuccess": "Pago reintentado exitosamente",
+    "retryError": "Error al reintentar pago"
   },
   "availableFeatures": {
     "title": "Funciones Disponibles",
@@ -96,6 +100,14 @@
     },
     "cardEnding": "•••• {{last4}}",
     "expiresOn": "Vence {{month}}/{{year}}",
+    "warnings": {
+      "cardExpiring": {
+        "title_one": "Método de Pago Por Vencer",
+        "title_other": "Métodos de Pago Por Vencer",
+        "description": "{{brand}} terminada en {{last4}} vence en {{days}} días ({{date}})",
+        "updateButton": "Actualizar Tarjeta"
+      }
+    },
     "dialog": {
       "title": "Agregar Método de Pago",
       "description": "Agrega una tarjeta de crédito o débito para habilitar suscripciones y facturación automática"

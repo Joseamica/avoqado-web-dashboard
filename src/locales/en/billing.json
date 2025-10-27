@@ -35,7 +35,11 @@
       "void": "Void"
     },
     "downloadButton": "Download Invoice",
-    "downloading": "Downloading..."
+    "downloading": "Downloading...",
+    "retryButton": "Retry Payment",
+    "retrying": "Retrying...",
+    "retrySuccess": "Payment retry successful",
+    "retryError": "Failed to retry payment"
   },
   "availableFeatures": {
     "title": "Available Features",
@@ -96,6 +100,14 @@
     },
     "cardEnding": "•••• {{last4}}",
     "expiresOn": "Expires {{month}}/{{year}}",
+    "warnings": {
+      "cardExpiring": {
+        "title_one": "Payment Method Expiring Soon",
+        "title_other": "Payment Methods Expiring Soon",
+        "description": "{{brand}} ending in {{last4}} expires in {{days}} days ({{date}})",
+        "updateButton": "Update Card"
+      }
+    },
     "dialog": {
       "title": "Add Payment Method",
       "description": "Add a credit or debit card to enable subscriptions and automatic billing"

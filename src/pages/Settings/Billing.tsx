@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Calendar, CreditCard, Download, AlertCircle, Sparkles, CheckCircle2, Trash2 } from 'lucide-react'
+import { Calendar, CreditCard, Download, AlertCircle, Sparkles, CheckCircle2, Trash2, AlertTriangle, Search, X, Filter } from 'lucide-react'
 import getIcon from '@/utils/getIcon'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -56,6 +59,17 @@ export default function Billing() {
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
   const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false)
   const [removingPaymentMethodId, setRemovingPaymentMethodId] = useState<string | null>(null)
+  const [retryingInvoiceId, setRetryingInvoiceId] = useState<string | null>(null)
+
+  // Invoice filters
+  const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>('all')
+  const [invoiceStartDate, setInvoiceStartDate] = useState('')
+  const [invoiceEndDate, setInvoiceEndDate] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Invoice sorting
+  const [invoiceSort, setInvoiceSort] = useState<string>('date-desc') // date-desc, date-asc, amount-desc, amount-asc
 
   // Fetch venue features status
   const { data: featuresStatus, isLoading: loadingFeatures } = useQuery<VenueFeatureStatus>({
@@ -72,7 +86,7 @@ export default function Billing() {
   })
 
   // Fetch payment methods
-  const { data: paymentMethods, isLoading: loadingPaymentMethods } = useQuery<PaymentMethod[]>({
+  const { data: paymentMethods, isLoading: loadingPaymentMethods} = useQuery<PaymentMethod[]>({
     queryKey: ['paymentMethods', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
@@ -80,6 +94,70 @@ export default function Billing() {
     },
     enabled: !!venueId,
   })
+
+  // Filter and sort invoices
+  const filteredInvoices = useMemo(() => {
+    if (!invoices) return []
+
+    // Step 1: Filter
+    const filtered = invoices.filter(invoice => {
+      // Search filter (invoice number or description)
+      if (invoiceSearch) {
+        const searchLower = invoiceSearch.toLowerCase()
+        const matchesNumber = invoice.number?.toLowerCase().includes(searchLower)
+        const matchesDescription = invoice.description?.toLowerCase().includes(searchLower)
+        if (!matchesNumber && !matchesDescription) return false
+      }
+
+      // Status filter
+      if (invoiceStatusFilter !== 'all' && invoice.status !== invoiceStatusFilter) {
+        return false
+      }
+
+      // Date range filter
+      const invoiceDate = new Date(invoice.created * 1000)
+      if (invoiceStartDate) {
+        const startDate = new Date(invoiceStartDate)
+        if (invoiceDate < startDate) return false
+      }
+      if (invoiceEndDate) {
+        const endDate = new Date(invoiceEndDate)
+        endDate.setHours(23, 59, 59, 999) // Include entire end date
+        if (invoiceDate > endDate) return false
+      }
+
+      return true
+    })
+
+    // Step 2: Sort
+    const sorted = [...filtered].sort((a, b) => {
+      switch (invoiceSort) {
+        case 'date-desc':
+          return b.created - a.created // Newest first
+        case 'date-asc':
+          return a.created - b.created // Oldest first
+        case 'amount-desc':
+          return b.amount_due - a.amount_due // Highest first
+        case 'amount-asc':
+          return a.amount_due - b.amount_due // Lowest first
+        default:
+          return b.created - a.created // Default: newest first
+      }
+    })
+
+    return sorted
+  }, [invoices, invoiceSearch, invoiceStatusFilter, invoiceStartDate, invoiceEndDate, invoiceSort])
+
+  // Clear all filters
+  const clearFilters = () => {
+    setInvoiceSearch('')
+    setInvoiceStatusFilter('all')
+    setInvoiceStartDate('')
+    setInvoiceEndDate('')
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = invoiceSearch || invoiceStatusFilter !== 'all' || invoiceStartDate || invoiceEndDate
 
   // Remove payment method mutation
   const removePaymentMethodMutation = useMutation({
@@ -122,6 +200,34 @@ export default function Billing() {
     },
   })
 
+  // Retry invoice payment mutation
+  const retryInvoicePaymentMutation = useMutation({
+    mutationFn: (invoiceId: string) => api.post(`/api/v1/dashboard/venues/${venueId}/invoices/${invoiceId}/retry`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['venueInvoices', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
+      toast({
+        title: t('billingHistory.retrySuccess'),
+        variant: 'default',
+      })
+      setRetryingInvoiceId(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('billingHistory.retryError'),
+        description: error.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+      setRetryingInvoiceId(null)
+    },
+  })
+
+  // Handle retry invoice
+  const handleRetryInvoice = (invoiceId: string) => {
+    setRetryingInvoiceId(invoiceId)
+    retryInvoicePaymentMutation.mutate(invoiceId)
+  }
+
   // Cancel subscription mutation
   const cancelMutation = useMutation({
     mutationFn: (featureId: string) => removeVenueFeature(venueId, featureId),
@@ -158,9 +264,11 @@ export default function Billing() {
       })
       setSubscribingFeatureCode(null)
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || t('toast.activateError')
       toast({
         title: t('toast.activateError'),
+        description: errorMessage,
         variant: 'destructive',
       })
       setSubscribingFeatureCode(null)
@@ -209,6 +317,23 @@ export default function Billing() {
     queryClient.invalidateQueries({ queryKey: ['paymentMethods', venueId] })
     queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
   }
+
+  // Detect expiring cards (within 30 days)
+  const expiringCards = useMemo(() => {
+    if (!paymentMethods) return []
+
+    const now = new Date()
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+    return paymentMethods.filter(pm => {
+      const expiry = new Date(pm.card.exp_year, pm.card.exp_month, 0) // Last day of expiry month
+      return expiry > now && expiry <= thirtyDaysFromNow
+    }).map(pm => {
+      const expiry = new Date(pm.card.exp_year, pm.card.exp_month, 0)
+      const daysUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return { ...pm, daysUntilExpiry, expiry }
+    })
+  }, [paymentMethods])
 
   // Get badge variant for subscription status
   const getStatusBadge = (feature: VenueFeatureStatus['activeFeatures'][0]) => {
@@ -276,6 +401,42 @@ export default function Billing() {
         <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
         <p className="text-muted-foreground mt-2">{t('pageSubtitle')}</p>
       </div>
+
+      {/* Expiring Card Warning */}
+      {expiringCards.length > 0 && (
+        <Alert variant="destructive" className="border-orange-500 bg-orange-50 dark:bg-orange-950/50">
+          <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-1">
+              {t('paymentMethods.warnings.cardExpiring.title', { count: expiringCards.length })}
+            </h3>
+            <AlertDescription className="text-orange-800 dark:text-orange-200">
+              {expiringCards.map((card, idx) => (
+                <div key={card.id} className="flex items-center justify-between py-1">
+                  <span>
+                    {t('paymentMethods.warnings.cardExpiring.description', {
+                      brand: getCardBrand(card.card.brand),
+                      last4: card.card.last4,
+                      days: card.daysUntilExpiry,
+                      date: formatDate(card.expiry),
+                    })}
+                  </span>
+                  {idx === 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddPaymentDialog(true)}
+                      className="ml-4 border-orange-600 text-orange-900 dark:text-orange-100 hover:bg-orange-100 dark:hover:bg-orange-900"
+                    >
+                      {t('paymentMethods.warnings.cardExpiring.updateButton')}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
 
       {/* Active Subscriptions */}
       <Card>
@@ -430,10 +591,35 @@ export default function Billing() {
       {/* Billing History */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            {t('billingHistory.title')}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              {t('billingHistory.title')}
+            </CardTitle>
+            {invoices && invoices.length > 0 && (
+              <div className="flex items-center gap-2">
+                {/* Sort dropdown */}
+                <Select value={invoiceSort} onValueChange={setInvoiceSort}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-desc">Newest First</SelectItem>
+                    <SelectItem value="date-asc">Oldest First</SelectItem>
+                    <SelectItem value="amount-desc">Highest Amount</SelectItem>
+                    <SelectItem value="amount-asc">Lowest Amount</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Filter toggle */}
+                <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  {showFilters ? 'Hide Filters' : 'Show Filters'}
+                  {hasActiveFilters && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">{filteredInvoices.length}</span>}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loadingInvoices ? (
@@ -447,7 +633,102 @@ export default function Billing() {
               </AlertDescription>
             </Alert>
           ) : (
-            <Table>
+            <>
+              {/* Filters */}
+              {showFilters && (
+                <div className="mb-6 p-4 border rounded-lg bg-muted/30 space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {/* Search */}
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice-search" className="text-sm font-medium">
+                        Search
+                      </Label>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="invoice-search"
+                          type="text"
+                          placeholder="Invoice # or description..."
+                          value={invoiceSearch}
+                          onChange={e => setInvoiceSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice-status" className="text-sm font-medium">
+                        Status
+                      </Label>
+                      <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
+                        <SelectTrigger id="invoice-status">
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="uncollectible">Uncollectible</SelectItem>
+                          <SelectItem value="void">Void</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Start Date */}
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice-start-date" className="text-sm font-medium">
+                        From Date
+                      </Label>
+                      <Input
+                        id="invoice-start-date"
+                        type="date"
+                        value={invoiceStartDate}
+                        onChange={e => setInvoiceStartDate(e.target.value)}
+                      />
+                    </div>
+
+                    {/* End Date */}
+                    <div className="space-y-2">
+                      <Label htmlFor="invoice-end-date" className="text-sm font-medium">
+                        To Date
+                      </Label>
+                      <Input
+                        id="invoice-end-date"
+                        type="date"
+                        value={invoiceEndDate}
+                        onChange={e => setInvoiceEndDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filter Actions */}
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {filteredInvoices.length} of {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
+                    </p>
+                    {hasActiveFilters && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
+                        <X className="h-4 w-4" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* No results after filtering */}
+              {filteredInvoices.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <p className="font-medium">No invoices match your filters</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filter criteria</p>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('billingHistory.columns.date')}</TableHead>
@@ -458,31 +739,46 @@ export default function Billing() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map(invoice => (
+                {filteredInvoices.map(invoice => (
                   <TableRow key={invoice.id}>
                     <TableCell>{formatDate(new Date(invoice.created * 1000))}</TableCell>
                     <TableCell>{invoice.description || `Invoice #${invoice.number}`}</TableCell>
                     <TableCell>{formatCurrency(invoice.amount_due, invoice.currency.toUpperCase())}</TableCell>
                     <TableCell>
-                      <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
+                      <Badge variant={invoice.status === 'paid' ? 'default' : invoice.status === 'open' || invoice.status === 'uncollectible' ? 'destructive' : 'secondary'}>
                         {t(`billingHistory.status.${invoice.status}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownloadInvoice(invoice.id)}
-                        disabled={downloadingInvoiceId === invoice.id}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        {downloadingInvoiceId === invoice.id ? t('billingHistory.downloading') : t('billingHistory.downloadButton')}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        {(invoice.status === 'open' || invoice.status === 'uncollectible') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRetryInvoice(invoice.id)}
+                            disabled={retryingInvoiceId === invoice.id}
+                            className="border-orange-600 text-orange-900 dark:text-orange-100 hover:bg-orange-100 dark:hover:bg-orange-900"
+                          >
+                            {retryingInvoiceId === invoice.id ? t('billingHistory.retrying') : t('billingHistory.retryButton')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadInvoice(invoice.id)}
+                          disabled={downloadingInvoiceId === invoice.id}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {downloadingInvoiceId === invoice.id ? t('billingHistory.downloading') : t('billingHistory.downloadButton')}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -545,18 +841,18 @@ export default function Billing() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('confirmSubscribe.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {subscribingFeatureCode &&
-                (() => {
-                  const feature = featuresStatus?.availableFeatures.find(f => f.code === subscribingFeatureCode)
-                  if (!feature) return null
+          </AlertDialogHeader>
+          {subscribingFeatureCode &&
+            (() => {
+              const feature = featuresStatus?.availableFeatures.find(f => f.code === subscribingFeatureCode)
+              if (!feature) return null
 
-                  const hasHadBefore = feature.hadPreviously
-                  const price = formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')
-                  const days = 5
+              const hasHadBefore = feature.hadPreviously
+              const price = formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')
+              const days = 5
 
-                  return (
-                    <div className="space-y-4 pt-2">
+              return (
+                <div className="space-y-4 px-6 pb-2">
                       {/* Description */}
                       <p className="text-sm text-muted-foreground">
                         {hasHadBefore
@@ -620,11 +916,9 @@ export default function Billing() {
                           {hasHadBefore ? t('confirmSubscribe.immediateCharge') : t('confirmSubscribe.trialInfo')}
                         </AlertDescription>
                       </Alert>
-                    </div>
-                  )
-                })()}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+                </div>
+              )
+            })()}
           <AlertDialogFooter>
             <AlertDialogCancel>{t('confirmSubscribe.cancel')}</AlertDialogCancel>
             <AlertDialogAction
@@ -703,7 +997,12 @@ export default function Billing() {
       </AlertDialog>
 
       {/* Add Payment Method Dialog */}
-      <AddPaymentMethodDialog open={showAddPaymentDialog} onOpenChange={setShowAddPaymentDialog} onSuccess={handlePaymentMethodSuccess} />
+      <AddPaymentMethodDialog
+        open={showAddPaymentDialog}
+        onOpenChange={setShowAddPaymentDialog}
+        onSuccess={handlePaymentMethodSuccess}
+        venueId={venueId}
+      />
     </div>
   )
 }

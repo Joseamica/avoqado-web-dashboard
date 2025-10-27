@@ -19,6 +19,7 @@
   "platform": "Platform",
   "features": "Features",
   "system": "System Status",
+  "webhooks": "Webhooks",
   "reports": "Reports",
   "support": "Support",
   "admin": "Administration",

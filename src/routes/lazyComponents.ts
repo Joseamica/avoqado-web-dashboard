@@ -72,6 +72,7 @@ export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
 export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
+export { default as Webhooks } from '@/pages/SuperAdmin/Webhooks'
 
 // Legal components
 export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))

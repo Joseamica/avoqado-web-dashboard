@@ -12,14 +12,14 @@ import { useAuth } from '@/context/AuthContext'
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 interface AddPaymentMethodFormProps {
+  venueId: string
   onSuccess: () => void
   onCancel: () => void
 }
 
-function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
+function AddPaymentMethodForm({ venueId, onSuccess, onCancel }: AddPaymentMethodFormProps) {
   const { t } = useTranslation('billing')
   const { toast } = useToast()
-  const { selectedVenue } = useAuth()
   const stripe = useStripe()
   const elements = useElements()
   const [error, setError] = useState<string | null>(null)
@@ -82,7 +82,7 @@ function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps
       return
     }
 
-    if (!selectedVenue) {
+    if (!venueId) {
       setError(t('paymentMethods.errors.noVenue'))
       return
     }
@@ -104,7 +104,7 @@ function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps
 
     try {
       // 1. Get SetupIntent client secret from backend
-      const setupIntentResponse = await api.post(`/api/v1/dashboard/venues/${selectedVenue.id}/setup-intent`)
+      const setupIntentResponse = await api.post(`/api/v1/dashboard/venues/${venueId}/setup-intent`)
       const { clientSecret } = setupIntentResponse.data.data
 
       if (!clientSecret) {
@@ -135,6 +135,10 @@ function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps
         title: t('paymentMethods.toasts.addSuccess'),
         variant: 'default',
       })
+
+      // Wait 2 seconds for webhook to process duplicate detection
+      // This prevents the UI from showing duplicates briefly
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
       onSuccess()
     } catch (err: any) {
@@ -199,10 +203,15 @@ interface AddPaymentMethodDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  venueId?: string
 }
 
-export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPaymentMethodDialogProps) {
+export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess, venueId }: AddPaymentMethodDialogProps) {
   const { t } = useTranslation('billing')
+  const { selectedVenue } = useAuth()
+
+  // Use venueId prop or fall back to selectedVenue
+  const activeVenueId = venueId || selectedVenue?.id
 
   const handleSuccess = () => {
     onSuccess()
@@ -213,6 +222,11 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
     onOpenChange(false)
   }
 
+  // Don't render if no venue is available
+  if (!activeVenueId) {
+    return null
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -221,7 +235,7 @@ export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess }: AddPay
           <DialogDescription>{t('paymentMethods.dialog.description')}</DialogDescription>
         </DialogHeader>
         <Elements stripe={stripePromise}>
-          <AddPaymentMethodForm onSuccess={handleSuccess} onCancel={handleCancel} />
+          <AddPaymentMethodForm venueId={activeVenueId} onSuccess={handleSuccess} onCancel={handleCancel} />
         </Elements>
       </DialogContent>
     </Dialog>
