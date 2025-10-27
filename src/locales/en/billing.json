@@ -69,6 +69,63 @@
     "confirm": "Confirm Subscription",
     "cancel": "Cancel"
   },
+  "manageBilling": {
+    "button": "Manage Billing",
+    "addButton": "Add Payment Method",
+    "redirecting": "Redirecting..."
+  },
+  "paymentMethods": {
+    "title": "Payment Methods",
+    "subtitle": "Manage your saved payment methods",
+    "noPaymentMethods": "No payment methods saved",
+    "addFirst": "Add your first payment method to enable subscriptions",
+    "addButton": "Add Payment Method",
+    "removeButton": "Remove",
+    "setDefaultButton": "Set as Default",
+    "defaultBadge": "Default",
+    "defaultDescription": "This is your default payment method used for subscriptions",
+    "cardBrand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express",
+      "discover": "Discover",
+      "diners": "Diners Club",
+      "jcb": "JCB",
+      "unionpay": "UnionPay",
+      "unknown": "Card"
+    },
+    "cardEnding": "•••• {{last4}}",
+    "expiresOn": "Expires {{month}}/{{year}}",
+    "dialog": {
+      "title": "Add Payment Method",
+      "description": "Add a credit or debit card to enable subscriptions and automatic billing"
+    },
+    "form": {
+      "cardLabel": "Credit or Debit Card",
+      "securityNotice": "🔒 Your payment information is securely processed by Stripe. We never store your card details.",
+      "submitButton": "Add Payment Method"
+    },
+    "confirmRemove": {
+      "title": "Remove Payment Method?",
+      "description": "Are you sure you want to remove this payment method? If this is your default payment method, you'll need to set another one.",
+      "confirm": "Yes, Remove",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "addSuccess": "Payment method added successfully",
+      "removeSuccess": "Payment method removed successfully",
+      "setDefaultSuccess": "Default payment method updated",
+      "removeError": "Failed to remove payment method",
+      "setDefaultError": "Failed to update default payment method"
+    },
+    "errors": {
+      "noVenue": "No venue selected",
+      "incompleteCard": "Please complete the card information",
+      "confirmFailed": "Failed to confirm payment method",
+      "setupFailed": "Failed to set up payment method",
+      "addFailed": "Failed to add payment method"
+    }
+  },
   "toast": {
     "cancelSuccess": "Subscription canceled successfully",
     "cancelError": "Failed to cancel subscription",
@@ -76,6 +133,7 @@
     "activateSuccessGeneric": "Feature activated successfully",
     "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 5-day free trial.",
     "activateError": "Failed to activate feature",
-    "downloadError": "Failed to download invoice"
+    "downloadError": "Failed to download invoice",
+    "billingPortalError": "Failed to open billing portal. Please try again."
   }
 }

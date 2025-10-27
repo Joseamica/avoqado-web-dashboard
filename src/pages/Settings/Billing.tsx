@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Calendar, CreditCard, Download, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Calendar, CreditCard, Download, AlertCircle, Sparkles, CheckCircle2, Trash2 } from 'lucide-react'
+import getIcon from '@/utils/getIcon'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +31,20 @@ import {
   type VenueFeatureStatus,
   type StripeInvoice,
 } from '@/services/features.service'
+import { AddPaymentMethodDialog } from '@/components/AddPaymentMethodDialog'
+import api from '@/api'
+
+// Payment Method type
+interface PaymentMethod {
+  id: string
+  card: {
+    brand: string
+    last4: string
+    exp_month: number
+    exp_year: number
+  }
+  customer?: string
+}
 
 export default function Billing() {
   const { t, i18n } = useTranslation('billing')
@@ -39,6 +54,8 @@ export default function Billing() {
   const [cancelingFeatureId, setCancelingFeatureId] = useState<string | null>(null)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
+  const [showAddPaymentDialog, setShowAddPaymentDialog] = useState(false)
+  const [removingPaymentMethodId, setRemovingPaymentMethodId] = useState<string | null>(null)
 
   // Fetch venue features status
   const { data: featuresStatus, isLoading: loadingFeatures } = useQuery<VenueFeatureStatus>({
@@ -52,6 +69,57 @@ export default function Billing() {
     queryKey: ['venueInvoices', venueId],
     queryFn: () => getVenueInvoices(venueId),
     enabled: !!venueId,
+  })
+
+  // Fetch payment methods
+  const { data: paymentMethods, isLoading: loadingPaymentMethods } = useQuery<PaymentMethod[]>({
+    queryKey: ['paymentMethods', venueId],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-methods`)
+      return response.data.data
+    },
+    enabled: !!venueId,
+  })
+
+  // Remove payment method mutation
+  const removePaymentMethodMutation = useMutation({
+    mutationFn: (paymentMethodId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/payment-methods/${paymentMethodId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
+      toast({
+        title: t('paymentMethods.toasts.removeSuccess'),
+        variant: 'default',
+      })
+      setRemovingPaymentMethodId(null)
+    },
+    onError: () => {
+      toast({
+        title: t('paymentMethods.toasts.removeError'),
+        variant: 'destructive',
+      })
+      setRemovingPaymentMethodId(null)
+    },
+  })
+
+  // Set default payment method mutation
+  const setDefaultPaymentMethodMutation = useMutation({
+    mutationFn: (paymentMethodId: string) =>
+      api.put(`/api/v1/dashboard/venues/${venueId}/payment-methods/set-default`, { paymentMethodId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
+      toast({
+        title: t('paymentMethods.toasts.setDefaultSuccess'),
+        variant: 'default',
+      })
+    },
+    onError: () => {
+      toast({
+        title: t('paymentMethods.toasts.setDefaultError'),
+        variant: 'destructive',
+      })
+    },
   })
 
   // Cancel subscription mutation
@@ -104,7 +172,7 @@ export default function Billing() {
     try {
       setDownloadingInvoiceId(invoiceId)
       await downloadInvoice(venueId, invoiceId)
-    } catch (error) {
+    } catch {
       toast({
         title: t('toast.downloadError'),
         variant: 'destructive',
@@ -127,6 +195,19 @@ export default function Billing() {
     return format(new Date(date), 'PPP', {
       locale: i18n.language === 'es' ? es : undefined,
     })
+  }
+
+  // Get card brand display name
+  const getCardBrand = (brand: string) => {
+    const brandLower = brand.toLowerCase()
+    const brandKey = `paymentMethods.cardBrand.${brandLower}` as const
+    return t(brandKey) || t('paymentMethods.cardBrand.unknown')
+  }
+
+  // Handle payment method success
+  const handlePaymentMethodSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['paymentMethods', venueId] })
+    queryClient.invalidateQueries({ queryKey: ['venueFeatures', venueId] })
   }
 
   // Get badge variant for subscription status
@@ -257,6 +338,95 @@ export default function Billing() {
         </CardContent>
       </Card>
 
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              <CardTitle>{t('paymentMethods.title')}</CardTitle>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowAddPaymentDialog(true)}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              {t('paymentMethods.addButton')}
+            </Button>
+          </div>
+          <CardDescription>{t('paymentMethods.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingPaymentMethods ? (
+            <p className="text-muted-foreground">Loading...</p>
+          ) : !paymentMethods?.length ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <p className="font-medium">{t('paymentMethods.noPaymentMethods')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('paymentMethods.addFirst')}</p>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {paymentMethods.map(method => {
+                const isDefault = featuresStatus?.paymentMethod?.last4 === method.card.last4
+                return (
+                  <Card key={method.id} className={isDefault ? 'border-primary' : ''}>
+                    <CardContent className="p-4 space-y-3">
+                      {/* Card brand */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          {getIcon(method.card.brand)}
+                          <div>
+                            <p className="text-sm font-medium">{getCardBrand(method.card.brand)}</p>
+                            <p className="text-xs text-muted-foreground">{t('paymentMethods.cardEnding', { last4: method.card.last4 })}</p>
+                          </div>
+                        </div>
+                        {isDefault && (
+                          <span className="text-[10px] font-medium text-primary border border-primary/30 rounded px-1.5 py-0.5">
+                            {t('paymentMethods.defaultBadge')}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expiration */}
+                      <p className="text-xs text-muted-foreground">
+                        {t('paymentMethods.expiresOn', {
+                          month: String(method.card.exp_month).padStart(2, '0'),
+                          year: method.card.exp_year,
+                        })}
+                      </p>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {!isDefault && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            onClick={() => setDefaultPaymentMethodMutation.mutate(method.id)}
+                            disabled={setDefaultPaymentMethodMutation.isPending}
+                          >
+                            {t('paymentMethods.setDefaultButton')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setRemovingPaymentMethodId(method.id)}
+                          disabled={removePaymentMethodMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Billing History */}
       <Card>
         <CardHeader>
@@ -359,8 +529,8 @@ export default function Billing() {
                       {activateMutation.isPending
                         ? t('availableFeatures.subscribing')
                         : feature.hadPreviously
-                          ? t('availableFeatures.subscribeNoTrial')
-                          : t('availableFeatures.startTrial', { days: 5 })}
+                        ? t('availableFeatures.subscribeNoTrial')
+                        : t('availableFeatures.startTrial', { days: 5 })}
                     </Button>
                   </CardContent>
                 </Card>
@@ -376,68 +546,83 @@ export default function Billing() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('confirmSubscribe.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {subscribingFeatureCode && (() => {
-                const feature = featuresStatus?.availableFeatures.find(f => f.code === subscribingFeatureCode)
-                if (!feature) return null
+              {subscribingFeatureCode &&
+                (() => {
+                  const feature = featuresStatus?.availableFeatures.find(f => f.code === subscribingFeatureCode)
+                  if (!feature) return null
 
-                const hasHadBefore = feature.hadPreviously
-                const price = formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')
-                const days = 5
+                  const hasHadBefore = feature.hadPreviously
+                  const price = formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')
+                  const days = 5
 
-                return (
-                  <div className="space-y-4 pt-2">
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground">
-                      {hasHadBefore
-                        ? t('confirmSubscribe.description', { feature: feature.name, price })
-                        : t('confirmSubscribe.descriptionWithTrial', { feature: feature.name, price, days })
-                      }
-                    </p>
-
-                    {/* Payment Method Section */}
-                    <div className="border border-border rounded-lg p-4 bg-muted/50">
-                      <p className="text-sm font-medium mb-2">{t('confirmSubscribe.paymentMethod')}</p>
-                      {featuresStatus?.paymentMethod ? (
-                        <div className="flex items-center gap-3">
-                          {/* Card Icon */}
-                          <div className="flex items-center justify-center w-12 h-8 bg-background border border-border rounded">
-                            <CreditCard className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          {/* Card Details */}
-                          <div>
-                            <p className="text-sm font-medium">
-                              {featuresStatus.paymentMethod.brand.charAt(0).toUpperCase() + featuresStatus.paymentMethod.brand.slice(1)} •••• {featuresStatus.paymentMethod.last4}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('confirmSubscribe.cardExpires', {
-                                month: String(featuresStatus.paymentMethod.expMonth).padStart(2, '0'),
-                                year: featuresStatus.paymentMethod.expYear
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <Alert className="mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription className="text-xs">
-                            {t('confirmSubscribe.noPaymentMethod')}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-
-                    {/* Warning/Info Banner */}
-                    <Alert variant={hasHadBefore ? "destructive" : "default"}>
-                      <AlertDescription className="text-sm font-medium">
+                  return (
+                    <div className="space-y-4 pt-2">
+                      {/* Description */}
+                      <p className="text-sm text-muted-foreground">
                         {hasHadBefore
-                          ? t('confirmSubscribe.immediateCharge')
-                          : t('confirmSubscribe.trialInfo')
-                        }
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )
-              })()}
+                          ? t('confirmSubscribe.description', { feature: feature.name, price })
+                          : t('confirmSubscribe.descriptionWithTrial', { feature: feature.name, price, days })}
+                      </p>
+
+                      {/* Payment Method Section */}
+                      <div className="border border-border rounded-lg p-4 bg-muted/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium">{t('confirmSubscribe.paymentMethod')}</p>
+                          {!paymentMethods?.length && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSubscribingFeatureCode(null)
+                                setShowAddPaymentDialog(true)
+                              }}
+                            >
+                              {t('confirmSubscribe.addPaymentMethod')}
+                            </Button>
+                          )}
+                        </div>
+                        {paymentMethods && paymentMethods.length > 0 ? (
+                          <div className="flex items-center gap-3">
+                            {/* Card Icon */}
+                            <div className="flex items-center justify-center w-12 h-8 bg-background border border-border rounded">
+                              <CreditCard className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            {/* Card Details - use default payment method or first one */}
+                            {(() => {
+                              const defaultMethod =
+                                paymentMethods.find(pm => featuresStatus?.paymentMethod?.last4 === pm.card.last4) || paymentMethods[0]
+                              return (
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {getCardBrand(defaultMethod.card.brand)} •••• {defaultMethod.card.last4}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('confirmSubscribe.cardExpires', {
+                                      month: String(defaultMethod.card.exp_month).padStart(2, '0'),
+                                      year: defaultMethod.card.exp_year,
+                                    })}
+                                  </p>
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        ) : (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="text-xs">{t('confirmSubscribe.noPaymentMethod')}</AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+
+                      {/* Warning/Info Banner */}
+                      <Alert variant={hasHadBefore ? 'destructive' : 'default'}>
+                        <AlertDescription className="text-sm font-medium">
+                          {hasHadBefore ? t('confirmSubscribe.immediateCharge') : t('confirmSubscribe.trialInfo')}
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )
+                })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -454,7 +639,7 @@ export default function Billing() {
                   }
                 }
               }}
-              disabled={activateMutation.isPending || !featuresStatus?.paymentMethod}
+              disabled={activateMutation.isPending || !paymentMethods?.length}
             >
               {activateMutation.isPending ? t('availableFeatures.subscribing') : t('confirmSubscribe.confirm')}
             </AlertDialogAction>
@@ -493,6 +678,32 @@ export default function Billing() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Remove Payment Method Confirmation Dialog */}
+      <AlertDialog open={!!removingPaymentMethodId} onOpenChange={() => setRemovingPaymentMethodId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('paymentMethods.confirmRemove.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('paymentMethods.confirmRemove.description')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('paymentMethods.confirmRemove.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (removingPaymentMethodId) {
+                  removePaymentMethodMutation.mutate(removingPaymentMethodId)
+                }
+              }}
+            >
+              {t('paymentMethods.confirmRemove.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Payment Method Dialog */}
+      <AddPaymentMethodDialog open={showAddPaymentDialog} onOpenChange={setShowAddPaymentDialog} onSuccess={handlePaymentMethodSuccess} />
     </div>
   )
 }

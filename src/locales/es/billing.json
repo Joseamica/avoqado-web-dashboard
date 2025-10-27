@@ -69,6 +69,63 @@
     "confirm": "Confirmar Suscripción",
     "cancel": "Cancelar"
   },
+  "manageBilling": {
+    "button": "Administrar Facturación",
+    "addButton": "Agregar Método de Pago",
+    "redirecting": "Redirigiendo..."
+  },
+  "paymentMethods": {
+    "title": "Métodos de Pago",
+    "subtitle": "Administra tus métodos de pago guardados",
+    "noPaymentMethods": "No hay métodos de pago guardados",
+    "addFirst": "Agrega tu primer método de pago para habilitar suscripciones",
+    "addButton": "Agregar Método de Pago",
+    "removeButton": "Eliminar",
+    "setDefaultButton": "Establecer como Predeterminado",
+    "defaultBadge": "Predeterminado",
+    "defaultDescription": "Este es tu método de pago predeterminado utilizado para suscripciones",
+    "cardBrand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express",
+      "discover": "Discover",
+      "diners": "Diners Club",
+      "jcb": "JCB",
+      "unionpay": "UnionPay",
+      "unknown": "Tarjeta"
+    },
+    "cardEnding": "•••• {{last4}}",
+    "expiresOn": "Vence {{month}}/{{year}}",
+    "dialog": {
+      "title": "Agregar Método de Pago",
+      "description": "Agrega una tarjeta de crédito o débito para habilitar suscripciones y facturación automática"
+    },
+    "form": {
+      "cardLabel": "Tarjeta de Crédito o Débito",
+      "securityNotice": "🔒 Tu información de pago es procesada de forma segura por Stripe. Nunca almacenamos los detalles de tu tarjeta.",
+      "submitButton": "Agregar Método de Pago"
+    },
+    "confirmRemove": {
+      "title": "¿Eliminar Método de Pago?",
+      "description": "¿Estás seguro de que deseas eliminar este método de pago? Si este es tu método de pago predeterminado, necesitarás establecer otro.",
+      "confirm": "Sí, Eliminar",
+      "cancel": "Cancelar"
+    },
+    "toasts": {
+      "addSuccess": "Método de pago agregado exitosamente",
+      "removeSuccess": "Método de pago eliminado exitosamente",
+      "setDefaultSuccess": "Método de pago predeterminado actualizado",
+      "removeError": "Error al eliminar método de pago",
+      "setDefaultError": "Error al actualizar método de pago predeterminado"
+    },
+    "errors": {
+      "noVenue": "No hay venue seleccionado",
+      "incompleteCard": "Por favor completa la información de la tarjeta",
+      "confirmFailed": "Error al confirmar método de pago",
+      "setupFailed": "Error al configurar método de pago",
+      "addFailed": "Error al agregar método de pago"
+    }
+  },
   "toast": {
     "cancelSuccess": "Suscripción cancelada exitosamente",
     "cancelError": "Error al cancelar suscripción",
@@ -76,6 +133,7 @@
     "activateSuccessGeneric": "Función activada exitosamente",
     "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 5 días.",
     "activateError": "Error al activar función",
-    "downloadError": "Error al descargar factura"
+    "downloadError": "Error al descargar factura",
+    "billingPortalError": "No se pudo abrir el portal de facturación. Por favor, inténtalo de nuevo."
   }
 }

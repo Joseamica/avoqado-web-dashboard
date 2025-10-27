@@ -41,7 +41,7 @@ export default function RawMaterials() {
   const [recipeUsageDialogOpen, setRecipeUsageDialogOpen] = useState(false)
   const [recipeEditDialogOpen, setRecipeEditDialogOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(null)
-  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{id: string, name: string, price: number} | null>(null)
+  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{ id: string; name: string; price: number } | null>(null)
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -74,26 +74,18 @@ export default function RawMaterials() {
 
   useEffect(() => {
     if (!highlightId || !rawMaterials || isLoading) {
-      console.log('Highlight check:', { highlightId, hasRawMaterials: !!rawMaterials, isLoading })
       return
     }
 
     try {
       // Find the material to highlight
       const materialIndex = rawMaterials.findIndex(m => m.id === highlightId)
-      console.log('Looking for material with ID:', highlightId)
-      console.log('Material found at index:', materialIndex)
-      console.log('Current filters:', { categoryFilter, stockFilter, searchTerm })
 
       if (materialIndex === -1) {
-        console.warn('Material not found in current list. ID:', highlightId)
-        console.log('Available materials:', rawMaterials.map(m => ({ id: m.id, name: m.name })))
-
         // Check if filters are applied
         const hasFilters = categoryFilter !== 'all' || stockFilter !== 'all' || searchTerm !== ''
 
         if (hasFilters) {
-          console.log('Filters detected, clearing them to find material...')
           // Clear filters to show all materials
           setCategoryFilter('all')
           setStockFilter('all')
@@ -123,7 +115,7 @@ export default function RawMaterials() {
         pageSize,
         currentPage: pagination.pageIndex,
         targetPage,
-        rowIndexInPage
+        rowIndexInPage,
       })
 
       // If material is on a different page, change to that page
@@ -146,7 +138,7 @@ export default function RawMaterials() {
           console.log('Looking for row at index:', rowIndexInPage)
 
           // Use the row index within the current page
-          const row = Array.from(rowElements)[rowIndexInPage]
+          const row = Array.from(rowElements)[rowIndexInPage] as HTMLElement
 
           if (row) {
             console.log('Row found! Highlighting...')
@@ -196,7 +188,14 @@ export default function RawMaterials() {
             }
           } else {
             console.warn('Row element not found in DOM')
-            console.log('Row index in page:', rowIndexInPage, 'Available rows:', rowElements.length, 'Material global index:', materialIndex)
+            console.log(
+              'Row index in page:',
+              rowIndexInPage,
+              'Available rows:',
+              rowElements.length,
+              'Material global index:',
+              materialIndex,
+            )
             // Remove highlight param if row not found
             const newParams = new URLSearchParams(searchParams)
             newParams.delete('highlight')
@@ -234,8 +233,7 @@ export default function RawMaterials() {
 
   // Toggle active mutation
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      rawMaterialsApi.update(venueId, id, { active }),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) => rawMaterialsApi.update(venueId, id, { active }),
     onSuccess: (_, variables) => {
       // Invalidate all rawMaterials queries for this venue (handles all filter combinations)
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -344,7 +342,9 @@ export default function RawMaterials() {
               variant="outline"
               className="bg-background flex-col items-center justify-center gap-1 px-2 py-2 text-[13px] leading-tight text-center sm:flex-row sm:justify-start sm:gap-2 sm:px-3 sm:py-1 sm:text-sm sm:text-left"
             >
-              <span aria-hidden className="text-base sm:text-sm">{categoryInfo.icon}</span>
+              <span aria-hidden className="text-base sm:text-sm">
+                {categoryInfo.icon}
+              </span>
               <span className="whitespace-normal">{t(`rawMaterials.categories.${category}`)}</span>
             </Badge>
           )
@@ -371,7 +371,11 @@ export default function RawMaterials() {
           return (
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end">
-                <span className={`text-sm font-semibold ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'}`}>
+                <span
+                  className={`text-sm font-semibold ${
+                    isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'
+                  }`}
+                >
                   {stock.toFixed(2)} {formatUnitWithQuantity(stock, material.unit)}
                 </span>
                 <span className="text-xs text-muted-foreground">
@@ -414,7 +418,9 @@ export default function RawMaterials() {
             <div className="flex flex-col gap-1">
               <Badge variant="secondary">{t('common.yes')}</Badge>
               {material.shelfLifeDays && (
-                <span className="text-xs text-muted-foreground">{material.shelfLifeDays} {t('rawMaterials.fields.shelfLifeDays').split(' ')[2]}</span>
+                <span className="text-xs text-muted-foreground">
+                  {material.shelfLifeDays} {t('rawMaterials.fields.shelfLifeDays').split(' ')[2]}
+                </span>
               )}
             </div>
           )
@@ -459,7 +465,7 @@ export default function RawMaterials() {
           return (
             <Switch
               checked={material.active}
-              onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: material.id, active: checked })}
+              onCheckedChange={checked => toggleActiveMutation.mutate({ id: material.id, active: checked })}
               onClick={e => e.stopPropagation()}
               disabled={toggleActiveMutation.isPending}
             />
@@ -612,24 +618,11 @@ export default function RawMaterials() {
       {/* Dialogs */}
       <RawMaterialDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} mode="create" />
 
-      <RawMaterialDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        mode="edit"
-        rawMaterial={selectedMaterial}
-      />
+      <RawMaterialDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} mode="edit" rawMaterial={selectedMaterial} />
 
-      <AdjustStockDialog
-        open={adjustStockDialogOpen}
-        onOpenChange={setAdjustStockDialogOpen}
-        rawMaterial={selectedMaterial}
-      />
+      <AdjustStockDialog open={adjustStockDialogOpen} onOpenChange={setAdjustStockDialogOpen} rawMaterial={selectedMaterial} />
 
-      <StockMovementsDialog
-        open={movementsDialogOpen}
-        onOpenChange={setMovementsDialogOpen}
-        rawMaterial={selectedMaterial}
-      />
+      <StockMovementsDialog open={movementsDialogOpen} onOpenChange={setMovementsDialogOpen} rawMaterial={selectedMaterial} />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
@@ -653,12 +646,7 @@ export default function RawMaterials() {
 
       {/* Recipe Edit Dialog */}
       {selectedProductForRecipe && (
-        <RecipeDialog
-          open={recipeEditDialogOpen}
-          onOpenChange={setRecipeEditDialogOpen}
-          mode="edit"
-          product={selectedProductForRecipe}
-        />
+        <RecipeDialog open={recipeEditDialogOpen} onOpenChange={setRecipeEditDialogOpen} mode="edit" product={selectedProductForRecipe} />
       )}
     </div>
   )
