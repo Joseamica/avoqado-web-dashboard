@@ -15,7 +15,7 @@ import { LoginDto } from '@/services/auth.service'
 type Inputs = LoginDto
 
 export function UserAuthForm({ className, ...props }: React.ComponentProps<'form'>) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const location = useLocation()
   const { login, loginWithGoogle, isAuthenticated, isLoading } = useAuth()
@@ -65,8 +65,8 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   return (
     <form className={cn('flex flex-col gap-6', className)} {...props} onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">{t('auth.login.title')}</h1>
-        <p className="text-muted-foreground text-sm text-balance">{t('auth.login.subtitle')}</p>
+        <h1 className="text-2xl font-bold">{t('login.title')}</h1>
+        <p className="text-muted-foreground text-sm text-balance">{t('login.subtitle')}</p>
         {isDemoEnvironment && (
           <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
             <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">
@@ -77,12 +77,12 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       </div>
       <div className="grid gap-6">
         <div className="grid gap-3">
-          <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>
+          <Label htmlFor="email">{t('login.emailLabel')}</Label>
           <Input
-            {...register('email', { required: t('auth.login.emailRequired') })}
+            {...register('email', { required: t('login.emailRequired') })}
             id="email"
             type="email"
-            placeholder={t('auth.login.emailPlaceholder')}
+            placeholder={t('login.emailPlaceholder')}
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
@@ -93,13 +93,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
-            <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
+            <Label htmlFor="password">{t('login.passwordLabel')}</Label>
             <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
-              {t('auth.login.forgotPassword')}
+              {t('login.forgotPassword')}
             </a>
           </div>
           <Input
-            {...register('password', { required: t('auth.login.passwordRequired') })}
+            {...register('password', { required: t('login.passwordRequired') })}
             id="password"
             type="password"
             autoComplete="current-password"
@@ -111,14 +111,14 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
-          {t('auth.login.signInButton')}
+          {t('login.signInButton')}
         </Button>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-background px-4 text-muted-foreground">{t('auth.login.orContinueWith')}</span>
+            <span className="bg-background px-4 text-muted-foreground">{t('login.orContinueWith')}</span>
           </div>
         </div>
         <Button variant="outline" className="w-full" type="button" disabled={isLoading || isGoogleLoading} onClick={handleGoogleLogin}>
@@ -132,13 +132,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
               />
             </svg>
           )}
-          {t('auth.login.continueWithGoogle')}
+          {t('login.continueWithGoogle')}
         </Button>
       </div>
       {/* <div className="text-center text-sm">
-        {t('auth.login.noAccount')}{' '}
+        {t('login.noAccount')}{' '}
         <a href="#" className="underline underline-offset-4">
-          {t('auth.login.signUp')}
+          {t('login.signUp')}
         </a>
       </div> */}
       {/* Auth errors are surfaced via toasts in AuthContext */}

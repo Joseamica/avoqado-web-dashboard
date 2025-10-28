@@ -31,6 +31,9 @@ import onboardingEs from '@/locales/es/onboarding.json'
 import onboardingFr from '@/locales/fr/onboarding.json'
 import billingEn from '@/locales/en/billing.json'
 import billingEs from '@/locales/es/billing.json'
+import authEn from '@/locales/en/auth.json'
+import authEs from '@/locales/es/auth.json'
+import authFr from '@/locales/fr/auth.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -172,6 +175,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'billing', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', authEn],
+    ['es', authEs],
+    ['fr', authFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'auth', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

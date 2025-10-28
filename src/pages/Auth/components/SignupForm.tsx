@@ -14,7 +14,7 @@ import { SignupDto } from '@/services/auth.service'
 type Inputs = SignupDto
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'form'>) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const location = useLocation()
   const { signup, isAuthenticated, isLoading } = useAuth()
@@ -40,18 +40,18 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
   return (
     <form className={cn('flex flex-col gap-6', className)} {...props} onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">{t('auth.signup.title')}</h1>
-        <p className="text-muted-foreground text-sm text-balance">{t('auth.signup.subtitle')}</p>
+        <h1 className="text-2xl font-bold">{t('signup.title')}</h1>
+        <p className="text-muted-foreground text-sm text-balance">{t('signup.subtitle')}</p>
       </div>
       <div className="grid gap-6">
         {/* Organization Name */}
         <div className="grid gap-3">
-          <Label htmlFor="organizationName">{t('auth.signup.organizationNameLabel')}</Label>
+          <Label htmlFor="organizationName">{t('signup.organizationNameLabel')}</Label>
           <Input
-            {...register('organizationName', { required: t('auth.signup.organizationNameRequired') })}
+            {...register('organizationName', { required: t('signup.organizationNameRequired') })}
             id="organizationName"
             type="text"
-            placeholder={t('auth.signup.organizationNamePlaceholder')}
+            placeholder={t('signup.organizationNamePlaceholder')}
             autoCapitalize="words"
             autoComplete="organization"
             autoCorrect="off"
@@ -66,12 +66,12 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
         {/* First Name & Last Name */}
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-3">
-            <Label htmlFor="firstName">{t('auth.signup.firstNameLabel')}</Label>
+            <Label htmlFor="firstName">{t('signup.firstNameLabel')}</Label>
             <Input
-              {...register('firstName', { required: t('auth.signup.firstNameRequired') })}
+              {...register('firstName', { required: t('signup.firstNameRequired') })}
               id="firstName"
               type="text"
-              placeholder={t('auth.signup.firstNamePlaceholder')}
+              placeholder={t('signup.firstNamePlaceholder')}
               autoCapitalize="words"
               autoComplete="given-name"
               autoCorrect="off"
@@ -82,12 +82,12 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
           </div>
 
           <div className="grid gap-3">
-            <Label htmlFor="lastName">{t('auth.signup.lastNameLabel')}</Label>
+            <Label htmlFor="lastName">{t('signup.lastNameLabel')}</Label>
             <Input
-              {...register('lastName', { required: t('auth.signup.lastNameRequired') })}
+              {...register('lastName', { required: t('signup.lastNameRequired') })}
               id="lastName"
               type="text"
-              placeholder={t('auth.signup.lastNamePlaceholder')}
+              placeholder={t('signup.lastNamePlaceholder')}
               autoCapitalize="words"
               autoComplete="family-name"
               autoCorrect="off"
@@ -100,12 +100,12 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
 
         {/* Email */}
         <div className="grid gap-3">
-          <Label htmlFor="email">{t('auth.signup.emailLabel')}</Label>
+          <Label htmlFor="email">{t('signup.emailLabel')}</Label>
           <Input
-            {...register('email', { required: t('auth.signup.emailRequired') })}
+            {...register('email', { required: t('signup.emailRequired') })}
             id="email"
             type="email"
-            placeholder={t('auth.signup.emailPlaceholder')}
+            placeholder={t('signup.emailPlaceholder')}
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
@@ -117,13 +117,13 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
 
         {/* Password */}
         <div className="grid gap-3">
-          <Label htmlFor="password">{t('auth.signup.passwordLabel')}</Label>
+          <Label htmlFor="password">{t('signup.passwordLabel')}</Label>
           <Input
             {...register('password', {
-              required: t('auth.signup.passwordRequired'),
+              required: t('signup.passwordRequired'),
               minLength: {
                 value: 8,
-                message: t('auth.signup.passwordMinLength'),
+                message: t('signup.passwordMinLength'),
               },
             })}
             id="password"
@@ -134,18 +134,18 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
             className={cn('w-full', errors.password && 'border-red-500')}
           />
           {errors.password && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.password.message}</span>}
-          <p className="text-muted-foreground text-xs">{t('auth.signup.passwordHint')}</p>
+          <p className="text-muted-foreground text-xs">{t('signup.passwordHint')}</p>
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
-          {t('auth.signup.createAccountButton')}
+          {t('signup.createAccountButton')}
         </Button>
       </div>
       <div className="text-center text-sm">
-        {t('auth.signup.alreadyHaveAccount')}{' '}
+        {t('signup.alreadyHaveAccount')}{' '}
         <a href="/login" className="underline underline-offset-4">
-          {t('auth.signup.signInLink')}
+          {t('signup.signInLink')}
         </a>
       </div>
     </form>

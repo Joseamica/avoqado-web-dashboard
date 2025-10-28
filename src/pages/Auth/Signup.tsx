@@ -4,7 +4,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 
 export default function Signup() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
 
   return (
     <div className="flex min-h-screen">
@@ -23,8 +23,8 @@ export default function Signup() {
       {/* Right Side - Image/Brand */}
       <div className="bg-muted hidden lg:flex lg:w-1/2 lg:items-center lg:justify-center">
         <div className="max-w-md text-center">
-          <h2 className="text-foreground mb-4 text-3xl font-bold">{t('auth.signup.welcomeTitle')}</h2>
-          <p className="text-muted-foreground text-lg">{t('auth.signup.welcomeSubtitle')}</p>
+          <h2 className="text-foreground mb-4 text-3xl font-bold">{t('signup.welcomeTitle')}</h2>
+          <p className="text-muted-foreground text-lg">{t('signup.welcomeSubtitle')}</p>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import LanguageSwitcher from '@/components/language-switcher'
 import { clearAllChatStorage } from '@/services/chatService'
 
 const Login: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
 
   useEffect(() => {
     clearAllChatStorage()
@@ -37,13 +37,13 @@ const Login: React.FC = () => {
           </div>
         </div>
         <div className="text-center text-sm text-muted-foreground">
-          {t('auth.login.termsText')}{' '}
+          {t('login.termsText')}{' '}
           <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
-            {t('auth.login.terms')}
+            {t('login.terms')}
           </Link>{' '}
-          {t('auth.login.and')}{' '}
+          {t('login.and')}{' '}
           <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">
-            {t('auth.login.privacy')}
+            {t('login.privacy')}
           </Link>
           .
         </div>
@@ -51,7 +51,7 @@ const Login: React.FC = () => {
       <div className="bg-muted relative hidden lg:block">
         <img
           src={CoverLogin}
-          alt={t('auth.login.imageAlt')}
+          alt={t('login.imageAlt')}
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>
