@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 export default function Account() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation(['translation', 'common'])
   const { venueId } = useCurrentVenue()
   const localeCode = getIntlLocale(i18n.language)
   const { user } = useAuth()
@@ -71,7 +71,7 @@ export default function Account() {
     },
     onError: (error: any) => {
       toast({
-        title: t('common.error'),
+        title: t('common:error'),
         description: error.response?.data?.message || t('account.toast.error.description'),
         variant: 'destructive',
       })
@@ -125,7 +125,11 @@ export default function Account() {
                 <div>
                   <p className="text-sm font-medium">{t('account.accountInfo.memberSince')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(localeCode) : 'N/A'}
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(localeCode, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -135,7 +139,15 @@ export default function Account() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">{t('account.accountInfo.lastLogin')}</p>
-                    <p className="text-sm text-muted-foreground">{new Date(user.lastLogin).toLocaleString(localeCode)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(user.lastLogin).toLocaleString(localeCode, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
                   </div>
                 </div>
               )}
@@ -232,10 +244,10 @@ export default function Account() {
 
                   <div className="flex gap-4">
                     <Button type="submit" disabled={editProfile.isPending}>
-                      {editProfile.isPending ? t('common.saving') : t('common.save')}
+                      {editProfile.isPending ? t('common:saving') : t('common:save')}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => form.reset()} disabled={editProfile.isPending}>
-                      {t('common.cancel')}
+                      {t('common:cancel')}
                     </Button>
                   </div>
                 </form>
@@ -301,7 +313,7 @@ export default function Account() {
               />
 
               <Button type="submit" className="w-full">
-                {t('common.save')}
+                {t('common:save')}
               </Button>
             </form>
           </Form>
