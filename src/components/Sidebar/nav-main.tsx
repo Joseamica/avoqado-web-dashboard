@@ -9,7 +9,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight, Lock, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom' // Import Link
 import { useTranslation } from 'react-i18next'
 
@@ -23,10 +23,13 @@ export function NavMain({
     icon?: LucideIcon
     isActive?: boolean
     superadminOnly?: boolean
+    locked?: boolean
+    permission?: string
     items?: {
       title: string
       url: string
       superadminOnly?: boolean
+      permission?: string | null
     }[]
   }[]
   superadminItems?: {
@@ -139,9 +142,15 @@ export function NavMain({
                   className={isSuperadminItem ? superadminButtonClass : undefined}
                 >
                   <NavLink
-                    to={item.url}
-                    className="flex items-center"
+                    to={item.locked ? 'kyc-required' : item.url}
+                    className="flex items-center gap-2"
                     onClick={e => {
+                      // For locked items, redirect to KYC required page
+                      if (item.locked) {
+                        e.preventDefault()
+                        navigate('kyc-required')
+                        return
+                      }
                       // For superadmin routes, prevent default and navigate manually
                       if (item.url.startsWith('/superadmin')) {
                         e.preventDefault()
@@ -151,6 +160,9 @@ export function NavMain({
                   >
                     {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                     <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
+                    {item.locked && (
+                      <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label="Requires KYC verification" />
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

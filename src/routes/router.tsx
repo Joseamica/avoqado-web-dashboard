@@ -93,6 +93,8 @@ import { SuperProtectedRoute } from './SuperProtectedRoute'
 import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
+import { KYCProtectedRoute } from './KYCProtectedRoute'
+import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { Layout } from '@/Layout'
 
 const router = createBrowserRouter(
@@ -332,6 +334,12 @@ const router = createBrowserRouter(
               element: <Dashboard />,
               errorElement: <ErrorPage />,
               children: [
+                // KYC Setup Required Page (shown when KYC verification is needed)
+                {
+                  path: 'kyc-required',
+                  element: <KYCSetupRequired />,
+                },
+
                 // Home Dashboard (requires home:read permission)
                 {
                   element: <PermissionProtectedRoute permission="home:read" />,
@@ -405,45 +413,65 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Shifts Management (requires shifts:read permission)
+                // Shifts Management (requires shifts:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="shifts:read" />,
                   children: [
-                    { path: 'shifts', element: <Shifts /> },
-                    { path: 'shifts/:shiftId', element: <ShiftId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'shifts', element: <Shifts /> },
+                        { path: 'shifts/:shiftId', element: <ShiftId /> },
+                      ],
+                    },
                   ],
                 },
 
-                // Payments (requires payments:read permission)
+                // Payments (requires payments:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="payments:read" />,
                   children: [
-                    { path: 'payments', element: <Payments /> },
-                    { path: 'payments/:paymentId', element: <PaymentId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'payments', element: <Payments /> },
+                        { path: 'payments/:paymentId', element: <PaymentId /> },
+                      ],
+                    },
                   ],
                 },
 
                 // Public receipts (no permission required)
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
 
-                // Orders (requires orders:read permission)
+                // Orders (requires orders:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="orders:read" />,
                   children: [
-                    { path: 'orders', element: <Orders /> },
-                    { path: 'orders/:orderId', element: <OrderId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'orders', element: <Orders /> },
+                        { path: 'orders/:orderId', element: <OrderId /> },
+                      ],
+                    },
                   ],
                 },
                 // Analytics nested under venue for dashboard context
-                // Requires MANAGER+ or VIEWER role
+                // Requires MANAGER+ or VIEWER role + KYC verification
                 {
                   path: 'analytics',
                   element: <ManagerProtectedRoute allowViewer={true} />,
                   children: [
                     {
-                      element: <AnalyticsLayout />,
+                      element: <KYCProtectedRoute />,
                       children: [
-                        { index: true, element: <AnalyticsOverview /> },
+                        {
+                          element: <AnalyticsLayout />,
+                          children: [
+                            { index: true, element: <AnalyticsOverview /> },
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -468,13 +496,18 @@ const router = createBrowserRouter(
                   children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
                 },
 
-                // TPV Management (requires tpv:read permission)
+                // TPV Management (requires tpv:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="tpv:read" />,
                   children: [
-                    { path: 'tpv', element: <Tpv /> },
-                    { path: 'tpv/create', element: <CreateTpv /> },
-                    { path: 'tpv/:tpvId', element: <TpvId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'tpv', element: <Tpv /> },
+                        { path: 'tpv/create', element: <CreateTpv /> },
+                        { path: 'tpv/:tpvId', element: <TpvId /> },
+                      ],
+                    },
                   ],
                 },
 
@@ -526,7 +559,7 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Inventory Management (ADMIN access + inventory:read permission)
+                // Inventory Management (ADMIN access + inventory:read permission + KYC verification)
                 {
                   path: 'inventory',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
@@ -535,12 +568,17 @@ const router = createBrowserRouter(
                       element: <PermissionProtectedRoute permission="inventory:read" />,
                       children: [
                         {
-                          element: <InventoryLayout />,
+                          element: <KYCProtectedRoute />,
                           children: [
-                            { path: 'raw-materials', element: <RawMaterials /> },
-                            { path: 'product-stock', element: <ProductStock /> },
-                            { path: 'recipes', element: <Recipes /> },
-                            { path: 'pricing', element: <Pricing /> },
+                            {
+                              element: <InventoryLayout />,
+                              children: [
+                                { path: 'raw-materials', element: <RawMaterials /> },
+                                { path: 'product-stock', element: <ProductStock /> },
+                                { path: 'recipes', element: <Recipes /> },
+                                { path: 'pricing', element: <Pricing /> },
+                              ],
+                            },
                           ],
                         },
                       ],
