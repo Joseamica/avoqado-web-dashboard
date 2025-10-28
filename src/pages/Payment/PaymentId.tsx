@@ -54,7 +54,7 @@ export default function PaymentId() {
   const { venueId } = useCurrentVenue()
   const { can } = usePermissions()
 
-  const { t, i18n } = useTranslation('payment')
+  const { t, i18n } = useTranslation(['payment', 'common'])
   const {
     data: payment,
     isLoading,
@@ -111,7 +111,7 @@ export default function PaymentId() {
     },
     onError: _error => {
       toast({
-        title: t('common.error'),
+        title: t('common:error'),
         description: t('detail.toast.receiptErrorDesc'),
         variant: 'destructive',
       })
@@ -172,7 +172,7 @@ export default function PaymentId() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
     toast({
-      title: t('common.copied'),
+      title: t('common:copied'),
       description: t('detail.copiedToClipboard', { label }),
     })
   }
@@ -276,7 +276,7 @@ export default function PaymentId() {
                   ? t('detail.status.failed', { defaultValue: 'Fallido' })
                   : payment?.status === 'REFUNDED'
                   ? t('detail.status.refunded', { defaultValue: 'Reembolsado' })
-                  : payment?.status || t('common.unknown', { defaultValue: 'Desconocido' })}
+                  : payment?.status || t('common:unknown', { defaultValue: 'Desconocido' })}
               </Badge>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">{t('detail.totals.total', { defaultValue: 'Total' })}</p>
@@ -425,7 +425,7 @@ export default function PaymentId() {
                             </div>
                             <div className="flex space-x-2">
                               <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
-                                {t('common.cancel', { defaultValue: 'Cancelar' })}
+                                {t('common:cancel', { defaultValue: 'Cancelar' })}
                               </Button>
                               <Button
                                 disabled={!recipientEmail || sendReceiptMutation.isPending}
@@ -1012,7 +1012,7 @@ export default function PaymentId() {
 
               <div className="flex space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setReceiptDetailOpen(false)} className="flex-1">
-                  {t('common.close')}
+                  {t('common:close')}
                 </Button>
                 <Button
                   onClick={() => {
