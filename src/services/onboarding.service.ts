@@ -89,7 +89,9 @@ export const updateStep5 = async (organizationId: string, invites: TeamInviteDat
  * Update Step 6 - Selected Features
  */
 export const updateStep6 = async (organizationId: string, features: string[]) => {
-  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/6`, { features })
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/6`, {
+    selectedFeatures: features, // Backend expects 'selectedFeatures', not 'features'
+  })
   return response.data
 }
 

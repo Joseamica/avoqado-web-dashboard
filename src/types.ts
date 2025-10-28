@@ -384,6 +384,7 @@ export interface Venue {
   fiscalRegime?: string | null // Fiscal regime code
   taxDocumentUrl?: string | null // URL to tax document
   idDocumentUrl?: string | null // URL to ID document
+  actaDocumentUrl?: string | null // URL to Acta Constitutiva document
 
   // POS Integration
   posType: PosType | null

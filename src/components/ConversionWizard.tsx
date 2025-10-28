@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle2, Upload, FileText, CreditCard, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Progress } from '@/components/ui/progress'
-import { StripePaymentMethod } from '@/components/StripePaymentMethod'
+import { PaymentMethodSelector } from '@/components/PaymentMethodSelector'
 import api from '@/api'
 import { storage } from '@/firebase'
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
@@ -39,6 +39,7 @@ const rfcSchema = z.object({
 
 const taxDocumentsSchema = z.object({
   constanciaFile: z.any().optional(),
+  actaFile: z.any().optional(),
 })
 
 const idDocumentsSchema = z.object({
@@ -65,10 +66,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<any>({})
   const [taxDocumentFile, setTaxDocumentFile] = useState<File | null>(null)
+  const [actaDocumentFile, setActaDocumentFile] = useState<File | null>(null)
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null)
   const [taxDocumentUrl, setTaxDocumentUrl] = useState<string | null>(null)
+  const [actaDocumentUrl, setActaDocumentUrl] = useState<string | null>(null)
   const [idDocumentUrl, setIdDocumentUrl] = useState<string | null>(null)
   const [uploadingTaxDoc, setUploadingTaxDoc] = useState(false)
+  const [uploadingActaDoc, setUploadingActaDoc] = useState(false)
   const [uploadingIdDoc, setUploadingIdDoc] = useState(false)
   const [availableFeatures, setAvailableFeatures] = useState<any[]>([])
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
@@ -84,10 +88,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       setCurrentStep(1)
       setFormData({})
       setTaxDocumentFile(null)
+      setActaDocumentFile(null)
       setIdDocumentFile(null)
       setTaxDocumentUrl(null)
+      setActaDocumentUrl(null)
       setIdDocumentUrl(null)
       setUploadingTaxDoc(false)
+      setUploadingActaDoc(false)
       setUploadingIdDoc(false)
       setSelectedFeatures([])
       setPaymentMethodId(null)
@@ -124,18 +131,22 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }, [open, t, toast])
 
   // Helper function to upload file to Firebase Storage
-  // documentType: 'CSF' for tax documents, 'ID' for identification documents
-  const uploadFile = async (file: File, documentType: 'CSF' | 'ID'): Promise<string | null> => {
+  // documentType: 'CSF' for tax documents, 'ACTA' for articles of incorporation, 'ID' for identification documents
+  const uploadFile = async (file: File, documentType: 'CSF' | 'ID' | 'ACTA'): Promise<string | null> => {
     try {
       // Step 1: Send to backend for validation
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/upload-document`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      const response = await api.post(
+        `/api/v1/dashboard/venues/${venueId}/upload-document?type=${documentType.toLowerCase()}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      })
+      )
 
       if (!response.data.success) {
         throw new Error('Backend validation failed')
@@ -267,6 +278,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         legalName: formData.legalName,
         fiscalRegime: formData.fiscalRegime,
         taxDocumentUrl: taxDocumentUrl,
+        actaDocumentUrl: actaDocumentUrl,
         idDocumentUrl: idDocumentUrl,
         paymentMethodId: paymentMethodId, // ✅ Fixed: Correct field name (was stripePaymentMethodId)
         selectedFeatures: featureCodes, // ✅ Added: Backend will create trial subscriptions
@@ -317,7 +329,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }
 
   const getFinalButtonText = () => {
-    return selectedFeatures.length > 0 ? 'Iniciar trial gratuito de 5 días' : 'Activar cuenta gratuita'
+    return selectedFeatures.length > 0 ? 'Iniciar trial gratuito de 2 días' : 'Activar cuenta gratuita'
   }
 
   const renderStepContent = (step?: number) => {
@@ -366,7 +378,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
               <FileText className="h-5 w-5 text-primary" />
               <div>
@@ -375,54 +387,107 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               </div>
             </div>
 
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
-              <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm font-medium mb-2">{t('conversionWizard.step2.uploadLabel')}</p>
-              <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step2.uploadHint')}</p>
-              <div className="flex flex-col items-center gap-3">
-                <label
-                  htmlFor="taxDocumentFile"
-                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Seleccionar archivo
-                </label>
-                <Input
-                  id="taxDocumentFile"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={async e => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      setTaxDocumentFile(file)
-                      setUploadingTaxDoc(true)
+            <div className="space-y-6">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm font-medium mb-2">{t('conversionWizard.step2.constanciaLabel')}</p>
+                <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step2.uploadHint')}</p>
+                <div className="flex flex-col items-center gap-3">
+                  <label
+                    htmlFor="taxDocumentFile"
+                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {t('conversionWizard.shared.selectFile')}
+                  </label>
+                  <Input
+                    id="taxDocumentFile"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={async e => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setTaxDocumentFile(file)
+                        setUploadingTaxDoc(true)
 
-                      // Upload file to Firebase Storage (CSF = Constancia de Situación Fiscal)
-                      const url = await uploadFile(file, 'CSF')
-                      if (url) {
-                        setTaxDocumentUrl(url)
+                        // Upload file to Firebase Storage (CSF = Constancia de Situación Fiscal)
+                        const url = await uploadFile(file, 'CSF')
+                        if (url) {
+                          setTaxDocumentUrl(url)
+                        }
+
+                        setUploadingTaxDoc(false)
+
+                        // Clear input value to allow re-selecting the same file
+                        e.target.value = ''
                       }
+                    }}
+                  />
+                  {uploadingTaxDoc && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span>{t('conversionWizard.shared.uploading')}</span>
+                    </div>
+                  )}
+                  {taxDocumentFile && !uploadingTaxDoc && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-green-600">{taxDocumentFile.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                      setUploadingTaxDoc(false)
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors bg-muted/20">
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm font-medium mb-2">{t('conversionWizard.step2.actaLabel')}</p>
+                <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step2.actaHint')}</p>
+                <div className="flex flex-col items-center gap-3">
+                  <label
+                    htmlFor="actaDocumentFile"
+                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {t('conversionWizard.shared.selectFile')}
+                  </label>
+                  <Input
+                    id="actaDocumentFile"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={async e => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setActaDocumentFile(file)
+                        setUploadingActaDoc(true)
 
-                      // Clear input value to allow re-selecting the same file
-                      e.target.value = ''
-                    }
-                  }}
-                />
-                {uploadingTaxDoc && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span>Subiendo archivo...</span>
-                  </div>
-                )}
-                {taxDocumentFile && !uploadingTaxDoc && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600">{taxDocumentFile.name}</span>
-                  </div>
-                )}
+                        // Upload file to Firebase Storage (ACTA = Acta Constitutiva)
+                        const url = await uploadFile(file, 'ACTA')
+                        if (url) {
+                          setActaDocumentUrl(url)
+                        }
+
+                        setUploadingActaDoc(false)
+
+                        // Clear input value to allow re-selecting the same file
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                  {uploadingActaDoc && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span>{t('conversionWizard.shared.uploading')}</span>
+                    </div>
+                  )}
+                  {actaDocumentFile && !uploadingActaDoc && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-green-600">{actaDocumentFile.name}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -449,7 +514,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                   className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Seleccionar archivo
+                  {t('conversionWizard.shared.selectFile')}
                 </label>
                 <Input
                   id="idDocumentFile"
@@ -478,7 +543,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                 {uploadingIdDoc && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span>Subiendo archivo...</span>
+                    <span>{t('conversionWizard.shared.uploading')}</span>
                   </div>
                 )}
                 {idDocumentFile && !uploadingIdDoc && (
@@ -548,7 +613,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{feature.name}</span>
                             <Badge variant="secondary" className="text-xs">
-                              5 días gratis
+                              2 días gratis
                             </Badge>
                           </div>
                           <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
@@ -632,10 +697,15 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <div className="space-y-4">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-foreground">Método de pago</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Ingresa tu tarjeta para comenzar el trial gratuito de 5 días</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {paymentMethodId
+                    ? 'Confirma tu método de pago para el trial gratuito de 2 días'
+                    : 'Selecciona o agrega un método de pago para comenzar el trial gratuito de 2 días'}
+                </p>
               </div>
-              <StripePaymentMethod
-                onPaymentMethodCreated={pmId => {
+              <PaymentMethodSelector
+                venueId={venueId}
+                onPaymentMethodSelected={pmId => {
                   setPaymentMethodId(pmId)
                   setCurrentStep(currentStep + 1)
                 }}
@@ -676,7 +746,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="font-medium text-primary">Trial Premium - 5 días gratis</span>
+                        <span className="font-medium text-primary">Trial Premium - 2 días gratis</span>
                       </div>
                       <p className="text-xs text-muted-foreground">Después del trial: ${totalMonthlyCost.toLocaleString()} MXN/mes</p>
                       <div className="mt-3 pt-3 border-t">
@@ -726,6 +796,48 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     </div>
                   </div>
                 </div>
+
+                <div className="pt-3 border-t">
+                  <h5 className="font-semibold text-sm mb-3">{t('conversionWizard.documents.title')}</h5>
+                  <div className="space-y-2 text-sm">
+                    {[
+                      {
+                        label: t('conversionWizard.step2.constanciaLabel'),
+                        completed: !!taxDocumentUrl,
+                        optional: false,
+                      },
+                      {
+                        label: t('conversionWizard.step2.actaLabel'),
+                        completed: !!actaDocumentUrl,
+                        optional: true,
+                      },
+                      {
+                        label: t('conversionWizard.step3.idLabel'),
+                        completed: !!idDocumentUrl,
+                        optional: false,
+                      },
+                    ].map(doc => (
+                      <div key={doc.label} className="flex items-center justify-between">
+                        <span className="text-muted-foreground">{doc.label}</span>
+                        <div className="flex items-center gap-1">
+                          {doc.completed ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              <span className="text-green-600">{t('conversionWizard.documents.completed')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">
+                                {doc.optional ? t('conversionWizard.documents.optional') : t('conversionWizard.documents.pending')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -733,7 +845,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             {selectedFeatures.length > 0 ? (
               <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💳 <strong>Importante:</strong> No se realizará ningún cargo durante los 5 días de prueba. Tu suscripción comenzará
+                  💳 <strong>Importante:</strong> No se realizará ningún cargo durante los 2 días de prueba. Tu suscripción comenzará
                   automáticamente después del período de prueba.
                 </p>
               </div>

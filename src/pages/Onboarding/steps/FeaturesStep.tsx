@@ -113,7 +113,7 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{t(`features.available.${feature}.name`)}</span>
                         <Badge variant="secondary" className="text-xs">
-                          5 días gratis
+                          2 días gratis
                         </Badge>
                       </div>
                       <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
@@ -153,9 +153,12 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
         <div className="space-y-4">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground">Método de pago</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Ingresa tu tarjeta para comenzar el trial gratuito de 5 días</p>
+            <p className="mt-1 text-sm text-muted-foreground">Agrega un método de pago para comenzar el trial gratuito de 2 días</p>
           </div>
-          <StripePaymentMethod onPaymentMethodCreated={handlePaymentMethodCreated} buttonText="Comenzar trial gratuito" />
+          <StripePaymentMethod
+            onPaymentMethodCreated={handlePaymentMethodCreated}
+            buttonText="Comenzar trial gratuito"
+          />
         </div>
       )}
 
@@ -190,12 +193,26 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
         </div>
       )}
 
-      {/* Back button when features are selected */}
-      {selectedFeatures.length > 0 && !isFirstStep && (
-        <div className="flex justify-start pt-4">
-          <Button type="button" variant="outline" onClick={onPrevious}>
-            {tCommon('previous')}
-          </Button>
+      {/* Back and Cancel buttons when features are selected */}
+      {selectedFeatures.length > 0 && (
+        <div className="flex justify-between pt-4">
+          {!isFirstStep && (
+            <Button type="button" variant="outline" onClick={onPrevious}>
+              {tCommon('previous')}
+            </Button>
+          )}
+          <div className={`flex gap-2 ${isFirstStep ? 'ml-auto' : ''}`}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSelectedFeatures([])}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleSkip}>
+              {tCommon('skip')}
+            </Button>
+          </div>
         </div>
       )}
     </div>
