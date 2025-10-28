@@ -11,6 +11,22 @@
     "maintenanceMode": "Maintenance",
     "update": "Update"
   },
+  "create": {
+    "title": "Créer un Nouveau Terminal",
+    "nameLabel": "Nom du Terminal",
+    "namePlaceholder": "ex: TPV Caisse 1",
+    "serialLabel": "Numéro de Série",
+    "serialPlaceholder": "ex: ABC123456",
+    "successTitle": "Terminal {{name}} créé",
+    "successDesc": "Le terminal a été créé avec succès",
+    "errorTitle": "Erreur lors de la création du terminal",
+    "errorDesc": "Impossible de créer le terminal. Veuillez réessayer.",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameMin": "Le nom doit comporter au moins 3 caractères",
+      "nameMax": "Le nom ne peut pas dépasser 30 caractères"
+    }
+  },
   "search": {
     "placeholder": "Search terminals..."
   },

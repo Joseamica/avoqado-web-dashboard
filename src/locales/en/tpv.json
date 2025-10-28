@@ -11,6 +11,22 @@
     "maintenanceMode": "Maintenance",
     "update": "Update"
   },
+  "create": {
+    "title": "Create New Terminal",
+    "nameLabel": "Terminal Name",
+    "namePlaceholder": "e.g., POS Cash Register 1",
+    "serialLabel": "Serial Number",
+    "serialPlaceholder": "e.g., ABC123456",
+    "successTitle": "Terminal {{name}} created",
+    "successDesc": "The terminal has been created successfully",
+    "errorTitle": "Error creating terminal",
+    "errorDesc": "Could not create the terminal. Please try again.",
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameMin": "Name must be at least 3 characters",
+      "nameMax": "Name cannot exceed 30 characters"
+    }
+  },
   "search": {
     "placeholder": "Search terminals..."
   },
