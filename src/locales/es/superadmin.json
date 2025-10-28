@@ -937,7 +937,13 @@
     "seeAllNotifications": "Ver todas las notificaciones",
     "accountSettings": "Configuración de Cuenta",
     "settings": "Configuración",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "noSearchResults": "No se encontraron resultados",
+    "searchSections": {
+      "venues": "Locales",
+      "activities": "Actividad Reciente",
+      "alerts": "Alertas"
+    }
   },
   "layout": {
     "noVenuesAssigned": "¡No tienes sucursales asignadas!",
@@ -1280,6 +1286,12 @@
       "deleteDialog": {
         "title": "Eliminar Establecimiento",
         "description": "¿Estás seguro de que deseas eliminar {{venueName}}? Escribe \"delete {{venueName}}\" para confirmar. Esta acción no se puede deshacer."
+      },
+      "kycRejected": {
+        "title": "Documentación KYC Rechazada",
+        "description": "Tu documentación KYC fue rechazada. Por favor revisa la razón a continuación y reenvía tus documentos.",
+        "reason": "Motivo del Rechazo:",
+        "resubmitButton": "Reenviar Documentos"
       },
       "notFound": "Establecimiento no encontrado",
       "notFoundDesc": "El establecimiento que buscas no existe o ha sido eliminado.",

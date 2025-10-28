@@ -96,12 +96,13 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
     }
 
     if (notification.actionUrl) {
-      // Handle absolute URLs (http/https) and relative URLs differently
-      if (notification.actionUrl.startsWith('http')) {
+      // Handle absolute URLs (http/https or paths starting with /) and relative URLs differently
+      if (notification.actionUrl.startsWith('http') || notification.actionUrl.startsWith('/')) {
+        // Absolute URL or absolute path - use as is
         window.location.href = notification.actionUrl
       } else {
-        // Prepend venue slug to relative URLs
-        window.location.href = `/venues/${venueSlug}${notification.actionUrl}`
+        // Relative path - prepend venue slug
+        window.location.href = `/venues/${venueSlug}/${notification.actionUrl}`
       }
     }
   }

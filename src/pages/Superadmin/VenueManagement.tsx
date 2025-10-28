@@ -22,6 +22,8 @@ import {
   MoreHorizontal,
   AlertTriangle,
   Zap,
+  FileText,
+  AlertCircle,
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { VenueStatus, SubscriptionPlan, type SuperadminVenue } from '@/types/superadmin'
@@ -171,7 +173,12 @@ const VenueManagement: React.FC = () => {
             <Building2 className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <div className="font-medium">{row.original.name}</div>
+            <div className="font-medium flex items-center gap-2">
+              {row.original.name}
+              {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
+                <AlertCircle className="w-4 h-4 text-yellow-500" title="KYC Pending Review" />
+              )}
+            </div>
             <div className="text-sm text-muted-foreground">{row.original.owner.email}</div>
           </div>
         </div>
@@ -230,6 +237,12 @@ const VenueManagement: React.FC = () => {
               <Eye className="mr-2 h-4 w-4" />
               {t('venueMgmt.dropdown.viewDetails')}
             </DropdownMenuItem>
+            {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
+              <DropdownMenuItem onClick={() => navigate(`/superadmin/kyc/${row.original.id}`)}>
+                <FileText className="mr-2 h-4 w-4 text-yellow-600" />
+                Review KYC
+              </DropdownMenuItem>
+            )}
             {row.original.status === VenueStatus.PENDING && (
               <DropdownMenuItem onClick={() => handleApproveVenue(row.original)}>
                 <CheckCircle className="mr-2 h-4 w-4" />

@@ -51,7 +51,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Settings submenu - filter subitems based on permissions
     const settingsSubItems = [
-      { title: t('routes.editvenue'), url: 'editVenue', permission: 'venues:read' },
+      { title: t('routes.editvenue'), url: 'edit', permission: 'venues:read' },
       { title: t('routes.teams'), url: 'teams', permission: 'teams:read' },
       // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)

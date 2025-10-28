@@ -97,6 +97,18 @@
     top: 0;
     z-index: 10;
   }
+  /* Slow pulse animation for validation errors */
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
   /* Compact theme (scaled) inspired by shadcn */
   .theme-scaled {
     --radius: 0.6rem;

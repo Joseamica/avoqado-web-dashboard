@@ -1054,6 +1054,12 @@
         "title": "Delete Venue",
         "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
       },
+      "kycRejected": {
+        "title": "Documentation KYC Rejetée",
+        "description": "Votre documentation KYC a été rejetée. Veuillez examiner la raison ci-dessous et soumettre à nouveau vos documents.",
+        "reason": "Raison du Rejet:",
+        "resubmitButton": "Soumettre à Nouveau les Documents"
+      },
       "notFound": "Venue not found",
       "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",
       "noLogo": "No logo"

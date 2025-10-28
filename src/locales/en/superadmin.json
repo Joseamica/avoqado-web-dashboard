@@ -726,7 +726,13 @@
     "seeAllNotifications": "See all notifications",
     "accountSettings": "Account Settings",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "noSearchResults": "No results found",
+    "searchSections": {
+      "venues": "Venues",
+      "activities": "Recent Activities",
+      "alerts": "Alerts"
+    }
   },
   "layout": {
     "noVenuesAssigned": "You have no assigned venues!",
@@ -1055,6 +1061,12 @@
       "deleteDialog": {
         "title": "Delete Venue",
         "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
+      },
+      "kycRejected": {
+        "title": "KYC Documentation Rejected",
+        "description": "Your KYC documentation was rejected. Please review the reason below and resubmit your documents.",
+        "reason": "Rejection Reason:",
+        "resubmitButton": "Resubmit Documents"
       },
       "notFound": "Venue not found",
       "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",

@@ -24,12 +24,13 @@ export function NotificationBell({ className }: NotificationBellProps) {
     await markAsRead(notificationId)
 
     if (actionUrl) {
-      // Handle absolute URLs (http/https) and relative URLs differently
-      if (actionUrl.startsWith('http')) {
+      // Handle absolute URLs (http/https or paths starting with /) and relative URLs differently
+      if (actionUrl.startsWith('http') || actionUrl.startsWith('/')) {
+        // Absolute URL or absolute path - use as is
         window.location.href = actionUrl
       } else {
-        // Prepend venue slug to relative URLs
-        window.location.href = `/venues/${venueSlug}${actionUrl}`
+        // Relative path - prepend venue slug
+        window.location.href = `/venues/${venueSlug}/${actionUrl}`
       }
     }
   }

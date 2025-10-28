@@ -36,6 +36,9 @@ import {
   Reviews,
   // Waiters,
   EditVenue,
+  VenueEditLayout,
+  VenueDocuments,
+  VenueIntegrations,
   Shifts,
   // WaiterId,
   ShiftId,
@@ -60,6 +63,7 @@ import {
   SuperadminDashboard,
   SuperadminFeatureManagement,
   SuperadminVenueManagement,
+  KYCReview,
   RevenueDashboard,
   ProfitAnalyticsDashboard,
   TestingPayments,
@@ -241,6 +245,10 @@ const router = createBrowserRouter(
                     {
                       path: 'venues',
                       element: <SuperadminVenueManagement />,
+                    },
+                    {
+                      path: 'kyc/:venueId',
+                      element: <KYCReview />,
                     },
                     {
                       path: 'features',
@@ -441,8 +449,19 @@ const router = createBrowserRouter(
                   ],
                 },
                 {
+                  path: 'edit',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [{ path: 'editVenue', element: <EditVenue /> }],
+                  children: [
+                    {
+                      element: <VenueEditLayout />,
+                      children: [
+                        { index: true, element: <EditVenue /> }, // Default to general tab
+                        { path: 'general', element: <EditVenue /> },
+                        { path: 'documents', element: <VenueDocuments /> },
+                        { path: 'integrations', element: <VenueIntegrations /> },
+                      ],
+                    },
+                  ],
                 },
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,

@@ -30,6 +30,7 @@ import { z } from 'zod'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
+import { useVenueEditActions } from './VenueEditLayout'
 // Image upload and crop support
 import Cropper from 'react-easy-crop'
 import { storage } from '@/firebase'
@@ -48,18 +49,6 @@ enum VenueType {
   FITNESS_STUDIO = 'FITNESS_STUDIO',
   SPA = 'SPA',
   OTHER = 'OTHER',
-}
-
-enum PosType {
-  SOFTRESTAURANT = 'SOFTRESTAURANT',
-  SQUARE = 'SQUARE',
-  TOAST = 'TOAST',
-  CLOVER = 'CLOVER',
-  ALOHA = 'ALOHA',
-  MICROS = 'MICROS',
-  NCR = 'NCR',
-  CUSTOM = 'CUSTOM',
-  NONE = 'NONE',
 }
 
 const venueFormSchema = z.object({
@@ -81,9 +70,6 @@ const venueFormSchema = z.object({
   logo: z.string().nullable().optional(),
   primaryColor: z.string().nullable().optional(),
   secondaryColor: z.string().nullable().optional(),
-
-  // POS Integration fields
-  posType: z.nativeEnum(PosType).nullable().optional(),
 
   // Location coordinates
   latitude: z.number().nullable().optional(),
@@ -171,6 +157,7 @@ export default function EditVenue() {
   const { venueId } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
+  const { setActions } = useVenueEditActions()
 
   // Get the list of countries - moved to top of component
   const countries = useMemo(() => {
@@ -217,7 +204,6 @@ export default function EditVenue() {
       logo: '',
       primaryColor: '',
       secondaryColor: '',
-      posType: null,
       latitude: null,
       longitude: null,
     },
@@ -242,7 +228,6 @@ export default function EditVenue() {
         logo: venue.logo || '',
         primaryColor: venue.primaryColor || '',
         secondaryColor: venue.secondaryColor || '',
-        posType: (venue.posType as PosType) || null,
         latitude: venue.latitude ? Number(venue.latitude) : null,
         longitude: venue.longitude ? Number(venue.longitude) : null,
       })
@@ -351,7 +336,6 @@ export default function EditVenue() {
       if (data.logo) venueData.logo = data.logo
       if (data.primaryColor) venueData.primaryColor = data.primaryColor
       if (data.secondaryColor) venueData.secondaryColor = data.secondaryColor
-      if (data.posType) venueData.posType = data.posType
       if (data.latitude !== null) venueData.latitude = data.latitude
       if (data.longitude !== null) venueData.longitude = data.longitude
 
@@ -410,6 +394,17 @@ export default function EditVenue() {
     saveVenue.mutate(formValues)
   }
 
+  // Register actions with parent layout
+  useEffect(() => {
+    setActions({
+      onSave: form.handleSubmit(onSubmit),
+      onCancel: () => form.reset(),
+      isDirty: form.formState.isDirty,
+      isLoading: saveVenue.isPending,
+      canEdit: canEdit,
+    })
+  }, [form.formState.isDirty, saveVenue.isPending, canEdit, setActions, form])
+
   if (isLoading) return <VenueSkeleton />
 
   if (!venue) {
@@ -431,32 +426,7 @@ export default function EditVenue() {
   const isDeleteConfirmed = deleteConfirmation.toLowerCase() === expectedDeleteText.toLowerCase()
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <div className="sticky top-0 z-20 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
-        <div className="space-x-3 flex items-center">
-          <Link to={from} className="flex items-center hover:text-primary">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <span className="font-medium truncate max-w-[200px] md:max-w-none">{venue.name}</span>
-        </div>
-        <div className="space-x-2 flex items-center">
-          <Button
-            variant="default"
-            size="sm"
-            className="px-3 md:px-4 whitespace-nowrap"
-            disabled={!canEdit || !form.formState.isDirty || saveVenue.isPending}
-            onClick={form.handleSubmit(onSubmit)}
-          >
-            {saveVenue.isPending ? t('common.saving') : t('common.save')}
-          </Button>
-          {canEdit && (
-            <Button variant="destructive" size="sm" className="px-3 md:px-4" onClick={() => setShowDeleteDialog(true)}>
-              {t('common.delete')}
-            </Button>
-          )}
-        </div>
-      </div>
-
+    <>
       <AlertDialog open={showDeleteDialog} onOpenChange={handleDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -505,7 +475,7 @@ export default function EditVenue() {
                 </p>
               )}
               <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
-                <Link to={`/venues/${venue.slug}/kyc/resubmit`}>
+                <Link to={`/venues/${venue.slug}/edit/documents`}>
                   <FileText className="mr-2 h-4 w-4" />
                   {t('venues.edit.kycRejected.resubmitButton', { defaultValue: 'Resubmit Documents' })}
                 </Link>
@@ -901,191 +871,30 @@ export default function EditVenue() {
                 </div>
               </div>
 
-              {/* Tax Documents Section */}
-              {(venue.taxDocumentUrl || venue.actaDocumentUrl || venue.idDocumentUrl || venue.rfc) && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-medium">{t('venues.edit.sections.taxInfo', { defaultValue: 'Información Fiscal' })}</h3>
-                  <Separator />
-
-                  {venue.rfc && (
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">RFC</p>
-                        <p className="text-sm text-foreground">{venue.rfc}</p>
-                      </div>
-                      {venue.legalName && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            {t('venues.edit.labels.legalName', { defaultValue: 'Razón Social' })}
-                          </p>
-                          <p className="text-sm text-foreground">{venue.legalName}</p>
-                        </div>
-                      )}
-                      {venue.fiscalRegime && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">
-                            {t('venues.edit.labels.fiscalRegime', { defaultValue: 'Régimen Fiscal' })}
-                          </p>
-                          <p className="text-sm text-foreground">{venue.fiscalRegime}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    {venue.taxDocumentUrl && (
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">
-                              {t('venues.edit.labels.taxDocument', { defaultValue: 'Constancia de Situación Fiscal' })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = venue.taxDocumentUrl!
-                            link.download = `constancia-fiscal-${venue.slug}.pdf`
-                            link.click()
-                          }}
-                        >
-                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
-                        </Button>
-                      </div>
-                    )}
-                    {venue.actaDocumentUrl && (
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">
-                              {t('venues.edit.labels.actaDocument', { defaultValue: 'Acta constitutiva' })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = venue.actaDocumentUrl!
-                            link.download = `acta-constitutiva-${venue.slug}.pdf`
-                            link.click()
-                          }}
-                        >
-                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
-                        </Button>
-                      </div>
-                    )}
-
-                    {venue.idDocumentUrl && (
-                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
-                              />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">
-                              {t('venues.edit.labels.idDocument', { defaultValue: 'Identificación Oficial (INE/IFE)' })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const link = document.createElement('a')
-                            link.href = venue.idDocumentUrl!
-                            link.download = `identificacion-${venue.slug}.pdf`
-                            link.click()
-                          }}
-                        >
-                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
+              {/* Danger Zone Section */}
               <div className="space-y-6 mt-8">
-                <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
                 <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="posType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.posType', { defaultValue: 'Sistema POS' })}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('venues.edit.placeholders.posType')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={PosType.SOFTRESTAURANT}>{t('venues.edit.posTypes.softRestaurant')}</SelectItem>
-                          <SelectItem value={PosType.SQUARE}>{t('venues.edit.posTypes.square')}</SelectItem>
-                          <SelectItem value={PosType.TOAST}>{t('venues.edit.posTypes.toast')}</SelectItem>
-                          <SelectItem value={PosType.CLOVER}>{t('venues.edit.posTypes.clover')}</SelectItem>
-                          <SelectItem value={PosType.ALOHA}>{t('venues.edit.posTypes.aloha')}</SelectItem>
-                          <SelectItem value={PosType.MICROS}>{t('venues.edit.posTypes.micros')}</SelectItem>
-                          <SelectItem value={PosType.NCR}>{t('venues.edit.posTypes.ncr')}</SelectItem>
-                          <SelectItem value={PosType.CUSTOM}>{t('venues.edit.posTypes.custom')}</SelectItem>
-                          <SelectItem value={PosType.NONE}>{t('venues.edit.posTypes.none')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="rounded-lg border-2 border-destructive/50 bg-destructive/5 p-6">
+                  <h3 className="text-lg font-medium text-destructive mb-2">
+                    {t('venues.edit.dangerZone.title', { defaultValue: 'Zona de Peligro' })}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {t('venues.edit.dangerZone.description', { defaultValue: 'Las acciones en esta sección son irreversibles. Procede con precaución.' })}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={!canEdit}
+                  >
+                    {t('venues.edit.dangerZone.deleteButton', { defaultValue: 'Eliminar Local' })}
+                  </Button>
+                </div>
               </div>
             </fieldset>
           </form>
         </Form>
       </div>
-    </div>
+    </>
   )
 }
