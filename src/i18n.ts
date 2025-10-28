@@ -34,6 +34,9 @@ import billingEs from '@/locales/es/billing.json'
 import authEn from '@/locales/en/auth.json'
 import authEs from '@/locales/es/auth.json'
 import authFr from '@/locales/fr/auth.json'
+import tpvEn from '@/locales/en/tpv.json'
+import tpvEs from '@/locales/es/tpv.json'
+import tpvFr from '@/locales/fr/tpv.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -184,6 +187,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'auth', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', tpvEn],
+    ['es', tpvEs],
+    ['fr', tpvFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'tpv', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n
