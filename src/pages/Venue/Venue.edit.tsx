@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,7 @@ import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, AlertCircle, FileText } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -484,6 +485,35 @@ export default function EditVenue() {
       </AlertDialog>
 
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 grow overflow-auto">
+        {/* KYC Rejection Warning */}
+        {venue.kycStatus === 'REJECTED' && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="font-semibold">
+              {t('venues.edit.kycRejected.title', { defaultValue: 'KYC Documentation Rejected' })}
+            </AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-3">
+                {t('venues.edit.kycRejected.description', {
+                  defaultValue: 'Your KYC documentation was rejected. Please review the reason below and resubmit your documents.',
+                })}
+              </p>
+              {venue.kycRejectionReason && (
+                <p className="mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20 text-sm">
+                  <strong>{t('venues.edit.kycRejected.reason', { defaultValue: 'Rejection Reason:' })}</strong>{' '}
+                  {venue.kycRejectionReason}
+                </p>
+              )}
+              <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
+                <Link to={`/venues/${venue.slug}/kyc/resubmit`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  {t('venues.edit.kycRejected.resubmitButton', { defaultValue: 'Resubmit Documents' })}
+                </Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           {!canEdit && (
             <div className="mb-4 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-3 py-2">
@@ -902,7 +932,7 @@ export default function EditVenue() {
                     </div>
                   )}
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {venue.taxDocumentUrl && (
                       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                         <div className="flex items-center gap-3">
@@ -1019,7 +1049,7 @@ export default function EditVenue() {
                 </div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-6 mt-8">
                 <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
                 <Separator />
 
