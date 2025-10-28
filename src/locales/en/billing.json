@@ -12,6 +12,7 @@
     "nextBilling": "Next billing: {{date}}",
     "canceledOn": "Canceled on {{date}}",
     "monthlyPrice": "{{price}}/month",
+    "perMonth": "/month",
     "cancelButton": "Cancel Subscription",
     "activateButton": "Activate",
     "managingButton": "Managing..."
@@ -20,6 +21,28 @@
     "title": "Billing History",
     "noInvoices": "No invoices yet",
     "description": "Your invoice history will appear here once you start getting charged",
+    "sort": {
+      "dateDesc": "Newest First",
+      "dateAsc": "Oldest First",
+      "amountDesc": "Highest Amount",
+      "amountAsc": "Lowest Amount"
+    },
+    "filters": {
+      "show": "Show Filters",
+      "hide": "Hide Filters",
+      "search": "Search",
+      "searchPlaceholder": "Invoice # or description...",
+      "status": "Status",
+      "statusPlaceholder": "All statuses",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "allStatuses": "All Statuses",
+      "showing": "Showing {{count}} of {{total}} invoice",
+      "showing_other": "Showing {{count}} of {{total}} invoices",
+      "clearFilters": "Clear Filters",
+      "noResults": "No invoices match your filters",
+      "noResultsHint": "Try adjusting your search or filter criteria"
+    },
     "columns": {
       "date": "Date",
       "description": "Description",

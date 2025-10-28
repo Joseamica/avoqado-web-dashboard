@@ -12,6 +12,7 @@
     "nextBilling": "Próximo cobro: {{date}}",
     "canceledOn": "Cancelada el {{date}}",
     "monthlyPrice": "{{price}}/mes",
+    "perMonth": "/mes",
     "cancelButton": "Cancelar Suscripción",
     "activateButton": "Activar",
     "managingButton": "Administrando..."
@@ -20,6 +21,28 @@
     "title": "Historial de Facturación",
     "noInvoices": "Aún no hay facturas",
     "description": "Tu historial de facturas aparecerá aquí una vez que comiences a recibir cobros",
+    "sort": {
+      "dateDesc": "Más Recientes Primero",
+      "dateAsc": "Más Antiguos Primero",
+      "amountDesc": "Mayor Monto",
+      "amountAsc": "Menor Monto"
+    },
+    "filters": {
+      "show": "Mostrar Filtros",
+      "hide": "Ocultar Filtros",
+      "search": "Buscar",
+      "searchPlaceholder": "Factura # o descripción...",
+      "status": "Estado",
+      "statusPlaceholder": "Todos los estados",
+      "fromDate": "Desde Fecha",
+      "toDate": "Hasta Fecha",
+      "allStatuses": "Todos los Estados",
+      "showing": "Mostrando {{count}} de {{total}} factura",
+      "showing_other": "Mostrando {{count}} de {{total}} facturas",
+      "clearFilters": "Limpiar Filtros",
+      "noResults": "No hay facturas que coincidan con tus filtros",
+      "noResultsHint": "Intenta ajustar tus criterios de búsqueda o filtros"
+    },
     "columns": {
       "date": "Fecha",
       "description": "Descripción",
