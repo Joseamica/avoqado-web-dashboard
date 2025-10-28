@@ -26,24 +26,70 @@ import { useAuth } from '@/context/AuthContext'
 import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '@/hooks/usePermissions'
+import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
-  const { allVenues } = useAuth()
+  const { allVenues, activeVenue } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can } = usePermissions()
+
+  // Check if venue can access operational features (KYC verification)
+  const hasKYCAccess = React.useMemo(() => canAccessOperationalFeatures(activeVenue), [activeVenue])
 
   const navMain = React.useMemo(() => {
     // Define all possible items with their required permissions
     const allItems = [
-      { title: t('routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read' },
-      { title: t('sidebar:analytics'), isActive: true, url: 'analytics', icon: TrendingUp, permission: 'analytics:read' },
-      { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read' },
-      { title: t('routes.inventory'), isActive: true, url: 'inventory/raw-materials', icon: Package, permission: 'inventory:read' },
-      { title: t('routes.payments'), isActive: true, url: 'payments', icon: Banknote, permission: 'payments:read' },
-      { title: t('routes.orders'), isActive: true, url: 'orders', icon: Frame, permission: 'orders:read' },
-      { title: t('routes.shifts'), isActive: true, url: 'shifts', icon: Ungroup, permission: 'shifts:read' },
-      { title: t('routes.tpv'), isActive: true, url: 'tpv', icon: Smartphone, permission: 'tpv:read' },
-      { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read' },
+      { title: t('routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
+      {
+        title: t('sidebar:analytics'),
+        isActive: true,
+        url: 'analytics',
+        icon: TrendingUp,
+        permission: 'analytics:read',
+        locked: !hasKYCAccess,
+      },
+      { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read', locked: false },
+      {
+        title: t('routes.inventory'),
+        isActive: true,
+        url: 'inventory/raw-materials',
+        icon: Package,
+        permission: 'inventory:read',
+        locked: !hasKYCAccess,
+      },
+      {
+        title: t('routes.payments'),
+        isActive: true,
+        url: 'payments',
+        icon: Banknote,
+        permission: 'payments:read',
+        locked: !hasKYCAccess,
+      },
+      {
+        title: t('routes.orders'),
+        isActive: true,
+        url: 'orders',
+        icon: Frame,
+        permission: 'orders:read',
+        locked: !hasKYCAccess,
+      },
+      {
+        title: t('routes.shifts'),
+        isActive: true,
+        url: 'shifts',
+        icon: Ungroup,
+        permission: 'shifts:read',
+        locked: !hasKYCAccess,
+      },
+      {
+        title: t('routes.tpv'),
+        isActive: true,
+        url: 'tpv',
+        icon: Smartphone,
+        permission: 'tpv:read',
+        locked: !hasKYCAccess,
+      },
+      { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 
     // Filter items based on permissions
@@ -74,13 +120,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         title: t('routes.settings'),
         url: '#',
         icon: Settings2,
+        locked: false,
         items: settingsSubItems,
         permission: null as any,
-      })
+      } as any)
     }
 
     return filteredItems
-  }, [t, user.role, can])
+  }, [t, user.role, can, hasKYCAccess])
 
   const superAdminRoutes = React.useMemo(
     () => [

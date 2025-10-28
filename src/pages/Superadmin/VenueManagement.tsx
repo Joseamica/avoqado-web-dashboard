@@ -169,14 +169,16 @@ const VenueManagement: React.FC = () => {
       header: t('venueMgmt.columns.venue'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
             <Building2 className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
             <div className="font-medium flex items-center gap-2">
               {row.original.name}
               {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
-                <AlertCircle className="w-4 h-4 text-yellow-500" title="KYC Pending Review" />
+                <span title="KYC Pending Review">
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                </span>
               )}
             </div>
             <div className="text-sm text-muted-foreground">{row.original.owner.email}</div>
