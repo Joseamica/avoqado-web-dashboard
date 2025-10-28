@@ -386,6 +386,10 @@ export interface Venue {
   idDocumentUrl?: string | null // URL to ID document
   actaDocumentUrl?: string | null // URL to Acta Constitutiva document
 
+  // KYC Verification (for payment processing access control)
+  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycRejectionReason?: string | null
+
   // POS Integration
   posType: PosType | null
   posConfig: any | null // Json type
@@ -1204,6 +1208,9 @@ export interface SessionVenue {
   isDemo?: boolean
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
+  // KYC Verification (for payment processing access control)
+  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycRejectionReason?: string | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
   features: Array<{
     feature: {

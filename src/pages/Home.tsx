@@ -26,6 +26,7 @@ import {
   TableSkeleton,
 } from '@/components/skeleton/DashboardSkeleton'
 import { CHART_TYPES, DashboardProgressiveService, METRIC_TYPES } from '@/services/dashboard.progressive.service'
+import { KYCStatusBanner } from '@/components/KYCStatusBanner'
 
 // i18n keys are used instead of a local map
 
@@ -364,12 +365,14 @@ const Home = () => {
   const convertToCSV = (data: any[], headers: string[]): string => {
     const csvHeaders = headers.join(',')
     const csvRows = data.map(row =>
-      headers.map(header => {
-        const value = row[header] ?? ''
-        // Escape commas and quotes in values
-        const stringValue = String(value).replace(/"/g, '""')
-        return `"${stringValue}"`
-      }).join(',')
+      headers
+        .map(header => {
+          const value = row[header] ?? ''
+          // Escape commas and quotes in values
+          const stringValue = String(value).replace(/"/g, '""')
+          return `"${stringValue}"`
+        })
+        .join(','),
     )
     return [csvHeaders, ...csvRows].join('\n')
   }
@@ -377,7 +380,7 @@ const Home = () => {
   // Export functions
   const exportToCSV = useCallback(async () => {
     if (!basicData) return
-    
+
     setExportLoading(true)
     try {
       // Prepare payment data for CSV
@@ -390,7 +393,7 @@ const Home = () => {
         maskedPan: payment.maskedPan || '',
         createdAt: new Date(payment.createdAt).toLocaleDateString(localeCode),
         tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
-        status: payment.status
+        status: payment.status,
       }))
 
       // Prepare reviews data for CSV
@@ -399,28 +402,32 @@ const Home = () => {
         stars: review.stars,
         comment: review.comment || '',
         createdAt: new Date(review.createdAt).toLocaleDateString(localeCode),
-        customerName: review.customerName || ''
+        customerName: review.customerName || '',
       }))
 
       // Prepare payment methods summary for CSV
       const paymentMethodsForCSV = paymentMethodsData.map(method => ({
         method: method.method,
         total: method.total,
-        count: method.count || 0
+        count: method.count || 0,
       }))
 
       // Create CSV content
       const paymentsCSV = convertToCSV(paymentsForCSV, [
-        'id', 'amount', 'method', 'source', 'cardBrand', 'maskedPan', 'createdAt', 'tips', 'status'
+        'id',
+        'amount',
+        'method',
+        'source',
+        'cardBrand',
+        'maskedPan',
+        'createdAt',
+        'tips',
+        'status',
       ])
 
-      const reviewsCSV = convertToCSV(reviewsForCSV, [
-        'id', 'stars', 'comment', 'createdAt', 'customerName'
-      ])
+      const reviewsCSV = convertToCSV(reviewsForCSV, ['id', 'stars', 'comment', 'createdAt', 'customerName'])
 
-      const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, [
-        'method', 'total', 'count'
-      ])
+      const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, ['method', 'total', 'count'])
 
       // Combine all data with section headers
       const combinedCSV = [
@@ -437,7 +444,7 @@ const Home = () => {
         `"${t('home.cards.totalSales')}","${Currency(totalAmount)}"`,
         `"${t('home.cards.fiveStars')}","${fiveStarReviews}"`,
         `"${t('home.cards.totalTips')}","${Currency(tipStats.totalTips)}"`,
-        `"${t('home.cards.avgTipPercentage')}","${tipStats.avgTipPercentage}%"`
+        `"${t('home.cards.avgTipPercentage')}","${tipStats.avgTipPercentage}%"`,
       ].join('\n')
 
       // Create and download file
@@ -450,7 +457,6 @@ const Home = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
     } catch (error) {
       console.error('Export to CSV failed:', error)
       // Could add toast notification here
@@ -461,7 +467,7 @@ const Home = () => {
 
   const exportToJSON = useCallback(async () => {
     if (!basicData) return
-    
+
     setExportLoading(true)
     try {
       // Prepare comprehensive data for JSON export
@@ -470,10 +476,10 @@ const Home = () => {
           exportDate: new Date().toISOString(),
           dateRange: {
             from: selectedRange.from.toISOString(),
-            to: selectedRange.to.toISOString()
+            to: selectedRange.to.toISOString(),
           },
           venue: venueId,
-          locale: i18n.language
+          locale: i18n.language,
         },
         summary: {
           totalSales: totalAmount,
@@ -481,34 +487,36 @@ const Home = () => {
           totalTips: tipStats.totalTips,
           avgTipPercentage: parseFloat(String(tipStats.avgTipPercentage)),
           totalPayments: filteredPayments.length,
-          totalReviews: filteredReviews.length
+          totalReviews: filteredReviews.length,
         },
         payments: filteredPayments.map(payment => ({
           ...payment,
           tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
-          createdAt: new Date(payment.createdAt).toISOString()
+          createdAt: new Date(payment.createdAt).toISOString(),
         })),
         reviews: filteredReviews.map(review => ({
           ...review,
-          createdAt: new Date(review.createdAt).toISOString()
+          createdAt: new Date(review.createdAt).toISOString(),
         })),
         paymentMethods: paymentMethodsData,
-        comparison: compareType ? {
-          type: compareType,
-          label: comparisonLabel,
-          data: {
-            totalSales: compareAmount,
-            fiveStarReviews: compareFiveStarReviews,
-            totalTips: compareTipStats.totalTips,
-            avgTipPercentage: parseFloat(String(compareTipStats.avgTipPercentage))
-          },
-          percentageChanges: {
-            sales: amountChangePercentage,
-            reviews: reviewsChangePercentage,
-            tips: tipsChangePercentage,
-            avgTipPercentage: tipAvgChangePercentage
-          }
-        } : null
+        comparison: compareType
+          ? {
+              type: compareType,
+              label: comparisonLabel,
+              data: {
+                totalSales: compareAmount,
+                fiveStarReviews: compareFiveStarReviews,
+                totalTips: compareTipStats.totalTips,
+                avgTipPercentage: parseFloat(String(compareTipStats.avgTipPercentage)),
+              },
+              percentageChanges: {
+                sales: amountChangePercentage,
+                reviews: reviewsChangePercentage,
+                tips: tipsChangePercentage,
+                avgTipPercentage: tipAvgChangePercentage,
+              },
+            }
+          : null,
       }
 
       // Create and download file
@@ -522,7 +530,6 @@ const Home = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
     } catch (error) {
       console.error('Export to JSON failed:', error)
       // Could add toast notification here
@@ -530,12 +537,12 @@ const Home = () => {
       setExportLoading(false)
     }
   }, [
-    basicData, 
-    filteredPayments, 
-    filteredReviews, 
-    paymentMethodsData, 
-    totalAmount, 
-    fiveStarReviews, 
+    basicData,
+    filteredPayments,
+    filteredReviews,
+    paymentMethodsData,
+    totalAmount,
+    fiveStarReviews,
     tipStats,
     selectedRange,
     venueId,
@@ -548,7 +555,7 @@ const Home = () => {
     amountChangePercentage,
     reviewsChangePercentage,
     tipsChangePercentage,
-    tipAvgChangePercentage
+    tipAvgChangePercentage,
   ])
 
   return (
@@ -636,6 +643,11 @@ const Home = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* KYC Status Banner (shown when KYC verification is needed) */}
+      <div className="px-2 md:px-4 pt-4">
+        <KYCStatusBanner />
       </div>
 
       {/* Main content */}
@@ -733,11 +745,12 @@ const Home = () => {
                           const candidates = ['card', 'cash'] as const
                           const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
                           // Fallback normalization by common aliases
-                          const norm = matchedKey
-                            || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                          const norm =
+                            matchedKey ||
+                            (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
                               ? 'card'
-                              : undefined)
-                            || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                              : undefined) ||
+                            (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
                           const methodKey = (norm || lower) as 'card' | 'cash' | string
                           return {
                             ...acc,
@@ -746,7 +759,7 @@ const Home = () => {
                               color: `var(--chart-${(index % 5) + 1})`,
                             },
                           }
-                        }, {})
+                        }, {}),
                       }}
                       className="mx-auto aspect-square max-h-[250px]"
                     >
@@ -762,13 +775,8 @@ const Home = () => {
                                 return (
                                   <div className="flex w-full items-center justify-between gap-3">
                                     <div className="flex items-center gap-2">
-                                      <span
-                                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                                        style={{ backgroundColor: color }}
-                                      />
-                                      <span className="text-zinc-500 dark:text-zinc-400">
-                                        {t(`payments.methods.${methodKey}`)}
-                                      </span>
+                                      <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: color }} />
+                                      <span className="text-zinc-500 dark:text-zinc-400">{t(`payments.methods.${methodKey}`)}</span>
                                     </div>
                                     <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
                                       {Currency(Number(value), false)}
@@ -785,11 +793,12 @@ const Home = () => {
                             const lower = raw.trim().toLowerCase()
                             const candidates = ['card', 'cash'] as const
                             const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
-                            const norm = matchedKey
-                              || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                            const norm =
+                              matchedKey ||
+                              (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
                                 ? 'card'
-                                : undefined)
-                              || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                                : undefined) ||
+                              (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
                             const methodKey = (norm || lower) as 'card' | 'cash' | string
                             return {
                               ...item,
@@ -807,18 +816,10 @@ const Home = () => {
                               if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                                 return (
                                   <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                    <tspan
-                                      x={viewBox.cx}
-                                      y={viewBox.cy}
-                                      className="fill-foreground text-xl font-bold"
-                                    >
+                                    <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-xl font-bold">
                                       {Currency(totalAmount, false)}
                                     </tspan>
-                                    <tspan
-                                      x={viewBox.cx}
-                                      y={(viewBox.cy || 0) + 20}
-                                      className="fill-muted-foreground text-sm"
-                                    >
+                                    <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-sm">
                                       {t('home.total')}
                                     </tspan>
                                   </text>
@@ -836,11 +837,13 @@ const Home = () => {
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {amountChangePercentage > 0 ? (
                         <>
-                          {t('home.comparison.trending')} {amountChangePercentage}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4" />
+                          {t('home.comparison.trending')} {amountChangePercentage}% {t('home.comparison.thisMonth')}{' '}
+                          <TrendingUp className="h-4 w-4" />
                         </>
                       ) : amountChangePercentage < 0 ? (
                         <>
-                          {t('home.comparison.trending')} {Math.abs(amountChangePercentage)}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4 rotate-180" />
+                          {t('home.comparison.trending')} {Math.abs(amountChangePercentage)}% {t('home.comparison.thisMonth')}{' '}
+                          <TrendingUp className="h-4 w-4 rotate-180" />
                         </>
                       ) : (
                         t('home.comparison.noChange')
@@ -1218,9 +1221,9 @@ const PeakHoursChart = ({ data }: { data: any }) => {
 const TipsOverTimeChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
-  
+
   const [activeMetric, setActiveMetric] = useState<'tips' | 'tipPercentage'>('tips')
-  
+
   // Process tips data over time with additional metrics
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
@@ -1253,7 +1256,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
       .map(([date, tips]) => {
         const revenue = revenueByDate.get(date) || 0
         const tipPercentage = revenue > 0 ? (tips / revenue) * 100 : 0
-        
+
         return {
           date,
           tips,
@@ -1267,9 +1270,8 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
   // Calculate totals
   const stats = useMemo(() => {
     const totalTips = tipsOverTime.reduce((acc, curr) => acc + curr.tips, 0)
-    const avgTipPercentage = tipsOverTime.length > 0 
-      ? tipsOverTime.reduce((acc, curr) => acc + curr.tipPercentage, 0) / tipsOverTime.length
-      : 0
+    const avgTipPercentage =
+      tipsOverTime.length > 0 ? tipsOverTime.reduce((acc, curr) => acc + curr.tipPercentage, 0) / tipsOverTime.length : 0
 
     return {
       tips: totalTips,
@@ -1290,27 +1292,22 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
           <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
           <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
         </div>
         <div className="flex flex-wrap">
-          {(['tips', 'tipPercentage'] as const).map((key) => (
+          {(['tips', 'tipPercentage'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'tips' 
-                  ? Currency(stats[key], false)
-                  : `${stats[key]}%`
-                }
+                {key === 'tips' ? Currency(stats[key], false) : `${stats[key]}%`}
               </span>
             </button>
           ))}
@@ -1322,10 +1319,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[220px] sm:h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] sm:h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={tipsOverTime}
@@ -1335,18 +1329,12 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
               }}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={32}
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       const matchingData = tipsOverTime.find(d => d.formattedDate === value)
                       if (matchingData) {
                         const date = new Date(matchingData.date)
@@ -1358,21 +1346,11 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
                       }
                       return value
                     }}
-                    formatter={(value: any) =>
-                      activeMetric === 'tips'
-                        ? Currency(Number(value), false)
-                        : `${value}%`
-                    }
+                    formatter={(value: any) => (activeMetric === 'tips' ? Currency(Number(value), false) : `${value}%`)}
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
@@ -1386,15 +1364,18 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
   const revenueData = useMemo(() => data?.revenue ?? [], [data?.revenue])
-  
+
   // Add state for interactive chart
   const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue')
-  
+
   // Calculate totals for header buttons
-  const totals = useMemo(() => ({
-    revenue: revenueData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0),
-    orders: revenueData.reduce((acc: number, curr: any) => acc + (curr.orders || 0), 0),
-  }), [revenueData])
+  const totals = useMemo(
+    () => ({
+      revenue: revenueData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0),
+      orders: revenueData.reduce((acc: number, curr: any) => acc + (curr.orders || 0), 0),
+    }),
+    [revenueData],
+  )
 
   const chartConfig = {
     revenue: {
@@ -1409,27 +1390,22 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
           <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
           <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
         </div>
         <div className="flex flex-wrap">
-          {(['revenue', 'orders'] as const).map((key) => (
+          {(['revenue', 'orders'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'revenue' 
-                  ? Currency(totals[key], false)
-                  : totals[key].toLocaleString()
-                }
+                {key === 'revenue' ? Currency(totals[key], false) : totals[key].toLocaleString()}
               </span>
             </button>
           ))}
@@ -1441,10 +1417,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[220px] sm:h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] sm:h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={revenueData}
@@ -1460,7 +1433,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                 axisLine={false}
                 tickMargin={8}
                 minTickGap={32}
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   // Handle both formatted dates and raw dates
                   if (typeof value === 'string' && value.includes(' ')) {
                     return value // Already formatted
@@ -1476,7 +1449,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
@@ -1488,20 +1461,12 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                       })
                     }}
                     formatter={(value: any) =>
-                      activeMetric === 'revenue'
-                        ? Currency(Number(value), false)
-                        : `${value} ${t('home.charts.ordersLabel')}`
+                      activeMetric === 'revenue' ? Currency(Number(value), false) : `${value} ${t('home.charts.ordersLabel')}`
                     }
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
@@ -1515,15 +1480,15 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation()
   const localeCode = getIntlLocale(i18n.language)
   const aovData = useMemo(() => data?.aov ?? [], [data?.aov])
-  
+
   const [activeMetric, setActiveMetric] = useState<'aov' | 'orderCount'>('aov')
-  
+
   // Calculate totals and averages
   const stats = useMemo(() => {
     const totalRevenue = aovData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0)
     const totalOrders = aovData.reduce((acc: number, curr: any) => acc + (curr.orderCount || 0), 0)
     const avgAOV = totalOrders > 0 ? totalRevenue / totalOrders : 0
-    
+
     return {
       aov: avgAOV,
       orderCount: totalOrders,
@@ -1543,27 +1508,22 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
           <CardTitle>{t('home.aov.title')}</CardTitle>
           <CardDescription>{t('home.aov.desc')}</CardDescription>
         </div>
         <div className="flex">
-          {(['aov', 'orderCount'] as const).map((key) => (
+          {(['aov', 'orderCount'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'aov' 
-                  ? Currency(stats[key], false)
-                  : stats[key].toLocaleString()
-                }
+                {key === 'aov' ? Currency(stats[key], false) : stats[key].toLocaleString()}
               </span>
             </button>
           ))}
@@ -1575,10 +1535,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
             <p className="text-muted-foreground">{t('home.noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={aovData}
@@ -1594,7 +1551,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                 axisLine={false}
                 tickMargin={8}
                 minTickGap={32}
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   if (typeof value === 'string' && value.includes(' ')) {
                     return value
                   }
@@ -1609,7 +1566,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
@@ -1621,20 +1578,12 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                       })
                     }}
                     formatter={(value: any) =>
-                      activeMetric === 'aov'
-                        ? Currency(Number(value), false)
-                        : `${value} ${t('home.charts.ordersLabel')}`
+                      activeMetric === 'aov' ? Currency(Number(value), false) : `${value} ${t('home.charts.ordersLabel')}`
                     }
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
