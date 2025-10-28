@@ -71,7 +71,7 @@ const venueFormSchema = z.object({
   zipCode: z.string().min(1, { message: 'El código postal es requerido.' }),
   phone: z.string().min(1, { message: 'El teléfono es requerido.' }),
   email: z.string().email({ message: 'Debe ser un email válido.' }),
-  
+
   // Optional fields from Prisma schema
   type: z.nativeEnum(VenueType).default(VenueType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
@@ -80,10 +80,10 @@ const venueFormSchema = z.object({
   logo: z.string().nullable().optional(),
   primaryColor: z.string().nullable().optional(),
   secondaryColor: z.string().nullable().optional(),
-  
+
   // POS Integration fields
   posType: z.nativeEnum(PosType).nullable().optional(),
-  
+
   // Location coordinates
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
@@ -106,7 +106,7 @@ function VenueSkeleton() {
         </div>
       </div>
 
-      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
+      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 grow overflow-auto">
         <div className="space-y-6 md:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
@@ -225,7 +225,6 @@ export default function EditVenue() {
   // Update form values when venue data is loaded
   useEffect(() => {
     if (venue) {
-
       form.reset({
         name: venue.name || '',
         address: venue.address || '',
@@ -246,7 +245,6 @@ export default function EditVenue() {
         latitude: venue.latitude ? Number(venue.latitude) : null,
         longitude: venue.longitude ? Number(venue.longitude) : null,
       })
-
     }
   }, [venue, form])
 
@@ -330,7 +328,6 @@ export default function EditVenue() {
     }
   }
 
-
   const saveVenue = useMutation({
     mutationFn: async (data: VenueFormValues) => {
       // Create venue data object matching Prisma schema
@@ -413,7 +410,7 @@ export default function EditVenue() {
   }
 
   if (isLoading) return <VenueSkeleton />
-  
+
   if (!venue) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -463,9 +460,7 @@ export default function EditVenue() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('venues.edit.deleteDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('venues.edit.deleteDialog.description', { venueName: venue.name })}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t('venues.edit.deleteDialog.description', { venueName: venue.name })}</AlertDialogDescription>
             <div className="mt-4">
               <Input
                 value={deleteConfirmation}
@@ -488,115 +483,30 @@ export default function EditVenue() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 flex-grow overflow-auto">
+      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 grow overflow-auto">
         <Form {...form}>
           {!canEdit && (
             <div className="mb-4 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-3 py-2">
-              {t('venues.edit.readOnly', { defaultValue: 'Modo solo lectura: no tienes permisos para editar la información del establecimiento.' })}
+              {t('venues.edit.readOnly', {
+                defaultValue: 'Modo solo lectura: no tienes permisos para editar la información del establecimiento.',
+              })}
             </div>
           )}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
             <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">{t('venues.edit.sections.basicInfo')}</h3>
-                <Separator />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">{t('venues.edit.sections.basicInfo')}</h3>
+                  <Separator />
 
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.name')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.name')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.type')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('venues.edit.placeholders.type')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={VenueType.RESTAURANT}>{t('venues.edit.types.restaurant')}</SelectItem>
-                          <SelectItem value={VenueType.BAR}>{t('venues.edit.types.bar')}</SelectItem>
-                          <SelectItem value={VenueType.CAFE}>{t('venues.edit.types.cafe')}</SelectItem>
-                          <SelectItem value={VenueType.FAST_FOOD}>{t('venues.edit.types.fastFood')}</SelectItem>
-                          <SelectItem value={VenueType.FOOD_TRUCK}>{t('venues.edit.types.foodTruck')}</SelectItem>
-                          <SelectItem value={VenueType.RETAIL_STORE}>{t('venues.edit.types.retailStore')}</SelectItem>
-                          <SelectItem value={VenueType.HOTEL_RESTAURANT}>{t('venues.edit.types.hotelRestaurant')}</SelectItem>
-                          <SelectItem value={VenueType.FITNESS_STUDIO}>{t('venues.edit.types.fitnessStudio')}</SelectItem>
-                          <SelectItem value={VenueType.SPA}>{t('venues.edit.types.spa')}</SelectItem>
-                          <SelectItem value={VenueType.OTHER}>{t('venues.edit.types.other')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.state')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.state')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="zipCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.zipCode')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.zipCode')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.address')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.address')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="city"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('venues.edit.labels.city')}</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.name')}</FormLabel>
                         <FormControl>
-                          <Input placeholder={t('venues.edit.placeholders.city')} {...field} />
+                          <Input placeholder={t('venues.edit.placeholders.name')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -605,22 +515,150 @@ export default function EditVenue() {
 
                   <FormField
                     control={form.control}
-                    name="country"
+                    name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('venues.edit.labels.country')}</FormLabel>
+                        <FormLabel>{t('venues.edit.labels.type')}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={t('venues.edit.placeholders.country')} />
+                              <SelectValue placeholder={t('venues.edit.placeholders.type')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {countries.map((country: any) => (
-                              <SelectItem key={country.value} value={country.value}>
-                                {country.label}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value={VenueType.RESTAURANT}>{t('venues.edit.types.restaurant')}</SelectItem>
+                            <SelectItem value={VenueType.BAR}>{t('venues.edit.types.bar')}</SelectItem>
+                            <SelectItem value={VenueType.CAFE}>{t('venues.edit.types.cafe')}</SelectItem>
+                            <SelectItem value={VenueType.FAST_FOOD}>{t('venues.edit.types.fastFood')}</SelectItem>
+                            <SelectItem value={VenueType.FOOD_TRUCK}>{t('venues.edit.types.foodTruck')}</SelectItem>
+                            <SelectItem value={VenueType.RETAIL_STORE}>{t('venues.edit.types.retailStore')}</SelectItem>
+                            <SelectItem value={VenueType.HOTEL_RESTAURANT}>{t('venues.edit.types.hotelRestaurant')}</SelectItem>
+                            <SelectItem value={VenueType.FITNESS_STUDIO}>{t('venues.edit.types.fitnessStudio')}</SelectItem>
+                            <SelectItem value={VenueType.SPA}>{t('venues.edit.types.spa')}</SelectItem>
+                            <SelectItem value={VenueType.OTHER}>{t('venues.edit.types.other')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.state')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('venues.edit.placeholders.state')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.zipCode')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('venues.edit.placeholders.zipCode')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.address')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('venues.edit.placeholders.address')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('venues.edit.labels.city')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('venues.edit.placeholders.city')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('venues.edit.labels.country')}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('venues.edit.placeholders.country')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {countries.map((country: any) => (
+                                <SelectItem key={country.value} value={country.value}>
+                                  {country.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="timezone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
+                        <FormControl>
+                          <TimezoneCombobox value={field.value} onValueChange={field.onChange} disabled={!canEdit} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t('venues.edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="MXN">{t('venues.edit.currencies.mxn')}</SelectItem>
+                            <SelectItem value="USD">{t('venues.edit.currencies.usd')}</SelectItem>
+                            <SelectItem value="EUR">{t('venues.edit.currencies.eur')}</SelectItem>
+                            <SelectItem value="CAD">{t('venues.edit.currencies.cad')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -629,41 +667,384 @@ export default function EditVenue() {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">{t('venues.edit.sections.contact', { defaultValue: 'Contacto e imágenes' })}</h3>
+                  <Separator />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.email', { defaultValue: 'Email' })}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder={t('venues.edit.placeholders.email', { defaultValue: 'email@ejemplo.com' })}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.phone', { defaultValue: 'Teléfono' })}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('venues.edit.placeholders.phone', { defaultValue: '+52 123 456 7890' })} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="website"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.website', { defaultValue: 'Sitio web' })}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('venues.edit.placeholders.website', { defaultValue: 'https://tusitio.com' })}
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="primaryColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.primaryColor', { defaultValue: 'Color Primario' })}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('venues.edit.placeholders.primaryColor', { defaultValue: '#FF5733' })}
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="secondaryColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('venues.edit.labels.secondaryColor', { defaultValue: 'Color Secundario' })}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('venues.edit.placeholders.secondaryColor', { defaultValue: '#33C4FF' })}
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('venues.edit.labels.latitude', { defaultValue: 'Latitud' })}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="any"
+                              placeholder={t('venues.edit.placeholders.latitude', { defaultValue: '19.432608' })}
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('venues.edit.labels.longitude', { defaultValue: 'Longitud' })}</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="any"
+                              placeholder={t('venues.edit.placeholders.longitude', { defaultValue: '-99.133209' })}
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Logo upload with crop (optional URL fallback) */}
+                  {canEdit ? (
                     <FormItem>
-                      <FormLabel>{t('venues.edit.labels.timezone', { defaultValue: 'Zona horaria' })}</FormLabel>
+                      <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
                       <FormControl>
-                        <TimezoneCombobox
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={!canEdit}
-                        />
+                        <div className="space-y-3">
+                          {imageUrl ? (
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={imageUrl}
+                                alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })}
+                                className="h-16 w-16 object-cover rounded"
+                              />
+                              <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
+                                {t('common.remove', { defaultValue: 'Quitar' })}
+                              </Button>
+                            </div>
+                          ) : imageForCrop ? (
+                            <div>
+                              <div className="relative w-full h-64 bg-muted">
+                                <Cropper
+                                  image={imageForCrop}
+                                  crop={crop}
+                                  zoom={zoom}
+                                  aspect={4 / 3}
+                                  onCropChange={setCrop}
+                                  onZoomChange={setZoom}
+                                  onCropComplete={onCropComplete}
+                                />
+                              </div>
+                              <div className="flex justify-between mt-3">
+                                <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                                  {t('venues.addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
+                                </Button>
+                                <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
+                                  {t('venues.addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Input type="file" onChange={e => handleFileUpload(e.target.files?.[0])} disabled={uploading} />
+                          )}
+                          <Input
+                            placeholder={t('venues.edit.placeholders.logo', { defaultValue: 'https://example.com/logo.jpg' })}
+                            value={form.watch('logo') || ''}
+                            onChange={e => form.setValue('logo', e.target.value, { shouldDirty: true })}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
+                  ) : (
+                    <FormItem>
+                      <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
+                      <div className="flex items-center gap-3">
+                        {venue.logo ? (
+                          <img
+                            src={venue.logo}
+                            alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })}
+                            className="h-16 w-16 object-cover rounded"
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{t('venues.edit.noLogo')}</span>
+                        )}
+                      </div>
+                    </FormItem>
                   )}
-                />
+                </div>
+              </div>
+
+              {/* Tax Documents Section */}
+              {(venue.taxDocumentUrl || venue.actaDocumentUrl || venue.idDocumentUrl || venue.rfc) && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">{t('venues.edit.sections.taxInfo', { defaultValue: 'Información Fiscal' })}</h3>
+                  <Separator />
+
+                  {venue.rfc && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">RFC</p>
+                        <p className="text-sm text-foreground">{venue.rfc}</p>
+                      </div>
+                      {venue.legalName && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1">
+                            {t('venues.edit.labels.legalName', { defaultValue: 'Razón Social' })}
+                          </p>
+                          <p className="text-sm text-foreground">{venue.legalName}</p>
+                        </div>
+                      )}
+                      {venue.fiscalRegime && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1">
+                            {t('venues.edit.labels.fiscalRegime', { defaultValue: 'Régimen Fiscal' })}
+                          </p>
+                          <p className="text-sm text-foreground">{venue.fiscalRegime}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {venue.taxDocumentUrl && (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {t('venues.edit.labels.taxDocument', { defaultValue: 'Constancia de Situación Fiscal' })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = venue.taxDocumentUrl!
+                            link.download = `constancia-fiscal-${venue.slug}.pdf`
+                            link.click()
+                          }}
+                        >
+                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
+                        </Button>
+                      </div>
+                    )}
+                    {venue.actaDocumentUrl && (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {t('venues.edit.labels.actaDocument', { defaultValue: 'Acta constitutiva' })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = venue.actaDocumentUrl!
+                            link.download = `acta-constitutiva-${venue.slug}.pdf`
+                            link.click()
+                          }}
+                        >
+                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
+                        </Button>
+                      </div>
+                    )}
+
+                    {venue.idDocumentUrl && (
+                      <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
+                            <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {t('venues.edit.labels.idDocument', { defaultValue: 'Identificación Oficial (INE/IFE)' })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = venue.idDocumentUrl!
+                            link.download = `identificacion-${venue.slug}.pdf`
+                            link.click()
+                          }}
+                        >
+                          {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
+                <Separator />
 
                 <FormField
                   control={form.control}
-                  name="currency"
+                  name="posType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('venues.edit.labels.currency', { defaultValue: 'Moneda' })}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || 'MXN'}>
+                      <FormLabel>{t('venues.edit.labels.posType', { defaultValue: 'Sistema POS' })}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t('venues.edit.placeholders.currency', { defaultValue: 'Selecciona una moneda' })} />
+                            <SelectValue placeholder={t('venues.edit.placeholders.posType')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="MXN">{t('venues.edit.currencies.mxn')}</SelectItem>
-                          <SelectItem value="USD">{t('venues.edit.currencies.usd')}</SelectItem>
-                          <SelectItem value="EUR">{t('venues.edit.currencies.eur')}</SelectItem>
-                          <SelectItem value="CAD">{t('venues.edit.currencies.cad')}</SelectItem>
+                          <SelectItem value={PosType.SOFTRESTAURANT}>{t('venues.edit.posTypes.softRestaurant')}</SelectItem>
+                          <SelectItem value={PosType.SQUARE}>{t('venues.edit.posTypes.square')}</SelectItem>
+                          <SelectItem value={PosType.TOAST}>{t('venues.edit.posTypes.toast')}</SelectItem>
+                          <SelectItem value={PosType.CLOVER}>{t('venues.edit.posTypes.clover')}</SelectItem>
+                          <SelectItem value={PosType.ALOHA}>{t('venues.edit.posTypes.aloha')}</SelectItem>
+                          <SelectItem value={PosType.MICROS}>{t('venues.edit.posTypes.micros')}</SelectItem>
+                          <SelectItem value={PosType.NCR}>{t('venues.edit.posTypes.ncr')}</SelectItem>
+                          <SelectItem value={PosType.CUSTOM}>{t('venues.edit.posTypes.custom')}</SelectItem>
+                          <SelectItem value={PosType.NONE}>{t('venues.edit.posTypes.none')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -671,312 +1052,7 @@ export default function EditVenue() {
                   )}
                 />
               </div>
-
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">{t('venues.edit.sections.contact', { defaultValue: 'Contacto e imágenes' })}</h3>
-                <Separator />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.email', { defaultValue: 'Email' })}</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder={t('venues.edit.placeholders.email', { defaultValue: 'email@ejemplo.com' })} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.phone', { defaultValue: 'Teléfono' })}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.phone', { defaultValue: '+52 123 456 7890' })} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.website', { defaultValue: 'Sitio web' })}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.website', { defaultValue: 'https://tusitio.com' })} {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="primaryColor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.primaryColor', { defaultValue: 'Color Primario' })}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.primaryColor', { defaultValue: '#FF5733' })} {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="secondaryColor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('venues.edit.labels.secondaryColor', { defaultValue: 'Color Secundario' })}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('venues.edit.placeholders.secondaryColor', { defaultValue: '#33C4FF' })} {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="latitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('venues.edit.labels.latitude', { defaultValue: 'Latitud' })}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="any" 
-                            placeholder={t('venues.edit.placeholders.latitude', { defaultValue: '19.432608' })}
-                            {...field} 
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="longitude"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('venues.edit.labels.longitude', { defaultValue: 'Longitud' })}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="any" 
-                            placeholder={t('venues.edit.placeholders.longitude', { defaultValue: '-99.133209' })}
-                            {...field} 
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Logo upload with crop (optional URL fallback) */}
-                {canEdit ? (
-                  <FormItem>
-                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
-                        {imageUrl ? (
-                          <div className="flex items-center gap-3">
-                            <img src={imageUrl} alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })} className="h-16 w-16 object-cover rounded" />
-                            <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
-                              {t('common.remove', { defaultValue: 'Quitar' })}
-                            </Button>
-                          </div>
-                        ) : imageForCrop ? (
-                          <div>
-                            <div className="relative w-full h-64 bg-muted">
-                              <Cropper
-                                image={imageForCrop}
-                                crop={crop}
-                                zoom={zoom}
-                                aspect={4 / 3}
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={onCropComplete}
-                              />
-                            </div>
-                            <div className="flex justify-between mt-3">
-                              <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                                {t('venues.addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
-                              </Button>
-                              <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
-                                {t('venues.addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <Input type="file" onChange={e => handleFileUpload(e.target.files?.[0])} disabled={uploading} />
-                        )}
-                        <Input
-                          placeholder={t('venues.edit.placeholders.logo', { defaultValue: 'https://example.com/logo.jpg' })}
-                          value={form.watch('logo') || ''}
-                          onChange={e => form.setValue('logo', e.target.value, { shouldDirty: true })}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                ) : (
-                  <FormItem>
-                    <FormLabel>{t('venues.edit.labels.logo', { defaultValue: 'Logo' })}</FormLabel>
-                    <div className="flex items-center gap-3">
-                      {venue.logo ? (
-                        <img src={venue.logo} alt={t('venues.edit.logoAlt', { defaultValue: 'Logo' })} className="h-16 w-16 object-cover rounded" />
-                      ) : (
-                        <span className="text-sm text-muted-foreground">{t('venues.edit.noLogo')}</span>
-                      )}
-                    </div>
-                  </FormItem>
-                )}
-              </div>
-            </div>
-
-            {/* Tax Documents Section */}
-            {(venue.taxDocumentUrl || venue.idDocumentUrl || venue.rfc) && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-medium">{t('venues.edit.sections.taxInfo', { defaultValue: 'Información Fiscal' })}</h3>
-                <Separator />
-
-                {venue.rfc && (
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">RFC</p>
-                      <p className="text-sm text-foreground">{venue.rfc}</p>
-                    </div>
-                    {venue.legalName && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">{t('venues.edit.labels.legalName', { defaultValue: 'Razón Social' })}</p>
-                        <p className="text-sm text-foreground">{venue.legalName}</p>
-                      </div>
-                    )}
-                    {venue.fiscalRegime && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">{t('venues.edit.labels.fiscalRegime', { defaultValue: 'Régimen Fiscal' })}</p>
-                        <p className="text-sm text-foreground">{venue.fiscalRegime}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {venue.taxDocumentUrl && (
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                          <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t('venues.edit.labels.taxDocument', { defaultValue: 'Constancia de Situación Fiscal' })}</p>
-                          <p className="text-xs text-muted-foreground">{t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const link = document.createElement('a')
-                          link.href = venue.taxDocumentUrl!
-                          link.download = `constancia-fiscal-${venue.slug}.pdf`
-                          link.click()
-                        }}
-                      >
-                        {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
-                      </Button>
-                    </div>
-                  )}
-
-                  {venue.idDocumentUrl && (
-                    <div className="flex items-center justify-between p-4 border border-border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                          <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t('venues.edit.labels.idDocument', { defaultValue: 'Identificación Oficial (INE/IFE)' })}</p>
-                          <p className="text-xs text-muted-foreground">{t('venues.edit.documentUploaded', { defaultValue: 'Documento cargado' })}</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const link = document.createElement('a')
-                          link.href = venue.idDocumentUrl!
-                          link.download = `identificacion-${venue.slug}.pdf`
-                          link.click()
-                        }}
-                      >
-                        {t('venues.edit.downloadDocument', { defaultValue: 'Descargar' })}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium">{t('venues.edit.sections.pos', { defaultValue: 'Integración con POS' })}</h3>
-              <Separator />
-
-              <FormField
-                control={form.control}
-                name="posType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('venues.edit.labels.posType', { defaultValue: 'Sistema POS' })}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('venues.edit.placeholders.posType')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PosType.SOFTRESTAURANT}>{t('venues.edit.posTypes.softRestaurant')}</SelectItem>
-                        <SelectItem value={PosType.SQUARE}>{t('venues.edit.posTypes.square')}</SelectItem>
-                        <SelectItem value={PosType.TOAST}>{t('venues.edit.posTypes.toast')}</SelectItem>
-                        <SelectItem value={PosType.CLOVER}>{t('venues.edit.posTypes.clover')}</SelectItem>
-                        <SelectItem value={PosType.ALOHA}>{t('venues.edit.posTypes.aloha')}</SelectItem>
-                        <SelectItem value={PosType.MICROS}>{t('venues.edit.posTypes.micros')}</SelectItem>
-                        <SelectItem value={PosType.NCR}>{t('venues.edit.posTypes.ncr')}</SelectItem>
-                        <SelectItem value={PosType.CUSTOM}>{t('venues.edit.posTypes.custom')}</SelectItem>
-                        <SelectItem value={PosType.NONE}>{t('venues.edit.posTypes.none')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             </fieldset>
-
           </form>
         </Form>
       </div>
