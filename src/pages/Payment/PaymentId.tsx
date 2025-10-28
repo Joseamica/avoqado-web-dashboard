@@ -525,12 +525,12 @@ export default function PaymentId() {
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1 min-h-[20px] mb-2">
                         <Calendar className="h-4 w-4" />
                         <span>{t('detail.fields.dateTime')}</span>
                       </Label>
-                      <div className="p-3 bg-muted rounded-md border border-border">
+                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="font-mono text-sm">
                           {payment?.createdAt
                             ? new Date(payment.createdAt).toLocaleString(getIntlLocale(i18n.language), {
@@ -547,31 +547,31 @@ export default function PaymentId() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.authNumber')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.authNumber')}</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="font-mono text-sm">{payment?.authorizationNumber || t('detail.fields.notAvailable')}</p>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.table')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.table')}</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="text-sm">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.referenceNumber')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border">
+                    <div className="flex flex-col">
+                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.referenceNumber')}</Label>
+                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="font-mono text-xs break-all">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
                       </div>
                     </div>
 
                     {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.entryMode')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border">
+                      <div className="flex flex-col">
+                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.entryMode')}</Label>
+                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                           <p className="text-sm">
                             {payment.entryMode === 'CONTACTLESS'
                               ? t('detail.entryModes.contactless')
@@ -594,17 +594,17 @@ export default function PaymentId() {
                   <div className="border-t pt-4">
                     <h4 className="font-medium mb-3 text-sm text-muted-foreground">{t('detail.sections.billInfo')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.orderId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border">
+                      <div className="flex flex-col">
+                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.orderId')}</Label>
+                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                           <p className="font-mono text-sm">
                             {payment?.order?.orderNumber || payment?.orderId || (payment as any)?.billId || t('detail.fields.notAvailable')}
                           </p>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.shiftId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border">
+                      <div className="flex flex-col">
+                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.shiftId')}</Label>
+                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                           <p className="font-mono text-sm">{getShiftInfo(payment) || t('detail.fields.notAvailable')}</p>
                         </div>
                       </div>
