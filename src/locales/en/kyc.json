@@ -1,0 +1,38 @@
+{
+  "setupRequired": {
+    "title": "KYC Verification Required",
+    "subtitle": "Complete verification to access operational features",
+    "missing": {
+      "title": "KYC Verification Not Submitted",
+      "description": "You need to complete KYC (Know Your Customer) verification to access operational features like orders, payments, and analytics.",
+      "action": "Start KYC Verification"
+    },
+    "pending": {
+      "title": "KYC Verification Pending",
+      "description": "Your KYC documents are under review by our team. You'll receive an email notification once your verification is approved. This usually takes 1-2 business days.",
+      "note": "Note:",
+      "noteText": "Operational features will be enabled automatically once verification is complete."
+    },
+    "rejected": {
+      "title": "KYC Verification Rejected",
+      "defaultReason": "Your KYC submission was rejected. Please review the requirements and resubmit your documents.",
+      "action": "Resubmit Documents"
+    },
+    "helpText": "KYC verification is required for payment processing and financial operations.",
+    "contactSupport": "Need help?",
+    "contactEmail": "Contact support"
+  },
+  "banner": {
+    "missing": {
+      "message": "Complete KYC verification to access operational features (orders, payments, analytics)",
+      "action": "Start Now"
+    },
+    "pending": {
+      "message": "KYC verification pending - You'll receive an email notification when approved (usually 1-2 business days)"
+    },
+    "rejected": {
+      "message": "KYC verification rejected - Please review the rejection reason and resubmit your documents",
+      "action": "Resubmit"
+    }
+  }
+}

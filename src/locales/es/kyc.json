@@ -1,0 +1,38 @@
+{
+  "setupRequired": {
+    "title": "Verificación KYC Requerida",
+    "subtitle": "Completa la verificación para acceder a funciones operativas",
+    "missing": {
+      "title": "Verificación KYC No Enviada",
+      "description": "Necesitas completar la verificación KYC (Conoce a tu Cliente) para acceder a funciones operativas como pedidos, pagos y analíticas.",
+      "action": "Iniciar Verificación KYC"
+    },
+    "pending": {
+      "title": "Verificación KYC Pendiente",
+      "description": "Tus documentos KYC están siendo revisados por nuestro equipo. Recibirás una notificación por correo electrónico una vez que tu verificación sea aprobada. Esto suele tardar 1-2 días hábiles.",
+      "note": "Nota:",
+      "noteText": "Las funciones operativas se habilitarán automáticamente una vez completada la verificación."
+    },
+    "rejected": {
+      "title": "Verificación KYC Rechazada",
+      "defaultReason": "Tu envío KYC fue rechazado. Por favor revisa los requisitos y vuelve a enviar tus documentos.",
+      "action": "Reenviar Documentos"
+    },
+    "helpText": "La verificación KYC es requerida para procesamiento de pagos y operaciones financieras.",
+    "contactSupport": "¿Necesitas ayuda?",
+    "contactEmail": "Contactar soporte"
+  },
+  "banner": {
+    "missing": {
+      "message": "Completa la verificación KYC para acceder a funciones operativas (pedidos, pagos, analíticas)",
+      "action": "Comenzar Ahora"
+    },
+    "pending": {
+      "message": "Verificación KYC pendiente - Recibirás una notificación por correo cuando sea aprobada (usualmente 1-2 días hábiles)"
+    },
+    "rejected": {
+      "message": "Verificación KYC rechazada - Por favor revisa la razón del rechazo y vuelve a enviar tus documentos",
+      "action": "Reenviar"
+    }
+  }
+}
