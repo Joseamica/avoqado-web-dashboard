@@ -1220,12 +1220,11 @@
       "terminalType": "Terminal Type",
       "selectType": "Select type",
       "types": {
-        "androidTablet": "Android Tablet",
-        "windowsPC": "Windows PC",
-        "linuxDevice": "Linux Device",
-        "mobileDevice": "Mobile Device",
-        "kiosk": "Kiosk",
-        "other": "Other"
+        "tpvAndroid": "TPV Android",
+        "tpvIOS": "TPV iOS",
+        "printerReceipt": "Imprimante de Reçus",
+        "printerKitchen": "Imprimante de Cuisine",
+        "kds": "Système d'Affichage de Cuisine (KDS)"
       },
       "notSpecified": "Not specified",
       "advancedConfig": "Advanced Configuration",

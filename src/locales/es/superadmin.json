@@ -411,12 +411,11 @@
       "terminalType": "Tipo de Terminal",
       "selectType": "Seleccionar tipo",
       "types": {
-        "androidTablet": "Tableta Android",
-        "windowsPC": "PC Windows",
-        "linuxDevice": "Dispositivo Linux",
-        "mobileDevice": "Dispositivo Móvil",
-        "kiosk": "Kiosco",
-        "other": "Otro"
+        "tpvAndroid": "TPV Android",
+        "tpvIOS": "TPV iOS",
+        "printerReceipt": "Impresora de Tickets",
+        "printerKitchen": "Impresora de Cocina",
+        "kds": "Sistema de Display de Cocina (KDS)"
       },
       "notSpecified": "No especificado",
       "advancedConfig": "Configuración Avanzada",

@@ -664,12 +664,11 @@ export default function TpvId() {
                                       <SelectValue placeholder={t('tpv.detail.selectType')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="ANDROID_TABLET">{t('tpv.detail.types.androidTablet')}</SelectItem>
-                                      <SelectItem value="WINDOWS_PC">{t('tpv.detail.types.windowsPC')}</SelectItem>
-                                      <SelectItem value="LINUX_DEVICE">{t('tpv.detail.types.linuxDevice')}</SelectItem>
-                                      <SelectItem value="MOBILE_DEVICE">{t('tpv.detail.types.mobileDevice')}</SelectItem>
-                                      <SelectItem value="KIOSK">{t('tpv.detail.types.kiosk')}</SelectItem>
-                                      <SelectItem value="OTHER">{t('tpv.detail.types.other')}</SelectItem>
+                                      <SelectItem value="TPV_ANDROID">{t('tpv.detail.types.tpvAndroid')}</SelectItem>
+                                      <SelectItem value="TPV_IOS">{t('tpv.detail.types.tpvIOS')}</SelectItem>
+                                      <SelectItem value="PRINTER_RECEIPT">{t('tpv.detail.types.printerReceipt')}</SelectItem>
+                                      <SelectItem value="PRINTER_KITCHEN">{t('tpv.detail.types.printerKitchen')}</SelectItem>
+                                      <SelectItem value="KDS">{t('tpv.detail.types.kds')}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 ) : (
