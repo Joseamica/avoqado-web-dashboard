@@ -122,6 +122,20 @@
     }
   },
   "edit": {
+    "kycRejected": {
+      "title": "Documentación KYC Rechazada",
+      "description": "Tu documentación KYC fue rechazada. Por favor revisa la razón del rechazo y vuelve a enviar tus documentos.",
+      "reason": "Razón del rechazo:",
+      "resubmitButton": "Reenviar Documentos"
+    },
+    "readOnly": "Modo solo lectura: no tienes permisos para editar la información del establecimiento.",
+    "sections": {
+      "basicInfo": "Información Básica",
+      "contact": "Contacto e Imágenes",
+      "contactInfo": "Información de Contacto",
+      "locationInfo": "Ubicación",
+      "brandingInfo": "Identidad de Marca"
+    },
     "nav": {
       "general": "General",
       "documents": "Documentación",

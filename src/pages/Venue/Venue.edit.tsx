@@ -153,7 +153,7 @@ function VenueSkeleton() {
 }
 
 export default function EditVenue() {
-  const { t } = useTranslation()
+  const { t } = useTranslation('venue')
   const { venueId } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
@@ -459,25 +459,18 @@ export default function EditVenue() {
         {venue.kycStatus === 'REJECTED' && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle className="font-semibold">
-              {t('venues.edit.kycRejected.title', { defaultValue: 'KYC Documentation Rejected' })}
-            </AlertTitle>
+            <AlertTitle className="font-semibold">{t('edit.kycRejected.title')}</AlertTitle>
             <AlertDescription className="mt-2">
-              <p className="mb-3">
-                {t('venues.edit.kycRejected.description', {
-                  defaultValue: 'Your KYC documentation was rejected. Please review the reason below and resubmit your documents.',
-                })}
-              </p>
+              <p className="mb-3">{t('edit.kycRejected.description')}</p>
               {venue.kycRejectionReason && (
                 <p className="mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20 text-sm">
-                  <strong>{t('venues.edit.kycRejected.reason', { defaultValue: 'Rejection Reason:' })}</strong>{' '}
-                  {venue.kycRejectionReason}
+                  <strong>{t('edit.kycRejected.reason')}</strong> {venue.kycRejectionReason}
                 </p>
               )}
               <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
                 <Link to={`/venues/${venue.slug}/edit/documents`}>
                   <FileText className="mr-2 h-4 w-4" />
-                  {t('venues.edit.kycRejected.resubmitButton', { defaultValue: 'Resubmit Documents' })}
+                  {t('edit.kycRejected.resubmitButton')}
                 </Link>
               </Button>
             </AlertDescription>
@@ -487,16 +480,14 @@ export default function EditVenue() {
         <Form {...form}>
           {!canEdit && (
             <div className="mb-4 rounded-md border border-border bg-muted/40 text-muted-foreground text-sm px-3 py-2">
-              {t('venues.edit.readOnly', {
-                defaultValue: 'Modo solo lectura: no tienes permisos para editar la información del establecimiento.',
-              })}
+              {t('edit.readOnly')}
             </div>
           )}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
             <fieldset disabled={!canEdit} className={!canEdit ? 'opacity-80' : undefined}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
-                  <h3 className="text-lg font-medium">{t('venues.edit.sections.basicInfo')}</h3>
+                  <h3 className="text-lg font-medium">{t('edit.sections.basicInfo')}</h3>
                   <Separator />
 
                   <FormField
@@ -668,7 +659,7 @@ export default function EditVenue() {
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="text-lg font-medium">{t('venues.edit.sections.contact', { defaultValue: 'Contacto e imágenes' })}</h3>
+                  <h3 className="text-lg font-medium">{t('edit.sections.contact')}</h3>
                   <Separator />
 
                   <FormField

@@ -122,6 +122,20 @@
     }
   },
   "edit": {
+    "kycRejected": {
+      "title": "KYC Documentation Rejected",
+      "description": "Your KYC documentation was rejected. Please review the reason below and resubmit your documents.",
+      "reason": "Rejection Reason:",
+      "resubmitButton": "Resubmit Documents"
+    },
+    "readOnly": "Read-only mode: you don't have permissions to edit venue information.",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "contact": "Contact & Images",
+      "contactInfo": "Contact Information",
+      "locationInfo": "Location",
+      "brandingInfo": "Branding"
+    },
     "nav": {
       "general": "General",
       "documents": "Documentation",
