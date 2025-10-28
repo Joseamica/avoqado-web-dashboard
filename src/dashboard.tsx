@@ -252,7 +252,7 @@ export default function Dashboard() {
         </div>
 
         {/* ChatBubble positioned at bottom-right edge */}
-        {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && (
+        {venue && checkFeatureAccess('CHATBOT') && (
           <div className="fixed bottom-4 right-4 z-50">
             <ChatBubble />
           </div>
