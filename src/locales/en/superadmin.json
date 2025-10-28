@@ -296,6 +296,8 @@
       "markRead": "Mark as read",
       "view_all": "View all notifications",
       "none": "No notifications",
+      "unread_count": "{{count}} unread",
+      "unread_count_plural": "{{count}} unread",
       "noneFound": "No notifications found",
       "adjustFilters": "Try adjusting your search or filters",
       "upToDate": "You're up to date! New notifications will show up here.",

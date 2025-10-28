@@ -15,7 +15,7 @@ interface NotificationBellProps {
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
   const { notifications, markAsRead, loading } = useNotifications()
-  const { t } = useTranslation()
+  const { t } = useTranslation('notifications')
   const { venueSlug } = useCurrentVenue()
 
   const [isOpen, setIsOpen] = useState(false)
@@ -41,7 +41,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
           variant="outline"
           size="sm"
           className={`relative p-2 ${className}`}
-          aria-label={hasUnread ? t('dashboard.notifications.bell_with_unread', { count: unreadCount }) : t('dashboard.notifications.bell')}
+          aria-label={hasUnread ? t('bell_with_unread', { count: unreadCount }) : t('bell')}
         >
           <Bell className="h-5 w-5" />
           {hasUnread && (
@@ -55,9 +55,9 @@ export function NotificationBell({ className }: NotificationBellProps) {
       <DropdownMenuContent align="end" className="w-80 p-0">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-semibold text-foreground">{t('dashboard.notifications.title')}</h3>
+          <h3 className="font-semibold text-foreground">{t('title')}</h3>
           <p className="text-sm text-muted-foreground">
-            {hasUnread ? t('dashboard.notifications.unread_count', { count: unreadCount }) : t('dashboard.notifications.none')}
+            {hasUnread ? t('unread_count', { count: unreadCount }) : t('none')}
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">{t('dashboard.notifications.none')}</p>
+              <p className="text-muted-foreground">{t('none')}</p>
             </div>
           ) : (
             notifications.map((notification, index) => (
@@ -106,7 +106,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     )}
                   </div>
                   {!notification.isRead && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full" title={t('dashboard.notifications.unread')} />
+                    <div className="w-2 h-2 bg-red-500 rounded-full" title={t('unread')} />
                   )}
                 </div>
               </div>
@@ -128,7 +128,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
               window.location.href = venueSlug ? `/venues/${venueSlug}/notifications` : '/notifications'
             }}
           >
-            {t('dashboard.notifications.view_all')}
+            {t('view_all')}
           </Button>
         </div>
       </DropdownMenuContent>

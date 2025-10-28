@@ -37,6 +37,9 @@ import authFr from '@/locales/fr/auth.json'
 import tpvEn from '@/locales/en/tpv.json'
 import tpvEs from '@/locales/es/tpv.json'
 import tpvFr from '@/locales/fr/tpv.json'
+import notificationsEn from '@/locales/en/notifications.json'
+import notificationsEs from '@/locales/es/notifications.json'
+import notificationsFr from '@/locales/fr/notifications.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -196,6 +199,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'tpv', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', notificationsEn],
+    ['es', notificationsEs],
+    ['fr', notificationsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'notifications', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n
