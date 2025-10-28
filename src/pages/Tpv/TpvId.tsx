@@ -77,7 +77,7 @@ interface TpvData {
 }
 
 export default function TpvId() {
-  const { t } = useTranslation('tpv')
+  const { t } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
   const { venueId } = useCurrentVenue()
@@ -225,7 +225,7 @@ export default function TpvId() {
     },
     onError: error => {
       toast({
-        title: t('common.error'),
+        title: t('common:error'),
         description: t('detail.errors.updateFailed'),
         variant: 'destructive',
       })
@@ -310,7 +310,7 @@ export default function TpvId() {
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button variant="outline" onClick={() => navigate(-1)} className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                {t('common.goBack')}
+                {t('common:goBack')}
               </Button>
               <Button onClick={() => navigate(`/venues/${venueId}/tpv`)} className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
@@ -334,9 +334,9 @@ export default function TpvId() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('common.goBack')}
+            {t('common:goBack')}
           </Button>
-          <Button onClick={() => window.location.reload()}>{t('common.tryAgain')}</Button>
+          <Button onClick={() => window.location.reload()}>{t('common:tryAgain')}</Button>
         </div>
       </div>
     )
@@ -438,7 +438,7 @@ export default function TpvId() {
                         className="border-primary/30 text-primary hover:bg-primary/5"
                       >
                         <PencilIcon className="w-4 h-4 mr-2" />
-                        {t('common.edit')}
+                        {t('common:edit')}
                       </Button>
                     </PermissionGate>
                   </div>
@@ -450,7 +450,7 @@ export default function TpvId() {
                     <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
                         <XIcon className="w-4 h-4 mr-2" />
-                        {t('common.cancel')}
+                        {t('common:cancel')}
                       </Button>
                       <Button
                         size="sm"
@@ -459,7 +459,7 @@ export default function TpvId() {
                         className="bg-primary hover:bg-primary/90"
                       >
                         <SaveIcon className="w-4 h-4 mr-2" />
-                        {updateTpvMutation.isPending ? t('common.saving') : t('common.save')}
+                        {updateTpvMutation.isPending ? t('common:saving') : t('common:save')}
                       </Button>
                     </div>
                   </PermissionGate>
@@ -731,11 +731,11 @@ export default function TpvId() {
                           <div className="flex justify-end space-x-3 pt-6 border-t border-border">
                             <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
                               <XIcon className="w-4 h-4 mr-2" />
-                              {t('common.cancel')}
+                              {t('common:cancel')}
                             </Button>
                             <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
                               <SaveIcon className="w-4 h-4 mr-2" />
-                              {updateTpvMutation.isPending ? t('common.saving') : t('detail.saveChanges')}
+                              {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
                             </Button>
                           </div>
                         </PermissionGate>

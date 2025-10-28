@@ -1,6 +1,7 @@
 {
   "cancel": "Annuler",
   "close": "Fermer",
+  "edit": "Modifier",
   "save": "Enregistrer",
   "saving": "Enregistrement...",
   "delete": "Supprimer",
@@ -8,6 +9,8 @@
   "success": "Succès",
   "error": "Erreur",
   "copied": "Copié !",
+  "goBack": "Retour",
+  "tryAgain": "Réessayer",
   "optional": "Optionnel",
   "none": "Aucun",
   "unknown": "Inconnu",

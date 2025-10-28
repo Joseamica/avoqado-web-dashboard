@@ -11,7 +11,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 
 export default function CreateTpv() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['tpv', 'common'])
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -67,7 +67,7 @@ export default function CreateTpv() {
         </div>
         <div className="space-x-3 flex-row-center">
           <LoadingButton loading={createTpv.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createTpv.isPending ? t('common.saving') : t('common.save')}
+            {createTpv.isPending ? t('common:saving') : t('common:save')}
           </LoadingButton>
         </div>
       </div>
