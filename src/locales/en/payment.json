@@ -209,6 +209,13 @@
       "percentage": "Percentage",
       "beneficiary": "Beneficiary"
     },
+    "sidebar": {
+      "quickInfo": "Quick Info",
+      "table": "Table",
+      "processedBy": "Processed by",
+      "shift": "Shift",
+      "noBeneficiary": "No beneficiary"
+    },
     "footer": {
       "copyright": "© 2025 Avoqado. All rights reserved.",
       "paymentId": "Payment ID: {{id}}",

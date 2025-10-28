@@ -209,6 +209,13 @@
       "percentage": "Porcentaje",
       "beneficiary": "Beneficiario"
     },
+    "sidebar": {
+      "quickInfo": "Información Rápida",
+      "table": "Mesa",
+      "processedBy": "Procesado por",
+      "shift": "Turno",
+      "noBeneficiary": "Sin beneficiario"
+    },
     "footer": {
       "copyright": "© 2025 Avoqado. Todos los derechos reservados.",
       "paymentId": "ID de Pago: {{id}}",
