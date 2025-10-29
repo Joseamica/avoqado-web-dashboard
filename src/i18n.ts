@@ -45,6 +45,9 @@ import kycEs from '@/locales/es/kyc.json'
 import kycFr from '@/locales/fr/kyc.json'
 import inviteAcceptEn from '@/locales/en/inviteAccept.json'
 import inviteAcceptEs from '@/locales/es/inviteAccept.json'
+import teamEn from '@/locales/en/team.json'
+import teamEs from '@/locales/es/team.json'
+import teamFr from '@/locales/fr/team.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -230,6 +233,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'inviteAccept', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', teamEn],
+    ['es', teamEs],
+    ['fr', teamFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'team', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

@@ -50,5 +50,25 @@
     "title": "Cuenta creada exitosamente",
     "description": "Tu cuenta ha sido creada. Ahora puedes iniciar sesión.",
     "loginMessage": "Tu cuenta ha sido creada exitosamente. Por favor inicia sesión con tus credenciales."
+  },
+  "emailMismatch": {
+    "title": "Correos No Coinciden",
+    "subtitle": "Has iniciado sesión con un correo diferente",
+    "warning": "Sesión e Invitación No Coinciden",
+    "currentSession": "Sesión actual",
+    "invitationFor": "Invitación para",
+    "explanation": "Esta invitación fue enviada a un correo diferente al de tu sesión actual. Para aceptar esta invitación, debes cerrar sesión y continuar con el correo invitado.",
+    "logoutAndContinue": "Cerrar sesión y continuar",
+    "helpText": "Después de cerrar sesión, serás redirigido automáticamente a esta invitación para crear una cuenta con el correo correcto.",
+    "loggedOut": "Sesión cerrada exitosamente",
+    "loggedOutDescription": "Redirigiendo a la invitación..."
+  },
+  "directAccept": {
+    "title": "Aceptar Invitación al Equipo",
+    "alreadyLoggedIn": "Ya has iniciado sesión como",
+    "description": "Como ya iniciaste sesión con el correo invitado, puedes aceptar esta invitación directamente sin crear una cuenta nueva.",
+    "accepting": "Aceptando invitación...",
+    "note": "Esto agregará el equipo a tu cuenta existente",
+    "successDescription": "Invitación aceptada. Redirigiendo al nuevo local..."
   }
 }

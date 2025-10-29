@@ -50,5 +50,24 @@
     "title": "Account created successfully",
     "description": "Your account has been created. You can now log in.",
     "loginMessage": "Your account has been created successfully. Please log in with your credentials."
+  },
+  "emailMismatch": {
+    "title": "Email Mismatch",
+    "subtitle": "You're logged in with a different email",
+    "warning": "Session and Invitation Don't Match",
+    "currentSession": "Current session",
+    "invitationFor": "Invitation for",
+    "explanation": "This invitation was sent to a different email address than your current session. To accept this invitation, you need to log out and continue with the invited email.",
+    "logoutAndContinue": "Log out and continue",
+    "helpText": "After logging out, you'll be automatically redirected back to this invitation to create an account with the correct email.",
+    "loggedOut": "Logged out successfully",
+    "loggedOutDescription": "Redirecting to invitation..."
+  },
+  "directAccept": {
+    "title": "Accept Team Invitation",
+    "alreadyLoggedIn": "You're already logged in as",
+    "description": "Since you're already logged in with the invited email, you can accept this invitation directly without creating a new account.",
+    "accepting": "Accepting invitation...",
+    "note": "This will add the team to your existing account"
   }
 }
