@@ -51,6 +51,24 @@ import teamFr from '@/locales/fr/team.json'
 import homeEn from '@/locales/en/home.json'
 import homeEs from '@/locales/es/home.json'
 import homeFr from '@/locales/fr/home.json'
+import ordersEn from '@/locales/en/orders.json'
+import ordersEs from '@/locales/es/orders.json'
+import ordersFr from '@/locales/fr/orders.json'
+import analyticsEn from '@/locales/en/analytics.json'
+import analyticsEs from '@/locales/es/analytics.json'
+import analyticsFr from '@/locales/fr/analytics.json'
+import shiftsEn from '@/locales/en/shifts.json'
+import shiftsEs from '@/locales/es/shifts.json'
+import shiftsFr from '@/locales/fr/shifts.json'
+import reviewsEn from '@/locales/en/reviews.json'
+import reviewsEs from '@/locales/es/reviews.json'
+import reviewsFr from '@/locales/fr/reviews.json'
+import accountEn from '@/locales/en/account.json'
+import accountEs from '@/locales/es/account.json'
+import accountFr from '@/locales/fr/account.json'
+import legalEn from '@/locales/en/legal.json'
+import legalEs from '@/locales/es/legal.json'
+import legalFr from '@/locales/fr/legal.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -254,6 +272,69 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'team', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', homeEn],
+    ['es', homeEs],
+    ['fr', homeFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'home', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', ordersEn],
+    ['es', ordersEs],
+    ['fr', ordersFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'orders', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', analyticsEn],
+    ['es', analyticsEs],
+    ['fr', analyticsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'analytics', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', shiftsEn],
+    ['es', shiftsEs],
+    ['fr', shiftsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'shifts', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', reviewsEn],
+    ['es', reviewsEs],
+    ['fr', reviewsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'reviews', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', accountEn],
+    ['es', accountEs],
+    ['fr', accountFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'account', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', legalEn],
+    ['es', legalEs],
+    ['fr', legalFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'legal', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n
