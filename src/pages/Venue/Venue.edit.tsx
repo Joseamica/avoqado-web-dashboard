@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { ColorPicker } from '@/components/ui/color-picker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -732,10 +733,10 @@ export default function EditVenue() {
                       <FormItem>
                         <FormLabel>{t('edit.labels.primaryColor', { defaultValue: 'Color Primario' })}</FormLabel>
                         <FormControl>
-                          <Input
+                          <ColorPicker
                             placeholder={t('edit.placeholders.primaryColor', { defaultValue: '#FF5733' })}
-                            {...field}
                             value={field.value || ''}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
@@ -750,10 +751,10 @@ export default function EditVenue() {
                       <FormItem>
                         <FormLabel>{t('edit.labels.secondaryColor', { defaultValue: 'Color Secundario' })}</FormLabel>
                         <FormControl>
-                          <Input
+                          <ColorPicker
                             placeholder={t('edit.placeholders.secondaryColor', { defaultValue: '#33C4FF' })}
-                            {...field}
                             value={field.value || ''}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage />
