@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Loader2 } from 'lucide-react'
 
 import Logo from '@/assets/logo'
 import CoverLogin from '@/assets/cover-login.png'
@@ -11,10 +12,33 @@ import { clearAllChatStorage } from '@/services/chatService'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     clearAllChatStorage()
+
+    // Check if there's a pending invitation URL after logout
+    const pendingInvitationUrl = localStorage.getItem('pendingInvitationUrl')
+    if (pendingInvitationUrl) {
+      setIsRedirecting(true)
+      // Clear the stored URL
+      localStorage.removeItem('pendingInvitationUrl')
+      // Redirect to the invitation page
+      window.location.href = pendingInvitationUrl
+    }
   }, [])
+
+  // Show loading state during redirect
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">{t('login.redirecting')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background text-foreground">
