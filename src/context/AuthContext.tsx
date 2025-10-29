@@ -50,7 +50,7 @@ export const useAuth = (): AuthContextType => {
 
 // Componente Proveedor
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { t } = useTranslation('auth')
+  const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
