@@ -1,0 +1,162 @@
+{
+  "backToLogin": "Back to Login",
+  "terms": {
+    "title": "Terms and Conditions",
+    "lastUpdated": "Last updated",
+    "date": "January 1, 2025",
+    "introduction": {
+      "title": "Introduction",
+      "content": "Welcome to Avoqado, a comprehensive restaurant management platform. These Terms and Conditions govern your use of our services. By accessing or using Avoqado, you agree to be bound by these terms."
+    },
+    "service": {
+      "title": "Service Description",
+      "description": "Avoqado provides a comprehensive restaurant management platform that includes:",
+      "features": {
+        "pos": "Point of Sale (POS) system for order processing",
+        "inventory": "Inventory management and tracking",
+        "orders": "Order management and kitchen coordination",
+        "payments": "Payment processing and financial reporting",
+        "analytics": "Business analytics and performance insights",
+        "staff": "Staff management and scheduling tools"
+      }
+    },
+    "responsibilities": {
+      "title": "User Responsibilities",
+      "intro": "As a user of Avoqado, you agree to:",
+      "account": "Maintain accurate account information and secure login credentials",
+      "accuracy": "Provide accurate business and financial information",
+      "compliance": "Comply with all applicable laws and regulations in your jurisdiction",
+      "security": "Implement appropriate security measures to protect customer data",
+      "misuse": "Not use the service for any illegal or unauthorized purposes"
+    },
+    "payment": {
+      "title": "Payment Terms",
+      "billing": "Subscription fees are billed monthly in advance. Payment processing fees may apply for transaction processing.",
+      "fees": "All fees are non-refundable except as required by law or as specifically stated in these terms.",
+      "refunds": "Refunds may be provided at our discretion for unused portions of prepaid services."
+    },
+    "privacy": {
+      "title": "Data and Privacy",
+      "content": "Your privacy is important to us. Our collection and use of personal information is governed by our",
+      "policyLink": "Privacy Policy"
+    },
+    "liability": {
+      "title": "Limitation of Liability",
+      "content": "Avoqado provides the service \"as is\" without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service."
+    },
+    "termination": {
+      "title": "Termination",
+      "content": "Either party may terminate this agreement at any time. Upon termination, your access to the service will cease, and you remain responsible for any outstanding fees."
+    },
+    "changes": {
+      "title": "Changes to Terms",
+      "content": "We reserve the right to modify these terms at any time. We will notify you of significant changes via email or through the platform."
+    },
+    "contact": {
+      "title": "Contact Information",
+      "intro": "If you have questions about these Terms and Conditions, please contact us:",
+      "email": "Email",
+      "address": "Address",
+      "addressLine": "Mexico City, Mexico"
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "date": "January 1, 2025",
+    "introduction": {
+      "title": "Introduction",
+      "content": "This Privacy Policy describes how Avoqado collects, uses, and protects your information when you use our restaurant management platform."
+    },
+    "collection": {
+      "title": "Information We Collect",
+      "personal": {
+        "title": "Personal Information",
+        "name": "Name and contact information",
+        "email": "Email address and phone number",
+        "phone": "Business information and tax identification",
+        "business": "Payment and billing information"
+      },
+      "business": {
+        "title": "Business Data",
+        "sales": "Sales transactions and order history",
+        "inventory": "Inventory levels and product information",
+        "customers": "Customer data and preferences",
+        "staff": "Staff schedules and performance data",
+        "financial": "Financial reports and analytics"
+      },
+      "technical": {
+        "title": "Technical Information",
+        "ip": "IP addresses and device information",
+        "device": "Browser type and operating system",
+        "usage": "Usage patterns and feature interactions",
+        "cookies": "Cookies and similar tracking technologies"
+      }
+    },
+    "usage": {
+      "title": "How We Use Your Information",
+      "service": "Provide and maintain our restaurant management services",
+      "support": "Provide customer support and technical assistance",
+      "communication": "Send important updates and notifications",
+      "improvement": "Improve our services and develop new features",
+      "analytics": "Generate business insights and analytics",
+      "compliance": "Comply with legal obligations and prevent fraud"
+    },
+    "sharing": {
+      "title": "Information Sharing",
+      "intro": "We may share your information in the following circumstances:",
+      "consent": "With your explicit consent",
+      "providers": "With trusted service providers who assist in our operations",
+      "legal": "When required by law or to protect our rights",
+      "business": "In connection with a business transfer or acquisition",
+      "aggregated": "Aggregated, non-personally identifiable data for research"
+    },
+    "security": {
+      "title": "Data Security",
+      "intro": "We implement industry-standard security measures including:",
+      "encryption": "Encryption of data in transit and at rest",
+      "access": "Strict access controls and authentication",
+      "monitoring": "Regular security monitoring and audits",
+      "updates": "Regular security updates and patches",
+      "backups": "Secure data backup and recovery procedures"
+    },
+    "retention": {
+      "title": "Data Retention",
+      "content": "We retain your information for as long as necessary to provide our services and comply with legal obligations. You may request deletion of your data subject to certain limitations."
+    },
+    "rights": {
+      "title": "Your Rights",
+      "access": "Access your personal information",
+      "correction": "Correct inaccurate information",
+      "deletion": "Request deletion of your data",
+      "portability": "Data portability and export",
+      "restriction": "Restrict processing of your data",
+      "objection": "Object to certain processing activities",
+      "withdraw": "Withdraw consent where applicable"
+    },
+    "cookies": {
+      "title": "Cookies and Tracking",
+      "intro": "We use cookies and similar technologies for:",
+      "essential": "Essential site functionality",
+      "functional": "Enhanced user experience",
+      "analytics": "Usage analytics and performance monitoring",
+      "marketing": "Marketing and advertising (with consent)"
+    },
+    "international": {
+      "title": "International Transfers",
+      "content": "Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers."
+    },
+    "changes": {
+      "title": "Changes to This Policy",
+      "content": "We may update this Privacy Policy from time to time. We will notify you of any material changes via email or through our platform."
+    },
+    "contact": {
+      "title": "Contact Information",
+      "intro": "For privacy-related questions or requests, contact us:",
+      "email": "Email",
+      "dpo": "Data Protection Officer",
+      "address": "Address",
+      "addressLine": "Mexico City, Mexico"
+    }
+  }
+}

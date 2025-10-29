@@ -1,0 +1,76 @@
+{
+  "title": "Ordenes",
+  "searchPlaceholder": "Buscar por folio, cliente o mesero...",
+  "errorPrefix": "Error al cargar órdenes",
+  "counter": "Mostrador",
+  "columns": {
+    "date": "Fecha",
+    "orderNumber": "Folio",
+    "customer": "Cliente",
+    "waiter": "Mesero",
+    "status": "Estado",
+    "total": "Total"
+  },
+  "statuses": {
+    "PENDING": "Pendiente",
+    "CONFIRMED": "Confirmada",
+    "PREPARING": "En Preparación",
+    "READY": "Lista",
+    "COMPLETED": "Completada",
+    "CANCELLED": "Cancelada"
+  },
+  "detail": {
+    "title": "Orden {{number}}",
+    "loading": "Cargando orden...",
+    "notFound": "Orden no encontrada",
+    "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
+    "noTable": "Sin mesa",
+    "toast": {
+      "updatedTitle": "Orden actualizada",
+      "updatedDesc": "La orden ha sido actualizada exitosamente.",
+      "deletedTitle": "Orden eliminada",
+      "deletedDesc": "La orden ha sido eliminada exitosamente.",
+      "updateErrorTitle": "Error",
+      "updateErrorDesc": "No se pudo actualizar la orden",
+      "deleteErrorTitle": "Error",
+      "deleteErrorDesc": "No se pudo eliminar la orden"
+    },
+    "fields": {
+      "orderId": "ID de orden",
+      "createdAt": "Creada el",
+      "orderNumber": "Folio",
+      "customerName": "Nombre del cliente",
+      "table": "Mesa",
+      "waiter": "Mesero"
+    },
+    "financialSummary": {
+      "title": "Resumen financiero",
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "total": "Total"
+    },
+    "associatedPayments": {
+      "title": "Pagos asociados",
+      "fields": {
+        "paymentId": "ID de pago",
+        "amount": "Monto",
+        "tip": "Propina",
+        "method": "Método"
+      }
+    },
+    "statuses": {
+      "OPEN": "Abierta",
+      "PAID": "Pagada",
+      "PENDING": "Pendiente",
+      "CLOSED": "Cerrada",
+      "COMPLETED": "Completada",
+      "CANCELED": "Cancelada",
+      "CANCELLED": "Cancelada",
+      "PRECREATED": "Pre-creada",
+      "WITHOUT_TABLE": "Sin mesa",
+      "DELETED": "Eliminada",
+      "EARLYACCESS": "Acceso anticipado",
+      "COURTESY": "Cortesía"
+    }
+  }
+}

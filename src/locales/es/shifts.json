@@ -1,0 +1,20 @@
+{
+  "title": "Turnos",
+  "open": "Abierto",
+  "closed": "Cerrado",
+  "columns": {
+    "status": "Estado",
+    "shiftId": "ID Turno",
+    "openTime": "Apertura",
+    "closeTime": "Cierre",
+    "totalTip": "Propina Total",
+    "subtotal": "Subtotal",
+    "total": "Total"
+  },
+  "detail": {
+    "turnIdLabel": "ID de Turno",
+    "systemIdLabel": "ID del Sistema",
+    "openTimeLabel": "Hora de Apertura",
+    "closeTimeLabel": "Hora de Cierre"
+  }
+}

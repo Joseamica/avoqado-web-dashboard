@@ -1,0 +1,12 @@
+{
+  "title": "Customer Reviews",
+  "establishments": "Overall Rating",
+  "averageDescription": "Based on {{count}} review(s)",
+  "loading": "Loading reviews...",
+  "error": "Error loading reviews",
+  "unknownError": "An unknown error occurred",
+  "noReviews": "No reviews available for this period",
+  "star": "star",
+  "stars": "stars",
+  "reviewCount": "{{count}} review(s)"
+}

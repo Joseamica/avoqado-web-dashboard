@@ -1,0 +1,88 @@
+{
+  "title": "Analytics",
+  "overview": "Overview",
+  "loading": "Loading analytics…",
+  "errorPrefix": "Failed to load:",
+  "lastRefreshed": "Last refreshed: {{date}}",
+  "refreshed": "Refreshed: {{date}}",
+  "range": {
+    "label": "Time range:",
+    "presets": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "qtd": "Quarter to date",
+      "ytd": "Year to date",
+      "12m": "Last 12 months"
+    }
+  },
+  "compare": {
+    "label": "Compare to:",
+    "previous_period": "previous period",
+    "previous_year": "previous year",
+    "badge": "Compare: {{label}}"
+  },
+  "overviewSection": {
+    "title": "Executive Overview"
+  },
+  "kpis": {
+    "arr": "ARR",
+    "mrr": "MRR",
+    "netNewArr": "Net New ARR",
+    "nrr": "NRR",
+    "churn": "Churn",
+    "signups": "Signups",
+    "activation": "Activation",
+    "winRate": "Win Rate",
+    "salesCycleDays": "Sales Cycle (d)",
+    "dau": "DAU",
+    "mau": "MAU",
+    "stickiness": "Stickiness",
+    "uptime": "Uptime"
+  },
+  "tooltips": {
+    "arr": "Annual Recurring Revenue. Total subscription revenue normalized to a 12-month period.",
+    "mrr": "Monthly Recurring Revenue. Subscription revenue for the current month.",
+    "netNewArr": "New + Expansion – Contraction – Churn for the selected period.",
+    "nrr": "Net Revenue Retention = (Ending ARR + Churn + Contraction) ÷ Starting ARR.",
+    "churn": "Percentage of revenue lost to cancellations/downgrades during the period.",
+    "signups": "New accounts created in the selected period.",
+    "activation": "Percent of new accounts reaching key onboarding milestones.",
+    "winRate": "Closed-won opportunities ÷ total opportunities within the period.",
+    "salesCycleDays": "Average number of days from opportunity creation to close-won.",
+    "dau": "Daily Active Users – unique users who engaged with core actions today.",
+    "mau": "Monthly Active Users – unique users active in the last 30 days.",
+    "stickiness": "DAU ÷ MAU. Higher means users return more frequently.",
+    "uptime": "Service availability over the period."
+  },
+  "revenueBridge": {
+    "title": "Revenue Bridge"
+  },
+  "activationFunnel": {
+    "title": "Activation Funnel",
+    "tooltip": "Drop-offs from signups to PQLs/SQLs/Won for the period."
+  },
+  "cohortRetention": {
+    "title": "Cohort Retention",
+    "tooltip": "Share of accounts active by months since signup (rows are cohorts)."
+  },
+  "insights": {
+    "title": "Insights"
+  },
+  "metricDefinitions": {
+    "title": "Metric Definitions"
+  },
+  "charts": {
+    "mrr12mTitle": "MRR (12m)",
+    "mrr12mTooltip": "Monthly Recurring Revenue trend for the last 12 months.",
+    "dauWindowTitle": "DAU ({{window}})",
+    "dauWindowTooltip": "Daily Active Users over the last {{days}} days.",
+    "aria": {
+      "aboutChart": "About {{name}} chart"
+    }
+  },
+  "aria": {
+    "aboutActivationFunnel": "About Activation Funnel",
+    "aboutCohortRetention": "About Cohort Retention"
+  }
+}

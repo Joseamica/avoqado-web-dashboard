@@ -1,0 +1,12 @@
+{
+  "title": "Reseñas de Clientes",
+  "establishments": "Calificación General",
+  "averageDescription": "Basado en {{count}} reseña(s)",
+  "loading": "Cargando reseñas...",
+  "error": "Error al cargar reseñas",
+  "unknownError": "Ocurrió un error desconocido",
+  "noReviews": "No hay reseñas disponibles para este período",
+  "star": "estrella",
+  "stars": "estrellas",
+  "reviewCount": "{{count}} reseña(s)"
+}

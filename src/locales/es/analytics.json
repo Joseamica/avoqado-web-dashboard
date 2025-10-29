@@ -1,0 +1,88 @@
+{
+  "title": "Analíticas",
+  "overview": "Resumen",
+  "loading": "Cargando analíticas…",
+  "errorPrefix": "Error al cargar:",
+  "lastRefreshed": "Actualizado: {{date}}",
+  "refreshed": "Actualizado: {{date}}",
+  "range": {
+    "label": "Rango de tiempo:",
+    "presets": {
+      "7d": "Últimos 7 días",
+      "30d": "Últimos 30 días",
+      "90d": "Últimos 90 días",
+      "qtd": "Acumulado del trimestre",
+      "ytd": "Acumulado del año",
+      "12m": "Últimos 12 meses"
+    }
+  },
+  "compare": {
+    "label": "Comparar con:",
+    "previous_period": "período anterior",
+    "previous_year": "año anterior",
+    "badge": "Comparar: {{label}}"
+  },
+  "overviewSection": {
+    "title": "Resumen ejecutivo"
+  },
+  "kpis": {
+    "arr": "ARR",
+    "mrr": "MRR",
+    "netNewArr": "ARR neta nueva",
+    "nrr": "NRR",
+    "churn": "Tasa de cancelación",
+    "signups": "Registros",
+    "activation": "Activación",
+    "winRate": "Tasa de cierre",
+    "salesCycleDays": "Ciclo de ventas (d)",
+    "dau": "DAU",
+    "mau": "MAU",
+    "stickiness": "Fidelidad",
+    "uptime": "Disponibilidad"
+  },
+  "tooltips": {
+    "arr": "Ingresos recurrentes anuales. Ingresos de suscripción normalizados a 12 meses.",
+    "mrr": "Ingresos recurrentes mensuales. Ingresos de suscripción del mes actual.",
+    "netNewArr": "Nuevos + Expansión – Contracción – Churn en el período seleccionado.",
+    "nrr": "Retención neta de ingresos = (ARR final + Churn + Contracción) ÷ ARR inicial.",
+    "churn": "Porcentaje de ingresos perdidos por cancelaciones/degradaciones en el período.",
+    "signups": "Nuevas cuentas creadas en el período seleccionado.",
+    "activation": "Porcentaje de cuentas nuevas que alcanzan hitos clave de onboarding.",
+    "winRate": "Oportunidades ganadas ÷ oportunidades totales en el período.",
+    "salesCycleDays": "Días promedio desde la creación hasta el cierre ganado.",
+    "dau": "Usuarios activos diarios: usuarios únicos con acciones clave hoy.",
+    "mau": "Usuarios activos mensuales: usuarios únicos en los últimos 30 días.",
+    "stickiness": "DAU ÷ MAU. Más alto indica mayor frecuencia de uso.",
+    "uptime": "Disponibilidad del servicio durante el período."
+  },
+  "revenueBridge": {
+    "title": "Puente de ingresos"
+  },
+  "activationFunnel": {
+    "title": "Embudo de activación",
+    "tooltip": "Caídas desde registros hasta PQL/SQL/Ganadas en el período."
+  },
+  "cohortRetention": {
+    "title": "Retención por cohorte",
+    "tooltip": "Porcentaje de cuentas activas por meses desde el registro (filas = cohortes)."
+  },
+  "insights": {
+    "title": "Insights"
+  },
+  "metricDefinitions": {
+    "title": "Definiciones de métricas"
+  },
+  "charts": {
+    "mrr12mTitle": "MRR (12m)",
+    "mrr12mTooltip": "Tendencia del Ingreso Recurrente Mensual de los últimos 12 meses.",
+    "dauWindowTitle": "DAU ({{window}})",
+    "dauWindowTooltip": "Usuarios Activos Diarios en los últimos {{days}} días.",
+    "aria": {
+      "aboutChart": "Acerca del gráfico de {{name}}"
+    }
+  },
+  "aria": {
+    "aboutActivationFunnel": "Acerca del embudo de activación",
+    "aboutCohortRetention": "Acerca de la retención por cohortes"
+  }
+}

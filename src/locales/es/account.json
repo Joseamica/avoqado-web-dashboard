@@ -1,0 +1,41 @@
+{
+  "title": "Cuenta",
+  "subtitle": "Gestiona la configuración y preferencias de tu cuenta",
+  "accountInfo": {
+    "title": "Información de la cuenta",
+    "description": "Detalles de tu cuenta e información de membresía",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "memberSince": "Miembro desde",
+    "lastLogin": "Último acceso"
+  },
+  "editProfile": {
+    "title": "Editar perfil",
+    "description": "Actualiza tu información personal",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo electrónico",
+    "phone": "Teléfono"
+  },
+  "password": {
+    "title": "Contraseña",
+    "description": "Cambia tu contraseña por seguridad",
+    "changeButton": "Cambiar contraseña",
+    "dialog": {
+      "title": "Cambiar contraseña",
+      "currentPassword": "Contraseña actual",
+      "newPassword": "Nueva contraseña",
+      "currentPasswordRequired": "La contraseña actual es requerida",
+      "newPasswordRequired": "La nueva contraseña es requerida"
+    }
+  },
+  "toast": {
+    "success": {
+      "title": "Éxito",
+      "description": "Perfil actualizado correctamente"
+    },
+    "error": {
+      "description": "Error al actualizar el perfil"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "title": "Orders",
+  "searchPlaceholder": "Search by order number, customer or waiter...",
+  "errorPrefix": "Failed to load orders",
+  "counter": "Counter",
+  "columns": {
+    "date": "Date",
+    "orderNumber": "Order #",
+    "customer": "Customer",
+    "waiter": "Waiter",
+    "status": "Status",
+    "total": "Total"
+  },
+  "statuses": {
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "PREPARING": "Preparing",
+    "READY": "Ready",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled"
+  },
+  "detail": {
+    "title": "Order {{number}}",
+    "loading": "Loading order...",
+    "notFound": "Order not found",
+    "deleteWarning": "This action cannot be undone. This will permanently delete the order.",
+    "noTable": "No table",
+    "toast": {
+      "updatedTitle": "Order updated",
+      "updatedDesc": "The order has been updated successfully.",
+      "deletedTitle": "Order deleted",
+      "deletedDesc": "The order has been deleted successfully.",
+      "updateErrorTitle": "Error",
+      "updateErrorDesc": "Could not update order",
+      "deleteErrorTitle": "Error",
+      "deleteErrorDesc": "Could not delete order"
+    },
+    "fields": {
+      "orderId": "Order ID",
+      "createdAt": "Created at",
+      "orderNumber": "Order #",
+      "customerName": "Customer name",
+      "table": "Table",
+      "waiter": "Waiter"
+    },
+    "financialSummary": {
+      "title": "Financial Summary",
+      "subtotal": "Subtotal",
+      "tips": "Tips",
+      "total": "Total"
+    },
+    "associatedPayments": {
+      "title": "Associated Payments",
+      "fields": {
+        "paymentId": "Payment ID",
+        "amount": "Amount",
+        "tip": "Tip",
+        "method": "Method"
+      }
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "PAID": "Paid",
+      "PENDING": "Pending",
+      "CLOSED": "Closed",
+      "COMPLETED": "Completed",
+      "CANCELED": "Cancelled",
+      "CANCELLED": "Cancelled",
+      "PRECREATED": "Pre-created",
+      "WITHOUT_TABLE": "Without table",
+      "DELETED": "Deleted",
+      "EARLYACCESS": "Early access",
+      "COURTESY": "Courtesy"
+    }
+  }
+}

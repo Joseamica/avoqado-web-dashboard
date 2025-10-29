@@ -1,0 +1,41 @@
+{
+  "title": "Account",
+  "subtitle": "Manage your account settings and preferences",
+  "accountInfo": {
+    "title": "Account Information",
+    "description": "Your account details and membership information",
+    "email": "Email",
+    "role": "Role",
+    "memberSince": "Member Since",
+    "lastLogin": "Last Login"
+  },
+  "editProfile": {
+    "title": "Edit Profile",
+    "description": "Update your personal information",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone"
+  },
+  "password": {
+    "title": "Password",
+    "description": "Change your password for security",
+    "changeButton": "Change Password",
+    "dialog": {
+      "title": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordRequired": "New password is required"
+    }
+  },
+  "toast": {
+    "success": {
+      "title": "Success",
+      "description": "Profile updated successfully"
+    },
+    "error": {
+      "description": "Failed to update profile"
+    }
+  }
+}
