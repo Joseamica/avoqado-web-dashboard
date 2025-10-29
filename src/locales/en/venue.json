@@ -129,6 +129,33 @@
       "resubmitButton": "Resubmit Documents"
     },
     "readOnly": "Read-only mode: you don't have permissions to edit venue information.",
+    "labels": {
+      "name": "Venue Name",
+      "type": "Venue Type",
+      "state": "State",
+      "zipCode": "Zip Code",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "email": "Email",
+      "phone": "Phone",
+      "description": "Description",
+      "logo": "Logo",
+      "coverImage": "Cover Image"
+    },
+    "types": {
+      "restaurant": "Restaurant",
+      "cafe": "Café",
+      "bar": "Bar",
+      "foodTruck": "Food Truck",
+      "bakery": "Bakery",
+      "other": "Other"
+    },
+    "currencies": {
+      "mxn": "Mexican Peso (MXN)",
+      "usd": "US Dollar (USD)",
+      "eur": "Euro (EUR)"
+    },
     "sections": {
       "basicInfo": "Basic Information",
       "contact": "Contact & Images",
@@ -230,6 +257,12 @@
         "error": "Update failed",
         "errorDesc": "Failed to update POS integration"
       }
+    },
+    "toast": {
+      "updateSuccess": "Venue updated successfully",
+      "updateSuccessDesc": "The venue information has been saved",
+      "updateError": "Update failed",
+      "updateErrorDesc": "Failed to update venue information. Please try again."
     }
   }
 }

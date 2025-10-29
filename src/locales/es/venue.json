@@ -129,6 +129,33 @@
       "resubmitButton": "Reenviar Documentos"
     },
     "readOnly": "Modo solo lectura: no tienes permisos para editar la información del establecimiento.",
+    "labels": {
+      "name": "Nombre del Local",
+      "type": "Tipo de Local",
+      "state": "Estado",
+      "zipCode": "Código Postal",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "country": "País",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "description": "Descripción",
+      "logo": "Logotipo",
+      "coverImage": "Imagen de Portada"
+    },
+    "types": {
+      "restaurant": "Restaurante",
+      "cafe": "Cafetería",
+      "bar": "Bar",
+      "foodTruck": "Food Truck",
+      "bakery": "Panadería",
+      "other": "Otro"
+    },
+    "currencies": {
+      "mxn": "Peso Mexicano (MXN)",
+      "usd": "Dólar Estadounidense (USD)",
+      "eur": "Euro (EUR)"
+    },
     "sections": {
       "basicInfo": "Información Básica",
       "contact": "Contacto e Imágenes",
@@ -230,6 +257,12 @@
         "error": "Error al actualizar",
         "errorDesc": "No se pudo actualizar la integración con POS"
       }
+    },
+    "toast": {
+      "updateSuccess": "Local actualizado exitosamente",
+      "updateSuccessDesc": "La información del local ha sido guardada",
+      "updateError": "Error al actualizar",
+      "updateErrorDesc": "No se pudo actualizar la información del local. Intenta nuevamente."
     }
   }
 }
