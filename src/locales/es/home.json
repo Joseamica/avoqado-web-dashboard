@@ -15,7 +15,16 @@
     "previousPeriod": "período anterior",
     "yesterday": "ayer",
     "prev7days": "7 días anteriores",
-    "prev30days": "30 días anteriores"
+    "prev30days": "30 días anteriores",
+    "trending": "tendencia",
+    "thisMonth": "este mes",
+    "showingTotal": "Mostrando total"
+  },
+  "payments": {
+    "methods": {
+      "card": "Tarjeta",
+      "cash": "Efectivo"
+    }
   },
   "export": {
     "exporting": "Exportando...",

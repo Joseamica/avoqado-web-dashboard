@@ -46,5 +46,114 @@
     "addVenue": "Add venue",
     "selectVenue": "Select venue",
     "current": "(current)"
+  },
+  "chat": {
+    "welcome": "Hello! I'm your AI assistant. How can I help you today?",
+    "input": {
+      "placeholder": "Type your message here..."
+    },
+    "errors": {
+      "assistantTitle": "Assistant Error",
+      "sendFailed": "Failed to send message. Please try again.",
+      "clearFailed": "Unable to clear history. Please try again.",
+      "saveFailed": "Could not save the conversation.",
+      "createConversation": "Failed to create new conversation."
+    },
+    "feedback": {
+      "thanksTitle": "Thank you!",
+      "thanksDesc": "Your feedback helps us improve.",
+      "sendError": "Failed to send feedback.",
+      "sentTitle": "Feedback sent",
+      "correctedDesc": "We've recorded your feedback and updated the response.",
+      "recordedDesc": "We've recorded your feedback.",
+      "previousQuestion": "Previous question",
+      "unavailableTitle": "Feedback unavailable",
+      "unavailableDesc": "Cannot provide feedback on cached responses.",
+      "dialog": {
+        "title": "Help us improve",
+        "desc": "Please describe what was wrong with this response and provide a better answer."
+      },
+      "form": {
+        "label": "What was wrong? (Optional: provide a better answer)",
+        "placeholder": "The information was incorrect because..."
+      },
+      "sending": "Sending...",
+      "submit": "Submit Feedback"
+    },
+    "toast": {
+      "historyCleared": {
+        "title": "History cleared",
+        "desc": "Conversation history has been cleared."
+      },
+      "nothingToSave": {
+        "title": "Nothing to save",
+        "desc": "You need at least one conversation to save it."
+      },
+      "conversationUpdated": {
+        "title": "Conversation updated",
+        "desc": "Your conversation has been updated."
+      },
+      "conversationSaved": {
+        "title": "Conversation saved",
+        "desc": "Your conversation has been saved."
+      },
+      "alreadyNew": {
+        "title": "Already a new conversation",
+        "desc": "You're already in a new conversation."
+      },
+      "newConversation": {
+        "title": "New conversation started",
+        "desc": "Previous conversation has been saved."
+      },
+      "conversationLoaded": {
+        "title": "Conversation loaded",
+        "desc": "Loaded: {{title}}"
+      },
+      "conversationDeleted": {
+        "title": "Conversation deleted",
+        "desc": "Deleted: {{title}}"
+      }
+    },
+    "actions": {
+      "collapse_chat": "Collapse chat",
+      "expand_chat": "Expand chat",
+      "view_conversations": "View conversations",
+      "view_saved_conversations": "View saved conversations",
+      "save_conversation": "Save conversation",
+      "nothing_to_save": "Nothing to save",
+      "save_current": "Save current conversation",
+      "already_saved": "Already saved",
+      "new_conversation": "New conversation",
+      "create_new_conversation": "Create new conversation",
+      "clear_history": "Clear history",
+      "nothing_to_clear": "Nothing to clear",
+      "close_chat": "Close chat"
+    },
+    "saved": {
+      "title": "Saved Conversations",
+      "back": "Back to chat",
+      "empty": "No saved conversations yet."
+    },
+    "labels": {
+      "cache": "Cached"
+    },
+    "a11y": {
+      "positiveFeedback": "Mark as helpful",
+      "negativeFeedback": "Mark as not helpful",
+      "close": "Close assistant",
+      "open": "Open assistant"
+    },
+    "confirm": {
+      "clear": {
+        "title": "Clear conversation history?",
+        "desc": "This will permanently delete your current conversation. This action cannot be undone.",
+        "confirm": "Clear History"
+      },
+      "delete": {
+        "title": "Delete conversation?",
+        "desc": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+        "confirm": "Delete"
+      }
+    }
   }
 }

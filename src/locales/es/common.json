@@ -46,5 +46,114 @@
     "addVenue": "Agregar sucursal",
     "selectVenue": "Seleccionar sucursal",
     "current": "(actual)"
+  },
+  "chat": {
+    "welcome": "¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?",
+    "input": {
+      "placeholder": "Escribe tu mensaje aquí..."
+    },
+    "errors": {
+      "assistantTitle": "Error del Asistente",
+      "sendFailed": "Error al enviar el mensaje. Por favor, inténtalo de nuevo.",
+      "clearFailed": "No se pudo limpiar el historial. Por favor, inténtalo de nuevo.",
+      "saveFailed": "No se pudo guardar la conversación.",
+      "createConversation": "Error al crear una nueva conversación."
+    },
+    "feedback": {
+      "thanksTitle": "¡Gracias!",
+      "thanksDesc": "Tu opinión nos ayuda a mejorar.",
+      "sendError": "Error al enviar la opinión.",
+      "sentTitle": "Opinión enviada",
+      "correctedDesc": "Hemos registrado tu opinión y actualizado la respuesta.",
+      "recordedDesc": "Hemos registrado tu opinión.",
+      "previousQuestion": "Pregunta anterior",
+      "unavailableTitle": "Opinión no disponible",
+      "unavailableDesc": "No se puede dar opinión sobre respuestas en caché.",
+      "dialog": {
+        "title": "Ayúdanos a mejorar",
+        "desc": "Por favor describe qué estuvo mal con esta respuesta y proporciona una mejor respuesta."
+      },
+      "form": {
+        "label": "¿Qué estuvo mal? (Opcional: proporciona una mejor respuesta)",
+        "placeholder": "La información fue incorrecta porque..."
+      },
+      "sending": "Enviando...",
+      "submit": "Enviar Opinión"
+    },
+    "toast": {
+      "historyCleared": {
+        "title": "Historial limpiado",
+        "desc": "El historial de conversación ha sido limpiado."
+      },
+      "nothingToSave": {
+        "title": "Nada que guardar",
+        "desc": "Necesitas al menos una conversación para guardarla."
+      },
+      "conversationUpdated": {
+        "title": "Conversación actualizada",
+        "desc": "Tu conversación ha sido actualizada."
+      },
+      "conversationSaved": {
+        "title": "Conversación guardada",
+        "desc": "Tu conversación ha sido guardada."
+      },
+      "alreadyNew": {
+        "title": "Ya es una conversación nueva",
+        "desc": "Ya estás en una conversación nueva."
+      },
+      "newConversation": {
+        "title": "Nueva conversación iniciada",
+        "desc": "La conversación anterior ha sido guardada."
+      },
+      "conversationLoaded": {
+        "title": "Conversación cargada",
+        "desc": "Cargada: {{title}}"
+      },
+      "conversationDeleted": {
+        "title": "Conversación eliminada",
+        "desc": "Eliminada: {{title}}"
+      }
+    },
+    "actions": {
+      "collapse_chat": "Contraer chat",
+      "expand_chat": "Expandir chat",
+      "view_conversations": "Ver conversaciones",
+      "view_saved_conversations": "Ver conversaciones guardadas",
+      "save_conversation": "Guardar conversación",
+      "nothing_to_save": "Nada que guardar",
+      "save_current": "Guardar conversación actual",
+      "already_saved": "Ya guardado",
+      "new_conversation": "Nueva conversación",
+      "create_new_conversation": "Crear nueva conversación",
+      "clear_history": "Limpiar historial",
+      "nothing_to_clear": "Nada que limpiar",
+      "close_chat": "Cerrar chat"
+    },
+    "saved": {
+      "title": "Conversaciones Guardadas",
+      "back": "Volver al chat",
+      "empty": "Aún no hay conversaciones guardadas."
+    },
+    "labels": {
+      "cache": "En caché"
+    },
+    "a11y": {
+      "positiveFeedback": "Marcar como útil",
+      "negativeFeedback": "Marcar como no útil",
+      "close": "Cerrar asistente",
+      "open": "Abrir asistente"
+    },
+    "confirm": {
+      "clear": {
+        "title": "¿Limpiar historial de conversación?",
+        "desc": "Esto eliminará permanentemente tu conversación actual. Esta acción no se puede deshacer.",
+        "confirm": "Limpiar Historial"
+      },
+      "delete": {
+        "title": "¿Eliminar conversación?",
+        "desc": "¿Estás seguro de que quieres eliminar \"{{title}}\"? Esta acción no se puede deshacer.",
+        "confirm": "Eliminar"
+      }
+    }
   }
 }

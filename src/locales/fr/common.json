@@ -35,5 +35,114 @@
     "addVenue": "Add venue",
     "selectVenue": "Select venue",
     "current": "(current)"
+  },
+  "chat": {
+    "welcome": "Bonjour ! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui ?",
+    "input": {
+      "placeholder": "Tapez votre message ici..."
+    },
+    "errors": {
+      "assistantTitle": "Erreur de l'Assistant",
+      "sendFailed": "Échec de l'envoi du message. Veuillez réessayer.",
+      "clearFailed": "Impossible d'effacer l'historique. Veuillez réessayer.",
+      "saveFailed": "Impossible de sauvegarder la conversation.",
+      "createConversation": "Échec de la création d'une nouvelle conversation."
+    },
+    "feedback": {
+      "thanksTitle": "Merci !",
+      "thanksDesc": "Vos commentaires nous aident à nous améliorer.",
+      "sendError": "Échec de l'envoi des commentaires.",
+      "sentTitle": "Commentaires envoyés",
+      "correctedDesc": "Nous avons enregistré vos commentaires et mis à jour la réponse.",
+      "recordedDesc": "Nous avons enregistré vos commentaires.",
+      "previousQuestion": "Question précédente",
+      "unavailableTitle": "Commentaires indisponibles",
+      "unavailableDesc": "Impossible de donner des commentaires sur les réponses en cache.",
+      "dialog": {
+        "title": "Aidez-nous à améliorer",
+        "desc": "Veuillez décrire ce qui n'allait pas avec cette réponse et fournir une meilleure réponse."
+      },
+      "form": {
+        "label": "Qu'est-ce qui n'allait pas ? (Facultatif : fournissez une meilleure réponse)",
+        "placeholder": "L'information était incorrecte parce que..."
+      },
+      "sending": "Envoi...",
+      "submit": "Soumettre les commentaires"
+    },
+    "toast": {
+      "historyCleared": {
+        "title": "Historique effacé",
+        "desc": "L'historique de conversation a été effacé."
+      },
+      "nothingToSave": {
+        "title": "Rien à sauvegarder",
+        "desc": "Vous avez besoin d'au moins une conversation pour la sauvegarder."
+      },
+      "conversationUpdated": {
+        "title": "Conversation mise à jour",
+        "desc": "Votre conversation a été mise à jour."
+      },
+      "conversationSaved": {
+        "title": "Conversation sauvegardée",
+        "desc": "Votre conversation a été sauvegardée."
+      },
+      "alreadyNew": {
+        "title": "Déjà une nouvelle conversation",
+        "desc": "Vous êtes déjà dans une nouvelle conversation."
+      },
+      "newConversation": {
+        "title": "Nouvelle conversation démarrée",
+        "desc": "La conversation précédente a été sauvegardée."
+      },
+      "conversationLoaded": {
+        "title": "Conversation chargée",
+        "desc": "Chargée : {{title}}"
+      },
+      "conversationDeleted": {
+        "title": "Conversation supprimée",
+        "desc": "Supprimée : {{title}}"
+      }
+    },
+    "actions": {
+      "collapse_chat": "Réduire le chat",
+      "expand_chat": "Développer le chat",
+      "view_conversations": "Voir les conversations",
+      "view_saved_conversations": "Voir les conversations sauvegardées",
+      "save_conversation": "Sauvegarder la conversation",
+      "nothing_to_save": "Rien à sauvegarder",
+      "save_current": "Sauvegarder la conversation actuelle",
+      "already_saved": "Déjà sauvegardé",
+      "new_conversation": "Nouvelle conversation",
+      "create_new_conversation": "Créer une nouvelle conversation",
+      "clear_history": "Effacer l'historique",
+      "nothing_to_clear": "Rien à effacer",
+      "close_chat": "Fermer le chat"
+    },
+    "saved": {
+      "title": "Conversations Sauvegardées",
+      "back": "Retour au chat",
+      "empty": "Aucune conversation sauvegardée pour le moment."
+    },
+    "labels": {
+      "cache": "En cache"
+    },
+    "a11y": {
+      "positiveFeedback": "Marquer comme utile",
+      "negativeFeedback": "Marquer comme non utile",
+      "close": "Fermer l'assistant",
+      "open": "Ouvrir l'assistant"
+    },
+    "confirm": {
+      "clear": {
+        "title": "Effacer l'historique de conversation ?",
+        "desc": "Cela supprimera définitivement votre conversation actuelle. Cette action ne peut pas être annulée.",
+        "confirm": "Effacer l'historique"
+      },
+      "delete": {
+        "title": "Supprimer la conversation ?",
+        "desc": "Êtes-vous sûr de vouloir supprimer \"{{title}}\" ? Cette action ne peut pas être annulée.",
+        "confirm": "Supprimer"
+      }
+    }
   }
 }
