@@ -140,7 +140,7 @@ function DataTable<TData>({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="default" className="gap-2">
-                <Settings2 className="h-4 w-4" /> {t('common.customize_columns')}
+                <Settings2 className="h-4 w-4" /> {t('customize_columns')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

@@ -39,7 +39,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   const navMain = React.useMemo(() => {
     // Define all possible items with their required permissions
     const allItems = [
-      { title: t('routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
+      { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
       {
         title: t('sidebar:analytics'),
         isActive: true,
@@ -48,9 +48,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         permission: 'analytics:read',
         locked: !hasKYCAccess,
       },
-      { title: t('routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read', locked: false },
+      { title: t('sidebar:routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read', locked: false },
       {
-        title: t('routes.inventory'),
+        title: t('sidebar:routes.inventory'),
         isActive: true,
         url: 'inventory/raw-materials',
         icon: Package,
@@ -58,7 +58,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       {
-        title: t('routes.payments'),
+        title: t('sidebar:routes.payments'),
         isActive: true,
         url: 'payments',
         icon: Banknote,
@@ -66,7 +66,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       {
-        title: t('routes.orders'),
+        title: t('sidebar:routes.orders'),
         isActive: true,
         url: 'orders',
         icon: Frame,
@@ -74,7 +74,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       {
-        title: t('routes.shifts'),
+        title: t('sidebar:routes.shifts'),
         isActive: true,
         url: 'shifts',
         icon: Ungroup,
@@ -82,14 +82,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         locked: !hasKYCAccess,
       },
       {
-        title: t('routes.tpv'),
+        title: t('sidebar:routes.tpv'),
         isActive: true,
         url: 'tpv',
         icon: Smartphone,
         permission: 'tpv:read',
         locked: !hasKYCAccess,
       },
-      { title: t('routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
+      { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 
     // Filter items based on permissions
@@ -97,8 +97,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Settings submenu - filter subitems based on permissions
     const settingsSubItems = [
-      { title: t('routes.editvenue'), url: 'edit', permission: 'venues:read' },
-      { title: t('routes.teams'), url: 'teams', permission: 'teams:read' },
+      { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
+      { title: t('sidebar:routes.teams'), url: 'teams', permission: 'teams:read' },
       // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
@@ -109,15 +109,15 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         : []),
       // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
-        ? [{ title: t('routes.billing'), url: 'settings/billing', permission: null }]
+        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: null }]
         : []),
-      { title: t('routes.limits'), url: '#limits', permission: null },
+      { title: t('sidebar:routes.limits'), url: '#limits', permission: null },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Settings menu if user has at least one subitem
     if (settingsSubItems.length > 0) {
       filteredItems.push({
-        title: t('routes.settings'),
+        title: t('sidebar:routes.settings'),
         url: '#',
         icon: Settings2,
         locked: false,
