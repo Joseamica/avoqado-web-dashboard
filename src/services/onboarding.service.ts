@@ -77,11 +77,13 @@ export const updateStep4 = async (organizationId: string, data: MenuDataStepData
  */
 export interface TeamInviteData {
   email: string
+  firstName: string
+  lastName: string
   role: string
 }
 
 export const updateStep5 = async (organizationId: string, invites: TeamInviteData[]) => {
-  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/5`, { invites })
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/5`, { teamInvites: invites })
   return response.data
 }
 

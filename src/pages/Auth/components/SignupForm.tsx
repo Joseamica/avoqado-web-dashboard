@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Icons } from '@/components/icons'
@@ -13,19 +12,13 @@ import { SignupDto } from '@/services/auth.service'
 
 type Inputs = SignupDto
 
-export function SignupForm({ className, ...props }: React.ComponentProps<'form'>) {
+interface SignupFormProps extends React.ComponentProps<'form'> {
+  onSignupSuccess?: (email: string) => void
+}
+
+export function SignupForm({ className, onSignupSuccess, ...props }: SignupFormProps) {
   const { t } = useTranslation('auth')
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { signup, isAuthenticated, isLoading } = useAuth()
-
-  const from = (location.state as any)?.from?.pathname || '/onboarding'
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true })
-    }
-  }, [isAuthenticated, navigate, from])
+  const { signup, isLoading } = useAuth()
 
   const {
     register,
@@ -34,7 +27,18 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
   } = useForm<Inputs>()
 
   const onSubmit: SubmitHandler<Inputs> = async formData => {
-    signup(formData)
+    try {
+      // Wait for signup to complete successfully
+      await signup(formData)
+
+      // Only call callback if signup succeeded (no error thrown)
+      if (onSignupSuccess) {
+        onSignupSuccess(formData.email)
+      }
+    } catch {
+      // Error already handled by AuthContext's onError (shows toast)
+      // Don't call onSignupSuccess - keep user on signup form
+    }
   }
 
   return (

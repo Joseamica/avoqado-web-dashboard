@@ -171,14 +171,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     onSuccess: () => {
       toast({ title: t('toast.signup_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
-      // After successful signup, redirect to onboarding
-      navigate('/onboarding')
+      // Do NOT redirect automatically - let SignupForm handle the next step (email verification)
     },
     onError: (error: any) => {
+      const backendMessage = error.response?.data?.message || ''
+
+      // Use frontend translation for "Email already registered" message
+      let errorMessage = backendMessage
+      if (backendMessage.includes('Email already registered') || backendMessage.includes('already registered')) {
+        errorMessage = t('toast.email_already_registered')
+      } else if (!backendMessage) {
+        errorMessage = t('toast.signup_error_desc')
+      }
+
       toast({
         title: t('toast.signup_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('toast.signup_error_desc'),
+        description: errorMessage,
       })
     },
   })

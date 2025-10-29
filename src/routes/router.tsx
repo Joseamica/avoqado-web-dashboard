@@ -87,6 +87,7 @@ import {
 } from './lazyComponents'
 
 import { ProtectedRoute } from './ProtectedRoute'
+import { EmailVerifiedRoute } from './EmailVerifiedRoute'
 import Root from '@/root'
 
 import { SuperProtectedRoute } from './SuperProtectedRoute'
@@ -111,8 +112,13 @@ const router = createBrowserRouter(
           element: <Signup />,
         },
         {
-          path: '/onboarding',
-          element: <OnboardingWizard />,
+          element: <EmailVerifiedRoute />,
+          children: [
+            {
+              path: '/onboarding',
+              element: <OnboardingWizard />,
+            },
+          ],
         },
         {
           path: '/terms',

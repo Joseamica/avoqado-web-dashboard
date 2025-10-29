@@ -443,6 +443,66 @@ The `SessionVenue.permissions` field enables building an admin UI to assign cust
 - Cache invalidation strategies for real-time data
 - Venue context switching requires query invalidation
 
+#### React Performance & Avoiding Render Loops
+
+**CRITICAL: Always memoize filtered/transformed data arrays passed to DataTable or other list components.**
+
+**Common Pattern That Causes Infinite Render Loops:**
+
+```typescript
+// ❌ BAD - Creates new array reference on every render
+const filteredData = someFunction(data)
+
+<DataTable data={filteredData} />
+// DataTable sees "new data" every render → re-renders → creates new array → FREEZE
+```
+
+**Correct Pattern:**
+
+```typescript
+// ✅ GOOD - Array reference only changes when dependencies change
+const filteredData = useMemo(
+  () => someFunction(data),
+  [data]  // Only recreate when data actually changes
+)
+
+<DataTable data={filteredData} />
+```
+
+**Real-World Example (Teams.tsx freeze bug):**
+
+The `filterSuperadminFromTeam()` utility has asymmetric behavior:
+- For **SUPERADMIN**: Returns same array reference (fast path)
+- For **OWNER/other roles**: Calls `.filter()` creating new array every time
+
+Without `useMemo`, OWNER role experienced infinite render loop:
+1. Component renders → `filteredTeamMembers` gets new array
+2. DataTable sees "data changed" → re-renders table
+3. Something triggers parent re-render → back to step 1
+4. **CPU 100% → Page freeze**
+
+**Solution applied:**
+```typescript
+// Teams.tsx lines 132-140
+const filteredTeamMembers = useMemo(
+  () => filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role),
+  [teamData?.data, staffInfo?.role]
+)
+```
+
+**When to use memoization:**
+- ✅ **Always** for filtered/mapped/sorted arrays passed to DataTable
+- ✅ **Always** for search handler functions (`useCallback`)
+- ✅ **Always** for column definitions with inline functions (`useMemo`)
+- ✅ **Always** for objects created in render that are used as props/dependencies
+- ⚠️ Be careful with functions that return new arrays (`.filter()`, `.map()`, `.slice()`)
+
+**Debug tip:** If a page freezes on interaction (search, dialog open), check:
+1. Are arrays/objects being memoized?
+2. Are search handlers wrapped in `useCallback`?
+3. Are column definitions wrapped in `useMemo` with correct dependencies?
+4. Does behavior differ between roles? (Check role-based utility functions)
+
 ### Environment and Configuration
 
 #### Required Environment Variables

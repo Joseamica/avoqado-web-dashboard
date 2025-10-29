@@ -2560,7 +2560,26 @@
       "orders": "Orders",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
-      "role": "Role"
+      "role": "Role",
+      "roles": {
+        "admin": "Administrator",
+        "adminDesc": "Full access to venue settings and team management",
+        "manager": "Manager",
+        "managerDesc": "Manage staff, shifts, and basic analytics",
+        "waiter": "Waiter",
+        "waiterDesc": "Take and manage orders, access menu",
+        "cashier": "Cashier",
+        "cashierDesc": "Process payments and handle transactions",
+        "kitchen": "Kitchen",
+        "kitchenDesc": "View and prepare orders from the kitchen",
+        "host": "Host",
+        "hostDesc": "Manage table reservations and seating",
+        "viewer": "Viewer",
+        "viewerDesc": "View-only access to analytics and reports"
+      },
+      "validation": {
+        "pinFormat": "PIN must be exactly 4 digits"
+      }
     },
     "invite": {
       "invitationSent": "Invitation sent",
@@ -2577,7 +2596,82 @@
       "emailPlaceholder": "example@company.com",
       "firstNamePlaceholder": "First Name",
       "lastNamePlaceholder": "Last Name",
-      "roleSelectPlaceholder": "Select a role"
+      "roleSelectPlaceholder": "Select a role",
+      "validation": {
+        "emailFormat": "Please enter a valid email address",
+        "emailRequired": "Email is required",
+        "firstNameRequired": "First name is required",
+        "firstNameMax": "First name cannot exceed 50 characters",
+        "lastNameRequired": "Last name is required",
+        "lastNameMax": "Last name cannot exceed 50 characters",
+        "roleRequired": "Role is required",
+        "messageMax": "Message cannot exceed 500 characters"
+      },
+      "invitationError": "Failed to send invitation"
+    },
+    "header": {
+      "title": "Team Members",
+      "subtitle": "Manage your team and invite new members",
+      "inviteButton": "Invite Member",
+      "inviteDialog": {
+        "title": "Invite Team Member",
+        "desc": "Send an invitation to a new team member to join your venue"
+      }
+    },
+    "tabs": {
+      "members": "Members",
+      "invitations": "Pending Invitations"
+    },
+    "columns": {
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "totalSales": "Total Sales",
+      "totalOrders": "Total Orders",
+      "email": "Email",
+      "invitedBy": "Invited by {{name}}",
+      "sent": "Sent Date",
+      "expires": "Expires"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Remove",
+      "cancel": "Cancel Invitation",
+      "resend": "Resend Invitation"
+    },
+    "cards": {
+      "pendingInvitationsTitle": "Pending Invitations",
+      "pendingInvitationsDesc": "Invitations that are waiting to be accepted"
+    },
+    "dialogs": {
+      "editMemberTitle": "Edit Team Member",
+      "editMemberDesc": "Update {{firstName}} {{lastName}}'s role and status",
+      "removeTitle": "Remove Team Member",
+      "removeDesc": "Are you sure you want to remove {{firstName}} {{lastName}} from the team?",
+      "removeCancel": "Cancel",
+      "removeConfirm": "Remove Member",
+      "removing": "Removing..."
+    },
+    "labels": {
+      "expiredTag": "Expired"
+    },
+    "toasts": {
+      "memberRemovedTitle": "Member removed",
+      "memberRemovedDesc": "The team member has been removed successfully.",
+      "memberRemoveErrorTitle": "Error",
+      "memberRemoveErrorDesc": "Failed to remove team member.",
+      "invitationCanceledTitle": "Invitation canceled",
+      "invitationCanceledDesc": "The invitation has been canceled successfully.",
+      "invitationCancelErrorTitle": "Error",
+      "invitationCancelErrorDesc": "Failed to cancel invitation.",
+      "invitationResentTitle": "Invitation resent",
+      "invitationResentDesc": "The invitation has been resent successfully.",
+      "invitationResendErrorTitle": "Error",
+      "invitationResendErrorDesc": "Failed to resend invitation."
     }
   },
   "config": {

@@ -234,6 +234,10 @@
     "subtitle": "Add team members who will help manage your business, or skip and do it later",
     "description": "Send invitations to your team members. They'll receive an email with instructions to join your business.",
     "form": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Enter first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Enter last name",
       "email": "Email Address",
       "emailPlaceholder": "team@example.com",
       "role": "Role",
@@ -251,6 +255,7 @@
       "VIEWER": "Viewer - Read-only access"
     },
     "validation": {
+      "nameRequired": "First name and last name are required",
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email address",
       "roleRequired": "Role is required",

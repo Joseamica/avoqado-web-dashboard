@@ -10,6 +10,8 @@ import { OnboardingStepProps } from '../OnboardingWizard'
 
 export interface TeamInvite {
   email: string
+  firstName: string
+  lastName: string
   role: string
 }
 
@@ -29,8 +31,9 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
   const { t: tCommon } = useTranslation('common')
 
   const [invites, setInvites] = useState<TeamInvite[]>(initialValue?.invites || [])
-  const [newInvite, setNewInvite] = useState({ email: '', role: '' })
+  const [newInvite, setNewInvite] = useState({ email: '', firstName: '', lastName: '', role: '' })
   const [emailError, setEmailError] = useState('')
+  const [nameError, setNameError] = useState('')
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -39,6 +42,13 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
 
   const handleAddInvite = () => {
     setEmailError('')
+    setNameError('')
+
+    // Validate firstName and lastName
+    if (!newInvite.firstName.trim() || !newInvite.lastName.trim()) {
+      setNameError(t('teamInvites.validation.nameRequired'))
+      return
+    }
 
     // Validate email
     if (!newInvite.email.trim()) {
@@ -61,8 +71,16 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
       return
     }
 
-    setInvites(prev => [...prev, { email: newInvite.email, role: newInvite.role }])
-    setNewInvite({ email: '', role: '' })
+    setInvites(prev => [
+      ...prev,
+      {
+        email: newInvite.email,
+        firstName: newInvite.firstName,
+        lastName: newInvite.lastName,
+        role: newInvite.role,
+      },
+    ])
+    setNewInvite({ email: '', firstName: '', lastName: '', role: '' })
   }
 
   const handleRemoveInvite = (index: number) => {
@@ -100,6 +118,40 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
 
           {/* Add Invite Form */}
           <div className="mb-4 space-y-3">
+            {/* First and Last Name */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="inviteFirstName">{t('teamInvites.form.firstName')}</Label>
+                <Input
+                  id="inviteFirstName"
+                  type="text"
+                  placeholder={t('teamInvites.form.firstNamePlaceholder')}
+                  value={newInvite.firstName}
+                  onChange={e => {
+                    setNewInvite({ ...newInvite, firstName: e.target.value })
+                    setNameError('')
+                  }}
+                  className={nameError ? 'border-destructive' : ''}
+                />
+              </div>
+              <div>
+                <Label htmlFor="inviteLastName">{t('teamInvites.form.lastName')}</Label>
+                <Input
+                  id="inviteLastName"
+                  type="text"
+                  placeholder={t('teamInvites.form.lastNamePlaceholder')}
+                  value={newInvite.lastName}
+                  onChange={e => {
+                    setNewInvite({ ...newInvite, lastName: e.target.value })
+                    setNameError('')
+                  }}
+                  className={nameError ? 'border-destructive' : ''}
+                />
+              </div>
+            </div>
+            {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+
+            {/* Email and Role */}
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="sm:col-span-2">
                 <Label htmlFor="inviteEmail">{t('teamInvites.form.email')}</Label>
@@ -135,7 +187,12 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
                 </Select>
               </div>
             </div>
-            <Button type="button" onClick={handleAddInvite} disabled={!newInvite.email || !newInvite.role} className="w-full">
+            <Button
+              type="button"
+              onClick={handleAddInvite}
+              disabled={!newInvite.firstName || !newInvite.lastName || !newInvite.email || !newInvite.role}
+              className="w-full"
+            >
               <Plus className="mr-2 h-4 w-4" />
               {t('teamInvites.form.add')}
             </Button>

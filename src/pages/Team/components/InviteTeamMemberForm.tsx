@@ -29,12 +29,9 @@ interface InviteTeamMemberFormProps {
   onSuccess: () => void
 }
 
-export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamMemberFormProps) {
-  const { t } = useTranslation()
-  const { toast } = useToast()
-  const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
-
-  const inviteTeamMemberSchema = z.object({
+// Define schema creation function outside component to avoid recreation
+const createInviteSchema = (t: (key: string) => string) =>
+  z.object({
     email: z
       .string()
       .email(t('team.invite.validation.emailFormat'))
@@ -48,11 +45,13 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
       .min(1, t('team.invite.validation.lastNameRequired'))
       .max(50, t('team.invite.validation.lastNameMax')),
     role: z.nativeEnum(StaffRole, { required_error: t('team.invite.validation.roleRequired') }),
-    message: z
-      .string()
-      .max(500, t('team.invite.validation.messageMax'))
-      .optional(),
+    message: z.string().max(500, t('team.invite.validation.messageMax')).optional(),
   })
+
+export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamMemberFormProps) {
+  const { t } = useTranslation()
+  const { toast } = useToast()
+  const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
 
   const ROLE_OPTIONS = [
     { value: StaffRole.ADMIN, label: t('team.edit.roles.admin'), description: t('team.edit.roles.adminDesc') },
@@ -71,8 +70,8 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     formState: { errors, isValid },
     reset,
   } = useForm<InviteTeamMemberFormData>({
-    resolver: zodResolver(inviteTeamMemberSchema),
-    mode: 'onChange',
+    resolver: zodResolver(createInviteSchema(t)),
+    mode: 'onBlur', // Changed from onChange to onBlur to prevent excessive validation
   })
 
   const inviteMutation = useMutation({

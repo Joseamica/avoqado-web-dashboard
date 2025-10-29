@@ -2012,7 +2012,26 @@
         "orders": "Ordenes",
         "saving": "Guardando...",
         "saveChanges": "Guardar Cambios",
-        "role": "Rol"
+        "role": "Rol",
+        "roles": {
+          "admin": "Administrador",
+          "adminDesc": "Acceso completo a configuración del venue y gestión de equipo",
+          "manager": "Gerente",
+          "managerDesc": "Gestionar personal, turnos y análisis básicos",
+          "waiter": "Mesero",
+          "waiterDesc": "Tomar y gestionar órdenes, acceso al menú",
+          "cashier": "Cajero",
+          "cashierDesc": "Procesar pagos y manejar transacciones",
+          "kitchen": "Cocina",
+          "kitchenDesc": "Ver y preparar órdenes desde la cocina",
+          "host": "Anfitrión",
+          "hostDesc": "Gestionar reservas de mesas y asientos",
+          "viewer": "Visualizador",
+          "viewerDesc": "Acceso de solo lectura a análisis y reportes"
+        },
+        "validation": {
+          "pinFormat": "El PIN debe tener exactamente 4 dígitos"
+        }
       },
       "invite": {
         "invitationSent": "Invitación enviada",
@@ -2029,7 +2048,82 @@
         "emailPlaceholder": "ejemplo@empresa.com",
         "firstNamePlaceholder": "Nombre",
         "lastNamePlaceholder": "Apellido",
-        "roleSelectPlaceholder": "Selecciona un rol"
+        "roleSelectPlaceholder": "Selecciona un rol",
+        "validation": {
+          "emailFormat": "Por favor ingresa un email válido",
+          "emailRequired": "El email es requerido",
+          "firstNameRequired": "El nombre es requerido",
+          "firstNameMax": "El nombre no puede exceder 50 caracteres",
+          "lastNameRequired": "El apellido es requerido",
+          "lastNameMax": "El apellido no puede exceder 50 caracteres",
+          "roleRequired": "El rol es requerido",
+          "messageMax": "El mensaje no puede exceder 500 caracteres"
+        },
+        "invitationError": "Error al enviar la invitación"
+      },
+      "header": {
+        "title": "Miembros del Equipo",
+        "subtitle": "Gestiona tu equipo e invita nuevos miembros",
+        "inviteButton": "Invitar Miembro",
+        "inviteDialog": {
+          "title": "Invitar Miembro del Equipo",
+          "desc": "Envía una invitación a un nuevo miembro para unirse a tu venue"
+        }
+      },
+      "tabs": {
+        "members": "Miembros",
+        "invitations": "Invitaciones Pendientes"
+      },
+      "columns": {
+        "name": "Nombre",
+        "role": "Rol",
+        "status": "Estado",
+        "totalSales": "Ventas Totales",
+        "totalOrders": "Órdenes Totales",
+        "email": "Email",
+        "invitedBy": "Invitado por {{name}}",
+        "sent": "Fecha de Envío",
+        "expires": "Expira"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "actions": {
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "cancel": "Cancelar Invitación",
+        "resend": "Reenviar Invitación"
+      },
+      "cards": {
+        "pendingInvitationsTitle": "Invitaciones Pendientes",
+        "pendingInvitationsDesc": "Invitaciones que están esperando ser aceptadas"
+      },
+      "dialogs": {
+        "editMemberTitle": "Editar Miembro del Equipo",
+        "editMemberDesc": "Actualizar el rol y estado de {{firstName}} {{lastName}}",
+        "removeTitle": "Eliminar Miembro del Equipo",
+        "removeDesc": "¿Estás seguro de que quieres eliminar a {{firstName}} {{lastName}} del equipo?",
+        "removeCancel": "Cancelar",
+        "removeConfirm": "Eliminar Miembro",
+        "removing": "Eliminando..."
+      },
+      "labels": {
+        "expiredTag": "Expirada"
+      },
+      "toasts": {
+        "memberRemovedTitle": "Miembro eliminado",
+        "memberRemovedDesc": "El miembro del equipo ha sido eliminado exitosamente.",
+        "memberRemoveErrorTitle": "Error",
+        "memberRemoveErrorDesc": "Error al eliminar miembro del equipo.",
+        "invitationCanceledTitle": "Invitación cancelada",
+        "invitationCanceledDesc": "La invitación ha sido cancelada exitosamente.",
+        "invitationCancelErrorTitle": "Error",
+        "invitationCancelErrorDesc": "Error al cancelar invitación.",
+        "invitationResentTitle": "Invitación reenviada",
+        "invitationResentDesc": "La invitación ha sido reenviada exitosamente.",
+        "invitationResendErrorTitle": "Error",
+        "invitationResendErrorDesc": "Error al reenviar invitación."
       }
     },
     "config": {

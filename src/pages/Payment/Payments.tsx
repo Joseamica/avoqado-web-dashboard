@@ -14,7 +14,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { AppWindow, ArrowUpDown, Banknote, Computer, Globe, QrCode, Smartphone, TabletSmartphone, TestTube } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
@@ -260,8 +260,8 @@ export default function Payments() {
     [t, localeCode, formatTime, formatDate, venueTimezoneShort],
   )
 
-  // Search callback for DataTable with multi-language support
-  const handleSearch = (searchTerm: string, payments: PaymentType[]) => {
+  // Search callback for DataTable with multi-language support - wrapped in useCallback to prevent infinite loop
+  const handleSearch = useCallback((searchTerm: string, payments: PaymentType[]) => {
     if (!searchTerm) return payments
 
     const lowerSearchTerm = searchTerm.toLowerCase()
@@ -311,7 +311,7 @@ export default function Payments() {
 
       return waiterMatches || totalMatch || methodMatches || sourceMatches
     })
-  }
+  }, [t])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>

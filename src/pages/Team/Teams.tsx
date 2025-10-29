@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -127,11 +127,20 @@ export default function Teams() {
   })
 
   // Filter team members to hide superadmins from non-superadmin users
-  const filteredTeamMembers = filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role)
-  const filteredInvitations = filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role)
+  // CRITICAL: Must be memoized to prevent infinite re-render loop
+  // filterSuperadminFromTeam() returns new array for non-SUPERADMIN roles
+  const filteredTeamMembers = useMemo(
+    () => filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role),
+    [teamData?.data, staffInfo?.role]
+  )
 
-  // Client-side search like Payments page
-  const handleMemberSearch = (search: string, rows: TeamMember[]) => {
+  const filteredInvitations = useMemo(
+    () => filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role),
+    [invitationsData?.data, staffInfo?.role]
+  )
+
+  // Client-side search like Payments page - wrapped in useCallback to prevent recreation
+  const handleMemberSearch = useCallback((search: string, rows: TeamMember[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
     return rows.filter(m => {
@@ -140,9 +149,9 @@ export default function Teams() {
       const role = (m.role || '').toString().toLowerCase()
       return name.includes(q) || email.includes(q) || role.includes(q)
     })
-  }
+  }, [])
 
-  const handleInvitationSearch = (search: string, rows: Invitation[]) => {
+  const handleInvitationSearch = useCallback((search: string, rows: Invitation[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
     return rows.filter(inv => {
@@ -151,9 +160,10 @@ export default function Teams() {
       const role = (inv.role || '').toString().toLowerCase()
       return email.includes(q) || inviter.includes(q) || role.includes(q)
     })
-  }
+  }, [])
 
-  const teamColumns: ColumnDef<TeamMember>[] = [
+  // Memoize column definitions to prevent recreation on every render
+  const teamColumns: ColumnDef<TeamMember>[] = useMemo(() => [
     {
       accessorKey: 'firstName',
       header: ({ column }) => (
@@ -238,9 +248,9 @@ export default function Teams() {
         </DropdownMenu>
       ),
     },
-  ]
+  ], [t, i18n.language, staffInfo?.role])
 
-  const invitationColumns: ColumnDef<Invitation>[] = [
+  const invitationColumns: ColumnDef<Invitation>[] = useMemo(() => [
     {
       accessorKey: 'email',
       header: t('teams.columns.email'),
@@ -312,7 +322,7 @@ export default function Teams() {
         )
       },
     },
-  ]
+  ], [t, i18n.language, staffInfo?.role])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
@@ -330,29 +340,31 @@ export default function Teams() {
                 {t('teams.header.inviteButton')}
               </Button>
             </DialogTrigger>
-          <DialogContent
-            className="max-w-md"
-            onCloseAutoFocus={e => {
-              // Restore focus to the invite button for seamless keyboard flow
-              e.preventDefault()
-              const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
-              el?.focus()
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>{t('teams.header.inviteDialog.title')}</DialogTitle>
-              <DialogDescription>{t('teams.header.inviteDialog.desc')}</DialogDescription>
-            </DialogHeader>
-            <InviteTeamMemberForm
-              venueId={venueId}
-              onSuccess={() => {
-                setShowInviteDialog(false)
-                queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
-                queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+            {showInviteDialog && (
+              <DialogContent
+                className="max-w-md"
+                onCloseAutoFocus={e => {
+                  // Restore focus to the invite button for seamless keyboard flow
+                  e.preventDefault()
+                  const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
+                  el?.focus()
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle>{t('teams.header.inviteDialog.title')}</DialogTitle>
+                  <DialogDescription>{t('teams.header.inviteDialog.desc')}</DialogDescription>
+                </DialogHeader>
+                <InviteTeamMemberForm
+                  venueId={venueId}
+                  onSuccess={() => {
+                    setShowInviteDialog(false)
+                    queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+                    queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
+                  }}
+                />
+              </DialogContent>
+            )}
+          </Dialog>
         </PermissionGate>
       </div>
 

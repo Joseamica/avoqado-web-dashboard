@@ -234,6 +234,10 @@
     "subtitle": "Agrega miembros del equipo que ayudarán a administrar tu negocio, o salta y hazlo después",
     "description": "Envía invitaciones a los miembros de tu equipo. Recibirán un correo con instrucciones para unirse a tu negocio.",
     "form": {
+      "firstName": "Nombre",
+      "firstNamePlaceholder": "Ingresa el nombre",
+      "lastName": "Apellido",
+      "lastNamePlaceholder": "Ingresa el apellido",
       "email": "Correo Electrónico",
       "emailPlaceholder": "equipo@ejemplo.com",
       "role": "Rol",
@@ -251,6 +255,7 @@
       "VIEWER": "Visor - Acceso de solo lectura"
     },
     "validation": {
+      "nameRequired": "El nombre y apellido son requeridos",
       "emailRequired": "El correo es requerido",
       "emailInvalid": "Por favor ingresa un correo electrónico válido",
       "roleRequired": "El rol es requerido",

@@ -1,0 +1,54 @@
+{
+  "joinTitle": "Únete al Equipo",
+  "invitedTo": "Has sido invitado a unirte a",
+  "at": "en",
+  "as": "como",
+  "emailLabel": "Correo Electrónico",
+  "loading": "Cargando invitación...",
+  "invalidTitle": "Invitación Inválida",
+  "expiredTitle": "Invitación Expirada",
+  "expiredDescription": "Esta invitación expiró el {{date}}. Por favor contacta al administrador del equipo para una nueva invitación.",
+  "goToLogin": "Ir al Inicio de Sesión",
+  "labels": {
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "pin": "PIN (opcional)"
+  },
+  "placeholders": {
+    "firstName": "Tu nombre",
+    "lastName": "Tu apellido",
+    "password": "Ingresa tu contraseña",
+    "confirmPassword": "Confirma tu contraseña",
+    "pin": "4 dígitos para acceso rápido"
+  },
+  "pinHelp": "El PIN te permitirá acceder rápidamente desde terminales POS",
+  "nameEditNote": "Tu nombre y apellido podrán ser editados luego en la configuración de tu cuenta.",
+  "acceptButton": "Aceptar invitación y crear cuenta",
+  "creatingAccount": "Creando cuenta...",
+  "termsText": "Al aceptar esta invitación, aceptas los términos de uso.",
+  "haveAccount": "¿Ya tienes una cuenta?",
+  "loginHere": "Inicia sesión aquí",
+  "validation": {
+    "firstNameRequired": "El nombre es requerido",
+    "firstNameMax": "El nombre debe tener como máximo 50 caracteres",
+    "lastNameRequired": "El apellido es requerido",
+    "lastNameMax": "El apellido debe tener como máximo 50 caracteres",
+    "passwordMin": "La contraseña debe tener al menos 8 caracteres",
+    "pinFormat": "El PIN debe tener exactamente 4 dígitos",
+    "passwordMatch": "Las contraseñas no coinciden"
+  },
+  "errors": {
+    "invalidToken": "Token de invitación inválido",
+    "notFound": "Invitación no encontrada",
+    "alreadyUsed": "Esta invitación ya ha sido utilizada",
+    "loadError": "Error al cargar los detalles de la invitación",
+    "acceptError": "Error al aceptar la invitación"
+  },
+  "success": {
+    "title": "Cuenta creada exitosamente",
+    "description": "Tu cuenta ha sido creada. Ahora puedes iniciar sesión.",
+    "loginMessage": "Tu cuenta ha sido creada exitosamente. Por favor inicia sesión con tus credenciales."
+  }
+}

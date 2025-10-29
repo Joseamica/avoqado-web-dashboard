@@ -34,7 +34,7 @@ import { useVenueEditActions } from './VenueEditLayout'
 // Image upload and crop support
 import Cropper from 'react-easy-crop'
 import { storage } from '@/firebase'
-import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
 import { getCroppedImg } from '@/utils/cropImage'
 
 // Enums to match Prisma schema exactly
@@ -237,7 +237,6 @@ export default function EditVenue() {
   // -------- Logo upload + crop --------
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [fileRef, setFileRef] = useState<any>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
@@ -275,12 +274,12 @@ export default function EditVenue() {
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then(downloadURL => {
           setImageUrl(downloadURL)
-          setFileRef(storageRef)
           setUploading(false)
           setImageForCrop(null)
           form.setValue('logo', downloadURL, { shouldDirty: true })
 
           // Auto-save the logo change immediately
+          // Backend will auto-delete the old logo from Firebase Storage
           saveVenue.mutate({ ...form.getValues(), logo: downloadURL })
 
           toast({
@@ -293,24 +292,21 @@ export default function EditVenue() {
   }
 
   const handleFileRemove = () => {
-    // First update local state
+    // Update local state
     setImageUrl(null)
-    setFileRef(null)
     form.setValue('logo', '', { shouldDirty: true })
 
-    // Build payload explicitly to ensure logo is empty
+    // Build payload explicitly to ensure logo is removed
+    // IMPORTANT: Backend removes null/undefined fields, so use empty string instead
     const currentValues = form.getValues()
     const payload = {
       ...currentValues,
-      logo: '', // Explicitly set to empty string
+      logo: '', // Empty string (not null) so backend doesn't filter it out
     }
 
-    // Delete from Firebase if it exists
-    if (fileRef) {
-      deleteObject(fileRef).catch(error => {
-        console.error('Error removing file from Firebase:', error)
-      })
-    }
+    // 🎯 NO need to delete from Firebase here - backend auto-cleanup handles it!
+    // Backend compares old logo vs new logo and deletes the old one automatically
+    // This prevents orphaned files even if user refreshes page or edits from another device
 
     // Auto-save the logo removal immediately
     saveVenue.mutate(payload, {
@@ -348,13 +344,13 @@ export default function EditVenue() {
         currency: data.currency,
       }
 
-      // Add optional fields if they have values
-      if (data.website) venueData.website = data.website
-      if (data.logo) venueData.logo = data.logo
-      if (data.primaryColor) venueData.primaryColor = data.primaryColor
-      if (data.secondaryColor) venueData.secondaryColor = data.secondaryColor
-      if (data.latitude !== null) venueData.latitude = data.latitude
-      if (data.longitude !== null) venueData.longitude = data.longitude
+      // Add optional fields - explicitly handle null/undefined vs empty string
+      if (data.website !== undefined && data.website !== null) venueData.website = data.website
+      if (data.logo !== undefined) venueData.logo = data.logo // Include even if null (to clear)
+      if (data.primaryColor !== undefined && data.primaryColor !== null) venueData.primaryColor = data.primaryColor
+      if (data.secondaryColor !== undefined && data.secondaryColor !== null) venueData.secondaryColor = data.secondaryColor
+      if (data.latitude !== null && data.latitude !== undefined) venueData.latitude = data.latitude
+      if (data.longitude !== null && data.longitude !== undefined) venueData.longitude = data.longitude
 
       return await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
     },
@@ -407,9 +403,9 @@ export default function EditVenue() {
     },
   })
 
-  function onSubmit(formValues: VenueFormValues) {
+  const onSubmit = useCallback((formValues: VenueFormValues) => {
     saveVenue.mutate(formValues)
-  }
+  }, [saveVenue])
 
   // Register actions with parent layout
   useEffect(() => {
@@ -420,7 +416,7 @@ export default function EditVenue() {
       isLoading: saveVenue.isPending,
       canEdit: canEdit,
     })
-  }, [form.formState.isDirty, saveVenue.isPending, canEdit, setActions, form])
+  }, [form.formState.isDirty, saveVenue.isPending, canEdit, setActions, form, onSubmit])
 
   if (isLoading) return <VenueSkeleton />
 
