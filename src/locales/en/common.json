@@ -14,6 +14,7 @@
   "optional": "Optional",
   "none": "None",
   "unknown": "Unknown",
+  "customize_columns": "Customize columns",
   "primary": "Primary",
   "secondary": "Secondary",
   "tertiary": "Tertiary",
@@ -36,5 +37,8 @@
     "manageButton": "Manage Billing",
     "redirecting": "Redirecting...",
     "dismissButton": "Dismiss"
+  },
+  "header": {
+    "superadmin": "Superadmin"
   }
 }

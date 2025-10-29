@@ -29,5 +29,20 @@
     "view": "Afficher",
     "share": "Partager",
     "delete": "Supprimer"
+  },
+  "routes": {
+    "home": "Accueil",
+    "menu": "Menu",
+    "inventory": "Inventaire",
+    "payments": "Paiements",
+    "orders": "Commandes",
+    "shifts": "Quarts de travail",
+    "tpv": "Terminaux",
+    "reviews": "Avis",
+    "settings": "Paramètres",
+    "editvenue": "Modifier l'établissement",
+    "teams": "Équipes",
+    "billing": "Facturation",
+    "limits": "Limites"
   }
 }

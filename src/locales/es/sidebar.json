@@ -31,5 +31,20 @@
     "view": "Ver",
     "share": "Compartir",
     "delete": "Eliminar"
+  },
+  "routes": {
+    "home": "Inicio",
+    "menu": "Menú",
+    "inventory": "Inventario",
+    "payments": "Pagos",
+    "orders": "Órdenes",
+    "shifts": "Turnos",
+    "tpv": "Terminales",
+    "reviews": "Reseñas",
+    "settings": "Configuración",
+    "editvenue": "Editar Local",
+    "teams": "Equipos",
+    "billing": "Facturación",
+    "limits": "Límites"
   }
 }

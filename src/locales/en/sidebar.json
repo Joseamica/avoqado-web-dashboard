@@ -31,5 +31,20 @@
     "view": "View",
     "share": "Share",
     "delete": "Delete"
+  },
+  "routes": {
+    "home": "Home",
+    "menu": "Menu",
+    "inventory": "Inventory",
+    "payments": "Payments",
+    "orders": "Orders",
+    "shifts": "Shifts",
+    "tpv": "Terminals",
+    "reviews": "Reviews",
+    "settings": "Settings",
+    "editvenue": "Edit Venue",
+    "teams": "Teams",
+    "billing": "Billing",
+    "limits": "Limits"
   }
 }
