@@ -129,6 +129,10 @@
       "resubmitButton": "Reenviar Documentos"
     },
     "readOnly": "Modo solo lectura: no tienes permisos para editar la información del establecimiento.",
+    "notFound": "Establecimiento no encontrado",
+    "notFoundDesc": "El establecimiento que buscas no existe o no tienes acceso a él.",
+    "noLogo": "Sin logotipo",
+    "logoAlt": "Logotipo del establecimiento",
     "labels": {
       "name": "Nombre del Local",
       "type": "Tipo de Local",
@@ -141,7 +145,31 @@
       "phone": "Teléfono",
       "description": "Descripción",
       "logo": "Logotipo",
-      "coverImage": "Imagen de Portada"
+      "coverImage": "Imagen de Portada",
+      "timezone": "Zona Horaria",
+      "currency": "Moneda",
+      "website": "Sitio Web",
+      "primaryColor": "Color Primario",
+      "secondaryColor": "Color Secundario",
+      "latitude": "Latitud",
+      "longitude": "Longitud"
+    },
+    "placeholders": {
+      "name": "Ingresa el nombre del local",
+      "type": "Selecciona el tipo de local",
+      "state": "Ingresa el estado",
+      "zipCode": "Ingresa el código postal",
+      "address": "Ingresa la dirección",
+      "city": "Ingresa la ciudad",
+      "country": "Selecciona el país",
+      "email": "email@ejemplo.com",
+      "phone": "+52 123 456 7890",
+      "currency": "Selecciona la moneda",
+      "website": "https://tusitio.com",
+      "primaryColor": "#FF5733",
+      "secondaryColor": "#33C4FF",
+      "latitude": "19.432608",
+      "longitude": "-99.133209"
     },
     "types": {
       "restaurant": "Restaurante",
@@ -149,12 +177,18 @@
       "bar": "Bar",
       "foodTruck": "Food Truck",
       "bakery": "Panadería",
-      "other": "Otro"
+      "other": "Otro",
+      "fastFood": "Comida Rápida",
+      "retailStore": "Tienda Minorista",
+      "hotelRestaurant": "Restaurante de Hotel",
+      "fitnessStudio": "Gimnasio",
+      "spa": "Spa"
     },
     "currencies": {
       "mxn": "Peso Mexicano (MXN)",
       "usd": "Dólar Estadounidense (USD)",
-      "eur": "Euro (EUR)"
+      "eur": "Euro (EUR)",
+      "cad": "Dólar Canadiense (CAD)"
     },
     "sections": {
       "basicInfo": "Información Básica",
@@ -262,7 +296,34 @@
       "updateSuccess": "Local actualizado exitosamente",
       "updateSuccessDesc": "La información del local ha sido guardada",
       "updateError": "Error al actualizar",
-      "updateErrorDesc": "No se pudo actualizar la información del local. Intenta nuevamente."
+      "updateErrorTitle": "Error al actualizar",
+      "updateErrorDesc": "No se pudo actualizar la información del local. Intenta nuevamente.",
+      "deleteSuccess": "Local eliminado exitosamente",
+      "deleteSuccessDesc": "El local ha sido eliminado",
+      "deleteError": "Error al eliminar",
+      "deleteErrorTitle": "Error al eliminar",
+      "deleteErrorDesc": "No se pudo eliminar el local. Intenta nuevamente.",
+      "logoUploadedTitle": "Logo cargado",
+      "logoUploadedDesc": "El logo se ha cargado exitosamente",
+      "logoRemovedTitle": "Logo eliminado",
+      "logoRemovedDesc": "El logo se ha eliminado exitosamente",
+      "logoErrorTitle": "Error con el logo",
+      "logoErrorDesc": "No se pudo procesar la imagen del logo"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Local",
+      "description": "¿Estás seguro de que deseas eliminar {{venueName}}? Esta acción no se puede deshacer. Escribe 'delete {{venueName}}' para confirmar."
+    },
+    "dangerZone": {
+      "title": "Zona de Peligro",
+      "description": "Las acciones en esta sección son irreversibles. Procede con precaución.",
+      "deleteButton": "Eliminar Local"
+    },
+    "addDialog": {
+      "upload": {
+        "cancel": "Cancelar",
+        "confirm": "Confirmar"
+      }
     }
   }
 }

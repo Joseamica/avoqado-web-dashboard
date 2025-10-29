@@ -129,6 +129,10 @@
       "resubmitButton": "Resubmit Documents"
     },
     "readOnly": "Read-only mode: you don't have permissions to edit venue information.",
+    "notFound": "Venue not found",
+    "notFoundDesc": "The venue you are looking for does not exist or you don't have access to it.",
+    "noLogo": "No logo uploaded",
+    "logoAlt": "Venue logo",
     "labels": {
       "name": "Venue Name",
       "type": "Venue Type",
@@ -141,7 +145,31 @@
       "phone": "Phone",
       "description": "Description",
       "logo": "Logo",
-      "coverImage": "Cover Image"
+      "coverImage": "Cover Image",
+      "timezone": "Timezone",
+      "currency": "Currency",
+      "website": "Website",
+      "primaryColor": "Primary Color",
+      "secondaryColor": "Secondary Color",
+      "latitude": "Latitude",
+      "longitude": "Longitude"
+    },
+    "placeholders": {
+      "name": "Enter venue name",
+      "type": "Select venue type",
+      "state": "Enter state",
+      "zipCode": "Enter zip code",
+      "address": "Enter address",
+      "city": "Enter city",
+      "country": "Select country",
+      "email": "email@example.com",
+      "phone": "+52 123 456 7890",
+      "currency": "Select currency",
+      "website": "https://yoursite.com",
+      "primaryColor": "#FF5733",
+      "secondaryColor": "#33C4FF",
+      "latitude": "19.432608",
+      "longitude": "-99.133209"
     },
     "types": {
       "restaurant": "Restaurant",
@@ -149,12 +177,18 @@
       "bar": "Bar",
       "foodTruck": "Food Truck",
       "bakery": "Bakery",
-      "other": "Other"
+      "other": "Other",
+      "fastFood": "Fast Food",
+      "retailStore": "Retail Store",
+      "hotelRestaurant": "Hotel Restaurant",
+      "fitnessStudio": "Fitness Studio",
+      "spa": "Spa"
     },
     "currencies": {
       "mxn": "Mexican Peso (MXN)",
       "usd": "US Dollar (USD)",
-      "eur": "Euro (EUR)"
+      "eur": "Euro (EUR)",
+      "cad": "Canadian Dollar (CAD)"
     },
     "sections": {
       "basicInfo": "Basic Information",
@@ -262,7 +296,34 @@
       "updateSuccess": "Venue updated successfully",
       "updateSuccessDesc": "The venue information has been saved",
       "updateError": "Update failed",
-      "updateErrorDesc": "Failed to update venue information. Please try again."
+      "updateErrorTitle": "Update failed",
+      "updateErrorDesc": "Failed to update venue information. Please try again.",
+      "deleteSuccess": "Venue deleted successfully",
+      "deleteSuccessDesc": "The venue has been deleted",
+      "deleteError": "Delete failed",
+      "deleteErrorTitle": "Delete failed",
+      "deleteErrorDesc": "Failed to delete venue. Please try again.",
+      "logoUploadedTitle": "Logo uploaded",
+      "logoUploadedDesc": "The logo has been uploaded successfully",
+      "logoRemovedTitle": "Logo removed",
+      "logoRemovedDesc": "The logo has been removed successfully",
+      "logoErrorTitle": "Logo error",
+      "logoErrorDesc": "Failed to process logo image"
+    },
+    "deleteDialog": {
+      "title": "Delete Venue",
+      "description": "Are you sure you want to delete {{venueName}}? This action cannot be undone. Type 'delete {{venueName}}' to confirm."
+    },
+    "dangerZone": {
+      "title": "Danger Zone",
+      "description": "Actions in this section are irreversible. Proceed with caution.",
+      "deleteButton": "Delete Venue"
+    },
+    "addDialog": {
+      "upload": {
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
     }
   }
 }
