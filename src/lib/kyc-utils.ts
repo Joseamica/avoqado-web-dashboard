@@ -35,7 +35,7 @@ export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null)
   if (!venue) return false
 
   // Demo venues bypass KYC checks (can use all features for testing)
-  if (venue.isDemo) return true
+  if (venue.isOnboardingDemo) return true
 
   // Verified venues have full access to operational features
   if (venue.kycStatus === 'VERIFIED') return true
@@ -65,7 +65,7 @@ export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null)
 export function getKYCBlockReason(venue: SessionVenue | Venue | null): string | null {
   if (!venue) return 'No venue selected'
 
-  if (venue.isDemo) return null // Demo venues not blocked
+  if (venue.isOnboardingDemo) return null // Demo venues not blocked
   if (venue.kycStatus === 'VERIFIED') return null // Verified venues not blocked
 
   switch (venue.kycStatus) {
@@ -96,7 +96,7 @@ export function getKYCBlockReason(venue: SessionVenue | Venue | null): string | 
  */
 export function shouldShowKYCBanner(venue: SessionVenue | Venue | null): boolean {
   if (!venue) return false
-  if (venue.isDemo) return false // Don't show banner for demo venues
+  if (venue.isOnboardingDemo) return false // Don't show banner for demo venues
 
   // Show banner for all non-verified statuses
   return venue.kycStatus !== 'VERIFIED'
@@ -110,7 +110,7 @@ export function shouldShowKYCBanner(venue: SessionVenue | Venue | null): boolean
  */
 export function getKYCBannerVariant(venue: SessionVenue | Venue | null): 'missing' | 'pending' | 'rejected' | null {
   if (!venue) return null
-  if (venue.isDemo) return null
+  if (venue.isOnboardingDemo) return null
   if (venue.kycStatus === 'VERIFIED') return null
 
   switch (venue.kycStatus) {

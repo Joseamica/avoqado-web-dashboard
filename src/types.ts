@@ -375,7 +375,7 @@ export interface Venue {
   operationalSince: string | null
 
   // Demo mode
-  isDemo?: boolean
+  isOnboardingDemo?: boolean
   demoExpiresAt?: string | null
 
   // Tax Information (for converting from demo to real)
@@ -1205,7 +1205,7 @@ export interface SessionVenue {
   // El rol que el usuario logueado tiene EN ESTE venue específico
   role: StaffRole
   // Whether this venue is in demo mode
-  isDemo?: boolean
+  isOnboardingDemo?: boolean
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
   // KYC Verification (for payment processing access control)

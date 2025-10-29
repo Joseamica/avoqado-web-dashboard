@@ -238,11 +238,11 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Demo Banner - only show if venue is in demo mode */}
-        {venue?.isDemo && <DemoBanner />}
+        {/* Onboarding Demo Banner - only show if venue is in onboarding demo mode */}
+        {venue?.isOnboardingDemo && <DemoBanner />}
 
         {/* Trial Status Banner - show if venue has active trials */}
-        {!venue?.isDemo && <TrialStatusBanner />}
+        {!venue?.isOnboardingDemo && <TrialStatusBanner />}
 
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
