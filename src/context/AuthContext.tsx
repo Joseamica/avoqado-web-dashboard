@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
@@ -61,6 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeVenue, setActiveVenue] = useState<Venue | null>(null)
   const [isLiveDemoInitializing, setIsLiveDemoInitializing] = useState(false)
 
+  // Track if we've already attempted live demo auto-login (prevent retry loops)
+  const hasAttemptedLiveDemoLogin = useRef(false)
+
   // Get auth status first
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
     queryKey: ['status'],
@@ -72,17 +75,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!statusData?.authenticated
   const user = statusData?.user || null
 
-  // Live Demo Auto-Login: Detect demo.dashboard.avoqado.io and auto-login
+  // Live Demo Auto-Login: Detect demo.dashboard.avoqado.io and auto-login (ONCE only)
   useEffect(() => {
     const initializeLiveDemo = async () => {
-      if (liveDemoService.isLiveDemoEnvironment() && !isAuthenticated && !isLiveDemoInitializing) {
+      // Only attempt auto-login ONCE per session, even if it fails
+      if (liveDemoService.isLiveDemoEnvironment() && !isAuthenticated && !hasAttemptedLiveDemoLogin.current) {
+        hasAttemptedLiveDemoLogin.current = true
+        setIsLiveDemoInitializing(true)
+
         try {
-          setIsLiveDemoInitializing(true)
           await liveDemoService.liveDemoAutoLogin()
           // Refetch auth status after auto-login
           queryClient.invalidateQueries({ queryKey: ['status'] })
         } catch (error) {
           console.error('Failed to initialize live demo:', error)
+          // Don't retry - just show error and let user refresh page manually
         } finally {
           setIsLiveDemoInitializing(false)
         }
@@ -90,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     initializeLiveDemo()
-  }, [isAuthenticated, isLiveDemoInitializing, queryClient])
+  }, [isAuthenticated, queryClient])
 
   const userRole = useMemo(() => {
     if (user?.role === StaffRole.SUPERADMIN) return StaffRole.SUPERADMIN
