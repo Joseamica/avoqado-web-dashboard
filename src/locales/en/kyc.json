@@ -8,10 +8,10 @@
       "action": "Start KYC Verification"
     },
     "pending": {
-      "title": "KYC Verification Pending",
-      "description": "Your KYC documents are under review by our team. You'll receive an email notification once your verification is approved. This usually takes 1-2 business days.",
-      "note": "Note:",
-      "noteText": "Operational features will be enabled automatically once verification is complete."
+      "title": "Verification in Progress",
+      "description": "Your KYC documents are being reviewed by our team. Sit tight! All operational features will be automatically unlocked once verification is approved.",
+      "note": "Estimated time:",
+      "noteText": "Reviews typically complete within 1-2 business days. You'll receive an email notification once approved."
     },
     "rejected": {
       "title": "KYC Verification Rejected",
@@ -28,7 +28,7 @@
       "action": "Start Now"
     },
     "pending": {
-      "message": "KYC verification pending - You'll receive an email notification when approved (usually 1-2 business days)"
+      "message": "Verification in progress - All features will be unlocked once your KYC is approved (usually 1-2 business days)"
     },
     "rejected": {
       "message": "KYC verification rejected - Please review the rejection reason and resubmit your documents",

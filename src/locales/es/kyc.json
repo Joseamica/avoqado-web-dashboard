@@ -8,10 +8,10 @@
       "action": "Iniciar Verificación KYC"
     },
     "pending": {
-      "title": "Verificación KYC Pendiente",
-      "description": "Tus documentos KYC están siendo revisados por nuestro equipo. Recibirás una notificación por correo electrónico una vez que tu verificación sea aprobada. Esto suele tardar 1-2 días hábiles.",
-      "note": "Nota:",
-      "noteText": "Las funciones operativas se habilitarán automáticamente una vez completada la verificación."
+      "title": "Verificación en Progreso",
+      "description": "Tus documentos KYC están siendo revisados por nuestro equipo. ¡Espera un momento! Todas las funciones operativas se desbloquearán automáticamente una vez que se apruebe la verificación.",
+      "note": "Tiempo estimado:",
+      "noteText": "Las revisiones suelen completarse en 1-2 días hábiles. Recibirás una notificación por correo cuando sea aprobada."
     },
     "rejected": {
       "title": "Verificación KYC Rechazada",
@@ -28,7 +28,7 @@
       "action": "Comenzar Ahora"
     },
     "pending": {
-      "message": "Verificación KYC pendiente - Recibirás una notificación por correo cuando sea aprobada (usualmente 1-2 días hábiles)"
+      "message": "Verificación en progreso - Todas las funciones se desbloquearán una vez que tu KYC sea aprobado (usualmente 1-2 días hábiles)"
     },
     "rejected": {
       "message": "Verificación KYC rechazada - Por favor revisa la razón del rechazo y vuelve a enviar tus documentos",
