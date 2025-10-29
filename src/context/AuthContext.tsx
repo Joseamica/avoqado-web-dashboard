@@ -302,7 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   if (isStatusLoading) {
-    return <LoadingScreen message={t('common.verifying_session')} />
+    return <LoadingScreen message={t('common:verifying_session')} />
   }
 
   const value: AuthContextType = {
