@@ -1,0 +1,129 @@
+{
+  "edit": {
+    "memberUpdated": "Member updated",
+    "memberUpdatedDesc": "Successfully updated {{firstName}} {{lastName}} information.",
+    "noChanges": "No changes",
+    "noChangesDesc": "No changes detected to save.",
+    "cannotChangeOwnerRole": "You cannot change the role of an Owner.",
+    "cannotChangeSuperadminRole": "You cannot change the role of a Super Administrator.",
+    "cannotDeactivateOwner": "You cannot deactivate the owner of the venue.",
+    "memberStatus": "Member Status",
+    "memberActive": "The member can access the system",
+    "memberInactive": "The member cannot access the system",
+    "changePin": "Change PIN (optional)",
+    "newPin": "New PIN of 4 digits",
+    "newPinSet": "A new PIN will be set for the member",
+    "totalSales": "Total Sales",
+    "orders": "Orders",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "role": "Role",
+    "newRole": "New Role",
+    "roles": {
+      "admin": "Administrator",
+      "adminDesc": "Full access to venue settings and team management",
+      "manager": "Manager",
+      "managerDesc": "Manage staff, shifts, and basic analytics",
+      "waiter": "Waiter",
+      "waiterDesc": "Take and manage orders, access menu",
+      "cashier": "Cashier",
+      "cashierDesc": "Process payments and handle transactions",
+      "kitchen": "Kitchen",
+      "kitchenDesc": "View and prepare orders from the kitchen",
+      "host": "Host",
+      "hostDesc": "Manage table reservations and seating",
+      "viewer": "Viewer",
+      "viewerDesc": "View-only access to analytics and reports"
+    },
+    "validation": {
+      "pinFormat": "PIN must be exactly 4 digits"
+    }
+  },
+  "invite": {
+    "invitationSent": "Invitation sent",
+    "invitationSentDesc": "An invitation was sent to {{email}}. The invitation expires in 7 days.",
+    "emailLabel": "Guest email",
+    "firstNameLabel": "First Name",
+    "lastNameLabel": "Last Name",
+    "roleLabel": "Role",
+    "messageLabel": "Custom message (optional)",
+    "messagePlaceholder": "Write a welcome message for the new team member...",
+    "infoAlert": "The guest will receive an email with a link to create their account and join the team. They can log in with their Google account or create a password. The invitation automatically expires in 7 days.",
+    "sending": "Sending...",
+    "sendButton": "Send Invitation",
+    "emailPlaceholder": "example@company.com",
+    "firstNamePlaceholder": "First Name",
+    "lastNamePlaceholder": "Last Name",
+    "roleSelectPlaceholder": "Select a role",
+    "validation": {
+      "emailFormat": "Please enter a valid email address",
+      "emailRequired": "Email is required",
+      "firstNameRequired": "First name is required",
+      "firstNameMax": "First name cannot exceed 50 characters",
+      "lastNameRequired": "Last name is required",
+      "lastNameMax": "Last name cannot exceed 50 characters",
+      "roleRequired": "Role is required",
+      "messageMax": "Message cannot exceed 500 characters"
+    },
+    "invitationError": "Failed to send invitation"
+  },
+  "header": {
+    "title": "Team Members",
+    "subtitle": "Manage your team and invite new members",
+    "inviteButton": "Invite Member",
+    "inviteDialog": {
+      "title": "Invite Team Member",
+      "desc": "Send an invitation to a new team member to join your venue"
+    }
+  },
+  "tabs": {
+    "members": "Members",
+    "invitations": "Pending Invitations"
+  },
+  "columns": {
+    "name": "Name",
+    "role": "Role",
+    "status": "Status",
+    "totalSales": "Total Sales",
+    "totalOrders": "Total Orders",
+    "email": "Email",
+    "invitedBy": "Invited by {{name}}",
+    "sent": "Sent Date",
+    "expires": "Expires"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "expired": "Expired"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "resend": "Resend",
+    "cancel": "Cancel"
+  },
+  "cards": {
+    "pendingInvitationsTitle": "Pending Invitations",
+    "pendingInvitationsDesc": "These invitations are awaiting response. They expire automatically after 7 days."
+  },
+  "dialogs": {
+    "editMemberTitle": "Edit Member",
+    "editMemberDesc": "Update the role and settings for {{firstName}} {{lastName}}.",
+    "removeTitle": "Remove team member?",
+    "removeDesc": "Are you sure you want to remove {{firstName}} {{lastName}} from the team? This action cannot be undone and the member will lose access to the dashboard.",
+    "removeConfirm": "Delete",
+    "removeCancel": "Cancel",
+    "removing": "Deleting..."
+  },
+  "toasts": {
+    "memberRemovedTitle": "Member removed",
+    "memberRemovedDesc": "{{firstName}} {{lastName}} has been removed from the team.",
+    "memberRemoveError": "Failed to remove member",
+    "invitationCancelled": "Invitation cancelled",
+    "invitationCancelledDesc": "The invitation to {{email}} has been cancelled.",
+    "invitationCancelError": "Failed to cancel invitation",
+    "invitationResent": "Invitation resent",
+    "invitationResentDesc": "A new invitation was sent to {{email}}.",
+    "invitationResendError": "Failed to resend invitation"
+  }
+}

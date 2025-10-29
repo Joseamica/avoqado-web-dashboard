@@ -1,0 +1,129 @@
+{
+  "edit": {
+    "memberUpdated": "Membre mis à jour",
+    "memberUpdatedDesc": "Les informations de {{firstName}} {{lastName}} ont été mises à jour avec succès.",
+    "noChanges": "Aucun changement",
+    "noChangesDesc": "Aucun changement détecté à enregistrer.",
+    "cannotChangeOwnerRole": "Vous ne pouvez pas modifier le rôle d'un Propriétaire.",
+    "cannotChangeSuperadminRole": "Vous ne pouvez pas modifier le rôle d'un Super Administrateur.",
+    "cannotDeactivateOwner": "Vous ne pouvez pas désactiver le propriétaire du venue.",
+    "memberStatus": "Statut du membre",
+    "memberActive": "Le membre peut accéder au système",
+    "memberInactive": "Le membre ne peut pas accéder au système",
+    "changePin": "Changer le PIN (optionnel)",
+    "newPin": "Nouveau PIN à 4 chiffres",
+    "newPinSet": "Un nouveau PIN sera défini pour le membre",
+    "totalSales": "Ventes Totales",
+    "orders": "Commandes",
+    "saving": "Enregistrement...",
+    "saveChanges": "Enregistrer les Modifications",
+    "role": "Rôle",
+    "newRole": "Nouveau Rôle",
+    "roles": {
+      "admin": "Administrateur",
+      "adminDesc": "Accès complet aux paramètres du venue et à la gestion de l'équipe",
+      "manager": "Gestionnaire",
+      "managerDesc": "Gérer le personnel, les équipes et les analyses de base",
+      "waiter": "Serveur",
+      "waiterDesc": "Prendre et gérer les commandes, accéder au menu",
+      "cashier": "Caissier",
+      "cashierDesc": "Traiter les paiements et gérer les transactions",
+      "kitchen": "Cuisine",
+      "kitchenDesc": "Voir et préparer les commandes depuis la cuisine",
+      "host": "Hôte",
+      "hostDesc": "Gérer les réservations de tables et les places",
+      "viewer": "Visualiseur",
+      "viewerDesc": "Accès en lecture seule aux analyses et rapports"
+    },
+    "validation": {
+      "pinFormat": "Le PIN doit contenir exactement 4 chiffres"
+    }
+  },
+  "invite": {
+    "invitationSent": "Invitation envoyée",
+    "invitationSentDesc": "Une invitation a été envoyée à {{email}}. L'invitation expire dans 7 jours.",
+    "emailLabel": "Email de l'invité",
+    "firstNameLabel": "Prénom",
+    "lastNameLabel": "Nom",
+    "roleLabel": "Rôle",
+    "messageLabel": "Message personnalisé (optionnel)",
+    "messagePlaceholder": "Écrivez un message de bienvenue pour le nouveau membre de l'équipe...",
+    "infoAlert": "L'invité recevra un email avec un lien pour créer son compte et rejoindre l'équipe. Il peut se connecter avec son compte Google ou créer un mot de passe. L'invitation expire automatiquement dans 7 jours.",
+    "sending": "Envoi en cours...",
+    "sendButton": "Envoyer l'Invitation",
+    "emailPlaceholder": "exemple@entreprise.com",
+    "firstNamePlaceholder": "Prénom",
+    "lastNamePlaceholder": "Nom",
+    "roleSelectPlaceholder": "Sélectionner un rôle",
+    "validation": {
+      "emailFormat": "Veuillez entrer une adresse email valide",
+      "emailRequired": "L'email est requis",
+      "firstNameRequired": "Le prénom est requis",
+      "firstNameMax": "Le prénom ne peut pas dépasser 50 caractères",
+      "lastNameRequired": "Le nom est requis",
+      "lastNameMax": "Le nom ne peut pas dépasser 50 caractères",
+      "roleRequired": "Le rôle est requis",
+      "messageMax": "Le message ne peut pas dépasser 500 caractères"
+    },
+    "invitationError": "Échec de l'envoi de l'invitation"
+  },
+  "header": {
+    "title": "Membres de l'Équipe",
+    "subtitle": "Gérez votre équipe et invitez de nouveaux membres",
+    "inviteButton": "Inviter un Membre",
+    "inviteDialog": {
+      "title": "Inviter un Nouveau Membre",
+      "desc": "Envoyez une invitation à un nouveau membre pour rejoindre votre venue"
+    }
+  },
+  "tabs": {
+    "members": "Membres",
+    "invitations": "Invitations en Attente"
+  },
+  "columns": {
+    "name": "Nom",
+    "role": "Rôle",
+    "status": "Statut",
+    "totalSales": "Ventes Totales",
+    "totalOrders": "Total des Commandes",
+    "email": "Email",
+    "invitedBy": "Invité par {{name}}",
+    "sent": "Date d'Envoi",
+    "expires": "Expire"
+  },
+  "status": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "expired": "Expiré"
+  },
+  "actions": {
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "resend": "Renvoyer",
+    "cancel": "Annuler"
+  },
+  "cards": {
+    "pendingInvitationsTitle": "Invitations en Attente",
+    "pendingInvitationsDesc": "Ces invitations attendent une réponse. Elles expirent automatiquement après 7 jours."
+  },
+  "dialogs": {
+    "editMemberTitle": "Modifier le Membre",
+    "editMemberDesc": "Mettre à jour le rôle et les paramètres de {{firstName}} {{lastName}}.",
+    "removeTitle": "Supprimer le membre de l'équipe ?",
+    "removeDesc": "Êtes-vous sûr de vouloir supprimer {{firstName}} {{lastName}} de l'équipe ? Cette action ne peut pas être annulée et le membre perdra l'accès au tableau de bord.",
+    "removeConfirm": "Supprimer",
+    "removeCancel": "Annuler",
+    "removing": "Suppression..."
+  },
+  "toasts": {
+    "memberRemovedTitle": "Membre supprimé",
+    "memberRemovedDesc": "{{firstName}} {{lastName}} a été supprimé de l'équipe.",
+    "memberRemoveError": "Échec de la suppression du membre",
+    "invitationCancelled": "Invitation annulée",
+    "invitationCancelledDesc": "L'invitation à {{email}} a été annulée.",
+    "invitationCancelError": "Échec de l'annulation de l'invitation",
+    "invitationResent": "Invitation renvoyée",
+    "invitationResentDesc": "Une nouvelle invitation a été envoyée à {{email}}.",
+    "invitationResendError": "Échec du renvoi de l'invitation"
+  }
+}
