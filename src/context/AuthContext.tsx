@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import * as authService from '@/services/auth.service'
+import * as liveDemoService from '@/services/liveDemo.service'
 import { clearAllChatStorage } from '@/services/chatService'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
@@ -58,7 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast()
 
   const [activeVenue, setActiveVenue] = useState<Venue | null>(null)
+  const [isLiveDemoInitializing, setIsLiveDemoInitializing] = useState(false)
 
+  // Get auth status first
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
     queryKey: ['status'],
     queryFn: authService.getAuthStatus,
@@ -68,6 +71,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !!statusData?.authenticated
   const user = statusData?.user || null
+
+  // Live Demo Auto-Login: Detect demo.dashboard.avoqado.io and auto-login
+  useEffect(() => {
+    const initializeLiveDemo = async () => {
+      if (liveDemoService.isLiveDemoEnvironment() && !isAuthenticated && !isLiveDemoInitializing) {
+        try {
+          setIsLiveDemoInitializing(true)
+          await liveDemoService.liveDemoAutoLogin()
+          // Refetch auth status after auto-login
+          queryClient.invalidateQueries({ queryKey: ['status'] })
+        } catch (error) {
+          console.error('Failed to initialize live demo:', error)
+        } finally {
+          setIsLiveDemoInitializing(false)
+        }
+      }
+    }
+
+    initializeLiveDemo()
+  }, [isAuthenticated, isLiveDemoInitializing, queryClient])
 
   const userRole = useMemo(() => {
     if (user?.role === StaffRole.SUPERADMIN) return StaffRole.SUPERADMIN
@@ -330,8 +353,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [activeVenue],
   )
 
-  if (isStatusLoading) {
-    return <LoadingScreen message={t('common:verifying_session')} />
+  if (isStatusLoading || isLiveDemoInitializing) {
+    return <LoadingScreen message={isLiveDemoInitializing ? 'Initializing live demo...' : t('common:verifying_session')} />
   }
 
   const value: AuthContextType = {
@@ -339,7 +362,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     activeVenue,
     isLoading:
-      isStatusLoading || loginMutation.isPending || signupMutation.isPending || logoutMutation.isPending || switchVenueMutation.isPending,
+      isStatusLoading ||
+      isLiveDemoInitializing ||
+      loginMutation.isPending ||
+      signupMutation.isPending ||
+      logoutMutation.isPending ||
+      switchVenueMutation.isPending,
     login: loginMutation.mutate,
     signup: signupMutation.mutate,
     loginWithGoogle,
