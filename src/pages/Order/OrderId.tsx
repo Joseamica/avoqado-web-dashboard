@@ -460,7 +460,7 @@ export default function OrderId() {
                             <AlertDialogDescription>{t('detail.deleteWarning')}</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                             <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>
                               {t('common.delete', { defaultValue: 'Eliminar' })}
                             </AlertDialogAction>

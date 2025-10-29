@@ -40,5 +40,11 @@
   },
   "header": {
     "superadmin": "Superadmin"
+  },
+  "venuesSwitcher": {
+    "title": "Venues",
+    "addVenue": "Add venue",
+    "selectVenue": "Select venue",
+    "current": "(current)"
   }
 }

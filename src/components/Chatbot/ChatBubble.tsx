@@ -868,7 +868,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         title={t('chat.confirm.clear.title')}
         description={t('chat.confirm.clear.desc')}
         confirmText={t('chat.confirm.clear.confirm')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={confirmClearHistory}
       />
@@ -881,7 +881,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           title: savedConversations.find(conv => conv.id === conversationToDelete)?.title || '',
         })}
         confirmText={t('chat.confirm.delete.confirm')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={confirmDeleteConversation}
         onCancel={() => setConversationToDelete(null)}
@@ -918,7 +918,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                     feedbackForm.reset()
                   }}
                 >
-                  {t('common.cancel')}
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" disabled={negativeFeedbackMutation.isPending} className="min-w-[120px]">
                   {negativeFeedbackMutation.isPending ? (

@@ -198,11 +198,11 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={adjustStockMutation.isPending}>
-              {t('common.cancel')}
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={adjustStockMutation.isPending || isNegativeStock}>
               {adjustStockMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('common.save')}
+              {t('save')}
             </Button>
           </DialogFooter>
         </form>

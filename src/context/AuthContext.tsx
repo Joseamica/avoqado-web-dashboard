@@ -60,9 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const [activeVenue, setActiveVenue] = useState<Venue | null>(null)
   const [isLiveDemoInitializing, setIsLiveDemoInitializing] = useState(false)
+  const [liveDemoError, setLiveDemoError] = useState<string | null>(null)
 
   // Track if we've already attempted live demo auto-login (prevent retry loops)
   const hasAttemptedLiveDemoLogin = useRef(false)
+  const retryCountRef = useRef(0)
 
   // Get auth status first
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
@@ -75,21 +77,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!statusData?.authenticated
   const user = statusData?.user || null
 
-  // Live Demo Auto-Login: Detect demo.dashboard.avoqado.io and auto-login (ONCE only)
+  // FAANG-style retry with exponential backoff
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  const isRetryableError = (error: any): boolean => {
+    const status = error.response?.status
+    // Retry on 5xx server errors or network errors
+    return !status || status >= 500
+  }
+
+  const attemptLiveDemoLogin = useCallback(async (): Promise<void> => {
+    const MAX_RETRIES = 3
+    const BASE_DELAY = 1000 // 1 second
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        retryCountRef.current = attempt
+        await liveDemoService.liveDemoAutoLogin()
+
+        // Success! Refetch auth status and clear errors
+        queryClient.invalidateQueries({ queryKey: ['status'] })
+        setLiveDemoError(null)
+        return
+      } catch (error: any) {
+        console.error(`Live demo auto-login attempt ${attempt + 1}/${MAX_RETRIES} failed:`, error)
+
+        const status = error.response?.status
+
+        // Non-retryable errors (4xx client errors)
+        if (status && status >= 400 && status < 500) {
+          if (status === 404) {
+            setLiveDemoError('Demo service is temporarily unavailable. Please try again later.')
+          } else {
+            setLiveDemoError('Unable to initialize demo. Please refresh the page.')
+          }
+          return // Don't retry
+        }
+
+        // Last attempt failed
+        if (attempt === MAX_RETRIES - 1) {
+          setLiveDemoError('Failed to initialize demo after multiple attempts. Please refresh the page.')
+          return
+        }
+
+        // Retryable error - wait with exponential backoff
+        if (isRetryableError(error)) {
+          const delay = BASE_DELAY * Math.pow(2, attempt) // 1s, 2s, 4s
+          console.log(`Retrying in ${delay}ms...`)
+          await sleep(delay)
+        } else {
+          // Unknown error - don't retry
+          setLiveDemoError('An unexpected error occurred. Please refresh the page.')
+          return
+        }
+      }
+    }
+  }, [queryClient])
+
+  // Live Demo Auto-Login: Detect demo.dashboard.avoqado.io and auto-login with retry
   useEffect(() => {
     const initializeLiveDemo = async () => {
-      // Only attempt auto-login ONCE per session, even if it fails
+      // Only attempt auto-login ONCE per session (user can manually retry via refresh)
       if (liveDemoService.isLiveDemoEnvironment() && !isAuthenticated && !hasAttemptedLiveDemoLogin.current) {
         hasAttemptedLiveDemoLogin.current = true
         setIsLiveDemoInitializing(true)
+        setLiveDemoError(null)
 
         try {
-          await liveDemoService.liveDemoAutoLogin()
-          // Refetch auth status after auto-login
-          queryClient.invalidateQueries({ queryKey: ['status'] })
-        } catch (error) {
-          console.error('Failed to initialize live demo:', error)
-          // Don't retry - just show error and let user refresh page manually
+          await attemptLiveDemoLogin()
         } finally {
           setIsLiveDemoInitializing(false)
         }
@@ -97,7 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     initializeLiveDemo()
-  }, [isAuthenticated, queryClient])
+  }, [isAuthenticated, attemptLiveDemoLogin])
 
   const userRole = useMemo(() => {
     if (user?.role === StaffRole.SUPERADMIN) return StaffRole.SUPERADMIN
@@ -360,8 +415,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [activeVenue],
   )
 
+  // Show loading screen with retry info
   if (isStatusLoading || isLiveDemoInitializing) {
-    return <LoadingScreen message={isLiveDemoInitializing ? 'Initializing live demo...' : t('common:verifying_session')} />
+    const retryMessage =
+      isLiveDemoInitializing && retryCountRef.current > 0
+        ? `Initializing live demo... (attempt ${retryCountRef.current + 1}/3)`
+        : isLiveDemoInitializing
+          ? 'Initializing live demo...'
+          : t('common:verifying_session')
+    return <LoadingScreen message={retryMessage} />
+  }
+
+  // Show error banner if live demo initialization failed
+  if (liveDemoError && liveDemoService.isLiveDemoEnvironment()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center space-y-4">
+            <div className="text-destructive text-lg font-semibold">Live Demo Initialization Failed</div>
+            <p className="text-muted-foreground">{liveDemoError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const value: AuthContextType = {

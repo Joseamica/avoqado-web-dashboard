@@ -315,7 +315,7 @@ export default function ModifierGroups() {
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                {t('common.cancel')}
+                {t('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -462,7 +462,7 @@ export default function ModifierGroups() {
 
                   <SheetFooter>
                     <Button type="submit" disabled={!form.formState.isDirty || saveModifierGroup.isPending} className="ml-auto">
-                      {saveModifierGroup.isPending ? t('common.saving') : t('common.save')}
+                      {saveModifierGroup.isPending ? t('saving') : t('save')}
                     </Button>
                   </SheetFooter>
                 </form>

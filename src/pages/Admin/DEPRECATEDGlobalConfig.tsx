@@ -304,7 +304,7 @@ export default function GlobalConfig() {
                           <AlertDialogDescription>{t('common.thisActionWillRestart')}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                           <AlertDialogAction onClick={handleRestartApp} disabled={isRestarting}>
                             {isRestarting ? (
                               <>
@@ -596,7 +596,7 @@ export default function GlobalConfig() {
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {t('common.saving')}
+              {t('saving')}
             </>
           ) : (
             <>

@@ -515,7 +515,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
             }}
             variant="ghost"
           >
-            {t('common.cancel')}
+            {t('cancel')}
           </Button>
           <Button
             onClick={() => {

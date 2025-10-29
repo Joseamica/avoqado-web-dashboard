@@ -807,7 +807,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       </div>
                       <div className="flex justify-between mt-4">
                         <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                          {t('common.cancel')}
+                          {t('cancel')}
                         </Button>
                         <Button
                           type="button"
@@ -925,7 +925,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                  {t('common.cancel')}
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" disabled={isLoading || uploading || !!imageForCrop}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1074,7 +1074,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </Button>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                    {t('common.cancel')}
+                    {t('cancel')}
                   </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1158,7 +1158,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     </Button>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                        {t('common.cancel')}
+                        {t('cancel')}
                       </Button>
                       <Button type="submit" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1299,7 +1299,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     </Button>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                        {t('common.cancel')}
+                        {t('cancel')}
                       </Button>
                       <Button type="submit" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -512,11 +512,11 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                    {t('common.cancel')}
+                    {t('cancel')}
                   </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {t('common.save')}
+                    {t('save')}
                   </Button>
                 </div>
               </DialogFooter>
@@ -545,7 +545,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
         title={t('recipes.delete')}
         description={`${t('common.confirm')}? ${t('recipes.delete')} "${product.name}"`}
         confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

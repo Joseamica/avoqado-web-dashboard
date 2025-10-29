@@ -9,7 +9,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 const Venues = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('venues')
   const { allVenues } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
@@ -33,18 +33,18 @@ const Venues = () => {
       {window.location.pathname.startsWith('/admin/venues') && (
         <Link to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
           <ArrowLeft className="h-4 w-4 mr-1" />
-          {t('venues.list.backToAdmin')}
+          {t('list.backToAdmin')}
         </Link>
       )}
       <div>
-        <h2 className="text-2xl font-bold text-foreground">{t('venues.list.title')}</h2>
-        <p className="text-muted-foreground">{t('venues.list.subtitle')}</p>
+        <h2 className="text-2xl font-bold text-foreground">{t('list.title')}</h2>
+        <p className="text-muted-foreground">{t('list.subtitle')}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('venues.list.cardTitle')}</CardTitle>
-          <CardDescription>{t('venues.list.cardDescription')}</CardDescription>
+          <CardTitle>{t('list.cardTitle')}</CardTitle>
+          <CardDescription>{t('list.cardDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-4">
@@ -52,7 +52,7 @@ const Venues = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder={t('venues.list.searchPlaceholder')}
+                placeholder={t('list.searchPlaceholder')}
                 className="pl-8 w-[250px]"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -63,11 +63,11 @@ const Venues = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('venues.list.columns.name')}</TableHead>
-                <TableHead>{t('venues.list.columns.id')}</TableHead>
-                <TableHead>{t('venues.list.columns.address')}</TableHead>
-                <TableHead>{t('venues.list.columns.status')}</TableHead>
-                <TableHead>{t('venues.list.columns.assignedUsers')}</TableHead>
+                <TableHead>{t('list.columns.name')}</TableHead>
+                <TableHead>{t('list.columns.id')}</TableHead>
+                <TableHead>{t('list.columns.address')}</TableHead>
+                <TableHead>{t('list.columns.status')}</TableHead>
+                <TableHead>{t('list.columns.assignedUsers')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -79,9 +79,9 @@ const Venues = () => {
                 >
                   <TableCell className="font-medium">{venue.name}</TableCell>
                   <TableCell className="text-muted-foreground">{venue.id}</TableCell>
-                  <TableCell>{venue.address || t('venues.list.noAddress')}</TableCell>
+                  <TableCell>{venue.address || t('list.noAddress')}</TableCell>
                   <TableCell>
-                    <Badge variant={venue.active ? 'default' : 'secondary'}>{venue.active ? t('venues.list.active') : t('venues.list.inactive')}</Badge>
+                    <Badge variant={venue.active ? 'default' : 'secondary'}>{venue.active ? t('list.active') : t('list.inactive')}</Badge>
                   </TableCell>
                   <TableCell>-</TableCell>
                 </TableRow>

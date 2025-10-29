@@ -35,6 +35,8 @@
   "routes": {
     "home": "Inicio",
     "menu": "Menú",
+    "menumaker": "Menú",
+    "overview": "Resumen",
     "inventory": "Inventario",
     "payments": "Pagos",
     "orders": "Órdenes",
@@ -45,6 +47,10 @@
     "editvenue": "Editar Local",
     "teams": "Equipos",
     "billing": "Facturación",
-    "limits": "Límites"
+    "limits": "Límites",
+    "categories": "Categorías",
+    "products": "Productos",
+    "users": "Usuarios",
+    "waiters": "Meseros"
   }
 }

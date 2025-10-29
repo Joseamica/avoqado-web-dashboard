@@ -35,6 +35,8 @@
   "routes": {
     "home": "Home",
     "menu": "Menu",
+    "menumaker": "Menu",
+    "overview": "Overview",
     "inventory": "Inventory",
     "payments": "Payments",
     "orders": "Orders",
@@ -45,6 +47,10 @@
     "editvenue": "Edit Venue",
     "teams": "Teams",
     "billing": "Billing",
-    "limits": "Limits"
+    "limits": "Limits",
+    "categories": "Categories",
+    "products": "Products",
+    "users": "Users",
+    "waiters": "Waiters"
   }
 }

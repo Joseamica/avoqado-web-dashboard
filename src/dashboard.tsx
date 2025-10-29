@@ -19,20 +19,20 @@ import { useTranslation } from 'react-i18next'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
-  payments: 'routes.payments',
-  orders: 'routes.orders',
-  home: 'routes.home',
-  menu: 'routes.menu',
-  settings: 'routes.settings',
-  shifts: 'routes.shifts',
-  categories: 'routes.categories',
-  products: 'routes.products',
-  users: 'routes.users',
-  waiters: 'routes.waiters',
-  tpv: 'routes.tpv',
-  overview: 'routes.overview',
-  menumaker: 'routes.menumaker',
-  editvenue: 'routes.editvenue',
+  payments: 'sidebar:routes.payments',
+  orders: 'sidebar:routes.orders',
+  home: 'sidebar:routes.home',
+  menu: 'sidebar:routes.menu',
+  settings: 'sidebar:routes.settings',
+  shifts: 'sidebar:routes.shifts',
+  categories: 'sidebar:routes.categories',
+  products: 'sidebar:routes.products',
+  users: 'sidebar:routes.users',
+  waiters: 'sidebar:routes.waiters',
+  tpv: 'sidebar:routes.tpv',
+  overview: 'sidebar:routes.overview',
+  menumaker: 'sidebar:routes.menumaker',
+  editvenue: 'sidebar:routes.editvenue',
 }
 
 export default function Dashboard() {

@@ -67,7 +67,7 @@ export function ThemeAwareForm() {
 
       {/* Form Actions */}
       <div className="flex justify-end space-x-3">
-        <Button variant="outline" className="border-border">{t('common.cancel')}</Button>
+        <Button variant="outline" className="border-border">{t('cancel')}</Button>
         <Button type="submit">{t('common.submit')}</Button>
       </div>
     </form>
@@ -177,7 +177,7 @@ export function ThemeAwareModal() {
 
           {/* Modal Footer */}
           <div className="flex justify-end space-x-3 p-6 border-t border-border">
-            <Button variant="outline">{t('common.cancel')}</Button>
+            <Button variant="outline">{t('cancel')}</Button>
             <Button>{t('common.confirm')}</Button>
           </div>
         </div>

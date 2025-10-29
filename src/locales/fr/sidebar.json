@@ -33,6 +33,8 @@
   "routes": {
     "home": "Accueil",
     "menu": "Menu",
+    "menumaker": "Menu",
+    "overview": "Aperçu",
     "inventory": "Inventaire",
     "payments": "Paiements",
     "orders": "Commandes",
@@ -43,6 +45,10 @@
     "editvenue": "Modifier l'établissement",
     "teams": "Équipes",
     "billing": "Facturation",
-    "limits": "Limites"
+    "limits": "Limites",
+    "categories": "Catégories",
+    "products": "Produits",
+    "users": "Utilisateurs",
+    "waiters": "Serveurs"
   }
 }

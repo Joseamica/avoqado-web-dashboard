@@ -40,5 +40,11 @@
   },
   "header": {
     "superadmin": "Superadmin"
+  },
+  "venuesSwitcher": {
+    "title": "Sucursales",
+    "addVenue": "Agregar sucursal",
+    "selectVenue": "Seleccionar sucursal",
+    "current": "(actual)"
   }
 }

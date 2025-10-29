@@ -631,7 +631,7 @@ export default function RawMaterials() {
         title={t('rawMaterials.delete')}
         description={`${t('common.confirm')}? ${t('rawMaterials.delete')} "${selectedMaterial?.name}"`}
         confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />

@@ -400,11 +400,11 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-              {t('common.cancel')}
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('common.save')}
+              {t('save')}
             </Button>
           </DialogFooter>
         </form>

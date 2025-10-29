@@ -456,7 +456,7 @@ export default function EditVenue() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteVenue.mutate()}
               disabled={!isDeleteConfirmed}
@@ -834,10 +834,10 @@ export default function EditVenue() {
                               </div>
                               <div className="flex justify-between mt-4">
                                 <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                                  {t('venues.addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
+                                  {t('addDialog.upload.cancel', { defaultValue: 'Cancelar' })}
                                 </Button>
                                 <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
-                                  {t('venues.addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
+                                  {t('addDialog.upload.confirm', { defaultValue: 'Confirmar' })}
                                 </Button>
                               </div>
                             </div>

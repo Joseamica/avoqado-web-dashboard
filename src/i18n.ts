@@ -69,6 +69,9 @@ import accountFr from '@/locales/fr/account.json'
 import legalEn from '@/locales/en/legal.json'
 import legalEs from '@/locales/es/legal.json'
 import legalFr from '@/locales/fr/legal.json'
+import venuesEn from '@/locales/en/venues.json'
+import venuesEs from '@/locales/es/venues.json'
+import venuesFr from '@/locales/fr/venues.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -335,6 +338,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'legal', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', venuesEn],
+    ['es', venuesEs],
+    ['fr', venuesFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'venues', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

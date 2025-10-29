@@ -236,7 +236,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                       setValue('rawMaterialId', '')
                     }}
                   >
-                    {t('common.cancel')}
+                    {t('cancel')}
                   </Button>
                 </div>
               </div>
@@ -348,11 +348,11 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
               onClick={() => onOpenChange(false)}
               disabled={addIngredientMutation.isPending}
             >
-              {t('common.cancel')}
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={!selectedRawMaterial || addIngredientMutation.isPending}>
               {addIngredientMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('common.save')}
+              {t('save')}
             </Button>
           </DialogFooter>
         </form>
