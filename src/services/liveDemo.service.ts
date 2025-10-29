@@ -14,7 +14,7 @@ import api from '@/api'
  */
 export async function liveDemoAutoLogin(): Promise<void> {
   try {
-    await api.get('/live-demo/auto-login')
+    await api.get('/api/v1/live-demo/auto-login')
   } catch (error) {
     console.error('Live demo auto-login failed:', error)
     throw error
