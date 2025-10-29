@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next'
 // We don't need to import unused types
 
 const ProfitAnalyticsDashboard: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('superadmin')
   const [dateRange, setDateRange] = useState({
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),

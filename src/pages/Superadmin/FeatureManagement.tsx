@@ -39,7 +39,7 @@ import { useTranslation } from 'react-i18next'
 // Data now fetched from API via React Query
 
 const FeatureManagement: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('superadmin')
   const { data: features = [], isLoading } = useQuery({
     queryKey: ['superadmin-features'],
     queryFn: superadminAPI.getAllFeatures,
@@ -309,7 +309,7 @@ const FeatureManagement: React.FC = () => {
 const CreateFeatureForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')

@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 
 // Error component
 const DashboardError: React.FC<{ error: Error | null; refetch: () => void }> = ({ error, refetch }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   return (
     <div className="flex items-center justify-center min-h-96">
       <div className="text-center">
@@ -66,7 +66,7 @@ const DashboardSkeleton = () => (
 )
 
 const SuperadminDashboard: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   const { data: dashboardData, isLoading, isError, error, refetch, isFetching } = useSuperadminDashboard()
 
   const refreshAllData = useRefreshSuperadminData()

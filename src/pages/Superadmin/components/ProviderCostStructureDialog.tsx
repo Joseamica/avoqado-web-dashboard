@@ -36,7 +36,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
   merchantAccountId: initialMerchantAccountId,
   onSave,
 }) => {
-  const { t: _t } = useTranslation()
+  const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
 
   // Fetch merchant accounts for dropdown

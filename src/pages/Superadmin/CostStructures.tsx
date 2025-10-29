@@ -13,7 +13,7 @@ import { ProviderCostStructureDialog } from './components/ProviderCostStructureD
 import { useToast } from '@/hooks/use-toast'
 
 const CostStructures: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: costStructures = [], isLoading } = useQuery({

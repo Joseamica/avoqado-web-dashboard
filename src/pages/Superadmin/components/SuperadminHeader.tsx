@@ -48,7 +48,7 @@ const formatNotificationTime = (t: (key: string, opts?: any) => string, timestam
 const SuperadminHeader: React.FC = () => {
   const { user, logout, allVenues } = useAuth()
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
 
   // Search state
   const [searchTerm, setSearchTerm] = useState('')

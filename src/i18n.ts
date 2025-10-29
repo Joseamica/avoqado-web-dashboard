@@ -48,6 +48,9 @@ import inviteAcceptEs from '@/locales/es/inviteAccept.json'
 import teamEn from '@/locales/en/team.json'
 import teamEs from '@/locales/es/team.json'
 import teamFr from '@/locales/fr/team.json'
+import homeEn from '@/locales/en/home.json'
+import homeEs from '@/locales/es/home.json'
+import homeFr from '@/locales/fr/home.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -78,16 +81,16 @@ const simpleDetector = {
 }
 
 // Load base translation namespace from locale JSON files
-// Base namespace includes all general dashboard translations
+// Base namespace uses common.json for shared strings across all features
 const resources = {
   en: {
-    translation: superadminEn as Record<string, unknown>,
+    translation: commonEn as Record<string, unknown>,
   },
   es: {
-    translation: superadminEs as Record<string, unknown>,
+    translation: commonEs as Record<string, unknown>,
   },
   fr: {
-    translation: superadminFr as Record<string, unknown>,
+    translation: commonFr as Record<string, unknown>,
   },
 }
 
@@ -172,6 +175,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'common', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', superadminEn],
+    ['es', superadminEs],
+    ['fr', superadminFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'superadmin', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
 
 const VenuePricing: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: pricingStructures = [], isLoading } = useQuery({

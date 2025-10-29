@@ -54,7 +54,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
   venueId: initialVenueId,
   onSave,
 }) => {
-  const { t: _t } = useTranslation()
+  const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
   const [providerCost, setProviderCost] = useState<any>(null)
 

@@ -25,7 +25,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 const SuperadminSidebar: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   const { t: tSidebar } = useTranslation('sidebar')
   const navigationItems = [
     {
