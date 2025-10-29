@@ -1,65 +1,61 @@
-import api from '@/api';
-import { StaffRole } from '@/types';
+import api from '@/api'
+import { StaffRole } from '@/types'
 
 export interface LoginDto {
-  email: string;
-  password: string;
-  venueId?: string;
+  email: string
+  password: string
+  venueId?: string
 }
 
 export interface AuthResponse {
-  message: string;
+  message: string
   staff: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    emailVerified: boolean;
-    photoUrl: string | null;
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    emailVerified: boolean
+    photoUrl: string | null
     venues: {
-      role: StaffRole;
+      role: StaffRole
       venue: {
-        id: string;
-        name: string;
-        slug: string;
-        logo: string | null;
-      };
-    }[];
-  };
+        id: string
+        name: string
+        slug: string
+        logo: string | null
+      }
+    }[]
+  }
 }
 
 export interface AuthStatusResponse {
-  authenticated: boolean;
+  authenticated: boolean
   user: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-    isVerified: boolean;
-    photoUrl: string | null;
+    id: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+    isVerified: boolean
+    photoUrl: string | null
     venues: {
-      id: string;
-      name: string;
-      slug: string;
-      logo: string | null;
-      role: StaffRole;
-      isDemo?: boolean;
+      id: string
+      name: string
+      slug: string
+      logo: string | null
+      role: StaffRole
+      isOnboardingDemo?: boolean
       features?: {
-        active: boolean;
+        active: boolean
         feature: {
-          code: string;
-          name: string;
-        };
-      }[];
-    }[];
-  } | null;
+          code: string
+          name: string
+        }
+      }[]
+    }[]
+  } | null
 }
 
-export const login = async (credentials: { 
-  email: string
-  password: string 
-  venueId?: string 
-}) => {
+export const login = async (credentials: { email: string; password: string; venueId?: string }) => {
   const response = await api.post('/api/v1/dashboard/auth/login', credentials)
   return response.data
 }
@@ -90,7 +86,9 @@ export const googleOAuthCallback = async (code: string): Promise<AuthResponse> =
   return response.data
 }
 
-export const checkGoogleInvitation = async (email: string): Promise<{
+export const checkGoogleInvitation = async (
+  email: string,
+): Promise<{
   hasInvitation: boolean
   venue?: {
     id: string

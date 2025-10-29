@@ -120,7 +120,7 @@ export interface CompleteOnboardingResponse {
     id: string
     slug: string
     name: string
-    isDemo: boolean
+    isOnboardingDemo: boolean
   }
   summary: {
     categoriesCreated: number
@@ -129,10 +129,7 @@ export interface CompleteOnboardingResponse {
   }
 }
 
-export const completeOnboarding = async (
-  organizationId: string,
-  stripePaymentMethodId?: string,
-): Promise<CompleteOnboardingResponse> => {
+export const completeOnboarding = async (organizationId: string, stripePaymentMethodId?: string): Promise<CompleteOnboardingResponse> => {
   const response = await api.post(`/api/v1/onboarding/organizations/${organizationId}/complete`, {
     stripePaymentMethodId,
   })
