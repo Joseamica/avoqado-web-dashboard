@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 export default function Orders() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('orders')
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
@@ -46,10 +46,10 @@ export default function Orders() {
     () => [
       {
         accessorKey: 'createdAt',
-        meta: { label: t('orders.columns.date') },
+        meta: { label: t('columns.date') },
         header: () => (
           <div className="flex flex-col">
-            <span>{t('orders.columns.date')}</span>
+            <span>{t('columns.date')}</span>
             <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
           </div>
         ),
@@ -69,29 +69,29 @@ export default function Orders() {
       {
         // CAMBIO: `folio` ahora es `orderNumber`
         accessorKey: 'orderNumber',
-        meta: { label: t('orders.columns.orderNumber') },
-        header: t('orders.columns.orderNumber'),
+        meta: { label: t('columns.orderNumber') },
+        header: t('columns.orderNumber'),
         cell: info => <>{(info.getValue() as string) || '-'}</>,
       },
       {
         // CAMBIO: `billName` ahora es `customerName`
         accessorKey: 'customerName',
-        meta: { label: t('orders.columns.customer') },
-        header: t('orders.columns.customer'),
-        cell: info => <>{(info.getValue() as string) || t('orders.counter')}</>,
+        meta: { label: t('columns.customer') },
+        header: t('columns.customer'),
+        cell: info => <>{(info.getValue() as string) || t('counter')}</>,
       },
       {
         // CAMBIO: `waiterName` ahora se obtiene del objeto anidado `createdBy`
         accessorFn: row => (row.createdBy ? `${row.createdBy.firstName}` : '-'),
         id: 'waiterName',
-        meta: { label: t('orders.columns.waiter') },
-        header: t('orders.columns.waiter'),
+        meta: { label: t('columns.waiter') },
+        header: t('columns.waiter'),
       },
       {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
         accessorKey: 'status',
-        meta: { label: t('orders.columns.status') },
-        header: t('orders.columns.status'),
+        meta: { label: t('columns.status') },
+        header: t('columns.status'),
         cell: ({ cell }) => {
           const status = cell.getValue() as string
 
@@ -107,12 +107,12 @@ export default function Orders() {
 
           // Mapa de traducción para los nuevos estados
           const statusMap: Record<string, string> = {
-            PENDING: t('orders.statuses.PENDING'),
-            CONFIRMED: t('orders.statuses.CONFIRMED'),
-            PREPARING: t('orders.statuses.PREPARING'),
-            READY: t('orders.statuses.READY'),
-            COMPLETED: t('orders.statuses.COMPLETED'),
-            CANCELLED: t('orders.statuses.CANCELLED'),
+            PENDING: t('statuses.PENDING'),
+            CONFIRMED: t('statuses.CONFIRMED'),
+            PREPARING: t('statuses.PREPARING'),
+            READY: t('statuses.READY'),
+            COMPLETED: t('statuses.COMPLETED'),
+            CANCELLED: t('statuses.CANCELLED'),
           }
 
           return (
@@ -127,8 +127,8 @@ export default function Orders() {
       {
         // CAMBIO: El total es un campo numérico directo, no un string.
         accessorKey: 'total',
-        meta: { label: t('orders.columns.total') },
-        header: t('orders.columns.total'),
+        meta: { label: t('columns.total') },
+        header: t('columns.total'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           // `Currency` probablemente espera centavos, y total es un valor decimal.
@@ -159,12 +159,12 @@ export default function Orders() {
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('orders.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('title')}</h1>
       </div>
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>
-          {t('orders.errorPrefix')}: {(error as Error).message}
+          {t('errorPrefix')}: {(error as Error).message}
         </div>
       )}
 
@@ -174,7 +174,7 @@ export default function Orders() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('orders.searchPlaceholder')}
+        searchPlaceholder={t('searchPlaceholder')}
         onSearch={handleSearch}
         tableId="orders:main"
         clickableRow={row => ({

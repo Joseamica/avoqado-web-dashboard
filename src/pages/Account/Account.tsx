@@ -60,8 +60,8 @@ export default function Account() {
     },
     onSuccess: () => {
       toast({
-        title: t('account.toast.success.title'),
-        description: t('account.toast.success.description'),
+        title: t('toast.success.title'),
+        description: t('toast.success.description'),
       })
       // Clear password fields after successful update
       form.setValue('old_password', '')
@@ -72,7 +72,7 @@ export default function Account() {
     onError: (error: any) => {
       toast({
         title: t('common:error'),
-        description: error.response?.data?.message || t('account.toast.error.description'),
+        description: error.response?.data?.message || t('toast.error.description'),
         variant: 'destructive',
       })
     },
@@ -87,9 +87,9 @@ export default function Account() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <User className="h-6 w-6" />
-          {t('account.title')}
+          {t('title')}
         </h1>
-        <p className="text-muted-foreground mt-2">{t('account.subtitle')}</p>
+        <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -99,15 +99,15 @@ export default function Account() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                {t('account.accountInfo.title')}
+                {t('accountInfo.title')}
               </CardTitle>
-              <CardDescription>{t('account.accountInfo.description')}</CardDescription>
+              <CardDescription>{t('accountInfo.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">{t('account.accountInfo.email')}</p>
+                  <p className="text-sm font-medium">{t('accountInfo.email')}</p>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default function Account() {
               <div className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">{t('account.accountInfo.role')}</p>
+                  <p className="text-sm font-medium">{t('accountInfo.role')}</p>
                   <Badge variant="secondary">{user?.role}</Badge>
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function Account() {
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">{t('account.accountInfo.memberSince')}</p>
+                  <p className="text-sm font-medium">{t('accountInfo.memberSince')}</p>
                   <p className="text-sm text-muted-foreground">
                     {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(localeCode, {
                       year: 'numeric',
@@ -138,7 +138,7 @@ export default function Account() {
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{t('account.accountInfo.lastLogin')}</p>
+                    <p className="text-sm font-medium">{t('accountInfo.lastLogin')}</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(user.lastLogin).toLocaleString(localeCode, {
                         year: 'numeric',
@@ -159,8 +159,8 @@ export default function Account() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>{t('account.editProfile.title')}</CardTitle>
-              <CardDescription>{t('account.editProfile.description')}</CardDescription>
+              <CardTitle>{t('editProfile.title')}</CardTitle>
+              <CardDescription>{t('editProfile.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -172,7 +172,7 @@ export default function Account() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('account.editProfile.firstName')}</FormLabel>
+                          <FormLabel>{t('editProfile.firstName')}</FormLabel>
                           <FormControl>
                             <Input {...field} disabled={editProfile.isPending} />
                           </FormControl>
@@ -187,7 +187,7 @@ export default function Account() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('account.editProfile.lastName')}</FormLabel>
+                          <FormLabel>{t('editProfile.lastName')}</FormLabel>
                           <FormControl>
                             <Input {...field} disabled={editProfile.isPending} />
                           </FormControl>
@@ -203,7 +203,7 @@ export default function Account() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('account.editProfile.email')}</FormLabel>
+                        <FormLabel>{t('editProfile.email')}</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" disabled={editProfile.isPending} />
                         </FormControl>
@@ -218,7 +218,7 @@ export default function Account() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('account.editProfile.phone')}</FormLabel>
+                        <FormLabel>{t('editProfile.phone')}</FormLabel>
                         <FormControl>
                           <Input {...field} type="tel" disabled={editProfile.isPending} />
                         </FormControl>
@@ -233,11 +233,11 @@ export default function Account() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-medium">{t('account.password.title')}</h3>
-                        <p className="text-sm text-muted-foreground">{t('account.password.description')}</p>
+                        <h3 className="text-lg font-medium">{t('password.title')}</h3>
+                        <p className="text-sm text-muted-foreground">{t('password.description')}</p>
                       </div>
                       <Button ref={triggerRef} type="button" variant="outline" onClick={() => setIsDialogOpen(true)}>
-                        {t('account.password.changeButton')}
+                        {t('password.changeButton')}
                       </Button>
                     </div>
                   </div>
@@ -278,17 +278,17 @@ export default function Account() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <DialogHeader>
-                <DialogTitle>{t('account.password.dialog.title')}</DialogTitle>
+                <DialogTitle>{t('password.dialog.title')}</DialogTitle>
               </DialogHeader>
 
               {/* Password fields */}
               <FormField
                 control={form.control}
                 name="old_password"
-                rules={{ required: t('account.password.dialog.currentPasswordRequired') }}
+                rules={{ required: t('password.dialog.currentPasswordRequired') }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('account.password.dialog.currentPassword')}</FormLabel>
+                    <FormLabel>{t('password.dialog.currentPassword')}</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
@@ -300,10 +300,10 @@ export default function Account() {
               <FormField
                 control={form.control}
                 name="password"
-                rules={{ required: t('account.password.dialog.newPasswordRequired') }}
+                rules={{ required: t('password.dialog.newPasswordRequired') }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('account.password.dialog.newPassword')}</FormLabel>
+                    <FormLabel>{t('password.dialog.newPassword')}</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>

@@ -13,7 +13,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
 export default function Shifts() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('shifts')
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
@@ -41,29 +41,29 @@ export default function Shifts() {
   const columns: ColumnDef<any, unknown>[] = [
     {
       accessorFn: row => {
-        return row.endTime ? t('shifts.closed') : t('shifts.open')
+        return row.endTime ? t('closed') : t('open')
       },
       id: 'active',
       sortDescFirst: true,
-      header: t('shifts.columns.status'),
+      header: t('columns.status'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
 
-        if (value === t('shifts.open')) {
+        if (value === t('open')) {
           return (
             <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
-              {t('shifts.open')}
+              {t('open')}
             </span>
           )
         } else {
-          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('shifts.closed')}</span>
+          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('closed')}</span>
         }
       },
     },
     {
       accessorKey: 'id',
       sortDescFirst: true,
-      header: t('shifts.columns.shiftId'),
+      header: t('columns.shiftId'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
         return value.slice(-8) // Show last 8 characters of ID
@@ -74,7 +74,7 @@ export default function Shifts() {
       sortDescFirst: true,
       header: () => (
         <div className="flex flex-col">
-          <span>{t('shifts.columns.openTime')}</span>
+          <span>{t('columns.openTime')}</span>
           <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
         </div>
       ),
@@ -99,7 +99,7 @@ export default function Shifts() {
       sortDescFirst: true,
       header: () => (
         <div className="flex flex-col">
-          <span>{t('shifts.columns.closeTime')}</span>
+          <span>{t('columns.closeTime')}</span>
           <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
         </div>
       ),
@@ -124,7 +124,7 @@ export default function Shifts() {
     {
       accessorKey: 'totalTips',
       id: 'totalTips',
-      header: t('shifts.columns.totalTip'),
+      header: t('columns.totalTip'),
       cell: ({ row }) => {
         // Robust locale-aware parse: handles "1,231.00", "1.231,00", and plain numbers
         const parseAmount = (v: any): number => {
@@ -206,7 +206,7 @@ export default function Shifts() {
     {
       accessorKey: 'totalSales',
       id: 'totalSales',
-      header: t('shifts.columns.subtotal'),
+      header: t('columns.subtotal'),
       cell: ({ cell }) => {
         const value = cell.getValue() as number
         return value ? Currency(value) : Currency(0)
@@ -222,7 +222,7 @@ export default function Shifts() {
         return totalSales + totalTips
       },
       id: 'totalAmount',
-      header: t('shifts.columns.total'),
+      header: t('columns.total'),
       cell: ({ cell }) => {
         const value = cell.getValue() as number
         return value ? Currency(value) : Currency(0)
@@ -253,7 +253,7 @@ export default function Shifts() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('shifts.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('title')}</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}

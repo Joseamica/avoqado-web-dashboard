@@ -54,7 +54,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function OrderId() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('orders')
   const { orderId } = useParams<{ orderId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
@@ -108,7 +108,7 @@ export default function OrderId() {
     navigator.clipboard.writeText(text)
     toast({
       title: t('common.copied'),
-      description: t('orders.detail.copiedToClipboard', { label }),
+      description: t('detail.copiedToClipboard', { label }),
     })
   }
 
@@ -136,8 +136,8 @@ export default function OrderId() {
     mutationFn: (updatedOrder: Partial<OrderType>) => orderService.updateOrder(venueId, orderId, updatedOrder),
     onSuccess: () => {
       toast({
-        title: t('orders.detail.toast.updatedTitle'),
-        description: t('orders.detail.toast.updatedDesc'),
+        title: t('detail.toast.updatedTitle'),
+        description: t('detail.toast.updatedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['order', venueId, orderId] })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] }) // Invalida la lista también
@@ -145,8 +145,8 @@ export default function OrderId() {
     },
     onError: (error: any) => {
       toast({
-        title: t('orders.detail.toast.updateErrorTitle'),
-        description: error.response?.data?.message || t('orders.detail.toast.updateErrorDesc'),
+        title: t('detail.toast.updateErrorTitle'),
+        description: error.response?.data?.message || t('detail.toast.updateErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -156,16 +156,16 @@ export default function OrderId() {
     mutationFn: () => orderService.deleteOrder(venueId, orderId),
     onSuccess: () => {
       toast({
-        title: t('orders.detail.toast.deletedTitle'),
-        description: t('orders.detail.toast.deletedDesc'),
+        title: t('detail.toast.deletedTitle'),
+        description: t('detail.toast.deletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
       navigate(`/venues/${venueId}/orders`)
     },
     onError: (error: any) => {
       toast({
-        title: t('orders.detail.toast.deleteErrorTitle'),
-        description: error.response?.data?.message || t('orders.detail.toast.deleteErrorDesc'),
+        title: t('detail.toast.deleteErrorTitle'),
+        description: error.response?.data?.message || t('detail.toast.deleteErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -213,7 +213,7 @@ export default function OrderId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground">{t('orders.detail.loading')}</p>
+        <p className="text-muted-foreground">{t('detail.loading')}</p>
       </div>
     )
   }
@@ -222,9 +222,9 @@ export default function OrderId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <AlertCircle className="h-16 w-16 text-muted-foreground" />
-        <p className="text-lg text-muted-foreground">{t('orders.detail.notFound')}</p>
+        <p className="text-lg text-muted-foreground">{t('detail.notFound')}</p>
         <Button asChild>
-          <Link to={from}>{t('orders.detail.backToOrders')}</Link>
+          <Link to={from}>{t('detail.backToOrders')}</Link>
         </Button>
       </div>
     )
@@ -252,12 +252,12 @@ export default function OrderId() {
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{t('orders.detail.backToList', { defaultValue: 'Volver a órdenes' })}</TooltipContent>
+                <TooltipContent>{t('detail.backToList', { defaultValue: 'Volver a órdenes' })}</TooltipContent>
               </Tooltip>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">{t('orders.detail.title', { number: order.orderNumber })}</h1>
+                <h1 className="text-xl font-semibold text-foreground">{t('detail.title', { number: order.orderNumber })}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {t('orders.detail.idLabel', { defaultValue: 'ID' })}:
+                  {t('detail.idLabel', { defaultValue: 'ID' })}:
                   <span className="font-mono text-xs break-all select-all max-w-[200px] inline-block">{order.id}</span>
                 </p>
               </div>
@@ -283,7 +283,7 @@ export default function OrderId() {
                 </Badge>
               )}
               <div className="text-right">
-                <p className="text-sm text-muted-foreground">{t('orders.detail.totals.total', { defaultValue: 'Total' })}</p>
+                <p className="text-sm text-muted-foreground">{t('detail.totals.total', { defaultValue: 'Total' })}</p>
                 <p className="text-lg font-bold text-foreground">{Currency(order.total || 0)}</p>
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function OrderId() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      {t('orders.detail.overview.subtotal', { defaultValue: 'Subtotal' })}
+                      {t('detail.overview.subtotal', { defaultValue: 'Subtotal' })}
                     </p>
                     <p className="text-2xl font-bold text-foreground">{Currency(order.subtotal || 0)}</p>
                   </div>
@@ -313,7 +313,7 @@ export default function OrderId() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      {t('orders.detail.overview.tips', { defaultValue: 'Propinas' })}
+                      {t('detail.overview.tips', { defaultValue: 'Propinas' })}
                     </p>
                     <p className="text-2xl font-bold text-foreground">{Currency(order.tipAmount || 0)}</p>
                     <p className="text-xs text-muted-foreground">
@@ -330,10 +330,10 @@ export default function OrderId() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      {t('orders.detail.overview.items', { defaultValue: 'Artículos' })}
+                      {t('detail.overview.items', { defaultValue: 'Artículos' })}
                     </p>
                     <p className="text-2xl font-bold text-foreground">{totalItems}</p>
-                    <p className="text-xs text-muted-foreground">{t('orders.detail.overview.uniqueProducts', { count: itemsCount })}</p>
+                    <p className="text-xs text-muted-foreground">{t('detail.overview.uniqueProducts', { count: itemsCount })}</p>
                   </div>
                   <Utensils className="h-8 w-8 text-purple-500" />
                 </div>
@@ -345,10 +345,10 @@ export default function OrderId() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
-                      {t('orders.detail.overview.table', { defaultValue: 'Mesa' })}
+                      {t('detail.overview.table', { defaultValue: 'Mesa' })}
                     </p>
                     <p className="text-lg font-bold text-foreground">{order.table?.number || 'N/A'}</p>
-                    <p className="text-xs text-muted-foreground">{order.table?.area?.name || t('orders.detail.overview.noArea')}</p>
+                    <p className="text-xs text-muted-foreground">{order.table?.area?.name || t('detail.overview.noArea')}</p>
                   </div>
                   <MapPin className="h-8 w-8 text-orange-500" />
                 </div>
@@ -364,7 +364,7 @@ export default function OrderId() {
                   <div className="flex items-center space-x-2">
                     <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <span className="font-medium text-foreground">
-                      {t('orders.detail.actions.title', { defaultValue: 'Acciones de la Orden' })}
+                      {t('detail.actions.title', { defaultValue: 'Acciones de la Orden' })}
                     </span>
                   </div>
                   <div className="flex space-x-2">
@@ -418,7 +418,7 @@ export default function OrderId() {
                       onClick={() => copyToClipboard(order.id || '', 'ID de la orden')}
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      {t('orders.detail.actions.copyId')}
+                      {t('detail.actions.copyId')}
                     </Button>
 
                     <Button
@@ -438,7 +438,7 @@ export default function OrderId() {
                       }}
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      {t('orders.detail.actions.export')}
+                      {t('detail.actions.export')}
                     </Button>
 
                     {/* Delete Action (Only for SUPERADMIN/OWNER) */}
@@ -457,7 +457,7 @@ export default function OrderId() {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
-                            <AlertDialogDescription>{t('orders.detail.deleteWarning')}</AlertDialogDescription>
+                            <AlertDialogDescription>{t('detail.deleteWarning')}</AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
@@ -482,16 +482,16 @@ export default function OrderId() {
                 <CardHeader className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span>{t('orders.detail.sections.orderInfo')}</span>
+                    <span>{t('detail.sections.orderInfo')}</span>
                   </CardTitle>
-                  <CardDescription>{t('orders.detail.sections.orderInfoDesc')}</CardDescription>
+                  <CardDescription>{t('detail.sections.orderInfoDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1">
                         <Calendar className="h-4 w-4" />
-                        <span>{t('orders.detail.fields.dateTime')}</span>
+                        <span>{t('detail.fields.dateTime')}</span>
                       </Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="font-mono text-sm">{formatDate(order.createdAt)}</p>
@@ -499,49 +499,49 @@ export default function OrderId() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.orderNumber')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.orderNumber')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="font-mono text-sm">{order.orderNumber}</p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.customer')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.customer')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         {isEditing ? (
                           <Input
                             value={editedOrder?.customerName || ''}
                             onChange={e => handleInputChange('customerName', e.target.value)}
-                            placeholder={t('orders.detail.fields.customerPlaceholder')}
+                            placeholder={t('detail.fields.customerPlaceholder')}
                             className="border-0 p-0 h-auto bg-transparent"
                           />
                         ) : (
-                          <p className="text-sm">{order.customerName || t('orders.counter', { defaultValue: 'Mostrador' })}</p>
+                          <p className="text-sm">{order.customerName || t('counter', { defaultValue: 'Mostrador' })}</p>
                         )}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.table')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.table')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
-                        <p className="text-sm">{order.table?.number || t('orders.detail.fields.noTable')}</p>
+                        <p className="text-sm">{order.table?.number || t('detail.fields.noTable')}</p>
                         {order.table?.area?.name && <p className="text-xs text-muted-foreground">{order.table.area.name}</p>}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.waiter')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.waiter')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
                         <p className="text-sm">
-                          {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : t('orders.detail.fields.noWaiter')}
+                          {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : t('detail.fields.noWaiter')}
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('orders.detail.fields.orderType')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('detail.fields.orderType')}</Label>
                       <div className="p-3 bg-muted rounded-md border border-border">
-                        <p className="text-sm">{order.type || t('orders.detail.fields.noType')}</p>
+                        <p className="text-sm">{order.type || t('detail.fields.noType')}</p>
                       </div>
                     </div>
                   </div>
@@ -554,9 +554,9 @@ export default function OrderId() {
                   <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Utensils className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      <span>{t('orders.detail.sections.items')}</span>
+                      <span>{t('detail.sections.items')}</span>
                     </CardTitle>
-                    <CardDescription>{t('orders.detail.sections.itemsDesc')}</CardDescription>
+                    <CardDescription>{t('detail.sections.itemsDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-3">
@@ -570,11 +570,11 @@ export default function OrderId() {
                               <Badge variant="secondary" className="font-medium">
                                 {item.quantity}x
                               </Badge>
-                              <span className="font-medium text-foreground">{item.product?.name || t('orders.detail.items.productNotAvailable')}</span>
+                              <span className="font-medium text-foreground">{item.product?.name || t('detail.items.productNotAvailable')}</span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                              <span>{Currency(item.unitPrice || 0)} {t('orders.detail.items.each')}</span>
-                              {item.modifiers && item.modifiers.length > 0 && <span>{t('orders.detail.items.modifiers', { count: item.modifiers.length })}</span>}
+                              <span>{Currency(item.unitPrice || 0)} {t('detail.items.each')}</span>
+                              {item.modifiers && item.modifiers.length > 0 && <span>{t('detail.items.modifiers', { count: item.modifiers.length })}</span>}
                             </div>
                           </div>
                           <div className="text-right">
@@ -593,9 +593,9 @@ export default function OrderId() {
                   <CardHeader className="bg-gradient-to-r from-muted to-purple-50 dark:to-purple-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <span>{t('orders.detail.sections.payments')}</span>
+                      <span>{t('detail.sections.payments')}</span>
                     </CardTitle>
-                    <CardDescription>{t('orders.detail.sections.paymentsDesc')}</CardDescription>
+                    <CardDescription>{t('detail.sections.paymentsDesc')}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6">
                     <div className="space-y-3">
@@ -612,8 +612,8 @@ export default function OrderId() {
                               <span className="text-sm text-muted-foreground">ID: {payment.id.slice(0, 8)}...</span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                              <span>{t('orders.detail.payments.base')}: {Currency(payment.amount)}</span>
-                              <span>{t('orders.detail.payments.tip')}: {Currency(payment.tipAmount)}</span>
+                              <span>{t('detail.payments.base')}: {Currency(payment.amount)}</span>
+                              <span>{t('detail.payments.tip')}: {Currency(payment.tipAmount)}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -625,7 +625,7 @@ export default function OrderId() {
                               onClick={() => navigate(`/venues/${venueId}/payments/${payment.id}`)}
                             >
                               <Eye className="h-3 w-3 mr-1" />
-                              {t('orders.detail.payments.view')}
+                              {t('detail.payments.view')}
                             </Button>
                           </div>
                         </div>
@@ -643,7 +643,7 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <StatusIcon className={`h-5 w-5 ${orderStatus.color}`} />
-                    <span>{t('orders.detail.sidebar.statusTitle')}</span>
+                    <span>{t('detail.sidebar.statusTitle')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -659,7 +659,7 @@ export default function OrderId() {
                       {getStatusText(order.status)}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {t('orders.detail.sidebar.lastUpdate')}: {order.updatedAt ? formatDate(order.updatedAt) : t('orders.detail.sidebar.notAvailable')}
+                      {t('detail.sidebar.lastUpdate')}: {order.updatedAt ? formatDate(order.updatedAt) : t('detail.sidebar.notAvailable')}
                     </p>
                   </div>
                 </CardContent>
@@ -670,29 +670,29 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <DollarSign className="h-5 w-5 text-green-500" />
-                    <span>{t('orders.detail.sidebar.financialSummary')}</span>
+                    <span>{t('detail.sidebar.financialSummary')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium text-muted-foreground">{t('orders.detail.overview.subtotal')}</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t('detail.overview.subtotal')}</span>
                       <span className="text-lg font-bold">{Currency(order.subtotal || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                       <div>
-                        <span className="text-sm font-medium text-muted-foreground">{t('orders.detail.overview.tips')}</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t('detail.overview.tips')}</span>
                         <p className="text-xs text-muted-foreground">
                           {order.subtotal && order.subtotal > 0
-                            ? t('orders.detail.sidebar.tipsPercent', { percent: (((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1) })
-                            : t('orders.detail.sidebar.tipsPercent', { percent: '0.0' })}
+                            ? t('detail.sidebar.tipsPercent', { percent: (((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1) })
+                            : t('detail.sidebar.tipsPercent', { percent: '0.0' })}
                         </p>
                       </div>
                       <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{Currency(order.tipAmount || 0)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border-2 border-green-200 dark:border-green-800">
-                      <span className="text-base font-bold text-green-800 dark:text-green-200">{t('orders.detail.overview.total')}</span>
+                      <span className="text-base font-bold text-green-800 dark:text-green-200">{t('detail.overview.total')}</span>
                       <span className="text-xl font-bold text-green-800 dark:text-green-200">{Currency(order.total || 0)}</span>
                     </div>
                   </div>
@@ -700,8 +700,8 @@ export default function OrderId() {
                   {/* Progress Bar */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{t('orders.detail.sidebar.base')}</span>
-                      <span>{t('orders.detail.overview.tips')}</span>
+                      <span>{t('detail.sidebar.base')}</span>
+                      <span>{t('detail.overview.tips')}</span>
                     </div>
                     <Progress
                       value={order.subtotal && order.total && order.total > 0 ? (order.subtotal / order.total) * 100 : 0}
@@ -716,34 +716,34 @@ export default function OrderId() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span>{t('orders.detail.sidebar.quickInfo')}</span>
+                    <span>{t('detail.sidebar.quickInfo')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('orders.detail.sidebar.table')}:</span>
+                      <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
                       <span className="font-medium">{order.table?.number || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('orders.detail.sidebar.waiter')}:</span>
+                      <span className="text-muted-foreground">{t('detail.sidebar.waiter')}:</span>
                       <span className="font-medium">
                         {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('orders.detail.sidebar.items')}:</span>
+                      <span className="text-muted-foreground">{t('detail.sidebar.items')}:</span>
                       <span className="font-medium">
-                        {t('orders.detail.sidebar.itemsCount', { total: totalItems, unique: itemsCount })}
+                        {t('detail.sidebar.itemsCount', { total: totalItems, unique: itemsCount })}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('orders.detail.sidebar.type')}:</span>
+                      <span className="text-muted-foreground">{t('detail.sidebar.type')}:</span>
                       <span className="font-medium">{order.type || 'N/A'}</span>
                     </div>
                     <Separator className="my-2" />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('orders.detail.sidebar.payments')}:</span>
+                      <span className="text-muted-foreground">{t('detail.sidebar.payments')}:</span>
                       <span className="font-medium">{order.payments?.length || 0}</span>
                     </div>
                   </div>
@@ -758,12 +758,12 @@ export default function OrderId() {
           <div className="max-w-7xl mx-auto p-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center space-x-4">
-                <span>{t('orders.detail.footer.copyright')}</span>
+                <span>{t('detail.footer.copyright')}</span>
                 <Separator orientation="vertical" className="h-4" />
-                <span>{t('orders.detail.footer.orderId', { id: order.id })}</span>
+                <span>{t('detail.footer.orderId', { id: order.id })}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span>{t('orders.detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
+                <span>{t('detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
               </div>
             </div>
           </div>

@@ -14,7 +14,7 @@ export default function AnalyticsLayout() {
   const to = sp.get('to') || undefined
   const fromCompare = sp.get('fromCompare') || undefined
   const toCompare = sp.get('toCompare') || undefined
-  const { t } = useTranslation()
+  const { t } = useTranslation('analytics')
 
   const onChange = (key: string, val: string) => {
     const next = new URLSearchParams(sp)
@@ -28,15 +28,15 @@ export default function AnalyticsLayout() {
     <div className="p-4 grid gap-3">
       <header className="flex items-center justify-between">
         <div className="grid gap-1">
-          <h1 className="text-xl font-semibold">{t('analytics.title')}</h1>
+          <h1 className="text-xl font-semibold">{t('title')}</h1>
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink to="/analytics">{t('analytics.title')}</BreadcrumbLink>
+                <BreadcrumbLink to="/analytics">{t('title')}</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{t('analytics.overview')}</BreadcrumbPage>
+                <BreadcrumbPage>{t('overview')}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -45,7 +45,7 @@ export default function AnalyticsLayout() {
 
       <section className="flex gap-3 items-center flex-wrap">
         <div className="text-sm flex items-center gap-2">
-          <span>{t('analytics.range.label')}</span>
+          <span>{t('range.label')}</span>
           <DateRangePicker
             initialDateFrom={from}
             initialDateTo={to}
@@ -69,7 +69,7 @@ export default function AnalyticsLayout() {
         </div>
 
         <div className="text-sm flex items-center gap-2">
-          <span>{t('analytics.compare.label')}</span>
+          <span>{t('compare.label')}</span>
           <Select value={compareTo} onValueChange={val => onChange('compareTo', val)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue />
@@ -84,7 +84,7 @@ export default function AnalyticsLayout() {
           </Select>
         </div>
 
-        <span className="ml-auto text-xs text-muted-foreground">{t('analytics.lastRefreshed', { date: lastRefreshed })}</span>
+        <span className="ml-auto text-xs text-muted-foreground">{t('lastRefreshed', { date: lastRefreshed })}</span>
       </section>
 
       <Outlet />

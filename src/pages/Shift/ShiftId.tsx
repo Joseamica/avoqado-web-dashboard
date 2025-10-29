@@ -39,8 +39,8 @@ export default function ShiftId() {
 
   // Status options
   const statusOptions = [
-    { value: 'OPEN', label: t('shifts.detail.statusOpen', { defaultValue: 'Abierto' }) },
-    { value: 'CLOSED', label: t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' }) },
+    { value: 'OPEN', label: t('detail.statusOpen', { defaultValue: 'Abierto' }) },
+    { value: 'CLOSED', label: t('detail.statusClosed', { defaultValue: 'Cerrado' }) },
   ]
   // Fetch the shift data
   const { data: shift, isLoading } = useQuery({
@@ -123,7 +123,7 @@ export default function ShiftId() {
   }
 
   if (isLoading) {
-    return <div className="p-8 text-center">{t('shifts.detail.loading', { defaultValue: 'Cargando información del turno...' })}</div>
+    return <div className="p-8 text-center">{t('detail.loading', { defaultValue: 'Cargando información del turno...' })}</div>
   }
 
   // Calculate total payments and tips
@@ -160,13 +160,13 @@ export default function ShiftId() {
           <Link to={from}>
             <ArrowLeft />
           </Link>
-          <span>{t('shifts.detail.headerTitle', { defaultValue: 'Detalles del Turno {{turnId}}', turnId: shift?.turnId || '' })}</span>
+          <span>{t('detail.headerTitle', { defaultValue: 'Detalles del Turno {{turnId}}', turnId: shift?.turnId || '' })}</span>
         </div>
         <div className="flex items-center space-x-4">
           {isEditing ? (
             <Select value={editedShift?.status || getShiftStatus()} onValueChange={value => handleInputChange('status', value)}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={t('shifts.detail.selectStatus', { defaultValue: 'Seleccionar estado' })} />
+                <SelectValue placeholder={t('detail.selectStatus', { defaultValue: 'Seleccionar estado' })} />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map(option => (
@@ -183,8 +183,8 @@ export default function ShiftId() {
               } rounded-full font-medium`}
             >
               {getShiftStatus() === 'CLOSED'
-                ? t('shifts.detail.statusClosed', { defaultValue: 'Cerrado' })
-                : t('shifts.detail.statusOpen', { defaultValue: 'Abierto' })}
+                ? t('detail.statusClosed', { defaultValue: 'Cerrado' })
+                : t('detail.statusOpen', { defaultValue: 'Abierto' })}
             </span>
           )}
 
@@ -218,9 +218,9 @@ export default function ShiftId() {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{t('shifts.detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
+                  <AlertDialogTitle>{t('detail.deleteTitle', { defaultValue: 'Eliminar turno' })}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('shifts.detail.deleteConfirm', {
+                    {t('detail.deleteConfirm', {
                       defaultValue: '¿Estás seguro de que deseas eliminar este turno? Esta acción no se puede deshacer.',
                     })}
                   </AlertDialogDescription>
@@ -241,22 +241,22 @@ export default function ShiftId() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <Label htmlFor="turnId">{t('shifts.detail.turnIdLabel', { defaultValue: 'ID de Turno' })}</Label>
+              <Label htmlFor="turnId">{t('detail.turnIdLabel', { defaultValue: 'ID de Turno' })}</Label>
               <Input id="turnId" value={shift?.turnId || ''} disabled />
             </div>
             <div>
-              <Label htmlFor="id">{t('shifts.detail.systemIdLabel', { defaultValue: 'ID del Sistema' })}</Label>
+              <Label htmlFor="id">{t('detail.systemIdLabel', { defaultValue: 'ID del Sistema' })}</Label>
               <Input id="id" value={shift?.id || ''} disabled />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <Label htmlFor="startTime">{t('shifts.detail.openTimeLabel', { defaultValue: 'Hora de Apertura' })}</Label>
+              <Label htmlFor="startTime">{t('detail.openTimeLabel', { defaultValue: 'Hora de Apertura' })}</Label>
               <Input id="startTime" value={formatDate(shift?.startTime)} disabled />
             </div>
             <div>
-              <Label htmlFor="endTime">{t('shifts.detail.closeTimeLabel', { defaultValue: 'Hora de Cierre' })}</Label>
+              <Label htmlFor="endTime">{t('detail.closeTimeLabel', { defaultValue: 'Hora de Cierre' })}</Label>
               <Input id="endTime" value={formatDate(shift?.endTime)} disabled />
             </div>
           </div>
@@ -265,19 +265,19 @@ export default function ShiftId() {
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">{t('shifts.detail.financialSummary', { defaultValue: 'Resumen Financiero' })}</h3>
+          <h3 className="text-lg font-medium">{t('detail.financialSummary', { defaultValue: 'Resumen Financiero' })}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.subtotal', { defaultValue: 'Subtotal' })}</Label>
+              <Label className="text-sm text-muted-foreground">{t('detail.subtotal', { defaultValue: 'Subtotal' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalAmount)}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.tips', { defaultValue: 'Propinas' })}</Label>
+              <Label className="text-sm text-muted-foreground">{t('detail.tips', { defaultValue: 'Propinas' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalTips)}</p>
               <p className="text-sm text-muted-foreground">{tipPercentage.toFixed(1)}% del subtotal</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.total', { defaultValue: 'Total' })}</Label>
+              <Label className="text-sm text-muted-foreground">{t('detail.total', { defaultValue: 'Total' })}</Label>
               <p className="text-xl font-semibold">{Currency(totalAmount + totalTips)}</p>
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function ShiftId() {
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">{t('shifts.detail.payments', { defaultValue: 'Pagos' })}</h3>
+          <h3 className="text-lg font-medium">{t('detail.payments', { defaultValue: 'Pagos' })}</h3>
           {payments.length > 0 ? (
             <div className="space-y-4">
               {payments.map(payment => (
@@ -294,7 +294,7 @@ export default function ShiftId() {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                       <Label className="text-sm text-muted-foreground">
-                        {t('shifts.detail.paymentMethod', { defaultValue: 'Método de Pago' })}
+                        {t('detail.paymentMethod', { defaultValue: 'Método de Pago' })}
                       </Label>
                       <p className="font-medium">
                         {(() => {
@@ -306,11 +306,11 @@ export default function ShiftId() {
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.amount', { defaultValue: 'Monto' })}</Label>
+                      <Label className="text-sm text-muted-foreground">{t('detail.amount', { defaultValue: 'Monto' })}</Label>
                       <p className="font-medium">{Currency(Number(payment.amount))}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-muted-foreground">{t('shifts.detail.tip', { defaultValue: 'Propina' })}</Label>
+                      <Label className="text-sm text-muted-foreground">{t('detail.tip', { defaultValue: 'Propina' })}</Label>
                       <p className="font-medium">{Currency(payment.tips.reduce((acc, tip) => acc + parseFloat(tip.amount), 0))}</p>
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export default function ShiftId() {
             </div>
           ) : (
             <p className="text-muted-foreground">
-              {t('shifts.detail.noPayments', { defaultValue: 'No hay pagos registrados para este turno.' })}
+              {t('detail.noPayments', { defaultValue: 'No hay pagos registrados para este turno.' })}
             </p>
           )}
         </div>
@@ -327,19 +327,19 @@ export default function ShiftId() {
         <Separator className="my-6" />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">{t('shifts.detail.additionalInfo', { defaultValue: 'Información adicional' })}</h3>
+          <h3 className="text-lg font-medium">{t('detail.additionalInfo', { defaultValue: 'Información adicional' })}</h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.venueId', { defaultValue: 'Venue ID' })}</Label>
+              <Label className="text-sm text-muted-foreground">{t('detail.venueId', { defaultValue: 'Venue ID' })}</Label>
               <p className="text-sm">{shift?.venueId}</p>
             </div>
             <div className="p-4 border rounded-md">
-              <Label className="text-sm text-muted-foreground">{t('shifts.detail.created', { defaultValue: 'Creado' })}</Label>
+              <Label className="text-sm text-muted-foreground">{t('detail.created', { defaultValue: 'Creado' })}</Label>
               <p className="text-sm">{shift?.createdAt ? new Date(shift.createdAt).toLocaleString() : '-'}</p>
             </div>
             <div className="p-4 border rounded-md">
               <Label className="text-sm text-muted-foreground">
-                {t('shifts.detail.updated', { defaultValue: 'Última actualización' })}
+                {t('detail.updated', { defaultValue: 'Última actualización' })}
               </Label>
               <p className="text-sm">{shift?.updatedAt ? new Date(shift.updatedAt).toLocaleString() : '-'}</p>
             </div>

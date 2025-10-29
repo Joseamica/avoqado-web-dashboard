@@ -29,7 +29,7 @@ interface Review {
 export default function ReviewSummary() {
   const { venueId } = useCurrentVenue()
   const theme = useThemeClasses()
-  const { t } = useTranslation()
+  const { t } = useTranslation('reviews')
 
   // Initialize with a default date range (last 365 days)
   const getDefaultRange = () => {
@@ -81,7 +81,7 @@ export default function ReviewSummary() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-foreground">{t('reviews.title')}</h1>
+      <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
       <DateRangePicker
         showCompare={false}
         onUpdate={({ range }) => {
@@ -97,25 +97,25 @@ export default function ReviewSummary() {
       <Card className={`p-4 grid grid-cols-1 md:grid-cols-2 gap-6 ${theme.card}`}>
         <div>
           <CardHeader>
-            <CardTitle>{t('reviews.establishments')}</CardTitle>
+            <CardTitle>{t('establishments')}</CardTitle>
             <CardDescription>
-              {t('reviews.averageDescription', { count: filteredReviews?.length })}
+              {t('averageDescription', { count: filteredReviews?.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2 text-foreground">{t('reviews.loading')}</span>
+                <span className="ml-2 text-foreground">{t('loading')}</span>
               </div>
             ) : error ? (
               <div className="text-center py-8 text-destructive">
-                <p>{t('reviews.error')}</p>
-                <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : t('reviews.unknownError')}</p>
+                <p>{t('error')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : t('unknownError')}</p>
               </div>
             ) : filteredReviews.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>{t('reviews.noReviews')}</p>
+                <p>{t('noReviews')}</p>
               </div>
             ) : (
               <>
@@ -145,7 +145,7 @@ export default function ReviewSummary() {
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{t('reviews.reviewCount', { count })}</p>
+                              <p>{t('reviewCount', { count })}</p>
                             </TooltipContent>
                           </Tooltip>
                         </li>
