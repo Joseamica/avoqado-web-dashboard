@@ -9,6 +9,7 @@ import {
   ErrorPage,
   Login,
   Signup,
+  EmailVerification,
   GoogleOAuthCallback,
   OnboardingWizard,
   Home,
@@ -110,6 +111,10 @@ const router = createBrowserRouter(
         {
           path: '/signup',
           element: <Signup />,
+        },
+        {
+          path: '/auth/verify-email',
+          element: <EmailVerification />,
         },
         {
           element: <EmailVerifiedRoute />,

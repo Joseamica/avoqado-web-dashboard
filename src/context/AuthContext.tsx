@@ -157,11 +157,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: t('toast.login_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
+      const errorMessage = error.response?.data?.message || ''
+      const statusCode = error.response?.status
+
+      // FAANG Pattern: Detect email not verified and redirect to verification page
+      if (
+        statusCode === 403 &&
+        (errorMessage.includes('verify') ||
+          errorMessage.includes('not verified') ||
+          errorMessage.includes('verification required'))
+      ) {
+        toast({
+          title: t('toast.email_not_verified_title'),
+          description: t('toast.email_not_verified_desc'),
+          variant: 'destructive',
+        })
+        // Redirect to email verification page with email pre-filled
+        navigate(`/auth/verify-email?email=${encodeURIComponent(variables.email)}`)
+        return
+      }
+
       toast({
         title: t('toast.login_error_title'),
         variant: 'destructive',
-        description: error.response?.data?.message || t('toast.login_error_desc'),
+        description: errorMessage || t('toast.login_error_desc'),
       })
     },
   })
