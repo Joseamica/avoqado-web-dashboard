@@ -31,7 +31,15 @@ export default function ReviewSummary() {
   const theme = useThemeClasses()
   const { t } = useTranslation()
 
-  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>(null)
+  // Initialize with a default date range (last 365 days)
+  const getDefaultRange = () => {
+    const to = new Date()
+    const from = new Date()
+    from.setFullYear(from.getFullYear() - 1)
+    return { from, to }
+  }
+
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(getDefaultRange())
 
   // Se obtiene la lista de todas las reviews sin filtrar
   const {
@@ -54,7 +62,11 @@ export default function ReviewSummary() {
     selectedRange && reviews.length > 0
       ? reviews.filter((review: Review) => {
           const reviewDate = new Date(review.createdAt)
-          return reviewDate >= selectedRange.from && reviewDate <= selectedRange.to
+          // Adjust 'to' date to end of day (23:59:59.999) to include all reviews from that day
+          const toDateEndOfDay = new Date(selectedRange.to)
+          toDateEndOfDay.setHours(23, 59, 59, 999)
+
+          return reviewDate >= selectedRange.from && reviewDate <= toDateEndOfDay
         })
       : reviews
   // Procesamos las reseñas y asignamos valores por defecto
@@ -65,16 +77,20 @@ export default function ReviewSummary() {
 
   const averageRating = filteredReviews?.length > 0 ? average.toFixed(1) : 'N/A'
 
+  const defaultRange = getDefaultRange()
+
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-xl font-bold text-foreground">{t('reviews.title')}</h1>
       <DateRangePicker
         showCompare={false}
         onUpdate={({ range }) => {
-          setSelectedRange(range)
+          if (range.from && range.to) {
+            setSelectedRange(range)
+          }
         }}
-        initialDateFrom="2020-01-01"
-        initialDateTo="2030-12-31"
+        initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
+        initialDateTo={defaultRange.to.toISOString().split('T')[0]}
         align="start"
         locale="es-ES"
       />
