@@ -30,7 +30,7 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
     onSuccess: async () => {
       // Force refetch auth status to get updated emailVerified: true
       // Use refetchQueries instead of invalidateQueries to bypass HTTP cache (304)
-      await queryClient.refetchQueries({
+      const result = await queryClient.refetchQueries({
         queryKey: ['status'],
         type: 'active'
       })
@@ -39,7 +39,17 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
         title: t('verification.successTitle'),
         description: t('verification.successDescription'),
       })
-      navigate('/onboarding')
+
+      // Check if user is still authenticated after refetch
+      const statusData = queryClient.getQueryData(['status']) as any
+
+      if (statusData?.authenticated) {
+        // User is logged in, proceed to onboarding
+        navigate('/onboarding')
+      } else {
+        // User session expired, redirect to login with success message
+        navigate(`/login?verified=true&email=${encodeURIComponent(email)}`)
+      }
     },
     onError: (error: any) => {
       toast({
@@ -52,6 +62,10 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
 
   const handleComplete = (value: string) => {
     setCode(value)
+    // FAANG Pattern: Auto-verify when 4 digits are complete
+    if (value.length === 4) {
+      verifyMutation.mutate(value)
+    }
   }
 
   const handleVerify = () => {
@@ -61,33 +75,21 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">{t('verification.title')}</h1>
-        <p className="text-muted-foreground text-sm text-balance">
-          {t('verification.subtitle')} <strong>{email}</strong>
-        </p>
-      </div>
-
-      <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-6 py-4">
+      {/* OTP Input - Larger and more prominent */}
+      <div className="px-4">
         <InputOTP maxLength={4} value={code} onChange={setCode} onComplete={handleComplete}>
-          <InputOTPGroup>
-            <InputOTPSlot index={0} />
-            <InputOTPSlot index={1} />
-            <InputOTPSlot index={2} />
-            <InputOTPSlot index={3} />
+          <InputOTPGroup className="gap-3">
+            <InputOTPSlot index={0} className="w-16 h-16 text-2xl rounded-lg border-2" />
+            <InputOTPSlot index={1} className="w-16 h-16 text-2xl rounded-lg border-2" />
+            <InputOTPSlot index={2} className="w-16 h-16 text-2xl rounded-lg border-2" />
+            <InputOTPSlot index={3} className="w-16 h-16 text-2xl rounded-lg border-2" />
           </InputOTPGroup>
         </InputOTP>
-
-        <p className="text-muted-foreground text-xs text-center">{t('verification.expiryInfo')}</p>
-
-        <Button onClick={handleVerify} className="w-full" disabled={code.length !== 4 || verifyMutation.isPending}>
-          {verifyMutation.isPending && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
-          {t('verification.verifyButton')}
-        </Button>
       </div>
 
-      <div className="text-center text-sm text-muted-foreground">{t('verification.didntReceive')}</div>
+      {/* Subtle expiry notice */}
+      <p className="text-muted-foreground text-xs">{t('verification.expiryInfo')}</p>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 
@@ -9,13 +9,25 @@ import { UserAuthForm } from './components/UserAuthForm'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 import { clearAllChatStorage } from '@/services/chatService'
+import { useToast } from '@/hooks/use-toast'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
+  const { toast } = useToast()
+  const [searchParams] = useSearchParams()
   const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     clearAllChatStorage()
+
+    // Check if user just verified their email
+    const verified = searchParams.get('verified')
+    if (verified === 'true') {
+      toast({
+        title: t('verification.successTitle'),
+        description: t('verification.successDescriptionLogin'),
+      })
+    }
 
     // Check if there's a pending invitation URL after logout
     const pendingInvitationUrl = localStorage.getItem('pendingInvitationUrl')
@@ -26,7 +38,7 @@ const Login: React.FC = () => {
       // Redirect to the invitation page
       window.location.href = pendingInvitationUrl
     }
-  }, [])
+  }, [searchParams, toast, t])
 
   // Show loading state during redirect
   if (isRedirecting) {

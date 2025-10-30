@@ -661,21 +661,21 @@
     }
   },
   "routeProtection": {
-    "accessDenied": "Access Denied",
-    "noAdminPermission": "You do not have administrator permissions to access this page.",
-    "restrictedAccess": "Restricted Access",
-    "ownerOnlyMessage": "This section is available only for Owners (OWNER) and System Administrators (SUPERADMIN).",
-    "contactOwner": "If you need access to this feature, contact an Owner (OWNER).",
-    "superadminOnlyMessage": "This section is available only for System Administrators (SUPERADMIN).",
-    "contactSuperadmin": "If you need access to this feature, contact a System Administrator (SUPERADMIN).",
-    "managerOnlyMessage": "This section requires Manager level access or higher (MANAGER, ADMIN, OWNER, SUPERADMIN).",
-    "managerOrViewerOnlyMessage": "This section requires Manager level access or Viewer role (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
-    "noVenuesAssigned": "You have no venues assigned!",
-    "contactAdminForVenue": "To start using the platform, contact the administrator to have one assigned to you.",
-    "needHelp": "Need help?",
-    "contactUs": "Contact us",
-    "logout": "Log out",
-    "noPermissionSection": "You do not have permission to access this section."
+    "accessDenied": "Accès refusé",
+    "noAdminPermission": "Vous n'avez pas les permissions d'administrateur pour accéder à cette page.",
+    "restrictedAccess": "Accès restreint",
+    "ownerOnlyMessage": "Cette section est disponible uniquement pour les Propriétaires (OWNER) et les Administrateurs Système (SUPERADMIN).",
+    "contactOwner": "Si vous avez besoin d'accéder à cette fonctionnalité, contactez un Propriétaire (OWNER).",
+    "superadminOnlyMessage": "Cette section est disponible uniquement pour les Administrateurs Système (SUPERADMIN).",
+    "contactSuperadmin": "Si vous avez besoin d'accéder à cette fonctionnalité, contactez un Administrateur Système (SUPERADMIN).",
+    "managerOnlyMessage": "Cette section nécessite un accès de niveau Gestionnaire ou supérieur (MANAGER, ADMIN, OWNER, SUPERADMIN).",
+    "managerOrViewerOnlyMessage": "Cette section nécessite un accès de niveau Gestionnaire ou rôle Visualiseur (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
+    "noVenuesAssigned": "Vous n'avez pas de lieux assignés !",
+    "contactAdminForVenue": "Pour commencer à utiliser la plateforme, contactez l'administrateur pour qu'il vous en assigne un.",
+    "needHelp": "Besoin d'aide ?",
+    "contactUs": "Contactez-nous",
+    "logout": "Se déconnecter",
+    "noPermissionSection": "Vous n'avez pas la permission d'accéder à cette section."
   },
   "templates": {
     "card": {
