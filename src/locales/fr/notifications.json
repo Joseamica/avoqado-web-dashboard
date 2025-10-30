@@ -81,5 +81,26 @@
     "NORMAL": "Normale",
     "HIGH": "Élevée",
     "URGENT": "Urgente"
+  },
+  "preferences": "Préférences de Notifications",
+  "preferencesSubtitle": "Gérez la façon dont vous recevez les notifications sur différents canaux et catégories",
+  "saved": "Préférences Enregistrées",
+  "preferencesSaved": "Vos préférences de notification ont été mises à jour avec succès",
+  "error": "Erreur",
+  "failedToUpdate": "Échec de la mise à jour des préférences de notification",
+  "required": "Requis",
+  "channels": "Canaux",
+  "enable": "Activer",
+  "blocked": "Bloqué",
+  "enableBrowser": "Activer les Notifications du Navigateur",
+  "enableBrowserDesc": "Recevez des alertes en temps réel même lorsque vous n'utilisez pas le tableau de bord",
+  "categories": {
+    "orders": "Commandes",
+    "payments": "Paiements",
+    "reviews": "Avis",
+    "staff": "Personnel",
+    "system": "Système",
+    "admin": "Administration",
+    "general": "Général"
   }
 }

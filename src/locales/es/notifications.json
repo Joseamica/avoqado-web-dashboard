@@ -81,5 +81,26 @@
     "NORMAL": "Normal",
     "HIGH": "Alta",
     "URGENT": "Urgente"
+  },
+  "preferences": "Preferencias de Notificaciones",
+  "preferencesSubtitle": "Administra cómo recibes notificaciones en diferentes canales y categorías",
+  "saved": "Preferencias Guardadas",
+  "preferencesSaved": "Tus preferencias de notificaciones se han actualizado exitosamente",
+  "error": "Error",
+  "failedToUpdate": "No se pudieron actualizar las preferencias de notificaciones",
+  "required": "Requerido",
+  "channels": "Canales",
+  "enable": "Habilitar",
+  "blocked": "Bloqueado",
+  "enableBrowser": "Habilitar Notificaciones del Navegador",
+  "enableBrowserDesc": "Recibe alertas en tiempo real incluso cuando no estés usando el dashboard",
+  "categories": {
+    "orders": "Pedidos",
+    "payments": "Pagos",
+    "reviews": "Reseñas",
+    "staff": "Personal",
+    "system": "Sistema",
+    "admin": "Administración",
+    "general": "General"
   }
 }

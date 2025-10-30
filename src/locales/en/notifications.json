@@ -81,5 +81,26 @@
     "NORMAL": "Normal",
     "HIGH": "High",
     "URGENT": "Urgent"
+  },
+  "preferences": "Notification Preferences",
+  "preferencesSubtitle": "Manage how you receive notifications across different channels and categories",
+  "saved": "Preferences Saved",
+  "preferencesSaved": "Your notification preferences have been updated successfully",
+  "error": "Error",
+  "failedToUpdate": "Failed to update notification preferences",
+  "required": "Required",
+  "channels": "Channels",
+  "enable": "Enable",
+  "blocked": "Blocked",
+  "enableBrowser": "Enable Browser Notifications",
+  "enableBrowserDesc": "Get real-time alerts even when you're not using the dashboard",
+  "categories": {
+    "orders": "Orders",
+    "payments": "Payments",
+    "reviews": "Reviews",
+    "staff": "Staff",
+    "system": "System",
+    "admin": "Admin",
+    "general": "General"
   }
 }
