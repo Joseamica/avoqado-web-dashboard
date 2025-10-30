@@ -23,6 +23,8 @@ export { default as ReceiptViewer } from '@/pages/Payment/ReceiptViewer'
 export { default as MenuId } from '@/pages/Menu/Menus/menuId'
 export { default as Reviews } from '@/pages/Review/Reviews'
 export { default as EditVenue } from '@/pages/Venue/Venue.edit'
+export { default as BasicInfo } from '@/pages/Venue/Edit/BasicInfo'
+export { default as ContactImages } from '@/pages/Venue/Edit/ContactImages'
 export { default as Shifts } from '@/pages/Shift/Shifts'
 // Waiter pages have been removed or renamed. Exports disabled to fix build.
 export { default as ShiftId } from '@/pages/Shift/ShiftId'

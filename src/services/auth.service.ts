@@ -131,3 +131,44 @@ export const signup = async (data: SignupDto): Promise<SignupResponse> => {
   const response = await api.post('/api/v1/onboarding/signup', data)
   return response.data
 }
+
+// Password Reset
+export interface RequestPasswordResetDto {
+  email: string
+}
+
+export interface RequestPasswordResetResponse {
+  success: boolean
+  message: string
+}
+
+export interface ValidateResetTokenResponse {
+  success: boolean
+  valid: boolean
+  email?: string
+}
+
+export interface ResetPasswordDto {
+  token: string
+  newPassword: string
+}
+
+export interface ResetPasswordResponse {
+  success: boolean
+  message: string
+}
+
+export const requestPasswordReset = async (email: string): Promise<RequestPasswordResetResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/request-reset', { email })
+  return response.data
+}
+
+export const validateResetToken = async (token: string): Promise<ValidateResetTokenResponse> => {
+  const response = await api.get(`/api/v1/dashboard/auth/validate-reset-token/${token}`)
+  return response.data
+}
+
+export const resetPassword = async (token: string, newPassword: string): Promise<ResetPasswordResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/reset-password', { token, newPassword })
+  return response.data
+}

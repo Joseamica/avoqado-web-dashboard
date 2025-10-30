@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle } from 'lucide-react'
 
@@ -128,9 +128,9 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         <div className="grid gap-3">
           <div className="flex items-center">
             <Label htmlFor="password">{t('login.passwordLabel')}</Label>
-            <a href="#" className="ml-auto text-sm underline-offset-4 hover:underline">
+            <Link to="/auth/forgot-password" className="ml-auto text-sm underline-offset-4 hover:underline">
               {t('login.forgotPassword')}
-            </a>
+            </Link>
           </div>
           <Input
             {...register('password', { required: t('login.passwordRequired') })}

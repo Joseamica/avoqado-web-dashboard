@@ -1,103 +1,105 @@
 // src/router.tsx
 
-import { createBrowserRouter } from 'react-router-dom'
-import { StaffRole } from '@/types'
 import { ComingSoon } from '@/components/ComingSoon'
+import { StaffRole } from '@/types'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import {
-  Dashboard,
-  ErrorPage,
-  Login,
-  Signup,
-  EmailVerification,
-  GoogleOAuthCallback,
-  OnboardingWizard,
-  Home,
-  Categories,
-  CategoryId,
-  CreateCategory,
-  MenuMakerLayout,
-  CreateMenu,
-  Menus,
-  ModifierGroups,
-  CreateModifierGroup,
-  MenuOverview,
-  CreateProduct,
-  ProductId,
-  Products,
-  CreateTpv,
-  Tpv,
-  TpvId,
-  Account,
-  VenuePaymentConfig,
-  Payments,
-  PaymentId,
-  ReceiptViewer,
-  MenuId,
-  Reviews,
-  // Waiters,
-  EditVenue,
-  VenueEditLayout,
-  VenueDocuments,
-  VenueIntegrations,
-  Shifts,
-  // WaiterId,
-  ShiftId,
-  Orders,
-  OrderId,
-  Teams,
-  TeamMemberDetails,
-  AdminDashboard,
-  UserManagement,
-  SystemSettings,
-  VenueManagement,
-  GlobalConfig,
-  SuperAdminManagement,
-  SuperAdminVenueEdit,
-  Venues,
-  Notifications,
-  NotificationPreferences,
   AcceptAdminInvitation,
-  InviteAccept,
-  ModifierGroupId,
-  SuperadminLayout,
-  SuperadminDashboard,
-  SuperadminFeatureManagement,
-  SuperadminVenueManagement,
-  KYCReview,
-  RevenueDashboard,
-  ProfitAnalyticsDashboard,
-  TestingPayments,
-  PaymentProviders,
-  MerchantAccounts,
-  PaymentAnalytics,
-  CostStructures,
-  VenuePricing,
-  Terms,
-  Privacy,
+  Account,
+  AdminDashboard,
   AnalyticsLayout,
   AnalyticsOverview,
-  InventoryLayout,
-  RawMaterials,
-  ProductStock,
-  Recipes,
-  Pricing,
-  RolePermissions,
+  BasicInfo,
   Billing,
+  Categories,
+  CategoryId,
+  ContactImages,
+  CostStructures,
+  CreateCategory,
+  CreateMenu,
+  CreateModifierGroup,
+  CreateProduct,
+  CreateTpv,
+  Dashboard,
+  EmailVerification,
+  ErrorPage,
+  ForgotPassword,
+  GlobalConfig,
+  GoogleOAuthCallback,
+  Home,
+  InventoryLayout,
+  InviteAccept,
+  KYCReview,
+  Login,
+  MenuId,
+  MenuMakerLayout,
+  MenuOverview,
+  Menus,
+  MerchantAccounts,
+  ModifierGroupId,
+  ModifierGroups,
+  NotificationPreferences,
+  Notifications,
+  OnboardingWizard,
+  OrderId,
+  Orders,
+  PaymentAnalytics,
+  PaymentId,
+  PaymentProviders,
+  Payments,
+  Pricing,
+  Privacy,
+  ProductId,
+  Products,
+  ProductStock,
+  ProfitAnalyticsDashboard,
+  RawMaterials,
+  ReceiptViewer,
+  Recipes,
+  ResetPassword,
+  RevenueDashboard,
+  Reviews,
+  RolePermissions,
+  // WaiterId,
+  ShiftId,
+  Shifts,
+  Signup,
+  SuperadminDashboard,
+  SuperadminFeatureManagement,
+  SuperadminLayout,
+  SuperAdminManagement,
+  SuperAdminVenueEdit,
+  SuperadminVenueManagement,
+  SystemSettings,
+  TeamMemberDetails,
+  Teams,
+  Terms,
+  TestingPayments,
+  Tpv,
+  TpvId,
+  UserManagement,
+  VenueDocuments,
+  VenueEditLayout,
+  VenueIntegrations,
+  VenueManagement,
+  VenuePaymentConfig,
+  VenuePricing,
+  Venues,
   Webhooks,
 } from './lazyComponents'
 
-import { ProtectedRoute } from './ProtectedRoute'
-import { EmailVerifiedRoute } from './EmailVerifiedRoute'
 import Root from '@/root'
+import { EmailVerifiedRoute } from './EmailVerifiedRoute'
+import { ProtectedRoute } from './ProtectedRoute'
 
-import { SuperProtectedRoute } from './SuperProtectedRoute'
-import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
+import { Layout } from '@/Layout'
+import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
+import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
+import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
-import { KYCProtectedRoute } from './KYCProtectedRoute'
-import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
-import { Layout } from '@/Layout'
+import { SuperProtectedRoute } from './SuperProtectedRoute'
 
 const router = createBrowserRouter(
   [
@@ -111,6 +113,14 @@ const router = createBrowserRouter(
         {
           path: '/signup',
           element: <Signup />,
+        },
+        {
+          path: '/auth/forgot-password',
+          element: <ForgotPassword />,
+        },
+        {
+          path: '/auth/reset-password/:token',
+          element: <ResetPassword />,
         },
         {
           path: '/auth/verify-email',
@@ -156,9 +166,7 @@ const router = createBrowserRouter(
               children: [
                 {
                   element: <AnalyticsLayout />,
-                  children: [
-                    { index: true, element: <AnalyticsOverview /> },
-                  ],
+                  children: [{ index: true, element: <AnalyticsOverview /> }],
                 },
               ],
             },
@@ -479,9 +487,7 @@ const router = createBrowserRouter(
                       children: [
                         {
                           element: <AnalyticsLayout />,
-                          children: [
-                            { index: true, element: <AnalyticsOverview /> },
-                          ],
+                          children: [{ index: true, element: <AnalyticsOverview /> }],
                         },
                       ],
                     },
@@ -494,8 +500,10 @@ const router = createBrowserRouter(
                     {
                       element: <VenueEditLayout />,
                       children: [
-                        { index: true, element: <EditVenue /> }, // Default to general tab
-                        { path: 'general', element: <EditVenue /> },
+                        { index: true, element: <Navigate to="basic-info" replace /> }, // Redirect to basic-info by default
+                        { path: 'basic-info', element: <BasicInfo /> }, // New: Information básica
+                        { path: 'contact-images', element: <ContactImages /> }, // New: Contacto e imágenes
+                        { path: 'general', element: <Navigate to="../basic-info" replace /> }, // Legacy redirect
                         { path: 'documents', element: <VenueDocuments /> },
                         { path: 'integrations', element: <VenueIntegrations /> },
                       ],
@@ -525,9 +533,7 @@ const router = createBrowserRouter(
                 // Reviews (requires reviews:read permission)
                 {
                   element: <PermissionProtectedRoute permission="reviews:read" />,
-                  children: [
-                    { path: 'reviews', element: <Reviews /> },
-                  ],
+                  children: [{ path: 'reviews', element: <Reviews /> }],
                 },
 
                 // { path: 'waiters', element: <Waiters /> },
