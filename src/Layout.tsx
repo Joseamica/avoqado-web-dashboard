@@ -28,6 +28,13 @@ export function Layout() {
     return <Navigate to="/superadmin" />
   }
 
+  // World-Class Pattern (Stripe/Shopify): OWNER without venues should complete onboarding
+  // This prevents the flash of "No venues assigned" message during signup flow
+  if (isAuthenticated && user.role === 'OWNER' && user.venues.length === 0) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // Other users without venues show error message (not OWNER, not SUPERADMIN)
   if (user.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-background">

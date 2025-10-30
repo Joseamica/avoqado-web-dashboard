@@ -8,9 +8,16 @@
   "deleting": "Suppression...",
   "success": "Succès",
   "error": "Erreur",
+  "errorOops": "Oups !",
+  "errorUnexpected": "Quelque chose d'inattendu s'est produit. Veuillez réessayer plus tard.",
+  "back_to_home": "Retour à l'accueil",
   "copied": "Copié !",
   "goBack": "Retour",
   "tryAgain": "Réessayer",
+  "system": "Système",
+  "light": "Clair",
+  "dark": "Sombre",
+  "toggle_theme": "Changer le thème",
   "optional": "Optionnel",
   "none": "Aucun",
   "unknown": "Inconnu",
@@ -44,6 +51,12 @@
     "lastMonth": "Mois dernier",
     "thisYear": "Cette année",
     "lastYear": "Année dernière"
+  },
+  "demoBanner": {
+    "title": "🎉 Vous êtes en Mode Démo",
+    "description": "Ceci est un établissement de démonstration. Cliquez ci-dessous pour le convertir en établissement réel et commencer à accepter les paiements.",
+    "convertButton": "Convertir en Réel",
+    "dismissButton": "Fermer la bannière"
   },
   "header": {
     "superadmin": "Superadministrateur"

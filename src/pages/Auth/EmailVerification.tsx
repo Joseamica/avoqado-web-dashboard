@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Mail, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react'
@@ -15,10 +15,18 @@ import api from '@/api'
 export default function EmailVerification() {
   const { t } = useTranslation(['auth', 'common'])
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const emailFromUrl = searchParams.get('email')
+
+  // Detect if user comes from signup flow (Stripe/GitHub pattern)
+  // This prevents race condition with email-status check
+  const navigationState = location.state as { fromSignup?: boolean; email?: string; timestamp?: number } | null
+  const fromSignup = navigationState?.fromSignup === true
+  const signupTimestamp = navigationState?.timestamp || 0
+  const isRecentSignup = fromSignup && Date.now() - signupTimestamp < 30000 // Within 30 seconds
 
   const [userEmail, setUserEmail] = useState<string>('')
   const [isResending, setIsResending] = useState(false)
@@ -28,25 +36,33 @@ export default function EmailVerification() {
   const { data: statusData, isLoading: isCheckingAuth } = useQuery({
     queryKey: ['status'],
     queryFn: authService.getAuthStatus,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: false,
   })
 
   const isAuthenticated = !!statusData?.authenticated
   const currentUser = statusData?.user
 
+  // Determine effective email (prioritize URL parameter for signup flow to avoid race conditions)
+  const effectiveEmail = emailFromUrl || navigationState?.email || currentUser?.email || ''
+
   // Check if email is already verified (for users arriving via URL without session)
+  // WORLD-CLASS PATTERN (Stripe/GitHub): Skip validation if user comes from signup
+  // This prevents race condition where email-status check runs before signup completes
   const { data: emailStatusData, isLoading: isCheckingEmailStatus } = useQuery({
-    queryKey: ['emailStatus', userEmail],
+    queryKey: ['emailStatus', effectiveEmail],
     queryFn: async () => {
-      if (!userEmail) return null
+      if (!effectiveEmail) return null
       try {
-        const response = await api.get(`/api/v1/onboarding/email-status?email=${encodeURIComponent(userEmail)}`)
+        const response = await api.get(`/api/v1/onboarding/email-status?email=${encodeURIComponent(effectiveEmail)}`)
         return response.data
       } catch (error) {
         return null
       }
     },
-    enabled: !!userEmail && !isAuthenticated, // Only check if we have email and user is not authenticated
+    // CRITICAL: Don't check email status if user just signed up (within 30 seconds)
+    // Trust the signup flow - email exists because we just created it
+    enabled: !!effectiveEmail && !isAuthenticated && !isCheckingAuth && !isRecentSignup,
     retry: false,
   })
 
@@ -74,14 +90,12 @@ export default function EmailVerification() {
     },
   })
 
-  // Determine which email to use
+  // Sync userEmail state with effectiveEmail for UI display
   useEffect(() => {
-    if (emailFromUrl) {
-      setUserEmail(emailFromUrl)
-    } else if (currentUser?.email) {
-      setUserEmail(currentUser.email)
+    if (effectiveEmail) {
+      setUserEmail(effectiveEmail)
     }
-  }, [emailFromUrl, currentUser])
+  }, [effectiveEmail])
 
   // Redirect if already verified
   useEffect(() => {
@@ -124,9 +138,41 @@ export default function EmailVerification() {
     )
   }
 
-  // FAANG Pattern: Show "Already Verified" screen if email is verified
+  // FAANG Pattern: Validate email exists in database before showing verification UI
+  // This prevents email enumeration attacks and unauthorized access to verification page
+  // WORLD-CLASS OPTIMIZATION: If user comes from signup, trust the flow (email exists, not verified)
   const isEmailVerified = emailStatusData?.emailVerified || (isAuthenticated && currentUser?.emailVerified)
+  const emailExists = isRecentSignup ? true : emailStatusData?.emailExists // Trust signup flow
 
+  // Security Check 1: If email doesn't exist in database, redirect to signup
+  // FAANG Pattern (GitHub, Stripe): Don't allow verification page for non-existent emails
+  // Skip this check if user just signed up (we know email exists)
+  if (!isRecentSignup && emailStatusData && emailExists === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="absolute top-4 right-4 flex gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50">
+              <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <CardTitle>{t('verification.emailNotFoundTitle')}</CardTitle>
+            <CardDescription>{t('verification.emailNotFoundDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/signup')} className="w-full">
+              {t('verification.goToSignup')}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Security Check 2: Show "Already Verified" screen if email is verified
   if (isEmailVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -154,7 +200,9 @@ export default function EmailVerification() {
     )
   }
 
-  if (!userEmail) {
+  // Security Check 3: Only show "no email" error if we've finished loading and there's truly no email
+  // Skip this check if user comes from signup (email is in navigation state)
+  if (!userEmail && !emailFromUrl && !isCheckingAuth && !isRecentSignup) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">

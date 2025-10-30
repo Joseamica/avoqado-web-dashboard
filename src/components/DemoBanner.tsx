@@ -6,7 +6,7 @@ import { ConversionWizard } from './ConversionWizard'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export function DemoBanner() {
-  const { t } = useTranslation() // Uses default namespace (superadmin)
+  const { t } = useTranslation() // Uses default namespace (translation = common.json)
   const [isDismissed, setIsDismissed] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const { venue } = useCurrentVenue()

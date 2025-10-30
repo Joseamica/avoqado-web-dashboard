@@ -1,5 +1,6 @@
 import React from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Icons } from '@/components/icons'
@@ -12,12 +13,9 @@ import { SignupDto } from '@/services/auth.service'
 
 type Inputs = SignupDto
 
-interface SignupFormProps extends React.ComponentProps<'form'> {
-  onSignupSuccess?: (email: string) => void
-}
-
-export function SignupForm({ className, onSignupSuccess, ...props }: SignupFormProps) {
+export function SignupForm({ className, ...props }: React.ComponentProps<'form'>) {
   const { t } = useTranslation('auth')
+  const navigate = useNavigate()
   const { signup, isLoading } = useAuth()
 
   const {
@@ -31,13 +29,20 @@ export function SignupForm({ className, onSignupSuccess, ...props }: SignupFormP
       // Wait for signup to complete successfully
       await signup(formData)
 
-      // Only call callback if signup succeeded (no error thrown)
-      if (onSignupSuccess) {
-        onSignupSuccess(formData.email)
-      }
+      // Navigate to dedicated verification page (FAANG UX pattern)
+      // IMPORTANT: Pass state to indicate user comes from signup flow
+      // This prevents race condition with email-status check
+      // Pattern used by Stripe, GitHub, Google for post-signup flows
+      navigate(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`, {
+        state: {
+          fromSignup: true,
+          email: formData.email,
+          timestamp: Date.now(),
+        },
+      })
     } catch {
       // Error already handled by AuthContext's onError (shows toast)
-      // Don't call onSignupSuccess - keep user on signup form
+      // Keep user on signup form to retry
     }
   }
 

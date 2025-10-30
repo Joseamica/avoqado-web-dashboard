@@ -1,19 +1,10 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SignupForm } from './components/SignupForm'
-import { EmailVerificationForm } from './components/EmailVerificationForm'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 
 export default function Signup() {
   const { t } = useTranslation('auth')
-  const [showVerification, setShowVerification] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
-
-  const handleSignupSuccess = (email: string) => {
-    setUserEmail(email)
-    setShowVerification(true)
-  }
 
   return (
     <div className="flex min-h-screen">
@@ -25,11 +16,7 @@ export default function Signup() {
         </div>
 
         <div className="w-full max-w-md">
-          {!showVerification ? (
-            <SignupForm onSignupSuccess={handleSignupSuccess} />
-          ) : (
-            <EmailVerificationForm email={userEmail} />
-          )}
+          <SignupForm />
         </div>
       </div>
 

@@ -1,41 +1,41 @@
 {
-  "title": "Account",
-  "subtitle": "Manage your account settings and preferences",
+  "title": "Compte",
+  "subtitle": "Gérez les paramètres et préférences de votre compte",
   "accountInfo": {
-    "title": "Account Information",
-    "description": "Your account details and membership information",
+    "title": "Informations du compte",
+    "description": "Détails de votre compte et informations d'adhésion",
     "email": "Email",
-    "role": "Role",
-    "memberSince": "Member Since",
-    "lastLogin": "Last Login"
+    "role": "Rôle",
+    "memberSince": "Membre depuis",
+    "lastLogin": "Dernière connexion"
   },
   "editProfile": {
-    "title": "Edit Profile",
-    "description": "Update your personal information",
-    "firstName": "First Name",
-    "lastName": "Last Name",
+    "title": "Modifier le profil",
+    "description": "Mettez à jour vos informations personnelles",
+    "firstName": "Prénom",
+    "lastName": "Nom",
     "email": "Email",
-    "phone": "Phone"
+    "phone": "Téléphone"
   },
   "password": {
-    "title": "Password",
-    "description": "Change your password for security",
-    "changeButton": "Change Password",
+    "title": "Mot de passe",
+    "description": "Changez votre mot de passe pour la sécurité",
+    "changeButton": "Changer le mot de passe",
     "dialog": {
-      "title": "Change Password",
-      "currentPassword": "Current Password",
-      "newPassword": "New Password",
-      "currentPasswordRequired": "Current password is required",
-      "newPasswordRequired": "New password is required"
+      "title": "Changer le mot de passe",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "currentPasswordRequired": "Le mot de passe actuel est requis",
+      "newPasswordRequired": "Le nouveau mot de passe est requis"
     }
   },
   "toast": {
     "success": {
-      "title": "Success",
-      "description": "Profile updated successfully"
+      "title": "Succès",
+      "description": "Profil mis à jour avec succès"
     },
     "error": {
-      "description": "Failed to update profile"
+      "description": "Échec de la mise à jour du profil"
     }
   }
 }

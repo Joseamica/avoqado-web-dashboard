@@ -4,6 +4,9 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 import { StepIndicator } from './StepIndicator'
 import { useTheme } from '@/context/ThemeContext'
+import { useAuth } from '@/context/AuthContext'
+import { Button } from '@/components/ui/button'
+import { LogOut } from 'lucide-react'
 import logoLight from '@/assets/logo/avoqado-logo-light.png'
 import logoDark from '@/assets/logo/avoqado-logo-dark.png'
 
@@ -17,6 +20,7 @@ interface OnboardingLayoutProps {
 export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle }: OnboardingLayoutProps) {
   const { t } = useTranslation('onboarding')
   const { isDark } = useTheme()
+  const { logout } = useAuth()
   const logoSrc = isDark ? logoDark : logoLight
 
   return (
@@ -28,6 +32,16 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
             <img src={logoSrc} alt="Avoqado" className="h-6 w-auto sm:h-8" />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
+            {/* Logout button - Stripe/Shopify pattern: discrete but accessible */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t('common:logout')}</span>
+            </Button>
             <LanguageSwitcher />
             <ThemeToggle />
           </div>

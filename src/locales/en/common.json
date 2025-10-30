@@ -14,6 +14,10 @@
   "copied": "Copied!",
   "goBack": "Go Back",
   "tryAgain": "Try Again",
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "toggle_theme": "Toggle theme",
   "optional": "Optional",
   "none": "None",
   "unknown": "Unknown",
@@ -58,6 +62,12 @@
     "manageButton": "Manage Billing",
     "redirecting": "Redirecting...",
     "dismissButton": "Dismiss"
+  },
+  "demoBanner": {
+    "title": "🎉 You're in Demo Mode",
+    "description": "This is a demo venue. Click below to convert to a real venue and start accepting payments.",
+    "convertButton": "Convert to Real",
+    "dismissButton": "Dismiss banner"
   },
   "header": {
     "superadmin": "Superadmin"

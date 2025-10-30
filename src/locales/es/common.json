@@ -8,9 +8,16 @@
   "deleting": "Eliminando...",
   "success": "Éxito",
   "error": "Error",
+  "errorOops": "¡Ups!",
+  "errorUnexpected": "Algo inesperado sucedió. Por favor intenta de nuevo más tarde.",
+  "back_to_home": "Volver al inicio",
   "copied": "¡Copiado!",
   "goBack": "Volver",
   "tryAgain": "Reintentar",
+  "system": "Sistema",
+  "light": "Claro",
+  "dark": "Oscuro",
+  "toggle_theme": "Cambiar tema",
   "optional": "Opcional",
   "none": "Ninguno",
   "unknown": "Desconocido",
@@ -55,6 +62,12 @@
     "manageButton": "Gestionar Facturación",
     "redirecting": "Redirigiendo...",
     "dismissButton": "Descartar"
+  },
+  "demoBanner": {
+    "title": "🎉 Estás en Modo Demo",
+    "description": "Esta es una sucursal de demostración. Haz clic abajo para convertirla en una sucursal real y comenzar a aceptar pagos.",
+    "convertButton": "Convertir a Real",
+    "dismissButton": "Descartar banner"
   },
   "header": {
     "superadmin": "Superadmin"
