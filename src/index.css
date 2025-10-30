@@ -70,7 +70,9 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     @apply overflow-x-hidden;
   }
   body {
@@ -99,7 +101,8 @@
   }
   /* Slow pulse animation for validation errors */
   @keyframes pulse-slow {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -108,6 +111,45 @@
   }
   .animate-pulse-slow {
     animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  /* Shake animation for login errors (Stripe pattern) - progressive and slower */
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+    10% {
+      transform: translateX(-8px);
+    }
+    20% {
+      transform: translateX(8px);
+    }
+    30% {
+      transform: translateX(-6px);
+    }
+    40% {
+      transform: translateX(6px);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
+    60% {
+      transform: translateX(4px);
+    }
+    70% {
+      transform: translateX(-2px);
+    }
+    80% {
+      transform: translateX(2px);
+    }
+    90% {
+      transform: translateX(-1px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+  .animate-shake {
+    animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   }
   /* Compact theme (scaled) inspired by shadcn */
   .theme-scaled {
@@ -135,16 +177,20 @@
   }
 
   /* Card inner spacing compaction */
-  .theme-scaled [data-slot='card'] > .p-6 { padding: 1rem; }
-  .theme-scaled [data-slot='card'] { border-radius: var(--radius); }
+  .theme-scaled [data-slot='card'] > .p-6 {
+    padding: 1rem;
+  }
+  .theme-scaled [data-slot='card'] {
+    border-radius: var(--radius);
+  }
   /* Soft page background layer */
   .section-soft {
-    @apply bg-gradient-to-b from-background to-surface/40 dark:bg-background;
+    @apply bg-linear-to-b from-background to-surface/40 dark:bg-background;
   }
 
   /* Apply a gentle card tint like shadcn example */
   .cards-tinted [data-slot='card'] {
-    @apply bg-gradient-to-t from-primary/5 to-card shadow-xs;
+    @apply bg-linear-to-t from-primary/5 to-card shadow-xs;
   }
   .dark .cards-tinted [data-slot='card'] {
     @apply bg-card;
@@ -269,9 +315,11 @@ button:focus-visible {
   :root {
     color-scheme: light;
     /* Fonts */
-    --font-geist: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-    --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    --font-geist: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+      'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-geist-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+      'Apple Color Emoji', 'Segoe UI Emoji';
     --font-sans: var(--font-geist);
     --font-mono: var(--font-geist-mono);
     /* OKLCH neutrals for better contrast & layering */

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { AlertCircle } from 'lucide-react'
 
 import { Icons } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,10 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, loginWithGoogle, isAuthenticated, isLoading } = useAuth()
+  const { login, loginWithGoogle, isAuthenticated, isLoading, loginError, clearLoginError } = useAuth()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [shouldShake, setShouldShake] = useState(false)
+  const [errorCount, setErrorCount] = useState(0)
 
   const from = (location.state as any)?.from?.pathname || '/'
 
@@ -28,6 +31,30 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       navigate(from, { replace: true })
     }
   }, [isAuthenticated, navigate, from])
+
+  // Increment error count when login error occurs (triggers shake even for same error message)
+  useEffect(() => {
+    if (loginError) {
+      setErrorCount(prev => prev + 1)
+    }
+  }, [loginError])
+
+  // Trigger shake animation on every error (triggered by errorCount change)
+  useEffect(() => {
+    if (errorCount > 0) {
+      setShouldShake(true)
+      // Remove shake class after animation completes (800ms)
+      const timer = setTimeout(() => setShouldShake(false), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [errorCount])
+
+  // Clear error when user starts typing
+  const handleInputChange = () => {
+    if (loginError) {
+      clearLoginError()
+    }
+  }
 
   // Pre-fill demo credentials for demo environment
   const isDemoEnvironment = window.location.hostname === 'demo.dashboard.avoqado.io'
@@ -47,6 +74,11 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   })
 
   const onSubmit: SubmitHandler<Inputs> = async formData => {
+    // Clear any previous error before attempting login
+    // This ensures each failed attempt triggers a new shake animation
+    if (loginError) {
+      clearLoginError()
+    }
     // No need for try/catch here since login is handled by React Query mutation
     // which has its own error handling in the AuthContext
     login(formData)
@@ -63,15 +95,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   }
 
   return (
-    <form className={cn('flex flex-col gap-6', className)} {...props} onSubmit={handleSubmit(onSubmit)}>
+    <form className={cn('flex flex-col gap-6', shouldShake && 'animate-shake', className)} {...props} onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">{t('login.title')}</h1>
         <p className="text-muted-foreground text-sm text-balance">{t('login.subtitle')}</p>
         {isDemoEnvironment && (
           <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">
-              🎭 Demo Environment - Credentials pre-filled
-            </p>
+            <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">🎭 Demo Environment - Credentials pre-filled</p>
           </div>
         )}
       </div>
@@ -88,6 +118,10 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             autoCorrect="off"
             disabled={isLoading}
             className={cn('w-full', errors.email && 'border-red-500')}
+            onChange={e => {
+              register('email').onChange(e)
+              handleInputChange()
+            }}
           />
           {errors.email && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.email.message}</span>}
         </div>
@@ -106,9 +140,20 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             placeholder="********"
             disabled={isLoading}
             className={cn('w-full', errors.password && 'border-red-500')}
+            onChange={e => {
+              register('password').onChange(e)
+              handleInputChange()
+            }}
           />
           {errors.password && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.password.message}</span>}
         </div>
+        {/* Inline login error message (Stripe pattern) */}
+        {loginError && (
+          <div className="flex items-center gap-2 px-3 py-2.5 -mt-3 rounded-md bg-destructive/10 border border-destructive/20">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-destructive text-xs">{loginError}</span>
+          </div>
+        )}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
           {t('login.signInButton')}

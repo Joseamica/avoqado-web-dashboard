@@ -37,6 +37,8 @@ interface AuthContextType {
   getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
   allVenues: Venue[]
   staffInfo: any | null
+  loginError: string | null // Error message for login failures
+  clearLoginError: () => void // Clear login error
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -61,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [activeVenue, setActiveVenue] = useState<Venue | null>(null)
   const [isLiveDemoInitializing, setIsLiveDemoInitializing] = useState(false)
   const [liveDemoError, setLiveDemoError] = useState<string | null>(null)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   // Track if we've already attempted live demo auto-login (prevent retry loops)
   const hasAttemptedLiveDemoLogin = useRef(false)
@@ -155,7 +158,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, attemptLiveDemoLogin])
 
   const userRole = useMemo(() => {
-    if (user?.role === StaffRole.SUPERADMIN) return StaffRole.SUPERADMIN
+    // World-Class Pattern: Use role field directly if present (for OWNER without venues, SUPERADMIN, etc.)
+    if (user?.role) return user.role
+
+    // Fallback: Derive role from venues (for backwards compatibility)
     return user?.venues?.some(v => v.role === StaffRole.OWNER) ? StaffRole.OWNER : user?.venues?.[0]?.role
   }, [user?.role, user?.venues])
 
@@ -177,6 +183,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isStatusLoading || !isAuthenticated || !user) return
 
     const userVenues = user.venues || []
+
+    // World-Class Pattern (Stripe/Shopify): OWNER without venues → redirect to onboarding
+    // This handles the case where user verified email but hasn't completed onboarding yet
+    if (userVenues.length === 0 && userRole === StaffRole.OWNER) {
+      // Don't redirect if already on onboarding or auth routes
+      const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
+      const isOnAuthRoute = location.pathname.startsWith('/auth/')
+
+      if (!isOnOnboardingRoute && !isOnAuthRoute) {
+        navigate('/onboarding', { replace: true })
+      }
+      return
+    }
+
     // SUPERADMIN users should have access to all venues and superadmin routes
     if (userVenues.length > 0 || user.role === 'SUPERADMIN') {
       const defaultVenue = userVenues[0] || allVenues[0] // Use first available venue for SUPERADMIN
@@ -214,10 +234,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
-      // Don't redirect if user is on signup or onboarding flow (new signups need to complete onboarding first)
+      // Don't redirect if user is on signup, onboarding, or auth flows (verification, etc.)
       const isOnSignupRoute = location.pathname.startsWith('/signup')
       const isOnOnboardingRoute = location.pathname.startsWith('/onboarding')
-      if (!isOnSignupRoute && !isOnOnboardingRoute) {
+      const isOnAuthRoute = location.pathname.startsWith('/auth/')
+      if (!isOnSignupRoute && !isOnOnboardingRoute && !isOnAuthRoute) {
         navigate('/venues/new', { replace: true })
       }
     }
@@ -241,17 +262,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     onSuccess: () => {
       toast({ title: t('toast.login_success') })
       queryClient.invalidateQueries({ queryKey: ['status'] })
+      setLoginError(null) // Clear any previous login errors
     },
     onError: (error: any, variables) => {
       const errorMessage = error.response?.data?.message || ''
+      const errorCode = error.response?.data?.code // World-Class: Stripe/GitHub pattern
       const statusCode = error.response?.status
 
       // FAANG Pattern: Detect email not verified and redirect to verification page
       if (
         statusCode === 403 &&
-        (errorMessage.includes('verify') ||
-          errorMessage.includes('not verified') ||
-          errorMessage.includes('verification required'))
+        (errorMessage.includes('verify') || errorMessage.includes('not verified') || errorMessage.includes('verification required'))
       ) {
         toast({
           title: t('toast.email_not_verified_title'),
@@ -263,20 +284,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      toast({
-        title: t('toast.login_error_title'),
-        variant: 'destructive',
-        description: errorMessage || t('toast.login_error_desc'),
-      })
+      // World-Class Pattern: Use error codes for detection (Stripe/GitHub)
+      // This is language-agnostic and more reliable than string matching
+      if (errorCode === 'NO_VENUE_ACCESS') {
+        setLoginError(t('toast.no_venue_access_desc'))
+        return
+      }
+
+      // Account locked errors should show the backend message (includes time remaining)
+      if (statusCode === 403 && errorMessage.includes('locked')) {
+        setLoginError(errorMessage)
+        return
+      }
+
+      // Generic authentication error (invalid credentials, etc.)
+      // Use backend message if available, fallback to generic translated message
+      setLoginError(errorMessage || t('toast.login_error_desc'))
     },
   })
 
   const signupMutation = useMutation({
     mutationFn: (signupData: SignupData) => authService.signup(signupData),
     onSuccess: () => {
-      toast({ title: t('toast.signup_success') })
-      queryClient.invalidateQueries({ queryKey: ['status'] })
-      // Do NOT redirect automatically - let SignupForm handle the next step (email verification)
+      // Do NOT show toast here - user will be navigated immediately to verification page
+      // The verification page already has clear instructions about checking email
+      // Do NOT invalidate queries here - causes navigation conflicts
+      // SignupForm will navigate to /auth/verify-email immediately
+      // That page will fetch status when it mounts
     },
     onError: (error: any) => {
       const backendMessage = error.response?.data?.message || ''
@@ -360,6 +394,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // --- FUNCIONES EXPUESTAS ---
 
+  const clearLoginError = useCallback(() => {
+    setLoginError(null)
+  }, [])
+
   const switchVenue = useCallback(
     async (newVenueSlug: string): Promise<void> => {
       if (activeVenue?.slug === newVenueSlug) return // No hacer nada si ya está activo
@@ -421,8 +459,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLiveDemoInitializing && retryCountRef.current > 0
         ? `Initializing live demo... (attempt ${retryCountRef.current + 1}/3)`
         : isLiveDemoInitializing
-          ? 'Initializing live demo...'
-          : t('common:verifying_session')
+        ? 'Initializing live demo...'
+        : t('common:verifying_session')
     return <LoadingScreen message={retryMessage} />
   }
 
@@ -468,6 +506,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     getVenueBySlug,
     allVenues,
     staffInfo: { ...user, role: userRole },
+    loginError,
+    clearLoginError,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

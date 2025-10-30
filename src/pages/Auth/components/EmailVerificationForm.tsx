@@ -1,12 +1,10 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
-import { Button } from '@/components/ui/button'
-import { Icons } from '@/components/icons'
-import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { useToast } from '@/hooks/use-toast'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 interface EmailVerificationFormProps {
   email: string
@@ -30,9 +28,9 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
     onSuccess: async () => {
       // Force refetch auth status to get updated emailVerified: true
       // Use refetchQueries instead of invalidateQueries to bypass HTTP cache (304)
-      const result = await queryClient.refetchQueries({
+      await queryClient.refetchQueries({
         queryKey: ['status'],
-        type: 'active'
+        type: 'active',
       })
 
       toast({
@@ -62,15 +60,9 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
 
   const handleComplete = (value: string) => {
     setCode(value)
-    // FAANG Pattern: Auto-verify when 4 digits are complete
-    if (value.length === 4) {
+    // FAANG Pattern: Auto-verify when 6 digits are complete
+    if (value.length === 6) {
       verifyMutation.mutate(value)
-    }
-  }
-
-  const handleVerify = () => {
-    if (code.length === 4) {
-      verifyMutation.mutate(code)
     }
   }
 
@@ -78,12 +70,14 @@ export function EmailVerificationForm({ email }: EmailVerificationFormProps) {
     <div className="flex flex-col items-center gap-6 py-4">
       {/* OTP Input - Larger and more prominent */}
       <div className="px-4">
-        <InputOTP maxLength={4} value={code} onChange={setCode} onComplete={handleComplete}>
+        <InputOTP maxLength={6} value={code} onChange={setCode} onComplete={handleComplete}>
           <InputOTPGroup className="gap-3">
             <InputOTPSlot index={0} className="w-16 h-16 text-2xl rounded-lg border-2" />
             <InputOTPSlot index={1} className="w-16 h-16 text-2xl rounded-lg border-2" />
             <InputOTPSlot index={2} className="w-16 h-16 text-2xl rounded-lg border-2" />
             <InputOTPSlot index={3} className="w-16 h-16 text-2xl rounded-lg border-2" />
+            <InputOTPSlot index={4} className="w-16 h-16 text-2xl rounded-lg border-2" />
+            <InputOTPSlot index={5} className="w-16 h-16 text-2xl rounded-lg border-2" />
           </InputOTPGroup>
         </InputOTP>
       </div>
