@@ -28,6 +28,24 @@
   "previous": "Anterior",
   "continue": "Continuar",
   "skip": "Saltar por Ahora",
+  "login": "Iniciar sesión",
+  "logout": "Cerrar sesión",
+  "compare": "Comparar",
+  "apply": "Aplicar",
+  "selectPlaceholder": "Selecciona una opción",
+  "dateRange": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "last7": "Últimos 7 días",
+    "last14": "Últimos 14 días",
+    "last30": "Últimos 30 días",
+    "thisWeek": "Esta semana",
+    "lastWeek": "Semana pasada",
+    "thisMonth": "Este mes",
+    "lastMonth": "Mes pasado",
+    "thisYear": "Este año",
+    "lastYear": "Año pasado"
+  },
   "trialBanner": {
     "urgentTitle": "⚠️ ¡Solo queda {{days}} día en tu periodo de prueba!",
     "urgentTitle_plural": "⚠️ ¡Solo quedan {{days}} días en tu periodo de prueba!",
@@ -47,7 +65,18 @@
     "selectVenue": "Seleccionar sucursal",
     "current": "(actual)"
   },
+  "layout": {
+    "noVenuesAssigned": "No tienes sucursales asignadas",
+    "noVenuesAssignedDesc": "Parece que aún no tienes ninguna sucursal asignada a tu cuenta. Por favor, contacta a tu administrador para obtener acceso.",
+    "needHelp": "¿Necesitas ayuda?",
+    "contactUs": "Contáctanos",
+    "testPageTitle": "Página de Prueba",
+    "authenticated": "Autenticado",
+    "notAuthenticated": "No autenticado"
+  },
   "chat": {
+    "title": "Asistente Avoqado",
+    "queriesRemaining": "consultas restantes",
     "welcome": "¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?",
     "input": {
       "placeholder": "Escribe tu mensaje aquí..."

@@ -28,6 +28,24 @@
   "previous": "Previous",
   "continue": "Continue",
   "skip": "Skip",
+  "login": "Login",
+  "logout": "Logout",
+  "compare": "Compare",
+  "apply": "Apply",
+  "selectPlaceholder": "Select an option",
+  "dateRange": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7": "Last 7 days",
+    "last14": "Last 14 days",
+    "last30": "Last 30 days",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "thisYear": "This year",
+    "lastYear": "Last year"
+  },
   "trialBanner": {
     "urgentTitle": "⚠️ Only {{days}} day remaining in your free trial!",
     "urgentTitle_plural": "⚠️ Only {{days}} days remaining in your free trial!",
@@ -47,7 +65,18 @@
     "selectVenue": "Select venue",
     "current": "(current)"
   },
+  "layout": {
+    "noVenuesAssigned": "No venues assigned",
+    "noVenuesAssignedDesc": "It looks like you don't have any venues assigned to your account yet. Please contact your administrator for access.",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "testPageTitle": "Test Page",
+    "authenticated": "Authenticated",
+    "notAuthenticated": "Not authenticated"
+  },
   "chat": {
+    "title": "Avoqado Assistant",
+    "queriesRemaining": "queries remaining",
     "welcome": "Hello! I'm your AI assistant. How can I help you today?",
     "input": {
       "placeholder": "Type your message here..."

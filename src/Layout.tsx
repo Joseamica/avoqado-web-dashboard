@@ -10,7 +10,7 @@ export function Layout() {
   const { t } = useTranslation()
 
   if (isLoading) {
-    return <div>{t('common.loading')}</div>
+    return <div>{t('loading')}</div>
   }
 
   if (!isAuthenticated) {
@@ -44,9 +44,9 @@ export function Layout() {
               {t('layout.contactUs')}
             </a>
           </p>
-          <Button aria-label={t('common.logout')} onClick={() => logout()}>
+          <Button aria-label={t('logout')} onClick={() => logout()}>
             <LogOut />
-            {t('common.logout')}
+            {t('logout')}
           </Button>
         </div>
       </div>
@@ -62,10 +62,10 @@ export function Layout() {
       {isAuthenticated ? <h2>{t('layout.authenticated')}</h2> : <h2>{t('layout.notAuthenticated')}</h2>}
 
       <Link to="/login" className="mr-4">
-        {t('common.login')}
+        {t('login')}
       </Link>
-      <Button variant="outline" aria-label={t('common.logout')} onClick={() => logout()}>
-        {t('common.logout')}
+      <Button variant="outline" aria-label={t('logout')} onClick={() => logout()}>
+        {t('logout')}
       </Button>
     </div>
   )

@@ -27,6 +27,24 @@
   "previous": "Précédent",
   "continue": "Continuer",
   "skip": "Passer",
+  "login": "Connexion",
+  "logout": "Déconnexion",
+  "compare": "Comparer",
+  "apply": "Appliquer",
+  "selectPlaceholder": "Sélectionnez une option",
+  "dateRange": {
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "last7": "7 derniers jours",
+    "last14": "14 derniers jours",
+    "last30": "30 derniers jours",
+    "thisWeek": "Cette semaine",
+    "lastWeek": "Semaine dernière",
+    "thisMonth": "Ce mois",
+    "lastMonth": "Mois dernier",
+    "thisYear": "Cette année",
+    "lastYear": "Année dernière"
+  },
   "header": {
     "superadmin": "Superadministrateur"
   },
@@ -36,7 +54,18 @@
     "selectVenue": "Select venue",
     "current": "(current)"
   },
+  "layout": {
+    "noVenuesAssigned": "Aucune venue assignée",
+    "noVenuesAssignedDesc": "Il semble que vous n'ayez pas encore de venue assignée à votre compte. Veuillez contacter votre administrateur pour obtenir l'accès.",
+    "needHelp": "Besoin d'aide ?",
+    "contactUs": "Contactez-nous",
+    "testPageTitle": "Page de Test",
+    "authenticated": "Authentifié",
+    "notAuthenticated": "Non authentifié"
+  },
   "chat": {
+    "title": "Assistant Avoqado",
+    "queriesRemaining": "requêtes restantes",
     "welcome": "Bonjour ! Je suis votre assistant IA. Comment puis-je vous aider aujourd'hui ?",
     "input": {
       "placeholder": "Tapez votre message ici..."

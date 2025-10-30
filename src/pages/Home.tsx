@@ -8,6 +8,8 @@ import { useProgressiveLoader } from '@/hooks/use-intersection-observer'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { getLast7Days, getToday, getYesterday, getLast30Days, getPreviousPeriod } from '@/utils/datetime'
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/locale'
@@ -133,6 +135,7 @@ const MetricCard = ({
 
 const Home = () => {
   const { venueId } = useCurrentVenue()
+  const { activeVenue } = useAuth()
   const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
   const dateLocale = i18n.language?.startsWith('fr') ? localeFr : i18n.language?.startsWith('en') ? localeEn : localeEs
@@ -140,15 +143,18 @@ const Home = () => {
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
   const [comparisonLabel, setComparisonLabel] = useState(t('comparison.previousPeriod'))
 
-  // Define ranges
-  const [selectedRange, setSelectedRange] = useState({
-    from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000), // last 7 days
-    to: new Date(new Date().setHours(23, 59, 59, 999)), // today
+  // Get venue timezone for date calculations
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+
+  // Define ranges using venue timezone (NOT browser timezone!)
+  const [selectedRange, setSelectedRange] = useState(() => {
+    const range = getLast7Days(venueTimezone)
+    return range
   })
 
-  const [compareRange, setCompareRange] = useState({
-    from: new Date(new Date().setHours(0, 0, 0, 0) - 14 * 24 * 60 * 60 * 1000), // previous 7 days
-    to: new Date(new Date(new Date().setHours(0, 0, 0, 0) - 8 * 24 * 60 * 60 * 1000).getTime() - 1), // day before the selectedRange starts
+  const [compareRange, setCompareRange] = useState(() => {
+    const range = getLast7Days(venueTimezone)
+    return getPreviousPeriod(range)
   })
 
   const [activeFilter, setActiveFilter] = useState('7days')
@@ -158,59 +164,39 @@ const Home = () => {
 
   // Handler for "Today" filter
   const handleToday = useCallback(() => {
-    const today = new Date()
-    const todayStart = new Date(today.setHours(0, 0, 0, 0))
-    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999))
+    const todayRange = getToday(venueTimezone)
+    const yesterdayRange = getYesterday(venueTimezone)
 
-    const yesterdayStart = new Date(todayStart)
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
-    const yesterdayEnd = new Date(yesterdayStart)
-    yesterdayEnd.setHours(23, 59, 59, 999)
-
-    setSelectedRange({ from: todayStart, to: todayEnd })
-    setCompareRange({ from: yesterdayStart, to: yesterdayEnd })
+    setSelectedRange(todayRange)
+    setCompareRange(yesterdayRange)
     setCompareType('day')
     setComparisonLabel(t('comparison.yesterday'))
     setActiveFilter('today')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Handler for "Last 7 days" filter
   const handleLast7Days = useCallback(() => {
-    const today = new Date()
-    const end = new Date(today.setHours(23, 59, 59, 999))
-    const start = new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000)
+    const range = getLast7Days(venueTimezone)
+    const prevRange = getPreviousPeriod(range)
 
-    const compareEnd = new Date(start)
-    compareEnd.setMilliseconds(compareEnd.getMilliseconds() - 1)
-    const compareStart = new Date(compareEnd)
-    compareStart.setDate(compareStart.getDate() - 7)
-    compareStart.setHours(0, 0, 0, 0)
-
-    setSelectedRange({ from: start, to: end })
-    setCompareRange({ from: compareStart, to: compareEnd })
+    setSelectedRange(range)
+    setCompareRange(prevRange)
     setCompareType('week')
     setComparisonLabel(t('comparison.prev7days'))
     setActiveFilter('7days')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Handler for "Last 30 days" filter
   const handleLast30Days = useCallback(() => {
-    const today = new Date()
-    const end = new Date(today.setHours(23, 59, 59, 999))
-    const start = new Date(new Date().setHours(0, 0, 0, 0) - 30 * 24 * 60 * 60 * 1000)
+    const range = getLast30Days(venueTimezone)
+    const prevRange = getPreviousPeriod(range)
 
-    const compareEnd = new Date(start)
-    compareEnd.setMilliseconds(compareEnd.getMilliseconds() - 1)
-    const compareStart = new Date(compareEnd)
-    compareStart.setDate(compareStart.getDate() - 30)
-    compareStart.setHours(0, 0, 0, 0)
-
-    setSelectedRange({ from: start, to: end })
-    setCompareRange({ from: compareStart, to: compareEnd })
+    setSelectedRange(range)
+    setCompareRange(prevRange)
     setCompareType('month')
     setComparisonLabel(t('comparison.prev30days'))
     setActiveFilter('30days')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Basic metrics query (priority load)
   const {
@@ -220,12 +206,14 @@ const Home = () => {
     error: basicError,
     refetch: refetchBasicData,
   } = useQuery({
-    queryKey: ['basic_metrics', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
+    queryKey: ['basic_metrics', venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
     queryFn: async () => {
       return await dashboardService.getBasicMetrics(selectedRange)
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0, // Don't cache results
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
   })
 
   // Comparison data query
@@ -234,13 +222,15 @@ const Home = () => {
     isLoading: isCompareLoading,
     refetch: refetchCompareData,
   } = useQuery({
-    queryKey: ['basic_metrics_compare', venueId, compareRange?.from?.toISOString(), compareRange?.to?.toISOString()],
+    queryKey: ['basic_metrics_compare', venueId, compareRange.from.toISOString(), compareRange.to.toISOString()],
     queryFn: async () => {
       if (!compareType) return null
       return await dashboardService.getBasicMetrics(compareRange)
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0, // Don't cache results
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
     enabled: !!compareType,
   })
 
@@ -598,11 +588,9 @@ const Home = () => {
               onUpdate={({ range }) => {
                 setSelectedRange(range)
 
-                const selectedDuration = range.to.getTime() - range.from.getTime()
-                const compareEnd = new Date(range.from.getTime() - 1)
-                const compareStart = new Date(compareEnd.getTime() - selectedDuration)
+                const prevRange = getPreviousPeriod(range)
 
-                setCompareRange({ from: compareStart, to: compareEnd })
+                setCompareRange(prevRange)
                 setCompareType('custom')
                 setComparisonLabel(t('comparison.previousPeriod'))
                 setActiveFilter('custom')
