@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 export default function Account() {
-  const { t, i18n } = useTranslation(['translation', 'common'])
+  const { t, i18n } = useTranslation(['account', 'common'])
   const { venueId } = useCurrentVenue()
   const localeCode = getIntlLocale(i18n.language)
   const { user } = useAuth()
