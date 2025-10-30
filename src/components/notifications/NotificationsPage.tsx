@@ -32,7 +32,7 @@ interface NotificationsPageProps {
 }
 
 export function NotificationsPage({ className }: NotificationsPageProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['notifications', 'common'])
   const { venueSlug } = useCurrentVenue()
   const {
     notifications,
@@ -114,7 +114,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center">
             <Bell className="h-6 w-6 mr-2" />
-            {t('dashboard.notifications.title')}
+            {t('title')}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {unreadCount}
