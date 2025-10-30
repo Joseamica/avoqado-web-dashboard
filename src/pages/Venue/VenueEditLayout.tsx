@@ -145,14 +145,24 @@ export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLE
   return (
     <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-b border-border px-6', className)} {...props}>
       <NavLink
-        to={`/venues/${venueSlug}/edit/general`}
+        to={`/venues/${venueSlug}/edit/basic-info`}
         className={({ isActive }) =>
           `text-sm font-medium transition-colors py-4 border-b-2 ${
             isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
           }`
         }
       >
-        {t('edit.nav.general', { defaultValue: 'General' })}
+        {t('edit.nav.basicInfo', { defaultValue: 'Información Básica' })}
+      </NavLink>
+      <NavLink
+        to={`/venues/${venueSlug}/edit/contact-images`}
+        className={({ isActive }) =>
+          `text-sm font-medium transition-colors py-4 border-b-2 ${
+            isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
+          }`
+        }
+      >
+        {t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' })}
       </NavLink>
       <NavLink
         to={`/venues/${venueSlug}/edit/documents`}

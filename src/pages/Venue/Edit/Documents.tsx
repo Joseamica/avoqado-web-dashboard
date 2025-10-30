@@ -255,10 +255,10 @@ export default function VenueDocuments() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
+      <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 space-y-4">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-32 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[1, 2, 3].map(i => (
             <Skeleton key={i} className="h-40 w-full" />
           ))}
@@ -269,7 +269,7 @@ export default function VenueDocuments() {
 
   if (!venue) {
     return (
-      <div className="container mx-auto pt-6 pb-20 px-3 md:px-4">
+      <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
@@ -351,12 +351,12 @@ export default function VenueDocuments() {
   })
 
   return (
-    <div className="container mx-auto pt-6 pb-20 px-3 md:px-4 space-y-6">
+    <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-foreground">
           {t('edit.documents.title', { defaultValue: 'Documentación Fiscal' })}
         </h2>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm text-muted-foreground mt-1">
           {t('edit.documents.subtitle', { defaultValue: 'Documentos oficiales y fiscales del local' })}
         </p>
       </div>
@@ -400,19 +400,19 @@ export default function VenueDocuments() {
       {/* Fiscal Information */}
       {venue.rfc && (
         <Card>
-          <CardHeader>
-            <CardTitle>{t('edit.documents.fiscalInfo', { defaultValue: 'Información Fiscal' })}</CardTitle>
-            <CardDescription>{t('edit.documents.fiscalInfoDesc', { defaultValue: 'Datos fiscales registrados' })}</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{t('edit.documents.fiscalInfo', { defaultValue: 'Información Fiscal' })}</CardTitle>
+            <CardDescription className="text-xs">{t('edit.documents.fiscalInfoDesc', { defaultValue: 'Datos fiscales registrados' })}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="pt-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">RFC</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">RFC</p>
                 <p className="text-sm text-foreground font-mono">{venue.rfc}</p>
               </div>
               {venue.legalName && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
                     {t('edit.documents.legalName', { defaultValue: 'Razón Social' })}
                   </p>
                   <p className="text-sm text-foreground">{venue.legalName}</p>
@@ -420,7 +420,7 @@ export default function VenueDocuments() {
               )}
               {venue.fiscalRegime && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
                     {t('edit.documents.fiscalRegime', { defaultValue: 'Régimen Fiscal' })}
                   </p>
                   <p className="text-sm text-foreground">{venue.fiscalRegime}</p>
@@ -432,7 +432,7 @@ export default function VenueDocuments() {
       )}
 
       {/* Documents Grid - Show all documents with required indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {documents.map((doc, index) => {
           const hasExistingDoc = !!doc.url
           const hasSelectedFile = !!selectedFiles[doc.key]
@@ -460,11 +460,11 @@ export default function VenueDocuments() {
                       : ''
               }
             >
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-start gap-2 flex-1">
                     <div
-                      className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                         isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired)
                           ? 'bg-destructive/20'
                           : isDocumentApproved || hasSelectedFile
@@ -473,17 +473,17 @@ export default function VenueDocuments() {
                       }`}
                     >
                       {isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired) ? (
-                        <AlertCircle className="h-5 w-5 text-destructive" />
+                        <AlertCircle className="h-4 w-4 text-destructive" />
                       ) : isDocumentApproved || hasSelectedFile ? (
-                        <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <FileText className="h-5 w-5 text-primary" />
+                        <FileText className="h-4 w-4 text-primary" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <CardTitle
-                          className={`text-base ${isMarkedAsMissing || (isMissing && isRequired) ? 'text-destructive' : 'text-foreground'}`}
+                          className={`text-sm ${isMarkedAsMissing || (isMissing && isRequired) ? 'text-destructive' : 'text-foreground'}`}
                         >
                           {doc.label}
                         </CardTitle>
@@ -491,12 +491,12 @@ export default function VenueDocuments() {
                           <span className="text-xs text-destructive font-semibold">*</span>
                         )}
                       </div>
-                      <CardDescription className="mt-1">{doc.description}</CardDescription>
+                      <CardDescription className="mt-0.5 text-xs">{doc.description}</CardDescription>
                     </div>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pt-0">
                 {/* Show existing document actions */}
                 {hasExistingDoc && !hasSelectedFile && (
                   <div className="space-y-2">
