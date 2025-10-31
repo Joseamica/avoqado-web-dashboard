@@ -5,6 +5,7 @@ export interface LoginDto {
   email: string
   password: string
   venueId?: string
+  rememberMe?: boolean
 }
 
 export interface AuthResponse {

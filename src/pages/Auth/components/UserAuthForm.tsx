@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 import { Icons } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 import { LoginDto } from '@/services/auth.service'
@@ -23,6 +24,11 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [shouldShake, setShouldShake] = useState(false)
   const [errorCount, setErrorCount] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(() => {
+    // Load remember me preference from localStorage
+    return localStorage.getItem('rememberMe') === 'true'
+  })
 
   const from = (location.state as any)?.from?.pathname || '/'
 
@@ -79,9 +85,14 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
     if (loginError) {
       clearLoginError()
     }
+    // Add rememberMe to login data
+    const loginData = {
+      ...formData,
+      rememberMe,
+    }
     // No need for try/catch here since login is handled by React Query mutation
     // which has its own error handling in the AuthContext
-    login(formData)
+    login(loginData)
   }
 
   const handleGoogleLogin = async () => {
@@ -132,19 +143,30 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
               {t('login.forgotPassword')}
             </Link>
           </div>
-          <Input
-            {...register('password', { required: t('login.passwordRequired') })}
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="********"
-            disabled={isLoading}
-            className={cn('w-full', errors.password && 'border-red-500')}
-            onChange={e => {
-              register('password').onChange(e)
-              handleInputChange()
-            }}
-          />
+          <div className="relative">
+            <Input
+              {...register('password', { required: t('login.passwordRequired') })}
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="********"
+              disabled={isLoading}
+              className={cn('w-full pr-10', errors.password && 'border-red-500')}
+              onChange={e => {
+                register('password').onChange(e)
+                handleInputChange()
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              disabled={isLoading}
+              aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           {errors.password && <span style={{ color: 'red', fontSize: '12px', paddingLeft: 5 }}>{errors.password.message}</span>}
         </div>
         {/* Inline login error message (Stripe pattern) */}
@@ -154,6 +176,24 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
             <span className="text-destructive text-xs">{loginError}</span>
           </div>
         )}
+        {/* Remember me checkbox */}
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="rememberMe"
+            checked={rememberMe}
+            onCheckedChange={(checked) => {
+              setRememberMe(checked as boolean)
+              localStorage.setItem('rememberMe', String(checked))
+            }}
+            disabled={isLoading}
+          />
+          <label
+            htmlFor="rememberMe"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+          >
+            {t('login.rememberMe')}
+          </label>
+        </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Icons.spinner className="mr-2 w-4 h-4 animate-spin" />}
           {t('login.signInButton')}
