@@ -5,7 +5,9 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, ArrowRight, CheckCircle2, XCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -41,6 +43,16 @@ export default function VenueIntegrations() {
     queryKey: ['venue-integrations', venueId],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
+      return response.data
+    },
+    enabled: !!venueId,
+  })
+
+  // Fetch Google Integration status
+  const { data: googleStatus } = useQuery({
+    queryKey: ['google-integration', venueId],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/integrations/google/status`)
       return response.data
     },
     enabled: !!venueId,
@@ -166,6 +178,72 @@ export default function VenueIntegrations() {
               />
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* Google Business Profile Integration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Google Business Profile</CardTitle>
+              <CardDescription>{t('edit.integrations.google.description')}</CardDescription>
+            </div>
+            {googleStatus?.connected ? (
+              <Badge variant="default" className="gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                {t('edit.integrations.google.connected')}
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="gap-1">
+                <XCircle className="h-3 w-3" />
+                {t('edit.integrations.google.notConnected')}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {googleStatus?.connected ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {t('edit.integrations.google.connectedTo')}: <span className="font-medium text-foreground">{googleStatus.email}</span>
+                </p>
+                {googleStatus.locationName && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('edit.integrations.google.location')}: <span className="font-medium text-foreground">{googleStatus.locationName}</span>
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">{t('edit.integrations.google.notConnectedDesc')}</p>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
+                  {t('edit.integrations.google.benefit1')}
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
+                  {t('edit.integrations.google.benefit2')}
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
+                  {t('edit.integrations.google.benefit3')}
+                </li>
+              </ul>
+            </div>
+          )}
+
+          <Button asChild>
+            <Link to="google">
+              {googleStatus?.connected ? t('edit.integrations.google.manage') : t('edit.integrations.google.connect')}
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

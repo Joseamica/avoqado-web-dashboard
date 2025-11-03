@@ -8,5 +8,124 @@
   "noReviews": "No reviews available for this period",
   "star": "star",
   "stars": "stars",
-  "reviewCount": "{{count}} review(s)"
+  "reviewCount": "{{count}} review(s)",
+
+  "sources": {
+    "avoqado": "Avoqado",
+    "google": "Google",
+    "tripadvisor": "TripAdvisor",
+    "facebook": "Facebook",
+    "yelp": "Yelp"
+  },
+
+  "sentiment": {
+    "positive": "Positive",
+    "neutral": "Neutral",
+    "negative": "Negative"
+  },
+
+  "card": {
+    "anonymousCustomer": "Anonymous Customer",
+    "ratings": {
+      "food": "Food",
+      "service": "Service",
+      "ambience": "Ambience"
+    },
+    "response": {
+      "title": "Your Response",
+      "aiGenerated": "AI-Generated"
+    },
+    "actions": {
+      "respond": "Respond to Review"
+    }
+  },
+
+  "filters": {
+    "title": "Filters",
+    "reset": "Reset",
+    "search": {
+      "label": "Search Comments",
+      "placeholder": "Search in review comments..."
+    },
+    "sources": {
+      "label": "Review Source"
+    },
+    "rating": {
+      "label": "Minimum Rating",
+      "all": "All ratings",
+      "exactly": "{{rating}} stars only",
+      "andUp": "{{rating}}+ stars"
+    },
+    "sentiment": {
+      "label": "Sentiment",
+      "all": "All sentiments"
+    },
+    "responseStatus": {
+      "label": "Response Status",
+      "all": "All reviews",
+      "responded": "Responded",
+      "unresponded": "Not responded"
+    }
+  },
+
+  "stats": {
+    "totalReviews": "Total Reviews",
+    "averageRating": "Average Rating",
+    "responseRate": "Response Rate",
+    "avgResponseTimeLabel": "Avg Response Time",
+    "allTime": "All time",
+    "vsLastWeek": "vs last week",
+    "responded": "responded",
+    "averageTime": "Average time to respond",
+    "avgResponseTime": {
+      "minutes": "{{minutes}}min",
+      "hours": "{{hours}}h",
+      "days": "{{days}}d"
+    }
+  },
+
+  "responseDialog": {
+    "title": "Respond to Review",
+    "description": "Generate an AI-powered response for {{customerName}}'s review",
+    "responseLabel": "Response",
+    "edited": "Edited",
+    "generating": "AI is generating a response...",
+    "responsePlaceholder": "Type your response here...",
+    "aiPowered": "Powered by AI",
+    "characters": "characters",
+    "cancel": "Cancel",
+    "regenerate": "Regenerate",
+    "send": "Send Response",
+    "sending": "Sending...",
+    "success": {
+      "title": "Response Sent!",
+      "description": "Your response has been submitted successfully."
+    },
+    "errors": {
+      "generateFailed": "Failed to generate AI response",
+      "submitFailed": "Failed to send response",
+      "emptyResponse": "Cannot send empty response",
+      "emptyResponseDescription": "Please write a response before sending."
+    },
+    "feedback": {
+      "thanksTitle": "Thanks for your feedback!",
+      "thanksDescription": "Your feedback helps improve our AI responses."
+    }
+  },
+
+  "sorting": {
+    "label": "Sort by",
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "highestRated": "Highest rated",
+    "lowestRated": "Lowest rated",
+    "unresponded": "Unresponded first"
+  },
+
+  "emptyState": {
+    "title": "No reviews yet",
+    "description": "Reviews from your customers will appear here.",
+    "noResults": "No reviews match your filters",
+    "adjustFilters": "Try adjusting your filters to see more results."
+  }
 }

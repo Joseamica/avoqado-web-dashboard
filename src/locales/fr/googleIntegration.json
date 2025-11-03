@@ -1,0 +1,92 @@
+{
+  "title": "Intégration Google Business Profile",
+  "description": "Connectez votre profil Google Business pour synchroniser les avis et répondre directement depuis Avoqado",
+
+  "status": {
+    "title": "État de la Connexion",
+    "connected": "Votre Google Business Profile est connecté",
+    "notConnected": "Connectez-vous pour commencer à synchroniser les avis",
+    "connectedBadge": "Connecté",
+    "notConnectedBadge": "Non Connecté"
+  },
+
+  "connectedInfo": {
+    "account": "Compte Connecté",
+    "businessLocation": "Emplacement Commercial",
+    "lastSync": "Dernière Synchronisation",
+    "never": "Jamais",
+    "reviewsCount": "{{count}} avis synchronisés"
+  },
+
+  "actions": {
+    "connect": "Connecter Google Business Profile",
+    "disconnect": "Déconnecter",
+    "syncNow": "Synchroniser Maintenant",
+    "syncing": "Synchronisation..."
+  },
+
+  "authorization": {
+    "title": "Ce que vous autoriserez:",
+    "readReviews": "Lire les avis de votre Google Business Profile",
+    "postResponses": "Publier des réponses aux avis en votre nom",
+    "accessInfo": "Accéder aux informations de base du profil commercial"
+  },
+
+  "instructions": {
+    "title": "Comment Se Connecter",
+    "step1": {
+      "title": "1. Cliquez sur \"Connecter Google Business Profile\"",
+      "description": "Vous serez redirigé vers la page d'autorisation de Google"
+    },
+    "step2": {
+      "title": "2. Connectez-vous avec votre compte Google professionnel",
+      "description": "Utilisez le compte qui gère votre Google Business Profile"
+    },
+    "step3": {
+      "title": "3. Accordez les autorisations",
+      "description": "Autorisez Avoqado à lire et répondre aux avis"
+    },
+    "step4": {
+      "title": "4. Sélectionnez votre emplacement commercial",
+      "description": "Si vous gérez plusieurs emplacements, choisissez celui de ce lieu"
+    }
+  },
+
+  "requirements": {
+    "title": "Exigences",
+    "verified": "Votre entreprise doit être vérifiée sur Google",
+    "owner": "Vous devez être le propriétaire ou le gestionnaire du Google Business Profile",
+    "active": "Votre Google Business Profile doit être actif et publié"
+  },
+
+  "benefits": {
+    "title": "Avantages de la Connexion",
+    "autoSync": "Synchronisation automatique des avis toutes les 6 heures",
+    "centralResponse": "Répondre à tous les avis depuis un seul tableau de bord",
+    "aiPowered": "Suggestions de réponse alimentées par IA",
+    "analytics": "Analyses unifiées de toutes les sources d'avis"
+  },
+
+  "errors": {
+    "connectionFailed": "Échec de la connexion au Google Business Profile",
+    "noLocations": "Aucun emplacement commercial trouvé dans votre compte Google",
+    "syncFailed": "Échec de la synchronisation des avis",
+    "disconnectFailed": "Échec de la déconnexion",
+    "unauthorized": "Vous n'avez pas l'autorisation de gérer ce Google Business Profile"
+  },
+
+  "success": {
+    "connected": "Google Business Profile connecté avec succès!",
+    "disconnected": "Google Business Profile déconnecté",
+    "synced": "Avis synchronisés avec succès"
+  },
+
+  "confirm": {
+    "disconnect": {
+      "title": "Déconnecter Google Business Profile?",
+      "description": "Vos avis synchronisés existants resteront dans Avoqado, mais les nouveaux avis ne seront pas synchronisés automatiquement. Vous pouvez vous reconnecter à tout moment.",
+      "confirm": "Déconnecter",
+      "cancel": "Annuler"
+    }
+  }
+}
