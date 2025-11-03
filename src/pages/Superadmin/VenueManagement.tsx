@@ -1,38 +1,39 @@
-import React, { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { SubscriptionPlanBadge, type SubscriptionPlanType } from '@/components/ui/plan-badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { VenueStatusBadge, type VenueStatusType } from '@/components/ui/status-badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToast } from '@/hooks/use-toast'
+import { superadminAPI } from '@/services/superadmin.service'
+import { SubscriptionPlan, VenueStatus, type SuperadminVenue } from '@/types/superadmin'
+import { Currency } from '@/utils/currency'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
-  Building2,
-  Search,
-  CheckCircle,
-  XCircle,
-  Clock,
-  TrendingUp,
-  DollarSign,
-  Settings,
-  Eye,
-  MoreHorizontal,
-  AlertTriangle,
-  Zap,
-  FileText,
   AlertCircle,
+  AlertTriangle,
+  Building2,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Eye,
+  FileText,
+  MoreHorizontal,
+  Search,
+  Settings,
+  TrendingUp,
+  XCircle,
+  Zap,
 } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { VenueStatus, SubscriptionPlan, type SuperadminVenue } from '@/types/superadmin'
-import { Currency } from '@/utils/currency'
-import { superadminAPI } from '@/services/superadmin.service'
-import { useToast } from '@/hooks/use-toast'
-import { useNavigate } from 'react-router-dom'
-import { Label } from '@/components/ui/label'
+import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 
 // Data now fetched from API via React Query
 
@@ -63,46 +64,17 @@ const VenueManagement: React.FC = () => {
     return matchesSearch && matchesStatus
   })
 
-  const getStatusColor = (status: VenueStatus) => {
-    switch (status) {
-      case VenueStatus.ACTIVE:
-        return 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
-      case VenueStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200'
-      case VenueStatus.SUSPENDED:
-        return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
-      case VenueStatus.CANCELLED:
-        return 'bg-muted text-muted-foreground'
-      case VenueStatus.TRIAL:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
-      default:
-        return 'bg-muted text-muted-foreground'
-    }
-  }
-
   const getStatusLabel = (status: VenueStatus) => t(`venueMgmt.statuses.${status}`)
 
-  const getPlanColor = (plan: SubscriptionPlan) => {
-    switch (plan) {
-      case SubscriptionPlan.STARTER:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
-      case SubscriptionPlan.PROFESSIONAL:
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-200'
-      case SubscriptionPlan.ENTERPRISE:
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
-      default:
-        return 'bg-muted text-muted-foreground'
-    }
-  }
-
+  // ✅ Theme-aware payment status icons following THEME-GUIDELINES.md
   const getPaymentStatusIcon = (status: string) => {
     switch (status) {
       case 'PAID':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
+        return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
       case 'PENDING':
-        return <Clock className="w-4 h-4 text-yellow-500" />
+        return <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
       case 'OVERDUE':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />
+        return <AlertTriangle className="w-4 h-4 text-destructive" />
       default:
         return <XCircle className="w-4 h-4 text-muted-foreground" />
     }
@@ -169,7 +141,8 @@ const VenueManagement: React.FC = () => {
       header: t('venueMgmt.columns.venue'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+          {/* ✅ Theme-aware gradient using primary colors */}
+          <div className="w-10 h-10 bg-linear-to-r from-primary to-primary/60 rounded-lg flex items-center justify-center">
             <Building2 className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
@@ -177,7 +150,8 @@ const VenueManagement: React.FC = () => {
               {row.original.name}
               {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
                 <span title="KYC Pending Review">
-                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                  {/* ✅ Theme-aware warning icon */}
+                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                 </span>
               )}
             </div>
@@ -190,14 +164,17 @@ const VenueManagement: React.FC = () => {
       accessorKey: 'status',
       meta: { label: t('venueMgmt.columns.status') },
       header: t('venueMgmt.columns.status'),
-      cell: ({ row }) => <Badge className={getStatusColor(row.original.status)}>{getStatusLabel(row.original.status)}</Badge>,
+      cell: ({ row }) => <VenueStatusBadge status={row.original.status as VenueStatusType} label={getStatusLabel(row.original.status)} />,
     },
     {
       accessorKey: 'subscriptionPlan',
       meta: { label: t('venueMgmt.columns.subscriptionPlan') },
       header: t('venueMgmt.columns.subscriptionPlan'),
       cell: ({ row }) => (
-        <Badge className={getPlanColor(row.original.subscriptionPlan)}>{getPlanLabel(row.original.subscriptionPlan)}</Badge>
+        <SubscriptionPlanBadge
+          plan={row.original.subscriptionPlan as SubscriptionPlanType}
+          label={getPlanLabel(row.original.subscriptionPlan)}
+        />
       ),
     },
     {
@@ -241,7 +218,8 @@ const VenueManagement: React.FC = () => {
             </DropdownMenuItem>
             {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
               <DropdownMenuItem onClick={() => navigate(`/superadmin/kyc/${row.original.id}`)}>
-                <FileText className="mr-2 h-4 w-4 text-yellow-600" />
+                {/* ✅ Theme-aware warning icon */}
+                <FileText className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 Review KYC
               </DropdownMenuItem>
             )}
@@ -261,7 +239,7 @@ const VenueManagement: React.FC = () => {
             </DropdownMenuItem>
             {row.original.status === VenueStatus.ACTIVE && (
               <DropdownMenuItem
-                className="text-red-600"
+                className="text-destructive"
                 onClick={() => {
                   setSelectedVenue(row.original)
                   setIsSuspendDialogOpen(true)
