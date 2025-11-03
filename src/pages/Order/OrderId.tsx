@@ -312,9 +312,7 @@ export default function OrderId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.tips', { defaultValue: 'Propinas' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.tips', { defaultValue: 'Propinas' })}</p>
                     <p className="text-2xl font-bold text-foreground">{Currency(order.tipAmount || 0)}</p>
                     <p className="text-xs text-muted-foreground">
                       {order.subtotal && order.subtotal > 0 ? (((order.tipAmount || 0) / order.subtotal) * 100).toFixed(1) : '0.0'}%
@@ -329,9 +327,7 @@ export default function OrderId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.items', { defaultValue: 'Artículos' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.items', { defaultValue: 'Artículos' })}</p>
                     <p className="text-2xl font-bold text-foreground">{totalItems}</p>
                     <p className="text-xs text-muted-foreground">{t('detail.overview.uniqueProducts', { count: itemsCount })}</p>
                   </div>
@@ -344,9 +340,7 @@ export default function OrderId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.table', { defaultValue: 'Mesa' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.table', { defaultValue: 'Mesa' })}</p>
                     <p className="text-lg font-bold text-foreground">{order.table?.number || 'N/A'}</p>
                     <p className="text-xs text-muted-foreground">{order.table?.area?.name || t('detail.overview.noArea')}</p>
                   </div>
@@ -358,7 +352,7 @@ export default function OrderId() {
 
           {/* Action Bar */}
           {order && (
-            <Card className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
+            <Card className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -479,7 +473,7 @@ export default function OrderId() {
             <div className="lg:col-span-2 space-y-6">
               {/* Order Information Card */}
               <Card className="shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
+                <CardHeader className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <span>{t('detail.sections.orderInfo')}</span>
@@ -551,7 +545,7 @@ export default function OrderId() {
               {/* Order Items Section */}
               {order.items && order.items.length > 0 && (
                 <Card className="shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
+                  <CardHeader className="bg-linear-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Utensils className="h-5 w-5 text-green-600 dark:text-green-400" />
                       <span>{t('detail.sections.items')}</span>
@@ -570,11 +564,17 @@ export default function OrderId() {
                               <Badge variant="secondary" className="font-medium">
                                 {item.quantity}x
                               </Badge>
-                              <span className="font-medium text-foreground">{item.product?.name || t('detail.items.productNotAvailable')}</span>
+                              <span className="font-medium text-foreground">
+                                {item.product?.name || t('detail.items.productNotAvailable')}
+                              </span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                              <span>{Currency(item.unitPrice || 0)} {t('detail.items.each')}</span>
-                              {item.modifiers && item.modifiers.length > 0 && <span>{t('detail.items.modifiers', { count: item.modifiers.length })}</span>}
+                              <span>
+                                {Currency(item.unitPrice || 0)} {t('detail.items.each')}
+                              </span>
+                              {item.modifiers && item.modifiers.length > 0 && (
+                                <span>{t('detail.items.modifiers', { count: item.modifiers.length })}</span>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -590,7 +590,7 @@ export default function OrderId() {
               {/* Payments Section */}
               {order.payments && order.payments.length > 0 && (
                 <Card className="shadow-lg">
-                  <CardHeader className="bg-gradient-to-r from-muted to-purple-50 dark:to-purple-950/50 border-b">
+                  <CardHeader className="bg-linear-to-r from-muted to-purple-50 dark:to-purple-950/50 border-b">
                     <CardTitle className="flex items-center space-x-2">
                       <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                       <span>{t('detail.sections.payments')}</span>
@@ -612,8 +612,12 @@ export default function OrderId() {
                               <span className="text-sm text-muted-foreground">ID: {payment.id.slice(0, 8)}...</span>
                             </div>
                             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                              <span>{t('detail.payments.base')}: {Currency(payment.amount)}</span>
-                              <span>{t('detail.payments.tip')}: {Currency(payment.tipAmount)}</span>
+                              <span>
+                                {t('detail.payments.base')}: {Currency(payment.amount)}
+                              </span>
+                              <span>
+                                {t('detail.payments.tip')}: {Currency(payment.tipAmount)}
+                              </span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -733,9 +737,7 @@ export default function OrderId() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('detail.sidebar.items')}:</span>
-                      <span className="font-medium">
-                        {t('detail.sidebar.itemsCount', { total: totalItems, unique: itemsCount })}
-                      </span>
+                      <span className="font-medium">{t('detail.sidebar.itemsCount', { total: totalItems, unique: itemsCount })}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('detail.sidebar.type')}:</span>

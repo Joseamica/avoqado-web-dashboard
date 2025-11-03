@@ -13,6 +13,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
+### Unused Code Detection
+
+- `npm run check:unused` - Detect unimported files (fast)
+- `npm run check:dead-code` - Comprehensive dead code analysis (slower)
+- `npm run check:all` - Run both checks
+- `npm run update:unused-ignore` - Auto-update ignore list for pending files
+
+**⚠️ PENDING IMPLEMENTATION MARKER SYSTEM:**
+
+When you create components or files that are fully implemented but not yet integrated into the application, mark them with the `@pending-implementation` marker at the top:
+
+```typescript
+/**
+ * @pending-implementation
+ * [Component/Feature Name]
+ *
+ * STATUS: Implemented but not yet integrated into [where it will be used].
+ * This [component/file type] is ready to use but hasn't been [integration action] yet.
+ * It will be gradually applied to [target locations].
+ *
+ * [Additional context or usage examples]
+ */
+```
+
+**Example:**
+```typescript
+/**
+ * @pending-implementation
+ * Enhanced Search Component
+ *
+ * STATUS: Implemented but not yet integrated into the main dashboard.
+ * This component is ready to use but hasn't been added to the search bar yet.
+ * It will be gradually applied to all data tables with advanced filtering needs.
+ *
+ * Usage:
+ * <EnhancedSearch onSearch={handleSearch} filters={filterConfig} />
+ */
+```
+
+**When to use this marker:**
+- ✅ Component/file is completely implemented and tested
+- ✅ Will be integrated soon but not immediately
+- ✅ Should be excluded from unused code detection
+- ✅ You want to document implementation status for future developers
+
+**How it works:**
+1. Add `@pending-implementation` marker in the first 500 characters of the file
+2. Run `npm run update:unused-ignore` to automatically add the file to `.unimportedrc.json`
+3. The file will be ignored by `npm run check:unused` until you remove the marker
+4. When you integrate the file, remove the marker and run `npm run update:unused-ignore` again
+
+**Auto-update script:** `scripts/update-unused-ignore.js` scans for files with this marker and updates `.unimportedrc.json` automatically.
+
+**⚠️ Important:** This marker is for files that are **READY to use** but not yet integrated. Don't use it for incomplete implementations or work-in-progress files.
+
 ## 🚨 Critical Rules (NO EXCEPTIONS)
 
 ### 1. Internationalization (i18n)
@@ -158,6 +213,7 @@ const { staffInfo } = useAuth()
 - [Inventory Management](.claude/docs/features/inventory.md) - FIFO stock tracking, recipes, pricing
 - [Internationalization (i18n)](.claude/docs/features/i18n.md) - Translation system with JSON namespaces
 - [Theme System](.claude/docs/features/theme.md) - Light/dark mode with semantic colors
+- [Settlement Incident Tracking](.claude/docs/features/settlement-incidents.md) - Automated settlement monitoring and risk management for SOFOM partnership
 
 ## Development Guides
 

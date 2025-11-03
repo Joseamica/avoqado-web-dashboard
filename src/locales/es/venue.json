@@ -282,6 +282,19 @@
           "none": "Ninguno"
         }
       },
+      "google": {
+        "description": "Conecta tu perfil de Google Business para sincronizar reseñas y responder directamente desde el panel",
+        "connected": "Conectado",
+        "notConnected": "No Conectado",
+        "connectedTo": "Conectado a",
+        "location": "Ubicación",
+        "notConnectedDesc": "Conecta tu perfil de Google Business para:",
+        "benefit1": "Sincronizar automáticamente las reseñas de Google a tu panel",
+        "benefit2": "Responder a reseñas de Google desde una ubicación central",
+        "benefit3": "Usar sugerencias de respuesta con IA para mayor rapidez",
+        "manage": "Administrar Conexión",
+        "connect": "Conectar Perfil de Google Business"
+      },
       "save": "Guardar Cambios",
       "saving": "Guardando...",
       "cancel": "Cancelar",

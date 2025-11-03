@@ -1,0 +1,42 @@
+{
+  "entry": [
+    "src/main.tsx",
+    "src/App.tsx"
+  ],
+  "extensions": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx"
+  ],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/vite.config.ts",
+    "**/tailwind.config.js",
+    "**/postcss.config.js"
+  ],
+  "ignoreUnresolved": [
+    "react",
+    "react-dom",
+    "vite",
+    "@radix-ui/*",
+    "lucide-react"
+  ],
+  "ignoreUnused": [
+    "vite.config.ts",
+    "tsconfig.json",
+    "package.json",
+    ".env",
+    ".env.example",
+    "README.md",
+    "tailwind.config.js",
+    "postcss.config.js",
+    "index.html"
+  ]
+}

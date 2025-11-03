@@ -254,9 +254,7 @@ export default function PaymentId() {
                 <TooltipContent>{t('detail.backToList', { defaultValue: 'Volver a pagos' })}</TooltipContent>
               </Tooltip>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  {t('detail.title', { defaultValue: 'Detalles del Pago' })}
-                </h1>
+                <h1 className="text-xl font-semibold text-foreground">{t('detail.title', { defaultValue: 'Detalles del Pago' })}</h1>
                 <p className="text-sm text-muted-foreground">
                   {t('detail.idLabel', { defaultValue: 'ID' })}:
                   <span className="font-mono text-xs break-all select-all max-w-[200px] inline-block">{payment?.id}</span>
@@ -301,9 +299,7 @@ export default function PaymentId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.base', { defaultValue: 'Monto Base' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.base', { defaultValue: 'Monto Base' })}</p>
                     <p className="text-2xl font-bold text-foreground">{payment?.amount ? Currency(Number(payment.amount)) : Currency(0)}</p>
                   </div>
                   <DollarSign className="h-8 w-8 text-emerald-500" />
@@ -315,9 +311,7 @@ export default function PaymentId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.tips', { defaultValue: 'Propinas' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.tips', { defaultValue: 'Propinas' })}</p>
                     <p className="text-2xl font-bold text-foreground">
                       {payment?.tipAmount ? Currency(Number(payment.tipAmount)) : Currency(0)}
                     </p>
@@ -334,9 +328,7 @@ export default function PaymentId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.method', { defaultValue: 'Método' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.method', { defaultValue: 'Método' })}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.cardBrand && (
                         <span className="text-lg">{getIcon(payment.cardBrand)}</span>
@@ -365,9 +357,7 @@ export default function PaymentId() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {t('detail.overview.waiter', { defaultValue: 'Mesero' })}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.waiter', { defaultValue: 'Mesero' })}</p>
                     <p className="text-lg font-bold text-foreground">
                       {payment?.processedBy
                         ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() ||
@@ -383,14 +373,12 @@ export default function PaymentId() {
 
           {/* Action Bar */}
           {payment && (
-            <Card className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
+            <Card className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-foreground">
-                      {t('detail.actions.title', { defaultValue: 'Acciones del Pago' })}
-                    </span>
+                    <span className="font-medium text-foreground">{t('detail.actions.title', { defaultValue: 'Acciones del Pago' })}</span>
                   </div>
                   <div className="flex space-x-2">
                     {/* Send Receipt - Requires payments:refund or higher permission (MANAGER+) */}
@@ -516,7 +504,7 @@ export default function PaymentId() {
             <div className="lg:col-span-2 space-y-6">
               {/* Payment Information Card */}
               <Card className="shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
+                <CardHeader className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <span>{t('detail.sections.transactionInfo')}</span>
@@ -562,7 +550,9 @@ export default function PaymentId() {
                     </div>
 
                     <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.referenceNumber')}</Label>
+                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                        {t('detail.fields.referenceNumber')}
+                      </Label>
                       <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="font-mono text-xs break-all">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
                       </div>
@@ -570,7 +560,9 @@ export default function PaymentId() {
 
                     {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
                       <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.entryMode')}</Label>
+                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                          {t('detail.fields.entryMode')}
+                        </Label>
                         <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                           <p className="text-sm">
                             {payment.entryMode === 'CONTACTLESS'
@@ -615,7 +607,7 @@ export default function PaymentId() {
 
               {/* Digital Receipts Section */}
               <Card className="shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
+                <CardHeader className="bg-linear-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
                   <CardTitle className="flex items-center space-x-2">
                     <Receipt className="h-5 w-5 text-green-600 dark:text-green-400" />
                     <span>{t('detail.receipts.title', { defaultValue: 'Recibos Digitales' })}</span>
@@ -630,9 +622,7 @@ export default function PaymentId() {
                   {isLoadingReceipts ? (
                     <div className="flex items-center justify-center py-8">
                       <RefreshCw className="h-6 w-6 animate-spin text-blue-500 mr-2" />
-                      <span className="text-muted-foreground">
-                        {t('detail.receipts.loading', { defaultValue: 'Cargando recibos...' })}
-                      </span>
+                      <span className="text-muted-foreground">{t('detail.receipts.loading', { defaultValue: 'Cargando recibos...' })}</span>
                     </div>
                   ) : Array.isArray(receipts) && receipts.length > 0 ? (
                     <div className="space-y-3">
@@ -690,9 +680,7 @@ export default function PaymentId() {
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                {t('detail.receipts.openPublic', { defaultValue: 'Abrir enlace público' })}
-                              </TooltipContent>
+                              <TooltipContent>{t('detail.receipts.openPublic', { defaultValue: 'Abrir enlace público' })}</TooltipContent>
                             </Tooltip>
 
                             <Tooltip>
@@ -701,9 +689,7 @@ export default function PaymentId() {
                                   variant="ghost"
                                   size="sm"
                                   className="hover:bg-muted"
-                                  onClick={() =>
-                                    copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo')
-                                  }
+                                  onClick={() => copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo')}
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
@@ -756,7 +742,9 @@ export default function PaymentId() {
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-2">
                       {t('detail.status.lastUpdatePrefix', { defaultValue: 'Última actualización:' })}{' '}
-                      {payment?.updatedAt ? new Date(payment.updatedAt).toLocaleString(getIntlLocale(i18n.language)) : t('detail.fields.notAvailable')}
+                      {payment?.updatedAt
+                        ? new Date(payment.updatedAt).toLocaleString(getIntlLocale(i18n.language))
+                        : t('detail.fields.notAvailable')}
                     </p>
                   </div>
 
@@ -893,7 +881,7 @@ export default function PaymentId() {
           {/* Tips Detail Section */}
           {payment?.tipAmount && payment.tipAmount > 0 && (
             <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
+              <CardHeader className="bg-linear-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
                 <CardTitle className="flex items-center space-x-2">
                   <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                   <span>Detalles de {t('detail.overview.tips', { defaultValue: 'Propinas' })}</span>
@@ -979,7 +967,9 @@ export default function PaymentId() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.recipient')}</Label>
-                  <p className="text-sm p-2 bg-muted rounded">{selectedReceiptForDetail.recipientEmail || t('detail.receipts.noRecipient')}</p>
+                  <p className="text-sm p-2 bg-muted rounded">
+                    {selectedReceiptForDetail.recipientEmail || t('detail.receipts.noRecipient')}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.createdDate')}</Label>
@@ -999,10 +989,7 @@ export default function PaymentId() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      copyToClipboard(
-                        ReceiptUrls.public(selectedReceiptForDetail.accessKey),
-                        t('detail.receiptsDialog.receiptLink'),
-                      )
+                      copyToClipboard(ReceiptUrls.public(selectedReceiptForDetail.accessKey), t('detail.receiptsDialog.receiptLink'))
                     }
                   >
                     <Copy className="h-4 w-4" />

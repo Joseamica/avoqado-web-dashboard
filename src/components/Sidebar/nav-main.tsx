@@ -55,7 +55,7 @@ export function NavMain({
   const superadminSubButtonClass =
     'hover:bg-amber-500/10 dark:hover:bg-amber-500/20 focus-visible:ring-amber-400/60 data-[active=true]:bg-amber-500/15 dark:data-[active=true]:bg-amber-500/25'
   const superadminGradientTextClass =
-    'inline-block bg-gradient-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-transparent font-semibold drop-shadow-[0_0_12px_rgba(251,191,36,0.35)] dark:from-amber-200 dark:via-orange-300 dark:to-pink-400'
+    'inline-block bg-linear-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-transparent font-semibold drop-shadow-[0_0_12px_rgba(251,191,36,0.35)] dark:from-amber-200 dark:via-orange-300 dark:to-pink-400'
   const superadminIconClass =
     'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.35)] dark:text-amber-200 dark:drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]'
 
@@ -117,9 +117,7 @@ export function NavMain({
                                 className={isSuperadminSubItem ? superadminSubButtonClass : undefined}
                               >
                                 <NavLink to={subItem.url}>
-                                  <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>
-                                    {subItem.title}
-                                  </span>
+                                  <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
@@ -185,11 +183,7 @@ export function NavMain({
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        isActive={isItemActive(item.url)}
-                        className={superadminButtonClass}
-                      >
+                      <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
                         {item.icon && <item.icon className={superadminIconClass} />}
                         <span className={superadminGradientTextClass}>{item.title}</span>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -199,11 +193,7 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items.map(subItem => (
                           <SidebarMenuSubItem key={subItem.url}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isSubItemActive(subItem.url)}
-                              className={superadminSubButtonClass}
-                            >
+                            <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
                               <NavLink to={subItem.url}>
                                 <span className={superadminGradientTextClass}>{subItem.title}</span>
                               </NavLink>
@@ -216,12 +206,7 @@ export function NavMain({
                 </Collapsible>
               ) : (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    isActive={isItemActive(item.url)}
-                    className={superadminButtonClass}
-                  >
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
                     <NavLink
                       to={item.url}
                       className="flex items-center"

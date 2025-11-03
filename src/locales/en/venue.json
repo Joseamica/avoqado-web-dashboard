@@ -282,6 +282,19 @@
           "none": "None"
         }
       },
+      "google": {
+        "description": "Connect your Google Business Profile to sync reviews and respond directly from the dashboard",
+        "connected": "Connected",
+        "notConnected": "Not Connected",
+        "connectedTo": "Connected to",
+        "location": "Location",
+        "notConnectedDesc": "Connect your Google Business Profile to:",
+        "benefit1": "Automatically sync Google reviews to your dashboard",
+        "benefit2": "Respond to Google reviews from one central location",
+        "benefit3": "Use AI-powered response suggestions for faster engagement",
+        "manage": "Manage Connection",
+        "connect": "Connect Google Business Profile"
+      },
       "save": "Save Changes",
       "saving": "Saving...",
       "cancel": "Cancel",

@@ -1,30 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
-  ArrowLeft, 
-  Mail, 
-  Calendar, 
-  DollarSign, 
-  ShoppingCart, 
-  Star,
-  Edit3,
-  Trash2,
-  Shield,
-  Clock,
-  TrendingUp
-} from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, Trash2, Shield, Clock, TrendingUp } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +27,6 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
-
 
 export default function TeamMemberDetails() {
   const { venueId } = useCurrentVenue()
@@ -161,7 +142,7 @@ export default function TeamMemberDetails() {
             <p className="text-muted-foreground">{t('teams.header.subtitle')}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {canEdit && (
             <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
@@ -170,11 +151,7 @@ export default function TeamMemberDetails() {
             </Button>
           )}
           {canRemove && (
-            <Button
-              variant="outline"
-              onClick={() => setShowRemoveDialog(true)}
-              className="text-destructive hover:text-destructive/80"
-            >
+            <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-destructive hover:text-destructive/80">
               <Trash2 className="h-4 w-4 mr-2" />
               {t('teams.actions.delete')}
             </Button>
@@ -188,8 +165,9 @@ export default function TeamMemberDetails() {
           <Card>
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
-                  {memberDetails.firstName[0]}{memberDetails.lastName[0]}
+                <div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
+                  {memberDetails.firstName[0]}
+                  {memberDetails.lastName[0]}
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-lg">
@@ -206,7 +184,7 @@ export default function TeamMemberDetails() {
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{memberDetails.email}</span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -215,9 +193,7 @@ export default function TeamMemberDetails() {
                     {memberDetails.startDate
                       ? (() => {
                           const d = new Date(memberDetails.startDate)
-                          return isNaN(d.getTime())
-                            ? t('common.na')
-                            : d.toLocaleDateString(getIntlLocale(i18n.language))
+                          return isNaN(d.getTime()) ? t('common.na') : d.toLocaleDateString(getIntlLocale(i18n.language))
                         })()
                       : t('common.na')}
                   </div>
@@ -284,9 +260,7 @@ export default function TeamMemberDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.avgRating')}</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {memberDetails.averageRating.toFixed(1)}
-                    </p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{memberDetails.averageRating.toFixed(1)}</p>
                   </div>
                   <Star className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
                 </div>
@@ -301,9 +275,7 @@ export default function TeamMemberDetails() {
                 <TrendingUp className="h-5 w-5 mr-2" />
                 {t('teams.detail.performance.title')}
               </CardTitle>
-              <CardDescription>
-                {t('teams.detail.performance.desc')}
-              </CardDescription>
+              <CardDescription>{t('teams.detail.performance.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -315,13 +287,16 @@ export default function TeamMemberDetails() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">{t('teams.detail.performance.avgPerOrder')}:</span>
                     <span className="font-medium">
-                      {memberDetails.totalOrders > 0 
-                        ? (memberDetails.totalSales / memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      {memberDetails.totalOrders > 0
+                        ? (memberDetails.totalSales / memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language), {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
                         : (0).toLocaleString(getIntlLocale(i18n.language), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">{t('teams.detail.performance.activeDays')}:</span>
@@ -369,7 +344,7 @@ export default function TeamMemberDetails() {
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent
             className="max-w-md"
-            onCloseAutoFocus={(e) => {
+            onCloseAutoFocus={e => {
               // Restore focus to the Edit button for accessibility
               e.preventDefault()
               const el = document.getElementById('member-edit-button') as HTMLButtonElement | null
@@ -382,11 +357,7 @@ export default function TeamMemberDetails() {
                 {t('teams.dialogs.editMemberDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </DialogDescription>
             </DialogHeader>
-            <EditTeamMemberForm
-              venueId={venueId}
-              teamMember={memberDetails}
-              onSuccess={handleEditSuccess}
-            />
+            <EditTeamMemberForm venueId={venueId} teamMember={memberDetails} onSuccess={handleEditSuccess} />
           </DialogContent>
         </Dialog>
       )}

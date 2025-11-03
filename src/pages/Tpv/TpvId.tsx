@@ -377,7 +377,9 @@ export default function TpvId() {
                   </div>
                   <div>
                     <h1 className="text-lg font-semibold text-foreground">{tpv?.name || t('detail.terminal')}</h1>
-                    <p className="text-sm text-muted-foreground">{t('detail.id')}: {tpv?.id?.slice(-8) || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('detail.id')}: {tpv?.id?.slice(-8) || 'N/A'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -476,7 +478,7 @@ export default function TpvId() {
             <div className="xl:col-span-2 space-y-6">
               {/* Status Overview Card */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
+                <CardHeader className="bg-linear-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
                   <CardTitle className="flex items-center text-lg">
                     <Activity className="w-5 h-5 mr-2 text-primary" />
                     {t('detail.terminalStatus')}
