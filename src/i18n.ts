@@ -72,6 +72,15 @@ import legalFr from '@/locales/fr/legal.json'
 import venuesEn from '@/locales/en/venues.json'
 import venuesEs from '@/locales/es/venues.json'
 import venuesFr from '@/locales/fr/venues.json'
+import availableBalanceEn from '@/locales/en/availableBalance.json'
+import availableBalanceEs from '@/locales/es/availableBalance.json'
+import availableBalanceFr from '@/locales/fr/availableBalance.json'
+import settlementIncidentsEn from '@/locales/en/settlementIncidents.json'
+import settlementIncidentsEs from '@/locales/es/settlementIncidents.json'
+import settlementIncidentsFr from '@/locales/fr/settlementIncidents.json'
+import googleIntegrationEn from '@/locales/en/googleIntegration.json'
+import googleIntegrationEs from '@/locales/es/googleIntegration.json'
+import googleIntegrationFr from '@/locales/fr/googleIntegration.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -347,6 +356,33 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'venues', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', availableBalanceEn],
+    ['es', availableBalanceEs],
+    ['fr', availableBalanceFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'availableBalance', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', settlementIncidentsEn],
+    ['es', settlementIncidentsEs],
+    ['fr', settlementIncidentsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'settlementIncidents', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', googleIntegrationEn],
+    ['es', googleIntegrationEs],
+    ['fr', googleIntegrationFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'googleIntegration', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

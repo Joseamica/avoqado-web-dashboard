@@ -10,6 +10,7 @@ import {
   AdminDashboard,
   AnalyticsLayout,
   AnalyticsOverview,
+  AvailableBalance,
   BasicInfo,
   Billing,
   Categories,
@@ -26,6 +27,7 @@ import {
   ErrorPage,
   ForgotPassword,
   GlobalConfig,
+  GoogleIntegration,
   GoogleOAuthCallback,
   Home,
   InventoryLayout,
@@ -493,6 +495,16 @@ const router = createBrowserRouter(
                     },
                   ],
                 },
+                // Available Balance (requires settlements:read permission + KYC verification)
+                {
+                  element: <PermissionProtectedRoute permission="settlements:read" />,
+                  children: [
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [{ path: 'available-balance', element: <AvailableBalance /> }],
+                    },
+                  ],
+                },
                 {
                   path: 'edit',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
@@ -505,7 +517,13 @@ const router = createBrowserRouter(
                         { path: 'contact-images', element: <ContactImages /> }, // New: Contacto e imágenes
                         { path: 'general', element: <Navigate to="../basic-info" replace /> }, // Legacy redirect
                         { path: 'documents', element: <VenueDocuments /> },
-                        { path: 'integrations', element: <VenueIntegrations /> },
+                        {
+                          path: 'integrations',
+                          children: [
+                            { index: true, element: <VenueIntegrations /> },
+                            { path: 'google', element: <GoogleIntegration /> },
+                          ],
+                        },
                       ],
                     },
                   ],

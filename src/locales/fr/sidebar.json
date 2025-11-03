@@ -2,6 +2,7 @@
   "summary": "Résumé",
   "main": "Tableau de bord principal",
   "analytics": "Analytique",
+  "availableBalance": "Solde Disponible",
   "alerts": "Alertes",
   "superadmin": "Superadministrateur",
   "business": "Gestion commerciale",

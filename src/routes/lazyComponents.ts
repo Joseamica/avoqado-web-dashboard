@@ -11,6 +11,7 @@ export const EmailVerification = React.lazy(() => import('@/pages/Auth/EmailVeri
 export const GoogleOAuthCallback = React.lazy(() => import('@/pages/Auth/GoogleOAuthCallback'))
 export const OnboardingWizard = React.lazy(() => import('@/pages/Onboarding/OnboardingWizard'))
 export const Home = React.lazy(() => import('@/pages/Home'))
+export const AvailableBalance = React.lazy(() => import('@/pages/AvailableBalance/AvailableBalance'))
 export const Categories = React.lazy(() => import('@/pages/Menu/Categories/Categories'))
 export const CategoryId = React.lazy(() => import('@/pages/Menu/Categories/categoryId'))
 export const CreateCategory = React.lazy(() => import('@/pages/Menu/Categories/createCategory'))
@@ -101,3 +102,4 @@ export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
 export const Billing = React.lazy(() => import('@/pages/Settings/Billing'))
+export const GoogleIntegration = React.lazy(() => import('@/pages/Settings/GoogleIntegration'))

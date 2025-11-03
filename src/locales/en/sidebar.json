@@ -2,6 +2,7 @@
   "summary": "Summary",
   "main": "Main Dashboard",
   "analytics": "Analytics",
+  "availableBalance": "Available Balance",
   "alerts": "Alerts",
   "superadmin": "Superadmin",
   "business": "Business Management",

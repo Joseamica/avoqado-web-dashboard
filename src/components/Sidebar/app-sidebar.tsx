@@ -14,6 +14,7 @@
   Star,
   TrendingUp,
   Ungroup,
+  Wallet,
   Zap,
 } from 'lucide-react'
 import * as React from 'react'
@@ -46,6 +47,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         url: 'analytics',
         icon: TrendingUp,
         permission: 'analytics:read',
+        locked: !hasKYCAccess,
+      },
+      {
+        title: t('sidebar:availableBalance'),
+        isActive: true,
+        url: 'available-balance',
+        icon: Wallet,
+        permission: 'settlements:read',
         locked: !hasKYCAccess,
       },
       { title: t('sidebar:routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read', locked: false },

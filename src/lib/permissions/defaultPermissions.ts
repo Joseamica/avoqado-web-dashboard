@@ -104,6 +104,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'home:read',
     'analytics:read',
     'analytics:export',
+    'settlements:read',
+    'settlements:simulate',
     'menu:read',
     'menu:create',
     'menu:update',
