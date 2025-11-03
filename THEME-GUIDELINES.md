@@ -47,6 +47,37 @@
 - `text-blue-500/600` → `text-blue-600 dark:text-blue-400`
 - `text-orange-500/600` → `text-orange-600 dark:text-orange-400`
 
+### Gradients (Tailwind v4)
+**⚠️ IMPORTANT: This project uses Tailwind CSS v4**
+
+Tailwind v4 changed gradient class names. Use the new canonical syntax:
+
+- `bg-gradient-to-r` → `bg-linear-to-r` ✅
+- `bg-gradient-to-l` → `bg-linear-to-l` ✅
+- `bg-gradient-to-t` → `bg-linear-to-t` ✅
+- `bg-gradient-to-b` → `bg-linear-to-b` ✅
+- `bg-gradient-to-tr` → `bg-linear-to-tr` ✅
+- `bg-gradient-to-tl` → `bg-linear-to-tl` ✅
+- `bg-gradient-to-br` → `bg-linear-to-br` ✅
+- `bg-gradient-to-bl` → `bg-linear-to-bl` ✅
+- `bg-gradient-radial` → `bg-radial` ✅
+- `bg-gradient-conic` → `bg-conic` ✅
+
+**❌ BAD - Deprecated v3 syntax:**
+```tsx
+<div className="bg-gradient-to-r from-blue-500 to-purple-500">
+```
+
+**✅ GOOD - Canonical v4 syntax:**
+```tsx
+<div className="bg-linear-to-r from-blue-500 to-purple-500">
+```
+
+**✅ BETTER - Using theme colors:**
+```tsx
+<div className="bg-linear-to-r from-primary to-primary/60">
+```
+
 ## 3. **Component Patterns**
 
 ### Cards & Containers
@@ -132,8 +163,10 @@ Before creating ANY component:
 - [ ] ✅ Test in both light and dark modes
 - [ ] ✅ Use semantic color names (destructive, muted, etc.)
 - [ ] ✅ For colored states, provide dark variants
+- [ ] ✅ Use Tailwind v4 gradient syntax (`bg-linear-to-r`, not `bg-gradient-to-r`)
 - [ ] ❌ Never use `text-gray-*`, `bg-gray-*`, `border-gray-*`
 - [ ] ❌ Never use hardcoded color values
+- [ ] ❌ Never use deprecated v3 gradient classes (`bg-gradient-*`)
 
 ## 6. **Quick Reference**
 
@@ -144,6 +177,7 @@ Before creating ANY component:
 - `text-gray-600` → `text-muted-foreground`
 - `border-gray-200` → `border-border`
 - `text-red-600` → `text-destructive`
+- `bg-gradient-to-r` → `bg-linear-to-r` (Tailwind v4)
 
 ## 7. **For Colored Elements (Blue, Green, Orange, etc.)**
 

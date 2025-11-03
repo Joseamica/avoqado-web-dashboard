@@ -22,6 +22,40 @@ Complete guide to the design-token based theme system for light/dark mode compat
 </div>
 ```
 
+## Critical Rule #2: Use Tailwind v4 Gradient Syntax
+
+**⚠️ This project uses Tailwind CSS v4** which changed gradient class names.
+
+**❌ WRONG (v3 deprecated):**
+```tsx
+<div className="bg-gradient-to-r from-blue-500 to-purple-500">
+```
+
+**✅ CORRECT (v4 canonical):**
+```tsx
+<div className="bg-linear-to-r from-blue-500 to-purple-500">
+```
+
+**✅ BETTER (with theme colors):**
+```tsx
+<div className="bg-linear-to-r from-primary to-primary/60">
+```
+
+### Gradient Class Mappings
+
+| v3 (deprecated) | v4 (canonical) |
+|----------------|----------------|
+| `bg-gradient-to-r` | `bg-linear-to-r` |
+| `bg-gradient-to-l` | `bg-linear-to-l` |
+| `bg-gradient-to-t` | `bg-linear-to-t` |
+| `bg-gradient-to-b` | `bg-linear-to-b` |
+| `bg-gradient-to-tr` | `bg-linear-to-tr` |
+| `bg-gradient-to-tl` | `bg-linear-to-tl` |
+| `bg-gradient-to-br` | `bg-linear-to-br` |
+| `bg-gradient-to-bl` | `bg-linear-to-bl` |
+| `bg-gradient-radial` | `bg-radial` |
+| `bg-gradient-conic` | `bg-conic` |
+
 ## Semantic Color Classes
 
 ### Backgrounds
@@ -381,6 +415,7 @@ Before deploying:
 - [ ] ✅ Verify hover states work in both modes
 - [ ] ✅ Test focus states (ring colors) in both modes
 - [ ] ✅ Check custom colors have dark variants
+- [ ] ✅ Use Tailwind v4 gradient syntax (`bg-linear-to-r`, not `bg-gradient-to-r`)
 
 ## Complete Examples
 
