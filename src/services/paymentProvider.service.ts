@@ -37,6 +37,7 @@ export interface MerchantAccount {
   }
   _count?: {
     costStructures: number
+    venueConfigs: number
   }
 }
 
@@ -317,6 +318,35 @@ export async function createMerchantAccount(data: {
 }
 
 /**
+ * Auto-fetch Blumon credentials via OAuth flow
+ *
+ * Simplified merchant account creation for Blumon:
+ * - Only requires: serialNumber, brand, model
+ * - Backend automatically fetches: OAuth tokens, RSA keys, DUKPT keys
+ * - Credentials are encrypted before storage
+ *
+ * @param data Blumon device information
+ * @returns Created merchant account with auto-fetched credentials
+ */
+export async function autoFetchBlumonCredentials(data: {
+  serialNumber: string
+  brand: string
+  model: string
+  displayName?: string
+  environment?: 'SANDBOX' | 'PRODUCTION'
+}): Promise<{
+  id: string
+  serialNumber: string
+  posId: string
+  displayName: string
+  blumonEnvironment: string
+  dukptKeysAvailable: boolean
+}> {
+  const response = await api.post('/api/v1/superadmin/merchant-accounts/blumon/auto-fetch', data)
+  return response.data.data
+}
+
+/**
  * Update merchant account
  */
 export async function updateMerchantAccount(
@@ -429,23 +459,25 @@ export async function deleteProviderCostStructure(id: string): Promise<void> {
 /**
  * Get venue payment configs
  */
-export async function getVenuePaymentConfigs(filters?: {
-  venueId?: string
-}): Promise<VenuePaymentConfig[]> {
-  const response = await api.get('/api/v1/dashboard/superadmin/venue-pricing/configs', { params: filters })
-  return response.data.data
-}
-
 /**
- * Get venue payment config by ID
+ * Get venue payment config by venue ID
+ * Backend endpoint: GET /api/v1/dashboard/superadmin/venue-pricing/config/:venueId
  */
-export async function getVenuePaymentConfig(id: string): Promise<VenuePaymentConfig> {
-  const response = await api.get(`/api/v1/dashboard/superadmin/venue-pricing/configs/${id}`)
-  return response.data.data
+export async function getVenuePaymentConfig(venueId: string): Promise<VenuePaymentConfig | null> {
+  try {
+    const response = await api.get(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`)
+    return response.data.data
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null // No config exists yet
+    }
+    throw error
+  }
 }
 
 /**
  * Create venue payment config
+ * Backend endpoint: POST /api/v1/dashboard/superadmin/venue-pricing/config
  */
 export async function createVenuePaymentConfig(data: {
   venueId: string
@@ -455,26 +487,48 @@ export async function createVenuePaymentConfig(data: {
   routingRules?: any
   preferredProcessor?: string
 }): Promise<VenuePaymentConfig> {
-  const response = await api.post('/api/v1/dashboard/superadmin/venue-pricing/configs', data)
+  const response = await api.post('/api/v1/dashboard/superadmin/venue-pricing/config', data)
   return response.data.data
 }
 
 /**
  * Update venue payment config
+ * Backend endpoint: PUT /api/v1/dashboard/superadmin/venue-pricing/config/:venueId
  */
 export async function updateVenuePaymentConfig(
-  id: string,
-  data: Partial<Omit<VenuePaymentConfig, 'id' | 'venueId' | 'createdAt' | 'updatedAt' | 'venue' | 'primaryAccount' | 'secondaryAccount' | 'tertiaryAccount'>>
+  venueId: string,
+  data: {
+    primaryAccountId?: string
+    secondaryAccountId?: string | null
+    tertiaryAccountId?: string | null
+    routingRules?: any
+    preferredProcessor?: string
+  }
 ): Promise<VenuePaymentConfig> {
-  const response = await api.put(`/api/v1/dashboard/superadmin/venue-pricing/configs/${id}`, data)
+  const response = await api.put(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`, data)
   return response.data.data
 }
 
 /**
- * Delete venue payment config
+ * Delete venue payment config (not implemented in backend yet)
  */
-export async function deleteVenuePaymentConfig(id: string): Promise<void> {
-  await api.delete(`/api/v1/dashboard/superadmin/venue-pricing/configs/${id}`)
+export async function deleteVenuePaymentConfig(venueId: string): Promise<void> {
+  await api.delete(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`)
+}
+
+/**
+ * Legacy function - kept for compatibility
+ * Use getVenuePaymentConfig(venueId) instead
+ */
+export async function getVenuePaymentConfigs(filters?: {
+  venueId?: string
+}): Promise<VenuePaymentConfig[]> {
+  if (filters?.venueId) {
+    const config = await getVenuePaymentConfig(filters.venueId)
+    return config ? [config] : []
+  }
+  // Backend doesn't support listing all configs, return empty array
+  return []
 }
 
 /**
@@ -736,6 +790,7 @@ export const paymentProviderAPI = {
   getMerchantAccount,
   getMerchantAccountCredentials,
   createMerchantAccount,
+  autoFetchBlumonCredentials, // Blumon-specific auto-fetch
   updateMerchantAccount,
   toggleMerchantAccountStatus,
   deleteMerchantAccount,

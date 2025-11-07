@@ -4,12 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { TrendingUp, Plus, Pencil, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { TrendingUp, Plus, Pencil, Trash2, CheckCircle, XCircle, Building2 } from 'lucide-react'
 import { paymentProviderAPI, type VenuePricingStructure } from '@/services/paymentProvider.service'
 import { useTranslation } from 'react-i18next'
 import { VenuePricingStructureDialog } from './components/VenuePricingStructureDialog'
+import { VenuePaymentConfigCard } from './components/VenuePaymentConfigCard'
 import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
 
@@ -17,10 +26,7 @@ const VenuePricing: React.FC = () => {
   const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { data: pricingStructures = [], isLoading } = useQuery({
-    queryKey: ['venue-pricing-structures'],
-    queryFn: () => paymentProviderAPI.getVenuePricingStructures(),
-  })
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPricingStructure, setSelectedPricingStructure] = useState<VenuePricingStructure | null>(null)
@@ -32,6 +38,15 @@ const VenuePricing: React.FC = () => {
       const response = await api.get('/api/v1/dashboard/superadmin/venues')
       return response.data.data
     },
+  })
+
+  // Fetch pricing structures (optionally filtered by venue)
+  const { data: pricingStructures = [], isLoading, refetch: refetchPricing } = useQuery({
+    queryKey: ['venue-pricing-structures', selectedVenueId],
+    queryFn: () =>
+      paymentProviderAPI.getVenuePricingStructures(
+        selectedVenueId ? { venueId: selectedVenueId } : undefined
+      ),
   })
 
   // Create mutation
@@ -234,25 +249,67 @@ const VenuePricing: React.FC = () => {
     },
   ]
 
+  const selectedVenue = venues.find((v: any) => v.id === selectedVenueId)
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Venue Pricing Structures</h1>
-          <p className="text-muted-foreground">Manage rates you charge to your venue clients</p>
+          <h1 className="text-3xl font-bold text-foreground">Venue Pricing Management</h1>
+          <p className="text-muted-foreground">Configure merchant accounts and pricing rates for venues</p>
         </div>
-        <Button onClick={handleAdd}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Pricing Structure
-        </Button>
       </div>
+
+      {/* Venue Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5" />
+            Select Venue
+          </CardTitle>
+          <CardDescription>Choose a venue to configure its payment accounts and pricing</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="venue-select">Venue</Label>
+            <Select value={selectedVenueId || ''} onValueChange={(value) => setSelectedVenueId(value || null)}>
+              <SelectTrigger id="venue-select" className="w-full">
+                <SelectValue placeholder="Select a venue to configure..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Venues</SelectItem>
+                {venues.map((venue: any) => (
+                  <SelectItem key={venue.id} value={venue.id}>
+                    {venue.name} ({venue.slug})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {selectedVenueId
+                ? 'Configure merchant accounts and pricing for this venue'
+                : 'Select a venue to configure, or view all pricing structures below'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Venue Payment Config Card (Step 1: Assign Merchants) */}
+      <VenuePaymentConfigCard
+        venueId={selectedVenueId}
+        venueName={selectedVenue?.name}
+        onConfigChange={() => {
+          refetchPricing()
+        }}
+      />
 
       {/* Dialog */}
       <VenuePricingStructureDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         pricingStructure={selectedPricingStructure}
+        venueId={selectedVenueId || undefined}
         onSave={handleSave}
       />
 
@@ -260,7 +317,9 @@ const VenuePricing: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Structures</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {selectedVenueId ? 'Venue Structures' : 'Total Structures'}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -272,22 +331,40 @@ const VenuePricing: React.FC = () => {
         </Card>
       </div>
 
-      {/* Pricing Structures Table */}
+      {/* Pricing Structures Table (Step 2: Set Rates) */}
       <Card>
         <CardHeader>
-          <CardTitle>All Pricing Structures</CardTitle>
-          <CardDescription>View and manage venue pricing rates and structures</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                {selectedVenueId ? `Pricing Structures for ${selectedVenue?.name}` : 'All Pricing Structures'}
+              </CardTitle>
+              <CardDescription>
+                {selectedVenueId
+                  ? 'Set rates for PRIMARY, SECONDARY, and TERTIARY merchant accounts'
+                  : 'View and manage pricing rates across all venues'}
+              </CardDescription>
+            </div>
+            {selectedVenueId && (
+              <Button onClick={handleAdd}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Pricing Structure
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by venue, account type, or contract..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
+          {!selectedVenueId && (
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search by venue, account type, or contract..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">{t('common.loading')}</div>

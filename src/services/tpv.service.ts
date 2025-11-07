@@ -17,3 +17,14 @@ export const sendTpvCommand = async (terminalId: string, command: string, payloa
   })
   return response.data
 }
+
+/**
+ * Generate activation code for a terminal
+ * @param venueId Venue ID
+ * @param terminalId Terminal ID
+ * @returns Activation code data with expiration
+ */
+export const generateActivationCode = async (venueId: string, terminalId: string) => {
+  const response = await api.post(`/api/v1/dashboard/venues/${venueId}/tpv/${terminalId}/activation-code`)
+  return response.data
+}

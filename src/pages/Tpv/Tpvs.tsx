@@ -141,28 +141,44 @@ export default function Tpvs() {
         const terminal = row.original as any
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
         const StatusIcon = statusStyle.icon
-        
+        const isActivated = terminal.activatedAt != null
+
         return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="cursor-help">
-                <Badge variant="outline" className={statusStyle.badge}>
-                  <StatusIcon className={`w-3 h-3 mr-1 ${statusStyle.color}`} />
-                  {statusStyle.label}
-                </Badge>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-xs">
-                <p className="font-medium">{statusStyle.label}</p>
-                {terminal.lastHeartbeat && (
-                  <p className="text-muted-foreground">
-                    {t('tpv.status.lastSeen', { defaultValue: 'Visto por última vez' })}: {new Date(terminal.lastHeartbeat).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <Badge variant="outline" className={statusStyle.badge}>
+                    <StatusIcon className={`w-3 h-3 mr-1 ${statusStyle.color}`} />
+                    {statusStyle.label}
+                  </Badge>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <p className="font-medium">{statusStyle.label}</p>
+                  {terminal.lastHeartbeat && (
+                    <p className="text-muted-foreground">
+                      {t('tpv.status.lastSeen', { defaultValue: 'Visto por última vez' })}: {new Date(terminal.lastHeartbeat).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+
+            <Badge
+              variant="outline"
+              className={isActivated
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
+                : 'bg-amber-50 text-amber-700 border-amber-200 text-xs'
+              }
+            >
+              {isActivated
+                ? t('tpv.status.activated', { defaultValue: 'Activado' })
+                : t('tpv.status.notActivated', { defaultValue: 'Sin Activar' })
+              }
+            </Badge>
+          </div>
         )
       },
     },

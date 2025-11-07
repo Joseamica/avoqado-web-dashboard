@@ -89,6 +89,7 @@ import {
   VenuePricing,
   Venues,
   Webhooks,
+  Terminals,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -324,6 +325,10 @@ const router = createBrowserRouter(
                     {
                       path: 'merchant-accounts',
                       element: <MerchantAccounts />,
+                    },
+                    {
+                      path: 'terminals',
+                      element: <Terminals />,
                     },
                     {
                       path: 'payment-analytics',

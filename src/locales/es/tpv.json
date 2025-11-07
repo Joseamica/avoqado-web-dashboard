@@ -9,7 +9,9 @@
     "offline": "Terminal desconectado",
     "exitMaintenance": "Salir Mantenimiento",
     "maintenanceMode": "Mantenimiento",
-    "update": "Actualizar"
+    "update": "Actualizar",
+    "generateCode": "Generar Código de Activación",
+    "delete": "Eliminar Terminal"
   },
   "create": {
     "title": "Crear Nuevo Terminal",
@@ -47,7 +49,9 @@
     "maintenance": "Mantenimiento",
     "retired": "Retirado",
     "unknown": "Desconocido",
-    "lastSeen": "Visto por última vez"
+    "lastSeen": "Visto por última vez",
+    "activated": "Activado",
+    "notActivated": "Sin Activar"
   },
   "commandLabels": {
     "SHUTDOWN": "Apagar",
@@ -74,6 +78,9 @@
     "noData": "No hay datos de terminal disponibles",
     "terminalStatus": "Estado del Terminal",
     "connection": "Conexión",
+    "activationStatus": "Estado de Activación",
+    "activated": "Activado",
+    "notActivated": "Sin Activar",
     "inMaintenance": "En Mantenimiento",
     "connected": "Conectado",
     "disconnected": "Desconectado",
@@ -91,10 +98,12 @@
     "systemId": "ID del Sistema",
     "serialNumber": "Número de Serie",
     "terminalType": "Tipo de Terminal",
+    "brand": "Marca",
+    "model": "Modelo",
     "selectType": "Seleccionar tipo",
     "types": {
-      "tpvAndroid": "TPV Android",
-      "tpvIOS": "TPV iOS",
+      "tpvAndroid": "Android",
+      "tpvIOS": "iOS",
       "printerReceipt": "Impresora de Tickets",
       "printerKitchen": "Impresora de Cocina",
       "kds": "Sistema de Display de Cocina (KDS)"
@@ -115,11 +124,21 @@
     "venueId": "ID del Venue",
     "created": "Creado",
     "lastUpdate": "Última Actualización",
+    "activatedOn": "Activado el",
+    "pendingActivation": "Activación Pendiente",
     "tooltips": {
       "reactivate": "Reactivar terminal",
       "maintenanceMode": "Poner terminal en modo mantenimiento",
       "updateStatus": "Solicitar al terminal que envíe estado actualizado"
     },
+    "selectStatus": "Seleccionar estado",
+    "statusOptions": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "maintenance": "Mantenimiento",
+      "retired": "Retirado"
+    },
+    "retiredWarning": "Terminales RETIRADOS no pueden ser reactivados. Esta acción desactiva permanentemente el terminal.",
     "validation": {
       "nameRequired": "El nombre del terminal es obligatorio",
       "serialRequired": "El número de serie es obligatorio"
@@ -133,7 +152,12 @@
     "toast": {
       "updateSuccess": "Terminal actualizado",
       "updateSuccessDesc": "La información del terminal se ha actualizado correctamente"
-    }
+    },
+    "deleteConfirmTitle": "¿Eliminar Terminal?",
+    "deleteConfirmDescription": "¿Estás seguro de que deseas eliminar el terminal \"{{name}}\"? Esta acción no se puede deshacer. Nota: Solo se pueden eliminar terminales que no estén activados.",
+    "deleteSuccess": "Terminal Eliminado",
+    "deleteSuccessDesc": "El terminal ha sido eliminado exitosamente",
+    "deleteError": "Error al Eliminar"
   },
   "pagination": {
     "selectedRows": "{{selected}} de {{total}} fila(s) seleccionada(s).",
@@ -143,5 +167,26 @@
     "previousPage": "Ir a la página anterior",
     "nextPage": "Ir a la página siguiente",
     "lastPage": "Ir a la última página"
+  },
+  "activation": {
+    "title": "Código de Activación del Terminal",
+    "description": "Comparte este código con el personal para activar el terminal en el dispositivo Android",
+    "code": "Código de Activación",
+    "expiresIn": "Expira en {{days}} días",
+    "expiresAt": "Expira el",
+    "copyCode": "Copiar Código",
+    "copied": "¡Código copiado al portapapeles!",
+    "close": "Cerrar",
+    "generateSuccess": "Código de activación generado exitosamente",
+    "generateError": "Error al generar código de activación",
+    "alreadyActivated": "El terminal ya está activado",
+    "alreadyActivatedTooltip": "Este terminal ya ha sido activado. No se puede generar un nuevo código de activación.",
+    "instructions": {
+      "title": "Instrucciones de Activación",
+      "step1": "1. Abre la app Avoqado TPV en el dispositivo Android",
+      "step2": "2. Ingresa el número de serie del dispositivo: {{serialNumber}}",
+      "step3": "3. Ingresa este código de activación",
+      "step4": "4. El terminal estará activado y listo para usar"
+    }
   }
 }
