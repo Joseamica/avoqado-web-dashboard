@@ -1,37 +1,21 @@
-import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import api from '@/api'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  type VenuePricingStructure,
-  paymentProviderAPI,
-} from '@/services/paymentProvider.service'
-import { Loader2, Info, TrendingUp } from 'lucide-react'
-import api from '@/api'
+import { type VenuePricingStructure, paymentProviderAPI } from '@/services/paymentProvider.service'
+import { useQuery } from '@tanstack/react-query'
+import { Loader2, TrendingUp } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 
 interface VenuePricingStructureDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   pricingStructure?: VenuePricingStructure | null
   venueId?: string
+  initialAccountType?: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
   onSave: (data: {
     venueId: string
     accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
@@ -52,11 +36,13 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
   onOpenChange,
   pricingStructure,
   venueId: initialVenueId,
+  initialAccountType,
   onSave,
 }) => {
-  const { t: _t } = useTranslation('superadmin')
+  // const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
   const [providerCost, setProviderCost] = useState<any>(null)
+  const [venueConfig, setVenueConfig] = useState<any>(null)
 
   // Fetch venues for dropdown
   const { data: venues = [] } = useQuery({
@@ -71,38 +57,89 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
     venueId: initialVenueId || '',
     accountType: 'PRIMARY' as 'PRIMARY' | 'SECONDARY' | 'TERTIARY',
     effectiveFrom: new Date().toISOString().split('T')[0],
-    debitRate: 0,
-    creditRate: 0,
-    amexRate: 0,
-    internationalRate: 0,
-    fixedFeePerTransaction: 0,
-    monthlyServiceFee: 0,
+    debitRate: '' as number | '',
+    creditRate: '' as number | '',
+    amexRate: '' as number | '',
+    internationalRate: '' as number | '',
+    fixedFeePerTransaction: '' as number | '',
+    monthlyServiceFee: '' as number | '',
     contractReference: '',
     notes: '',
   })
 
-  // Fetch provider cost for margin calculation
+  // Fetch venue payment config when venue changes
   useEffect(() => {
     if (formData.venueId) {
-      // Fetch the venue's merchant account and get active cost structure
-      paymentProviderAPI.getVenuePaymentConfigs({ venueId: formData.venueId })
-        .then(configs => {
-          if (configs.length > 0) {
-            return paymentProviderAPI.getActiveCostStructure(configs[0].primaryAccountId)
-          }
+      paymentProviderAPI
+        .getVenuePaymentConfig(formData.venueId)
+        .then(config => {
+          setVenueConfig(config)
         })
-        .then(cost => {
-          if (cost) {
-            setProviderCost(cost)
-          }
+        .catch(err => {
+          console.error('Failed to fetch venue config:', err)
+          setVenueConfig(null)
         })
-        .catch(console.error)
+    } else {
+      setVenueConfig(null)
+      setProviderCost(null)
     }
   }, [formData.venueId])
 
+  // Fetch provider cost for the correct merchant account based on account type
   useEffect(() => {
+    if (!venueConfig || !formData.accountType) {
+      setProviderCost(null)
+      return
+    }
+
+    // Map account type to merchant account ID
+    let merchantAccountId: string | null = null
+    switch (formData.accountType) {
+      case 'PRIMARY':
+        merchantAccountId = venueConfig.primaryAccountId
+        break
+      case 'SECONDARY':
+        merchantAccountId = venueConfig.secondaryAccountId || null
+        break
+      case 'TERTIARY':
+        merchantAccountId = venueConfig.tertiaryAccountId || null
+        break
+    }
+
+    console.log(`[VenuePricingDialog] Fetching cost for ${formData.accountType} account:`, merchantAccountId)
+
+    if (merchantAccountId) {
+      paymentProviderAPI
+        .getActiveCostStructure(merchantAccountId)
+        .then(cost => {
+          console.log(`[VenuePricingDialog] Provider cost for ${formData.accountType}:`, cost)
+          setProviderCost(cost)
+        })
+        .catch(err => {
+          console.error(`Failed to fetch cost structure for ${formData.accountType}:`, err)
+          setProviderCost(null)
+        })
+    } else {
+      console.warn(`[VenuePricingDialog] No merchant assigned to ${formData.accountType}`)
+      setProviderCost(null)
+    }
+  }, [venueConfig, formData.accountType])
+
+  useEffect(() => {
+    console.log(
+      '[VenuePricingDialog] useEffect triggered - pricingStructure:',
+      pricingStructure
+        ? {
+            id: pricingStructure.id,
+            accountType: pricingStructure.accountType,
+            debitRate: pricingStructure.debitRate,
+            creditRate: pricingStructure.creditRate,
+          }
+        : 'NULL (create mode)',
+    )
+
     if (pricingStructure) {
-      setFormData({
+      const formValues = {
         venueId: pricingStructure.venueId,
         accountType: pricingStructure.accountType,
         effectiveFrom: pricingStructure.effectiveFrom.split('T')[0],
@@ -114,23 +151,32 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         monthlyServiceFee: Number(pricingStructure.monthlyServiceFee) || 0,
         contractReference: pricingStructure.contractReference || '',
         notes: pricingStructure.notes || '',
+      }
+
+      console.log('[VenuePricingDialog] Setting form data (EDIT MODE):', {
+        accountType: formValues.accountType,
+        debitRate: formValues.debitRate,
+        creditRate: formValues.creditRate,
       })
+
+      setFormData(formValues)
     } else {
+      console.log('[VenuePricingDialog] Resetting form data (CREATE MODE), initialAccountType:', initialAccountType)
       setFormData({
         venueId: initialVenueId || '',
-        accountType: 'PRIMARY',
+        accountType: initialAccountType || 'PRIMARY',
         effectiveFrom: new Date().toISOString().split('T')[0],
-        debitRate: 0,
-        creditRate: 0,
-        amexRate: 0,
-        internationalRate: 0,
-        fixedFeePerTransaction: 0,
-        monthlyServiceFee: 0,
+        debitRate: '',
+        creditRate: '',
+        amexRate: '',
+        internationalRate: '',
+        fixedFeePerTransaction: '',
+        monthlyServiceFee: '',
         contractReference: '',
         notes: '',
       })
     }
-  }, [pricingStructure, initialVenueId, open])
+  }, [pricingStructure, initialVenueId, initialAccountType, open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,12 +186,12 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         venueId: formData.venueId,
         accountType: formData.accountType,
         effectiveFrom: new Date(formData.effectiveFrom).toISOString(),
-        debitRate: formData.debitRate / 100,
-        creditRate: formData.creditRate / 100,
-        amexRate: formData.amexRate / 100,
-        internationalRate: formData.internationalRate / 100,
-        fixedFeePerTransaction: formData.fixedFeePerTransaction || undefined,
-        monthlyServiceFee: formData.monthlyServiceFee || undefined,
+        debitRate: (Number(formData.debitRate) || 0) / 100,
+        creditRate: (Number(formData.creditRate) || 0) / 100,
+        amexRate: (Number(formData.amexRate) || 0) / 100,
+        internationalRate: (Number(formData.internationalRate) || 0) / 100,
+        fixedFeePerTransaction: Number(formData.fixedFeePerTransaction) || undefined,
+        monthlyServiceFee: Number(formData.monthlyServiceFee) || undefined,
         contractReference: formData.contractReference || undefined,
         notes: formData.notes || undefined,
       })
@@ -170,21 +216,19 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>
-              {pricingStructure ? 'Edit Venue Pricing Structure' : 'Add Venue Pricing Structure'}
-            </DialogTitle>
-            <DialogDescription>
-              Set the rates that you charge the venue (your client)
-            </DialogDescription>
+            <DialogTitle>{pricingStructure ? 'Edit Venue Pricing Structure' : 'Add Venue Pricing Structure'}</DialogTitle>
+            <DialogDescription>Set the rates that you charge the venue (your client)</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             {/* Info Banner */}
             <div className="flex items-start space-x-2 text-sm bg-green-50 dark:bg-green-950/50 p-3 rounded-md border border-green-200 dark:border-green-800">
-              <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+              <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
               <div className="text-green-800 dark:text-green-200">
                 <p className="font-medium">Venue Pricing Structure</p>
-                <p className="text-xs mt-1">These are the rates YOU charge the venue. The difference between venue rates and provider costs is your profit margin.</p>
+                <p className="text-xs mt-1">
+                  These are the rates YOU charge the venue. The difference between venue rates and provider costs is your profit margin.
+                </p>
               </div>
             </div>
 
@@ -219,6 +263,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
               <Select
                 value={formData.accountType}
                 onValueChange={(value: any) => setFormData({ ...formData, accountType: value })}
+                disabled={!!pricingStructure || !!initialAccountType}
               >
                 <SelectTrigger className="bg-background border-input">
                   <SelectValue />
@@ -229,6 +274,13 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                   <SelectItem value="TERTIARY">Tertiary Account</SelectItem>
                 </SelectContent>
               </Select>
+              {(pricingStructure || initialAccountType) && (
+                <p className="text-xs text-muted-foreground">
+                  {pricingStructure
+                    ? 'Account type cannot be changed after creation. Create a new pricing structure for a different account type.'
+                    : `Creating pricing for ${formData.accountType} account.`}
+                </p>
+              )}
             </div>
 
             {/* Effective From */}
@@ -248,7 +300,28 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
 
             {/* Rate Grid */}
             <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
-              <Label className="text-base font-semibold">Card Processing Rates (%)</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Card Processing Rates (%)</Label>
+                {venueConfig && formData.accountType && (
+                  <p className="text-xs text-muted-foreground">
+                    {formData.accountType === 'PRIMARY' && venueConfig.primaryAccount && (
+                      <>Margins vs. {venueConfig.primaryAccount.displayName}</>
+                    )}
+                    {formData.accountType === 'SECONDARY' && venueConfig.secondaryAccount && (
+                      <>Margins vs. {venueConfig.secondaryAccount.displayName}</>
+                    )}
+                    {formData.accountType === 'TERTIARY' && venueConfig.tertiaryAccount && (
+                      <>Margins vs. {venueConfig.tertiaryAccount.displayName}</>
+                    )}
+                    {formData.accountType === 'SECONDARY' && !venueConfig.secondaryAccount && (
+                      <span className="text-orange-500">⚠️ No SECONDARY merchant assigned</span>
+                    )}
+                    {formData.accountType === 'TERTIARY' && !venueConfig.tertiaryAccount && (
+                      <span className="text-orange-500">⚠️ No TERTIARY merchant assigned</span>
+                    )}
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Debit Rate */}
@@ -261,14 +334,14 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                     min="0"
                     max="100"
                     value={formData.debitRate}
-                    onChange={e => setFormData({ ...formData, debitRate: parseFloat(e.target.value) || 0 })}
+                    onChange={e => setFormData({ ...formData, debitRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="2.2"
                     className="bg-background border-input"
                   />
-                  {providerCost && formData.debitRate > 0 && (
+                  {providerCost && Number(formData.debitRate) > 0 && (
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      Margin: +{calculateMargin(formData.debitRate, 'debit')?.margin.toFixed(2)}%
-                      (Cost: {calculateMargin(formData.debitRate, 'debit')?.providerRate.toFixed(2)}%)
+                      Margin: +{calculateMargin(Number(formData.debitRate), 'debit')?.margin.toFixed(2)}% (Cost:{' '}
+                      {calculateMargin(Number(formData.debitRate), 'debit')?.providerRate.toFixed(2)}%)
                     </p>
                   )}
                 </div>
@@ -283,14 +356,14 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                     min="0"
                     max="100"
                     value={formData.creditRate}
-                    onChange={e => setFormData({ ...formData, creditRate: parseFloat(e.target.value) || 0 })}
+                    onChange={e => setFormData({ ...formData, creditRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="2.5"
                     className="bg-background border-input"
                   />
-                  {providerCost && formData.creditRate > 0 && (
+                  {providerCost && Number(formData.creditRate) > 0 && (
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      Margin: +{calculateMargin(formData.creditRate, 'credit')?.margin.toFixed(2)}%
-                      (Cost: {calculateMargin(formData.creditRate, 'credit')?.providerRate.toFixed(2)}%)
+                      Margin: +{calculateMargin(Number(formData.creditRate), 'credit')?.margin.toFixed(2)}% (Cost:{' '}
+                      {calculateMargin(Number(formData.creditRate), 'credit')?.providerRate.toFixed(2)}%)
                     </p>
                   )}
                 </div>
@@ -305,14 +378,14 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                     min="0"
                     max="100"
                     value={formData.amexRate}
-                    onChange={e => setFormData({ ...formData, amexRate: parseFloat(e.target.value) || 0 })}
+                    onChange={e => setFormData({ ...formData, amexRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="3.2"
                     className="bg-background border-input"
                   />
-                  {providerCost && formData.amexRate > 0 && (
+                  {providerCost && Number(formData.amexRate) > 0 && (
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      Margin: +{calculateMargin(formData.amexRate, 'amex')?.margin.toFixed(2)}%
-                      (Cost: {calculateMargin(formData.amexRate, 'amex')?.providerRate.toFixed(2)}%)
+                      Margin: +{calculateMargin(Number(formData.amexRate), 'amex')?.margin.toFixed(2)}% (Cost:{' '}
+                      {calculateMargin(Number(formData.amexRate), 'amex')?.providerRate.toFixed(2)}%)
                     </p>
                   )}
                 </div>
@@ -327,14 +400,14 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                     min="0"
                     max="100"
                     value={formData.internationalRate}
-                    onChange={e => setFormData({ ...formData, internationalRate: parseFloat(e.target.value) || 0 })}
+                    onChange={e => setFormData({ ...formData, internationalRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="3.3"
                     className="bg-background border-input"
                   />
-                  {providerCost && formData.internationalRate > 0 && (
+                  {providerCost && Number(formData.internationalRate) > 0 && (
                     <p className="text-xs text-green-600 dark:text-green-400">
-                      Margin: +{calculateMargin(formData.internationalRate, 'international')?.margin.toFixed(2)}%
-                      (Cost: {calculateMargin(formData.internationalRate, 'international')?.providerRate.toFixed(2)}%)
+                      Margin: +{calculateMargin(Number(formData.internationalRate), 'international')?.margin.toFixed(2)}% (Cost:{' '}
+                      {calculateMargin(Number(formData.internationalRate), 'international')?.providerRate.toFixed(2)}%)
                     </p>
                   )}
                 </div>
@@ -351,7 +424,9 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                   step="0.01"
                   min="0"
                   value={formData.fixedFeePerTransaction}
-                  onChange={e => setFormData({ ...formData, fixedFeePerTransaction: parseFloat(e.target.value) || 0 })}
+                  onChange={e =>
+                    setFormData({ ...formData, fixedFeePerTransaction: e.target.value === '' ? '' : parseFloat(e.target.value) })
+                  }
                   placeholder="0.00"
                   className="bg-background border-input"
                 />
@@ -365,7 +440,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                   step="0.01"
                   min="0"
                   value={formData.monthlyServiceFee}
-                  onChange={e => setFormData({ ...formData, monthlyServiceFee: parseFloat(e.target.value) || 0 })}
+                  onChange={e => setFormData({ ...formData, monthlyServiceFee: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                   placeholder="0.00"
                   className="bg-background border-input"
                 />
@@ -399,12 +474,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

@@ -3011,5 +3011,74 @@
       "description": "There was an error converting your venue. Please try again or contact support.",
       "fetchFeatures": "Failed to load features. Please try again."
     }
+  },
+  "paymentConfiguration": {
+    "title": "Payment Configuration",
+    "configured": "Configured",
+    "description": {
+      "selectVenue": "Select a venue to configure payment accounts",
+      "withConfig": "Merchant accounts for {{venueName}}",
+      "withoutConfig": "Assign PRIMARY/SECONDARY/TERTIARY merchant accounts"
+    },
+    "alerts": {
+      "selectVenue": "Please select a venue from the dropdown above to manage its payment configuration.",
+      "configurationRequired": "Configuration Required: You must assign at least a PRIMARY merchant account before setting pricing structures. This links the venue to specific payment processors.",
+      "tip": "Tip: Set pricing structures for each account type below. PRIMARY rates will apply to transactions using the PRIMARY merchant account."
+    },
+    "accountTypes": {
+      "primary": {
+        "label": "PRIMARY",
+        "title": "Primary Merchant Account",
+        "required": "(Required)",
+        "placeholder": "Select PRIMARY merchant account",
+        "description": "Main account for standard transactions. Most payments will use this account.",
+        "badge": "Main account"
+      },
+      "secondary": {
+        "label": "SECONDARY",
+        "title": "Secondary Merchant Account",
+        "optional": "(Optional)",
+        "placeholder": "Select SECONDARY merchant account (optional)",
+        "description": "For routing based on card BIN, amount thresholds, or special conditions.",
+        "badge": "Backup account",
+        "none": "None"
+      },
+      "tertiary": {
+        "label": "TERTIARY",
+        "title": "Tertiary Merchant Account",
+        "optional": "(Optional)",
+        "placeholder": "Select TERTIARY merchant account (optional)",
+        "description": "For failover or specialized payment scenarios.",
+        "badge": "Failover account",
+        "none": "None"
+      }
+    },
+    "actions": {
+      "edit": "Edit",
+      "save": "Save Configuration",
+      "create": "Create Configuration",
+      "update": "Update Configuration",
+      "cancel": "Cancel",
+      "saving": "Saving..."
+    },
+    "messages": {
+      "success": {
+        "created": "Payment configuration created successfully",
+        "updated": "Payment configuration updated successfully"
+      },
+      "error": {
+        "create": "Failed to create payment configuration",
+        "update": "Failed to update payment configuration",
+        "selectVenue": "Please select a venue first",
+        "primaryRequired": "PRIMARY merchant account is required"
+      }
+    },
+    "providerCard": {
+      "name": "Merchant Name",
+      "provider": "Payment Provider",
+      "serialNumber": "Serial Number",
+      "active": "Active",
+      "inactive": "Inactive"
+    }
   }
 }

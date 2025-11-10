@@ -2601,5 +2601,74 @@
       "description": "Hubo un error al convertir tu establecimiento. Por favor intenta de nuevo o contacta a soporte.",
       "fetchFeatures": "No se pudieron cargar las funcionalidades. Por favor intenta de nuevo."
     }
+  },
+  "paymentConfiguration": {
+    "title": "Configuración de Pagos",
+    "configured": "Configurado",
+    "description": {
+      "selectVenue": "Selecciona un establecimiento para configurar cuentas de pago",
+      "withConfig": "Cuentas comerciales para {{venueName}}",
+      "withoutConfig": "Asignar cuentas comerciales PRIMARIA/SECUNDARIA/TERCIARIA"
+    },
+    "alerts": {
+      "selectVenue": "Por favor selecciona un establecimiento del menú desplegable arriba para gestionar su configuración de pagos.",
+      "configurationRequired": "Configuración Requerida: Debes asignar al menos una cuenta comercial PRIMARIA antes de configurar estructuras de precios. Esto vincula el establecimiento a procesadores de pago específicos.",
+      "tip": "Consejo: Configura estructuras de precios para cada tipo de cuenta abajo. Las tarifas PRIMARIAS se aplicarán a las transacciones usando la cuenta comercial PRIMARIA."
+    },
+    "accountTypes": {
+      "primary": {
+        "label": "PRIMARIA",
+        "title": "Cuenta Comercial Primaria",
+        "required": "(Requerida)",
+        "placeholder": "Seleccionar cuenta comercial PRIMARIA",
+        "description": "Cuenta principal para transacciones estándar. La mayoría de los pagos usarán esta cuenta.",
+        "badge": "Cuenta principal"
+      },
+      "secondary": {
+        "label": "SECUNDARIA",
+        "title": "Cuenta Comercial Secundaria",
+        "optional": "(Opcional)",
+        "placeholder": "Seleccionar cuenta comercial SECUNDARIA (opcional)",
+        "description": "Para enrutamiento basado en BIN de tarjeta, umbrales de monto o condiciones especiales.",
+        "badge": "Cuenta de respaldo",
+        "none": "Ninguna"
+      },
+      "tertiary": {
+        "label": "TERCIARIA",
+        "title": "Cuenta Comercial Terciaria",
+        "optional": "(Opcional)",
+        "placeholder": "Seleccionar cuenta comercial TERCIARIA (opcional)",
+        "description": "Para respaldo o escenarios de pago especializados.",
+        "badge": "Cuenta de contingencia",
+        "none": "Ninguna"
+      }
+    },
+    "actions": {
+      "edit": "Editar",
+      "save": "Guardar Configuración",
+      "create": "Crear Configuración",
+      "update": "Actualizar Configuración",
+      "cancel": "Cancelar",
+      "saving": "Guardando..."
+    },
+    "messages": {
+      "success": {
+        "created": "Configuración de pagos creada exitosamente",
+        "updated": "Configuración de pagos actualizada exitosamente"
+      },
+      "error": {
+        "create": "Error al crear configuración de pagos",
+        "update": "Error al actualizar configuración de pagos",
+        "selectVenue": "Por favor selecciona un establecimiento primero",
+        "primaryRequired": "La cuenta comercial PRIMARIA es requerida"
+      }
+    },
+    "providerCard": {
+      "name": "Nombre Comercial",
+      "provider": "Proveedor de Pagos",
+      "serialNumber": "Número de Serie",
+      "active": "Activo",
+      "inactive": "Inactivo"
+    }
   }
 }

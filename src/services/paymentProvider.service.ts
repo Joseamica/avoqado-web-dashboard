@@ -35,6 +35,15 @@ export interface MerchantAccount {
     name: string
     type: string
   }
+  // Blumon-specific fields
+  blumonSerialNumber?: string
+  blumonPosId?: string
+  blumonEnvironment?: string
+  blumonMerchantId?: string
+  // Bank account fields
+  clabeNumber?: string
+  bankName?: string
+  accountHolder?: string
   _count?: {
     costStructures: number
     venueConfigs: number

@@ -4,21 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CreditCard, Plus, Save, AlertCircle, CheckCircle, Wallet } from 'lucide-react'
+import { CreditCard, Save, AlertCircle, CheckCircle, Wallet, Building2 } from 'lucide-react'
 import {
   paymentProviderAPI,
   type VenuePaymentConfig,
   type MerchantAccount,
 } from '@/services/paymentProvider.service'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 
 interface VenuePaymentConfigCardProps {
   venueId: string | null
@@ -31,9 +28,11 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
   venueName,
   onConfigChange,
 }) => {
+  const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
+  const [activeTab, setActiveTab] = useState('primary')
 
   const [formData, setFormData] = useState({
     primaryAccountId: '',
@@ -45,7 +44,10 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
   // Fetch all merchant accounts
   const { data: merchantAccounts = [], isLoading: loadingAccounts } = useQuery({
     queryKey: ['merchant-accounts-all'],
-    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    queryFn: async () => {
+      const accounts = await paymentProviderAPI.getAllMerchantAccounts()
+      return accounts
+    },
   })
 
   // Fetch existing config for selected venue
@@ -61,14 +63,14 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures'] })
-      toast({ title: 'Success', description: 'Payment configuration created successfully' })
+      toast({ title: t('common.success'), description: t('paymentConfiguration.messages.success.created') })
       setIsEditing(false)
       refetchConfig()
       onConfigChange?.()
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to create payment configuration'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || t('paymentConfiguration.messages.error.create')
+      toast({ title: t('common.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -79,14 +81,14 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-payment-config'] })
       queryClient.invalidateQueries({ queryKey: ['venue-pricing-structures'] })
-      toast({ title: 'Success', description: 'Payment configuration updated successfully' })
+      toast({ title: t('common.success'), description: t('paymentConfiguration.messages.success.updated') })
       setIsEditing(false)
       refetchConfig()
       onConfigChange?.()
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to update payment configuration'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || t('paymentConfiguration.messages.error.update')
+      toast({ title: t('common.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -111,12 +113,20 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
 
   const handleSave = async () => {
     if (!venueId) {
-      toast({ title: 'Error', description: 'Please select a venue first', variant: 'destructive' })
+      toast({
+        title: t('common.error'),
+        description: t('paymentConfiguration.messages.error.selectVenue'),
+        variant: 'destructive',
+      })
       return
     }
 
     if (!formData.primaryAccountId) {
-      toast({ title: 'Error', description: 'PRIMARY merchant account is required', variant: 'destructive' })
+      toast({
+        title: t('common.error'),
+        description: t('paymentConfiguration.messages.error.primaryRequired'),
+        variant: 'destructive',
+      })
       return
     }
 
@@ -143,14 +153,99 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
     return `${merchant.displayName}${serialInfo}`
   }
 
-  // Filter out already selected accounts from dropdowns
-  const getAvailableAccounts = (excludeType?: 'primary' | 'secondary' | 'tertiary') => {
+  // Filter out already selected accounts from selection
+  const getAvailableAccounts = (accountType: 'primary' | 'secondary' | 'tertiary') => {
     const excludeIds = []
-    if (excludeType !== 'primary' && formData.primaryAccountId) excludeIds.push(formData.primaryAccountId)
-    if (excludeType !== 'secondary' && formData.secondaryAccountId) excludeIds.push(formData.secondaryAccountId)
-    if (excludeType !== 'tertiary' && formData.tertiaryAccountId) excludeIds.push(formData.tertiaryAccountId)
+    if (accountType !== 'primary' && formData.primaryAccountId) excludeIds.push(formData.primaryAccountId)
+    if (accountType !== 'secondary' && formData.secondaryAccountId)
+      excludeIds.push(formData.secondaryAccountId)
+    if (accountType !== 'tertiary' && formData.tertiaryAccountId) excludeIds.push(formData.tertiaryAccountId)
 
     return merchantAccounts.filter((m: MerchantAccount) => !excludeIds.includes(m.id))
+  }
+
+  const renderMerchantAccountCard = (account: MerchantAccount) => (
+    <div className="flex items-start gap-3 w-full">
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
+        <Building2 className="w-5 h-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate">{account.displayName}</div>
+        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
+          <Badge variant="outline" className="text-xs">
+            {account.provider.name}
+          </Badge>
+          {account.blumonSerialNumber && (
+            <span className="text-xs text-muted-foreground">S/N: {account.blumonSerialNumber}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderAccountTypeSelector = (
+    accountType: 'primary' | 'secondary' | 'tertiary',
+    currentValue: string,
+    onChange: (value: string) => void
+  ) => {
+    const availableAccounts = getAvailableAccounts(accountType)
+    const isOptional = accountType !== 'primary'
+    const translationKey = `paymentConfiguration.accountTypes.${accountType}`
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm text-muted-foreground">{t(`${translationKey}.description`)}</p>
+        </div>
+
+        <RadioGroup value={currentValue || '__none__'} onValueChange={onChange} className="gap-3">
+          {isOptional && (
+            <div className="relative">
+              <RadioGroupItem value="__none__" id={`${accountType}-none`} className="peer sr-only" />
+              <label
+                htmlFor={`${accountType}-none`}
+                className={cn(
+                  'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                  'hover:bg-accent/50 hover:border-primary/50',
+                  'peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent'
+                )}
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted shrink-0">
+                  <Wallet className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">{t(`${translationKey}.none`)}</div>
+                  <div className="text-sm text-muted-foreground">{t(`${translationKey}.optional`)}</div>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {availableAccounts.length === 0 && !isOptional && (
+            <Alert>
+              <AlertCircle className="w-4 h-4" />
+              <AlertDescription>{t('paymentConfiguration.alerts.selectVenue')}</AlertDescription>
+            </Alert>
+          )}
+
+          {availableAccounts.map((account: MerchantAccount) => (
+            <div key={account.id} className="relative">
+              <RadioGroupItem value={account.id} id={`${accountType}-${account.id}`} className="peer sr-only" />
+              <label
+                htmlFor={`${accountType}-${account.id}`}
+                className={cn(
+                  'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                  'hover:bg-accent/50 hover:border-primary/50',
+                  'peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent'
+                )}
+              >
+                {renderMerchantAccountCard(account)}
+              </label>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+    )
   }
 
   if (!venueId) {
@@ -159,16 +254,14 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Payment Configuration
+            {t('paymentConfiguration.title')}
           </CardTitle>
-          <CardDescription>Select a venue to configure payment accounts</CardDescription>
+          <CardDescription>{t('paymentConfiguration.description.selectVenue')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <AlertCircle className="w-4 h-4" />
-            <AlertDescription>
-              Please select a venue from the dropdown above to manage its payment configuration.
-            </AlertDescription>
+            <AlertDescription>{t('paymentConfiguration.alerts.selectVenue')}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -181,7 +274,7 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Payment Configuration
+            {t('paymentConfiguration.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -197,146 +290,88 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
   const isLoading = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Card className={hasConfig ? '' : 'border-dashed border-amber-500/50 bg-amber-50/10'}>
+    <Card className={hasConfig ? '' : 'border-dashed border-orange-200 dark:border-orange-800 bg-orange-50/10 dark:bg-orange-950/20'}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              Payment Configuration
+              {t('paymentConfiguration.title')}
               {hasConfig && (
                 <Badge variant="outline" className="ml-2">
                   <CheckCircle className="w-3 h-3 mr-1" />
-                  Configured
+                  {t('paymentConfiguration.configured')}
                 </Badge>
               )}
             </CardTitle>
             <CardDescription>
               {hasConfig
-                ? `Merchant accounts for ${venueName || 'this venue'}`
-                : 'Assign PRIMARY/SECONDARY/TERTIARY merchant accounts'}
+                ? t('paymentConfiguration.description.withConfig', { venueName: venueName || 'this venue' })
+                : t('paymentConfiguration.description.withoutConfig')}
             </CardDescription>
           </div>
           {hasConfig && !isEditing && (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-              Edit
+              {t('paymentConfiguration.actions.edit')}
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {!hasConfig && !isEditing && (
-          <Alert className="border-amber-500/50 bg-amber-50/10">
-            <AlertCircle className="w-4 h-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              <strong>Configuration Required:</strong> You must assign at least a PRIMARY merchant account before
-              setting pricing structures. This links the venue to specific payment processors.
+          <Alert className="border-orange-200 dark:border-orange-800 bg-orange-50/10 dark:bg-orange-950/20">
+            <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            <AlertDescription className="text-orange-800 dark:text-orange-200">
+              {t('paymentConfiguration.alerts.configurationRequired')}
             </AlertDescription>
           </Alert>
         )}
 
         {(!hasConfig || isEditing) && (
-          <div className="space-y-4">
-            {/* PRIMARY Account */}
-            <div className="space-y-2">
-              <Label htmlFor="primary-account" className="flex items-center gap-2">
-                <Badge variant="default" className="bg-blue-600">PRIMARY</Badge>
-                <span>Merchant Account (Required)</span>
-              </Label>
-              <Select
-                value={formData.primaryAccountId}
-                onValueChange={(value) => setFormData({ ...formData, primaryAccountId: value })}
-              >
-                <SelectTrigger id="primary-account">
-                  <SelectValue placeholder="Select PRIMARY merchant account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAvailableAccounts('primary').map((account: MerchantAccount) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4" />
-                        <span>{account.displayName}</span>
-                        {account.blumonSerialNumber && (
-                          <span className="text-xs text-muted-foreground">({account.blumonSerialNumber})</span>
-                        )}
-                        <Badge variant="secondary" className="text-xs">{account.provider.name}</Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Main account for standard transactions. Most payments will use this account.
-              </p>
-            </div>
+          <div className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="primary" className="gap-2">
+                  <Badge
+                    variant={activeTab === 'primary' ? 'default' : 'outline'}
+                    className="h-5"
+                  >
+                    {t('paymentConfiguration.accountTypes.primary.label')}
+                  </Badge>
+                  {formData.primaryAccountId && <CheckCircle className="w-3 h-3" />}
+                </TabsTrigger>
+                <TabsTrigger value="secondary" className="gap-2">
+                  <Badge variant={activeTab === 'secondary' ? 'secondary' : 'outline'} className="h-5">
+                    {t('paymentConfiguration.accountTypes.secondary.label')}
+                  </Badge>
+                  {formData.secondaryAccountId && <CheckCircle className="w-3 h-3" />}
+                </TabsTrigger>
+                <TabsTrigger value="tertiary" className="gap-2">
+                  <Badge variant="outline" className="h-5">
+                    {t('paymentConfiguration.accountTypes.tertiary.label')}
+                  </Badge>
+                  {formData.tertiaryAccountId && <CheckCircle className="w-3 h-3" />}
+                </TabsTrigger>
+              </TabsList>
 
-            {/* SECONDARY Account */}
-            <div className="space-y-2">
-              <Label htmlFor="secondary-account" className="flex items-center gap-2">
-                <Badge variant="secondary">SECONDARY</Badge>
-                <span>Merchant Account (Optional)</span>
-              </Label>
-              <Select
-                value={formData.secondaryAccountId}
-                onValueChange={(value) => setFormData({ ...formData, secondaryAccountId: value })}
-              >
-                <SelectTrigger id="secondary-account">
-                  <SelectValue placeholder="Select SECONDARY merchant account (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {getAvailableAccounts('secondary').map((account: MerchantAccount) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4" />
-                        <span>{account.displayName}</span>
-                        {account.blumonSerialNumber && (
-                          <span className="text-xs text-muted-foreground">({account.blumonSerialNumber})</span>
-                        )}
-                        <Badge variant="secondary" className="text-xs">{account.provider.name}</Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                For routing based on card BIN, amount thresholds, or special conditions.
-              </p>
-            </div>
+              <TabsContent value="primary" className="mt-6">
+                {renderAccountTypeSelector('primary', formData.primaryAccountId, (value) =>
+                  setFormData({ ...formData, primaryAccountId: value === '__none__' ? '' : value })
+                )}
+              </TabsContent>
 
-            {/* TERTIARY Account */}
-            <div className="space-y-2">
-              <Label htmlFor="tertiary-account" className="flex items-center gap-2">
-                <Badge variant="outline">TERTIARY</Badge>
-                <span>Merchant Account (Optional)</span>
-              </Label>
-              <Select
-                value={formData.tertiaryAccountId}
-                onValueChange={(value) => setFormData({ ...formData, tertiaryAccountId: value })}
-              >
-                <SelectTrigger id="tertiary-account">
-                  <SelectValue placeholder="Select TERTIARY merchant account (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {getAvailableAccounts('tertiary').map((account: MerchantAccount) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4" />
-                        <span>{account.displayName}</span>
-                        {account.blumonSerialNumber && (
-                          <span className="text-xs text-muted-foreground">({account.blumonSerialNumber})</span>
-                        )}
-                        <Badge variant="secondary" className="text-xs">{account.provider.name}</Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                For failover or specialized payment scenarios.
-              </p>
-            </div>
+              <TabsContent value="secondary" className="mt-6">
+                {renderAccountTypeSelector('secondary', formData.secondaryAccountId, (value) =>
+                  setFormData({ ...formData, secondaryAccountId: value === '__none__' ? '' : value })
+                )}
+              </TabsContent>
+
+              <TabsContent value="tertiary" className="mt-6">
+                {renderAccountTypeSelector('tertiary', formData.tertiaryAccountId, (value) =>
+                  setFormData({ ...formData, tertiaryAccountId: value === '__none__' ? '' : value })
+                )}
+              </TabsContent>
+            </Tabs>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2 pt-4">
@@ -344,18 +379,20 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
                 {isLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Saving...
+                    {t('paymentConfiguration.actions.saving')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    {hasConfig ? 'Update Configuration' : 'Create Configuration'}
+                    {hasConfig
+                      ? t('paymentConfiguration.actions.update')
+                      : t('paymentConfiguration.actions.create')}
                   </>
                 )}
               </Button>
               {isEditing && (
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isLoading}>
-                  Cancel
+                  {t('paymentConfiguration.actions.cancel')}
                 </Button>
               )}
             </div>
@@ -365,22 +402,24 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
         {hasConfig && !isEditing && (
           <div className="space-y-3">
             {/* PRIMARY Account Display */}
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20">
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-primary/10">
               <div className="flex items-center gap-3">
-                <Badge variant="default" className="bg-blue-600">PRIMARY</Badge>
+                <Badge variant="default">
+                  {t('paymentConfiguration.accountTypes.primary.label')}
+                </Badge>
                 <div>
                   <div className="font-medium">{getMerchantName(existingConfig.primaryAccountId)}</div>
                   <div className="text-xs text-muted-foreground">{existingConfig.primaryAccount.provider.name}</div>
                 </div>
               </div>
-              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <CheckCircle className="w-5 h-5 text-primary" />
             </div>
 
             {/* SECONDARY Account Display */}
             {existingConfig.secondaryAccountId && (
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/50">
+              <div className="flex items-center justify-between p-4 rounded-lg border bg-secondary/50">
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary">SECONDARY</Badge>
+                  <Badge variant="secondary">{t('paymentConfiguration.accountTypes.secondary.label')}</Badge>
                   <div>
                     <div className="font-medium">{getMerchantName(existingConfig.secondaryAccountId)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -394,9 +433,9 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
 
             {/* TERTIARY Account Display */}
             {existingConfig.tertiaryAccountId && (
-              <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center justify-between p-4 rounded-lg border">
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline">TERTIARY</Badge>
+                  <Badge variant="outline">{t('paymentConfiguration.accountTypes.tertiary.label')}</Badge>
                   <div>
                     <div className="font-medium">{getMerchantName(existingConfig.tertiaryAccountId)}</div>
                     <div className="text-xs text-muted-foreground">
@@ -411,10 +450,7 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
             {/* Info Message */}
             <Alert>
               <AlertCircle className="w-4 h-4" />
-              <AlertDescription>
-                <strong>Tip:</strong> Set pricing structures for each account type below. PRIMARY rates will apply
-                to transactions using the PRIMARY merchant account.
-              </AlertDescription>
+              <AlertDescription>{t('paymentConfiguration.alerts.tip')}</AlertDescription>
             </Alert>
           </div>
         )}
