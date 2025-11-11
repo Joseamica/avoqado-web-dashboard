@@ -770,6 +770,24 @@ export interface Payment {
   staffId: string | null
   staff?: Staff | null
 
+  // Merchant account tracking
+  merchantAccountId: string | null
+  merchantAccount?: {
+    id: string
+    displayName: string | null
+    externalMerchantId: string
+    bankName: string | null
+    clabeNumber: string | null
+    accountHolder: string | null
+    blumonSerialNumber: string | null
+    blumonPosId: string | null
+    provider: {
+      id: string
+      code: string
+      name: string
+    }
+  } | null
+
   // Amounts
   amount: number
   tipAmount: number
@@ -803,6 +821,21 @@ export interface Payment {
   receiptPhoneStatus: ReceiptStatus | null
 
   transactions?: VenueTransaction[]
+
+  // Transaction cost/profit (for SUPERADMIN)
+  transactionCost?: {
+    id: string
+    transactionType: string // DEBIT, CREDIT, AMEX, INTERNATIONAL
+    amount: number
+    providerRate: number // Rate charged by provider
+    providerCostAmount: number // What Avoqado pays to provider
+    providerFixedFee: number
+    venueRate: number // Rate Avoqado charges to venue
+    venueChargeAmount: number // What Avoqado charges to venue
+    venueFixedFee: number
+    grossProfit: number // venueCharge - providerCost (Avoqado's profit)
+    profitMargin: number // grossProfit / venueCharge
+  } | null
 
   createdAt: string
   updatedAt: string

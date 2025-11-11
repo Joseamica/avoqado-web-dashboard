@@ -24,7 +24,7 @@ interface Review {
   comment?: string
   customerName?: string
   customerEmail?: string
-  source: 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP'
+  source: 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP' | 'TPV'
   externalId?: string
   createdAt: string
   updatedAt: string

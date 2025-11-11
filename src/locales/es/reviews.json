@@ -15,7 +15,8 @@
     "google": "Google",
     "tripadvisor": "TripAdvisor",
     "facebook": "Facebook",
-    "yelp": "Yelp"
+    "yelp": "Yelp",
+    "tpv": "Terminal TPV"
   },
 
   "sentiment": {

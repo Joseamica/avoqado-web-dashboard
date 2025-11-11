@@ -2,13 +2,31 @@
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",
+  "filters": {
+    "showing": "Mostrando",
+    "of": "de",
+    "payments": "pagos",
+    "clearAll": "Limpiar filtros",
+    "searchPlaceholder": "Buscar por ID, mesero o monto...",
+    "merchantAccount": "Cuenta Comercial",
+    "allMerchantAccounts": "Todas las Cuentas",
+    "method": "Método de Pago",
+    "allMethods": "Todos los Métodos",
+    "source": "Origen",
+    "allSources": "Todos los Orígenes",
+    "waiter": "Mesero",
+    "allWaiters": "Todos los Meseros"
+  },
   "columns": {
     "date": "Fecha",
     "waiter": "Mesero",
+    "merchantAccount": "Cuenta Comercial",
+    "notAvailable": "N/D",
     "tip": "Propina",
     "source": "Origen",
     "method": "Método",
     "subtotal": "Subtotal",
+    "profit": "Ganancia Avoqado",
     "total": "Total"
   },
   "methods": {
@@ -134,7 +152,9 @@
       "tips": "Propinas",
       "method": "Método",
       "waiter": "Mesero",
-      "waiterUnknown": "N/A"
+      "waiterUnknown": "N/A",
+      "merchantAccount": "Cuenta Comercial",
+      "notAvailable": "N/D"
     },
     "totals": {
       "total": "Total"
@@ -142,7 +162,8 @@
     "sections": {
       "transactionInfo": "Información de la Transacción",
       "transactionInfoDesc": "Detalles completos de la transacción y metadatos",
-      "billInfo": "Información de la Cuenta"
+      "billInfo": "Información de la Cuenta",
+      "merchantAccountInfo": "Información de la Cuenta Comercial"
     },
     "fields": {
       "dateTime": "Fecha y Hora",
@@ -153,7 +174,13 @@
       "referenceNumber": "Número de Referencia",
       "orderId": "ID de Orden",
       "shiftId": "ID de Turno",
-      "entryMode": "Modo de Entrada"
+      "entryMode": "Modo de Entrada",
+      "merchantName": "Nombre del Comercio",
+      "bankName": "Banco",
+      "clabeNumber": "Número CLABE",
+      "accountHolder": "Titular de la Cuenta",
+      "blumonSerial": "Número de Serie Blumon",
+      "provider": "Proveedor de Pagos"
     },
     "entryModes": {
       "contactless": "Sin contacto",

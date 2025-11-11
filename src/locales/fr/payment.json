@@ -2,13 +2,31 @@
   "title": "Paiements",
   "searchPlaceholder": "Rechercher par serveur, total ou méthode...",
   "errorPrefix": "Échec du chargement des paiements",
+  "filters": {
+    "showing": "Affichage",
+    "of": "sur",
+    "payments": "paiements",
+    "clearAll": "Effacer les filtres",
+    "searchPlaceholder": "Rechercher par ID, serveur ou montant...",
+    "merchantAccount": "Compte Marchand",
+    "allMerchantAccounts": "Tous les Comptes",
+    "method": "Méthode de Paiement",
+    "allMethods": "Toutes les Méthodes",
+    "source": "Source",
+    "allSources": "Toutes les Sources",
+    "waiter": "Serveur",
+    "allWaiters": "Tous les Serveurs"
+  },
   "columns": {
     "date": "Date",
     "waiter": "Serveur",
+    "merchantAccount": "Compte Marchand",
+    "notAvailable": "N/D",
     "tip": "Pourboire",
     "source": "Source",
     "method": "Méthode",
     "subtotal": "Sous-total",
+    "profit": "Profit Avoqado",
     "total": "Total"
   },
   "methods": {
@@ -134,7 +152,9 @@
       "tips": "Pourboires",
       "method": "Méthode",
       "waiter": "Serveur",
-      "waiterUnknown": "N/A"
+      "waiterUnknown": "N/A",
+      "merchantAccount": "Compte Marchand",
+      "notAvailable": "N/D"
     },
     "totals": {
       "total": "Total"
@@ -142,7 +162,8 @@
     "sections": {
       "transactionInfo": "Informations sur la transaction",
       "transactionInfoDesc": "Détails complets de la transaction et métadonnées",
-      "billInfo": "Informations sur la facture"
+      "billInfo": "Informations sur la facture",
+      "merchantAccountInfo": "Informations du Compte Marchand"
     },
     "fields": {
       "dateTime": "Date et heure",
@@ -153,7 +174,13 @@
       "referenceNumber": "Numéro de référence",
       "orderId": "ID de commande",
       "shiftId": "ID de service",
-      "entryMode": "Mode d'entrée"
+      "entryMode": "Mode d'entrée",
+      "merchantName": "Nom du Marchand",
+      "bankName": "Banque",
+      "clabeNumber": "Numéro CLABE",
+      "accountHolder": "Titulaire du Compte",
+      "blumonSerial": "Numéro de Série Blumon",
+      "provider": "Fournisseur de Paiement"
     },
     "entryModes": {
       "contactless": "Sans contact",

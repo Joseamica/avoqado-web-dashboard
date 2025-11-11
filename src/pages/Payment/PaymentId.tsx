@@ -26,6 +26,7 @@ import {
   Shield,
   Copy,
   Download,
+  Building2,
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
@@ -294,7 +295,7 @@ export default function PaymentId() {
         {/* Main Content */}
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           {/* Quick Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
             <Card className="border-l-4 border-l-emerald-500">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -366,6 +367,25 @@ export default function PaymentId() {
                     </p>
                   </div>
                   <User className="h-8 w-8 text-orange-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-indigo-500">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.merchantAccount', { defaultValue: 'Cuenta Comercial' })}</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {payment?.merchantAccount
+                        ? payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId
+                        : t('detail.overview.notAvailable', { defaultValue: 'N/A' })}
+                    </p>
+                    {payment?.merchantAccount?.bankName && (
+                      <p className="text-xs text-muted-foreground">{payment.merchantAccount.bankName}</p>
+                    )}
+                  </div>
+                  <Building2 className="h-8 w-8 text-indigo-500" />
                 </div>
               </CardContent>
             </Card>
@@ -602,6 +622,78 @@ export default function PaymentId() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Merchant Account Information */}
+                  {payment?.merchantAccount && (
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3 text-sm text-muted-foreground">{t('detail.sections.merchantAccountInfo')}</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                          <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                            {t('detail.fields.merchantName')}
+                          </Label>
+                          <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                            <p className="text-sm">{payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId}</p>
+                          </div>
+                        </div>
+
+                        {payment.merchantAccount.bankName && (
+                          <div className="flex flex-col">
+                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                              {t('detail.fields.bankName')}
+                            </Label>
+                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                              <p className="text-sm">{payment.merchantAccount.bankName}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {payment.merchantAccount.clabeNumber && (
+                          <div className="flex flex-col">
+                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                              {t('detail.fields.clabeNumber')}
+                            </Label>
+                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                              <p className="font-mono text-sm">{payment.merchantAccount.clabeNumber}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {payment.merchantAccount.accountHolder && (
+                          <div className="flex flex-col">
+                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                              {t('detail.fields.accountHolder')}
+                            </Label>
+                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                              <p className="text-sm">{payment.merchantAccount.accountHolder}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {payment.merchantAccount.blumonSerialNumber && (
+                          <div className="flex flex-col">
+                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                              {t('detail.fields.blumonSerial')}
+                            </Label>
+                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                              <p className="font-mono text-sm">{payment.merchantAccount.blumonSerialNumber}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {payment.merchantAccount.provider && (
+                          <div className="flex flex-col">
+                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
+                              {t('detail.fields.provider')}
+                            </Label>
+                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
+                              <p className="text-sm">{payment.merchantAccount.provider.name}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

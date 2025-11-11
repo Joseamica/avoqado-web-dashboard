@@ -190,8 +190,8 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
         creditRate: (Number(formData.creditRate) || 0) / 100,
         amexRate: (Number(formData.amexRate) || 0) / 100,
         internationalRate: (Number(formData.internationalRate) || 0) / 100,
-        fixedFeePerTransaction: Number(formData.fixedFeePerTransaction) || undefined,
-        monthlyServiceFee: Number(formData.monthlyServiceFee) || undefined,
+        fixedFeePerTransaction: Number(formData.fixedFeePerTransaction) || 0,
+        monthlyServiceFee: Number(formData.monthlyServiceFee) || 0,
         contractReference: formData.contractReference || undefined,
         notes: formData.notes || undefined,
       })

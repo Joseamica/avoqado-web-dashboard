@@ -1,8 +1,8 @@
 import { Badge } from '@/components/ui/badge'
-import { Globe, MapPin, Share2, Star, Utensils } from 'lucide-react'
+import { Globe, MapPin, Share2, Star, TabletSmartphone, Utensils } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-type ReviewSource = 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP'
+type ReviewSource = 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP' | 'TPV'
 
 interface SourceBadgeProps {
   source: ReviewSource
@@ -34,6 +34,11 @@ const sourceConfig = {
     icon: Globe,
     colorClass: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
     labelKey: 'sources.yelp',
+  },
+  TPV: {
+    icon: TabletSmartphone,
+    colorClass: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+    labelKey: 'sources.tpv',
   },
 }
 

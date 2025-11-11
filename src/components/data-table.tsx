@@ -95,7 +95,8 @@ function DataTable<TData>({
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
-    manualPagination: false, // Always use client-side pagination since we fetch all data at once
+    manualPagination: !!setPagination, // Use manual pagination when pagination state is controlled externally
+    rowCount: _rowCount, // Total number of rows for server-side pagination
     getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
       size: 10,
@@ -120,7 +121,8 @@ function DataTable<TData>({
   }, [tableId, columnVisibility])
 
   if (isLoading) {
-    return <TableSkeleton columns={columns.length} rows={5} />
+    const skeletonRows = pagination?.pageSize || defaultPagination.pageSize
+    return <TableSkeleton columns={columns.length} rows={skeletonRows} />
   }
 
   // Handle case where there's no data yet

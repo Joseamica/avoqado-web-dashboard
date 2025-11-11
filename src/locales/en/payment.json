@@ -2,13 +2,31 @@
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
+  "filters": {
+    "showing": "Showing",
+    "of": "of",
+    "payments": "payments",
+    "clearAll": "Clear all filters",
+    "searchPlaceholder": "Search by ID, waiter, or amount...",
+    "merchantAccount": "Merchant Account",
+    "allMerchantAccounts": "All Accounts",
+    "method": "Payment Method",
+    "allMethods": "All Methods",
+    "source": "Source",
+    "allSources": "All Sources",
+    "waiter": "Waiter",
+    "allWaiters": "All Waiters"
+  },
   "columns": {
     "date": "Date",
     "waiter": "Waiter",
+    "merchantAccount": "Merchant Account",
+    "notAvailable": "N/A",
     "tip": "Tip",
     "source": "Source",
     "method": "Method",
     "subtotal": "Subtotal",
+    "profit": "Avoqado Profit",
     "total": "Total"
   },
   "methods": {
@@ -134,7 +152,9 @@
       "tips": "Tips",
       "method": "Method",
       "waiter": "Waiter",
-      "waiterUnknown": "N/A"
+      "waiterUnknown": "N/A",
+      "merchantAccount": "Merchant Account",
+      "notAvailable": "N/A"
     },
     "totals": {
       "total": "Total"
@@ -142,7 +162,8 @@
     "sections": {
       "transactionInfo": "Transaction Information",
       "transactionInfoDesc": "Complete transaction details and metadata",
-      "billInfo": "Bill Information"
+      "billInfo": "Bill Information",
+      "merchantAccountInfo": "Merchant Account Information"
     },
     "fields": {
       "dateTime": "Date & Time",
@@ -153,7 +174,13 @@
       "referenceNumber": "Reference Number",
       "orderId": "Order ID",
       "shiftId": "Shift ID",
-      "entryMode": "Entry Mode"
+      "entryMode": "Entry Mode",
+      "merchantName": "Merchant Name",
+      "bankName": "Bank",
+      "clabeNumber": "CLABE Number",
+      "accountHolder": "Account Holder",
+      "blumonSerial": "Blumon Serial Number",
+      "provider": "Payment Provider"
     },
     "entryModes": {
       "contactless": "Contactless",

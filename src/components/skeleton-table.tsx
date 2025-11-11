@@ -7,7 +7,7 @@ interface TableSkeletonProps {
   rows?: number
 }
 
-const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 4 }) => {
+const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 10 }) => {
   const skeletonRows = Array.from({ length: rows })
 
   return (
