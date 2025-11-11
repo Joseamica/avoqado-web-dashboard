@@ -29,6 +29,7 @@ interface AuthContextType {
   login: (data: LoginData) => void
   signup: (data: SignupData) => void
   loginWithGoogle: () => Promise<void>
+  loginWithOneTap: (credential: string) => Promise<void>
   logout: () => void
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
   authorizeVenue: (venueSlug: string) => boolean
@@ -392,6 +393,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast, t])
 
+  // Google One Tap login
+  const loginWithOneTap = useCallback(async (credential: string): Promise<void> => {
+    try {
+      await authService.googleOneTapLogin(credential)
+
+      // Refetch auth status to update user state
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+
+      toast({
+        title: t('toast.login_success_title'),
+        description: t('toast.login_success_desc'),
+      })
+    } catch (error: any) {
+      toast({
+        title: t('toast.auth_error_title'),
+        variant: 'destructive',
+        description: error.response?.data?.message || t('toast.google_login_error_desc'),
+      })
+      throw error
+    }
+  }, [toast, t, queryClient])
+
   // --- FUNCIONES EXPUESTAS ---
 
   const clearLoginError = useCallback(() => {
@@ -498,6 +521,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login: loginMutation.mutate,
     signup: signupMutation.mutate,
     loginWithGoogle,
+    loginWithOneTap,
     logout: logoutMutation.mutate,
     switchVenue,
     checkVenueAccess,

@@ -12,6 +12,7 @@ import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -187,11 +188,16 @@ export default function Products() {
 
     {
       id: 'categories',
-      accessorKey: 'categories',
+      accessorKey: 'category',
       meta: { label: t('products.columns.categories') },
       header: t('products.columns.categories'),
       enableColumnFilter: false,
-      cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
+      cell: ({ row }) => {
+        const category = row.original.category
+        // Transform single category to array for ItemsCell
+        const categories = category ? [category] : []
+        return <ItemsCell cell={{ getValue: () => categories }} max_visible_items={2} />
+      },
     },
     {
       id: 'modifierGroups',
@@ -199,7 +205,30 @@ export default function Products() {
       meta: { label: t('products.columns.modifierGroups') },
       header: t('products.columns.modifierGroups'),
       enableColumnFilter: false,
-      cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
+      cell: ({ row }) => {
+        const modifierGroups = row.original.modifierGroups || []
+        // Extract the group from each ProductModifierGroup
+        const groups = modifierGroups.map(pmg => pmg.group).filter(Boolean)
+
+        if (groups.length === 0) {
+          return <span className="text-muted-foreground">-</span>
+        }
+
+        return (
+          <div className="flex flex-wrap gap-1">
+            {groups.slice(0, 3).map((group) => (
+              <Badge key={group.id} variant="secondary" className="text-xs px-2 py-0.5">
+                {group.name}
+              </Badge>
+            ))}
+            {groups.length > 3 && (
+              <Badge variant="outline" className="text-xs px-2 py-0.5 text-muted-foreground">
+                +{groups.length - 3}
+              </Badge>
+            )}
+          </div>
+        )
+      },
     },
     {
       id: 'updatedAt',
@@ -227,14 +256,14 @@ export default function Products() {
         const product = row.original
 
         return (
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0" onClick={e => e.stopPropagation()}>
                 <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
               <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <PermissionGate permission="menu:update">

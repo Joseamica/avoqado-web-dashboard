@@ -166,8 +166,10 @@
       "actions": "Acciones"
     },
     "actions": {
+      "title": "Acciones",
       "edit": "Editar",
       "assignModifiers": "Asignar modificadores y productos",
+      "assignModifiersAndProducts": "Asignar modificadores y productos",
       "delete": "Eliminar",
       "openMenu": "Abrir menú"
     },

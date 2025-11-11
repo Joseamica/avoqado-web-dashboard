@@ -181,14 +181,14 @@ export default function ModifierGroups() {
       cell: ({ row }) => {
         return (
           <div className="flex justify-end" onClick={e => e.stopPropagation()}>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 dropdown-menu-trigger">
                   <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
                 <DropdownMenuLabel>{t('modifiers.actions.title')}</DropdownMenuLabel>
                 <PermissionGate permission="menu:update">
                   <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>

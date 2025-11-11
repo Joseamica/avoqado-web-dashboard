@@ -102,6 +102,12 @@ export const checkGoogleInvitation = async (
   return response.data
 }
 
+// Google One Tap login
+export const googleOneTapLogin = async (credential: string): Promise<AuthResponse> => {
+  const response = await api.post('/api/v1/dashboard/auth/google/one-tap', { credential })
+  return response.data
+}
+
 // Signup
 export interface SignupDto {
   email: string

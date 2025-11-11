@@ -48,14 +48,14 @@ const LanguageSwitcher: React.FC = () => {
   const currentOption = options.find(o => o.lng === current) ?? options[0]
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="px-3 flex items-center gap-2" aria-label={currentOption.label}>
           <FlagIcon code={currentOption.lng} />
           <span className="sr-only">{currentOption.label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" sideOffset={5} className="w-48">
         {options.map(opt => (
           <DropdownMenuItem key={opt.lng} onClick={() => changeLang(opt.lng)} className="flex items-center gap-2">
             <FlagIcon code={opt.lng} />

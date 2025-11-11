@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -122,7 +123,25 @@ function DataTable<TData>({
 
   if (isLoading) {
     const skeletonRows = pagination?.pageSize || defaultPagination.pageSize
-    return <TableSkeleton columns={columns.length} rows={skeletonRows} />
+    return (
+      <>
+        {/* Toolbar Skeleton */}
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Bar Skeleton */}
+          {enableSearch && (
+            <div className="flex-1">
+              <Skeleton className="h-10 w-full max-w-md" />
+            </div>
+          )}
+
+          {/* Column Customizer Skeleton */}
+          {showColumnCustomizer && <Skeleton className="h-10 w-48" />}
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton columns={columns.length} rows={skeletonRows} />
+      </>
+    )
   }
 
   // Handle case where there's no data yet
@@ -139,13 +158,13 @@ function DataTable<TData>({
 
         {/* Column Customizer */}
         {showColumnCustomizer && (
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="default" className="gap-2">
                 <Settings2 className="h-4 w-4" /> {t('customize_columns')}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
               {table
                 .getAllLeafColumns()
                 .filter(col => col.getCanHide())

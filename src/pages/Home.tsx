@@ -602,7 +602,7 @@ const Home = () => {
             />
 
             <div className="relative">
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="sm"
@@ -623,7 +623,7 @@ const Home = () => {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
                   <DropdownMenuItem onClick={exportToJSON}>{t('export.json')}</DropdownMenuItem>
                   <DropdownMenuItem onClick={exportToCSV}>{t('export.csv')}</DropdownMenuItem>
                 </DropdownMenuContent>

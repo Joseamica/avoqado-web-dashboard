@@ -10,12 +10,15 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 import { clearAllChatStorage } from '@/services/chatService'
 import { useToast } from '@/hooks/use-toast'
+import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
+import { useAuth } from '@/context/AuthContext'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
   const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const { isAuthenticated, loginWithOneTap } = useAuth()
 
   useEffect(() => {
     clearAllChatStorage()
@@ -39,6 +42,24 @@ const Login: React.FC = () => {
       window.location.href = pendingInvitationUrl
     }
   }, [searchParams, toast, t])
+
+  // Initialize Google One Tap
+  useGoogleOneTap({
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+    onSuccess: async (credential) => {
+      try {
+        await loginWithOneTap(credential)
+      } catch (error) {
+        // Error is already handled in AuthContext
+        console.error('Google One Tap login failed:', error)
+      }
+    },
+    onError: (error) => {
+      // Silently fail - One Tap is a nice-to-have feature
+      console.debug('Google One Tap not available:', error)
+    },
+    disabled: isAuthenticated || isRedirecting,
+  })
 
   // Show loading state during redirect
   if (isRedirecting) {

@@ -314,7 +314,7 @@ const SuperadminHeader: React.FC = () => {
           <LanguageSwitcher />
 
           {/* Notifications */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="relative p-2 hover:bg-accent rounded-full">
                 <Bell className="w-5 h-5 text-muted-foreground" />
@@ -325,7 +325,7 @@ const SuperadminHeader: React.FC = () => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-0">
+            <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={5}>
               <div className="p-4 border-b border-border">
                 <h3 className="font-semibold text-foreground">{t('header.notifications')}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -397,7 +397,7 @@ const SuperadminHeader: React.FC = () => {
           </DropdownMenu>
 
           {/* User Menu */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-accent rounded-lg">
                 <div className="w-8 h-8 bg-linear-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
@@ -411,7 +411,7 @@ const SuperadminHeader: React.FC = () => {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
               <DropdownMenuLabel className="text-foreground">{t('header.accountSettings')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>

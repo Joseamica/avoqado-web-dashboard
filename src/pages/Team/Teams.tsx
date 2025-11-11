@@ -225,13 +225,13 @@ export default function Teams() {
       id: 'actions',
       header: tCommon('common.actions'),
       cell: ({ row }) => (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" sideOffset={5} className="w-48">
             <PermissionGate permission="teams:update">
               <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
                 <Pencil className="h-4 w-4 mr-2" />

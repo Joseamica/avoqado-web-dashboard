@@ -43,14 +43,14 @@ export function NavProjects({
                 <span>{item.name}</span>
               </NavLink>
             </SidebarMenuButton>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
                   <MoreHorizontal />
                   <span className="sr-only">{t('common.more')}</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 rounded-lg" side={isMobile ? 'bottom' : 'right'} align={isMobile ? 'end' : 'start'}>
+              <DropdownMenuContent className="w-48 rounded-lg" side={isMobile ? 'bottom' : 'right'} align={isMobile ? 'end' : 'start'} sideOffset={5}>
                 <DropdownMenuItem>
                   <Folder className="text-zinc-500 dark:text-zinc-400" />
                   <span>{t('sidebar:projects.view')}</span>

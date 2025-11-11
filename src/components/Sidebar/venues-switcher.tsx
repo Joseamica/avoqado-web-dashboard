@@ -87,7 +87,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     <>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen} modal={false}>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
@@ -109,7 +109,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
               align="start"
               side={isMobile ? 'bottom' : 'right'}
-              sideOffset={4}
+              sideOffset={5}
             >
               <DropdownMenuLabel className="text-xs text-muted-foreground">{t('venuesSwitcher.title')}</DropdownMenuLabel>
               {venues.map((venue, index) => {

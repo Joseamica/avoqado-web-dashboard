@@ -492,11 +492,11 @@ export default function Overview() {
           </Button>
           {/* Create buttons - Requires menu:create permission (MANAGER+) */}
           {can('menu:create') && (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button>{t('overview.create')}</Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent sideOffset={5} className="w-56">
                 <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
                   {t('overview.newMenu')}
                 </DropdownMenuItem>

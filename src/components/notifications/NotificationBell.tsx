@@ -36,7 +36,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
@@ -53,7 +53,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-80 p-0">
+      <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={5}>
         {/* Header */}
         <div className="p-4 border-b border-border">
           <h3 className="font-semibold text-foreground">{t('title')}</h3>
