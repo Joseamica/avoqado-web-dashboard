@@ -209,16 +209,20 @@ export default function Pricing() {
         accessorKey: 'price',
         meta: { label: t('pricing.fields.currentPrice') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('pricing.fields.currentPrice')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+              {t('pricing.fields.currentPrice')}
+              <ArrowUpDown className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         ),
         cell: ({ cell }) => {
           const price = cell.getValue() as number
           return (
-            <div className="text-sm font-semibold text-foreground">
-              {Currency(Number(price))}
+            <div className="flex justify-center">
+              <span className="text-sm font-semibold text-foreground">
+                {Currency(Number(price))}
+              </span>
             </div>
           )
         },
@@ -227,19 +231,23 @@ export default function Pricing() {
         id: 'recipeCost',
         meta: { label: t('pricing.fields.recipeCost') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('pricing.fields.recipeCost')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+              {t('pricing.fields.recipeCost')}
+              <ArrowUpDown className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
+          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
 
           const totalCost = Number(product.recipe.totalCost)
           return (
-            <div className="text-sm font-medium text-foreground">
-              {Currency(totalCost)}
+            <div className="flex justify-center">
+              <span className="text-sm font-medium text-foreground">
+                {Currency(totalCost)}
+              </span>
             </div>
           )
         },
@@ -253,14 +261,16 @@ export default function Pricing() {
         id: 'foodCostPercentage',
         meta: { label: t('pricing.fields.foodCostPercentage') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('pricing.fields.foodCostPercentage')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+              {t('pricing.fields.foodCostPercentage')}
+              <ArrowUpDown className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
+          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
 
           const totalCost = Number(product.recipe.totalCost)
           const price = Number(product.price)
@@ -276,8 +286,7 @@ export default function Pricing() {
           }
 
           return (
-            <div className="flex items-center gap-2">
-              <DollarSign className={`h-4 w-4 ${colorClass}`} />
+            <div className="flex items-center justify-center gap-2">
               <span className={`text-sm font-semibold ${colorClass}`}>
                 {foodCostPercentage.toFixed(1)}%
               </span>
@@ -298,22 +307,26 @@ export default function Pricing() {
         id: 'contribution',
         meta: { label: t('pricing.fields.contribution') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('pricing.fields.contribution')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+              {t('pricing.fields.contribution')}
+              <ArrowUpDown className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         ),
         cell: ({ row }) => {
           const product = row.original
-          if (!product.recipe) return <span className="text-sm text-muted-foreground">-</span>
+          if (!product.recipe) return <div className="flex justify-center"><span className="text-sm text-muted-foreground">-</span></div>
 
           const totalCost = Number(product.recipe.totalCost)
           const price = Number(product.price)
           const contribution = price - totalCost
 
           return (
-            <div className="text-sm font-medium text-foreground">
-              {Currency(contribution)}
+            <div className="flex justify-center">
+              <span className="text-sm font-medium text-foreground">
+                {Currency(contribution)}
+              </span>
             </div>
           )
         },

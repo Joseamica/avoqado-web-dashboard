@@ -351,15 +351,17 @@ export default function Payments() {
               id: 'avoqadoProfit',
               meta: { label: t('columns.profit') },
               header: ({ column }: any) => (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                  {t('columns.profit')}
-                  <ArrowUpDown className="w-4 h-4 ml-2" />
-                </Button>
+                <div className="flex justify-center">
+                  <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    {t('columns.profit')}
+                    <ArrowUpDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               ),
               cell: ({ row }: any) => {
                 const payment = row.original
                 if (!payment.transactionCost) {
-                  return <span className="text-xs text-muted-foreground">-</span>
+                  return <div className="flex justify-center"><span className="text-xs text-muted-foreground">-</span></div>
                 }
 
                 const profit = Number(payment.transactionCost.grossProfit) || 0
@@ -390,7 +392,7 @@ export default function Payments() {
                 }
 
                 return (
-                  <div className="flex flex-col space-y-1 items-end" title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}>
+                  <div className="flex flex-col space-y-1 items-center" title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}>
                     <span className="text-xs font-semibold text-muted-foreground">{(margin * 100).toFixed(2)}%</span>
                     <Badge variant="outline" className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border}`}>
                       {Currency(profit)}

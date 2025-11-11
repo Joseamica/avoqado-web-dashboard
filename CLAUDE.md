@@ -68,6 +68,35 @@ When you create components or files that are fully implemented but not yet integ
 
 **⚠️ Important:** This marker is for files that are **READY to use** but not yet integrated. Don't use it for incomplete implementations or work-in-progress files.
 
+## 📚 Documentation Policy
+
+**Managing Documentation Files:**
+
+When creating new documentation:
+
+1. **Location**: ALWAYS place new .md files in the `.claude/docs/` directory
+   - ✅ CORRECT: `.claude/docs/features/NEW_FEATURE.md`
+   - ❌ WRONG: `NEW_FEATURE.md` (root level)
+   - Follow the existing structure: `architecture/`, `features/`, `guides/`, `troubleshooting/`
+
+2. **Reference in CLAUDE.md**: ALWAYS add a reference to the new file in the relevant section
+   - Architecture docs → Link in "Architecture Documentation" section
+   - Feature docs → Link in "Feature Documentation" section
+   - Guide docs → Link in "Development Guides" section
+   - Format: `- [Title](.claude/docs/category/filename.md) - Brief description`
+
+3. **Keep Documentation Updated**: When making changes to code covered by documentation:
+   - If the change affects architecture/design patterns → Update the relevant .md file
+   - If the change only modifies implementation details → Update code comments, no .md update needed
+   - Always check: Does this change invalidate any statements in the docs?
+
+**Examples of changes requiring doc updates:**
+- ✅ New permission system behavior → Update `.claude/docs/architecture/permissions.md`
+- ✅ Changed theme color tokens → Update `.claude/docs/features/theme.md`
+- ✅ New i18n namespace → Update `.claude/docs/features/i18n.md`
+- ❌ Fixed typo in component → No doc update needed
+- ❌ Refactored function names → No doc update needed
+
 ## 🚨 Critical Rules (NO EXCEPTIONS)
 
 ### 1. Internationalization (i18n)
