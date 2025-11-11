@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat } from 'lucide-react'
+import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat, DollarSign, Clock } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -318,13 +318,13 @@ export default function RawMaterials() {
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary/10 border border-border shadow-sm shrink-0">
-                <Package className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-border shadow-sm shrink-0">
+                <Package className="h-4 w-4 text-primary" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-medium text-foreground truncate">{material.name}</span>
-                <span className="text-xs text-muted-foreground truncate hidden md:inline">{material.sku}</span>
+                <span className="text-xs text-muted-foreground truncate hidden xl:inline">{material.sku}</span>
               </div>
             </div>
           )
@@ -333,12 +333,17 @@ export default function RawMaterials() {
       {
         accessorKey: 'category',
         meta: { label: t('rawMaterials.fields.category') },
-        header: () => <span className="hidden lg:inline">{t('rawMaterials.fields.category')}</span>,
+        header: () => (
+          <div className="flex items-center justify-center">
+            <span className="2xl:hidden text-base" title={t('rawMaterials.fields.category')}>🏷️</span>
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.category')}</span>
+          </div>
+        ),
         cell: ({ cell }) => {
           const category = cell.getValue() as string
           const categoryInfo = getCategoryInfo(category as any)
           return (
-            <div className="hidden lg:flex">
+            <div className="flex justify-center">
               <Badge
                 variant="outline"
                 className="bg-background flex items-center justify-center gap-2 px-2 py-1"
@@ -347,7 +352,7 @@ export default function RawMaterials() {
                 <span aria-hidden className="text-base">
                   {categoryInfo.icon}
                 </span>
-                <span className="whitespace-normal hidden xl:inline">{t(`rawMaterials.categories.${category}`)}</span>
+                <span className="whitespace-normal hidden 2xl:inline">{t(`rawMaterials.categories.${category}`)}</span>
               </Badge>
             </div>
           )
@@ -372,16 +377,16 @@ export default function RawMaterials() {
           const isOutOfStock = stock === 0
 
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="flex flex-col items-end">
                 <span
                   className={`text-sm font-semibold ${
                     isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'
                   }`}
                 >
-                  {stock.toFixed(2)} <span className="hidden md:inline">{formatUnitWithQuantity(stock, material.unit)}</span>
+                  {stock.toFixed(2)} <span className="hidden xl:inline">{formatUnitWithQuantity(stock, material.unit)}</span>
                 </span>
-                <span className="text-xs text-muted-foreground hidden lg:inline">
+                <span className="text-xs text-muted-foreground hidden 2xl:inline">
                   {t('rawMaterials.fields.minimumStock')}: {minimumStock.toFixed(2)}
                 </span>
               </div>
@@ -394,14 +399,22 @@ export default function RawMaterials() {
       },
       {
         accessorKey: 'costPerUnit',
-        meta: { label: t('rawMaterials.fields.costPerUnit'), hideBelow: 'md' },
-        header: t('rawMaterials.fields.costPerUnit'),
+        meta: { label: t('rawMaterials.fields.costPerUnit') },
+        header: () => (
+          <div className="flex items-center justify-center">
+            <DollarSign className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.costPerUnit')} />
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.costPerUnit')}</span>
+          </div>
+        ),
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-medium text-foreground">{Currency(Number(material.costPerUnit))}</span>
-              <span className="text-xs text-muted-foreground hidden lg:inline">
+            <div className="flex flex-col items-center 2xl:items-end">
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-3 w-3 2xl:hidden text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">{Currency(Number(material.costPerUnit))}</span>
+              </div>
+              <span className="text-xs text-muted-foreground hidden 2xl:inline">
                 {t('rawMaterials.fields.avgCostPerUnit')}: {Currency(Number(material.avgCostPerUnit))}
               </span>
             </div>
@@ -411,17 +424,32 @@ export default function RawMaterials() {
       {
         accessorKey: 'perishable',
         meta: { label: t('rawMaterials.fields.perishable') },
-        header: t('rawMaterials.fields.perishable'),
+        header: () => (
+          <div className="flex items-center justify-center">
+            <Clock className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.perishable')} />
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
+          </div>
+        ),
         cell: ({ row }) => {
           const material = row.original
           if (!material.perishable) {
-            return <Badge variant="outline" className="hidden md:inline-flex">{t('common.no')}</Badge>
+            return (
+              <div className="flex justify-center">
+                <Badge variant="outline" className="2xl:inline-flex">
+                  <span className="2xl:hidden">✖️</span>
+                  <span className="hidden 2xl:inline">{t('common.no')}</span>
+                </Badge>
+              </div>
+            )
           }
           return (
-            <div className="flex flex-col gap-1">
-              <Badge variant="secondary">{t('common.yes')}</Badge>
+            <div className="flex flex-col gap-1 items-center">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Clock className="h-3 w-3 2xl:hidden" />
+                <span className="hidden 2xl:inline">{t('common.yes')}</span>
+              </Badge>
               {material.shelfLifeDays && (
-                <span className="text-xs text-muted-foreground hidden xl:inline">
+                <span className="text-xs text-muted-foreground hidden 2xl:inline">
                   {material.shelfLifeDays} {t('rawMaterials.fields.shelfLifeDays').split(' ')[2]}
                 </span>
               )}
@@ -446,14 +474,14 @@ export default function RawMaterials() {
                 setSelectedMaterial(material)
                 setRecipeUsageDialogOpen(true)
               }}
-              className="gap-2 whitespace-nowrap px-2"
+              className="gap-1 whitespace-nowrap px-1"
               title={recipeCount > 0 ? t('rawMaterials.usage.inRecipes', { count: recipeCount }) : t('rawMaterials.usage.notUsed')}
             >
               <ChefHat className="h-4 w-4 shrink-0" />
               {recipeCount > 0 ? (
-                <span className="text-sm hidden xl:inline">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
+                <span className="text-sm hidden 2xl:inline">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
               ) : (
-                <span className="text-sm text-muted-foreground hidden xl:inline">{t('rawMaterials.usage.notUsed')}</span>
+                <span className="text-sm text-muted-foreground hidden 2xl:inline">{t('rawMaterials.usage.notUsed')}</span>
               )}
             </Button>
           )
@@ -480,7 +508,7 @@ export default function RawMaterials() {
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <PermissionGate permission="inventory:adjust">
                 <Button
                   variant="ghost"
@@ -490,11 +518,11 @@ export default function RawMaterials() {
                     setSelectedMaterial(material)
                     setAdjustStockDialogOpen(true)
                   }}
-                  className="gap-2 whitespace-nowrap px-2"
+                  className="gap-1 whitespace-nowrap px-1"
                   title={t('rawMaterials.adjustStock')}
                 >
                   <TrendingDown className="h-4 w-4 shrink-0" />
-                  <span className="hidden xl:inline">{t('rawMaterials.adjustStock')}</span>
+                  <span className="hidden 2xl:inline">{t('rawMaterials.adjustStock')}</span>
                 </Button>
               </PermissionGate>
               <Button
@@ -505,11 +533,11 @@ export default function RawMaterials() {
                   setSelectedMaterial(material)
                   setMovementsDialogOpen(true)
                 }}
-                className="gap-2 whitespace-nowrap px-2"
+                className="gap-1 whitespace-nowrap px-1"
                 title={t('rawMaterials.viewMovements')}
               >
                 <History className="h-4 w-4 shrink-0" />
-                <span className="hidden xl:inline">{t('rawMaterials.viewMovements')}</span>
+                <span className="hidden 2xl:inline">{t('rawMaterials.viewMovements')}</span>
               </Button>
               <PermissionGate permission="inventory:update">
                 <Button
@@ -520,7 +548,7 @@ export default function RawMaterials() {
                     setSelectedMaterial(material)
                     setEditDialogOpen(true)
                   }}
-                  className="px-2"
+                  className="px-1"
                   title={t('common.edit')}
                 >
                   <Edit className="h-4 w-4" />
@@ -535,7 +563,7 @@ export default function RawMaterials() {
                     handleDeleteClick(material)
                   }}
                   disabled={deleteMutation.isPending}
-                  className="px-2"
+                  className="px-1"
                   title={t('common.delete')}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
