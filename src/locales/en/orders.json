@@ -23,8 +23,11 @@
     "title": "Order {{number}}",
     "loading": "Loading order...",
     "notFound": "Order not found",
+    "backToOrders": "Back to orders",
+    "backToList": "Back to orders",
+    "idLabel": "ID",
     "deleteWarning": "This action cannot be undone. This will permanently delete the order.",
-    "noTable": "No table",
+    "copiedToClipboard": "{{label}} copied to clipboard",
     "toast": {
       "updatedTitle": "Order updated",
       "updatedDesc": "The order has been updated successfully.",
@@ -35,13 +38,75 @@
       "deleteErrorTitle": "Error",
       "deleteErrorDesc": "Could not delete order"
     },
+    "totals": {
+      "total": "Total"
+    },
+    "overview": {
+      "subtotal": "Subtotal",
+      "tips": "Tips",
+      "items": "Items",
+      "uniqueProducts": "{{count}} unique products",
+      "table": "Table",
+      "noArea": "No area",
+      "total": "Total"
+    },
+    "actions": {
+      "title": "Order Actions",
+      "copyId": "Copy ID",
+      "export": "Export"
+    },
+    "sections": {
+      "orderInfo": "Order Information",
+      "orderInfoDesc": "General order details",
+      "items": "Order Items",
+      "itemsDesc": "List of products in this order",
+      "payments": "Payments",
+      "paymentsDesc": "Payment history for this order"
+    },
     "fields": {
       "orderId": "Order ID",
+      "dateTime": "Date & Time",
       "createdAt": "Created at",
       "orderNumber": "Order #",
+      "customer": "Customer",
       "customerName": "Customer name",
+      "customerPlaceholder": "Customer name",
       "table": "Table",
-      "waiter": "Waiter"
+      "noTable": "No table",
+      "waiter": "Waiter",
+      "noWaiter": "No waiter",
+      "orderType": "Order type",
+      "noType": "No type"
+    },
+    "items": {
+      "productNotAvailable": "Product not available",
+      "each": "each",
+      "modifiers": "{{count}} modifiers"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Tip",
+      "view": "View"
+    },
+    "sidebar": {
+      "statusTitle": "Order Status",
+      "lastUpdate": "Last update",
+      "notAvailable": "Not available",
+      "financialSummary": "Financial Summary",
+      "tipsPercent": "{{percent}}% of subtotal",
+      "base": "Base",
+      "quickInfo": "Quick Info",
+      "table": "Table",
+      "waiter": "Waiter",
+      "items": "Items",
+      "itemsCount": "{{total}} total ({{unique}} unique)",
+      "type": "Type",
+      "payments": "Payments"
+    },
+    "footer": {
+      "copyright": "© 2025 Avoqado",
+      "orderId": "Order ID: {{id}}",
+      "generated": "Generated: {{date}}"
     },
     "financialSummary": {
       "title": "Financial Summary",
@@ -62,6 +127,9 @@
       "OPEN": "Open",
       "PAID": "Paid",
       "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PREPARING": "Preparing",
+      "READY": "Ready",
       "CLOSED": "Closed",
       "COMPLETED": "Completed",
       "CANCELED": "Cancelled",

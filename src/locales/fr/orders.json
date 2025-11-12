@@ -20,57 +20,125 @@
     "CANCELLED": "Cancelled"
   },
   "detail": {
-    "title": "Order {{number}}",
-    "loading": "Loading order...",
-    "notFound": "Order not found",
-    "deleteWarning": "This action cannot be undone. This will permanently delete the order.",
-    "noTable": "No table",
+    "title": "Commande {{number}}",
+    "loading": "Chargement de la commande...",
+    "notFound": "Commande introuvable",
+    "backToOrders": "Retour aux commandes",
+    "backToList": "Retour aux commandes",
+    "idLabel": "ID",
+    "deleteWarning": "Cette action ne peut pas être annulée. Cela supprimera définitivement la commande.",
+    "copiedToClipboard": "{{label}} copié dans le presse-papiers",
     "toast": {
-      "updatedTitle": "Order updated",
-      "updatedDesc": "The order has been updated successfully.",
-      "deletedTitle": "Order deleted",
-      "deletedDesc": "The order has been deleted successfully.",
-      "updateErrorTitle": "Error",
-      "updateErrorDesc": "Could not update order",
-      "deleteErrorTitle": "Error",
-      "deleteErrorDesc": "Could not delete order"
+      "updatedTitle": "Commande mise à jour",
+      "updatedDesc": "La commande a été mise à jour avec succès.",
+      "deletedTitle": "Commande supprimée",
+      "deletedDesc": "La commande a été supprimée avec succès.",
+      "updateErrorTitle": "Erreur",
+      "updateErrorDesc": "Impossible de mettre à jour la commande",
+      "deleteErrorTitle": "Erreur",
+      "deleteErrorDesc": "Impossible de supprimer la commande"
+    },
+    "totals": {
+      "total": "Total"
+    },
+    "overview": {
+      "subtotal": "Sous-total",
+      "tips": "Pourboires",
+      "items": "Articles",
+      "uniqueProducts": "{{count}} produits uniques",
+      "table": "Table",
+      "noArea": "Pas de zone",
+      "total": "Total"
+    },
+    "actions": {
+      "title": "Actions de la Commande",
+      "copyId": "Copier l'ID",
+      "export": "Exporter"
+    },
+    "sections": {
+      "orderInfo": "Informations sur la Commande",
+      "orderInfoDesc": "Détails généraux de la commande",
+      "items": "Articles de la Commande",
+      "itemsDesc": "Liste des produits dans cette commande",
+      "payments": "Paiements",
+      "paymentsDesc": "Historique des paiements pour cette commande"
     },
     "fields": {
-      "orderId": "Order ID",
-      "createdAt": "Created at",
-      "orderNumber": "Order #",
-      "customerName": "Customer name",
+      "orderId": "ID de commande",
+      "dateTime": "Date et Heure",
+      "createdAt": "Créé le",
+      "orderNumber": "Commande #",
+      "customer": "Client",
+      "customerName": "Nom du client",
+      "customerPlaceholder": "Nom du client",
       "table": "Table",
-      "waiter": "Waiter"
+      "noTable": "Pas de table",
+      "waiter": "Serveur",
+      "noWaiter": "Pas de serveur",
+      "orderType": "Type de commande",
+      "noType": "Pas de type"
+    },
+    "items": {
+      "productNotAvailable": "Produit non disponible",
+      "each": "chacun",
+      "modifiers": "{{count}} modificateurs"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Pourboire",
+      "view": "Voir"
+    },
+    "sidebar": {
+      "statusTitle": "Statut de la Commande",
+      "lastUpdate": "Dernière mise à jour",
+      "notAvailable": "Non disponible",
+      "financialSummary": "Résumé Financier",
+      "tipsPercent": "{{percent}}% du sous-total",
+      "base": "Base",
+      "quickInfo": "Info Rapide",
+      "table": "Table",
+      "waiter": "Serveur",
+      "items": "Articles",
+      "itemsCount": "{{total}} total ({{unique}} uniques)",
+      "type": "Type",
+      "payments": "Paiements"
+    },
+    "footer": {
+      "copyright": "© 2025 Avoqado",
+      "orderId": "ID de commande: {{id}}",
+      "generated": "Généré: {{date}}"
     },
     "financialSummary": {
-      "title": "Financial Summary",
-      "subtotal": "Subtotal",
-      "tips": "Tips",
+      "title": "Résumé Financier",
+      "subtotal": "Sous-total",
+      "tips": "Pourboires",
       "total": "Total"
     },
     "associatedPayments": {
-      "title": "Associated Payments",
+      "title": "Paiements Associés",
       "fields": {
-        "paymentId": "Payment ID",
-        "amount": "Amount",
-        "tip": "Tip",
-        "method": "Method"
+        "paymentId": "ID de paiement",
+        "amount": "Montant",
+        "tip": "Pourboire",
+        "method": "Méthode"
       }
     },
     "statuses": {
-      "OPEN": "Open",
-      "PAID": "Paid",
-      "PENDING": "Pending",
-      "CLOSED": "Closed",
-      "COMPLETED": "Completed",
-      "CANCELED": "Cancelled",
-      "CANCELLED": "Cancelled",
-      "PRECREATED": "Pre-created",
-      "WITHOUT_TABLE": "Without table",
-      "DELETED": "Deleted",
-      "EARLYACCESS": "Early access",
-      "COURTESY": "Courtesy"
+      "OPEN": "Ouverte",
+      "PAID": "Payée",
+      "PENDING": "En attente",
+      "CONFIRMED": "Confirmée",
+      "PREPARING": "En préparation",
+      "READY": "Prête",
+      "CLOSED": "Fermée",
+      "COMPLETED": "Terminée",
+      "CANCELED": "Annulée",
+      "CANCELLED": "Annulée",
+      "PRECREATED": "Pré-créée",
+      "WITHOUT_TABLE": "Sans table",
+      "DELETED": "Supprimée",
+      "EARLYACCESS": "Accès anticipé",
+      "COURTESY": "Courtoisie"
     }
   }
 }

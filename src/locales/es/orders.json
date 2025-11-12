@@ -23,8 +23,11 @@
     "title": "Orden {{number}}",
     "loading": "Cargando orden...",
     "notFound": "Orden no encontrada",
+    "backToOrders": "Volver a órdenes",
+    "backToList": "Volver a órdenes",
+    "idLabel": "ID",
     "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
-    "noTable": "Sin mesa",
+    "copiedToClipboard": "{{label}} copiado al portapapeles",
     "toast": {
       "updatedTitle": "Orden actualizada",
       "updatedDesc": "La orden ha sido actualizada exitosamente.",
@@ -35,13 +38,75 @@
       "deleteErrorTitle": "Error",
       "deleteErrorDesc": "No se pudo eliminar la orden"
     },
+    "totals": {
+      "total": "Total"
+    },
+    "overview": {
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "items": "Artículos",
+      "uniqueProducts": "{{count}} productos únicos",
+      "table": "Mesa",
+      "noArea": "Sin área",
+      "total": "Total"
+    },
+    "actions": {
+      "title": "Acciones de la Orden",
+      "copyId": "Copiar ID",
+      "export": "Exportar"
+    },
+    "sections": {
+      "orderInfo": "Información de la Orden",
+      "orderInfoDesc": "Detalles generales de la orden",
+      "items": "Artículos de la Orden",
+      "itemsDesc": "Lista de productos en esta orden",
+      "payments": "Pagos",
+      "paymentsDesc": "Historial de pagos de esta orden"
+    },
     "fields": {
       "orderId": "ID de orden",
+      "dateTime": "Fecha y Hora",
       "createdAt": "Creada el",
       "orderNumber": "Folio",
+      "customer": "Cliente",
       "customerName": "Nombre del cliente",
+      "customerPlaceholder": "Nombre del cliente",
       "table": "Mesa",
-      "waiter": "Mesero"
+      "noTable": "Sin mesa",
+      "waiter": "Mesero",
+      "noWaiter": "Sin mesero",
+      "orderType": "Tipo de orden",
+      "noType": "Sin tipo"
+    },
+    "items": {
+      "productNotAvailable": "Producto no disponible",
+      "each": "c/u",
+      "modifiers": "{{count}} modificadores"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Propina",
+      "view": "Ver"
+    },
+    "sidebar": {
+      "statusTitle": "Estado de la Orden",
+      "lastUpdate": "Última actualización",
+      "notAvailable": "No disponible",
+      "financialSummary": "Resumen Financiero",
+      "tipsPercent": "{{percent}}% del subtotal",
+      "base": "Base",
+      "quickInfo": "Información Rápida",
+      "table": "Mesa",
+      "waiter": "Mesero",
+      "items": "Artículos",
+      "itemsCount": "{{total}} total ({{unique}} únicos)",
+      "type": "Tipo",
+      "payments": "Pagos"
+    },
+    "footer": {
+      "copyright": "© 2025 Avoqado",
+      "orderId": "ID de orden: {{id}}",
+      "generated": "Generado: {{date}}"
     },
     "financialSummary": {
       "title": "Resumen financiero",
@@ -62,6 +127,9 @@
       "OPEN": "Abierta",
       "PAID": "Pagada",
       "PENDING": "Pendiente",
+      "CONFIRMED": "Confirmada",
+      "PREPARING": "En Preparación",
+      "READY": "Lista",
       "CLOSED": "Cerrada",
       "COMPLETED": "Completada",
       "CANCELED": "Cancelada",

@@ -115,7 +115,7 @@ export default function OrderId() {
   // CAMBIO: Opciones de estado basadas en el enum OrderStatus con i18n
   const statusOptions = Object.values(OrderStatus).map(status => ({
     value: status,
-    label: t(`orders.detail.statuses.${status}`),
+    label: t(`detail.statuses.${status}`),
   }))
 
   // CAMBIO: Fetch de la orden individual
@@ -207,7 +207,7 @@ export default function OrderId() {
     })
   }
 
-  const getStatusText = (status: string) => t(`orders.detail.statuses.${status}`)
+  const getStatusText = (status: string) => t(`detail.statuses.${status}`)
 
   if (isLoading) {
     return (
@@ -607,7 +607,7 @@ export default function OrderId() {
                           <div className="space-y-2">
                             <div className="flex items-center space-x-3">
                               <Badge variant="secondary" className="font-medium">
-                                {t(`payments.methods.${String(payment.method).toLowerCase()}`)}
+                                {t(`payment:methods.${String(payment.method).toLowerCase()}`)}
                               </Badge>
                               <span className="text-sm text-muted-foreground">ID: {payment.id.slice(0, 8)}...</span>
                             </div>
