@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
 
 export default function ShiftId() {
   const { shiftId, slug } = useParams()
@@ -48,6 +49,35 @@ export default function ShiftId() {
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`)
       return response.data
+    },
+  })
+
+  // Real-time shift updates via Socket.IO
+  useShiftSocketEvents(venueId, {
+    onShiftClosed: (event) => {
+      // Only refresh if this is the shift we're viewing
+      if (event.shiftId === shiftId) {
+        console.log('🔴 Current shift was closed from TPV:', event.shiftId)
+        toast({
+          title: t('notifications.shiftClosed', { defaultValue: 'Turno cerrado' }),
+          description: t('notifications.shiftClosedDescription', {
+            defaultValue: `Total de ventas: ${Currency.format(event.totalSales || 0, i18n.language)}`,
+          }),
+        })
+        // Refresh shift data (this specific shift)
+        queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
+        // ✅ FIX: Invalidate ALL shift queries (including paginated ones in list view)
+        queryClient.invalidateQueries({
+          predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+        })
+      }
+    },
+    onShiftUpdated: (event) => {
+      // Refresh if this shift was updated
+      if (event.shiftId === shiftId) {
+        console.log('🔄 Current shift was updated:', event.shiftId)
+        queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
+      }
     },
   })
 

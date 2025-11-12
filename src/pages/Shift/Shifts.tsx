@@ -1,6 +1,6 @@
 import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,12 +12,17 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
+import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
+import { useToast } from '@/hooks/use-toast'
+
 export default function Shifts() {
   const { t, i18n } = useTranslation('shifts')
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -33,6 +38,32 @@ export default function Shifts() {
         },
       })
       return response.data
+    },
+  })
+
+  // Real-time shift updates via Socket.IO
+  useShiftSocketEvents(venueId, {
+    onShiftOpened: (event) => {
+      console.log('🟢 Shift opened:', event.shiftId, 'by', event.staffName)
+      toast({
+        title: t('notifications.shiftOpened'),
+        description: `${event.staffName} - ${formatTime(event.startTime)}`,
+      })
+      // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+    onShiftClosed: (event) => {
+      console.log('🔴 Shift closed:', event.shiftId, 'Total sales:', event.totalSales)
+      toast({
+        title: t('notifications.shiftClosed'),
+        description: `${event.staffName} - ${t('columns.totalSales')}: ${Currency.format(event.totalSales || 0, localeCode)}`,
+      })
+      // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
     },
   })
 
