@@ -65,38 +65,43 @@ export interface PaymentSocketEventCallbacks {
  */
 export function usePaymentSocketEvents(venueId: string | undefined, callbacks: PaymentSocketEventCallbacks = {}) {
   const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
+  const { onPaymentInitiated, onPaymentProcessing, onPaymentCompleted, onPaymentFailed } = callbacks
 
   useEffect(() => {
     if (!venueId || !socket) return
 
+    console.log('🔌 [Payment Socket] Joining venue room:', venueId)
+
     // Join venue-specific room
     joinVenueRoom(venueId)
 
-    // Set up event listeners
-    const { onPaymentInitiated, onPaymentProcessing, onPaymentCompleted, onPaymentFailed } = callbacks
-
     // Payment initiated
     if (onPaymentInitiated) {
+      console.log('📥 [Payment Socket] Registering payment_initiated listener')
       socket.on('payment_initiated', onPaymentInitiated)
     }
 
     // Payment processing
     if (onPaymentProcessing) {
+      console.log('📥 [Payment Socket] Registering payment_processing listener')
       socket.on('payment_processing', onPaymentProcessing)
     }
 
     // Payment completed
     if (onPaymentCompleted) {
+      console.log('📥 [Payment Socket] Registering payment_completed listener')
       socket.on('payment_completed', onPaymentCompleted)
     }
 
     // Payment failed
     if (onPaymentFailed) {
+      console.log('📥 [Payment Socket] Registering payment_failed listener')
       socket.on('payment_failed', onPaymentFailed)
     }
 
     // Clean up event listeners when component unmounts
     return () => {
+      console.log('🔌 [Payment Socket] Cleaning up listeners and leaving room:', venueId)
       if (onPaymentInitiated) socket.off('payment_initiated', onPaymentInitiated)
       if (onPaymentProcessing) socket.off('payment_processing', onPaymentProcessing)
       if (onPaymentCompleted) socket.off('payment_completed', onPaymentCompleted)
@@ -104,5 +109,6 @@ export function usePaymentSocketEvents(venueId: string | undefined, callbacks: P
 
       leaveVenueRoom(venueId)
     }
-  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, callbacks])
+    // ✅ FIX: Extract callbacks outside, don't include them in dependencies
+  }, [venueId, socket, joinVenueRoom, leaveVenueRoom, onPaymentInitiated, onPaymentProcessing, onPaymentCompleted, onPaymentFailed])
 }

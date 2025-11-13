@@ -13,6 +13,7 @@ import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
 import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
+import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Shifts() {
@@ -43,7 +44,7 @@ export default function Shifts() {
 
   // Real-time shift updates via Socket.IO
   useShiftSocketEvents(venueId, {
-    onShiftOpened: (event) => {
+    onShiftOpened: event => {
       console.log('🟢 Shift opened:', event.shiftId, 'by', event.staffName)
       toast({
         title: t('notifications.shiftOpened'),
@@ -51,20 +52,36 @@ export default function Shifts() {
       })
       // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
       queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
       })
     },
-    onShiftClosed: (event) => {
+    onShiftClosed: event => {
       console.log('🔴 Shift closed:', event.shiftId, 'Total sales:', event.totalSales)
       toast({
         title: t('notifications.shiftClosed'),
-        description: `${event.staffName} - ${t('columns.totalSales')}: ${Currency.format(event.totalSales || 0, localeCode)}`,
+        description: `${event.staffName} - ${t('columns.totalSales')}: ${Currency(event.totalSales || 0)}`,
       })
       // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
       queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
       })
     },
+  })
+
+  // Real-time payment updates to refresh shift totals
+  const handlePaymentCompleted = useCallback(
+    (event: any) => {
+      console.log('💰 Payment completed:', event.paymentId, 'Amount:', event.amount)
+      // Invalidate ALL shift queries to refresh totals when payments are processed
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+    [venueId, queryClient],
+  )
+
+  usePaymentSocketEvents(venueId, {
+    onPaymentCompleted: handlePaymentCompleted,
   })
 
   const totalShifts = data?.meta?.totalCount || 0
@@ -153,6 +170,17 @@ export default function Shifts() {
     },
 
     {
+      accessorKey: 'totalSales',
+      id: 'totalSales',
+      header: t('columns.subtotal'),
+      cell: ({ cell }) => {
+        const value = cell.getValue() as number
+        return value ? Currency(value) : Currency(0)
+      },
+      footer: props => props.column.id,
+      sortingFn: 'alphanumeric',
+    },
+    {
       accessorKey: 'totalTips',
       id: 'totalTips',
       header: t('columns.totalTip'),
@@ -233,19 +261,6 @@ export default function Shifts() {
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
     },
-
-    {
-      accessorKey: 'totalSales',
-      id: 'totalSales',
-      header: t('columns.subtotal'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as number
-        return value ? Currency(value) : Currency(0)
-      },
-      footer: props => props.column.id,
-      sortingFn: 'alphanumeric',
-    },
-
     {
       accessorFn: row => {
         const totalSales = row.totalSales || 0

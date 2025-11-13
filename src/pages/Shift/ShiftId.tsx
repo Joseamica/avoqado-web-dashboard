@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, PencilIcon, Save, Trash2, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
+import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 
 export default function ShiftId() {
   const { shiftId, slug } = useParams()
@@ -61,7 +62,7 @@ export default function ShiftId() {
         toast({
           title: t('notifications.shiftClosed', { defaultValue: 'Turno cerrado' }),
           description: t('notifications.shiftClosedDescription', {
-            defaultValue: `Total de ventas: ${Currency.format(event.totalSales || 0, i18n.language)}`,
+            defaultValue: `Total de ventas: ${Currency(event.totalSales || 0)}`,
           }),
         })
         // Refresh shift data (this specific shift)
@@ -79,6 +80,24 @@ export default function ShiftId() {
         queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
       }
     },
+  })
+
+  // Real-time payment updates to refresh shift totals
+  const handlePaymentCompleted = useCallback(
+    (event: any) => {
+      console.log('💰 Payment completed:', event.paymentId, 'Amount:', event.amount)
+      // Refresh current shift data to update totals
+      queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
+      // Also invalidate shift list queries
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+    [venueId, shiftId, queryClient]
+  )
+
+  usePaymentSocketEvents(venueId, {
+    onPaymentCompleted: handlePaymentCompleted,
   })
 
   // Set editedShift when shift data is loaded
@@ -156,13 +175,10 @@ export default function ShiftId() {
     return <div className="p-8 text-center">{t('detail.loading', { defaultValue: 'Cargando información del turno...' })}</div>
   }
 
-  // Calculate total payments and tips
+  // Get total payments and tips from API response
   const payments = shift?.payments || []
-  const totalAmount = payments.reduce((acc, payment) => acc + Number(payment.amount), 0)
-  const totalTips = payments.reduce((acc, payment) => {
-    const tipsSum = payment.tips.reduce((tipAcc, tip) => tipAcc + parseFloat(tip.amount), 0)
-    return acc + tipsSum
-  }, 0)
+  const totalAmount = Number(shift?.totalSales || 0)
+  const totalTips = Number(shift?.totalTips || 0)
   const tipPercentage = totalAmount !== 0 ? (totalTips / totalAmount) * 100 : 0
 
   // Format dates for display

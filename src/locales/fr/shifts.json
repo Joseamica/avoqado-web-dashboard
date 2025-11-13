@@ -8,6 +8,7 @@
     "openTime": "Open time",
     "closeTime": "Close time",
     "totalTip": "Total tip",
+    "totalSales": "Ventes Totales",
     "subtotal": "Subtotal",
     "total": "Total"
   },
@@ -16,5 +17,10 @@
     "systemIdLabel": "System ID",
     "openTimeLabel": "Opening Time",
     "closeTimeLabel": "Closing Time"
+  },
+  "notifications": {
+    "shiftOpened": "Shift Ouvert",
+    "shiftClosed": "Shift Fermé",
+    "shiftClosedDescription": "Ventes totales: {{amount}}"
   }
 }

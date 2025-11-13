@@ -8,6 +8,7 @@
     "openTime": "Apertura",
     "closeTime": "Cierre",
     "totalTip": "Propina Total",
+    "totalSales": "Ventas Totales",
     "subtotal": "Subtotal",
     "total": "Total"
   },
@@ -16,5 +17,10 @@
     "systemIdLabel": "ID del Sistema",
     "openTimeLabel": "Hora de Apertura",
     "closeTimeLabel": "Hora de Cierre"
+  },
+  "notifications": {
+    "shiftOpened": "Turno Abierto",
+    "shiftClosed": "Turno Cerrado",
+    "shiftClosedDescription": "Total de ventas: {{amount}}"
   }
 }
