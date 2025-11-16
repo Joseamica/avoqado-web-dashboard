@@ -345,7 +345,7 @@ const EcommerceMerchants: React.FC = () => {
                           title={merchant.active ? 'Desactivar' : 'Activar'}
                         >
                           <Power
-                            className={`h-4 w-4 ${merchant.active ? 'text-green-600' : 'text-gray-400'}`}
+                            className={`h-4 w-4 ${merchant.active ? 'text-green-600' : 'text-muted-foreground'}`}
                           />
                         </Button>
                         <Button

@@ -142,7 +142,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
                       <p className="font-semibold text-green-800 dark:text-green-200 mb-2">
                         ⚠️ Guarda tu nuevo Secret Key ahora:
                       </p>
-                      <div className="bg-white dark:bg-slate-800 p-3 rounded font-mono text-sm break-all border border-green-300">
+                      <div className="bg-background p-3 rounded font-mono text-sm break-all border border-green-300">
                         {newSecretKey}
                       </div>
                       <div className="flex gap-2 mt-2">
