@@ -86,6 +86,7 @@ import {
   VenueIntegrations,
   VenueManagement,
   VenuePaymentConfig,
+  EcommerceMerchants,
   VenuePricing,
   Venues,
   Webhooks,
@@ -535,7 +536,10 @@ const router = createBrowserRouter(
                 },
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
-                  children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
+                  children: [
+                    { path: 'payment-config', element: <VenuePaymentConfig /> },
+                    { path: 'ecommerce-merchants', element: <EcommerceMerchants /> },
+                  ],
                 },
 
                 // TPV Management (requires tpv:read permission + KYC verification)

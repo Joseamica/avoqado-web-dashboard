@@ -45,6 +45,12 @@
   "compare": "Compare",
   "apply": "Apply",
   "selectPlaceholder": "Select an option",
+  "errors": {
+    "unauthorized": "Unauthorized",
+    "noPermission": "You don't have permission to perform this action",
+    "offline": "You're offline",
+    "offlineDescription": "Please check your internet connection and try again"
+  },
   "dateRange": {
     "today": "Today",
     "yesterday": "Yesterday",

@@ -1,71 +1,103 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { ChevronLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import DOMPurify from 'dompurify'
 
-import api from '@/api'
-import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { usePermissions } from '@/hooks/usePermissions'
 import { createModifierGroup as createModifierGroupService } from '@/services/menu.service'
 
-// Schema for the form validation - will be created inside component to access t()
-const createFormSchema = (t: any) => z.object({
-  name: z.string().min(1, { message: t('modifiers.createGroup.nameRequired') }),
-  required: z.boolean().default(false),
-  min: z.number().int().min(0).default(0),
-  max: z.number().int().min(1).default(1),
-  multipleSelectionAmount: z.number().int().min(0).default(0),
-  multiMax: z.number().int().min(1).default(1),
-  modifiers: z
-    .array(
-      z.object({
-        label: z.string(),
-        value: z.string(),
-        disabled: z.boolean().optional(),
-        extraPrice: z.number().optional(),
-      }),
+// Schema for the form validation with proper constraints
+const createFormSchema = (t: any) =>
+  z
+    .object({
+      name: z
+        .string()
+        .min(1, { message: t('modifiers.createGroup.nameRequired') })
+        .max(100, { message: t('modifiers.createGroup.nameTooLong') }),
+      required: z.boolean().default(false),
+      min: z.number().int().min(0).default(0),
+      max: z.number().int().min(1).default(1),
+      multipleSelectionAmount: z.number().int().min(0).default(0),
+      multiMax: z.number().int().min(1).default(1),
+      newModifiers: z
+        .array(
+          z.object({
+            name: z.string(),
+            extraPrice: z.number().min(0).default(0),
+          }),
+        )
+        .default([{ name: '', extraPrice: 0 }]),
+    })
+    .refine(data => data.min <= data.max, {
+      message: t('modifiers.createGroup.errors.minMaxInvalid'),
+      path: ['max'],
+    })
+    .refine(data => !data.required || data.min >= 1, {
+      message: t('modifiers.createGroup.errors.requiredMinInvalid'),
+      path: ['min'],
+    })
+    .refine(
+      data => {
+        // At least one modifier with a name must be present
+        const hasValidModifier = data.newModifiers.some(m => m.name.trim() !== '')
+        return hasValidModifier
+      },
+      {
+        message: t('modifiers.createGroup.errors.noModifiers'),
+        path: ['newModifiers'],
+      },
     )
-    .optional(),
-  newModifiers: z
-    .array(
-      z.object({
-        name: z.string(),
-        extraPrice: z.number().optional(),
-      }),
+    .refine(
+      data => {
+        // Check for duplicate modifier names
+        const names = data.newModifiers.filter(m => m.name.trim() !== '').map(m => m.name.trim().toLowerCase())
+        return names.length === new Set(names).size
+      },
+      {
+        message: t('modifiers.createGroup.errors.duplicateNames'),
+        path: ['newModifiers'],
+      },
     )
-    .optional(),
-})
+
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 export default function CreateModifierGroup() {
   const { t } = useTranslation('menu')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const [showNewModifierForm, setShowNewModifierForm] = useState(false)
-  const [newModifiersList, setNewModifiersList] = useState([{ name: '', extraPrice: 0 }])
+  const queryClient = useQueryClient()
+  const { can } = usePermissions()
 
-  // Query existing modifiers to select from
-  const { data: existingModifiers, isLoading: loadingModifiers } = useQuery({
-    queryKey: ['modifiers', venueId],
-    queryFn: async () => {
-      const response = await api.get(`/v2/dashboard/${venueId}/modifiers`)
-      return response.data
-    },
-  })
+  // Check permissions
+  useEffect(() => {
+    if (!can('menu:create')) {
+      toast({
+        title: tCommon('errors.unauthorized'),
+        description: tCommon('errors.noPermission'),
+        variant: 'destructive',
+      })
+      navigate(`/venues/${venueId}/menumaker/modifier-groups`)
+    }
+  }, [can, navigate, tCommon, toast, venueId])
 
   // Initialize the form with default values
-  const form = useForm({
+  const form = useForm<FormValues>({
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       name: '',
@@ -74,14 +106,19 @@ export default function CreateModifierGroup() {
       max: 1,
       multipleSelectionAmount: 0,
       multiMax: 1,
-      modifiers: [],
       newModifiers: [{ name: '', extraPrice: 0 }],
     },
   })
 
+  // Use useFieldArray for proper form state management
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'newModifiers',
+  })
+
   // For creating the modifier group
   const createModifierGroupMutation = useMutation({
-    mutationFn: async formValues => {
+    mutationFn: async (formValues: FormValues) => {
       return await createModifierGroupService(venueId!, formValues)
     },
     onSuccess: () => {
@@ -89,64 +126,77 @@ export default function CreateModifierGroup() {
         title: t('modifiers.createGroup.toasts.created'),
         description: t('modifiers.createGroup.toasts.createdDesc'),
       })
+      // Invalidate cache to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
       navigate(`/venues/${venueId}/menumaker/modifier-groups`)
     },
-    onError: error => {
+    onError: (error: any) => {
+      let errorMessage = t('modifiers.createGroup.toasts.createErrorDesc')
+
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        errorMessage = t('modifiers.createGroup.errors.nameExists')
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response.data?.message || t('modifiers.createGroup.errors.invalidData')
+      } else if (!navigator.onLine) {
+        errorMessage = tCommon('errors.offlineDescription')
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
+
       toast({
         title: t('modifiers.createGroup.toasts.createError'),
-        description: error.message || t('modifiers.createGroup.toasts.createErrorDesc'),
+        description: errorMessage,
         variant: 'destructive',
       })
     },
   })
-
-  // Add a new empty modifier to the list
-  const addNewModifier = () => {
-    setNewModifiersList([...newModifiersList, { name: '', extraPrice: 0 }])
-  }
-
-  // Remove a modifier from the list
-  const removeNewModifier = index => {
-    const updatedList = [...newModifiersList]
-    updatedList.splice(index, 1)
-    setNewModifiersList(updatedList)
-  }
-
-  // Handle input changes for new modifiers
-  const handleModifierChange = (index, field, value) => {
-    const updatedList = [...newModifiersList]
-    updatedList[index][field] = value
-    setNewModifiersList(updatedList)
-  }
 
   // Watch for required field changes to update min value
   const watchRequired = form.watch('required')
 
   useEffect(() => {
     if (watchRequired) {
-      // If required is true, set min to at least 1
       const currentMin = form.getValues('min')
       if (currentMin < 1) {
-        form.setValue('min', 1)
+        form.setValue('min', 1, { shouldValidate: true, shouldDirty: true })
       }
     }
-  }, [watchRequired, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchRequired])
+
+  // Sanitize input to prevent XSS
+  const sanitizeInput = (value: string): string => {
+    return DOMPurify.sanitize(value, { ALLOWED_TAGS: [] })
+  }
 
   // Handle form submission
-  function onSubmit(values) {
-    // Process the form data
-    const formData = { ...values }
+  function onSubmit(values: FormValues): void {
+    // Filter out empty modifiers and sanitize names
+    const validNewModifiers = values.newModifiers
+      .filter(mod => mod.name.trim() !== '')
+      .map(mod => ({
+        name: sanitizeInput(mod.name.trim()),
+        extraPrice: mod.extraPrice,
+      }))
 
-    // If we have new modifiers, add them to the payload
-    if (showNewModifierForm && newModifiersList.length > 0) {
-      // Filter out empty entries
-      const validNewModifiers = newModifiersList.filter(mod => mod.name.trim() !== '')
-      formData.newModifiers = validNewModifiers
+    const formData = {
+      ...values,
+      name: sanitizeInput(values.name.trim()),
+      newModifiers: validNewModifiers,
     }
 
     // Submit the data
-    createModifierGroupMutation.mutate(formData)
+    createModifierGroupMutation.mutate(formData as FormValues)
   }
+
+  // Add a new empty modifier to the list
+  const addNewModifier = (): void => {
+    append({ name: '', extraPrice: 0 })
+  }
+
+  // Memoize watchRequired to prevent unnecessary re-renders
+  const minValue = useMemo(() => (watchRequired ? 1 : 0), [watchRequired])
 
   return (
     <div className="p-4 space-y-4">
@@ -160,6 +210,15 @@ export default function CreateModifierGroup() {
         <h1 className="text-xl font-semibold">{t('modifiers.createGroup.title')}</h1>
       </div>
 
+      {/* Show offline warning */}
+      {!navigator.onLine && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{tCommon('errors.offline')}</AlertTitle>
+          <AlertDescription>{tCommon('errors.offlineDescription')}</AlertDescription>
+        </Alert>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
@@ -172,12 +231,16 @@ export default function CreateModifierGroup() {
               <FormField
                 control={form.control}
                 name="name"
-                rules={{ required: { value: true, message: t('modifiers.createGroup.nameRequired') } }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('modifiers.createGroup.groupName')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('modifiers.createGroup.namePlaceholder')} {...field} />
+                      <Input
+                        placeholder={t('modifiers.createGroup.namePlaceholder')}
+                        maxLength={100}
+                        {...field}
+                        onChange={e => field.onChange(e.target.value)}
+                      />
                     </FormControl>
                     <FormDescription>{t('modifiers.createGroup.nameDescription')}</FormDescription>
                     <FormMessage />
@@ -221,9 +284,12 @@ export default function CreateModifierGroup() {
                       <FormControl>
                         <Input
                           type="number"
-                          min={watchRequired ? 1 : 0}
+                          min={minValue}
                           {...field}
-                          onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={e => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                          }}
                         />
                       </FormControl>
                       <FormDescription>{t('modifiers.createGroup.minSelectionsDesc')}</FormDescription>
@@ -239,7 +305,15 @@ export default function CreateModifierGroup() {
                     <FormItem>
                       <FormLabel>{t('modifiers.createGroup.maxSelections')}</FormLabel>
                       <FormControl>
-                        <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} />
+                        <Input
+                          type="number"
+                          min={1}
+                          {...field}
+                          onChange={e => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                          }}
+                        />
                       </FormControl>
                       <FormDescription>{t('modifiers.createGroup.maxSelectionsDesc')}</FormDescription>
                       <FormMessage />
@@ -261,7 +335,10 @@ export default function CreateModifierGroup() {
                         min={0}
                         placeholder={t('modifiers.createGroup.multipleSelectionPlaceholder')}
                         {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                        }}
                       />
                     </FormControl>
                     <FormDescription>{t('modifiers.createGroup.multipleSelectionDesc')}</FormDescription>
@@ -277,7 +354,15 @@ export default function CreateModifierGroup() {
                   <FormItem>
                     <FormLabel>{t('modifiers.createGroup.maxPerModifier')}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 1)} />
+                      <Input
+                        type="number"
+                        min={1}
+                        {...field}
+                        onChange={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                        }}
+                      />
                     </FormControl>
                     <FormDescription>{t('modifiers.createGroup.maxPerModifierDesc')}</FormDescription>
                     <FormMessage />
@@ -293,80 +378,57 @@ export default function CreateModifierGroup() {
               <CardDescription>{t('modifiers.createGroup.modifiersDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Existing Modifiers Selector */}
-              {!loadingModifiers && existingModifiers && (
-                <FormField
-                  control={form.control}
-                  name="modifiers"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('modifiers.createGroup.selectExistingModifiers')}</FormLabel>
-                      <FormControl>
-                        <DnDMultipleSelector
-                          {...field}
-                          options={existingModifiers.map(modifier => ({
-                            label: modifier.name,
-                            value: modifier.id,
-                            disabled: false,
-                          }))}
-                          hidePlaceholderWhenSelected
-                          placeholder={t('modifiers.createGroup.selectExistingPlaceholder')}
-                          enableReordering={true}
-                          creatable={false}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Add New Modifiers Toggle */}
-              <div className="flex items-center space-x-2">
-                <Switch id="new-modifiers" checked={showNewModifierForm} onCheckedChange={setShowNewModifierForm} />
-                <Label htmlFor="new-modifiers">{t('modifiers.createGroup.addNewModifiers')}</Label>
-              </div>
-
               {/* New Modifiers Form */}
-              {showNewModifierForm && (
-                <div className="space-y-3 mt-4 border p-4 rounded-md">
-                  <h3 className="text-sm font-medium">{t('modifiers.createGroup.newModifiers')}</h3>
+              <div className="space-y-3 border p-4 rounded-md">
+                <h3 className="text-sm font-medium">{t('modifiers.createGroup.newModifiers')}</h3>
 
-                  {newModifiersList.map((modifier, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                      <div className="col-span-2">
-                        <Label htmlFor={`modifier-name-${index}`}>{t('forms.name')}</Label>
-                        <Input
-                          id={`modifier-name-${index}`}
-                          value={modifier.name}
-                          onChange={e => handleModifierChange(index, 'name', e.target.value)}
-                          placeholder={t('modifiers.createGroup.modifierNamePlaceholder')}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`modifier-price-${index}`}>{t('modifiers.create.extraPrice')}</Label>
-                        <Input
-                          id={`modifier-price-${index}`}
-                          type="number"
-                          value={modifier.extraPrice}
-                          onChange={e => handleModifierChange(index, 'extraPrice', parseFloat(e.target.value) || 0)}
-                          step="0.01"
-                          min="0"
-                        />
-                      </div>
-                      {index > 0 && (
-                        <Button type="button" variant="destructive" size="sm" onClick={() => removeNewModifier(index)} className="mt-1">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div className="md:col-span-2">
+                      <Label htmlFor={`modifier-name-${index}`}>{t('forms.name')}</Label>
+                      <Input
+                        id={`modifier-name-${index}`}
+                        placeholder={t('modifiers.createGroup.modifierNamePlaceholder')}
+                        maxLength={100}
+                        {...form.register(`newModifiers.${index}.name`)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`modifier-price-${index}`}>{t('modifiers.create.extraPrice')}</Label>
+                      <Input
+                        id={`modifier-price-${index}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        {...form.register(`newModifiers.${index}.extraPrice`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => remove(index)}
+                          aria-label={t('modifiers.createGroup.removeModifier', {
+                            name: form.watch(`newModifiers.${index}.name`) || t('modifiers.createGroup.modifier', { index: index + 1 }),
+                          })}
+                        >
                           {t('modifiers.createGroup.remove')}
                         </Button>
                       )}
                     </div>
-                  ))}
+                  </div>
+                ))}
 
-                  <Button type="button" variant="outline" size="sm" onClick={addNewModifier} className="mt-2">
-                    {t('modifiers.createGroup.addAnother')}
-                  </Button>
-                </div>
-              )}
+                <FormMessage>{form.formState.errors.newModifiers?.message}</FormMessage>
+
+                <Button type="button" variant="outline" size="sm" onClick={addNewModifier} className="mt-2">
+                  {t('modifiers.createGroup.addAnother')}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -374,8 +436,18 @@ export default function CreateModifierGroup() {
             <Button type="button" variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/modifier-groups`)}>
               {t('forms.buttons.cancel')}
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>
-              {form.formState.isSubmitting ? t('modifiers.createGroup.creating') : t('modifiers.createGroup.createButton')}
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting || createModifierGroupMutation.isPending || !form.formState.isDirty}
+            >
+              {form.formState.isSubmitting || createModifierGroupMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('modifiers.createGroup.creating')}
+                </>
+              ) : (
+                t('modifiers.createGroup.createButton')
+              )}
             </Button>
           </div>
         </form>

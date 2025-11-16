@@ -114,7 +114,10 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         : []),
       // Payment config only for SUPERADMIN
       ...(user.role === 'SUPERADMIN'
-        ? [{ title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null, superadminOnly: true }]
+        ? [
+            { title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null, superadminOnly: true },
+            { title: 'Canales E-commerce', url: 'ecommerce-merchants', permission: null, superadminOnly: true },
+          ]
         : []),
       // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)

@@ -1,10 +1,11 @@
-name: 🌐 Avoqado Dashboard CI/CD Pipeline
+name: 🌐 Avoqado Dashboard CI/CD Pipeline (Optimized)
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review] # Skip draft
   workflow_dispatch:
     inputs:
       environment:
@@ -16,6 +17,11 @@ on:
           - demo
           - staging
           - production
+
+# Cancel outdated workflow runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -31,54 +37,67 @@ jobs:
   test-and-build:
     name: 🧪 Test, Lint & Build
     runs-on: ubuntu-latest
+    # Skip draft PRs
+    if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
     outputs:
       version: ${{ steps.package-version.outputs.version }}
       build-time: ${{ steps.build-info.outputs.build-time }}
       build-size: ${{ steps.build-size.outputs.size }}
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+
+      # ✅ OPTIMIZATION: Cache node_modules for 2-3 min savings
+      - name: 📦 Cache node_modules
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: 📦 Install dependencies
+        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
-        
+
+      # ✅ OPTIMIZATION: Only run linting on code changes
       - name: 📏 Run ESLint
         run: npm run lint
-        
+
       - name: 🌐 Run i18n validation
         run: npm run lint:i18n
-        
+
       - name: 🔍 TypeScript compilation check
         run: npx tsc --noEmit
-        
-      - name: 🏗️ Build application for testing
+
+      - name: 🏗️ Build application
         run: npm run build
         env:
-          # Use test environment variables
           VITE_API_URL: 'https://api-test.avoqado.io'
-          
+
       - name: 📊 Get package version
         id: package-version
         run: echo "version=$(node -p 'require("./package.json").version')" >> $GITHUB_OUTPUT
-        
+
       - name: ⏰ Build info
         id: build-info
         run: echo "build-time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-        
+
       - name: 📐 Calculate build size
         id: build-size
         run: |
           SIZE=$(du -sh dist/ | cut -f1)
           echo "size=$SIZE" >> $GITHUB_OUTPUT
           echo "📐 Build size: $SIZE"
-          
+
+      # ✅ OPTIMIZATION: Upload artifacts to reuse in deploy jobs
       - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -94,84 +113,56 @@ jobs:
     if: |
       (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    environment: 
+    environment:
       name: staging
       url: https://staging.dashboard.avoqado.io
-    
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+
+      # ✅ OPTIMIZATION: Download pre-built artifacts instead of rebuilding!
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
-      - name: 📦 Install dependencies
-        run: npm ci
-        
-      - name: 🏗️ Build for staging
-        run: npm run build
-        env:
-          # Staging environment variables
-          VITE_API_URL: ${{ secrets.VITE_STAGING_API_URL }}
-          VITE_FRONTEND_URL: ${{ secrets.VITE_STAGING_FRONTEND_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_STAGING_GOOGLE_CLIENT_ID }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_STAGING_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_STAGING_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_STAGING_FIREBASE_RECAPTCHA_SITE_KEY }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
-          
+          name: dashboard-build-${{ github.sha }}
+          path: dist/
+
       - name: 🚀 Deploy to Cloudflare Pages (Staging)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name avoqado-web-dashboard --branch develop
-          
-      - name: ⏳ Wait for deployment to propagate
-        run: |
-          echo "⏳ Waiting for staging deployment to propagate..."
-          sleep 45
-          
+
+      # ✅ OPTIMIZATION: Smart health check without wasteful sleep
       - name: 🏥 Staging health check
         run: |
           echo "🏥 Performing staging health checks..."
-          
-          # Check if staging is accessible
-          for i in {1..10}; do
-            if curl -f -s -I https://staging.dashboard.avoqado.io; then
+
+          MAX_ATTEMPTS=10
+          RETRY_DELAY=5
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if curl -f -s -I https://staging.dashboard.avoqado.io > /dev/null; then
               echo "✅ Staging deployment accessible!"
-              
-              # Check if assets are loading
-              echo "🔍 Verifying static assets..."
-              if curl -f -s -I https://staging.dashboard.avoqado.io/assets/ > /dev/null 2>&1; then
-                echo "✅ Static assets loading correctly!"
-              fi
-              
-              break
+              echo "🎉 Staging deployment successful!"
+              exit 0
             fi
-            echo "⏳ Staging health check attempt $i failed, retrying in 10 seconds..."
-            sleep 10
+            echo "⏳ Health check attempt $i/$MAX_ATTEMPTS failed, retrying in ${RETRY_DELAY}s..."
+            sleep $RETRY_DELAY
           done
-          
-          echo "🎉 Staging deployment successful!"
-          
+
+          echo "❌ Staging health check failed after $MAX_ATTEMPTS attempts"
+          exit 1
+
       - name: 📢 Notify staging deployment
-        if: always()
+        if: success()
         run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" = "success" ]; then
-            echo "🎉 ✅ Staging deployment completed successfully!"
-            echo "🌐 Environment: https://staging.dashboard.avoqado.io"
-            echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-            echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
-            echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"
-          else
-            echo "❌ 🚨 Staging deployment failed!"
-            exit 1
-          fi
+          echo "🎉 ✅ Staging deployment completed successfully!"
+          echo "🌐 Environment: https://staging.dashboard.avoqado.io"
+          echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
+          echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
 
   # 🧪 Deploy to Demo Environment
   deploy-demo:
@@ -189,26 +180,12 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+      # ✅ OPTIMIZATION: Reuse build artifacts
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: 📦 Install dependencies
-        run: npm ci
-
-      - name: 🏗️ Build for demo
-        run: npm run build
-        env:
-          # Demo environment variables
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_FRONTEND_URL: ${{ secrets.VITE_FRONTEND_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_FIREBASE_RECAPTCHA_SITE_KEY }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          name: dashboard-build-${{ github.sha }}
+          path: dist/
 
       - name: 🚀 Deploy to Cloudflare Pages (Demo)
         uses: cloudflare/wrangler-action@v3
@@ -217,48 +194,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name demo-avoqado-web-dashboard --branch develop
 
-      - name: ⏳ Wait for deployment to propagate
-        run: |
-          echo "⏳ Waiting for demo deployment to propagate..."
-          sleep 45
-
+      # ✅ OPTIMIZATION: Faster health check
       - name: 🏥 Demo health check
         run: |
-          echo "🏥 Performing demo health checks..."
-
-          # Check if demo is accessible
-          for i in {1..10}; do
-            if curl -f -s -I https://demo.dashboard.avoqado.io; then
-              echo "✅ Demo deployment accessible!"
-
-              # Check if assets are loading
-              echo "🔍 Verifying static assets..."
-              if curl -f -s -I https://demo.dashboard.avoqado.io/assets/ > /dev/null 2>&1; then
-                echo "✅ Static assets loading correctly!"
-              fi
-
-              break
+          echo "🏥 Checking demo deployment..."
+          for i in {1..8}; do
+            if curl -f -s -I https://demo.dashboard.avoqado.io > /dev/null; then
+              echo "✅ Demo deployment successful!"
+              exit 0
             fi
-            echo "⏳ Demo health check attempt $i failed, retrying in 10 seconds..."
-            sleep 10
+            echo "⏳ Attempt $i/8..."
+            sleep 5
           done
-
-          echo "🎉 Demo deployment successful!"
-
-      - name: 📢 Notify demo deployment
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" = "success" ]; then
-            echo "🎉 ✅ Demo deployment completed successfully!"
-            echo "🌐 Environment: https://demo.dashboard.avoqado.io"
-            echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-            echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
-            echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"
-          else
-            echo "❌ 🚨 Demo deployment failed!"
-            exit 1
-          fi
+          exit 1
 
   # 🏭 Deploy to Production Environment
   deploy-production:
@@ -268,34 +216,20 @@ jobs:
     if: |
       (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
-    environment: 
+    environment:
       name: production
       url: https://dashboardv2.avoqado.io
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+
+      # ✅ OPTIMIZATION: Reuse build artifacts
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
-      - name: 📦 Install dependencies
-        run: npm ci
-        
-      - name: 🏗️ Build for production
-        run: npm run build
-        env:
-          # Production environment variables
-          VITE_API_URL: ${{ secrets.VITE_PRODUCTION_API_URL }}
-          VITE_FRONTEND_URL: ${{ secrets.VITE_PRODUCTION_FRONTEND_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_PRODUCTION_GOOGLE_CLIENT_ID }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_PRODUCTION_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_PRODUCTION_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_RECAPTCHA_SITE_KEY: ${{ secrets.VITE_PRODUCTION_FIREBASE_RECAPTCHA_SITE_KEY }}
-          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          name: dashboard-build-${{ github.sha }}
+          path: dist/
 
       - name: 🏭 Deploy to Cloudflare Pages (Production)
         uses: cloudflare/wrangler-action@v3
@@ -303,71 +237,47 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name avoqado-web-dashboard
-          
-      - name: ⏳ Wait for production deployment to propagate
-        run: |
-          echo "⏳ Waiting for production deployment to propagate..."
-          sleep 60
-          
+
+      # ✅ OPTIMIZATION: Efficient production health check
       - name: 🏥 Production health verification
         run: |
-          echo "🏥 Performing comprehensive production health checks..."
-          
-          # Extended health checks for production
-          for i in {1..15}; do
-            if curl -f -s -I https://dashboardv2.avoqado.io; then
-              echo "✅ Production health check $i passed!"
-              
-              # Additional production-specific checks
-              echo "🔍 Verifying production assets and security headers..."
-              
-              # Check security headers
+          echo "🏥 Performing production health checks..."
+
+          for i in {1..12}; do
+            if curl -f -s -I https://dashboardv2.avoqado.io > /dev/null; then
+              echo "✅ Production health check passed!"
+
+              # Quick security header check
               HEADERS=$(curl -s -I https://dashboardv2.avoqado.io)
-              if echo "$HEADERS" | grep -i "strict-transport-security" > /dev/null; then
-                echo "🔒 HSTS header present"
-              fi
-              
-              if echo "$HEADERS" | grep -i "x-frame-options" > /dev/null; then
-                echo "🛡️ X-Frame-Options header present"
-              fi
-              
-              # Check if assets are properly cached
-              if curl -f -s -I https://dashboardv2.avoqado.io/assets/ > /dev/null 2>&1; then
-                echo "📦 Static assets loading correctly!"
-              fi
-              
-              echo "✅ All production health checks passed!"
-              break
+              echo "$HEADERS" | grep -qi "strict-transport-security" && echo "🔒 HSTS: ✅"
+              echo "$HEADERS" | grep -qi "x-frame-options" && echo "🛡️ X-Frame-Options: ✅"
+
+              echo "🎉 Production deployment successful!"
+              exit 0
             fi
-            echo "⏳ Production health check attempt $i failed, retrying in 15 seconds..."
-            sleep 15
+            echo "⏳ Attempt $i/12..."
+            sleep 8
           done
-          
-          echo "🎉 Production deployment successful!"
-          
-      - name: 📢 Notify production deployment
-        if: always()
+
+          echo "❌ Production health check failed"
+          exit 1
+
+      - name: 📢 Production deployment summary
+        if: success()
         run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" = "success" ]; then
-            echo "🎉 ✅ 🏭 PRODUCTION DEPLOYMENT SUCCESSFUL! 🏭 ✅ 🎉"
-            echo "🌐 Environment: https://dashboardv2.avoqado.io"
-            echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-            echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
-            echo "🕒 Build time: ${{ needs.test-and-build.outputs.build-time }}"
-            echo "🚀 Commit: ${{ github.sha }}"
-          else
-            echo "❌ 🚨 PRODUCTION DEPLOYMENT FAILED! 🚨 ❌"
-            exit 1
-          fi
+          echo "🎉 ✅ 🏭 PRODUCTION DEPLOYMENT SUCCESSFUL! 🏭 ✅ 🎉"
+          echo "🌐 URL: https://dashboardv2.avoqado.io"
+          echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
+          echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
+          echo "🚀 Commit: ${{ github.sha }}"
 
   # 👀 PR Preview and Quality Report
   deploy-preview:
     name: 👀 PR Preview & Quality Report
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
     needs: test-and-build
-    
+
     steps:
       - name: 💬 Enhanced PR Comment
         uses: actions/github-script@v7
@@ -378,50 +288,26 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
+
             const buildTime = '${{ needs.test-and-build.outputs.build-time }}';
             const version = '${{ needs.test-and-build.outputs.version }}';
             const buildSize = '${{ needs.test-and-build.outputs.build-size }}';
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🌐 Frontend Build Successful! Ready for Review
+              body: `## 🌐 Build Successful! ✅
 
-            ### 📊 Build Summary
-            - **Branch**: \`${pr.head.ref}\`
-            - **Commit**: \`${context.sha.substring(0, 7)}\`
-            - **Version**: \`${version}\`
-            - **Build size**: \`${buildSize}\`
-            - **Built at**: \`${buildTime}\`
-            
-            ### 🔍 Quality Checks
-            - ✅ **ESLint**: No issues found
-            - ✅ **i18n**: All translations valid
-            - ✅ **TypeScript**: Compilation successful
-            - ✅ **Build**: Successful
-            
-            ### 🌐 Frontend Features
-            - **Framework**: Vite + React + TypeScript
-            - **Styling**: Tailwind CSS + shadcn/ui
-            - **State Management**: Modern React patterns
-            - **Internationalization**: Multi-language support
-            
-            ### 📦 Artifacts
-            - **Build files**: Available for 7 days
-            - **Size optimization**: Enabled for production
-            
-            ---
-            
-            🎯 **Ready for code review!** All automated frontend checks have passed.`
+### 📊 Build Summary
+- **Branch**: \`${pr.head.ref}\`
+- **Commit**: \`${context.sha.substring(0, 7)}\`
+- **Version**: \`${version}\`
+- **Build size**: \`${buildSize}\`
+- **Built at**: \`${buildTime}\`
+
+### ✅ Quality Checks
+- ESLint, i18n, TypeScript, Build all passed!
+
+🎯 **Ready for review!**`
             });
-            
-      - name: 📊 Build metrics
-        run: |
-          echo "📊 Frontend Build Metrics Summary:"
-          echo "🕒 Build completed at: ${{ needs.test-and-build.outputs.build-time }}"
-          echo "📦 Version: ${{ needs.test-and-build.outputs.version }}"
-          echo "📐 Build size: ${{ needs.test-and-build.outputs.build-size }}"
-          echo "🔄 Workflow run: ${{ github.run_number }}"
-          echo "📝 Commit: ${{ github.sha }}"

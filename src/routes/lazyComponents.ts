@@ -45,6 +45,7 @@ export const ContactImages = React.lazy(() => import('@/pages/Venue/Edit/Contact
 export const VenueDocuments = React.lazy(() => import('@/pages/Venue/Edit/Documents'))
 export const VenueIntegrations = React.lazy(() => import('@/pages/Venue/Edit/Integrations'))
 export const VenuePaymentConfig = React.lazy(() => import('@/pages/Venue/VenuePaymentConfig'))
+export const EcommerceMerchants = React.lazy(() => import('@/pages/Venue/EcommerceMerchants'))
 export const Shifts = React.lazy(() => import('@/pages/Shift/Shifts'))
 // export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'))
 export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'))
