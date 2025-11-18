@@ -2,6 +2,37 @@
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
 
+  "badge": {
+    "status": {
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock"
+    },
+    "method": {
+      "label": "Tracking Method",
+      "quantity": "Quantity (Simple Count)",
+      "recipe": "Recipe (Calculated from Ingredients)"
+    },
+    "unit": "Unit",
+    "modal": {
+      "description": "Detailed inventory information"
+    },
+    "quantity": {
+      "title": "Stock Information",
+      "currentStock": "Current Stock",
+      "reorderPoint": "Reorder Point",
+      "lowStockWarning": "Stock is below reorder point. Consider restocking soon."
+    },
+    "recipe": {
+      "title": "Recipe Information",
+      "maxPortions": "Maximum Portions Available",
+      "ingredients": "Ingredient Breakdown",
+      "required": "Required per portion",
+      "portions": "portions",
+      "cost": "Recipe Cost per Portion"
+    }
+  },
+
   "tabs": {
     "rawMaterials": "Raw Materials",
     "recipes": "Recipes",

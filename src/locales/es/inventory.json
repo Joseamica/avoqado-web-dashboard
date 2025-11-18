@@ -2,6 +2,37 @@
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
 
+  "badge": {
+    "status": {
+      "inStock": "En Stock",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock"
+    },
+    "method": {
+      "label": "Método de Seguimiento",
+      "quantity": "Cantidad (Conteo Simple)",
+      "recipe": "Receta (Calculado desde Ingredientes)"
+    },
+    "unit": "Unidad",
+    "modal": {
+      "description": "Información detallada del inventario"
+    },
+    "quantity": {
+      "title": "Información de Stock",
+      "currentStock": "Stock Actual",
+      "reorderPoint": "Punto de Reorden",
+      "lowStockWarning": "El stock está por debajo del punto de reorden. Considere reabastecer pronto."
+    },
+    "recipe": {
+      "title": "Información de Receta",
+      "maxPortions": "Porciones Máximas Disponibles",
+      "ingredients": "Desglose de Ingredientes",
+      "required": "Requerido por porción",
+      "portions": "porciones",
+      "cost": "Costo de Receta por Porción"
+    }
+  },
+
   "tabs": {
     "rawMaterials": "Materias Primas",
     "recipes": "Recetas",

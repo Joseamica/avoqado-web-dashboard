@@ -34,6 +34,9 @@ import {
 import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 import { PermissionGate } from '@/components/PermissionGate'
+import { InventoryBadge } from '@/components/inventory/InventoryBadge'
+import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
+import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 
 export default function Products() {
   const { t, i18n } = useTranslation('menu')
@@ -51,11 +54,25 @@ export default function Products() {
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
   const { data: products, isLoading } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
+  })
+
+  // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
+  useMenuSocketEvents(venueId, {
+    onMenuItemAvailabilityChanged: () => {
+      // Invalidate products query when inventory changes
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
+    onMenuItemUpdated: () => {
+      // Invalidate on any menu item update
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
   })
 
   const toggleActive = useMutation({
@@ -183,6 +200,26 @@ export default function Products() {
       cell: ({ cell }) => {
         const price = cell.getValue() as number
         return <ul>{Currency(price, false)}</ul>
+      },
+    },
+    {
+      id: 'stock',
+      accessorKey: 'availableQuantity',
+      meta: { label: t('products.columns.stock') },
+      header: t('products.columns.stock'),
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+
+        return (
+          <InventoryBadge
+            product={product}
+            onClick={() => {
+              setSelectedProduct(product)
+              setIsInventoryModalOpen(true)
+            }}
+          />
+        )
       },
     },
 
@@ -390,6 +427,12 @@ export default function Products() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InventoryDetailsModal
+        product={selectedProduct}
+        open={isInventoryModalOpen}
+        onOpenChange={setIsInventoryModalOpen}
+      />
     </div>
   )
 }

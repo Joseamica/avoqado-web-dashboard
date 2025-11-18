@@ -74,6 +74,7 @@
       "photo": "Photo",
       "name": "Nom",
       "price": "Prix",
+      "stock": "Stock",
       "categories": "Catégories",
       "modifierGroups": "Groupes Modificateurs",
       "updatedAt": "Dernière mise à jour"

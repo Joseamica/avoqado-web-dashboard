@@ -303,6 +303,7 @@
       "photo": "Photo",
       "name": "Name",
       "price": "Price",
+      "stock": "Stock",
       "categories": "Categories",
       "modifierGroups": "Modifier Groups",
       "updatedAt": "Last update"

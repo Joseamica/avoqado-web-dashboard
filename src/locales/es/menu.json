@@ -292,6 +292,7 @@
       "photo": "Foto",
       "name": "Nombre",
       "price": "Precio",
+      "stock": "Stock",
       "categories": "Categorías",
       "modifierGroups": "Grupos Modificadores",
       "updatedAt": "Última actualización"

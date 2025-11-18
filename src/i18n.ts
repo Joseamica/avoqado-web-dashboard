@@ -18,6 +18,7 @@ import venueEs from '@/locales/es/venue.json'
 import venueFr from '@/locales/fr/venue.json'
 import inventoryEn from '@/locales/en/inventory.json'
 import inventoryEs from '@/locales/es/inventory.json'
+import inventoryFr from '@/locales/fr/inventory.json'
 import settingsEn from '@/locales/en/settings.json'
 import settingsEs from '@/locales/es/settings.json'
 import commonEn from '@/locales/en/common.json'
@@ -185,6 +186,7 @@ i18n
   [
     ['en', inventoryEn],
     ['es', inventoryEs],
+    ['fr', inventoryFr],
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'inventory', bundle as Record<string, unknown>, true, true)

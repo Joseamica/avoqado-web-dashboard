@@ -619,6 +619,7 @@ export interface Product {
   trackInventory: boolean
   inventoryMethod: 'QUANTITY' | 'RECIPE' | null
   unit: string | null
+  availableQuantity?: number | null // Toast POS style unified field for both QUANTITY and RECIPE
 
   // Status
   active: boolean
