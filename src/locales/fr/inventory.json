@@ -28,5 +28,21 @@
       "portions": "portions",
       "cost": "Coût de la Recette par Portion"
     }
+  },
+
+  "recipes": {
+    "fields": {
+      "portionYield": "Rendement de Portions",
+      "prepTime": "Temps de Préparation (min)",
+      "cookTime": "Temps de Cuisson (min)"
+    },
+    "portionYieldHelp": {
+      "title": "Qu'est-ce que le Rendement de Portions?",
+      "description": "Le nombre de portions que cette recette produit. Utilisé pour calculer le coût par portion et la rentabilité.",
+      "examples": "Exemples:",
+      "example1": "Hamburger = 1 portion",
+      "example2": "Grande Pizza = 8 portions (8 tranches)",
+      "example3": "Marmite de Soupe = 10 portions"
+    }
   }
 }

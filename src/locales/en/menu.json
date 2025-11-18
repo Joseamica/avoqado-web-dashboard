@@ -299,6 +299,11 @@
     "title": "Products",
     "new": "New product",
     "imageAlt": "Product",
+    "tabs": {
+      "details": "Details",
+      "inventory": "Inventory",
+      "modifiers": "Modifiers"
+    },
     "columns": {
       "photo": "Photo",
       "name": "Name",
@@ -308,10 +313,43 @@
       "modifierGroups": "Modifier Groups",
       "updatedAt": "Last update"
     },
+    "actions": {
+      "adjustStock": "Adjust Stock",
+      "adjustStockDialog": {
+        "title": "Adjust Stock - {{productName}}",
+        "currentStock": "Current Stock",
+        "adjustment": "Adjustment",
+        "adjustmentPlaceholder": "Enter amount (+ to add, - to remove)",
+        "reason": "Reason",
+        "reasonPlaceholder": "Why are you adjusting stock?",
+        "reasons": {
+          "recount": "Physical recount",
+          "damage": "Damaged/Spoiled",
+          "theft": "Theft/Loss",
+          "correction": "Correction",
+          "receiving": "Receiving delivery",
+          "other": "Other"
+        },
+        "newStock": "New Stock",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Additional details...",
+        "cancel": "Cancel",
+        "save": "Save Adjustment",
+        "saving": "Saving..."
+      }
+    },
     "toasts": {
       "activated": "Product activated",
       "deactivated": "Product deactivated",
       "saved": "Changes have been saved successfully."
+    },
+    "lowStock": {
+      "alert": "{{count}} product is low on stock",
+      "alert_other": "{{count}} products are low on stock",
+      "viewDetails": "View Details",
+      "filterLabel": "Low Stock Only",
+      "clearFilter": "Clear filter",
+      "noLowStock": "All products are well stocked!"
     },
     "create": {
       "title": "New product",
@@ -382,6 +420,44 @@
       "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
       "imageUnavailable": "Image unavailable",
       "imageCouldNotLoad": "The image could not be loaded",
+      "inventory": {
+        "trackingMethod": "Inventory Tracking",
+        "noTracking": "Don't track inventory",
+        "noTrackingDesc": "No stock management for this product",
+        "trackByQuantity": "Track by quantity",
+        "trackByQuantityDesc": "Simple stock counting (e.g., 50 units in stock)",
+        "trackByRecipe": "Track by recipe",
+        "trackByRecipeDesc": "Calculate availability from ingredient stock",
+        "currentStock": "Current Stock",
+        "currentStockPlaceholder": "0",
+        "currentStockHelp": "How many units you have right now",
+        "costPerUnit": "Cost Per Unit",
+        "costPerUnitPlaceholder": "0.00",
+        "costPerUnitHelp": "How much each unit costs you",
+        "reorderPoint": "Reorder Point",
+        "reorderPointPlaceholder": "10",
+        "reorderPointHelp": "Get alerts when stock falls below this number",
+        "unit": "Unit",
+        "unitPlaceholder": "units, kg, L, etc.",
+        "unitHelp": "How you measure this product (units, kg, liters, etc.)",
+        "portionYield": "Portions per Recipe",
+        "portionYieldPlaceholder": "1",
+        "portionYieldHelp": "How many servings this recipe makes",
+        "prepTime": "Prep Time (minutes)",
+        "prepTimePlaceholder": "0",
+        "cookTime": "Cook Time (minutes)",
+        "cookTimePlaceholder": "0",
+        "recipeNotes": "Recipe Notes",
+        "recipeNotesPlaceholder": "Optional preparation notes...",
+        "ingredients": "Ingredients",
+        "addIngredient": "Add Ingredient",
+        "noIngredients": "No ingredients added yet. Add at least one ingredient for recipe-based tracking.",
+        "ingredientName": "Ingredient",
+        "ingredientQuantity": "Quantity",
+        "ingredientUnit": "Unit",
+        "ingredientCost": "Cost",
+        "removeIngredient": "Remove ingredient"
+      },
       "toasts": {
         "saved": "Product saved",
         "savedDesc": "The changes have been saved successfully.",

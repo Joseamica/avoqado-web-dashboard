@@ -288,6 +288,11 @@
     "title": "Productos",
     "new": "Nuevo producto",
     "imageAlt": "Producto",
+    "tabs": {
+      "details": "Detalles",
+      "inventory": "Inventario",
+      "modifiers": "Modificadores"
+    },
     "columns": {
       "photo": "Foto",
       "name": "Nombre",
@@ -297,10 +302,43 @@
       "modifierGroups": "Grupos Modificadores",
       "updatedAt": "Última actualización"
     },
+    "actions": {
+      "adjustStock": "Ajustar Stock",
+      "adjustStockDialog": {
+        "title": "Ajustar Stock - {{productName}}",
+        "currentStock": "Stock Actual",
+        "adjustment": "Ajuste",
+        "adjustmentPlaceholder": "Ingresa cantidad (+ agregar, - quitar)",
+        "reason": "Razón",
+        "reasonPlaceholder": "¿Por qué ajustas el stock?",
+        "reasons": {
+          "recount": "Reconteo físico",
+          "damage": "Dañado/Echado a perder",
+          "theft": "Robo/Pérdida",
+          "correction": "Corrección",
+          "receiving": "Recepción de entrega",
+          "other": "Otro"
+        },
+        "newStock": "Nuevo Stock",
+        "notes": "Notas (opcional)",
+        "notesPlaceholder": "Detalles adicionales...",
+        "cancel": "Cancelar",
+        "save": "Guardar Ajuste",
+        "saving": "Guardando..."
+      }
+    },
     "toasts": {
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
       "saved": "Los cambios se han guardado correctamente."
+    },
+    "lowStock": {
+      "alert": "{{count}} producto tiene stock bajo",
+      "alert_other": "{{count}} productos tienen stock bajo",
+      "viewDetails": "Ver Detalles",
+      "filterLabel": "Solo Stock Bajo",
+      "clearFilter": "Limpiar filtro",
+      "noLowStock": "¡Todos los productos tienen buen stock!"
     },
     "create": {
       "title": "Nuevo producto",
@@ -371,6 +409,44 @@
       "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
       "imageUnavailable": "Imagen no disponible",
       "imageCouldNotLoad": "La imagen no pudo cargarse",
+      "inventory": {
+        "trackingMethod": "Seguimiento de Inventario",
+        "noTracking": "No rastrear inventario",
+        "noTrackingDesc": "Sin gestión de stock para este producto",
+        "trackByQuantity": "Rastrear por cantidad",
+        "trackByQuantityDesc": "Conteo simple de stock (ej., 50 unidades en stock)",
+        "trackByRecipe": "Rastrear por receta",
+        "trackByRecipeDesc": "Calcular disponibilidad desde stock de ingredientes",
+        "currentStock": "Stock Actual",
+        "currentStockPlaceholder": "0",
+        "currentStockHelp": "Cuántas unidades tienes ahora mismo",
+        "costPerUnit": "Costo Por Unidad",
+        "costPerUnitPlaceholder": "0.00",
+        "costPerUnitHelp": "Cuánto te cuesta cada unidad",
+        "reorderPoint": "Punto de Reorden",
+        "reorderPointPlaceholder": "10",
+        "reorderPointHelp": "Recibe alertas cuando el stock caiga por debajo de este número",
+        "unit": "Unidad",
+        "unitPlaceholder": "unidades, kg, L, etc.",
+        "unitHelp": "Cómo mides este producto (unidades, kg, litros, etc.)",
+        "portionYield": "Porciones por Receta",
+        "portionYieldPlaceholder": "1",
+        "portionYieldHelp": "Cuántas porciones produce esta receta",
+        "prepTime": "Tiempo de Preparación (minutos)",
+        "prepTimePlaceholder": "0",
+        "cookTime": "Tiempo de Cocción (minutos)",
+        "cookTimePlaceholder": "0",
+        "recipeNotes": "Notas de Receta",
+        "recipeNotesPlaceholder": "Notas opcionales de preparación...",
+        "ingredients": "Ingredientes",
+        "addIngredient": "Agregar Ingrediente",
+        "noIngredients": "No se han agregado ingredientes aún. Agrega al menos un ingrediente para el rastreo basado en recetas.",
+        "ingredientName": "Ingrediente",
+        "ingredientQuantity": "Cantidad",
+        "ingredientUnit": "Unidad",
+        "ingredientCost": "Costo",
+        "removeIngredient": "Eliminar ingrediente"
+      },
       "toasts": {
         "saved": "Producto guardado",
         "savedDesc": "Los cambios se han guardado correctamente.",

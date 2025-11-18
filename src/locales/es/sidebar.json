@@ -35,8 +35,8 @@
   },
   "routes": {
     "home": "Inicio",
-    "menu": "Menú",
-    "menumaker": "Menú",
+    "menu": "Productos",
+    "menumaker": "Productos",
     "overview": "Resumen",
     "inventory": "Inventario",
     "payments": "Pagos",

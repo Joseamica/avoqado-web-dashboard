@@ -36,8 +36,8 @@
   },
   "routes": {
     "home": "Home",
-    "menu": "Menu",
-    "menumaker": "Menu",
+    "menu": "Products",
+    "menumaker": "Products",
     "overview": "Overview",
     "inventory": "Inventory",
     "payments": "Payments",

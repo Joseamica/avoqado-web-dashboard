@@ -17,7 +17,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod } from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store, Plus, Trash2 } from 'lucide-react'
+import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store, Plus, Trash2, Info } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
 import { AddIngredientDialog } from './AddIngredientDialog'
@@ -1179,7 +1180,30 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="portionYield">{t('recipes.fields.portionYield')} *</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-2">
+                                <p className="font-semibold">{t('recipes.portionYieldHelp.title')}</p>
+                                <p className="text-sm">{t('recipes.portionYieldHelp.description')}</p>
+                                <div className="text-sm">
+                                  <p className="font-medium">{t('recipes.portionYieldHelp.examples')}</p>
+                                  <ul className="list-disc list-inside space-y-1 mt-1">
+                                    <li>{t('recipes.portionYieldHelp.example1')}</li>
+                                    <li>{t('recipes.portionYieldHelp.example2')}</li>
+                                    <li>{t('recipes.portionYieldHelp.example3')}</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                       <Input
                         id="portionYield"
                         type="number"

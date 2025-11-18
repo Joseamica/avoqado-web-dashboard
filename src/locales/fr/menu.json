@@ -70,6 +70,11 @@
     "title": "Produits",
     "new": "Nouveau produit",
     "imageAlt": "Produit",
+    "tabs": {
+      "details": "Détails",
+      "inventory": "Inventaire",
+      "modifiers": "Modificateurs"
+    },
     "columns": {
       "photo": "Photo",
       "name": "Nom",
@@ -79,16 +84,110 @@
       "modifierGroups": "Groupes Modificateurs",
       "updatedAt": "Dernière mise à jour"
     },
+    "actions": {
+      "adjustStock": "Ajuster le Stock",
+      "adjustStockDialog": {
+        "title": "Ajuster le Stock - {{productName}}",
+        "currentStock": "Stock Actuel",
+        "adjustment": "Ajustement",
+        "adjustmentPlaceholder": "Entrez le montant (+ ajouter, - retirer)",
+        "reason": "Raison",
+        "reasonPlaceholder": "Pourquoi ajustez-vous le stock?",
+        "reasons": {
+          "recount": "Recomptage physique",
+          "damage": "Endommagé/Avarié",
+          "theft": "Vol/Perte",
+          "correction": "Correction",
+          "receiving": "Réception de livraison",
+          "other": "Autre"
+        },
+        "newStock": "Nouveau Stock",
+        "notes": "Notes (facultatif)",
+        "notesPlaceholder": "Détails supplémentaires...",
+        "cancel": "Annuler",
+        "save": "Enregistrer l'Ajustement",
+        "saving": "Enregistrement..."
+      }
+    },
     "toasts": {
       "activated": "Produit activé",
       "deactivated": "Produit désactivé",
       "saved": "Les changements ont été enregistrés avec succès."
     },
+    "lowStock": {
+      "alert": "{{count}} produit a un stock bas",
+      "alert_other": "{{count}} produits ont un stock bas",
+      "viewDetails": "Voir les Détails",
+      "filterLabel": "Stock Bas Seulement",
+      "clearFilter": "Effacer le filtre",
+      "noLowStock": "Tous les produits sont bien stockés!"
+    },
     "create": {
       "title": "Nouveau produit"
     },
     "detail": {
-      "notFound": "Produit non trouvé"
+      "notFound": "Produit non trouvé",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer le produit",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer ce produit?",
+      "deleteConfirm": "Supprimer",
+      "duplicate": "Dupliquer",
+      "configureInventory": "Configurer l'inventaire",
+      "configureInventoryDesc": "Configurez le suivi des stocks et la gestion des recettes pour ce produit.",
+      "inventoryConfigured": "La configuration de l'inventaire a été mise à jour avec succès.",
+      "saving": "Enregistrement...",
+      "skuPlaceholder": "SKU (p.ex., TACO-001 ou Prod-abc123)",
+      "skuPattern": "Le SKU ne peut contenir que des lettres, des chiffres, des tirets et des traits de soulignement.",
+      "imageUnavailable": "Image non disponible",
+      "imageCouldNotLoad": "L'image n'a pas pu être chargée",
+      "inventory": {
+        "trackingMethod": "Suivi de l'Inventaire",
+        "noTracking": "Ne pas suivre l'inventaire",
+        "noTrackingDesc": "Aucune gestion des stocks pour ce produit",
+        "trackByQuantity": "Suivre par quantité",
+        "trackByQuantityDesc": "Comptage simple du stock (par ex., 50 unités en stock)",
+        "trackByRecipe": "Suivre par recette",
+        "trackByRecipeDesc": "Calculer la disponibilité à partir du stock d'ingrédients",
+        "currentStock": "Stock Actuel",
+        "currentStockPlaceholder": "0",
+        "currentStockHelp": "Combien d'unités vous avez actuellement",
+        "costPerUnit": "Coût Par Unité",
+        "costPerUnitPlaceholder": "0.00",
+        "costPerUnitHelp": "Combien vous coûte chaque unité",
+        "reorderPoint": "Point de Réapprovisionnement",
+        "reorderPointPlaceholder": "10",
+        "reorderPointHelp": "Recevez des alertes lorsque le stock tombe en dessous de ce nombre",
+        "unit": "Unité",
+        "unitPlaceholder": "unités, kg, L, etc.",
+        "unitHelp": "Comment vous mesurez ce produit (unités, kg, litres, etc.)",
+        "portionYield": "Portions par Recette",
+        "portionYieldPlaceholder": "1",
+        "portionYieldHelp": "Combien de portions cette recette produit",
+        "prepTime": "Temps de Préparation (minutes)",
+        "prepTimePlaceholder": "0",
+        "cookTime": "Temps de Cuisson (minutes)",
+        "cookTimePlaceholder": "0",
+        "recipeNotes": "Notes de Recette",
+        "recipeNotesPlaceholder": "Notes de préparation optionnelles...",
+        "ingredients": "Ingrédients",
+        "addIngredient": "Ajouter un Ingrédient",
+        "noIngredients": "Aucun ingrédient ajouté pour le moment. Ajoutez au moins un ingrédient pour le suivi basé sur les recettes.",
+        "ingredientName": "Ingrédient",
+        "ingredientQuantity": "Quantité",
+        "ingredientUnit": "Unité",
+        "ingredientCost": "Coût",
+        "removeIngredient": "Supprimer l'ingrédient"
+      },
+      "toasts": {
+        "saved": "Produit enregistré",
+        "savedDesc": "Les modifications ont été enregistrées avec succès.",
+        "saveError": "Erreur lors de l'enregistrement",
+        "saveErrorDesc": "Un problème est survenu lors de l'enregistrement des modifications.",
+        "imageDeleted": "Image supprimée",
+        "imageDeletedDesc": "L'image a été supprimée avec succès.",
+        "deleted": "Produit supprimé",
+        "deletedDesc": "Le produit a été supprimé avec succès."
+      }
     }
   },
   "createMenu": {

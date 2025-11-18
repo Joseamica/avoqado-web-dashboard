@@ -9,10 +9,13 @@ import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
 import { LoadingButton } from '@/components/loading-button'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
@@ -61,6 +64,10 @@ export default function ProductId() {
   const [imageError, setImageError] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
 
+  // State for inventory tracking
+  const [trackInventory, setTrackInventory] = useState<boolean>(false)
+  const [inventoryMethod, setInventoryMethod] = useState<'QUANTITY' | 'RECIPE' | null>(null)
+
   // Traemos la información del producto
   const { data, isLoading } = useQuery({
     queryKey: ['product', venueId, productId],
@@ -96,7 +103,7 @@ export default function ProductId() {
         console.warn('🗑️ Removed invalid modifier groups:', invalidIds)
       }
 
-      const payload = {
+      const payload: any = {
         name: formValues.name,
         description: formValues.description || undefined,
         price: Number(formValues.price),
@@ -105,7 +112,16 @@ export default function ProductId() {
         sku: formValues.sku,
         categoryId: formValues.categoryId,
         modifierGroupIds: validModifierIds, // Only send valid modifier groups
+        // Inventory tracking configuration
+        trackInventory: trackInventory,
+        inventoryMethod: trackInventory ? inventoryMethod : null,
       }
+
+      // Add unit if tracking inventory
+      if (trackInventory && formValues.unit) {
+        payload.unit = formValues.unit
+      }
+
       console.log('📦 Saving product with payload:', payload)
       return await updateProduct(venueId!, productId!, payload)
     },
@@ -161,6 +177,13 @@ export default function ProductId() {
       imageUrl: '',
       categoryId: '',
       modifierGroups: [],
+      // Inventory fields
+      trackInventory: false,
+      inventoryMethod: null as 'QUANTITY' | 'RECIPE' | null,
+      unit: '',
+      currentStock: '',
+      costPerUnit: '',
+      reorderPoint: '10',
     },
   })
 
@@ -188,6 +211,17 @@ export default function ProductId() {
     setImageError(false)
   }, [data?.imageUrl])
 
+  // Mark form as dirty when inventory tracking changes
+  useEffect(() => {
+    if (data) {
+      const hasChanged = trackInventory !== (data.trackInventory || false) || inventoryMethod !== (data.inventoryMethod || null)
+      if (hasChanged) {
+        form.setValue('trackInventory', trackInventory, { shouldDirty: true })
+        form.setValue('inventoryMethod', inventoryMethod, { shouldDirty: true })
+      }
+    }
+  }, [trackInventory, inventoryMethod, data, form])
+
   // Sincronizar datos del producto con el formulario cuando carguen
   useEffect(() => {
     // Only proceed if we have both product data AND categories loaded
@@ -205,6 +239,12 @@ export default function ProductId() {
 
     const categoryId = data.categoryId ?? data.category?.id ?? ''
 
+    // Sync inventory state
+    const hasInventory = data.trackInventory || false
+    const method = data.inventoryMethod || null
+    setTrackInventory(hasInventory)
+    setInventoryMethod(method)
+
     form.reset({
       sku: data.sku || '',
       name: data.name || '',
@@ -214,6 +254,13 @@ export default function ProductId() {
       imageUrl: data.imageUrl || '',
       categoryId: categoryId,
       modifierGroups: mappedModifierGroups,
+      // Inventory fields
+      trackInventory: hasInventory,
+      inventoryMethod: method,
+      unit: data.unit || '',
+      currentStock: data.inventory?.currentStock?.toString() || '',
+      costPerUnit: data.inventory?.costPerUnit?.toString() || '',
+      reorderPoint: data.inventory?.reorderPoint?.toString() || '10',
     })
   }, [data, categories, form])
 
@@ -285,7 +332,17 @@ export default function ProductId() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 pb-20 ">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 pb-20">
+          {/* ✅ TOAST POS PATTERN: Tabs for Details, Inventory, Modifiers */}
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="w-full justify-start mb-6">
+              <TabsTrigger value="details">{t('products.tabs.details')}</TabsTrigger>
+              <TabsTrigger value="inventory">{t('products.tabs.inventory')}</TabsTrigger>
+              <TabsTrigger value="modifiers">{t('products.tabs.modifiers')}</TabsTrigger>
+            </TabsList>
+
+            {/* Details Tab */}
+            <TabsContent value="details" className="space-y-6">
           <FormField
             control={form.control}
             name="sku"
@@ -631,6 +688,149 @@ export default function ProductId() {
               </FormItem>
             )}
           />
+            </TabsContent>
+
+            {/* Inventory Tab */}
+            <TabsContent value="inventory" className="space-y-6">
+              {/* ✅ TOAST POS PATTERN: Progressive disclosure - radio group with conditional fields */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('products.detail.inventory.trackingMethod')}</Label>
+                  <RadioGroup
+                    value={trackInventory ? (inventoryMethod || 'QUANTITY') : 'none'}
+                    onValueChange={(value) => {
+                      if (value === 'none') {
+                        setTrackInventory(false)
+                        setInventoryMethod(null)
+                      } else {
+                        setTrackInventory(true)
+                        setInventoryMethod(value as 'QUANTITY' | 'RECIPE')
+                      }
+                    }}
+                  >
+                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="none" id="no-tracking" />
+                      <Label htmlFor="no-tracking" className="flex-1 cursor-pointer">
+                        <div>
+                          <p className="font-medium">{t('products.detail.inventory.noTracking')}</p>
+                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.noTrackingDesc')}</p>
+                        </div>
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="QUANTITY" id="track-quantity" />
+                      <Label htmlFor="track-quantity" className="flex-1 cursor-pointer">
+                        <div>
+                          <p className="font-medium">{t('products.detail.inventory.trackByQuantity')}</p>
+                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByQuantityDesc')}</p>
+                        </div>
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="RECIPE" id="track-recipe" />
+                      <Label htmlFor="track-recipe" className="flex-1 cursor-pointer">
+                        <div>
+                          <p className="font-medium">{t('products.detail.inventory.trackByRecipe')}</p>
+                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByRecipeDesc')}</p>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* ✅ PROGRESSIVE DISCLOSURE: Show quantity fields only when tracking by quantity */}
+                {trackInventory && inventoryMethod === 'QUANTITY' && (
+                  <div className="space-y-4 pl-4 border-l-2 border-primary">
+                    <FormField
+                      control={form.control}
+                      name="unit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('products.detail.inventory.unit')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('products.detail.inventory.unitPlaceholder')} className="max-w-96" {...field} />
+                          </FormControl>
+                          <FormDescription>{t('products.detail.inventory.unitHelp')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="currentStock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('products.detail.inventory.currentStock')}</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" placeholder={t('products.detail.inventory.currentStockPlaceholder')} className="max-w-96" {...field} />
+                          </FormControl>
+                          <FormDescription>{t('products.detail.inventory.currentStockHelp')}</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4 max-w-96">
+                      <FormField
+                        control={form.control}
+                        name="costPerUnit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('products.detail.inventory.costPerUnit')}</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" placeholder={t('products.detail.inventory.costPerUnitPlaceholder')} {...field} />
+                            </FormControl>
+                            <FormDescription className="text-xs">{t('products.detail.inventory.costPerUnitHelp')}</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="reorderPoint"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('products.detail.inventory.reorderPoint')}</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="1" placeholder={t('products.detail.inventory.reorderPointPlaceholder')} {...field} />
+                            </FormControl>
+                            <FormDescription className="text-xs">{t('products.detail.inventory.reorderPointHelp')}</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ✅ PROGRESSIVE DISCLOSURE: Show recipe message when tracking by recipe */}
+                {trackInventory && inventoryMethod === 'RECIPE' && (
+                  <div className="pl-4 border-l-2 border-primary">
+                    <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800">
+                      <p className="text-sm text-orange-800 dark:text-orange-200">
+                        {t('products.detail.inventory.noIngredients')}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-3 border-primary text-primary hover:bg-primary/10"
+                        onClick={() => setWizardOpen(true)}
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        {t('products.detail.inventory.addIngredient')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Modifiers Tab */}
+            <TabsContent value="modifiers" className="space-y-6">
           <FormField
             control={form.control}
             name="modifierGroups"
@@ -649,6 +849,8 @@ export default function ProductId() {
               </FormItem>
             )}
           />
+            </TabsContent>
+          </Tabs>
         </form>
       </Form>
 

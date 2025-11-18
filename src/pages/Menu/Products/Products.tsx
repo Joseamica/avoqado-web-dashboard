@@ -1,14 +1,16 @@
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
+import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle } from 'lucide-react'
+import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -36,6 +38,7 @@ import { Currency } from '@/utils/currency'
 import { PermissionGate } from '@/components/PermissionGate'
 import { InventoryBadge } from '@/components/inventory/InventoryBadge'
 import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
+import { AdjustStockDialog } from '@/components/AdjustStockDialog'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 
 export default function Products() {
@@ -56,6 +59,9 @@ export default function Products() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
+  const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
+  const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
   const { data: products, isLoading } = useQuery({
@@ -74,6 +80,37 @@ export default function Products() {
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     },
   })
+
+  // ✅ SQUARE POS PATTERN: Calculate low stock items (memoized for performance)
+  const lowStockProducts = useMemo(() => {
+    if (!products) return []
+
+    return products.filter(product => {
+      // Only check products with inventory tracking
+      if (!product.trackInventory || !product.inventoryMethod) return false
+
+      // For QUANTITY method: check against reorder point
+      if (product.inventoryMethod === 'QUANTITY') {
+        const currentStock = Number(product.inventory?.currentStock ?? 0)
+        const reorderPoint = Number(product.inventory?.reorderPoint ?? 10)
+        return currentStock <= reorderPoint
+      }
+
+      // For RECIPE method: check availableQuantity (calculated from ingredients)
+      if (product.inventoryMethod === 'RECIPE') {
+        const availableQuantity = product.availableQuantity ?? 0
+        return availableQuantity <= 5 // Low if can make 5 or fewer portions
+      }
+
+      return false
+    })
+  }, [products])
+
+  // ✅ Filter products based on low stock toggle
+  const filteredProducts = useMemo(() => {
+    if (!showLowStockOnly || !products) return products
+    return lowStockProducts
+  }, [showLowStockOnly, products, lowStockProducts])
 
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
@@ -129,6 +166,33 @@ export default function Products() {
       toast({
         title: t('common.error'),
         description: t('products.detail.toasts.saveErrorDesc'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const adjustStockMutation = useMutation({
+    mutationFn: async ({ productId, adjustment, reason, notes }: { productId: string; adjustment: number; reason: string; notes: string }) => {
+      const payload: AdjustInventoryStockDto = {
+        type: 'ADJUSTMENT',
+        quantity: adjustment,
+        reason: `${reason}${notes ? ` - ${notes}` : ''}`,
+      }
+      return await productInventoryApi.adjustStock(venueId!, productId, payload)
+    },
+    onSuccess: () => {
+      setAdjustStockDialogOpen(false)
+      setProductToAdjust(null)
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+      toast({
+        title: t('products.toasts.saved'),
+        description: 'Stock adjusted successfully',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common.error'),
+        description: error.response?.data?.message || 'Failed to adjust stock',
         variant: 'destructive',
       })
     },
@@ -315,6 +379,22 @@ export default function Products() {
                   {t('common.edit')}
                 </DropdownMenuItem>
               </PermissionGate>
+              {/* ✅ TOAST POS PATTERN: Quick stock adjustment from product list */}
+              {product.trackInventory && product.inventoryMethod === 'QUANTITY' && (
+                <PermissionGate permission="menu:update">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setProductToAdjust(product)
+                      setAdjustStockDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Package2 className="mr-2 h-4 w-4" />
+                    {t('products.actions.adjustStock')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+              )}
               <PermissionGate permission="menu:delete">
                 <DropdownMenuItem
                   onClick={e => {
@@ -389,9 +469,41 @@ export default function Products() {
         </PermissionGate>
       </div>
 
+      {/* ✅ SQUARE POS PATTERN: Low stock alert banner */}
+      {lowStockProducts.length > 0 && !showLowStockOnly && (
+        <Alert className="mb-4 border-orange-200 bg-orange-50 dark:bg-orange-950/50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-orange-800 dark:text-orange-200">
+              {t('products.lowStock.alert', { count: lowStockProducts.length })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLowStockOnly(true)}
+              className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
+            >
+              {t('products.lowStock.viewDetails')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* ✅ Active filter indicator */}
+      {showLowStockOnly && (
+        <div className="mb-4 flex items-center gap-2">
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            {t('products.lowStock.filterLabel')}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={() => setShowLowStockOnly(false)}>
+            {t('products.lowStock.clearFilter')}
+          </Button>
+        </div>
+      )}
+
       <DataTable
-        data={products || []}
-        rowCount={products?.length}
+        data={filteredProducts || []}
+        rowCount={filteredProducts?.length}
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
@@ -432,6 +544,24 @@ export default function Products() {
         product={selectedProduct}
         open={isInventoryModalOpen}
         onOpenChange={setIsInventoryModalOpen}
+      />
+
+      {/* ✅ TOAST POS PATTERN: Quick stock adjustment dialog */}
+      <AdjustStockDialog
+        open={adjustStockDialogOpen}
+        onOpenChange={setAdjustStockDialogOpen}
+        product={productToAdjust}
+        onConfirm={(adjustment, reason, notes) => {
+          if (productToAdjust) {
+            adjustStockMutation.mutate({
+              productId: productToAdjust.id,
+              adjustment,
+              reason,
+              notes,
+            })
+          }
+        }}
+        isLoading={adjustStockMutation.isPending}
       />
     </div>
   )

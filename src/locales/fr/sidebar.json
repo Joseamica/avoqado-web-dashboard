@@ -33,8 +33,8 @@
   },
   "routes": {
     "home": "Accueil",
-    "menu": "Menu",
-    "menumaker": "Menu",
+    "menu": "Produits",
+    "menumaker": "Produits",
     "overview": "Aperçu",
     "inventory": "Inventaire",
     "payments": "Paiements",
