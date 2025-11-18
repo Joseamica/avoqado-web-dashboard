@@ -532,6 +532,26 @@
       "useInventory": "Rastrear Inventario",
       "useInventoryDesc": "Rastrea niveles de stock y costos",
       "inventoryMethodQuestion": "¿Cómo deseas rastrear el inventario?",
+      "inventoryMethodHelp": {
+        "title": "Eligiendo tu Método de Seguimiento",
+        "description": "Esta decisión afecta cómo se gestiona el inventario y se calculan los costos.",
+        "quantity": {
+          "title": "Seguimiento de Cantidad",
+          "when": "Usar cuando:",
+          "example1": "Vendes productos terminados (artículos de retail, productos pre-empacados)",
+          "example2": "Compras y vendes exactamente el mismo artículo",
+          "example3": "No hay receta o preparación involucrada",
+          "note": "El stock se cuenta directamente. Cada venta deduce 1 unidad."
+        },
+        "recipe": {
+          "title": "Seguimiento Basado en Recetas",
+          "when": "Usar cuando:",
+          "example1": "Elaboras productos a partir de ingredientes (comida, bebidas)",
+          "example2": "Necesitas rastrear costos de ingredientes y porciones",
+          "example3": "Quieres cálculo automático de stock basado en ingredientes disponibles",
+          "note": "El sistema calcula porciones disponibles a partir del stock de ingredientes."
+        }
+      },
       "quantityTracking": "Seguimiento de Cantidad",
       "quantityTrackingDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
       "recipeBased": "Basado en Recetas",

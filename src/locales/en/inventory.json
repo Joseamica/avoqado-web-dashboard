@@ -532,6 +532,26 @@
       "useInventory": "Track Inventory",
       "useInventoryDesc": "Track stock levels and costs",
       "inventoryMethodQuestion": "How do you want to track inventory?",
+      "inventoryMethodHelp": {
+        "title": "Choosing Your Tracking Method",
+        "description": "This decision affects how inventory is managed and costs are calculated.",
+        "quantity": {
+          "title": "Quantity Tracking",
+          "when": "Use when:",
+          "example1": "Selling finished products (retail items, pre-packaged goods)",
+          "example2": "You buy and sell the exact same item",
+          "example3": "No recipe or preparation involved",
+          "note": "Stock is counted directly. Each sale deducts 1 unit."
+        },
+        "recipe": {
+          "title": "Recipe-Based Tracking",
+          "when": "Use when:",
+          "example1": "Making products from ingredients (food, beverages)",
+          "example2": "Need to track ingredient costs and portions",
+          "example3": "Want automatic stock calculation based on available ingredients",
+          "note": "System calculates available portions from ingredient stock."
+        }
+      },
       "quantityTracking": "Quantity Tracking",
       "quantityTrackingDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
       "recipeBased": "Recipe-Based",

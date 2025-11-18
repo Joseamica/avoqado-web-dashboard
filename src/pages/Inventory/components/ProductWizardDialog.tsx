@@ -1026,7 +1026,54 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               {/* Inventory Method Selection (conditional) */}
               {step2Form.watch('useInventory') && (
                 <div className="space-y-4 pl-4 border-l-2 border-primary">
-                  <Label>{t('wizard.step2.inventoryMethodQuestion')}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label>{t('wizard.step2.inventoryMethodQuestion')}</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md" side="right">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-semibold">{t('wizard.step2.inventoryMethodHelp.title')}</p>
+                              <p className="text-sm text-muted-foreground mt-1">{t('wizard.step2.inventoryMethodHelp.description')}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="bg-green-50 dark:bg-green-950/30 p-2 rounded-md border border-green-200 dark:border-green-800">
+                                <p className="font-medium text-sm text-green-900 dark:text-green-100 flex items-center gap-2">
+                                  <Package className="h-4 w-4" />
+                                  {t('wizard.step2.inventoryMethodHelp.quantity.title')}
+                                </p>
+                                <p className="text-xs font-medium mt-1">{t('wizard.step2.inventoryMethodHelp.quantity.when')}</p>
+                                <ul className="list-disc list-inside space-y-0.5 mt-1 text-xs">
+                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example1')}</li>
+                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example2')}</li>
+                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example3')}</li>
+                                </ul>
+                                <p className="text-xs italic mt-1 text-muted-foreground">{t('wizard.step2.inventoryMethodHelp.quantity.note')}</p>
+                              </div>
+
+                              <div className="bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md border border-orange-200 dark:border-orange-800">
+                                <p className="font-medium text-sm text-orange-900 dark:text-orange-100 flex items-center gap-2">
+                                  <Beef className="h-4 w-4" />
+                                  {t('wizard.step2.inventoryMethodHelp.recipe.title')}
+                                </p>
+                                <p className="text-xs font-medium mt-1">{t('wizard.step2.inventoryMethodHelp.recipe.when')}</p>
+                                <ul className="list-disc list-inside space-y-0.5 mt-1 text-xs">
+                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example1')}</li>
+                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example2')}</li>
+                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example3')}</li>
+                                </ul>
+                                <p className="text-xs italic mt-1 text-muted-foreground">{t('wizard.step2.inventoryMethodHelp.recipe.note')}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
 
                   <RadioGroup
                     value={step2Form.watch('inventoryMethod') || undefined}

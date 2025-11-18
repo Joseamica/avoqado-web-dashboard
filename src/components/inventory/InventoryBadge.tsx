@@ -31,11 +31,13 @@ interface InventoryBadgeProps {
  */
 export function InventoryBadge({ product, onClick, className, size = 'default' }: InventoryBadgeProps) {
   // Don't show badge if inventory tracking is disabled
-  if (!product.trackInventory || product.availableQuantity === null || product.availableQuantity === undefined) {
+  if (!product.trackInventory) {
     return null
   }
 
-  const quantity = product.availableQuantity
+  // For products with inventory tracking, treat null/undefined as 0
+  // This happens when RECIPE products don't have ingredients configured yet
+  const quantity = product.availableQuantity ?? 0
   const isClickable = !!onClick
 
   // Determine badge styling based on stock level
