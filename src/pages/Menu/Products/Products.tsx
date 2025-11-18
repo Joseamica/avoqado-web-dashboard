@@ -64,9 +64,15 @@ export default function Products() {
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
+    // ✅ FIX: Reduce staleTime to keep inventory data fresh
+    // Especially important for RECIPE products where availableQuantity
+    // can change when ingredient stock updates
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every minute as backup
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   })
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
@@ -121,8 +127,13 @@ export default function Products() {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['products', venueId] })
 
-      // Snapshot the previous value
+      // Snapshot the previous value and timestamp
       const previousProducts = queryClient.getQueryData<Product[]>(['products', venueId])
+      const timestamp = Date.now()
+
+      // Find the specific product to check its current state
+      const targetProduct = previousProducts?.find(p => p.id === productId)
+      const previousActiveState = targetProduct?.active
 
       // Optimistically update the cache
       queryClient.setQueryData<Product[]>(['products', venueId], old => {
@@ -130,16 +141,37 @@ export default function Products() {
         return old.map(product => (product.id === productId ? { ...product, active: status } : product))
       })
 
-      // Return a context object with the snapshotted value
-      return { previousProducts }
+      // Return context with snapshot, timestamp, and previous state
+      return { previousProducts, timestamp, productId, previousActiveState }
     },
-    onError: (_, __, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousProducts) {
-        queryClient.setQueryData(['products', venueId], context.previousProducts)
+    onError: (error, variables, context) => {
+      // ✅ FIX: Instead of blind rollback, invalidate queries to get fresh server state
+      // This prevents restoring incorrect state if someone else modified it
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+
+      // Show error toast with more context
+      toast({
+        title: t('common.error'),
+        description: 'Failed to update product status. Please try again.',
+        variant: 'destructive',
+      })
+    },
+    onSuccess: (data, variables, context) => {
+      // Verify the operation completed successfully by checking current state
+      const currentProducts = queryClient.getQueryData<Product[]>(['products', venueId])
+      const currentProduct = currentProducts?.find(p => p.id === variables.productId)
+
+      // If current state doesn't match what we expect, show warning
+      if (currentProduct && currentProduct.active !== variables.status) {
+        toast({
+          title: t('common.warning'),
+          description: 'Product status may have been modified by another user. Refreshing data...',
+          variant: 'default',
+        })
+        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        return
       }
-    },
-    onSuccess: data => {
+
       toast({
         title: data.status ? t('products.toasts.activated') : t('products.toasts.deactivated'),
         description: t('products.toasts.saved'),

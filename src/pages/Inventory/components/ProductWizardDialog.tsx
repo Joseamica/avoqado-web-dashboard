@@ -259,6 +259,14 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         throw new Error('Product ID is required')
       }
 
+      // ✅ FIX: First update product with trackInventory + inventoryMethod
+      // This ensures atomic commit of all changes together
+      await api.put(`/api/v1/dashboard/venues/${venueId}/products/${createdProductId}`, {
+        trackInventory: true,
+        inventoryMethod: data.inventoryMethod,
+      })
+
+      // Then configure the inventory details
       if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
         return productWizardApi.configureSimpleStock(venueId, createdProductId, data.simpleStock)
       } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
@@ -554,45 +562,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // If using inventory, set method and move to Step 3
     if (data.inventoryMethod) {
       setSelectedInventoryMethod(data.inventoryMethod)
-
-      // ✅ FIX: In edit mode, save trackInventory + inventoryMethod to backend immediately
-      // This ensures the change is persisted even if user doesn't complete Step 3
-      if (mode === 'edit' && productId) {
-        console.log('🔧 Saving inventory config:', {
-          trackInventory: true,
-          inventoryMethod: data.inventoryMethod,
-          productId,
-          venueId,
-        })
-
-        api
-          .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
-            trackInventory: true,
-            inventoryMethod: data.inventoryMethod,
-          })
-          .then(response => {
-            console.log('✅ Inventory config saved successfully:', response.data)
-
-            queryClient.invalidateQueries({ queryKey: ['products', venueId] })
-            queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
-            queryClient.invalidateQueries({ queryKey: ['product-wizard-progress', venueId, productId] })
-
-            // Move to Step 3 after successful save
-            setCurrentStep(3)
-          })
-          .catch((error: any) => {
-            console.error('❌ Failed to save inventory config:', error)
-            toast({
-              title: t('common.error'),
-              description: error.response?.data?.message || 'Failed to enable inventory tracking',
-              variant: 'destructive',
-            })
-          })
-        return
-      }
     }
 
-    // In create mode, just move to Step 3 (will save on completion)
+    // ✅ FIX: Don't save to backend yet - keep in local state
+    // All changes will be committed atomically when user completes Step 3
+    // This prevents inconsistent state if user abandons the wizard
     setCurrentStep(3)
   }
 

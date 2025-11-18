@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, AlertTriangle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
 import type { Product } from '@/types'
@@ -29,6 +29,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatUnitWithQuantity } = useUnitTranslation()
+  const [showLargeAdjustmentConfirm, setShowLargeAdjustmentConfirm] = useState(false)
 
   const {
     register,
@@ -58,6 +59,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
         reason: '',
         reference: '',
       })
+      setShowLargeAdjustmentConfirm(false)
     }
   }, [open, reset])
 
@@ -84,6 +86,14 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   })
 
   const onSubmit = (data: AdjustInventoryStockDto) => {
+    // Check for large adjustment confirmation
+    const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > (currentStock * 0.5)
+
+    if (isLargeAdjustment && !showLargeAdjustmentConfirm) {
+      setShowLargeAdjustmentConfirm(true)
+      return
+    }
+
     adjustStockMutation.mutate(data)
   }
 
@@ -93,6 +103,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const currentStock = Number(product.inventory.currentStock)
   const newStock = currentStock + (quantity || 0)
   const isNegativeStock = newStock < 0
+  const isLargeAdjustment = currentStock > 0 && Math.abs(quantity || 0) > (currentStock * 0.5)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,7 +159,10 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setValue('quantity', Number(((quantity || 0) - 1).toFixed(2)))}
+                onClick={() => {
+                  setValue('quantity', Number(((quantity || 0) - 1).toFixed(2)))
+                  setShowLargeAdjustmentConfirm(false)
+                }}
               >
                 -
               </Button>
@@ -157,14 +171,21 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
                 type="number"
                 step="0.01"
                 placeholder="0"
-                {...register('quantity', { required: true, valueAsNumber: true })}
+                {...register('quantity', {
+                  required: true,
+                  valueAsNumber: true,
+                  onChange: () => setShowLargeAdjustmentConfirm(false)
+                })}
                 className="flex-1 text-center"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setValue('quantity', Number(((quantity || 0) + 1).toFixed(2)))}
+                onClick={() => {
+                  setValue('quantity', Number(((quantity || 0) + 1).toFixed(2)))
+                  setShowLargeAdjustmentConfirm(false)
+                }}
               >
                 +
               </Button>
@@ -180,7 +201,30 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
           {isNegativeStock && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>This adjustment will result in negative stock. Stock cannot be negative.</AlertDescription>
+              <AlertDescription>
+                Cannot reduce stock below 0. Current stock is {currentStock.toFixed(2)} {formatUnitWithQuantity(currentStock, unitKey)}.
+                Minimum adjustment: {(-currentStock).toFixed(2)}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Large Adjustment Warning */}
+          {isLargeAdjustment && !isNegativeStock && (
+            <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/50">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800 dark:text-orange-200">
+                {showLargeAdjustmentConfirm ? (
+                  <>
+                    <strong>Confirm large adjustment:</strong> This will change stock by {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
+                    ({(Math.abs(quantity || 0) / currentStock * 100).toFixed(0)}% of current stock). Click Save again to confirm.
+                  </>
+                ) : (
+                  <>
+                    <strong>Warning:</strong> This is a large adjustment ({(Math.abs(quantity || 0) / currentStock * 100).toFixed(0)}% of current stock).
+                    Please verify the amount is correct.
+                  </>
+                )}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -202,7 +246,11 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             </Button>
             <Button type="submit" disabled={adjustStockMutation.isPending || isNegativeStock}>
               {adjustStockMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('save')}
+              {showLargeAdjustmentConfirm && isLargeAdjustment && !isNegativeStock
+                ? 'Confirm & Save'
+                : adjustStockMutation.isPending
+                ? t('common.saving')
+                : t('save')}
             </Button>
           </DialogFooter>
         </form>
