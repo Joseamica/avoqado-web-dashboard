@@ -12,6 +12,8 @@ import { clearAllChatStorage } from '@/services/chatService'
 import { useToast } from '@/hooks/use-toast'
 import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
 import { useAuth } from '@/context/AuthContext'
+import { liveDemoAutoLogin, isLiveDemoEnvironment } from '@/services/liveDemo.service'
+import { useNavigate } from 'react-router-dom'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
@@ -19,9 +21,30 @@ const Login: React.FC = () => {
   const [searchParams] = useSearchParams()
   const [isRedirecting, setIsRedirecting] = useState(false)
   const { isAuthenticated, loginWithOneTap } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     clearAllChatStorage()
+
+    // 🎭 Auto-login for live demo environment
+    if (isLiveDemoEnvironment()) {
+      setIsRedirecting(true)
+      liveDemoAutoLogin()
+        .then(() => {
+          // Redirect to dashboard after successful auto-login
+          window.location.href = '/'
+        })
+        .catch((error) => {
+          console.error('Live demo auto-login failed:', error)
+          setIsRedirecting(false)
+          toast({
+            title: 'Demo Error',
+            description: 'Failed to initialize demo session. Please try again.',
+            variant: 'destructive',
+          })
+        })
+      return // Exit early, don't run other login logic
+    }
 
     // Check if user just verified their email
     const verified = searchParams.get('verified')
@@ -41,7 +64,7 @@ const Login: React.FC = () => {
       // Redirect to the invitation page
       window.location.href = pendingInvitationUrl
     }
-  }, [searchParams, toast, t])
+  }, [searchParams, toast, t, navigate])
 
   // Initialize Google One Tap
   useGoogleOneTap({
