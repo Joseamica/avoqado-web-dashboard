@@ -59,13 +59,13 @@ export function InventoryBadge({ product, onClick, className, size = 'default' }
       // Orange - Low stock (configurable threshold)
       return {
         variant: 'secondary' as const,
-        className: 'bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700',
+        className: 'bg-orange-500 text-primary-foreground hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700',
       }
     }
     // Green - Normal stock
     return {
       variant: 'secondary' as const,
-      className: 'bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700',
+      className: 'bg-green-500 text-primary-foreground hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700',
     }
   }
 
