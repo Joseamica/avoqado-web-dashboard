@@ -27,7 +27,6 @@ export default function ModifierGroupId() {
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const [createModifier, setCreateModifier] = useState(false)
   const [editingModifierId, setEditingModifierId] = useState<string | null>(null)
   const [isCreateModifierSheetOpen, setIsCreateModifierSheetOpen] = useState(false)
 
@@ -40,7 +39,6 @@ export default function ModifierGroupId() {
       console.log('Fetching modifier group:', { venueId, modifierGroupId })
       try {
         const result = await getModifierGroup(venueId!, modifierGroupId!)
-        console.log('Modifier group result:', result)
         return result
       } catch (err) {
         console.error('Error fetching modifier group:', err)
@@ -219,10 +217,7 @@ export default function ModifierGroupId() {
               order: idx,
             }
           })
-          .filter(
-            (modifier): modifier is { name: string; price: number; active: boolean; order: number } =>
-              modifier !== null,
-          ) || []
+          .filter((modifier): modifier is { name: string; price: number; active: boolean; order: number } => modifier !== null) || []
 
       // Create the payload with both processed arrays
       const payload = {
@@ -247,7 +242,9 @@ export default function ModifierGroupId() {
           {isError ? t('modifiers.detail.errorFetching') : t('modifiers.detail.noData')}
         </div>
         {error && (
-          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-4">{error instanceof Error ? error.message : t('modifiers.detail.unknownError')}</div>
+          <div className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-4">
+            {error instanceof Error ? error.message : t('modifiers.detail.unknownError')}
+          </div>
         )}
         <div className="mt-4">
           <Link to={from} className="text-primary hover:underline">
@@ -306,134 +303,57 @@ export default function ModifierGroupId() {
         </SheetContent>
       </Sheet>
 
-      {editingModifierId ? (
-        <EditModifier
-          venueId={venueId}
-          modifierId={editingModifierId}
-          modifierGroupId={modifierGroupId}
-          onBack={() => setEditingModifierId(null)}
-          onSuccess={() => {
-            setEditingModifierId(null)
-            queryClient.invalidateQueries({ queryKey: ['modifier-group', modifierGroupId, venueId] })
-          }}
-          initialValues={{
-            name: data.modifiers.find(m => m.id === editingModifierId)?.name || '',
-            price: data.modifiers.find(m => m.id === editingModifierId)?.price || 0,
-            active: data.modifiers.find(m => m.id === editingModifierId)?.active ?? true,
-          }}
-        />
-      ) : createModifier ? (
-        <CreateModifier
-          venueId={venueId || ''}
-          modifierGroupId={modifierGroupId || ''}
-          onBack={() => setCreateModifier(false)}
-          onSuccess={() => {
-            setCreateModifier(false)
-            queryClient.invalidateQueries({ queryKey: ['modifier-group', modifierGroupId, venueId] })
-          }}
-        />
-      ) : (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">{t('modifiers.detail.groupInformation')}</h3>
-              <FormField
-                control={form.control}
-                name="groupName"
-                defaultValue={typeof data.name === 'string' ? data.name : ''}
-                rules={{
-                  required: { value: true, message: t('modifiers.detail.nameRequired') },
+      {/* Sheet for editing an existing modifier */}
+      <Sheet open={!!editingModifierId} onOpenChange={open => !open && setEditingModifierId(null)}>
+        <SheetContent className="sm:max-w-md md:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{t('modifiers.editModifier.title')}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {editingModifierId && data?.modifiers && (
+              <EditModifier
+                venueId={venueId}
+                modifierId={editingModifierId}
+                modifierGroupId={modifierGroupId}
+                onBack={() => setEditingModifierId(null)}
+                onSuccess={() => {
+                  setEditingModifierId(null)
+                  queryClient.invalidateQueries({ queryKey: ['modifier-group', modifierGroupId, venueId] })
                 }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('modifiers.detail.groupName')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('modifiers.detail.groupNamePlaceholder')}
-                        value={typeof field.value === 'string' ? field.value : ''}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                        className="max-w-96"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                initialValues={{
+                  name: data.modifiers.find(m => m.id === editingModifierId)?.name || '',
+                  price: data.modifiers.find(m => m.id === editingModifierId)?.price || 0,
+                  active: data.modifiers.find(m => m.id === editingModifierId)?.active ?? true,
+                }}
               />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
-              <FormField
-                control={form.control}
-                name="description"
-                defaultValue={typeof data.description === 'string' ? data.description : ''}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.description')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('modifiers.detail.descriptionPlaceholder')}
-                        name={field.name}
-                        value={typeof field.value === 'string' ? field.value : ''}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                        disabled={field.disabled}
-                        className="max-w-96"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Separator className="my-6" />
-
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{t('modifiers.detail.groupInformation')}</h3>
             <FormField
               control={form.control}
-              name="modifiers"
+              name="groupName"
+              defaultValue={typeof data.name === 'string' ? data.name : ''}
+              rules={{
+                required: { value: true, message: t('modifiers.detail.nameRequired') },
+              }}
               render={({ field }) => (
-                <FormItem className="mt-4">
-                  <div className="flex items-center gap-2">
-                    <FormLabel>{t('modifiers.detail.assignModifiers')}</FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger className="rounded-full border bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold">
-                          ?
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('modifiers.detail.modifierTooltip')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                <FormItem>
+                  <FormLabel>{t('modifiers.detail.groupName')}</FormLabel>
                   <FormControl>
-                    <DnDMultipleSelector
-                      showAddItemText={true}
-                      itemName={t('modifiers.detail.modifierItem')}
-                      // showViewIcon={true}
-                      onViewOption={option => {
-                        if (option.value === '_new') {
-                          // Handle "Add new modifier" click - show sheet instead of navigating
-                          setIsCreateModifierSheetOpen(true)
-                        } else {
-                          // Handle view existing modifier click
-                          navigate(`/venues/${venueId}/menumaker/modifier-groups/${option.value}`)
-                        }
-                      }}
-                      placeholder={t('modifiers.detail.selectModifiersPlaceholder')}
-                      options={
-                        allModifiers
-                          ? allModifiers.map(modifier => ({
-                              label: modifier.name,
-                              value: modifier.id,
-                              disabled: false,
-                            }))
-                          : []
-                      }
-                      value={field.value || []}
+                    <Input
+                      placeholder={t('modifiers.detail.groupNamePlaceholder')}
+                      value={typeof field.value === 'string' ? field.value : ''}
                       onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className="max-w-96"
                     />
                   </FormControl>
                   <FormMessage />
@@ -441,61 +361,138 @@ export default function ModifierGroupId() {
               )}
             />
 
-            <Separator className="my-6" />
-
             <FormField
               control={form.control}
-              name="avoqadoProduct"
+              name="description"
+              defaultValue={typeof data.description === 'string' ? data.description : ''}
               render={({ field }) => (
-                <FormItem className="mt-4">
-                  <div className="flex items-center gap-2">
-                    <FormLabel>{t('modifiers.detail.assignProducts')}</FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger className="rounded-full bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold border">
-                          ?
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('modifiers.detail.productTooltip')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                <FormItem>
+                  <FormLabel>{t('forms.description')}</FormLabel>
                   <FormControl>
-                    <DnDMultipleSelector
-                      showViewIcon={true}
-                      showAddItemText={true}
-                      itemName={t('modifiers.detail.productItem')}
-                      onViewOption={option => {
-                        if (option.value === '_new') {
-                          // Handle "Add new product" click
-                          navigate(`/venues/${venueId}/menumaker/products/create`)
-                        } else {
-                          // Handle view existing product click
-                          navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
-                        }
-                      }}
-                      placeholder={t('modifiers.detail.selectProductsPlaceholder')}
-                      options={
-                        allProducts
-                          ? allProducts.map(product => ({
-                              label: product.name,
-                              value: product.id,
-                              disabled: false,
-                            }))
-                          : []
-                      }
-                      value={field.value || []}
+                    <Input
+                      placeholder={t('modifiers.detail.descriptionPlaceholder')}
+                      name={field.name}
+                      value={typeof field.value === 'string' ? field.value : ''}
                       onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      disabled={field.disabled}
+                      className="max-w-96"
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </form>
-        </Form>
-      )}
+          </div>
+
+          <Separator className="my-6" />
+
+          <FormField
+            control={form.control}
+            name="modifiers"
+            render={({ field }) => (
+              <FormItem className="mt-4">
+                <div className="flex items-center gap-2">
+                  <FormLabel>{t('modifiers.detail.assignModifiers')}</FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="rounded-full border bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold">
+                        ?
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('modifiers.detail.modifierTooltip')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <FormControl>
+                  <DnDMultipleSelector
+                    showAddItemText={true}
+                    showViewIcon={true}
+                    itemName={t('modifiers.detail.modifierItem')}
+                    onViewOption={option => {
+                      if (option.value === '_new') {
+                        // Handle "Add new modifier" click - show sheet
+                        setIsCreateModifierSheetOpen(true)
+                      } else {
+                        // Handle edit existing modifier click - open sheet to edit this specific modifier
+                        setEditingModifierId(option.value)
+                      }
+                    }}
+                    placeholder={t('modifiers.detail.selectModifiersPlaceholder')}
+                    options={
+                      allModifiers
+                        ? allModifiers.map(modifier => ({
+                            label: modifier.name,
+                            value: modifier.id,
+                            disabled: false,
+                          }))
+                        : []
+                    }
+                    value={field.value || []}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Separator className="my-6" />
+
+          <FormField
+            control={form.control}
+            name="avoqadoProduct"
+            render={({ field }) => (
+              <FormItem className="mt-4">
+                <div className="flex items-center gap-2">
+                  <FormLabel>{t('modifiers.detail.assignProducts')}</FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="rounded-full bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold border">
+                        ?
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{t('modifiers.detail.productTooltip')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <FormControl>
+                  <DnDMultipleSelector
+                    showViewIcon={true}
+                    showAddItemText={true}
+                    itemName={t('modifiers.detail.productItem')}
+                    onViewOption={option => {
+                      if (option.value === '_new') {
+                        // Handle "Add new product" click
+                        navigate(`/venues/${venueId}/menumaker/products/create`)
+                      } else {
+                        // Handle view existing product click
+                        navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
+                      }
+                    }}
+                    placeholder={t('modifiers.detail.selectProductsPlaceholder')}
+                    options={
+                      allProducts
+                        ? allProducts.map(product => ({
+                            label: product.name,
+                            value: product.id,
+                            disabled: false,
+                          }))
+                        : []
+                    }
+                    value={field.value || []}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
     </div>
   )
 }

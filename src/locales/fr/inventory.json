@@ -44,5 +44,22 @@
       "example2": "Grande Pizza = 8 portions (8 tranches)",
       "example3": "Marmite de Soupe = 10 portions"
     }
+  },
+
+  "rawMaterials": {
+    "movements": {
+      "loading": "Chargement des mouvements récents...",
+      "noRecentMovements": "Aucun mouvement de stock récent",
+      "recentActivity": "Activité Récente",
+      "types": {
+        "PURCHASE": "Achat",
+        "USAGE": "Utilisation",
+        "ADJUSTMENT": "Ajustement",
+        "SPOILAGE": "Détérioration",
+        "TRANSFER": "Transfert",
+        "RETURN": "Retour",
+        "COUNT": "Comptage"
+      }
+    }
   }
 }

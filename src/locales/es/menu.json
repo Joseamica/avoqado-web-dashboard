@@ -178,7 +178,13 @@
       "deleteDescription": "¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "deleteCancel": "Cancelar",
-      "deleting": "Eliminando..."
+      "deleting": "Eliminando...",
+      "delete": {
+        "title": "Eliminar grupo modificador",
+        "description": "¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.",
+        "delete": "Eliminar",
+        "deleting": "Eliminando..."
+      }
     },
     "toasts": {
       "updated": "Grupo modificador actualizado",
@@ -267,6 +273,8 @@
       "maxPerModifierDesc": "Cantidad máxima de veces que se puede seleccionar un mismo modificador",
       "modifiers": "Modificadores",
       "modifiersDesc": "Selecciona los modificadores para este grupo",
+      "productAssignment": "Asignación de Productos",
+      "productAssignmentDesc": "Selecciona qué productos tendrán disponible este grupo modificador",
       "selectExistingModifiers": "Seleccionar modificadores existentes",
       "selectExistingPlaceholder": "Selecciona modificadores existentes...",
       "addNewModifiers": "Agregar nuevos modificadores",
@@ -281,6 +289,32 @@
         "createdDesc": "El grupo modificador se ha creado correctamente.",
         "createError": "Error al crear",
         "createErrorDesc": "Hubo un problema al crear el grupo modificador."
+      }
+    },
+    "editModifier": {
+      "title": "Editar Modificador",
+      "fields": {
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del modificador",
+        "price": "Precio",
+        "active": "Activo",
+        "activeDesc": "Cuando está activo, este modificador estará disponible para selección"
+      },
+      "validation": {
+        "nameRequired": "El nombre es obligatorio",
+        "priceRequired": "El precio es obligatorio"
+      },
+      "buttons": {
+        "back": "Atrás",
+        "cancel": "Cancelar",
+        "save": "Guardar Cambios",
+        "saving": "Guardando..."
+      },
+      "toast": {
+        "updated": "Modificador actualizado",
+        "updatedDesc": "El modificador se ha actualizado correctamente.",
+        "error": "Error al actualizar modificador",
+        "errorDesc": "Hubo un problema al actualizar el modificador: {{message}}"
       }
     }
   },
@@ -440,8 +474,10 @@
         "recipeNotesPlaceholder": "Notas opcionales de preparación...",
         "ingredients": "Ingredientes",
         "addIngredient": "Agregar Ingrediente",
+        "editRecipe": "Editar Receta",
         "noIngredients": "No se han agregado ingredientes aún. Agrega al menos un ingrediente para el rastreo basado en recetas.",
         "ingredientName": "Ingrediente",
+        "quantity": "Cantidad",
         "ingredientQuantity": "Cantidad",
         "ingredientUnit": "Unidad",
         "ingredientCost": "Costo",

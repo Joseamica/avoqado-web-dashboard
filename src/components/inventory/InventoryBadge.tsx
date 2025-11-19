@@ -40,6 +40,12 @@ export function InventoryBadge({ product, onClick, className, size = 'default' }
   const quantity = product.availableQuantity ?? 0
   const isClickable = !!onClick
 
+  // Determine threshold based on inventory method and product config
+  // QUANTITY: fallback to reorderPoint or 10
+  // RECIPE: fallback to 5 portions
+  const defaultThreshold = product.inventoryMethod === 'RECIPE' ? 5 : (Number(product.inventory?.reorderPoint ?? 10))
+  const threshold = product.lowStockThreshold ?? defaultThreshold
+
   // Determine badge styling based on stock level
   const getStyles = () => {
     if (quantity === 0) {
@@ -49,8 +55,8 @@ export function InventoryBadge({ product, onClick, className, size = 'default' }
         className: '',
       }
     }
-    if (quantity <= 5) {
-      // Orange - Low stock
+    if (quantity <= threshold) {
+      // Orange - Low stock (configurable threshold)
       return {
         variant: 'secondary' as const,
         className: 'bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700',

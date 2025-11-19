@@ -16,6 +16,7 @@ import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
 import { useTranslation } from 'react-i18next'
+import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
@@ -35,12 +36,13 @@ const routeKeyMap: Record<string, string> = {
   editvenue: 'sidebar:routes.editvenue',
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
+  const { customSegments } = useBreadcrumb()
 
   // Estado para manejar el cambio de venues y prevenir parpadeo de "acceso denegado"
   const [isVenueSwitching, setIsVenueSwitching] = useState(false)
@@ -155,6 +157,11 @@ export default function Dashboard() {
 
   // Get the display name for a path segment
   const getDisplayName = (segment: string, index: number): string => {
+    // Check for custom breadcrumb first
+    if (customSegments[segment]) {
+      return customSegments[segment]
+    }
+
     // Si es el primer segmento (slug del venue), usar el nombre del venue actual
     if (index === 0 && venue && segment === venueSlug) {
       return venue.name
@@ -259,5 +266,13 @@ export default function Dashboard() {
         )}
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <BreadcrumbProvider>
+      <DashboardContent />
+    </BreadcrumbProvider>
   )
 }

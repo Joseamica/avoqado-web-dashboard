@@ -18,7 +18,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
-import { createModifierGroup as createModifierGroupService } from '@/services/menu.service'
+import { createModifierGroup as createModifierGroupService, getProducts, assignModifierGroupToProduct } from '@/services/menu.service'
+import DnDMultipleSelector from '@/components/draggable-multi-select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useQuery } from '@tanstack/react-query'
 
 // Schema for the form validation with proper constraints
 const createFormSchema = (t: any) =>
@@ -41,6 +44,16 @@ const createFormSchema = (t: any) =>
           }),
         )
         .default([{ name: '', extraPrice: 0 }]),
+      selectedProducts: z
+        .array(
+          z.object({
+            label: z.string(),
+            value: z.string(),
+            disable: z.boolean().optional(), // Note: Option interface uses 'disable' not 'disabled'
+          })
+        )
+        .optional()
+        .default([]),
     })
     .refine(data => data.min <= data.max, {
       message: t('modifiers.createGroup.errors.minMaxInvalid'),
@@ -92,9 +105,16 @@ export default function CreateModifierGroup() {
         description: tCommon('errors.noPermission'),
         variant: 'destructive',
       })
-      navigate(`/venues/${venueId}/menumaker/modifier-groups`)
+      navigate('../', { replace: true })
     }
-  }, [can, navigate, tCommon, toast, venueId])
+  }, [can, navigate, tCommon, toast])
+
+  // Query to fetch all products for the venue
+  const { data: allProducts } = useQuery({
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
+    enabled: !!venueId,
+  })
 
   // Initialize the form with default values
   const form = useForm<FormValues>({
@@ -107,6 +127,7 @@ export default function CreateModifierGroup() {
       multipleSelectionAmount: 0,
       multiMax: 1,
       newModifiers: [{ name: '', extraPrice: 0 }],
+      selectedProducts: [],
     },
   })
 
@@ -118,17 +139,55 @@ export default function CreateModifierGroup() {
 
   // For creating the modifier group
   const createModifierGroupMutation = useMutation({
-    mutationFn: async (formValues: FormValues) => {
-      return await createModifierGroupService(venueId!, formValues)
+    mutationFn: async ({ groupData, productIds }: { groupData: Omit<FormValues, 'selectedProducts'>; productIds: string[] }) => {
+      try {
+        // Step 1: Create the modifier group (without selectedProducts)
+        console.log('Creating modifier group with data:', groupData)
+        const createdGroup = await createModifierGroupService(venueId!, groupData)
+        console.log('Modifier group created:', createdGroup)
+
+        // Step 2: Assign products to the group if any were selected
+        if (productIds && productIds.length > 0) {
+          console.log('Assigning products:', productIds)
+          const assignmentResults = await Promise.all(
+            productIds.map((productId, index) =>
+              assignModifierGroupToProduct(venueId!, productId, {
+                modifierGroupId: createdGroup.id,
+                displayOrder: index,
+              }).catch(err => {
+                console.error(`Failed to assign product ${productId}:`, err)
+                throw err
+              })
+            )
+          )
+          console.log('Products assigned successfully:', assignmentResults)
+        }
+
+        return createdGroup
+      } catch (error) {
+        console.error('Error in createModifierGroupMutation:', error)
+        throw error
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: t('modifiers.createGroup.toasts.created'),
         description: t('modifiers.createGroup.toasts.createdDesc'),
       })
+
+      console.log('ModifierGroup created successfully:', data)
+      console.log('VenueId:', venueId)
+      console.log('Navigating to:', `/venues/${venueId}/menumaker/modifier-groups`)
+
       // Invalidate cache to refresh the list
       queryClient.invalidateQueries({ queryKey: ['modifier-groups', venueId] })
-      navigate(`/venues/${venueId}/menumaker/modifier-groups`)
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+
+      // Use setTimeout to ensure navigation happens after state updates
+      // Navigate using relative path
+      setTimeout(() => {
+        navigate('../', { replace: true })
+      }, 100)
     },
     onError: (error: any) => {
       let errorMessage = t('modifiers.createGroup.toasts.createErrorDesc')
@@ -173,21 +232,38 @@ export default function CreateModifierGroup() {
   // Handle form submission
   function onSubmit(values: FormValues): void {
     // Filter out empty modifiers and sanitize names
-    const validNewModifiers = values.newModifiers
+    const validModifiers = values.newModifiers
       .filter(mod => mod.name.trim() !== '')
       .map(mod => ({
         name: sanitizeInput(mod.name.trim()),
-        extraPrice: mod.extraPrice,
+        price: mod.extraPrice, // Backend expects 'price', not 'extraPrice'
+        active: true, // Default to active
       }))
 
-    const formData = {
-      ...values,
+    // Separate selectedProducts from the rest of the data
+    const { selectedProducts, ...restValues } = values
+
+    // Extract product IDs from Option objects
+    const productIds = (selectedProducts || []).map(p => p.value)
+
+    // Map frontend field names to backend field names
+    const groupData = {
       name: sanitizeInput(values.name.trim()),
-      newModifiers: validNewModifiers,
+      required: values.required,
+      allowMultiple: values.max > 1, // Allow multiple if max > 1
+      minSelections: values.min, // Backend expects 'minSelections'
+      maxSelections: values.max, // Backend expects 'maxSelections'
+      modifiers: validModifiers, // Backend expects 'modifiers', not 'newModifiers'
+      active: true, // Default to active
+      // Note: multipleSelectionAmount and multiMax don't exist in backend schema
+      // They are stored in the form but not sent to the backend
     }
 
-    // Submit the data
-    createModifierGroupMutation.mutate(formData as FormValues)
+    // Submit the data with separated product IDs
+    createModifierGroupMutation.mutate({
+      groupData,
+      productIds,
+    })
   }
 
   // Add a new empty modifier to the list
@@ -202,7 +278,7 @@ export default function CreateModifierGroup() {
     <div className="p-4 space-y-4">
       <div className="flex flex-row items-center space-x-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={`/venues/${venueId}/menumaker/modifier-groups`}>
+          <Link to="../">
             <ChevronLeft className="w-4 h-4" />
             <span>{t('forms.buttons.goBack')}</span>
           </Link>
@@ -432,8 +508,64 @@ export default function CreateModifierGroup() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('modifiers.createGroup.productAssignment')}</CardTitle>
+              <CardDescription>{t('modifiers.createGroup.productAssignmentDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="selectedProducts"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>{t('modifiers.detail.assignProducts')}</FormLabel>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger className="rounded-full bg-muted w-5 h-5 inline-flex items-center justify-center text-xs font-semibold border">
+                            ?
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('modifiers.detail.productTooltip')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <FormControl>
+                      <DnDMultipleSelector
+                        showViewIcon={true}
+                        showAddItemText={true}
+                        itemName={t('modifiers.detail.productItem')}
+                        onViewOption={option => {
+                          if (option.value === '_new') {
+                            navigate(`/venues/${venueId}/menumaker/products/create`)
+                          } else {
+                            navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
+                          }
+                        }}
+                        placeholder={t('modifiers.detail.selectProductsPlaceholder')}
+                        options={
+                          allProducts
+                            ? allProducts.map(product => ({
+                                label: product.name,
+                                value: product.id,
+                                disable: false, // Note: Option interface uses 'disable' not 'disabled'
+                              }))
+                            : []
+                        }
+                        value={field.value || []}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => navigate(`/venues/${venueId}/menumaker/modifier-groups`)}>
+            <Button type="button" variant="outline" onClick={() => navigate('../')}>
               {t('forms.buttons.cancel')}
             </Button>
             <Button

@@ -5,6 +5,7 @@ import {
   getModifierGroups,
   deleteProduct as deleteProductService,
 } from '@/services/menu.service'
+import { recipesApi } from '@/services/inventory.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
 import { LoadingButton } from '@/components/loading-button'
@@ -13,21 +14,22 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { useImageUploader } from '@/hooks/use-image-uploader'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ImageIcon, Package } from 'lucide-react'
+import { ArrowLeft, ImageIcon, Package, Store, Beef } from 'lucide-react'
 import Cropper from 'react-easy-crop' // <-- Import del Cropper
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import api from '@/api'
 import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { cn } from '@/lib/utils'
 import {
   getSkuValidationRules,
   getNameValidationRules,
@@ -59,6 +61,7 @@ export default function ProductId() {
   const location = useLocation()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   // State to handle broken images
   const [imageError, setImageError] = useState(false)
@@ -87,6 +90,21 @@ export default function ProductId() {
     queryKey: ['modifier-groups', venueId],
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId,
+  })
+
+  // Fetch recipe data if product has RECIPE inventory method
+  const { data: recipeData } = useQuery({
+    queryKey: ['product-recipe', venueId, productId],
+    queryFn: async () => {
+      if (!productId) return null
+      try {
+        const response = await recipesApi.get(venueId!, productId)
+        return response.data.data
+      } catch {
+        return null
+      }
+    },
+    enabled: !!venueId && !!productId && data?.inventoryMethod === 'RECIPE',
   })
 
   const from = (location.state as any)?.from || '/'
@@ -211,6 +229,15 @@ export default function ProductId() {
     setImageError(false)
   }, [data?.imageUrl])
 
+  // Clean up breadcrumb on unmount
+  useEffect(() => {
+    return () => {
+      if (productId) {
+        clearCustomSegment(productId)
+      }
+    }
+  }, [productId, clearCustomSegment])
+
   // Mark form as dirty when inventory tracking changes
   useEffect(() => {
     if (data) {
@@ -226,6 +253,11 @@ export default function ProductId() {
   useEffect(() => {
     // Only proceed if we have both product data AND categories loaded
     if (!data || !categories) return
+
+    // Set custom breadcrumb with product name
+    if (productId && data.name) {
+      setCustomSegment(productId, data.name)
+    }
 
     const mappedModifierGroups = Array.isArray(data.modifierGroups)
       ? data.modifierGroups
@@ -262,7 +294,7 @@ export default function ProductId() {
       costPerUnit: data.inventory?.costPerUnit?.toString() || '',
       reorderPoint: data.inventory?.reorderPoint?.toString() || '10',
     })
-  }, [data, categories, form])
+  }, [data, categories, form, productId, setCustomSegment])
 
   // Esta función podría ser para borrar la imagen en el servidor.
   // Por simplicidad, aquí solo se hace el "remove" localmente.
@@ -295,28 +327,31 @@ export default function ProductId() {
   }
 
   const displayedImageUrl = imageUrl || data.imageUrl
+
+  // Get current tab from URL or default to "details"
+  const currentTab = location.hash.replace('#', '') || 'details'
+
   return (
-    <div className="">
-      {/* Barra superior */}
-      <div className="sticky z-10 flex flex-row justify-between w-full px-4 py-3 mb-4 bg-background border-b-2 top-14">
-        <div className="space-x-4 flex-row-center">
-          <Link to={from}>
-            <ArrowLeft />
-          </Link>
-          <span>{form.watch('name') || data.name}</span>
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
+        <div className="space-x-3 flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => navigate(from)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-xl font-semibold text-foreground">{form.watch('name') || data.name}</h1>
         </div>
-        <div className="space-x-3 flex-row-center ">
+        <div className="space-x-2 flex items-center">
           <AlertDialogWrapper
             triggerTitle={t('products.detail.delete')}
             title={t('products.detail.deleteTitle')}
-            // description="Al eliminar el producto, no podrás recuperarlo."
             message={t('products.detail.deleteMessage')}
             rightButtonLabel={t('products.detail.deleteConfirm')}
             rightButtonVariant="default"
             onRightButtonClick={() => deleteProduct.mutate()}
           />
-          <Button variant="outline">{t('products.detail.duplicate')}</Button>
-          <Button variant="outline" onClick={() => setWizardOpen(true)} className="border-primary text-primary hover:bg-primary/10">
+          <Button variant="outline" size="sm">{t('products.detail.duplicate')}</Button>
+          <Button variant="outline" size="sm" onClick={() => setWizardOpen(true)} className="border-primary text-primary hover:bg-primary/10">
             <Package className="mr-2 h-4 w-4" />
             {t('products.detail.configureInventory')}
           </Button>
@@ -324,6 +359,7 @@ export default function ProductId() {
             loading={saveProduct.isPending}
             onClick={form.handleSubmit(onSubmit)}
             variant="default"
+            size="sm"
             disabled={!form.formState.isDirty || saveProduct.isPending}
           >
             {saveProduct.isPending ? t('products.detail.saving') : t('modifiers.forms.save')}
@@ -331,18 +367,50 @@ export default function ProductId() {
         </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 pb-20">
-          {/* ✅ TOAST POS PATTERN: Tabs for Details, Inventory, Modifiers */}
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="w-full justify-start mb-6">
-              <TabsTrigger value="details">{t('products.tabs.details')}</TabsTrigger>
-              <TabsTrigger value="inventory">{t('products.tabs.inventory')}</TabsTrigger>
-              <TabsTrigger value="modifiers">{t('products.tabs.modifiers')}</TabsTrigger>
-            </TabsList>
+      {/* Horizontal Navigation - VenueEditLayout Pattern */}
+      <nav className="sticky top-14 bg-card h-14 z-10 shadow-sm flex items-center space-x-6 lg:space-x-8 border-b border-border px-6">
+        <a
+          href="#details"
+          className={cn(
+            'text-sm font-medium transition-colors py-4 border-b-2',
+            currentTab === 'details'
+              ? 'text-foreground border-primary'
+              : 'text-muted-foreground border-transparent hover:text-primary'
+          )}
+        >
+          {t('products.tabs.details')}
+        </a>
+        <a
+          href="#inventory"
+          className={cn(
+            'text-sm font-medium transition-colors py-4 border-b-2',
+            currentTab === 'inventory'
+              ? 'text-foreground border-primary'
+              : 'text-muted-foreground border-transparent hover:text-primary'
+          )}
+        >
+          {t('products.tabs.inventory')}
+        </a>
+        <a
+          href="#modifiers"
+          className={cn(
+            'text-sm font-medium transition-colors py-4 border-b-2',
+            currentTab === 'modifiers'
+              ? 'text-foreground border-primary'
+              : 'text-muted-foreground border-transparent hover:text-primary'
+          )}
+        >
+          {t('products.tabs.modifiers')}
+        </a>
+      </nav>
 
-            {/* Details Tab */}
-            <TabsContent value="details" className="space-y-6">
+      {/* Content */}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="container mx-auto pt-6 pb-20 px-4 grow overflow-auto">
+          <div className="max-w-4xl">
+            {/* Details Section */}
+            {currentTab === 'details' && (
+              <div className="space-y-6">
           <FormField
             control={form.control}
             name="sku"
@@ -688,10 +756,12 @@ export default function ProductId() {
               </FormItem>
             )}
           />
-            </TabsContent>
+              </div>
+            )}
 
-            {/* Inventory Tab */}
-            <TabsContent value="inventory" className="space-y-6">
+            {/* Inventory Section */}
+            {currentTab === 'inventory' && (
+              <div className="space-y-6">
               {/* ✅ TOAST POS PATTERN: Progressive disclosure - radio group with conditional fields */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -708,32 +778,50 @@ export default function ProductId() {
                       }
                     }}
                   >
+                    {/* No Tracking Option */}
                     <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
                       <RadioGroupItem value="none" id="no-tracking" />
                       <Label htmlFor="no-tracking" className="flex-1 cursor-pointer">
-                        <div>
-                          <p className="font-medium">{t('products.detail.inventory.noTracking')}</p>
-                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.noTrackingDesc')}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
+                            <Store className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{t('products.detail.inventory.noTracking')}</p>
+                            <p className="text-xs text-muted-foreground">{t('products.detail.inventory.noTrackingDesc')}</p>
+                          </div>
                         </div>
                       </Label>
                     </div>
 
+                    {/* Quantity Tracking Option */}
                     <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
                       <RadioGroupItem value="QUANTITY" id="track-quantity" />
                       <Label htmlFor="track-quantity" className="flex-1 cursor-pointer">
-                        <div>
-                          <p className="font-medium">{t('products.detail.inventory.trackByQuantity')}</p>
-                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByQuantityDesc')}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/50">
+                            <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{t('products.detail.inventory.trackByQuantity')}</p>
+                            <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByQuantityDesc')}</p>
+                          </div>
                         </div>
                       </Label>
                     </div>
 
+                    {/* Recipe Tracking Option */}
                     <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
                       <RadioGroupItem value="RECIPE" id="track-recipe" />
                       <Label htmlFor="track-recipe" className="flex-1 cursor-pointer">
-                        <div>
-                          <p className="font-medium">{t('products.detail.inventory.trackByRecipe')}</p>
-                          <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByRecipeDesc')}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-950/50">
+                            <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{t('products.detail.inventory.trackByRecipe')}</p>
+                            <p className="text-xs text-muted-foreground">{t('products.detail.inventory.trackByRecipeDesc')}</p>
+                          </div>
                         </div>
                       </Label>
                     </div>
@@ -807,30 +895,69 @@ export default function ProductId() {
                   </div>
                 )}
 
-                {/* ✅ PROGRESSIVE DISCLOSURE: Show recipe message when tracking by recipe */}
+                {/* ✅ PROGRESSIVE DISCLOSURE: Show recipe ingredients when tracking by recipe */}
                 {trackInventory && inventoryMethod === 'RECIPE' && (
-                  <div className="pl-4 border-l-2 border-primary">
-                    <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800">
-                      <p className="text-sm text-orange-800 dark:text-orange-200">
-                        {t('products.detail.inventory.noIngredients')}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="mt-3 border-primary text-primary hover:bg-primary/10"
-                        onClick={() => setWizardOpen(true)}
-                      >
-                        <Package className="mr-2 h-4 w-4" />
-                        {t('products.detail.inventory.addIngredient')}
-                      </Button>
-                    </div>
+                  <div className="pl-4 border-l-2 border-primary space-y-4">
+                    {recipeData && recipeData.lines && recipeData.lines.length > 0 ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>{t('products.detail.inventory.ingredients')}</Label>
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            <table className="w-full">
+                              <thead className="bg-muted">
+                                <tr>
+                                  <th className="text-left p-3 font-medium text-sm">{t('products.detail.inventory.ingredientName')}</th>
+                                  <th className="text-right p-3 font-medium text-sm">{t('products.detail.inventory.quantity')}</th>
+                                  <th className="text-right p-3 font-medium text-sm">{t('products.detail.inventory.unit')}</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border">
+                                {recipeData.lines.map((line: any, index: number) => (
+                                  <tr key={index} className="hover:bg-muted/50">
+                                    <td className="p-3 text-sm">{line.rawMaterial?.name || 'Unknown'}</td>
+                                    <td className="p-3 text-sm text-right">{Number(line.quantity).toFixed(2)}</td>
+                                    <td className="p-3 text-sm text-right">{line.unit}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-primary text-primary hover:bg-primary/10"
+                          onClick={() => setWizardOpen(true)}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          {t('products.detail.inventory.editRecipe')}
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/50 border border-orange-200 dark:border-orange-800">
+                        <p className="text-sm text-orange-800 dark:text-orange-200">
+                          {t('products.detail.inventory.noIngredients')}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-3 border-primary text-primary hover:bg-primary/10"
+                          onClick={() => setWizardOpen(true)}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          {t('products.detail.inventory.addIngredient')}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </TabsContent>
+              </div>
+            )}
 
-            {/* Modifiers Tab */}
-            <TabsContent value="modifiers" className="space-y-6">
+            {/* Modifiers Section */}
+            {currentTab === 'modifiers' && (
+              <div className="space-y-6">
           <FormField
             control={form.control}
             name="modifierGroups"
@@ -849,8 +976,9 @@ export default function ProductId() {
               </FormItem>
             )}
           />
-            </TabsContent>
-          </Tabs>
+              </div>
+            )}
+          </div>
         </form>
       </Form>
 

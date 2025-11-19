@@ -199,6 +199,193 @@ export const INVENTORY_METHODS = {
 } as const
 
 // ============================================================================
+// WASTE TRACKING TAXONOMY
+// ✅ WORLD-CLASS: Complete waste tracking taxonomy following Toast/Square patterns
+// ============================================================================
+
+export const WASTE_REASONS = {
+  // Product Quality Issues
+  EXPIRED: {
+    label: 'Expired',
+    category: 'quality',
+    icon: '📅',
+    color: 'red',
+    description: 'Product past expiration/best-by date',
+  },
+  SPOILED: {
+    label: 'Spoiled/Damaged',
+    category: 'quality',
+    icon: '🗑️',
+    color: 'red',
+    description: 'Product spoiled, moldy, or damaged before use',
+  },
+  CONTAMINATED: {
+    label: 'Contaminated',
+    category: 'quality',
+    icon: '⚠️',
+    color: 'red',
+    description: 'Product contaminated or compromised',
+  },
+  DEFECTIVE: {
+    label: 'Defective',
+    category: 'quality',
+    icon: '❌',
+    color: 'red',
+    description: 'Received defective or substandard quality',
+  },
+
+  // Operational Waste
+  OVERPRODUCTION: {
+    label: 'Overproduction',
+    category: 'operational',
+    icon: '📈',
+    color: 'orange',
+    description: 'Prepared too much, not sold',
+  },
+  PREP_ERROR: {
+    label: 'Preparation Error',
+    category: 'operational',
+    icon: '⚡',
+    color: 'orange',
+    description: 'Mistake during preparation/cooking',
+  },
+  BURNT: {
+    label: 'Burnt/Overcooked',
+    category: 'operational',
+    icon: '🔥',
+    color: 'orange',
+    description: 'Product burnt or overcooked',
+  },
+  UNDERCOOKED: {
+    label: 'Undercooked',
+    category: 'operational',
+    icon: '🧊',
+    color: 'orange',
+    description: 'Product undercooked or improperly prepared',
+  },
+  DROPPED: {
+    label: 'Dropped/Spilled',
+    category: 'operational',
+    icon: '💧',
+    color: 'orange',
+    description: 'Accidentally dropped or spilled',
+  },
+
+  // Customer-Related
+  CUSTOMER_RETURN: {
+    label: 'Customer Return',
+    category: 'customer',
+    icon: '↩️',
+    color: 'blue',
+    description: 'Customer complaint or dissatisfaction',
+  },
+  WRONG_ORDER: {
+    label: 'Wrong Order',
+    category: 'customer',
+    icon: '🔄',
+    color: 'blue',
+    description: 'Incorrect order prepared',
+  },
+  CUSTOMER_CHANGE: {
+    label: 'Customer Changed Mind',
+    category: 'customer',
+    icon: '💭',
+    color: 'blue',
+    description: 'Customer modified or cancelled order',
+  },
+
+  // Intentional Use
+  TESTING: {
+    label: 'Testing/Sampling',
+    category: 'intentional',
+    icon: '🧪',
+    color: 'green',
+    description: 'Quality testing or customer samples',
+  },
+  STAFF_MEAL: {
+    label: 'Staff Meal',
+    category: 'intentional',
+    icon: '🍽️',
+    color: 'green',
+    description: 'Provided to staff members',
+  },
+  PROMOTION: {
+    label: 'Promotion/Comp',
+    category: 'intentional',
+    icon: '🎁',
+    color: 'green',
+    description: 'Promotional giveaway or comp',
+  },
+  DONATION: {
+    label: 'Donation',
+    category: 'intentional',
+    icon: '❤️',
+    color: 'green',
+    description: 'Donated to charity or community',
+  },
+
+  // Loss/Theft
+  THEFT: {
+    label: 'Theft',
+    category: 'loss',
+    icon: '🚨',
+    color: 'purple',
+    description: 'Product stolen',
+  },
+  MISSING: {
+    label: 'Missing/Unaccounted',
+    category: 'loss',
+    icon: '❓',
+    color: 'purple',
+    description: 'Cannot locate inventory',
+  },
+  PEST_DAMAGE: {
+    label: 'Pest Damage',
+    category: 'loss',
+    icon: '🐀',
+    color: 'purple',
+    description: 'Damaged by pests or rodents',
+  },
+
+  // Other
+  OTHER: {
+    label: 'Other',
+    category: 'other',
+    icon: '📋',
+    color: 'gray',
+    description: 'Other reason (specify in notes)',
+  },
+} as const
+
+export const WASTE_CATEGORIES = {
+  quality: { label: 'Product Quality', color: 'red', icon: '⚠️' },
+  operational: { label: 'Operational', color: 'orange', icon: '⚙️' },
+  customer: { label: 'Customer-Related', color: 'blue', icon: '👤' },
+  intentional: { label: 'Intentional Use', color: 'green', icon: '✓' },
+  loss: { label: 'Loss/Theft', color: 'purple', icon: '🚨' },
+  other: { label: 'Other', color: 'gray', icon: '📋' },
+} as const
+
+export const WASTE_REASON_OPTIONS = Object.entries(WASTE_REASONS).map(([value, meta]) => ({
+  value,
+  label: meta.label,
+  category: meta.category,
+  icon: meta.icon,
+  color: meta.color,
+  description: meta.description,
+}))
+
+// Group waste reasons by category for organized display
+export const WASTE_REASONS_BY_CATEGORY = {
+  quality: WASTE_REASON_OPTIONS.filter(r => r.category === 'quality'),
+  operational: WASTE_REASON_OPTIONS.filter(r => r.category === 'operational'),
+  customer: WASTE_REASON_OPTIONS.filter(r => r.category === 'customer'),
+  intentional: WASTE_REASON_OPTIONS.filter(r => r.category === 'intentional'),
+  loss: WASTE_REASON_OPTIONS.filter(r => r.category === 'loss'),
+  other: WASTE_REASON_OPTIONS.filter(r => r.category === 'other'),
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 

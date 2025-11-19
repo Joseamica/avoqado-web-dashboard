@@ -54,6 +54,7 @@ interface Step3SimpleStockFormData {
   initialStock: number
   costPerUnit: number
   reorderPoint: number
+  lowStockThreshold?: number // Alert threshold for low stock warnings
 }
 
 interface Step3RecipeFormData {
@@ -61,6 +62,7 @@ interface Step3RecipeFormData {
   prepTime?: number
   cookTime?: number
   notes?: string
+  lowStockThreshold?: number // Alert threshold for low stock warnings
   ingredients: Array<{
     rawMaterialId: string
     rawMaterialName?: string
@@ -268,9 +270,47 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // Then configure the inventory details
       if (data.inventoryMethod === 'QUANTITY' && data.simpleStock) {
-        return productWizardApi.configureSimpleStock(venueId, createdProductId, data.simpleStock)
+        // ✅ FIX: In edit mode, backend should handle upsert automatically
+        // Wrap in try-catch to handle potential conflicts gracefully
+        try {
+          return await productWizardApi.configureSimpleStock(venueId, createdProductId, data.simpleStock)
+        } catch (error: any) {
+          // If inventory already exists, try to update via product endpoint
+          if (error.response?.status === 400 && error.response?.data?.message?.includes('already exists')) {
+            return api.put(`/api/v1/dashboard/venues/${venueId}/products/${createdProductId}/inventory`, {
+              currentStock: data.simpleStock.initialStock,
+              reorderPoint: data.simpleStock.reorderPoint,
+              costPerUnit: data.simpleStock.costPerUnit,
+            })
+          }
+          throw error
+        }
       } else if (data.inventoryMethod === 'RECIPE' && data.recipe) {
-        return productWizardApi.configureRecipe(venueId, createdProductId, data.recipe)
+        // ✅ FIX: Try UPDATE first, fallback to CREATE if recipe doesn't exist
+        // This is more robust than checking existence first (EAFP pattern)
+
+        console.log('🔍 DEBUG [MUTATION] - Recipe data received:', data.recipe)
+        console.log('🔍 DEBUG [MUTATION] - Recipe ingredients:', data.recipe.ingredients)
+        console.log('🔍 DEBUG [MUTATION] - Recipe ingredients count:', data.recipe.ingredients?.length || 0)
+
+        const updatePayload = {
+          ...data.recipe,
+          lines: data.recipe.ingredients,
+        }
+        console.log('🔍 DEBUG [MUTATION] - UPDATE payload:', updatePayload)
+        console.log('🔍 DEBUG [MUTATION] - UPDATE payload.lines:', updatePayload.lines)
+
+        try {
+          return await recipesApi.update(venueId, createdProductId, updatePayload)
+        } catch (error: any) {
+          // Recipe doesn't exist (404), use CREATE
+          if (error.response?.status === 404) {
+            console.log('🔍 DEBUG [MUTATION] - Recipe not found (404), creating new recipe')
+            console.log('🔍 DEBUG [MUTATION] - CREATE payload:', data.recipe)
+            return productWizardApi.configureRecipe(venueId, createdProductId, data.recipe)
+          }
+          throw error
+        }
       }
       throw new Error('Invalid inventory configuration')
     },
@@ -427,10 +467,15 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // Load RECIPE data (only if inventoryMethod is RECIPE)
         if (inventoryMethod === 'RECIPE' && existingRecipeData && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
           console.log('🍔 Loading RECIPE data')
+          console.log('🔍 DEBUG [LOAD] - existingRecipeData:', existingRecipeData)
+          console.log('🔍 DEBUG [LOAD] - existingRecipeData.lines:', existingRecipeData.lines)
+          console.log('🔍 DEBUG [LOAD] - existingRecipeData.lines.length:', existingRecipeData.lines.length)
+
           step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
           step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
           step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
           step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
+          step3RecipeForm.setValue('lowStockThreshold', existingRecipeData.lowStockThreshold)
 
           const ingredients = existingRecipeData.lines.map((line: any) => ({
             rawMaterialId: line.rawMaterialId,
@@ -440,7 +485,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
             isOptional: line.isOptional || false,
             substituteNotes: line.substituteNotes,
           }))
+
+          console.log('🔍 DEBUG [LOAD] - Mapped ingredients:', ingredients)
+          console.log('🔍 DEBUG [LOAD] - Ingredients count:', ingredients.length)
+
           step3RecipeForm.setValue('ingredients', ingredients)
+
+          // Verify it was set
+          const verifyIngredients = step3RecipeForm.getValues('ingredients')
+          console.log('🔍 DEBUG [LOAD] - Form ingredients after setValue:', verifyIngredients)
+          console.log('🔍 DEBUG [LOAD] - Form ingredients count after setValue:', verifyIngredients?.length || 0)
+        } else {
+          console.log('🔍 DEBUG [LOAD] - RECIPE data NOT loaded. Conditions:')
+          console.log('  - inventoryMethod === RECIPE:', inventoryMethod === 'RECIPE')
+          console.log('  - existingRecipeData:', !!existingRecipeData)
+          console.log('  - existingRecipeData?.lines:', !!existingRecipeData?.lines)
+          console.log('  - existingRecipeData?.lines?.length:', existingRecipeData?.lines?.length)
         }
       } else {
         console.log('❌ Setting useInventory=false (no inventory method)')
@@ -454,12 +514,120 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   }, [open, mode, currentStep, existingProductData, existingRecipeData, isLoadingExistingData, hasLoadedExistingData])
   // Note: step2Form, step3SimpleForm, step3RecipeForm removed from deps - they're stable refs from useForm
 
+  // ✅ FIX: Separate effect to load recipe data when it becomes available
+  // This handles the case where existingRecipeData loads AFTER existingProductData
+  // OR when navigating to step 3 and ingredients haven't been loaded yet
+  useEffect(() => {
+    if (open && mode === 'edit' && currentStep === 3 && selectedInventoryMethod === 'RECIPE' && existingRecipeData) {
+      console.log('🔍 DEBUG [LATE LOAD] - Checking recipe data on step 3')
+      console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData:', existingRecipeData)
+      console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData.lines:', existingRecipeData.lines)
+
+      // Check if ingredients are already loaded
+      const currentIngredients = step3RecipeForm.getValues('ingredients')
+      console.log('🔍 DEBUG [LATE LOAD] - Current form ingredients:', currentIngredients)
+      console.log('🔍 DEBUG [LATE LOAD] - Current form ingredients length:', currentIngredients?.length || 0)
+
+      // Only load if ingredients are empty AND recipe data exists
+      if ((!currentIngredients || currentIngredients.length === 0) && existingRecipeData.lines && existingRecipeData.lines.length > 0) {
+        console.log('🔍 DEBUG [LATE LOAD] - Form is empty, loading recipe data now')
+
+        step3RecipeForm.setValue('portionYield', existingRecipeData.portionYield || 1)
+        step3RecipeForm.setValue('prepTime', existingRecipeData.prepTime)
+        step3RecipeForm.setValue('cookTime', existingRecipeData.cookTime)
+        step3RecipeForm.setValue('notes', existingRecipeData.notes || '')
+        step3RecipeForm.setValue('lowStockThreshold', existingRecipeData.lowStockThreshold)
+
+        const ingredients = existingRecipeData.lines.map((line: any) => ({
+          rawMaterialId: line.rawMaterialId,
+          rawMaterialName: line.rawMaterial?.name,
+          quantity: Number(line.quantity),
+          unit: line.unit,
+          isOptional: line.isOptional || false,
+          substituteNotes: line.substituteNotes,
+        }))
+
+        console.log('🔍 DEBUG [LATE LOAD] - Mapped ingredients:', ingredients)
+        console.log('🔍 DEBUG [LATE LOAD] - Mapped ingredients length:', ingredients.length)
+
+        step3RecipeForm.setValue('ingredients', ingredients)
+
+        const verifyIngredients = step3RecipeForm.getValues('ingredients')
+        console.log('🔍 DEBUG [LATE LOAD] - Verified ingredients after setValue:', verifyIngredients)
+        console.log('🔍 DEBUG [LATE LOAD] - Verified ingredients length:', verifyIngredients?.length || 0)
+      } else {
+        console.log('🔍 DEBUG [LATE LOAD] - Skipping load. Reasons:')
+        console.log('  - currentIngredients exists:', !!currentIngredients)
+        console.log('  - currentIngredients.length:', currentIngredients?.length || 0)
+        console.log('  - existingRecipeData.lines exists:', !!existingRecipeData.lines)
+        console.log('  - existingRecipeData.lines.length:', existingRecipeData.lines?.length || 0)
+      }
+    }
+  }, [open, mode, currentStep, selectedInventoryMethod, existingRecipeData, step3RecipeForm])
+
   // Helper function to clean recipe data for backend (remove rawMaterialName)
   const cleanRecipeDataForBackend = (recipeData: Step3RecipeFormData) => {
-    return {
-      ...recipeData,
-      ingredients: recipeData.ingredients.map(({ rawMaterialName: _rawMaterialName, ...ingredient }) => ingredient),
+    // ✅ FIX: Clean optional fields (prepTime, cookTime, notes) to avoid sending null/undefined/NaN
+    // ✅ FIX: Explicitly map ingredients to ensure all required fields are present
+    // ✅ FIX: Filter out ingredients with invalid rawMaterialId
+
+    console.log('🔍 DEBUG [CLEAN FUNCTION] - Input ingredients:', recipeData.ingredients)
+    console.log('🔍 DEBUG [CLEAN FUNCTION] - Input ingredients count:', recipeData.ingredients?.length || 0)
+
+    const validIngredients = recipeData.ingredients
+      .filter(ingredient => {
+        // Only include ingredients with valid rawMaterialId
+        const isValid = ingredient.rawMaterialId &&
+               typeof ingredient.rawMaterialId === 'string' &&
+               ingredient.rawMaterialId.trim().length > 0
+
+        if (!isValid) {
+          console.log('🔍 DEBUG [CLEAN FUNCTION] - Invalid ingredient filtered out:', ingredient)
+        }
+
+        return isValid
+      })
+      .map(ingredient => {
+        const mapped = {
+          rawMaterialId: ingredient.rawMaterialId.trim(),
+          quantity: ingredient.quantity,
+          unit: ingredient.unit,
+          isOptional: ingredient.isOptional ?? false,
+          ...(ingredient.substituteNotes && { substituteNotes: ingredient.substituteNotes }),
+        }
+        console.log('🔍 DEBUG [CLEAN FUNCTION] - Mapped ingredient:', mapped)
+        return mapped
+      })
+
+    console.log('🔍 DEBUG [CLEAN FUNCTION] - Valid ingredients after filter/map:', validIngredients)
+    console.log('🔍 DEBUG [CLEAN FUNCTION] - Valid ingredients count:', validIngredients.length)
+
+    const cleanedData: any = {
+      portionYield: recipeData.portionYield,
+      ingredients: validIngredients,
     }
+
+    // Only include prepTime if it's a valid number
+    if (recipeData.prepTime && !isNaN(recipeData.prepTime) && recipeData.prepTime > 0) {
+      cleanedData.prepTime = recipeData.prepTime
+    }
+
+    // Only include cookTime if it's a valid number
+    if (recipeData.cookTime && !isNaN(recipeData.cookTime) && recipeData.cookTime > 0) {
+      cleanedData.cookTime = recipeData.cookTime
+    }
+
+    // Only include notes if it's not empty
+    if (recipeData.notes && recipeData.notes.trim().length > 0) {
+      cleanedData.notes = recipeData.notes
+    }
+
+    // Only include lowStockThreshold if it's a valid number
+    if (recipeData.lowStockThreshold && !isNaN(recipeData.lowStockThreshold) && recipeData.lowStockThreshold > 0) {
+      cleanedData.lowStockThreshold = recipeData.lowStockThreshold
+    }
+
+    return cleanedData
   }
 
   // Step 1 Submit Handler - Store data and move to Step 2
@@ -607,10 +775,33 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           return
         }
 
+        // ✅ FIX: Validate that all ingredients have valid rawMaterialId
+        const invalidIngredients = recipeData.ingredients.filter(
+          ingredient => !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0
+        )
+
+        if (invalidIngredients.length > 0) {
+          toast({
+            title: t('common.error'),
+            description: 'Some ingredients are missing or invalid. Please check your recipe.',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        // 🔍 DEBUG: Log data before sending to backend
+        console.log('🔍 DEBUG [EDIT MODE] - Original recipeData:', recipeData)
+        console.log('🔍 DEBUG [EDIT MODE] - Original ingredients:', recipeData.ingredients)
+
+        const cleanedRecipe = cleanRecipeDataForBackend(recipeData)
+        console.log('🔍 DEBUG [EDIT MODE] - Cleaned recipe:', cleanedRecipe)
+        console.log('🔍 DEBUG [EDIT MODE] - Cleaned ingredients:', cleanedRecipe.ingredients)
+        console.log('🔍 DEBUG [EDIT MODE] - Ingredients count:', cleanedRecipe.ingredients?.length || 0)
+
         // Clean data before sending to backend
         configureInventoryMutation.mutate({
           inventoryMethod: 'RECIPE',
-          recipe: cleanRecipeDataForBackend(recipeData),
+          recipe: cleanedRecipe,
         })
       }
       return
@@ -651,11 +842,34 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         return
       }
 
+      // ✅ FIX: Validate that all ingredients have valid rawMaterialId
+      const invalidIngredients = recipeData.ingredients.filter(
+        ingredient => !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0
+      )
+
+      if (invalidIngredients.length > 0) {
+        toast({
+          title: t('common.error'),
+          description: 'Some ingredients are missing or invalid. Please check your recipe.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // 🔍 DEBUG: Log data before sending to backend
+      console.log('🔍 DEBUG [CREATE MODE] - Original recipeData:', recipeData)
+      console.log('🔍 DEBUG [CREATE MODE] - Original ingredients:', recipeData.ingredients)
+
+      const cleanedRecipe = cleanRecipeDataForBackend(recipeData)
+      console.log('🔍 DEBUG [CREATE MODE] - Cleaned recipe:', cleanedRecipe)
+      console.log('🔍 DEBUG [CREATE MODE] - Cleaned ingredients:', cleanedRecipe.ingredients)
+      console.log('🔍 DEBUG [CREATE MODE] - Ingredients count:', cleanedRecipe.ingredients?.length || 0)
+
       // Clean data before sending to backend
       createProductWithInventoryMutation.mutate({
         product: step1Data,
         inventory: step2Data,
-        recipe: cleanRecipeDataForBackend(recipeData),
+        recipe: cleanedRecipe,
       })
     }
   }
@@ -1050,7 +1264,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   </div>
 
                   <RadioGroup
-                    value={step2Form.watch('inventoryMethod') || undefined}
+                    value={step2Form.watch('inventoryMethod') || ''}
                     onValueChange={value => {
                       step2Form.setValue('inventoryMethod', value as InventoryMethod)
                       setSelectedInventoryMethod(value as InventoryMethod)
@@ -1173,6 +1387,40 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     </div>
                   </div>
 
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="lowStockThreshold">Low Stock Alert Threshold</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-2">
+                              <p className="font-semibold">What is Low Stock Threshold?</p>
+                              <p className="text-sm">Stock level that triggers a low stock alert in your dashboard. When stock falls below this number, the product will be highlighted.</p>
+                              <p className="text-sm text-muted-foreground">
+                                Default: 10 units. Adjust based on your sales volume and reorder frequency.
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      id="lowStockThreshold"
+                      type="number"
+                      step="1"
+                      min="0"
+                      placeholder="10"
+                      defaultValue={10}
+                      {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Alert when stock falls below this level (separate from reorder point)
+                    </p>
+                  </div>
+
                   <DialogFooter className="flex justify-between">
                     <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
                       <ChevronLeft className="mr-2 h-4 w-4" />
@@ -1248,6 +1496,40 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   <div className="space-y-2">
                     <Label htmlFor="notes">{t('recipes.fields.notes')}</Label>
                     <Textarea id="notes" rows={3} {...step3RecipeForm.register('notes')} placeholder={t('wizard.step3.notesPlaceholder')} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="lowStockThresholdRecipe">Low Stock Alert Threshold (portions)</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-2">
+                              <p className="font-semibold">What is Low Stock Threshold?</p>
+                              <p className="text-sm">Number of portions that triggers a low stock alert. When available portions fall below this number, the product will be highlighted in your dashboard.</p>
+                              <p className="text-sm text-muted-foreground">
+                                Default: 5 portions. Adjust based on your daily sales and preparation time.
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <Input
+                      id="lowStockThresholdRecipe"
+                      type="number"
+                      step="1"
+                      min="0"
+                      placeholder="5"
+                      defaultValue={5}
+                      {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Alert when available portions fall below this level
+                    </p>
                   </div>
 
                   {/* Ingredients List */}

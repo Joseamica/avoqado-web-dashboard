@@ -105,13 +105,6 @@ export default function EditModifier({ venueId, modifierId, modifierGroupId, onB
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{t('modifiers.editModifier.title')}</h2>
-        <Button variant="outline" onClick={onBack}>
-          {t('modifiers.editModifier.buttons.back')}
-        </Button>
-      </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField

@@ -28,7 +28,11 @@ export default function Orders() {
   const { data, isLoading, error, refetch } = useQuery({
     // CAMBIO: La query key ahora es 'orders'
     queryKey: ['orders', venueId, pagination.pageIndex, pagination.pageSize],
-    queryFn: () => orderService.getOrders(venueId, pagination),
+    queryFn: async () => {
+      const response = await orderService.getOrders(venueId, pagination)
+      // Backend now filters out PENDING orders automatically
+      return response
+    },
     refetchOnWindowFocus: true,
   })
 

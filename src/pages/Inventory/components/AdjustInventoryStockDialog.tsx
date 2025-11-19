@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MOVEMENT_TYPE_OPTIONS } from '@/lib/inventory-constants'
 import type { Product } from '@/types'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
+import { useRecentMovements } from '@/hooks/useRecentMovements'
+import { RecentMovementsSection } from '@/components/inventory/RecentMovementsSection'
 
 interface AdjustInventoryStockDialogProps {
   open: boolean
@@ -30,6 +32,14 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
   const queryClient = useQueryClient()
   const { formatUnitWithQuantity } = useUnitTranslation()
   const [showLargeAdjustmentConfirm, setShowLargeAdjustmentConfirm] = useState(false)
+
+  // Fetch recent movements
+  const { movements, isLoading: isLoadingMovements, hasRecentMovements } = useRecentMovements({
+    venueId,
+    productId: product?.id ?? null,
+    enabled: open,
+    limit: 5,
+  })
 
   const {
     register,
@@ -114,6 +124,14 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             {product.name} ({product.sku})
           </DialogDescription>
         </DialogHeader>
+
+        {/* Recent Stock Movements */}
+        <RecentMovementsSection
+          movements={movements}
+          isLoading={isLoadingMovements}
+          hasRecentMovements={hasRecentMovements}
+          unit={formatUnitWithQuantity(1, unitKey)}
+        />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Current Stock Display */}

@@ -16,16 +16,14 @@ import { useToast } from '@/hooks/use-toast'
 // Define form values type
 type FormValues = {
   name: string
-  extraPrice: number
-  available: boolean
+  price: number
   active: boolean
 }
 
 // Schema will be created inside component to access t() function
 const createFormSchema = (t: any) => z.object({
   name: z.string().min(1, { message: t('modifiers.create.nameRequired') }),
-  extraPrice: z.number().min(0).default(0),
-  available: z.boolean().default(true),
+  price: z.number().min(0).default(0),
   active: z.boolean().default(true),
 })
 
@@ -46,8 +44,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       name: '',
-      extraPrice: 0,
-      available: true,
+      price: 0,
       active: true,
     },
   })
@@ -58,8 +55,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
       // Create the modifier with the modifierGroupId included
       const payload = {
         name: formValues.name,
-        extraPrice: formValues.extraPrice,
-        available: formValues.available,
+        price: formValues.price,
         active: formValues.active,
       }
       return await createModifierService(venueId, modifierGroupId, payload)
@@ -134,10 +130,10 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
               {/* Price field */}
               <FormField
                 control={form.control}
-                name="extraPrice"
+                name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('modifiers.create.extraPrice')}</FormLabel>
+                    <FormLabel>{t('modifiers.editModifier.fields.price')}</FormLabel>
                     <FormControl>
                       <div>
                         <Input
@@ -152,27 +148,7 @@ export default function CreateModifier({ venueId, modifierGroupId, onBack, onSuc
                         />
                       </div>
                     </FormControl>
-                    <FormDescription>{t('modifiers.create.extraPriceDescription')}</FormDescription>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Available field */}
-              <FormField
-                control={form.control}
-                name="available"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>{t('modifiers.create.available')}</FormLabel>
-                      <FormDescription>{t('modifiers.create.availableDescription')}</FormDescription>
-                    </div>
-                    <FormControl>
-                      <div>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} name={field.name} ref={field.ref} />
-                      </div>
-                    </FormControl>
                   </FormItem>
                 )}
               />

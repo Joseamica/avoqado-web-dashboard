@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertTriangle, AlertCircle } from 'lucide-react'
 import type { Product } from '@/types'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useRecentMovements } from '@/hooks/useRecentMovements'
+import { RecentMovementsSection } from '@/components/inventory/RecentMovementsSection'
 
 interface AdjustStockDialogProps {
   open: boolean
@@ -20,10 +23,19 @@ interface AdjustStockDialogProps {
 
 export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLoading = false }: AdjustStockDialogProps) {
   const { t } = useTranslation('menu')
+  const { venueId } = useCurrentVenue()
   const [adjustment, setAdjustment] = useState<string>('')
   const [reason, setReason] = useState<string>('recount')
   const [notes, setNotes] = useState<string>('')
   const [showLargeAdjustmentConfirm, setShowLargeAdjustmentConfirm] = useState(false)
+
+  // Fetch recent movements
+  const { movements, isLoading: isLoadingMovements, hasRecentMovements } = useRecentMovements({
+    venueId,
+    productId: product?.id ?? null,
+    enabled: open,
+    limit: 5,
+  })
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -72,6 +84,14 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
             {t('products.actions.adjustStockDialog.currentStock')}: <strong>{currentStock.toFixed(2)}</strong> {product.unit || 'units'}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Recent Stock Movements */}
+        <RecentMovementsSection
+          movements={movements}
+          isLoading={isLoadingMovements}
+          hasRecentMovements={hasRecentMovements}
+          unit={product.unit || 'units'}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

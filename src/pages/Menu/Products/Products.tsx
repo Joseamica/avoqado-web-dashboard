@@ -3,7 +3,7 @@ import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/in
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle } from 'lucide-react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -95,17 +95,20 @@ export default function Products() {
       // Only check products with inventory tracking
       if (!product.trackInventory || !product.inventoryMethod) return false
 
-      // For QUANTITY method: check against reorder point
+      // For QUANTITY method: check against reorder point OR custom threshold
       if (product.inventoryMethod === 'QUANTITY') {
         const currentStock = Number(product.inventory?.currentStock ?? 0)
-        const reorderPoint = Number(product.inventory?.reorderPoint ?? 10)
-        return currentStock <= reorderPoint
+        // Use custom threshold if set, otherwise fall back to reorderPoint
+        const threshold = product.lowStockThreshold ?? Number(product.inventory?.reorderPoint ?? 10)
+        return currentStock <= threshold
       }
 
-      // For RECIPE method: check availableQuantity (calculated from ingredients)
+      // For RECIPE method: check availableQuantity against custom threshold
       if (product.inventoryMethod === 'RECIPE') {
         const availableQuantity = product.availableQuantity ?? 0
-        return availableQuantity <= 5 // Low if can make 5 or fewer portions
+        // Use custom threshold if set, otherwise default to 5 portions
+        const threshold = product.lowStockThreshold ?? 5
+        return availableQuantity <= threshold
       }
 
       return false
@@ -382,6 +385,34 @@ export default function Products() {
       },
     },
     {
+      id: 'available',
+      accessorKey: 'active',
+      meta: { label: 'Available' },
+      header: 'Available',
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+        const isActive = product.active
+
+        return (
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <Switch
+              checked={isActive}
+              onCheckedChange={(checked) => {
+                toggleActive.mutate({ productId: product.id, status: checked })
+              }}
+              className={isActive ? 'data-[state=checked]:bg-green-500' : 'data-[state=unchecked]:bg-red-500'}
+            />
+            {isActive ? (
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            ) : (
+              <Badge variant="destructive" className="text-xs">86'd</Badge>
+            )}
+          </div>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: t('common.actions'),
       enableColumnFilter: false,
@@ -442,26 +473,6 @@ export default function Products() {
               </PermissionGate>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
-      },
-    },
-    {
-      id: 'id',
-      accessorKey: 'active',
-      header: '',
-      enableColumnFilter: false,
-      cell: ({ row, cell }) => {
-        const productId = row.original.id as string
-        const active = cell.getValue() as boolean
-
-        return (
-          <Switch
-            id={`active-switch-${productId}`}
-            checked={active}
-            onCheckedChange={() => toggleActive.mutate({ productId, status: !active })}
-            onClick={e => e.stopPropagation()} // Prevent row click when switch is clicked
-            disabled={toggleActive.isPending}
-          />
         )
       },
     },

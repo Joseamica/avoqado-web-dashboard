@@ -247,6 +247,7 @@ const { staffInfo } = useAuth()
 ## Development Guides
 
 **Best practices:**
+- [UI Patterns](.claude/docs/guides/ui-patterns.md) - Icon-based selections, horizontal navigation, common UI patterns
 - [Performance Optimization](.claude/docs/guides/performance.md) - React performance patterns, memoization
 - [Troubleshooting Render Loops](.claude/docs/troubleshooting/render-loops.md) - Debug infinite re-renders
 
@@ -373,7 +374,7 @@ gh workflow run ci-cd.yml --field environment=demo
 - **Quick reference**: [Quick Reference](.claude/docs/quick-reference.md)
 - **Architecture**: [Overview](.claude/docs/architecture/overview.md) | [Routing](.claude/docs/architecture/routing.md) | [Permissions](.claude/docs/architecture/permissions.md)
 - **Features**: [Inventory](.claude/docs/features/inventory.md) | [i18n](.claude/docs/features/i18n.md) | [Theme](.claude/docs/features/theme.md)
-- **Guides**: [Performance](.claude/docs/guides/performance.md)
+- **Guides**: [UI Patterns](.claude/docs/guides/ui-patterns.md) | [Performance](.claude/docs/guides/performance.md)
 - **Troubleshooting**: [Render Loops](.claude/docs/troubleshooting/render-loops.md)
 
 ## Contributing

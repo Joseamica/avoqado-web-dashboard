@@ -620,6 +620,7 @@ export interface Product {
   inventoryMethod: 'QUANTITY' | 'RECIPE' | null
   unit: string | null
   availableQuantity?: number | null // Toast POS style unified field for both QUANTITY and RECIPE
+  lowStockThreshold?: number | null // Alert threshold for low stock warnings (configurable per product)
 
   // Status
   active: boolean

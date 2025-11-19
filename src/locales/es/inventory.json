@@ -117,6 +117,9 @@
       "reason": "Razón",
       "reference": "Referencia",
       "date": "Fecha",
+      "loading": "Cargando movimientos recientes...",
+      "noRecentMovements": "No hay movimientos recientes de stock",
+      "recentActivity": "Actividad Reciente",
       "types": {
         "PURCHASE": "Compra",
         "USAGE": "Uso",
@@ -672,6 +675,117 @@
     "HOUR_plural": "Horas",
     "DAY": "Día",
     "DAY_plural": "Días"
+  },
+
+  "waste": {
+    "title": "Registrar Desperdicio",
+    "reason": "Razón del Desperdicio",
+    "selectReason": "Selecciona una razón",
+    "reasonRequired": "La razón es obligatoria",
+    "quantityWasted": "Cantidad Desperdiciada",
+    "quantityRequired": "La cantidad es obligatoria",
+    "quantityMinimum": "La cantidad debe ser mayor a 0",
+    "afterWaste": "Después del Desperdicio",
+    "wastedAmount": "Cantidad Desperdiciada",
+    "willBeDeducted": "se deducirá del inventario",
+    "insufficientStock": "Este registro resultará en stock negativo. El stock no puede ser negativo.",
+    "notes": "Notas Adicionales",
+    "notesPlaceholder": "Agrega detalles adicionales sobre este desperdicio...",
+    "notesHelp": "Opcional: Proporciona contexto, números de lote u otra información relevante",
+    "logWaste": "Registrar Desperdicio",
+    "logged": "Desperdicio Registrado",
+    "loggedDesc": "El desperdicio ha sido registrado y el stock ajustado",
+    "errorLogging": "Error al registrar desperdicio",
+    "categories": {
+      "quality": "Calidad del Producto",
+      "operational": "Operacional",
+      "customer": "Relacionado con Cliente",
+      "intentional": "Uso Intencional",
+      "loss": "Pérdida/Robo",
+      "other": "Otro"
+    },
+    "reasons": {
+      "EXPIRED": {
+        "label": "Vencido",
+        "description": "Producto pasado de fecha de vencimiento"
+      },
+      "SPOILED": {
+        "label": "Echado a Perder/Dañado",
+        "description": "Producto echado a perder, con moho o dañado antes de usar"
+      },
+      "CONTAMINATED": {
+        "label": "Contaminado",
+        "description": "Producto contaminado o comprometido"
+      },
+      "DEFECTIVE": {
+        "label": "Defectuoso",
+        "description": "Recibido defectuoso o calidad inferior"
+      },
+      "OVERPRODUCTION": {
+        "label": "Sobreproducción",
+        "description": "Se preparó demasiado, no se vendió"
+      },
+      "PREP_ERROR": {
+        "label": "Error de Preparación",
+        "description": "Error durante la preparación/cocción"
+      },
+      "BURNT": {
+        "label": "Quemado/Sobrecocido",
+        "description": "Producto quemado o sobrecocido"
+      },
+      "UNDERCOOKED": {
+        "label": "Poco Cocido",
+        "description": "Producto poco cocido o mal preparado"
+      },
+      "DROPPED": {
+        "label": "Caído/Derramado",
+        "description": "Accidentalmente caído o derramado"
+      },
+      "CUSTOMER_RETURN": {
+        "label": "Devolución de Cliente",
+        "description": "Queja o insatisfacción del cliente"
+      },
+      "WRONG_ORDER": {
+        "label": "Orden Incorrecta",
+        "description": "Orden preparada incorrectamente"
+      },
+      "CUSTOMER_CHANGE": {
+        "label": "Cliente Cambió de Opinión",
+        "description": "Cliente modificó o canceló orden"
+      },
+      "TESTING": {
+        "label": "Pruebas/Muestreo",
+        "description": "Pruebas de calidad o muestras para clientes"
+      },
+      "STAFF_MEAL": {
+        "label": "Comida de Personal",
+        "description": "Proporcionado a miembros del personal"
+      },
+      "PROMOTION": {
+        "label": "Promoción/Cortesía",
+        "description": "Regalo promocional o cortesía"
+      },
+      "DONATION": {
+        "label": "Donación",
+        "description": "Donado a caridad o comunidad"
+      },
+      "THEFT": {
+        "label": "Robo",
+        "description": "Producto robado"
+      },
+      "MISSING": {
+        "label": "Faltante/Sin Contabilizar",
+        "description": "No se puede ubicar el inventario"
+      },
+      "PEST_DAMAGE": {
+        "label": "Daño por Plagas",
+        "description": "Dañado por plagas o roedores"
+      },
+      "OTHER": {
+        "label": "Otro",
+        "description": "Otra razón (especificar en notas)"
+      }
+    }
   },
 
   "common": {
