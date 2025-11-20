@@ -19,6 +19,14 @@
     "COMPLETED": "Completed",
     "CANCELLED": "Cancelled"
   },
+  "export": {
+    "button": "Export",
+    "asCSV": "Export as CSV",
+    "asExcel": "Export as Excel (.xlsx)",
+    "success": "Exported {{count}} orders successfully",
+    "error": "Failed to export orders",
+    "noData": "No data to export"
+  },
   "detail": {
     "title": "Order {{number}}",
     "loading": "Loading order...",

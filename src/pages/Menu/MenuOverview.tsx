@@ -8,12 +8,13 @@ import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
 import { InventoryBadge } from '@/components/inventory/InventoryBadge'
 import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
+import { MenuImportDialog } from '@/components/menu/MenuImportDialog'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
+import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info, Upload } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -206,6 +207,7 @@ export default function Overview() {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -514,6 +516,13 @@ export default function Overview() {
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
             {t('overview.manageCategories')}
           </Button>
+          {/* Import button - Requires menu:import permission (MANAGER+) */}
+          {can('menu:import') && (
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              {t('overview.importMenu')}
+            </Button>
+          )}
           {/* Create buttons - Requires menu:create permission (MANAGER+) */}
           {can('menu:create') && (
             <DropdownMenu modal={false}>
@@ -711,6 +720,7 @@ export default function Overview() {
       </div>
 
       <InventoryDetailsModal product={selectedProduct} open={isInventoryModalOpen} onOpenChange={setIsInventoryModalOpen} />
+      <MenuImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} />
     </div>
   )
 }

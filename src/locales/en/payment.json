@@ -133,6 +133,14 @@
     },
     "unknownVenue": "Restaurant"
   },
+  "export": {
+    "button": "Export",
+    "asCSV": "Export as CSV",
+    "asExcel": "Export as Excel (.xlsx)",
+    "success": "Exported {{count}} payments successfully",
+    "error": "Failed to export payments",
+    "noData": "No data to export"
+  },
   "detail": {
     "title": "Payment Details",
     "idLabel": "ID",

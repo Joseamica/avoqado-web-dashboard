@@ -8,6 +8,7 @@
     "collapseAll": "Collapse All",
     "createNewProduct": "Create New Product",
     "manageCategories": "Manage Categories",
+    "importMenu": "Import Menu",
     "create": "Create",
     "errorLoading": "Error loading data: {{message}}",
     "draggedItem": "Item",

@@ -2,21 +2,26 @@
 
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue' // Hook actualizado
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import * as orderService from '@/services/order.service'
 import { Order as OrderType } from '@/types' // CAMBIO: Usar el tipo Order
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
+import { Download } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 export default function Orders() {
-  const { t, i18n } = useTranslation('orders')
+  const { t } = useTranslation('orders')
+  const { toast } = useToast()
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
@@ -43,8 +48,6 @@ export default function Orders() {
     // La lógica de refetch sigue siendo válida
     refetch()
   })
-
-  const localeCode = getIntlLocale(i18n.language)
 
   const columns = useMemo<ColumnDef<OrderType, unknown>[]>(
     () => [
@@ -140,7 +143,7 @@ export default function Orders() {
         },
       },
     ],
-    [t, localeCode, formatTime, formatDate, venueTimezoneShort],
+    [t, formatTime, formatDate, venueTimezoneShort],
   )
 
   // Search callback for DataTable
@@ -160,10 +163,75 @@ export default function Orders() {
     })
   }, [])
 
+  // Export functionality
+  const handleExport = useCallback(
+    (format: 'csv' | 'excel') => {
+      const orders = data?.data || []
+
+      if (!orders || orders.length === 0) {
+        toast({
+          title: t('export.noData'),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      try {
+        // Transform orders to flat structure for export
+        const exportData = orders.map(order => {
+          const waiterName = order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : '-'
+
+          return {
+            [t('columns.date')]: formatDate(order.createdAt),
+            [t('columns.orderNumber')]: order.orderNumber || '-',
+            [t('columns.customer')]: order.customerName || t('counter'),
+            [t('columns.waiter')]: waiterName,
+            [t('columns.status')]: t(`statuses.${order.status}` as any),
+            [t('columns.total')]: formatCurrencyForExport(Number(order.total) || 0),
+          }
+        })
+
+        const filename = generateFilename('orders', venueId)
+
+        if (format === 'csv') {
+          exportToCSV(exportData, filename)
+          toast({
+            title: t('export.success', { count: orders.length }),
+          })
+        } else {
+          exportToExcel(exportData, filename, 'Orders')
+          toast({
+            title: t('export.success', { count: orders.length }),
+          })
+        }
+      } catch (error) {
+        console.error('Export error:', error)
+        toast({
+          title: t('export.error'),
+          variant: 'destructive',
+        })
+      }
+    },
+    [data?.data, formatDate, venueId, t, toast],
+  )
+
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('title')}</h1>
+        {/* Export button */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              {t('export.button')}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {error && (

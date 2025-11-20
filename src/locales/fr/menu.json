@@ -8,6 +8,7 @@
     "collapseAll": "Tout Réduire",
     "createNewProduct": "Créer un Nouveau Produit",
     "manageCategories": "Gérer les Catégories",
+    "importMenu": "Importer le Menu",
     "create": "Créer",
     "errorLoading": "Erreur lors du chargement des données: {{message}}",
     "draggedItem": "Élément",

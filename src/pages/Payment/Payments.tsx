@@ -6,23 +6,39 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useAuth } from '@/context/AuthContext'
 import { Payment as PaymentType, StaffRole } from '@/types' // Asumiendo que actualizas este tipo
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
+import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
-import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { AppWindow, ArrowUpDown, Banknote, Computer, Globe, QrCode, Smartphone, TabletSmartphone, TestTube, X } from 'lucide-react'
+import {
+  AppWindow,
+  ArrowUpDown,
+  Banknote,
+  Computer,
+  Download,
+  Globe,
+  QrCode,
+  Smartphone,
+  TabletSmartphone,
+  TestTube,
+  X,
+} from 'lucide-react'
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Payments() {
-  const { t, i18n } = useTranslation('payment')
+  const { t } = useTranslation('payment')
+  const { toast } = useToast()
   const { venueId } = useCurrentVenue()
   const { user } = useAuth()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
@@ -49,7 +65,17 @@ export default function Payments() {
   // La lógica de fetching sigue siendo válida porque el nuevo backend
   // devuelve la estructura { data, meta } que el frontend espera.
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize, merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, searchTerm],
+    queryKey: [
+      'payments',
+      venueId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      merchantAccountFilter,
+      methodFilter,
+      sourceFilter,
+      waiterFilter,
+      searchTerm,
+    ],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
         params: {
@@ -70,7 +96,6 @@ export default function Payments() {
   })
 
   const totalPayments = data?.meta?.total || 0
-  const localeCode = getIntlLocale(i18n.language)
 
   // --- SIN CAMBIOS EN useSocketEvents ---
   // La lógica de refetch al recibir un evento sigue siendo correcta.
@@ -88,21 +113,21 @@ export default function Payments() {
 
     // Unique merchant accounts
     const merchantAccountsMap = new Map()
-    payments.forEach(p => {
+    payments.forEach((p: PaymentType) => {
       if (p.merchantAccount) {
         merchantAccountsMap.set(p.merchantAccount.id, p.merchantAccount)
       }
     })
 
     // Unique methods
-    const methodsSet = new Set(payments.map(p => p.method).filter(Boolean))
+    const methodsSet = new Set(payments.map((p: PaymentType) => p.method).filter(Boolean))
 
     // Unique sources
-    const sourcesSet = new Set(payments.map(p => p.source).filter(Boolean))
+    const sourcesSet = new Set(payments.map((p: PaymentType) => p.source).filter(Boolean))
 
     // Unique waiters
     const waitersMap = new Map()
-    payments.forEach(p => {
+    payments.forEach((p: PaymentType) => {
       if (p.processedBy) {
         waitersMap.set(p.processedBy.id, p.processedBy)
       }
@@ -361,7 +386,11 @@ export default function Payments() {
               cell: ({ row }: any) => {
                 const payment = row.original
                 if (!payment.transactionCost) {
-                  return <div className="flex justify-center"><span className="text-xs text-muted-foreground">-</span></div>
+                  return (
+                    <div className="flex justify-center">
+                      <span className="text-xs text-muted-foreground">-</span>
+                    </div>
+                  )
                 }
 
                 const profit = Number(payment.transactionCost.grossProfit) || 0
@@ -392,7 +421,10 @@ export default function Payments() {
                 }
 
                 return (
-                  <div className="flex flex-col space-y-1 items-center" title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}>
+                  <div
+                    className="flex flex-col space-y-1 items-center"
+                    title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}
+                  >
                     <span className="text-xs font-semibold text-muted-foreground">{(margin * 100).toFixed(2)}%</span>
                     <Badge variant="outline" className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border}`}>
                       {Currency(profit)}
@@ -421,7 +453,78 @@ export default function Payments() {
         },
       },
     ],
-    [t, localeCode, formatTime, formatDate, venueTimezoneShort, isSuperAdmin],
+    [t, formatTime, formatDate, venueTimezoneShort, isSuperAdmin],
+  )
+
+  // Export functionality
+  const handleExport = useCallback(
+    (format: 'csv' | 'excel') => {
+      if (!payments || payments.length === 0) {
+        toast({
+          title: t('export.noData'),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      try {
+        // Transform payments to flat structure for export
+        const exportData = payments.map((payment: PaymentType) => {
+          const processedBy = payment.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : '-'
+          const merchantAccount = payment.merchantAccount?.displayName || payment.merchantAccount?.externalMerchantId || 'N/A'
+          const cardInfo = payment.last4 ? `**** ${payment.last4}` : ''
+
+          const sourceKey = `sources.${payment.source || 'UNKNOWN'}` as const
+          const methodKey = payment.method === 'CASH' ? 'methods.cash' : 'methods.card'
+
+          const row: Record<string, any> = {
+            [t('columns.date')]: formatDate(payment.createdAt),
+            [t('columns.waiter')]: processedBy,
+            [t('columns.merchantAccount')]: merchantAccount,
+            [t('columns.source')]: t(sourceKey as any),
+            [t('columns.method')]: t(methodKey as any),
+          }
+
+          // Add card details if available
+          if (cardInfo) {
+            row['Card'] = cardInfo
+          }
+
+          row[t('columns.subtotal')] = formatCurrencyForExport(Number(payment.amount) || 0)
+          row[t('columns.tip')] = formatCurrencyForExport(Number(payment.tipAmount) || 0)
+
+          // Add profit column if superadmin
+          if (isSuperAdmin && payment.transactionCost) {
+            row[t('columns.profit')] = formatCurrencyForExport(Number(payment.transactionCost.grossProfit) || 0)
+          }
+
+          row[t('columns.total')] = formatCurrencyForExport((Number(payment.amount) || 0) + (Number(payment.tipAmount) || 0))
+
+          return row
+        })
+
+        const filename = generateFilename('payments', venueId)
+
+        if (format === 'csv') {
+          exportToCSV(exportData, filename)
+          toast({
+            title: t('export.success', { count: payments.length }),
+          })
+        } else {
+          exportToExcel(exportData, filename, 'Payments')
+          toast({
+            title: t('export.success', { count: payments.length }),
+          })
+        }
+      } catch (error) {
+        console.error('Export error:', error)
+        toast({
+          title: t('export.error'),
+          variant: 'destructive',
+        })
+      }
+    },
+    [payments, formatDate, isSuperAdmin, venueId, t, toast],
   )
 
   return (
@@ -435,12 +538,28 @@ export default function Payments() {
               {t('filters.showing')} {payments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
             </p>
           </div>
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={resetFilters} className="gap-2">
-              <X className="h-4 w-4" />
-              {t('filters.clearAll')} ({activeFiltersCount})
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Export button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  {t('export.button')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Clear filters button */}
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={resetFilters} className="gap-2">
+                <X className="h-4 w-4" />
+                {t('filters.clearAll')} ({activeFiltersCount})
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -474,7 +593,7 @@ export default function Payments() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('filters.allMethods')}</SelectItem>
-              {methods.map(method => (
+              {methods.map((method: string) => (
                 <SelectItem key={method} value={method}>
                   {method === 'CASH' ? t('methods.cash') : method === 'CREDIT_CARD' ? t('methods.credit_card') : t('methods.card')}
                 </SelectItem>
@@ -488,9 +607,9 @@ export default function Payments() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('filters.allSources')}</SelectItem>
-              {sources.map(source => (
+              {sources.map((source: string) => (
                 <SelectItem key={source} value={source}>
-                  {t(`sources.${source}`)}
+                  {t(`sources.${source}` as any)}
                 </SelectItem>
               ))}
             </SelectContent>

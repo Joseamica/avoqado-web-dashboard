@@ -19,6 +19,14 @@
     "COMPLETED": "Completed",
     "CANCELLED": "Cancelled"
   },
+  "export": {
+    "button": "Exporter",
+    "asCSV": "Exporter en CSV",
+    "asExcel": "Exporter en Excel (.xlsx)",
+    "success": "{{count}} commandes exportées avec succès",
+    "error": "Échec de l'exportation des commandes",
+    "noData": "Aucune donnée à exporter"
+  },
   "detail": {
     "title": "Commande {{number}}",
     "loading": "Chargement de la commande...",

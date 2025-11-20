@@ -1,0 +1,79 @@
+{
+  "title": "Importar Menú",
+  "description": "Sube un archivo CSV para crear rápidamente tu menú con categorías, productos y modificadores",
+  "export": {
+    "title": "Exportar Tu Menú Actual",
+    "yourData": "Tus Datos",
+    "description": "Descarga tu menú existente para editarlo y re-importarlo después. Todos tus productos, categorías y configuraciones serán exportados.",
+    "basicButton": "Exportar Básico",
+    "advancedButton": "Exportar Avanzado",
+    "basicDesc": "Formato básico exportado",
+    "advancedDesc": "Formato avanzado con todos los detalles exportado",
+    "success": "¡Menú exportado exitosamente!",
+    "error": "Error al exportar el menú",
+    "noData": "No hay datos de menú para exportar",
+    "or": "o"
+  },
+  "templates": {
+    "title": "Descargar Plantilla Vacía",
+    "empty": "Ejemplo",
+    "basic": "Plantilla Básica",
+    "basicDesc": "Menú simple con categorías y productos (nombre, SKU, precio, descripción)",
+    "advanced": "Plantilla Avanzada",
+    "advancedDesc": "Menú completo con inventario, modificadores, alérgenos, etiquetas y más"
+  },
+  "download": {
+    "button": "Descargar Plantilla",
+    "basic": "Descargar Plantilla Básica",
+    "advanced": "Descargar Plantilla Avanzada"
+  },
+  "upload": {
+    "title": "Subir Archivo CSV",
+    "dropzone": "Arrastra y suelta tu archivo CSV aquí, o haz clic para buscar",
+    "selected": "Archivo seleccionado: {{filename}}",
+    "changeFile": "Cambiar archivo",
+    "fileSize": "{{size}} KB"
+  },
+  "mode": {
+    "title": "Modo de Importación",
+    "merge": "Agregar / Actualizar",
+    "mergeDesc": "Agrega nuevos productos y categorías. Actualiza productos existentes por SKU. No elimina nada.",
+    "replace": "Reemplazar Todo",
+    "replaceDesc": "Elimina todos los datos del menú existente y reemplaza con el contenido del CSV. ¡Esto no se puede deshacer!",
+    "warning": "⚠️ Advertencia: El modo Reemplazar eliminará permanentemente tu menú actual"
+  },
+  "preview": {
+    "title": "Vista Previa",
+    "categories": "{{count}} categorías",
+    "products": "{{count}} productos",
+    "modifiers": "{{count}} grupos de modificadores",
+    "noData": "No hay datos para previsualizar. Sube primero un archivo CSV."
+  },
+  "validation": {
+    "title": "Validación",
+    "checking": "Validando CSV...",
+    "valid": "✓ El CSV es válido y está listo para importar",
+    "invalid": "✗ El CSV tiene errores. Por favor corrígelos antes de importar:",
+    "errors": "{{count}} errores encontrados"
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "import": "Importar Menú",
+    "importing": "Importando...",
+    "close": "Cerrar"
+  },
+  "success": {
+    "title": "¡Menú importado exitosamente!",
+    "message": "Se crearon {{categories}} categorías, {{products}} productos y {{modifierGroups}} grupos de modificadores",
+    "messageShort": "Menú importado exitosamente"
+  },
+  "errors": {
+    "title": "Importación fallida",
+    "parseError": "Error al procesar el archivo CSV",
+    "validationError": "Falló la validación del CSV",
+    "uploadError": "Error al subir el menú",
+    "emptyFile": "El archivo CSV está vacío",
+    "invalidFormat": "Formato de CSV inválido",
+    "serverError": "Error del servidor: {{message}}"
+  }
+}

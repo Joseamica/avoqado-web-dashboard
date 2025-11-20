@@ -82,6 +82,9 @@ import settlementIncidentsFr from '@/locales/fr/settlementIncidents.json'
 import googleIntegrationEn from '@/locales/en/googleIntegration.json'
 import googleIntegrationEs from '@/locales/es/googleIntegration.json'
 import googleIntegrationFr from '@/locales/fr/googleIntegration.json'
+import menuImportEn from '@/locales/en/menuImport.json'
+import menuImportEs from '@/locales/es/menuImport.json'
+import menuImportFr from '@/locales/fr/menuImport.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -385,6 +388,15 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'googleIntegration', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', menuImportEn],
+    ['es', menuImportEs],
+    ['fr', menuImportFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'menuImport', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

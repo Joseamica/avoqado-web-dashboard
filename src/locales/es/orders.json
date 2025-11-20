@@ -19,6 +19,14 @@
     "COMPLETED": "Completada",
     "CANCELLED": "Cancelada"
   },
+  "export": {
+    "button": "Exportar",
+    "asCSV": "Exportar como CSV",
+    "asExcel": "Exportar como Excel (.xlsx)",
+    "success": "Se exportaron {{count}} órdenes exitosamente",
+    "error": "Error al exportar órdenes",
+    "noData": "No hay datos para exportar"
+  },
   "detail": {
     "title": "Orden {{number}}",
     "loading": "Cargando orden...",
