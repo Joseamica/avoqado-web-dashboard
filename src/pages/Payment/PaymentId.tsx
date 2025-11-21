@@ -7,26 +7,27 @@ import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import {
+  AlertCircle,
   ArrowLeft,
-  Receipt,
-  Mail,
+  Banknote,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Copy,
+  CreditCard,
+  Download,
   Eye,
   ExternalLink,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertCircle,
-  CreditCard,
-  User,
-  Calendar,
-  RefreshCw,
-  DollarSign,
-  TrendingUp,
   FileText,
-  Shield,
-  Copy,
-  Download,
-  Building2,
+  Mail,
+  Receipt,
+  RefreshCw,
+  User,
+  Wallet,
+  XCircle,
 } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
@@ -34,6 +35,7 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
@@ -44,6 +46,298 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import { usePermissions } from '@/hooks/usePermissions'
 
+// ========== TYPES & INTERFACES ==========
+interface SectionState {
+  transaction: boolean
+  merchant: boolean
+  receipts: boolean
+  posData: boolean
+  processorData: boolean
+}
+
+interface TimelineEvent {
+  type: 'created' | 'status_change' | 'receipt' | 'refund'
+  timestamp: string
+  description: string
+  email?: string
+  icon: React.ComponentType<{ className?: string }>
+  iconColor: string
+}
+
+// ========== HELPER FUNCTIONS ==========
+const getPaymentStatusConfig = (status: string) => {
+  const s = status?.toUpperCase()
+  switch (s) {
+    case 'PAID':
+    case 'COMPLETED':
+      return {
+        icon: CheckCircle2,
+        color: 'text-green-800 dark:text-green-400',
+        bg: 'bg-green-100 dark:bg-green-900/30',
+        border: 'border-transparent',
+      }
+    case 'PENDING':
+    case 'PROCESSING':
+      return {
+        icon: Clock,
+        color: 'text-yellow-800 dark:text-yellow-400',
+        bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+        border: 'border-transparent',
+      }
+    case 'FAILED':
+    case 'REFUNDED':
+      return {
+        icon: XCircle,
+        color: 'text-red-800 dark:text-red-400',
+        bg: 'bg-red-100 dark:bg-red-900/30',
+        border: 'border-transparent',
+      }
+    default:
+      return {
+        icon: Clock,
+        color: 'text-muted-foreground',
+        bg: 'bg-muted',
+        border: 'border-border',
+      }
+  }
+}
+
+const getOrderTypeConfig = (type: string) => {
+  const t = type?.toUpperCase()
+  switch (t) {
+    case 'DINE_IN':
+      return {
+        label: 'Dine In',
+        bg: 'bg-blue-100 dark:bg-blue-900/30',
+        color: 'text-blue-800 dark:text-blue-400',
+      }
+    case 'TAKEOUT':
+      return {
+        label: 'Takeout',
+        bg: 'bg-purple-100 dark:bg-purple-900/30',
+        color: 'text-purple-800 dark:text-purple-400',
+      }
+    case 'DELIVERY':
+      return {
+        label: 'Delivery',
+        bg: 'bg-orange-100 dark:bg-orange-900/30',
+        color: 'text-orange-800 dark:text-orange-400',
+      }
+    case 'PICKUP':
+      return {
+        label: 'Pickup',
+        bg: 'bg-cyan-100 dark:bg-cyan-900/30',
+        color: 'text-cyan-800 dark:text-cyan-400',
+      }
+    default:
+      return {
+        label: type || 'Unknown',
+        bg: 'bg-muted',
+        color: 'text-muted-foreground',
+      }
+  }
+}
+
+const formatDateLong = (dateString: string | undefined, locale: string) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleString(locale, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const formatDateShort = (dateString: string | undefined, locale: string) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleString(locale, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const calculateTipPercentage = (tip: number, amount: number): string => {
+  if (amount === 0) return '0.0'
+  return ((tip / amount) * 100).toFixed(1)
+}
+
+const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
+  navigator.clipboard.writeText(text)
+  toast({
+    title: t('common:copied'),
+    description: t('detail.copiedToClipboard', { label }),
+  })
+}
+
+const getPaymentIcon = (payment: any) => {
+  const method = payment.method?.toUpperCase()
+  const cardBrand = payment.cardBrand
+
+  // Cash payments
+  if (method === 'CASH') {
+    return (
+      <div className="flex items-center justify-center w-9 h-7 rounded-lg bg-muted border border-border shadow-sm">
+        <Banknote className="h-4 w-4 text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Digital wallet payments
+  if (method === 'DIGITAL_WALLET') {
+    return (
+      <div className="flex items-center justify-center w-9 h-7 rounded-lg bg-muted border border-border shadow-sm">
+        <Wallet className="h-4 w-4 text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Card payments - show brand icon if available
+  if ((method === 'CREDIT_CARD' || method === 'DEBIT_CARD') && cardBrand) {
+    return getIcon(cardBrand)
+  }
+
+  // Fallback to generic card icon
+  return (
+    <div className="flex items-center justify-center w-9 h-7 rounded-lg bg-muted border border-border shadow-sm">
+      <CreditCard className="h-4 w-4 text-muted-foreground" />
+    </div>
+  )
+}
+
+// ========== SUB-COMPONENTS ==========
+const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLast: boolean }) => {
+  const Icon = event.icon
+  return (
+    <div className="flex gap-3">
+      <div className="flex flex-col items-center">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
+      </div>
+      <div className="flex-1 pb-6">
+        <p className="text-sm font-medium text-foreground">{event.description}</p>
+        <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
+        {event.email && <p className="text-xs text-muted-foreground">to {event.email}</p>}
+      </div>
+    </div>
+  )
+}
+
+const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; receipts: any[]; locale: string; t: any }) => {
+  const events: TimelineEvent[] = []
+
+  // Receipt events
+  if (receipts && receipts.length > 0) {
+    receipts.forEach(receipt => {
+      // Receipt viewed
+      if (receipt.viewedAt) {
+        events.push({
+          type: 'receipt',
+          timestamp: formatDateShort(receipt.viewedAt, locale),
+          description: t('detail.timeline.receiptViewed'),
+          email: receipt.recipientEmail,
+          icon: Eye,
+          iconColor: 'text-success border-success/20',
+        })
+      }
+      // Receipt sent
+      if (receipt.sentAt) {
+        events.push({
+          type: 'receipt',
+          timestamp: formatDateShort(receipt.sentAt, locale),
+          description: t('detail.timeline.receiptSent'),
+          email: receipt.recipientEmail,
+          icon: Mail,
+          iconColor: 'text-primary border-primary/20',
+        })
+      }
+    })
+  }
+
+  // Status change
+  if (payment.updatedAt && payment.updatedAt !== payment.createdAt) {
+    events.push({
+      type: 'status_change',
+      timestamp: formatDateShort(payment.updatedAt, locale),
+      description: `${t('detail.timeline.statusUpdated')}: ${payment.status}`,
+      icon: CheckCircle2,
+      iconColor: 'text-primary border-primary/20',
+    })
+  }
+
+  // Payment created
+  events.push({
+    type: 'created',
+    timestamp: formatDateShort(payment.createdAt, locale),
+    description: t('detail.timeline.paymentProcessed'),
+    icon: CreditCard,
+    iconColor: 'text-muted-foreground border-border',
+  })
+
+  // Sort by timestamp (most recent first)
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  return (
+    <div className="space-y-2">
+      {events.slice(0, 5).map((event, index) => (
+        <TimelineEventComponent key={index} event={event} isLast={index === events.length - 1} />
+      ))}
+    </div>
+  )
+}
+
+const CollapsibleSection = ({
+  title,
+  subtitle,
+  isOpen,
+  onToggle,
+  children,
+  icon: Icon,
+}: {
+  title: string
+  subtitle?: string
+  isOpen: boolean
+  onToggle: () => void
+  children: React.ReactNode
+  icon?: React.ComponentType<{ className?: string }>
+}) => {
+  return (
+    <Collapsible open={isOpen} onOpenChange={onToggle}>
+      <Card className="border-border">
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
+                <div>
+                  <CardTitle className="text-lg font-medium">{title}</CardTitle>
+                  {subtitle && <CardDescription className="mt-1">{subtitle}</CardDescription>}
+                </div>
+              </div>
+              {isOpen ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0">{children}</CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  )
+}
+
+// ========== MAIN COMPONENT ==========
 export default function PaymentId() {
   const { paymentId } = useParams<{ paymentId: string }>()
   const location = useLocation()
@@ -52,6 +346,13 @@ export default function PaymentId() {
   const [recipientEmail, setRecipientEmail] = useState('')
   const [receiptDetailOpen, setReceiptDetailOpen] = useState(false)
   const [selectedReceiptForDetail, setSelectedReceiptForDetail] = useState<any>(null)
+  const [sectionsOpen, setSectionsOpen] = useState<SectionState>({
+    transaction: true,
+    merchant: false,
+    receipts: true,
+    posData: false,
+    processorData: false,
+  })
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
   const { can } = usePermissions()
@@ -133,64 +434,16 @@ export default function PaymentId() {
     }
   }, [payment?.order?.orderNumber, paymentId, setCustomSegment, clearCustomSegment])
 
-  // Enhanced status badge styling for enterprise look
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'VIEWED':
-        return 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'
-      case 'DELIVERED':
-        return 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800'
-      case 'SENT':
-        return 'bg-amber-100 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800'
-      case 'ERROR':
-        return 'bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800'
-      case 'PENDING':
-      default:
-        return 'bg-muted text-muted-foreground border-border'
-    }
+  // Toggle section handler
+  const toggleSection = (section: keyof SectionState) => {
+    setSectionsOpen(prev => ({ ...prev, [section]: !prev[section] }))
   }
 
-  // Payment status styling - Updated for Prisma TransactionStatus enum
-  const getPaymentStatusStyle = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'COMPLETED':
-        return {
-          badge:
-            'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800',
-          icon: CheckCircle2,
-          color: 'text-emerald-500',
-        }
-      case 'PENDING':
-      case 'PROCESSING':
-        return {
-          badge: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-200 border border-amber-200 dark:border-amber-800',
-          icon: Clock,
-          color: 'text-amber-500',
-        }
-      case 'FAILED':
-      case 'REFUNDED':
-        return {
-          badge: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800',
-          icon: XCircle,
-          color: 'text-red-500',
-        }
-      default:
-        return {
-          badge: 'bg-muted text-muted-foreground border border-border',
-          icon: AlertCircle,
-          color: 'text-muted-foreground',
-        }
-    }
-  }
-
-  // Copy to clipboard helper
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: t('common:copied'),
-      description: t('detail.copiedToClipboard', { label }),
-    })
-  }
+  // Extract configurations early
+  const paymentStatusConfig = payment ? getPaymentStatusConfig(payment.status) : null
+  const orderTypeConfig = payment?.order?.type ? getOrderTypeConfig(payment.order.type) : null
+  const locale = getIntlLocale(i18n.language)
+  const StatusIcon = paymentStatusConfig?.icon || Clock
 
   const formatReceiptDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -216,9 +469,6 @@ export default function PaymentId() {
       </div>
     )
   }
-
-  const paymentStatus = getPaymentStatusStyle(payment?.status)
-  const StatusIcon = paymentStatus.icon
 
   // Helper function to get table info with extensive fallback
   const getTableInfo = (paymentData: any) => {
@@ -253,299 +503,152 @@ export default function PaymentId() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-muted to-background">
-        {/* Enhanced Header */}
-        <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to={from}>
-                      <ArrowLeft className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t('detail.backToList', { defaultValue: 'Volver a pagos' })}</TooltipContent>
-              </Tooltip>
+      <div className="min-h-screen bg-background">
+        {/* Stripe-Style Header */}
+        <div className="bg-background border-b border-border">
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            {/* Back Button */}
+            <div className="mb-6">
+              <Button variant="ghost" size="sm" asChild className="hover:bg-muted">
+                <Link to={from}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  {t('detail.backToList')}
+                </Link>
+              </Button>
+            </div>
+
+            {/* Main Header Content */}
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <h1 className="text-xl font-semibold text-foreground">{t('detail.title', { defaultValue: 'Detalles del Pago' })}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {t('detail.idLabel', { defaultValue: 'ID' })}:
-                  <span className="font-mono text-xs break-all select-all max-w-[200px] inline-block">{payment?.id}</span>
-                </p>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-4xl font-bold text-foreground">
+                    {(() => {
+                      const baseAmount = payment?.amount ? Number(payment.amount) : 0
+                      const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
+                      const total = baseAmount + tipAmount
+                      return total > 0 ? Currency(total) : 'N/A'
+                    })()}
+                  </h1>
+                  {paymentStatusConfig && (
+                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color}`}>
+                      <paymentStatusConfig.icon className="h-3 w-3 mr-1" />
+                      {payment?.status}
+                    </Badge>
+                  )}
+                  {orderTypeConfig && (
+                    <Badge variant="outline" className={`${orderTypeConfig.bg} ${orderTypeConfig.color}`}>
+                      {orderTypeConfig.label}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  {getPaymentIcon(payment)}
+                  <span className="text-sm">
+                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                      ? payment?.maskedPan || t('methods.card')
+                      : payment?.method === 'CASH'
+                      ? t('methods.cash')
+                      : payment?.method === 'DIGITAL_WALLET'
+                      ? t('methods.digitalWallet')
+                      : payment?.method || 'N/A'}
+                  </span>
+                  <span className="text-sm">•</span>
+                  <span className="text-sm">{formatDateLong(payment?.createdAt, locale)}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  {t('detail.actions.copyId')}
+                </Button>
+                {can('analytics:export') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const data = JSON.stringify(payment, null, 2)
+                      const blob = new Blob([data], { type: 'application/json' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `payment-${payment?.id}.json`
+                      a.click()
+                      URL.revokeObjectURL(url)
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {t('detail.actions.export')}
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className={paymentStatus.badge}>
-                <StatusIcon className={`h-3 w-3 mr-1 ${paymentStatus.color}`} />
-                {payment?.status === 'COMPLETED'
-                  ? t('detail.status.completed', { defaultValue: 'Pago Completado' })
-                  : payment?.status === 'PENDING'
-                  ? t('detail.status.pending', { defaultValue: 'Pendiente' })
-                  : payment?.status === 'PROCESSING'
-                  ? t('detail.status.processing', { defaultValue: 'Procesando' })
-                  : payment?.status === 'FAILED'
-                  ? t('detail.status.failed', { defaultValue: 'Fallido' })
-                  : payment?.status === 'REFUNDED'
-                  ? t('detail.status.refunded', { defaultValue: 'Reembolsado' })
-                  : payment?.status || t('common:unknown', { defaultValue: 'Desconocido' })}
-              </Badge>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">{t('detail.totals.total', { defaultValue: 'Total' })}</p>
-                <p className="text-lg font-bold text-foreground">
-                  {(() => {
-                    const baseAmount = payment?.amount ? Number(payment.amount) : 0
-                    const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
-                    const total = baseAmount + tipAmount
-                    return total > 0 ? Currency(total) : 'N/A'
-                  })()}
-                </p>
+
+            {/* Horizontal Stats Bar */}
+            <div className="grid grid-cols-4 gap-4 pt-6 border-t border-border">
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.base')}</div>
+                <div className="text-2xl font-semibold">{Currency(payment?.amount || 0)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.tips')}</div>
+                <div className="text-2xl font-semibold">
+                  {Currency(payment?.tipAmount || 0)}
+                  <span className="text-sm text-muted-foreground ml-2">
+                    ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
+                  </span>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.method')}</div>
+                <div className="text-lg font-medium">
+                  {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                    ? payment?.maskedPan || t('methods.card')
+                    : payment?.method === 'CASH'
+                    ? t('methods.cash')
+                    : payment?.method === 'DIGITAL_WALLET'
+                    ? t('methods.digitalWallet')
+                    : payment?.method || 'N/A'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.waiter')}</div>
+                <div className="text-lg font-medium">
+                  {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {/* Quick Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.base', { defaultValue: 'Monto Base' })}</p>
-                    <p className="text-2xl font-bold text-foreground">{payment?.amount ? Currency(Number(payment.amount)) : Currency(0)}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-emerald-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.tips', { defaultValue: 'Propinas' })}</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {payment?.tipAmount ? Currency(Number(payment.tipAmount)) : Currency(0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {payment?.amount && payment.amount > 0 ? (((payment?.tipAmount || 0) / payment.amount) * 100).toFixed(1) : '0.0'}%
-                    </p>
-                  </div>
-                  <TrendingUp className="h-8 w-8 text-blue-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-purple-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.method', { defaultValue: 'Método' })}</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.cardBrand && (
-                        <span className="text-lg">{getIcon(payment.cardBrand)}</span>
-                      )}
-                      <p className="font-semibold text-sm">
-                        {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                          ? payment?.maskedPan
-                            ? payment.maskedPan
-                            : t('methods.card', { defaultValue: 'Tarjeta' })
-                          : payment?.method === 'CASH'
-                          ? t('methods.cash', { defaultValue: 'Efectivo' })
-                          : payment?.method === 'DIGITAL_WALLET'
-                          ? t('methods.digitalWallet', { defaultValue: 'Monedero Digital' })
-                          : payment?.method === 'BANK_TRANSFER'
-                          ? t('methods.bankTransfer', { defaultValue: 'Transferencia Bancaria' })
-                          : payment?.method || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                  <CreditCard className="h-8 w-8 text-purple-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-orange-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.waiter', { defaultValue: 'Mesero' })}</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {payment?.processedBy
-                        ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() ||
-                          t('detail.overview.waiterUnknown', { defaultValue: 'N/A' })
-                        : t('detail.overview.waiterUnknown', { defaultValue: 'N/A' })}
-                    </p>
-                  </div>
-                  <User className="h-8 w-8 text-orange-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-indigo-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('detail.overview.merchantAccount', { defaultValue: 'Cuenta Comercial' })}</p>
-                    <p className="text-lg font-bold text-foreground">
-                      {payment?.merchantAccount
-                        ? payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId
-                        : t('detail.overview.notAvailable', { defaultValue: 'N/A' })}
-                    </p>
-                    {payment?.merchantAccount?.bankName && (
-                      <p className="text-xs text-muted-foreground">{payment.merchantAccount.bankName}</p>
-                    )}
-                  </div>
-                  <Building2 className="h-8 w-8 text-indigo-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Action Bar */}
-          {payment && (
-            <Card className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-foreground">{t('detail.actions.title', { defaultValue: 'Acciones del Pago' })}</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    {/* Send Receipt - Requires payments:refund or higher permission (MANAGER+) */}
-                    {can('payments:refund') && (
-                      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50">
-                            <Mail className="w-4 h-4 mr-2" />
-                            {t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle className="flex items-center space-x-2">
-                              <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                              <span>{t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}</span>
-                            </DialogTitle>
-                          </DialogHeader>
-                          <div className="mt-4 space-y-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="email">
-                                {t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}
-                              </Label>
-                              <Input
-                                id="email"
-                                type="email"
-                                placeholder={t('detail.email.placeholder', { defaultValue: 'correo@ejemplo.com' })}
-                                value={recipientEmail}
-                                onChange={e => setRecipientEmail(e.target.value)}
-                                className="w-full"
-                              />
-                            </div>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
-                                {t('common:cancel', { defaultValue: 'Cancelar' })}
-                              </Button>
-                              <Button
-                                disabled={!recipientEmail || sendReceiptMutation.isPending}
-                                onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })}
-                                className="flex-1"
-                              >
-                                {sendReceiptMutation.isPending ? (
-                                  <>
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                    {t('detail.email.sending')}
-                                  </>
-                                ) : (
-                                  <>{t('detail.email.send')}</>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-
-                    {/* View Receipt - Read-only action, visible to all with payments:read */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                      onClick={() => {
-                        // Check if payment has receipt access key
-                        if (receipts && receipts.length > 0) {
-                          const latestReceipt = receipts[0]
-                          window.open(ReceiptUrls.public(latestReceipt.accessKey), '_blank')
-                        } else {
-                          toast({
-                            title: t('detail.receipts.noReceipts', { defaultValue: 'Sin recibos' }),
-                            description: t('detail.receipts.noReceiptsDesc', {
-                              defaultValue: 'No hay recibos disponibles para este pago.',
-                            }),
-                            variant: 'destructive',
-                          })
-                        }
-                      }}
-                    >
-                      <Receipt className="w-4 h-4 mr-2" />
-                      {t('detail.actions.viewReceipt')}
-                    </Button>
-
-                    {/* Copy ID - Read-only action, visible to all with payments:read */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                      onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'))}
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      {t('detail.actions.copyId')}
-                    </Button>
-
-                    {/* Export - Requires analytics:export permission (MANAGER+) */}
-                    {can('analytics:export') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-background hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                        onClick={() => {
-                          // Export payment details as JSON
-                          const data = JSON.stringify(payment, null, 2)
-                          const blob = new Blob([data], { type: 'application/json' })
-                          const url = URL.createObjectURL(blob)
-                          const a = document.createElement('a')
-                          a.href = url
-                          a.download = `payment-${payment?.id}.json`
-                          a.click()
-                          URL.revokeObjectURL(url)
-                        }}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        {t('detail.actions.export')}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Transaction Timeline */}
+        {/* Main Content - 65/35 Stripe Layout */}
+        <div className="max-w-7xl mx-auto p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column (65%) */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Payment Information Card */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-linear-to-r from-muted to-blue-50 dark:to-blue-950/50 border-b">
-                  <CardTitle className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span>{t('detail.sections.transactionInfo')}</span>
+              {/* Timeline */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    {t('detail.timeline.title', { defaultValue: 'Actividad reciente' })}
                   </CardTitle>
-                  <CardDescription>{t('detail.sections.transactionInfoDesc')}</CardDescription>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
+                <CardContent>
+                  <PaymentTimeline payment={payment} receipts={receipts} locale={locale} t={t} />
+                </CardContent>
+              </Card>
+
+              {/* Transaction Details - Collapsible */}
+              <CollapsibleSection
+                title={t('detail.sections.transactionInfo')}
+                subtitle={t('detail.sections.transactionInfoDesc')}
+                isOpen={sectionsOpen.transaction}
+                onToggle={() => toggleSection('transaction')}
+                icon={FileText}
+              >
+                <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col">
                       <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1 min-h-[20px] mb-2">
@@ -636,12 +739,19 @@ export default function PaymentId() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </CollapsibleSection>
 
-                  {/* Merchant Account Information */}
-                  {payment?.merchantAccount && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium mb-3 text-sm text-muted-foreground">{t('detail.sections.merchantAccountInfo')}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Merchant Account - Collapsible */}
+              {payment?.merchantAccount && (
+                <CollapsibleSection
+                  title={t('detail.sections.merchantAccountInfo')}
+                  subtitle={t('detail.sections.merchantAccountDesc', { defaultValue: 'Información de la cuenta comercial' })}
+                  isOpen={sectionsOpen.merchant}
+                  onToggle={() => toggleSection('merchant')}
+                  icon={Building2}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col">
                           <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
                             {t('detail.fields.merchantName')}
@@ -706,25 +816,18 @@ export default function PaymentId() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                </CollapsibleSection>
+              )}
 
-              {/* Digital Receipts Section */}
-              <Card className="shadow-lg">
-                <CardHeader className="bg-linear-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Receipt className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <span>{t('detail.receipts.title', { defaultValue: 'Recibos Digitales' })}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {t('detail.receipts.description', {
-                      defaultValue: 'Historial completo de recibos enviados para esta transacción',
-                    })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
+              {/* Digital Receipts - Collapsible */}
+              <CollapsibleSection
+                title={t('detail.receipts.title', { defaultValue: 'Recibos Digitales' })}
+                subtitle={t('detail.receipts.description', { defaultValue: 'Historial completo de recibos enviados para esta transacción' })}
+                isOpen={sectionsOpen.receipts}
+                onToggle={() => toggleSection('receipts')}
+                icon={Receipt}
+              >
+                <div>
                   {isLoadingReceipts ? (
                     <div className="flex items-center justify-center py-8">
                       <RefreshCw className="h-6 w-6 animate-spin text-blue-500 mr-2" />
@@ -739,7 +842,7 @@ export default function PaymentId() {
                         >
                           <div className="space-y-2">
                             <div className="flex items-center space-x-3">
-                              <Badge variant="secondary" className={`${getStatusBadgeColor(receipt.status)} font-medium`}>
+                              <Badge variant="secondary" className="font-medium">
                                 {receipt.status}
                               </Badge>
                               <span className="font-medium text-foreground">
@@ -795,7 +898,7 @@ export default function PaymentId() {
                                   variant="ghost"
                                   size="sm"
                                   className="hover:bg-muted"
-                                  onClick={() => copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo')}
+                                  onClick={() => copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo', toast, t)}
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
@@ -807,33 +910,71 @@ export default function PaymentId() {
                       ))}
                     </div>
                   ) : (
-                    <Alert className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                      <AlertDescription className="text-amber-800 dark:text-amber-200">
-                        {t('detail.receipts.none', { defaultValue: 'No se han enviado recibos digitales para esta transacción.' })}
-                      </AlertDescription>
+                    <Alert className="border-border">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{t('detail.receipts.none', { defaultValue: 'No se han enviado recibos digitales para esta transacción.' })}</AlertDescription>
                     </Alert>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </CollapsibleSection>
+
+              {/* Send Receipt Dialog */}
+              {can('payments:refund') && (
+                <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Mail className="w-4 h-4 mr-2" />
+                      {t('detail.actions.sendReceipt', { defaultValue: 'Enviar Recibo Digital' })}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center space-x-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        <span>{t('detail.actions.sendReceipt')}</span>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">{t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder={t('detail.email.placeholder', { defaultValue: 'correo@ejemplo.com' })}
+                          value={recipientEmail}
+                          onChange={e => setRecipientEmail(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
+                          {t('common:cancel')}
+                        </Button>
+                        <Button disabled={!recipientEmail || sendReceiptMutation.isPending} onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })} className="flex-1">
+                          {t('detail.email.send')}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
+            {/* Sidebar (sticky) */}
+            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
               {/* Payment Status Card */}
-              <Card className="shadow-lg border-t-4 border-t-blue-500">
+              <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-success" />
                     <span>{t('detail.status.title', { defaultValue: 'Estado del Pago' })}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center py-4">
-                    <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mb-3">
-                      <StatusIcon className={`h-8 w-8 ${paymentStatus.color}`} />
+                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-3">
+                      <StatusIcon className={`h-8 w-8 ${paymentStatusConfig?.color || 'text-muted-foreground'}`} />
                     </div>
-                    <Badge variant="outline" className={`${paymentStatus.badge} text-sm px-3 py-1`}>
+                    <Badge variant="outline" className={`${paymentStatusConfig?.bg} ${paymentStatusConfig?.color} text-sm px-3 py-1`}>
                       {payment?.status === 'COMPLETED'
                         ? t('detail.status.completed', { defaultValue: 'Pago Completado' })
                         : payment?.status === 'PENDING'
@@ -855,12 +996,12 @@ export default function PaymentId() {
                   </div>
 
                   {payment?.status === 'COMPLETED' && (
-                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
                       <div className="flex items-start space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
+                        <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-green-800 dark:text-green-200">{t('detail.status.successTitle')}</p>
-                          <p className="text-xs text-green-600 dark:text-green-400">{t('detail.status.successDesc')}</p>
+                          <p className="text-sm font-medium text-foreground">{t('detail.status.successTitle')}</p>
+                          <p className="text-xs text-muted-foreground">{t('detail.status.successDesc')}</p>
                         </div>
                       </div>
                     </div>
@@ -869,10 +1010,10 @@ export default function PaymentId() {
               </Card>
 
               {/* Summary Card */}
-              <Card className="shadow-lg">
+              <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
-                    <DollarSign className="h-5 w-5 text-green-500" />
+                    <User className="h-5 w-5 text-muted-foreground" />
                     <span>{t('detail.summary.title', { defaultValue: 'Resumen Financiero' })}</span>
                   </CardTitle>
                 </CardHeader>
@@ -884,7 +1025,7 @@ export default function PaymentId() {
                       </span>
                       <span className="text-lg font-bold">{Currency(payment?.amount || 0)}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                       <div>
                         <span className="text-sm font-medium text-muted-foreground">
                           {t('detail.overview.tips', { defaultValue: 'Propinas' })}
@@ -898,14 +1039,14 @@ export default function PaymentId() {
                             : t('detail.summary.tipsOfSubtotal', { defaultValue: '0.0% del subtotal', percent: '0.0' })}
                         </p>
                       </div>
-                      <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{Currency(payment?.tipAmount || 0)}</span>
+                      <span className="text-lg font-bold">{Currency(payment?.tipAmount || 0)}</span>
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border-2 border-green-200 dark:border-green-800">
-                      <span className="text-base font-bold text-green-800 dark:text-green-200">
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg border border-border">
+                      <span className="text-base font-bold text-foreground">
                         {t('detail.summary.total', { defaultValue: 'Total' })}
                       </span>
-                      <span className="text-xl font-bold text-green-800 dark:text-green-200">
+                      <span className="text-xl font-bold text-foreground">
                         {(() => {
                           const baseAmount = payment?.amount ? Number(payment.amount) : 0
                           const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
@@ -935,7 +1076,7 @@ export default function PaymentId() {
               </Card>
 
               {/* Quick Info Card */}
-              <Card className="shadow-lg">
+              <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <FileText className="h-5 w-5 text-muted-foreground" />
@@ -983,51 +1124,6 @@ export default function PaymentId() {
               </Card>
             </div>
           </div>
-
-          {/* Tips Detail Section */}
-          {payment?.tipAmount && payment.tipAmount > 0 && (
-            <Card className="shadow-lg">
-              <CardHeader className="bg-linear-to-r from-muted to-green-50 dark:to-green-950/50 border-b">
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <span>Detalles de {t('detail.overview.tips', { defaultValue: 'Propinas' })}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('detail.tipsDetail.description', { defaultValue: 'Información de propina para esta transacción' })}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        {t('detail.tipsDetail.amount', { defaultValue: 'Monto de Propina' })}
-                      </Label>
-                      <p className="text-xl font-bold text-green-700 dark:text-green-300">{Currency(payment.tipAmount)}</p>
-                    </div>
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        {t('detail.tipsDetail.percentage', { defaultValue: 'Porcentaje' })}
-                      </Label>
-                      <p className="text-xl font-bold text-green-700 dark:text-green-300">
-                        {payment?.amount && payment.amount > 0 ? (((payment?.tipAmount || 0) / payment.amount) * 100).toFixed(1) : '0.0'}%
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        {t('detail.tipsDetail.beneficiary', { defaultValue: 'Beneficiario' })}
-                      </Label>
-                      <p className="text-lg font-semibold text-foreground">
-                        {payment?.processedBy
-                          ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim()
-                          : t('detail.sidebar.noBeneficiary')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Footer */}
@@ -1052,7 +1148,7 @@ export default function PaymentId() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Receipt className="h-5 w-5 text-primary" />
               <span>{t('detail.receiptsDialog.title')}</span>
             </DialogTitle>
           </DialogHeader>
@@ -1066,7 +1162,7 @@ export default function PaymentId() {
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.status')}</Label>
                   <div className="p-2">
-                    <Badge variant="secondary" className={getStatusBadgeColor(selectedReceiptForDetail.status)}>
+                    <Badge variant="secondary">
                       {selectedReceiptForDetail.status}
                     </Badge>
                   </div>
@@ -1095,7 +1191,7 @@ export default function PaymentId() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      copyToClipboard(ReceiptUrls.public(selectedReceiptForDetail.accessKey), t('detail.receiptsDialog.receiptLink'))
+                      copyToClipboard(ReceiptUrls.public(selectedReceiptForDetail.accessKey), t('detail.receiptsDialog.receiptLink'), toast, t)
                     }
                   >
                     <Copy className="h-4 w-4" />

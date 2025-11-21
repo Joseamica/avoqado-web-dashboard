@@ -167,11 +167,19 @@
     "totals": {
       "total": "Total"
     },
+    "timeline": {
+      "title": "Actividad Reciente",
+      "receiptViewed": "Recibo visto",
+      "receiptSent": "Recibo enviado",
+      "paymentProcessed": "Pago procesado",
+      "statusUpdated": "Estado actualizado"
+    },
     "sections": {
       "transactionInfo": "Información de la Transacción",
       "transactionInfoDesc": "Detalles completos de la transacción y metadatos",
       "billInfo": "Información de la Cuenta",
-      "merchantAccountInfo": "Información de la Cuenta Comercial"
+      "merchantAccountInfo": "Información de la Cuenta Comercial",
+      "merchantAccountDesc": "Información de la cuenta comercial"
     },
     "fields": {
       "dateTime": "Fecha y Hora",

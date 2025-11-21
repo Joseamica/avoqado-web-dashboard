@@ -624,10 +624,20 @@ export default function OrderId() {
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             {Currency(item.unitPrice || 0)} {t('detail.items.each')}
-                            {item.modifiers && item.modifiers.length > 0 && (
-                              <span className="ml-2">• {t('detail.items.modifiers', { count: item.modifiers.length })}</span>
-                            )}
                           </div>
+                          {item.modifiers && item.modifiers.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {item.modifiers.map((modifier, idx) => (
+                                <div key={idx} className="text-xs text-muted-foreground flex items-center gap-1 ml-6">
+                                  <span>•</span>
+                                  <span>{modifier.name || 'Unknown modifier'}</span>
+                                  <span className="text-foreground font-medium">
+                                    (+{Currency(modifier.price || 0)})
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-foreground">{Currency(item.total || 0)}</p>

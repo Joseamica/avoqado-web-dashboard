@@ -167,11 +167,19 @@
     "totals": {
       "total": "Total"
     },
+    "timeline": {
+      "title": "Recent Activity",
+      "receiptViewed": "Receipt viewed",
+      "receiptSent": "Receipt sent",
+      "paymentProcessed": "Payment processed",
+      "statusUpdated": "Status updated"
+    },
     "sections": {
       "transactionInfo": "Transaction Information",
       "transactionInfoDesc": "Complete transaction details and metadata",
       "billInfo": "Bill Information",
-      "merchantAccountInfo": "Merchant Account Information"
+      "merchantAccountInfo": "Merchant Account Information",
+      "merchantAccountDesc": "Merchant account information"
     },
     "fields": {
       "dateTime": "Date & Time",

@@ -1,15 +1,23 @@
 {
   "title": "Orders",
-  "searchPlaceholder": "Search by order number, customer or waiter...",
+  "searchPlaceholder": "Search by order number or waiter...",
   "errorPrefix": "Failed to load orders",
   "counter": "Counter",
   "columns": {
     "date": "Date",
     "orderNumber": "Order #",
     "customer": "Customer",
+    "type": "Type",
     "waiter": "Waiter",
     "status": "Status",
+    "tip": "Tip",
     "total": "Total"
+  },
+  "types": {
+    "DINE_IN": "Dine In",
+    "TAKEOUT": "Takeout",
+    "DELIVERY": "Delivery",
+    "PICKUP": "Pickup"
   },
   "statuses": {
     "PENDING": "Pending",

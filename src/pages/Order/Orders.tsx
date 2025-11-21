@@ -80,12 +80,52 @@ export default function Orders() {
         header: t('columns.orderNumber'),
         cell: info => <>{(info.getValue() as string) || '-'}</>,
       },
+      // {
+      //   // CAMBIO: `billName` ahora es `customerName`
+      //   accessorKey: 'customerName',
+      //   meta: { label: t('columns.customer') },
+      //   header: t('columns.customer'),
+      //   cell: info => <>{(info.getValue() as string) || t('counter')}</>,
+      // },
       {
-        // CAMBIO: `billName` ahora es `customerName`
-        accessorKey: 'customerName',
-        meta: { label: t('columns.customer') },
-        header: t('columns.customer'),
-        cell: info => <>{(info.getValue() as string) || t('counter')}</>,
+        accessorKey: 'type',
+        meta: { label: t('columns.type') },
+        header: () => (
+          <div className="flex justify-center">
+            {t('columns.type')}
+          </div>
+        ),
+        cell: ({ cell }) => {
+          const type = cell.getValue() as string
+
+          // Badge styling for order types
+          let typeClasses = { bg: 'bg-muted', text: 'text-muted-foreground' }
+          if (type === 'DINE_IN') {
+            typeClasses = { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-800 dark:text-blue-400' }
+          } else if (type === 'TAKEOUT') {
+            typeClasses = { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-800 dark:text-purple-400' }
+          } else if (type === 'DELIVERY') {
+            typeClasses = { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-800 dark:text-orange-400' }
+          } else if (type === 'PICKUP') {
+            typeClasses = { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-800 dark:text-cyan-400' }
+          }
+
+          // Translation map for order types
+          const typeMap: Record<string, string> = {
+            DINE_IN: t('types.DINE_IN'),
+            TAKEOUT: t('types.TAKEOUT'),
+            DELIVERY: t('types.DELIVERY'),
+            PICKUP: t('types.PICKUP'),
+          }
+
+          return (
+            <div className="flex justify-center">
+              <Badge variant="soft" className={`${typeClasses.bg} ${typeClasses.text} border-transparent`}>
+                {typeMap[type] || type}
+              </Badge>
+            </div>
+          )
+        },
       },
       {
         // CAMBIO: `waiterName` ahora se obtiene del objeto anidado `createdBy`
@@ -98,7 +138,11 @@ export default function Orders() {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
         accessorKey: 'status',
         meta: { label: t('columns.status') },
-        header: t('columns.status'),
+        header: () => (
+          <div className="flex justify-center">
+            {t('columns.status')}
+          </div>
+        ),
         cell: ({ cell }) => {
           const status = cell.getValue() as string
 
@@ -132,6 +176,15 @@ export default function Orders() {
         },
       },
       {
+        accessorKey: 'tipAmount',
+        meta: { label: t('columns.tip') },
+        header: t('columns.tip'),
+        cell: ({ cell }) => {
+          const value = (cell.getValue() as number) || 0
+          return Currency(value)
+        },
+      },
+      {
         // CAMBIO: El total es un campo numérico directo, no un string.
         accessorKey: 'total',
         meta: { label: t('columns.total') },
@@ -154,12 +207,12 @@ export default function Orders() {
 
     return orders.filter(order => {
       const folioMatch = order.orderNumber?.toLowerCase().includes(lowerSearchTerm)
-      const customerMatch = order.customerName?.toLowerCase().includes(lowerSearchTerm)
+      // const customerMatch = order.customerName?.toLowerCase().includes(lowerSearchTerm)
       const waiterName = order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : ''
       const waiterMatch = waiterName.toLowerCase().includes(lowerSearchTerm)
       const totalMatch = order.total.toString().includes(lowerSearchTerm)
 
-      return folioMatch || customerMatch || waiterMatch || totalMatch
+      return folioMatch || waiterMatch || totalMatch
     })
   }, [])
 
@@ -184,9 +237,11 @@ export default function Orders() {
           return {
             [t('columns.date')]: formatDate(order.createdAt),
             [t('columns.orderNumber')]: order.orderNumber || '-',
-            [t('columns.customer')]: order.customerName || t('counter'),
+            // [t('columns.customer')]: order.customerName || t('counter'),
+            [t('columns.type')]: t(`types.${order.type}` as any),
             [t('columns.waiter')]: waiterName,
             [t('columns.status')]: t(`statuses.${order.status}` as any),
+            [t('columns.tip')]: formatCurrencyForExport(Number(order.tipAmount) || 0),
             [t('columns.total')]: formatCurrencyForExport(Number(order.total) || 0),
           }
         })

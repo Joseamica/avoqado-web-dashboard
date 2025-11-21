@@ -1,15 +1,23 @@
 {
   "title": "Ordenes",
-  "searchPlaceholder": "Buscar por folio, cliente o mesero...",
+  "searchPlaceholder": "Buscar por folio o mesero...",
   "errorPrefix": "Error al cargar órdenes",
   "counter": "Mostrador",
   "columns": {
     "date": "Fecha",
     "orderNumber": "Folio",
     "customer": "Cliente",
+    "type": "Tipo",
     "waiter": "Mesero",
     "status": "Estado",
+    "tip": "Propina",
     "total": "Total"
+  },
+  "types": {
+    "DINE_IN": "Para Comer Aquí",
+    "TAKEOUT": "Para Llevar",
+    "DELIVERY": "Entrega a Domicilio",
+    "PICKUP": "Recoger"
   },
   "statuses": {
     "PENDING": "Pendiente",
