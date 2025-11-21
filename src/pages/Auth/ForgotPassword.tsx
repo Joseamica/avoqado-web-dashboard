@@ -171,7 +171,7 @@ const ForgotPassword: React.FC = () => {
       <div className="bg-muted relative hidden lg:block">
         <img
           src={CoverLogin}
-          alt="Forgot Password"
+          alt={t('forgotPassword.imageAlt')}
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>

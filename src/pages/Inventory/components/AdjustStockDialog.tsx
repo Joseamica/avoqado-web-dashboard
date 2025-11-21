@@ -173,7 +173,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
             <p className="text-xs text-muted-foreground">
               {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''} {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity || 0), rawMaterial.unit)}
             </p>
-            {errors.quantity && <p className="text-xs text-destructive">Required</p>}
+            {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
           </div>
 
           {/* Warning for negative stock */}
@@ -181,7 +181,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                This adjustment will result in negative stock. Stock cannot be negative.
+                {t('validation.negativeStockWarning')}
               </AlertDescription>
             </Alert>
           )}

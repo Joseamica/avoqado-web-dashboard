@@ -43,7 +43,7 @@ export const useVenueEditActions = () => {
 export default function VenueEditLayout() {
   const { venueSlug } = useCurrentVenue()
   const navigate = useNavigate()
-  const { t } = useTranslation('common')
+  const { t } = useTranslation('venue')
 
   const [actions, setActions] = useState<{
     // Legacy interface
@@ -75,7 +75,7 @@ export default function VenueEditLayout() {
             <Button variant="ghost" size="icon" onClick={() => navigate(`/venues/${venueSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold text-foreground">Configuración del Local</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t('edit.title', { defaultValue: 'Venue Settings' })}</h1>
           </div>
 
           {/* Action Buttons - Support both legacy and new interface */}
@@ -89,7 +89,7 @@ export default function VenueEditLayout() {
                   onClick={actions.onCancel}
                   disabled={actions.isLoading}
                 >
-                  {t('cancel')}
+                  {t('edit.cancel', { defaultValue: 'Cancel' })}
                 </Button>
               )}
               {actions.onSave && (
@@ -99,7 +99,7 @@ export default function VenueEditLayout() {
                   onClick={actions.onSave}
                   disabled={!actions.canEdit || !actions.isDirty || actions.isLoading}
                 >
-                  {actions.isLoading ? t('saving') : t('save')}
+                  {actions.isLoading ? t('edit.saving', { defaultValue: 'Saving...' }) : t('edit.save', { defaultValue: 'Save' })}
                 </Button>
               )}
 
@@ -121,7 +121,7 @@ export default function VenueEditLayout() {
                   onClick={actions.primary.onClick}
                   disabled={actions.primary.disabled || actions.primary.loading}
                 >
-                  {actions.primary.loading ? t('saving') : actions.primary.label}
+                  {actions.primary.loading ? t('edit.saving', { defaultValue: 'Saving...' }) : actions.primary.label}
                 </Button>
               )}
             </div>

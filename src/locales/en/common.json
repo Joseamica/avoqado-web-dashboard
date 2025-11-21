@@ -210,5 +210,10 @@
         "confirm": "Delete"
       }
     }
-  }
+  },
+  "flags": {
+    "spain": "Flag of Spain",
+    "uk": "Flag of the United Kingdom"
+  },
+  "chooseColor": "Choose color"
 }

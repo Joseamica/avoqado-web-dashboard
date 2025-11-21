@@ -1,0 +1,73 @@
+{
+  "title": "Surveillance des Webhooks",
+  "subtitle": "Surveiller les événements webhook Stripe, déboguer les erreurs et suivre la santé du système",
+  "metrics": {
+    "successRate": "Taux de Réussite",
+    "avgProcessingTime": "Temps Moyen de Traitement",
+    "perSuccessfulEvent": "Par événement réussi",
+    "failedEvents": "Événements Échoués",
+    "requireAttention": "Nécessitent attention",
+    "pendingEvents": "Événements en Attente",
+    "currentlyProcessing": "En cours de traitement",
+    "events": "événements"
+  },
+  "events": {
+    "title": "Événements Webhook",
+    "description": "Journal en temps réel de tous les événements webhook Stripe",
+    "showFilters": "Afficher Filtres",
+    "hideFilters": "Masquer Filtres",
+    "clearFilters": "Effacer Filtres",
+    "showing": "Affichage de {{count}} sur {{total}} événements",
+    "loading": "Chargement des événements...",
+    "noEvents": "Aucun événement webhook trouvé"
+  },
+  "filters": {
+    "eventType": "Type d'Événement",
+    "allEvents": "Tous les Événements",
+    "status": "Statut",
+    "allStatuses": "Tous les Statuts",
+    "success": "Succès",
+    "failed": "Échoué",
+    "pending": "En attente",
+    "retrying": "Réessai",
+    "fromDate": "Date de début",
+    "toDate": "Date de fin"
+  },
+  "table": {
+    "dateTime": "Date/Heure",
+    "eventType": "Type d'Événement",
+    "status": "Statut",
+    "venue": "Établissement",
+    "processingTime": "Temps de Traitement",
+    "retries": "Réessais",
+    "actions": "Actions",
+    "na": "N/A",
+    "view": "Voir",
+    "retry": "Réessayer"
+  },
+  "pagination": {
+    "page": "Page {{current}} de {{total}}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "detail": {
+    "title": "Détails de l'Événement Webhook",
+    "eventId": "ID de l'Événement",
+    "metadata": "Métadonnées",
+    "statusLabel": "Statut:",
+    "eventTypeLabel": "Type d'Événement:",
+    "createdLabel": "Créé:",
+    "processingTimeLabel": "Temps de Traitement:",
+    "venueLabel": "Établissement:",
+    "retryCountLabel": "Nombre de Réessais:",
+    "errorMessage": "Message d'Erreur",
+    "eventPayload": "Payload de l'Événement",
+    "retryWebhook": "Réessayer l'Événement Webhook"
+  },
+  "toast": {
+    "retried": "Webhook Réessayé",
+    "retriedDesc": "L'événement webhook a été retraité avec succès.",
+    "retryFailed": "Échec du Réessai",
+    "retryFailedDesc": "Échec du réessai de l'événement webhook"
+  }
+}

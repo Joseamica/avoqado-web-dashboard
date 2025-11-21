@@ -102,6 +102,8 @@
     "terminalType": "Tipo de Terminal",
     "brand": "Marca",
     "model": "Modelo",
+    "brandPlaceholder": "PAX, Ingenico, Verifone",
+    "modelPlaceholder": "A910S, D220, VX520",
     "selectType": "Seleccionar tipo",
     "types": {
       "tpvAndroid": "Android",

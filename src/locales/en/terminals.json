@@ -1,0 +1,86 @@
+{
+  "title": "Terminals",
+  "subtitle": "Manage POS terminals, printers, and KDS devices",
+  "createTerminal": "Create Terminal",
+  "totalTerminals": "Total Terminals",
+  "online": "online",
+  "allTerminals": "All Terminals",
+  "allTerminalsDesc": "Manage terminals across all venues",
+  "searchPlaceholder": "Search by name, serial, or venue...",
+  "filterByVenue": "Filter by venue",
+  "allVenues": "All Venues",
+  "loading": "Loading...",
+  "columns": {
+    "terminal": "Terminal",
+    "venue": "Venue",
+    "status": "Status",
+    "type": "Type",
+    "merchants": "Merchants",
+    "lastSeen": "Last Seen",
+    "actions": "Actions"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "retired": "Retired"
+  },
+  "assigned": "assigned",
+  "never": "Never",
+  "ago": "ago",
+  "toast": {
+    "created": "Terminal Created",
+    "createdDesc": "Terminal was created successfully",
+    "updated": "Success",
+    "updatedDesc": "Terminal updated successfully",
+    "deleted": "Success",
+    "deletedDesc": "Terminal deleted successfully",
+    "error": "Error",
+    "createFailed": "Failed to create terminal",
+    "updateFailed": "Failed to update terminal",
+    "deleteFailed": "Failed to delete terminal",
+    "codeFailed": "Failed to generate code",
+    "copied": "Copied!",
+    "copiedDesc": "Activation code copied to clipboard",
+    "codeGenerated": "Activation Code Generated"
+  },
+  "activationCode": {
+    "title": "Activation Code",
+    "expires": "Expires",
+    "expiresIn7Days": "Code expires in 7 days",
+    "copy": "Copy",
+    "copyCode": "Copy Code"
+  },
+  "confirm": {
+    "delete": "Are you sure you want to delete this terminal?"
+  },
+  "dialog": {
+    "createTitle": "Create New Terminal",
+    "editTitle": "Edit Terminal",
+    "createDescription": "Create a new terminal and optionally generate an activation code",
+    "editDescription": "Update terminal configuration",
+    "venue": "Venue",
+    "selectVenue": "Select venue...",
+    "serialNumber": "Serial Number",
+    "serialPlaceholder": "2841548417 (AVQD- prefix will be added automatically)",
+    "serialHelp": "Enter the serial number. The \"AVQD-\" prefix will be added automatically if not present.",
+    "name": "Terminal Name",
+    "namePlaceholder": "Main POS Terminal",
+    "type": "Type",
+    "types": {
+      "tpvAndroid": "TPV Android (Payment Terminal)",
+      "tpvIos": "TPV iOS",
+      "receiptPrinter": "Receipt Printer",
+      "kitchenPrinter": "Kitchen Printer",
+      "kds": "Kitchen Display System"
+    },
+    "brand": "Brand",
+    "model": "Model",
+    "assignedMerchants": "Assigned Merchant Accounts (All Providers)",
+    "generateCode": "Generate activation code after creation",
+    "noMerchantWarning": "No merchant accounts assigned. Terminal won't be able to process payments until at least one merchant account is assigned.",
+    "cancel": "Cancel",
+    "create": "Create Terminal",
+    "update": "Update Terminal",
+    "saving": "Saving..."
+  }
+}

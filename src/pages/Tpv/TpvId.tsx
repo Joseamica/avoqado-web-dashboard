@@ -862,7 +862,7 @@ export default function TpvId() {
                                 <Input
                                   {...field}
                                   disabled={!isEditing}
-                                  placeholder="PAX, Ingenico, Verifone"
+                                  placeholder={t('detail.brandPlaceholder')}
                                   className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
                                 />
                               </FormControl>
@@ -881,7 +881,7 @@ export default function TpvId() {
                                 <Input
                                   {...field}
                                   disabled={!isEditing}
-                                  placeholder="A910S, D220, VX520"
+                                  placeholder={t('detail.modelPlaceholder')}
                                   className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
                                 />
                               </FormControl>

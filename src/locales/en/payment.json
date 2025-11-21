@@ -2,6 +2,18 @@
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
+  "selector": {
+    "loading": "Loading payment methods...",
+    "selectMethod": "Select a payment method",
+    "backToExisting": "Back to existing methods",
+    "expires": "Expires",
+    "selected": "Selected",
+    "addNew": "Add new payment method"
+  },
+  "stripe": {
+    "cardLabel": "Credit or debit card",
+    "importantNote": "Important: No charges will be made during the 5-day trial. Your card will be verified and saved for the monthly subscription that will begin after the trial period."
+  },
   "filters": {
     "showing": "Showing",
     "of": "of",

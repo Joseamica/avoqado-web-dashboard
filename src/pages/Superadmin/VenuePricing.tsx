@@ -7,7 +7,7 @@ import { VenuePricingWizard } from './VenuePricing/VenuePricingWizard'
 import { useToast } from '@/hooks/use-toast'
 
 const VenuePricing: React.FC = () => {
-  const { t } = useTranslation('superadmin')
+  const { t } = useTranslation('venuePricing')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -89,8 +89,8 @@ const VenuePricing: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Venue Payment & Pricing Configuration</h1>
-          <p className="text-muted-foreground">Configure merchant accounts and set pricing rates for your venues</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
         </div>
       </div>
 

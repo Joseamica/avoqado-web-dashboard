@@ -602,8 +602,8 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Enable Payment Processing</FormLabel>
-                          <div className="text-sm text-muted-foreground">Allow this venue to process payments through Avoqado</div>
+                          <FormLabel className="text-base">{t('venueMgmt.paymentSetup.enablePaymentProcessing')}</FormLabel>
+                          <div className="text-sm text-muted-foreground">{t('venueMgmt.paymentSetup.enablePaymentProcessingDesc')}</div>
                         </div>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -696,7 +696,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                       <div className="rounded-lg border p-4 bg-muted/30">
                         <h4 className="font-medium mb-2">{t('venueMgmt.paymentSetup.rules.title')}</h4>
                         <p className="text-sm text-muted-foreground mb-3">
-                          Configure automatic routing based on business rules (can be customized later).
+                          {t('venueMgmt.paymentSetup.routingDesc')}
                         </p>
                         <div className="text-sm space-y-1">
                           <div>
@@ -724,7 +724,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                     <Calculator className="w-4 h-4" />
                     <span>{t('venueMgmt.pricing.title')}</span>
                   </CardTitle>
-                  <CardDescription>Set transaction fees and monthly charges for this venue.</CardDescription>
+                  <CardDescription>{t('venueMgmt.pricing.pricingDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField

@@ -493,13 +493,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md w-full mx-4">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center space-y-4">
-            <div className="text-destructive text-lg font-semibold">Live Demo Initialization Failed</div>
+            <div className="text-destructive text-lg font-semibold">{t('auth:liveDemo.initFailed')}</div>
             <p className="text-muted-foreground">{liveDemoError}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
-              Retry
+              {t('common:retry')}
             </button>
           </div>
         </div>

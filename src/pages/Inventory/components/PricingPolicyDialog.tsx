@@ -225,9 +225,9 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {pricingStrategy === 'MANUAL' && 'Manually set product prices'}
-              {pricingStrategy === 'AUTO_MARKUP' && 'Calculate price based on cost × markup percentage'}
-              {pricingStrategy === 'AUTO_TARGET_MARGIN' && 'Calculate price to achieve target food cost percentage'}
+              {pricingStrategy === 'MANUAL' && t('pricingStrategy.manualDescription')}
+              {pricingStrategy === 'AUTO_MARKUP' && t('pricingStrategy.autoMarkupDescription')}
+              {pricingStrategy === 'AUTO_TARGET_MARGIN' && t('pricingStrategy.autoTargetMarginDescription')}
             </p>
           </div>
 
@@ -246,7 +246,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
-              {errors.targetFoodCostPercentage && <p className="text-xs text-destructive">Required (1-100%)</p>}
+              {errors.targetFoodCostPercentage && <p className="text-xs text-destructive">{t('validation.requiredRange', { min: 1, max: 100 })}</p>}
             </div>
           )}
 
@@ -263,7 +263,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
                 />
                 <span className="text-sm text-muted-foreground">%</span>
               </div>
-              {errors.targetMarkupPercentage && <p className="text-xs text-destructive">Required (min: 0%)</p>}
+              {errors.targetMarkupPercentage && <p className="text-xs text-destructive">{t('validation.requiredMinValue', { value: '0%' })}</p>}
             </div>
           )}
 
@@ -271,7 +271,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
           <div className="space-y-2">
             <Label htmlFor="minimumPrice">{t('pricing.fields.minimumPrice')}</Label>
             <Input id="minimumPrice" type="number" step="0.01" min="0" {...register('minimumPrice', { valueAsNumber: true, min: 0 })} />
-            <p className="text-xs text-muted-foreground">Optional price floor - suggested price will not go below this value</p>
+            <p className="text-xs text-muted-foreground">{t('validation.optionalPriceFloor')}</p>
           </div>
 
           {/* Suggested Price Preview */}

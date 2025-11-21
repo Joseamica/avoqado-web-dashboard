@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
@@ -42,6 +43,8 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
   onSubmit,
   isLoading,
 }) => {
+  const { t } = useTranslation('ecommerce')
+
   // Form state
   const [channelName, setChannelName] = useState('Web Principal')
   const [businessName, setBusinessName] = useState('')
@@ -157,7 +160,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
                 id="channelName"
                 value={channelName}
                 onChange={(e) => setChannelName(e.target.value)}
-                placeholder="ej: Web Principal, App Móvil, Rappi"
+                placeholder={t('merchantDialog.namePlaceholder')}
                 required
               />
               <p className="text-sm text-muted-foreground">
@@ -174,19 +177,19 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
                 id="businessName"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="ej: Restaurante Avoqado S.A. de C.V."
+                placeholder={t('merchantDialog.legalNamePlaceholder')}
                 required
               />
             </div>
 
             {/* RFC */}
             <div className="space-y-2">
-              <Label htmlFor="rfc">RFC (opcional)</Label>
+              <Label htmlFor="rfc">{t('merchantDialog.rfcLabel')}</Label>
               <Input
                 id="rfc"
                 value={rfc}
                 onChange={(e) => setRfc(e.target.value.toUpperCase())}
-                placeholder="ej: ABC123456XYZ"
+                placeholder={t('merchantDialog.rfcPlaceholder')}
                 maxLength={13}
               />
             </div>
@@ -201,32 +204,32 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
                 type="email"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="ej: pagos@avoqado.com"
+                placeholder={t('merchantDialog.emailPlaceholder')}
                 required
               />
             </div>
 
             {/* Contact Phone */}
             <div className="space-y-2">
-              <Label htmlFor="contactPhone">Teléfono de Contacto (opcional)</Label>
+              <Label htmlFor="contactPhone">{t('merchantDialog.phoneLabel')}</Label>
               <Input
                 id="contactPhone"
                 type="tel"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="ej: +52 55 1234 5678"
+                placeholder={t('merchantDialog.phonePlaceholder')}
               />
             </div>
 
             {/* Website */}
             <div className="space-y-2">
-              <Label htmlFor="website">Sitio Web (opcional)</Label>
+              <Label htmlFor="website">{t('merchantDialog.websiteLabel')}</Label>
               <Input
                 id="website"
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://www.avoqado.com"
+                placeholder={t('merchantDialog.websitePlaceholder')}
               />
             </div>
 
@@ -237,7 +240,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
               </Label>
               <Select value={providerId} onValueChange={setProviderId} disabled={!!merchant}>
                 <SelectTrigger id="provider">
-                  <SelectValue placeholder="Selecciona un proveedor" />
+                  <SelectValue placeholder={t('merchantDialog.selectProvider')} />
                 </SelectTrigger>
                 <SelectContent>
                   {loadingProviders ? (
@@ -292,13 +295,13 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
 
             {/* Webhook URL */}
             <div className="space-y-2">
-              <Label htmlFor="webhookUrl">Webhook URL (opcional)</Label>
+              <Label htmlFor="webhookUrl">{t('merchantDialog.webhookLabel')}</Label>
               <Input
                 id="webhookUrl"
                 type="url"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://tu-sitio.com/webhooks/payment"
+                placeholder={t('merchantDialog.webhookPlaceholder')}
               />
               <p className="text-sm text-muted-foreground">
                 URL donde recibirás notificaciones de eventos de pago
@@ -308,7 +311,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
             {/* Sandbox Mode */}
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
-                <Label htmlFor="sandboxMode">Modo Sandbox</Label>
+                <Label htmlFor="sandboxMode">{t('merchantDialog.sandboxMode')}</Label>
                 <p className="text-sm text-muted-foreground">
                   Usa credenciales de prueba (no se cobrarán pagos reales)
                 </p>
@@ -319,7 +322,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
             {/* Active */}
             <div className="flex items-center justify-between space-x-2">
               <div className="space-y-0.5">
-                <Label htmlFor="active">Activo</Label>
+                <Label htmlFor="active">{t('merchantDialog.active')}</Label>
                 <p className="text-sm text-muted-foreground">
                   El canal puede procesar pagos
                 </p>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -39,6 +40,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
   merchant,
   venueId,
 }) => {
+  const { t } = useTranslation('ecommerce')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [confirmRegenerateOpen, setConfirmRegenerateOpen] = useState(false)
@@ -171,7 +173,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
 
                 {/* Public Key */}
                 <div className="space-y-2">
-                  <Label>Public Key (Frontend)</Label>
+                  <Label>{t('apiKeysDialog.publicKey')}</Label>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 bg-muted px-3 py-2 rounded text-sm break-all">
                       {keys?.publicKey}
@@ -191,7 +193,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
 
                 {/* Secret Key (Masked) */}
                 <div className="space-y-2">
-                  <Label>Secret Key (Backend)</Label>
+                  <Label>{t('apiKeysDialog.secretKey')}</Label>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 bg-muted px-3 py-2 rounded text-sm">
                       {keys?.secretKey}
@@ -200,7 +202,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
                       variant="outline"
                       size="icon"
                       disabled
-                      title="La Secret Key está enmascarada por seguridad"
+                      title={t('apiKeysDialog.secretKeyMasked')}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -218,7 +220,7 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <p className="font-semibold mb-1">⚠️ Regenerar claves invalidará las actuales</p>
+                    <p className="font-semibold mb-1">{t('apiKeysDialog.regenerateWarning')}</p>
                     <p className="text-sm">
                       Si regeneras las API keys, las claves actuales dejarán de funcionar
                       inmediatamente. Todas tus integraciones dejarán de funcionar hasta que las
@@ -255,19 +257,19 @@ export const APIKeysDialog: React.FC<APIKeysDialogProps> = ({
       <AlertDialog open={confirmRegenerateOpen} onOpenChange={setConfirmRegenerateOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Regenerar API Keys?</AlertDialogTitle>
+            <AlertDialogTitle>{t('apiKeysDialog.regenerateTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Las claves actuales dejarán de funcionar
               inmediatamente y todas tus integraciones se romperán hasta que actualices las claves.
               <br />
               <br />
-              <strong>Canal:</strong> {merchant.channelName}
+              <strong>{t('apiKeysDialog.channel')}</strong> {merchant.channelName}
               <br />
-              <strong>Modo:</strong> {keys?.sandboxMode ? 'Sandbox' : 'Live'}
+              <strong>{t('apiKeysDialog.mode')}</strong> {keys?.sandboxMode ? 'Sandbox' : 'Live'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('apiKeysDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRegenerate}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

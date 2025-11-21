@@ -1,4 +1,5 @@
 {
+  "loading": "Cargando...",
   "pageTitle": "Facturación y Suscripciones",
   "pageSubtitle": "Administra tus suscripciones activas, consulta el historial de facturación y explora funciones disponibles",
   "activeSubscriptions": {

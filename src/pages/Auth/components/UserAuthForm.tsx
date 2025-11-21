@@ -112,7 +112,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         <p className="text-muted-foreground text-sm text-balance">{t('login.subtitle')}</p>
         {isDemoEnvironment && (
           <div className="mt-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">🎭 Demo Environment - Credentials pre-filled</p>
+            <p className="text-blue-800 dark:text-blue-200 text-xs font-medium">{t('login.demoEnvironment')}</p>
           </div>
         )}
       </div>

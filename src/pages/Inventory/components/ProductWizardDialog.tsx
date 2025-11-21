@@ -1389,7 +1389,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="lowStockThreshold">Low Stock Alert Threshold</Label>
+                      <Label htmlFor="lowStockThreshold">{t('lowStockThreshold.label')}</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1397,10 +1397,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <div className="space-y-2">
-                              <p className="font-semibold">What is Low Stock Threshold?</p>
-                              <p className="text-sm">Stock level that triggers a low stock alert in your dashboard. When stock falls below this number, the product will be highlighted.</p>
+                              <p className="font-semibold">{t('lowStockThreshold.title')}</p>
+                              <p className="text-sm">{t('lowStockThreshold.description')}</p>
                               <p className="text-sm text-muted-foreground">
-                                Default: 10 units. Adjust based on your sales volume and reorder frequency.
+                                {t('lowStockThreshold.defaultNote', { value: 10 })}
                               </p>
                             </div>
                           </TooltipContent>
@@ -1417,7 +1417,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Alert when stock falls below this level (separate from reorder point)
+                      {t('lowStockThreshold.separateFromReorder')}
                     </p>
                   </div>
 
@@ -1500,7 +1500,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="lowStockThresholdRecipe">Low Stock Alert Threshold (portions)</Label>
+                      <Label htmlFor="lowStockThresholdRecipe">{t('lowStockThreshold.labelPortions')}</Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1508,10 +1508,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <div className="space-y-2">
-                              <p className="font-semibold">What is Low Stock Threshold?</p>
-                              <p className="text-sm">Number of portions that triggers a low stock alert. When available portions fall below this number, the product will be highlighted in your dashboard.</p>
+                              <p className="font-semibold">{t('lowStockThreshold.title')}</p>
+                              <p className="text-sm">{t('lowStockThreshold.descriptionPortions')}</p>
                               <p className="text-sm text-muted-foreground">
-                                Default: 5 portions. Adjust based on your daily sales and preparation time.
+                                {t('lowStockThreshold.defaultNotePortions', { value: 5 })}
                               </p>
                             </div>
                           </TooltipContent>
@@ -1528,7 +1528,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Alert when available portions fall below this level
+                      {t('lowStockThreshold.alertWhenBelow')}
                     </p>
                   </div>
 

@@ -335,7 +335,8 @@
       "stock": "Stock",
       "categories": "Categorías",
       "modifierGroups": "Grupos Modificadores",
-      "updatedAt": "Última actualización"
+      "updatedAt": "Última actualización",
+      "unavailable": "Agotado"
     },
     "actions": {
       "adjustStock": "Ajustar Stock",
@@ -359,7 +360,13 @@
         "notesPlaceholder": "Detalles adicionales...",
         "cancel": "Cancelar",
         "save": "Guardar Ajuste",
-        "saving": "Guardando..."
+        "saving": "Guardando...",
+        "confirmAndSave": "Confirmar y Guardar",
+        "confirmLargeAdjustment": "Confirmar ajuste grande:",
+        "confirmLargeAdjustmentMessage": "Esto cambiará el stock en {{amount}} {{unit}} ({{percentage}}% del stock actual). Haz clic en Guardar nuevamente para confirmar.",
+        "warning": "Advertencia:",
+        "largeAdjustmentWarning": "Este es un ajuste grande ({{percentage}}% del stock actual). Por favor verifica que la cantidad sea correcta.",
+        "cannotReduceBelowZero": "No se puede reducir el stock por debajo de 0. Stock actual es {{amount}} {{unit}}. Ajuste mínimo: {{minimum}}"
       }
     },
     "toasts": {

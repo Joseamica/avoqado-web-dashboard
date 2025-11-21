@@ -2,6 +2,7 @@
   "venueMgmt": {
     "title": "Gestión de Establecimientos",
     "subtitle": "Monitorea y gestiona todos los establecimientos en la plataforma",
+    "kycPendingReview": "Revisión KYC Pendiente",
     "stats": {
       "totalRevenue": "Ingresos Totales",
       "commissionPrefix": "Comisión:",
@@ -76,6 +77,14 @@
       "successDescSuffix": "ha sido",
       "approved": "aprobado.",
       "suspended": "suspendido."
+    },
+    "paymentSetup": {
+      "enablePaymentProcessing": "Habilitar Procesamiento de Pagos",
+      "enablePaymentProcessingDesc": "Permitir que este venue procese pagos a través de Avoqado",
+      "routingDesc": "Configurar enrutamiento automático basado en reglas de negocio (se puede personalizar después)."
+    },
+    "pricing": {
+      "pricingDesc": "Establecer comisiones por transacción y cargos mensuales para este venue."
     }
   },
   "detailsView": {
@@ -122,6 +131,10 @@
     }
   },
   "edit": {
+    "title": "Configuración del Local",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando...",
     "kycRejected": {
       "title": "Documentación KYC Rechazada",
       "description": "Tu documentación KYC fue rechazada. Por favor revisa la razón del rechazo y vuelve a enviar tus documentos.",
@@ -205,6 +218,9 @@
     "documents": {
       "title": "Documentación Fiscal",
       "subtitle": "Documentos oficiales y fiscales del local",
+      "error": "Error",
+      "loadError": "No se pudo cargar la información del local",
+      "rfc": "RFC",
       "taxDocument": "Constancia de Situación Fiscal",
       "taxDocumentDesc": "Documento oficial del SAT que contiene el RFC",
       "actaDocument": "Acta Constitutiva",
@@ -282,7 +298,9 @@
           "none": "Ninguno"
         }
       },
+      "error": "Error",
       "google": {
+        "title": "Google Business Profile",
         "description": "Conecta tu perfil de Google Business para sincronizar reseñas y responder directamente desde el panel",
         "connected": "Conectado",
         "notConnected": "No Conectado",

@@ -487,15 +487,14 @@ export function MenuDataStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
                 {csvProcessing ? (
                   <>
                     <Loader2 className="mb-4 h-12 w-12 animate-spin text-primary" />
-                    <p className="text-center text-sm text-muted-foreground">Procesando archivo CSV...</p>
+                    <p className="text-center text-sm text-muted-foreground">{t('shared.processingCsv')}</p>
                   </>
                 ) : csvSuccess ? (
                   <>
                     <CheckCircle2 className="mb-4 h-12 w-12 text-green-600" />
                     <p className="mb-2 text-center text-sm font-medium text-foreground">{t('menuData.csv.uploaded', { filename: csvFile?.name })}</p>
                     <p className="mb-4 text-center text-sm text-muted-foreground">
-                      {categories.length} {categories.length === 1 ? 'categoría' : 'categorías'} • {products.length}{' '}
-                      {products.length === 1 ? 'producto' : 'productos'}
+                      {t('shared.categories', { count: categories.length })} • {t('shared.products', { count: products.length })}
                     </p>
                     <Button
                       variant="outline"
@@ -509,7 +508,7 @@ export function MenuDataStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
                         if (input) input.value = ''
                       }}
                     >
-                      Cambiar archivo
+                      {t('shared.changeFile')}
                     </Button>
                   </>
                 ) : (
@@ -537,8 +536,10 @@ export function MenuDataStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
                 <Alert className="mt-4 border-green-600 bg-green-50 dark:bg-green-950/50">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-800 dark:text-green-200">
-                    ¡CSV procesado correctamente! Se agregaron {categories.length} {categories.length === 1 ? 'categoría' : 'categorías'} y{' '}
-                    {products.length} {products.length === 1 ? 'producto' : 'productos'}.
+                    {t('shared.csvProcessedSuccess', {
+                      categories: t('shared.categories', { count: categories.length }),
+                      products: t('shared.products', { count: products.length })
+                    })}
                   </AlertDescription>
                 </Alert>
               )}

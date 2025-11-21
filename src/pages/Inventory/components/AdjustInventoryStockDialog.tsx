@@ -212,7 +212,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''}{' '}
               {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
             </p>
-            {errors.quantity && <p className="text-xs text-destructive">Required</p>}
+            {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
           </div>
 
           {/* Warning for negative stock */}
@@ -220,8 +220,11 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Cannot reduce stock below 0. Current stock is {currentStock.toFixed(2)} {formatUnitWithQuantity(currentStock, unitKey)}.
-                Minimum adjustment: {(-currentStock).toFixed(2)}
+                {t('validation.cannotReduceBelowZero', {
+                  amount: currentStock.toFixed(2),
+                  unit: formatUnitWithQuantity(currentStock, unitKey),
+                  minimum: (-currentStock).toFixed(2)
+                })}
               </AlertDescription>
             </Alert>
           )}
@@ -233,13 +236,17 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               <AlertDescription className="text-orange-800 dark:text-orange-200">
                 {showLargeAdjustmentConfirm ? (
                   <>
-                    <strong>Confirm large adjustment:</strong> This will change stock by {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
-                    ({(Math.abs(quantity || 0) / currentStock * 100).toFixed(0)}% of current stock). Click Save again to confirm.
+                    <strong>{t('validation.confirmLargeAdjustment')}</strong> {t('validation.confirmLargeAdjustmentMessage', {
+                      amount: Math.abs(quantity || 0).toFixed(2),
+                      unit: formatUnitWithQuantity(quantity || 0, unitKey),
+                      percentage: (Math.abs(quantity || 0) / currentStock * 100).toFixed(0)
+                    })}
                   </>
                 ) : (
                   <>
-                    <strong>Warning:</strong> This is a large adjustment ({(Math.abs(quantity || 0) / currentStock * 100).toFixed(0)}% of current stock).
-                    Please verify the amount is correct.
+                    <strong>{t('validation.warning')}</strong> {t('validation.largeAdjustmentWarning', {
+                      percentage: (Math.abs(quantity || 0) / currentStock * 100).toFixed(0)
+                    })}
                   </>
                 )}
               </AlertDescription>
@@ -265,7 +272,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             <Button type="submit" disabled={adjustStockMutation.isPending || isNegativeStock}>
               {adjustStockMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {showLargeAdjustmentConfirm && isLargeAdjustment && !isNegativeStock
-                ? 'Confirm & Save'
+                ? t('common.confirmAndSave')
                 : adjustStockMutation.isPending
                 ? t('common.saving')
                 : t('save')}

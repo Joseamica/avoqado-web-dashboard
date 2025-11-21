@@ -1,4 +1,5 @@
 {
+  "loading": "Loading...",
   "pageTitle": "Billing & Subscriptions",
   "pageSubtitle": "Manage your active subscriptions, view billing history, and explore available features",
   "activeSubscriptions": {

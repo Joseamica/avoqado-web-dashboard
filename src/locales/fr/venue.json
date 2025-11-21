@@ -2,6 +2,7 @@
   "venueMgmt": {
     "title": "Gestion des lieux",
     "subtitle": "Surveillez et gérez tous les lieux",
+    "kycPendingReview": "Révision KYC en Attente",
     "stats": {
       "totalRevenue": "Revenus totaux",
       "commissionPrefix": "Commission:",
@@ -76,6 +77,14 @@
       "successDescSuffix": "a été",
       "approved": "approuvé.",
       "suspended": "suspendu."
+    },
+    "paymentSetup": {
+      "enablePaymentProcessing": "Activer le Traitement des Paiements",
+      "enablePaymentProcessingDesc": "Permettre à cet établissement de traiter les paiements via Avoqado",
+      "routingDesc": "Configurer le routage automatique basé sur les règles métier (personnalisable plus tard)."
+    },
+    "pricing": {
+      "pricingDesc": "Définir les frais de transaction et les charges mensuelles pour cet établissement."
     }
   },
   "detailsView": {
@@ -122,9 +131,21 @@
     }
   },
   "edit": {
+    "title": "Paramètres de l'Établissement",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "documents": {
+      "title": "Documentation Fiscale",
+      "subtitle": "Documents officiels et fiscaux de l'établissement",
+      "error": "Erreur",
+      "loadError": "Impossible de charger les informations de l'établissement",
+      "rfc": "RFC"
+    },
     "integrations": {
       "title": "Intégrations",
       "subtitle": "Configurez les intégrations externes et les systèmes PDV",
+      "error": "Erreur",
       "errorLoading": "Échec du chargement des informations du lieu",
       "pos": {
         "title": "Intégration PDV",
@@ -144,6 +165,7 @@
         }
       },
       "google": {
+        "title": "Google Business Profile",
         "description": "Connectez votre profil Google Business pour synchroniser les avis et répondre directement depuis le tableau de bord",
         "connected": "Connecté",
         "notConnected": "Non connecté",

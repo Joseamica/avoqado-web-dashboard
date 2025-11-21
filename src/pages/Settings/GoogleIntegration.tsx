@@ -207,7 +207,7 @@ export default function GoogleIntegration() {
 
                 {integrationStatus.reviewsCount !== undefined && (
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">Google Reviews</p>
+                    <p className="text-sm font-medium text-foreground">{t('connectedInfo.googleReviews')}</p>
                     <p className="text-sm text-muted-foreground">
                       {t('connectedInfo.reviewsCount', { count: integrationStatus.reviewsCount })}
                     </p>
@@ -356,12 +356,12 @@ export default function GoogleIntegration() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">Google Business Profile</p>
-              <p className="text-xs text-muted-foreground">Manage your profile on Google</p>
+              <p className="text-sm font-medium text-foreground">{t('externalLinks.googleBusinessProfile')}</p>
+              <p className="text-xs text-muted-foreground">{t('externalLinks.manageProfile')}</p>
             </div>
             <Button variant="outline" size="sm" asChild>
               <a href="https://business.google.com" target="_blank" rel="noopener noreferrer">
-                Open
+                {t('externalLinks.open')}
                 <ExternalLink className="h-3 w-3 ml-2" />
               </a>
             </Button>

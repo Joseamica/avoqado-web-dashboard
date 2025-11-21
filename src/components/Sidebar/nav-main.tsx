@@ -159,7 +159,7 @@ export function NavMain({
                     {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
                     <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
                     {item.locked && (
-                      <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label="Requires KYC verification" />
+                      <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label={t('requiresKycVerification')} />
                     )}
                   </NavLink>
                 </SidebarMenuButton>

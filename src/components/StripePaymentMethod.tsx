@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,6 +14,7 @@ interface StripePaymentFormProps {
 }
 
 function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar trial gratuito' }: StripePaymentFormProps) {
+  const { t } = useTranslation('payment')
   const stripe = useStripe()
   const elements = useElements()
   const [error, setError] = useState<string | null>(null)
@@ -124,7 +126,7 @@ function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar tria
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">Tarjeta de crédito o débito</label>
+            <label className="mb-2 block text-sm font-medium text-foreground">{t('stripe.cardLabel')}</label>
             <div className="rounded-md border border-input bg-background p-3">
               <CardElement
                 options={{
@@ -158,8 +160,7 @@ function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar tria
 
           <div className="rounded-md border border-muted bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">
-              💳 <strong>Importante:</strong> No se realizará ningún cargo durante los 5 días de prueba. Tu tarjeta será verificada y se
-              guardará para la suscripción mensual que comenzará después del período de prueba.
+              {t('stripe.importantNote')}
             </p>
           </div>
 

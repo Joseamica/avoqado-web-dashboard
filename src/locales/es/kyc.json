@@ -34,5 +34,94 @@
       "message": "Verificación KYC rechazada - Por favor revisa la razón del rechazo y vuelve a enviar tus documentos",
       "action": "Reenviar"
     }
+  },
+  "review": {
+    "title": "Revisión KYC",
+    "loading": "Cargando datos KYC...",
+    "notFound": "Datos KYC No Encontrados",
+    "backToVenues": "Volver a Locales",
+    "rejectionReason": "Razón del Rechazo",
+    "approveKyc": "Aprobar KYC",
+    "rejectKyc": "Rechazar KYC",
+    "approving": "Aprobando...",
+    "rejecting": "Rechazando...",
+    "tabs": {
+      "documents": "Documentos",
+      "venue": "Info del Local",
+      "owner": "Info del Propietario",
+      "banking": "Info Bancaria"
+    },
+    "documents": {
+      "title": "Documentos KYC",
+      "description": "Revisa todos los documentos enviados para verificación",
+      "submitted": "Enviado",
+      "missing": "Faltante",
+      "viewDocument": "Ver Documento",
+      "download": "Descargar",
+      "notSubmitted": "Documento no enviado",
+      "notApplicable": "No aplica"
+    },
+    "venue": {
+      "title": "Información del Local",
+      "description": "Detalles del negocio y ubicación",
+      "venueName": "Nombre del Local",
+      "venueSlug": "Slug del Local",
+      "entityType": "Tipo de Entidad",
+      "kycSubmitted": "KYC Enviado",
+      "notSubmitted": "No enviado",
+      "notSpecified": "No especificado",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "email": "Correo Electrónico",
+      "notProvided": "No proporcionado"
+    },
+    "owner": {
+      "title": "Información del Propietario",
+      "description": "Datos de contacto del propietario del local",
+      "fullName": "Nombre Completo",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "notProvided": "No proporcionado"
+    },
+    "banking": {
+      "title": "Información Bancaria",
+      "description": "Datos de la cuenta de pago",
+      "clabe": "CLABE",
+      "bankName": "Nombre del Banco",
+      "accountHolder": "Titular de la Cuenta",
+      "notProvided": "No proporcionado"
+    },
+    "approveDialog": {
+      "title": "Aprobar Verificación KYC",
+      "description": "¿Estás seguro de que deseas aprobar el KYC de {{venueName}}? Esto les permitirá aceptar pagos.",
+      "cancel": "Cancelar"
+    },
+    "rejectDialog": {
+      "title": "Rechazar Verificación KYC",
+      "description": "Por favor proporciona una razón para rechazar el envío KYC de {{venueName}}. Recibirán esta retroalimentación.",
+      "selectDocuments": "Seleccionar Documentos Rechazados (Opcional)",
+      "selectDocumentsHelp": "Selecciona los documentos específicos que necesitan ser reenviados. Si no se selecciona ningún documento, todos los documentos serán marcados como rechazados.",
+      "noDocuments": "Aún no se han subido documentos. Todos los documentos serán marcados como rechazados.",
+      "documentsSelected": "{{count}} documento(s) seleccionado(s) para rechazo",
+      "reasonLabel": "Razón del Rechazo *",
+      "reasonPlaceholder": "Explica por qué se rechaza el KYC...",
+      "reasonRequired": "La razón de rechazo es requerida",
+      "reasonMinLength": "Faltan {{remaining}} caracteres (mínimo {{min}})",
+      "cancel": "Cancelar"
+    },
+    "status": {
+      "pendingReview": "Pendiente de Revisión",
+      "inReview": "En Revisión",
+      "verified": "Verificado",
+      "rejected": "Rechazado"
+    },
+    "toast": {
+      "approveSuccess": "KYC Aprobado",
+      "approveDescription": "{{venueName}} ha sido aprobado y ahora puede aceptar pagos.",
+      "approveFailed": "Error al Aprobar",
+      "rejectSuccess": "KYC Rechazado",
+      "rejectDescription": "{{venueName}} ha sido notificado del rechazo.",
+      "rejectFailed": "Error al Rechazar"
+    }
   }
 }

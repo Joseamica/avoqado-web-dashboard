@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,7 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
   onSave,
   calculateMargin,
 }) => {
+  const { t } = useTranslation('venuePricing')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
 
   // Fetch venues
@@ -132,10 +134,10 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="venue-select">Venue</Label>
+              <Label htmlFor="venue-select">{t('wizard.venue')}</Label>
               <Select value={selectedVenueId || ''} onValueChange={setSelectedVenueId}>
                 <SelectTrigger id="venue-select" className="w-full">
-                  <SelectValue placeholder="Select a venue..." />
+                  <SelectValue placeholder={t('wizard.selectVenue')} />
                 </SelectTrigger>
                 <SelectContent>
                   {venues.map((venue: any) => (
@@ -218,9 +220,9 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
             <Alert className="border-green-500/50 bg-green-50/10">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800 dark:text-green-200">
-                <strong>Configuration Complete!</strong> {selectedVenue?.name} is ready to process payments.
+                <strong>{t('wizard.configComplete')}</strong> {selectedVenue?.name} is ready to process payments.
                 {secondaryStructure && tertiaryStructure && (
-                  <span> All merchant accounts have pricing configured.</span>
+                  <span> {t('wizard.allConfigured')}</span>
                 )}
               </AlertDescription>
             </Alert>

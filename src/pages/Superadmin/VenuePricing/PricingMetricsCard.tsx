@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, AlertTriangle, CheckCircle2, DollarSign } from 'lucide-react'
 
@@ -16,6 +17,8 @@ interface PricingMetricsCardProps {
 }
 
 export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics }) => {
+  const { t } = useTranslation('venuePricing')
+
   const getMarginStatus = (margin: number) => {
     if (margin < 0) return { color: 'text-red-600 dark:text-red-400', label: 'Critical', icon: AlertTriangle }
     if (margin < 0.5) return { color: 'text-yellow-600 dark:text-yellow-400', label: 'Low', icon: AlertTriangle }
@@ -30,13 +33,13 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
       {/* Total Structures */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pricing Structures</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('metrics.pricingStructures')}</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{metrics.totalStructures}</div>
           <p className="text-xs text-muted-foreground">
-            {metrics.activeStructures} active
+            {t('metrics.active', { count: metrics.activeStructures })}
           </p>
         </CardContent>
       </Card>
@@ -44,7 +47,7 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
       {/* Average Margin */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg Profit Margin</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('metrics.avgProfitMargin')}</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -52,7 +55,7 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
             +{metrics.averageMargin.toFixed(2)}%
           </div>
           <p className="text-xs text-muted-foreground">
-            {avgStatus.label} margin
+            {t('metrics.margin', { status: avgStatus.label })}
           </p>
         </CardContent>
       </Card>
@@ -60,19 +63,19 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
       {/* Margin Range */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Margin Range</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('metrics.marginRange')}</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
             <span className="text-green-600">+{metrics.highestMargin.toFixed(2)}%</span>
-            <span className="text-muted-foreground text-sm mx-1">to</span>
+            <span className="text-muted-foreground text-sm mx-1">{t('metrics.to')}</span>
             <span className={metrics.lowestMargin < 0 ? 'text-red-600' : 'text-yellow-600'}>
               {metrics.lowestMargin >= 0 ? '+' : ''}{metrics.lowestMargin.toFixed(2)}%
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Across all structures
+            {t('metrics.acrossAllStructures')}
           </p>
         </CardContent>
       </Card>
@@ -80,7 +83,7 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
       {/* Warnings */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Warnings</CardTitle>
+          <CardTitle className="text-sm font-medium">{t('metrics.warnings')}</CardTitle>
           <AlertTriangle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -90,7 +93,7 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
                 {metrics.negativeMargins}
               </div>
               <p className="text-xs text-red-600 dark:text-red-400">
-                Negative margins detected!
+                {t('metrics.negativeMarginsDetected')}
               </p>
             </>
           ) : (
@@ -99,7 +102,7 @@ export const PricingMetricsCard: React.FC<PricingMetricsCardProps> = ({ metrics 
                 0
               </div>
               <p className="text-xs text-muted-foreground">
-                No issues found
+                {t('metrics.noIssuesFound')}
               </p>
             </>
           )}

@@ -2,6 +2,7 @@
   "venueMgmt": {
     "title": "Venue Management",
     "subtitle": "Monitor and manage all venues on the platform",
+    "kycPendingReview": "KYC Pending Review",
     "stats": {
       "totalRevenue": "Total Revenue",
       "commissionPrefix": "Commission:",
@@ -76,6 +77,14 @@
       "successDescSuffix": "has been",
       "approved": "approved.",
       "suspended": "suspended."
+    },
+    "paymentSetup": {
+      "enablePaymentProcessing": "Enable Payment Processing",
+      "enablePaymentProcessingDesc": "Allow this venue to process payments through Avoqado",
+      "routingDesc": "Configure automatic routing based on business rules (can be customized later)."
+    },
+    "pricing": {
+      "pricingDesc": "Set transaction fees and monthly charges for this venue."
     }
   },
   "detailsView": {
@@ -122,6 +131,10 @@
     }
   },
   "edit": {
+    "title": "Venue Settings",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
     "kycRejected": {
       "title": "KYC Documentation Rejected",
       "description": "Your KYC documentation was rejected. Please review the reason below and resubmit your documents.",
@@ -205,6 +218,9 @@
     "documents": {
       "title": "Fiscal Documentation",
       "subtitle": "Official and fiscal documents for the venue",
+      "error": "Error",
+      "loadError": "Could not load venue information",
+      "rfc": "RFC",
       "taxDocument": "Tax Status Certificate",
       "taxDocumentDesc": "Official SAT document containing RFC",
       "actaDocument": "Articles of Incorporation",
@@ -282,7 +298,9 @@
           "none": "None"
         }
       },
+      "error": "Error",
       "google": {
+        "title": "Google Business Profile",
         "description": "Connect your Google Business Profile to sync reviews and respond directly from the dashboard",
         "connected": "Connected",
         "notConnected": "Not Connected",

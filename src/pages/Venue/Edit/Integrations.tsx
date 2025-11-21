@@ -124,7 +124,7 @@ export default function VenueIntegrations() {
       <div className="container mx-auto pt-6 pb-20 px-3 md:px-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('edit.integrations.error', { defaultValue: 'Error' })}</AlertTitle>
           <AlertDescription>{t('edit.integrations.errorLoading')}</AlertDescription>
         </Alert>
       </div>
@@ -188,7 +188,7 @@ export default function VenueIntegrations() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Google Business Profile</CardTitle>
+              <CardTitle>{t('edit.integrations.google.title', { defaultValue: 'Google Business Profile' })}</CardTitle>
               <CardDescription>{t('edit.integrations.google.description')}</CardDescription>
             </div>
             {googleStatus?.connected ? (

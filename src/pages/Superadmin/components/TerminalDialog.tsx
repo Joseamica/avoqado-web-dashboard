@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ interface TerminalDialogProps {
 }
 
 export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChange, terminal, onSave }) => {
+  const { t } = useTranslation('terminals')
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -84,8 +86,8 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.response?.data?.message || error.message || 'Unknown error',
+        title: t('toast.error'),
+        description: error.response?.data?.message || error.message || t('toast.error'),
       })
     } finally {
       setLoading(false)
@@ -108,19 +110,19 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
           <DialogHeader>
             <div className="flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-emerald-500" />
-              <DialogTitle>{terminal ? 'Edit Terminal' : 'Create New Terminal'}</DialogTitle>
+              <DialogTitle>{terminal ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
             </div>
             <DialogDescription>
-              {terminal ? 'Update terminal configuration' : 'Create a new terminal and optionally generate an activation code'}
+              {terminal ? t('dialog.editDescription') : t('dialog.createDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="venueId">Venue <span className="text-destructive">*</span></Label>
+              <Label htmlFor="venueId">{t('dialog.venue')} <span className="text-destructive">*</span></Label>
               <Select value={formData.venueId} onValueChange={(value) => setFormData({ ...formData, venueId: value, assignedMerchantIds: [] })}>
                 <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder="Select venue..." />
+                  <SelectValue placeholder={t('dialog.selectVenue')} />
                 </SelectTrigger>
                 <SelectContent>
                   {venues.map(venue => (
@@ -131,28 +133,28 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="serialNumber">Serial Number <span className="text-destructive">*</span></Label>
+              <Label htmlFor="serialNumber">{t('dialog.serialNumber')} <span className="text-destructive">*</span></Label>
               <Input
                 id="serialNumber"
                 value={formData.serialNumber}
                 onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                placeholder="2841548417 (AVQD- prefix will be added automatically)"
+                placeholder={t('dialog.serialPlaceholder')}
                 required
                 disabled={!!terminal}
                 className="bg-background border-input font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Enter the serial number. The "AVQD-" prefix will be added automatically if not present.
+                {t('dialog.serialHelp')}
               </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="name">Terminal Name <span className="text-destructive">*</span></Label>
+              <Label htmlFor="name">{t('dialog.name')} <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Main POS Terminal"
+                placeholder={t('dialog.namePlaceholder')}
                 required
                 className="bg-background border-input"
               />
@@ -160,35 +162,35 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
 
             <div className="grid grid-cols-3 gap-2">
               <div className="grid gap-2">
-                <Label>Type</Label>
+                <Label>{t('dialog.type')}</Label>
                 <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as TerminalType })}>
                   <SelectTrigger className="bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TPV_ANDROID">TPV Android (Payment Terminal)</SelectItem>
-                    <SelectItem value="TPV_IOS">TPV iOS</SelectItem>
-                    <SelectItem value="PRINTER_RECEIPT">Receipt Printer</SelectItem>
-                    <SelectItem value="PRINTER_KITCHEN">Kitchen Printer</SelectItem>
-                    <SelectItem value="KDS">Kitchen Display System</SelectItem>
+                    <SelectItem value="TPV_ANDROID">{t('dialog.types.tpvAndroid')}</SelectItem>
+                    <SelectItem value="TPV_IOS">{t('dialog.types.tpvIos')}</SelectItem>
+                    <SelectItem value="PRINTER_RECEIPT">{t('dialog.types.receiptPrinter')}</SelectItem>
+                    <SelectItem value="PRINTER_KITCHEN">{t('dialog.types.kitchenPrinter')}</SelectItem>
+                    <SelectItem value="KDS">{t('dialog.types.kds')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
-                <Label>Brand</Label>
+                <Label>{t('dialog.brand')}</Label>
                 <Input value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="bg-background" />
               </div>
 
               <div className="grid gap-2">
-                <Label>Model</Label>
+                <Label>{t('dialog.model')}</Label>
                 <Input value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="bg-background" />
               </div>
             </div>
 
             {merchantAccounts.length > 0 && (
               <div className="grid gap-2">
-                <Label>Assigned Merchant Accounts (All Providers)</Label>
+                <Label>{t('dialog.assignedMerchants')}</Label>
                 <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto bg-background">
                   {merchantAccounts.map(merchant => (
                     <label key={merchant.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded">
@@ -217,7 +219,7 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
                   onChange={(e) => setFormData({ ...formData, generateActivationCode: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">Generate activation code after creation</span>
+                <span className="text-sm">{t('dialog.generateCode')}</span>
               </label>
             )}
 
@@ -225,17 +227,17 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
               <div className="flex items-start space-x-2 text-sm bg-yellow-50 dark:bg-yellow-950/50 p-3 rounded-md border border-yellow-200 dark:border-yellow-800">
                 <AlertCircle className="h-4 w-4 mt-0.5 text-yellow-600 dark:text-yellow-400" />
                 <p className="text-yellow-700 dark:text-yellow-300">
-                  No merchant accounts assigned. Terminal won't be able to process payments until at least one merchant account is assigned.
+                  {t('dialog.noMerchantWarning')}
                 </p>
               </div>
             )}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t('dialog.cancel')}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Saving...' : terminal ? 'Update Terminal' : 'Create Terminal'}
+              {loading ? t('dialog.saving') : terminal ? t('dialog.update') : t('dialog.create')}
             </Button>
           </DialogFooter>
         </form>

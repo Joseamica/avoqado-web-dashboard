@@ -49,7 +49,7 @@ import { EcommerceMerchantDialog } from './components/EcommerceMerchantDialog'
 import { APIKeysDialog } from './components/APIKeysDialog'
 
 const EcommerceMerchants: React.FC = () => {
-  const { t } = useTranslation(['payment', 'common'])
+  const { t } = useTranslation(['ecommerce', 'payment', 'common'])
   const { toast } = useToast()
   const { slug } = useParams<{ slug: string }>()
   const { getVenueBySlug } = useAuth()
@@ -87,7 +87,7 @@ const EcommerceMerchants: React.FC = () => {
         title: '✅ Canal creado exitosamente',
         description: (
           <div className="space-y-2">
-            <p className="font-semibold">⚠️ Guarda tu Secret Key ahora:</p>
+            <p className="font-semibold">⚠️ {t('secretKeyWarning')}</p>
             <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded font-mono text-sm break-all">
               {newMerchant.secretKey}
             </div>
@@ -220,7 +220,7 @@ const EcommerceMerchants: React.FC = () => {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Venue no encontrado</AlertDescription>
+        <AlertDescription>{t('venueNotFound')}</AlertDescription>
       </Alert>
     )
   }
@@ -230,7 +230,7 @@ const EcommerceMerchants: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Canales de E-commerce</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">
             Gestiona tus canales de pago online (web, app, marketplace)
           </p>
@@ -267,7 +267,7 @@ const EcommerceMerchants: React.FC = () => {
           ) : merchants.length === 0 ? (
             <div className="text-center py-12">
               <Globe className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No hay canales de e-commerce</h3>
+              <h3 className="mt-4 text-lg font-semibold">{t('noChannels')}</h3>
               <p className="text-muted-foreground">
                 Crea tu primer canal para empezar a recibir pagos online
               </p>
@@ -280,13 +280,13 @@ const EcommerceMerchants: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Email de Contacto</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Public Key</TableHead>
-                  <TableHead>Modo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead>{t('columns.channel')}</TableHead>
+                  <TableHead>{t('columns.contactEmail')}</TableHead>
+                  <TableHead>{t('columns.provider')}</TableHead>
+                  <TableHead>{t('columns.publicKey')}</TableHead>
+                  <TableHead>{t('columns.mode')}</TableHead>
+                  <TableHead>{t('columns.status')}</TableHead>
+                  <TableHead className="text-right">{t('columns.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -334,7 +334,7 @@ const EcommerceMerchants: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleViewKeys(merchant)}
-                          title="Ver API Keys"
+                          title={t('viewApiKeys')}
                         >
                           <Key className="h-4 w-4" />
                         </Button>
@@ -398,7 +398,7 @@ const EcommerceMerchants: React.FC = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar canal de e-commerce?</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteConfirm.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará permanentemente el canal{' '}
               <span className="font-semibold">{merchantToDelete?.channelName}</span> y todas sus
@@ -406,7 +406,7 @@ const EcommerceMerchants: React.FC = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t('deleteConfirm.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

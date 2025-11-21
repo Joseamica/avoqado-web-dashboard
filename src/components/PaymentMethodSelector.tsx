@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ export function PaymentMethodSelector({
   buttonText = 'Continue',
   showAddNewInitially = false,
 }: PaymentMethodSelectorProps) {
+  const { t } = useTranslation('payment')
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
   const [showAddNew, setShowAddNew] = useState(showAddNewInitially)
 
@@ -91,7 +93,7 @@ export function PaymentMethodSelector({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <p className="text-sm text-muted-foreground">Cargando métodos de pago...</p>
+        <p className="text-sm text-muted-foreground">{t('selector.loading')}</p>
       </div>
     )
   }
@@ -103,7 +105,7 @@ export function PaymentMethodSelector({
         {/* Show back button if returning from "Add new" */}
         {paymentMethods && paymentMethods.length > 0 && showAddNew && (
           <Button variant="outline" size="sm" onClick={() => setShowAddNew(false)}>
-            ← Volver a métodos existentes
+            {t('selector.backToExisting')}
           </Button>
         )}
 
@@ -117,7 +119,7 @@ export function PaymentMethodSelector({
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        <Label className="text-base font-medium">Selecciona un método de pago</Label>
+        <Label className="text-base font-medium">{t('selector.selectMethod')}</Label>
 
         <RadioGroup value={selectedPaymentMethodId || ''} onValueChange={setSelectedPaymentMethodId}>
           {paymentMethods.map(method => (
@@ -143,7 +145,7 @@ export function PaymentMethodSelector({
                     {getCardBrand(method.card.brand)} •••• {method.card.last4}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Vence {String(method.card.exp_month).padStart(2, '0')}/{method.card.exp_year}
+                    {t('selector.expires')} {String(method.card.exp_month).padStart(2, '0')}/{method.card.exp_year}
                   </p>
                 </div>
 
@@ -151,7 +153,7 @@ export function PaymentMethodSelector({
                 {selectedPaymentMethodId === method.id && (
                   <Badge variant="default" className="gap-1">
                     <Check className="h-3 w-3" />
-                    Seleccionado
+                    {t('selector.selected')}
                   </Badge>
                 )}
               </CardContent>
@@ -163,7 +165,7 @@ export function PaymentMethodSelector({
       {/* Add new payment method option */}
       <Button variant="outline" className="w-full" onClick={() => setShowAddNew(true)}>
         <Plus className="h-4 w-4 mr-2" />
-        Agregar nuevo método de pago
+        {t('selector.addNew')}
       </Button>
 
       {/* Continue button */}

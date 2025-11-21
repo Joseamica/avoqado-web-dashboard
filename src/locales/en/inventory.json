@@ -812,6 +812,40 @@
     "no": "No",
     "status": "Status",
     "add": "Add",
-    "subtract": "Subtract"
+    "subtract": "Subtract",
+    "continue": "Continue",
+    "saving": "Saving...",
+    "confirmAndSave": "Confirm & Save"
+  },
+
+  "validation": {
+    "required": "Required",
+    "requiredMinValue": "Required (min: {{value}})",
+    "requiredRange": "Required ({{min}}-{{max}}%)",
+    "confirmLargeAdjustment": "Confirm large adjustment:",
+    "confirmLargeAdjustmentMessage": "This will change stock by {{amount}} {{unit}} ({{percentage}}% of current stock). Click Save again to confirm.",
+    "warning": "Warning:",
+    "largeAdjustmentWarning": "This is a large adjustment ({{percentage}}% of current stock). Please verify the amount is correct.",
+    "cannotReduceBelowZero": "Cannot reduce stock below 0. Current stock is {{amount}} {{unit}}. Minimum adjustment: {{minimum}}",
+    "negativeStockWarning": "This adjustment will result in negative stock. Stock cannot be negative.",
+    "optionalPriceFloor": "Optional price floor - suggested price will not go below this value"
+  },
+
+  "lowStockThreshold": {
+    "label": "Low Stock Alert Threshold",
+    "labelPortions": "Low Stock Alert Threshold (portions)",
+    "title": "What is Low Stock Threshold?",
+    "description": "Stock level that triggers a low stock alert in your dashboard. When stock falls below this number, the product will be highlighted.",
+    "descriptionPortions": "Number of portions that triggers a low stock alert. When available portions fall below this number, the product will be highlighted in your dashboard.",
+    "defaultNote": "Default: {{value}} units. Adjust based on your sales volume and reorder frequency.",
+    "defaultNotePortions": "Default: {{value}} portions. Adjust based on your daily sales and preparation time.",
+    "separateFromReorder": "Alert when stock falls below this level (separate from reorder point)",
+    "alertWhenBelow": "Alert when available portions fall below this level"
+  },
+
+  "pricingStrategy": {
+    "manualDescription": "Manually set product prices",
+    "autoMarkupDescription": "Calculate price based on cost x markup percentage",
+    "autoTargetMarginDescription": "Calculate price to achieve target food cost percentage"
   }
 }

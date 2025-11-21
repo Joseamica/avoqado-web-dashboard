@@ -53,5 +53,6 @@
     "products": "Productos",
     "users": "Usuarios",
     "waiters": "Meseros"
-  }
+  },
+  "requiresKycVerification": "Requiere verificación KYC"
 }

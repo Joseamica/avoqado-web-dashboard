@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ import { TerminalDialog } from './components/TerminalDialog'
 import { formatDistanceToNow } from 'date-fns'
 
 const Terminals: React.FC = () => {
+  const { t } = useTranslation('terminals')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
@@ -42,34 +44,34 @@ const Terminals: React.FC = () => {
 
       if (data.activationCode) {
         toast({
-          title: '✅ Terminal Created',
+          title: `✅ ${t('toast.created')}`,
           description: (
             <div className="space-y-2">
-              <p><strong>Name:</strong> {data.terminal.name}</p>
-              <p><strong>Serial:</strong> {data.terminal.serialNumber}</p>
-              <p className="font-mono text-lg"><strong>Activation Code:</strong> {data.activationCode.activationCode}</p>
-              <p className="text-xs text-muted-foreground">Code expires in 7 days</p>
+              <p><strong>{t('dialog.name')}:</strong> {data.terminal.name}</p>
+              <p><strong>{t('dialog.serialNumber')}:</strong> {data.terminal.serialNumber}</p>
+              <p className="font-mono text-lg"><strong>{t('activationCode.title')}:</strong> {data.activationCode.activationCode}</p>
+              <p className="text-xs text-muted-foreground">{t('activationCode.expiresIn7Days')}</p>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(data.activationCode!.activationCode)
-                  toast({ title: 'Copied!', description: 'Activation code copied to clipboard' })
+                  toast({ title: t('toast.copied'), description: t('toast.copiedDesc') })
                 }}
               >
-                <Copy className="w-3 h-3 mr-1" /> Copy Code
+                <Copy className="w-3 h-3 mr-1" /> {t('activationCode.copyCode')}
               </Button>
             </div>
           ),
           duration: 15000,
         })
       } else {
-        toast({ title: 'Success', description: 'Terminal created successfully' })
+        toast({ title: t('toast.updated'), description: t('toast.createdDesc') })
       }
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || error.message || 'Failed to create terminal'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || error.message || t('toast.createFailed')
+      toast({ title: t('toast.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -77,11 +79,11 @@ const Terminals: React.FC = () => {
     mutationFn: ({ id, data }: { id: string; data: any }) => terminalAPI.updateTerminal(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
-      toast({ title: 'Success', description: 'Terminal updated successfully' })
+      toast({ title: t('toast.updated'), description: t('toast.updatedDesc') })
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || error.message || 'Failed to update terminal'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || error.message || t('toast.updateFailed')
+      toast({ title: t('toast.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -89,11 +91,11 @@ const Terminals: React.FC = () => {
     mutationFn: terminalAPI.deleteTerminal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
-      toast({ title: 'Success', description: 'Terminal deleted successfully' })
+      toast({ title: t('toast.deleted'), description: t('toast.deletedDesc') })
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || error.message || 'Failed to delete terminal'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || error.message || t('toast.deleteFailed')
+      toast({ title: t('toast.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -102,20 +104,20 @@ const Terminals: React.FC = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['terminals'] })
       toast({
-        title: '🔑 Activation Code Generated',
+        title: `🔑 ${t('toast.codeGenerated')}`,
         description: (
           <div className="space-y-2">
             <p className="font-mono text-lg">{data.activationCode}</p>
-            <p className="text-xs">Expires: {new Date(data.expiresAt).toLocaleDateString()}</p>
+            <p className="text-xs">{t('activationCode.expires')}: {new Date(data.expiresAt).toLocaleDateString()}</p>
             <Button
               size="sm"
               variant="outline"
               onClick={() => {
                 navigator.clipboard.writeText(data.activationCode)
-                toast({ title: 'Copied!', description: 'Code copied to clipboard' })
+                toast({ title: t('toast.copied'), description: t('toast.copiedDesc') })
               }}
             >
-              <Copy className="w-3 h-3 mr-1" /> Copy
+              <Copy className="w-3 h-3 mr-1" /> {t('activationCode.copy')}
             </Button>
           </div>
         ),
@@ -123,8 +125,8 @@ const Terminals: React.FC = () => {
       })
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || error.message || 'Failed to generate code'
-      toast({ title: 'Error', description: message, variant: 'destructive' })
+      const message = error.response?.data?.message || error.message || t('toast.codeFailed')
+      toast({ title: t('toast.error'), description: message, variant: 'destructive' })
     },
   })
 
@@ -147,7 +149,7 @@ const Terminals: React.FC = () => {
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this terminal?')) {
+    if (confirm(t('confirm.delete'))) {
       await deleteMutation.mutateAsync(id)
     }
   }
@@ -156,16 +158,16 @@ const Terminals: React.FC = () => {
     await generateCodeMutation.mutateAsync(terminal.id)
   }
 
-  const filteredTerminals = terminals.filter(t =>
-    (t.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-    (t.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-    (t.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-  )
+  const filteredTerminals = useMemo(() => terminals.filter(terminal =>
+    (terminal.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (terminal.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (terminal.venue?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+  ), [terminals, searchTerm])
 
-  const columns: ColumnDef<Terminal>[] = [
+  const columns: ColumnDef<Terminal>[] = useMemo(() => [
     {
       accessorKey: 'name',
-      header: 'Terminal',
+      header: t('columns.terminal'),
       cell: ({ row }) => (
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-lg bg-muted">
@@ -180,12 +182,12 @@ const Terminals: React.FC = () => {
     },
     {
       accessorKey: 'venue.name',
-      header: 'Venue',
+      header: t('columns.venue'),
       cell: ({ row }) => row.original.venue?.name || 'N/A',
     },
     {
       accessorKey: 'status',
-      header: 'Status',
+      header: t('columns.status'),
       cell: ({ row }) => {
         const terminal = row.original
         const online = isTerminalOnline(terminal.lastHeartbeat)
@@ -194,33 +196,33 @@ const Terminals: React.FC = () => {
           <div className="flex items-center gap-2">
             <Badge variant={isActive && online ? 'default' : 'secondary'}
                    className={isActive && online ? 'bg-green-500 hover:bg-green-600' : ''}>
-              {isActive && online ? 'Online' : 'Offline'}
+              {isActive && online ? t('status.online') : t('status.offline')}
             </Badge>
-            {terminal.status === 'RETIRED' && <Badge variant="destructive">Retired</Badge>}
+            {terminal.status === 'RETIRED' && <Badge variant="destructive">{t('status.retired')}</Badge>}
           </div>
         )
       },
     },
     {
       accessorKey: 'type',
-      header: 'Type',
+      header: t('columns.type'),
       cell: ({ row }) => <Badge variant="outline">{row.original.type}</Badge>,
     },
     {
       accessorKey: 'assignedMerchantIds',
-      header: 'Merchants',
-      cell: ({ row }) => <span className="text-sm">{row.original.assignedMerchantIds?.length || 0} assigned</span>,
+      header: t('columns.merchants'),
+      cell: ({ row }) => <span className="text-sm">{row.original.assignedMerchantIds?.length || 0} {t('assigned')}</span>,
     },
     {
       accessorKey: 'lastHeartbeat',
-      header: 'Last Seen',
+      header: t('columns.lastSeen'),
       cell: ({ row }) => row.original.lastHeartbeat
-        ? <span className="text-sm">{formatDistanceToNow(new Date(row.original.lastHeartbeat))} ago</span>
-        : <span className="text-sm text-muted-foreground">Never</span>,
+        ? <span className="text-sm">{formatDistanceToNow(new Date(row.original.lastHeartbeat))} {t('ago')}</span>
+        : <span className="text-sm text-muted-foreground">{t('never')}</span>,
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('columns.actions'),
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
@@ -235,7 +237,7 @@ const Terminals: React.FC = () => {
         </div>
       ),
     },
-  ]
+  ], [t])
 
   const onlineCount = terminals.filter(t => isTerminalOnline(t.lastHeartbeat)).length
 
@@ -243,12 +245,12 @@ const Terminals: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Terminals</h1>
-          <p className="text-muted-foreground">Manage POS terminals, printers, and KDS devices</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         <Button onClick={handleAdd}>
           <Plus className="w-4 h-4 mr-2" />
-          Create Terminal
+          {t('createTerminal')}
         </Button>
       </div>
 
@@ -262,26 +264,26 @@ const Terminals: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Terminals</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalTerminals')}</CardTitle>
             <Smartphone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{terminals.length}</div>
-            <p className="text-xs text-muted-foreground">{onlineCount} online</p>
+            <p className="text-xs text-muted-foreground">{onlineCount} {t('online')}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Terminals</CardTitle>
-          <CardDescription>Manage terminals across all venues</CardDescription>
+          <CardTitle>{t('allTerminals')}</CardTitle>
+          <CardDescription>{t('allTerminalsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex-1">
               <Input
-                placeholder="Search by name, serial, or venue..."
+                placeholder={t('searchPlaceholder')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -289,10 +291,10 @@ const Terminals: React.FC = () => {
             <div className="w-64">
               <Select value={selectedVenueId} onValueChange={setSelectedVenueId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Filter by venue" />
+                  <SelectValue placeholder={t('filterByVenue')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Venues</SelectItem>
+                  <SelectItem value="all">{t('allVenues')}</SelectItem>
                   {venues.map(venue => (
                     <SelectItem key={venue.id} value={venue.id}>{venue.name}</SelectItem>
                   ))}
@@ -302,7 +304,7 @@ const Terminals: React.FC = () => {
           </div>
 
           {isLoading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">{t('loading')}</div>
           ) : (
             <DataTable
               columns={columns}

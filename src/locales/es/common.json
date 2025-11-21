@@ -204,5 +204,10 @@
         "confirm": "Eliminar"
       }
     }
-  }
+  },
+  "flags": {
+    "spain": "Bandera de España",
+    "uk": "Bandera del Reino Unido"
+  },
+  "chooseColor": "Elegir color"
 }

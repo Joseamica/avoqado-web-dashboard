@@ -19,8 +19,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Activity, AlertTriangle, CheckCircle2, Clock, Eye, Filter, RefreshCw, TrendingUp, X, XCircle, Zap } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 function Webhooks() {
+  const { t } = useTranslation('webhooks')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -70,8 +72,8 @@ function Webhooks() {
     mutationFn: retryWebhookEvent,
     onSuccess: () => {
       toast({
-        title: 'Webhook Retried',
-        description: 'The webhook event has been reprocessed successfully.',
+        title: t('toast.retried'),
+        description: t('toast.retriedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['webhookEvents'] })
       queryClient.invalidateQueries({ queryKey: ['webhookMetrics'] })
@@ -79,8 +81,8 @@ function Webhooks() {
     },
     onError: (error: any) => {
       toast({
-        title: 'Retry Failed',
-        description: error.response?.data?.error || 'Failed to retry webhook event',
+        title: t('toast.retryFailed'),
+        description: error.response?.data?.error || t('toast.retryFailedDesc'),
         variant: 'destructive',
       })
     },
@@ -123,7 +125,7 @@ function Webhooks() {
 
   // Format processing time
   const formatProcessingTime = (ms: number | null | undefined) => {
-    if (!ms) return 'N/A'
+    if (!ms) return t('table.na')
     if (ms < 1000) return `${ms}ms`
     return `${(ms / 1000).toFixed(2)}s`
   }
@@ -132,8 +134,8 @@ function Webhooks() {
     <div className="space-y-6 p-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Webhook Monitoring</h1>
-        <p className="text-muted-foreground mt-2">Monitor Stripe webhook events, debug failures, and track system health</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 
       {/* Metrics Cards */}
@@ -142,13 +144,13 @@ function Webhooks() {
           {/* Success Rate */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('metrics.successRate')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics.summary.successRate.toFixed(1)}%</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {metrics.summary.successCount} / {metrics.summary.totalEvents} events
+                {metrics.summary.successCount} / {metrics.summary.totalEvents} {t('metrics.events')}
               </p>
             </CardContent>
           </Card>
@@ -156,36 +158,36 @@ function Webhooks() {
           {/* Average Processing Time */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Processing Time</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('metrics.avgProcessingTime')}</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatProcessingTime(metrics.summary.avgProcessingTime)}</div>
-              <p className="text-xs text-muted-foreground mt-1">Per successful event</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('metrics.perSuccessfulEvent')}</p>
             </CardContent>
           </Card>
 
           {/* Failed Events */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Failed Events</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('metrics.failedEvents')}</CardTitle>
               <XCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">{metrics.summary.failedCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Require attention</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('metrics.requireAttention')}</p>
             </CardContent>
           </Card>
 
           {/* Pending Events */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Events</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('metrics.pendingEvents')}</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{metrics.summary.pendingCount}</div>
-              <p className="text-xs text-muted-foreground mt-1">Currently processing</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('metrics.currentlyProcessing')}</p>
             </CardContent>
           </Card>
         </div>
@@ -198,13 +200,13 @@ function Webhooks() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Webhook Events
+                {t('events.title')}
               </CardTitle>
-              <CardDescription className="mt-1">Real-time log of all Stripe webhook events</CardDescription>
+              <CardDescription className="mt-1">{t('events.description')}</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-2">
               <Filter className="h-4 w-4" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
+              {showFilters ? t('events.hideFilters') : t('events.showFilters')}
               {hasActiveFilters && (
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                   {webhookData?.events.length || 0}
@@ -221,13 +223,13 @@ function Webhooks() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {/* Event Type Filter */}
                 <div className="space-y-2">
-                  <Label htmlFor="event-type">Event Type</Label>
+                  <Label htmlFor="event-type">{t('filters.eventType')}</Label>
                   <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
                     <SelectTrigger id="event-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Events</SelectItem>
+                      <SelectItem value="all">{t('filters.allEvents')}</SelectItem>
                       {eventTypes?.map(et => (
                         <SelectItem key={et.type} value={et.type}>
                           {et.type} ({et.count})
@@ -239,30 +241,30 @@ function Webhooks() {
 
                 {/* Status Filter */}
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status">{t('filters.status')}</Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger id="status">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="SUCCESS">Success</SelectItem>
-                      <SelectItem value="FAILED">Failed</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="RETRYING">Retrying</SelectItem>
+                      <SelectItem value="all">{t('filters.allStatuses')}</SelectItem>
+                      <SelectItem value="SUCCESS">{t('filters.success')}</SelectItem>
+                      <SelectItem value="FAILED">{t('filters.failed')}</SelectItem>
+                      <SelectItem value="PENDING">{t('filters.pending')}</SelectItem>
+                      <SelectItem value="RETRYING">{t('filters.retrying')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Start Date */}
                 <div className="space-y-2">
-                  <Label htmlFor="start-date">From Date</Label>
+                  <Label htmlFor="start-date">{t('filters.fromDate')}</Label>
                   <Input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                 </div>
 
                 {/* End Date */}
                 <div className="space-y-2">
-                  <Label htmlFor="end-date">To Date</Label>
+                  <Label htmlFor="end-date">{t('filters.toDate')}</Label>
                   <Input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
                 </div>
               </div>
@@ -270,12 +272,12 @@ function Webhooks() {
               {/* Filter Actions */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-sm text-muted-foreground">
-                  Showing {webhookData?.events.length || 0} of {webhookData?.total || 0} events
+                  {t('events.showing', { count: webhookData?.events.length || 0, total: webhookData?.total || 0 })}
                 </p>
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-2">
                     <X className="h-4 w-4" />
-                    Clear Filters
+                    {t('events.clearFilters')}
                   </Button>
                 )}
               </div>
@@ -284,21 +286,21 @@ function Webhooks() {
 
           {/* Table */}
           {isLoading ? (
-            <p className="text-center py-8 text-muted-foreground">Loading events...</p>
+            <p className="text-center py-8 text-muted-foreground">{t('events.loading')}</p>
           ) : !webhookData?.events.length ? (
-            <p className="text-center py-8 text-muted-foreground">No webhook events found</p>
+            <p className="text-center py-8 text-muted-foreground">{t('events.noEvents')}</p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date/Time</TableHead>
-                    <TableHead>Event Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Venue</TableHead>
-                    <TableHead>Processing Time</TableHead>
-                    <TableHead>Retries</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('table.dateTime')}</TableHead>
+                    <TableHead>{t('table.eventType')}</TableHead>
+                    <TableHead>{t('table.status')}</TableHead>
+                    <TableHead>{t('table.venue')}</TableHead>
+                    <TableHead>{t('table.processingTime')}</TableHead>
+                    <TableHead>{t('table.retries')}</TableHead>
+                    <TableHead className="text-right">{t('table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -321,7 +323,7 @@ function Webhooks() {
                         {event.venue ? (
                           <span className="text-sm">{event.venue.name}</span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">N/A</span>
+                          <span className="text-xs text-muted-foreground">{t('table.na')}</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -341,7 +343,7 @@ function Webhooks() {
                         <div className="flex items-center justify-end gap-2">
                           <Button variant="ghost" size="sm" onClick={() => setSelectedEvent(event)}>
                             <Eye className="h-4 w-4 mr-1" />
-                            View
+                            {t('table.view')}
                           </Button>
                           {event.status === 'FAILED' && (
                             <Button
@@ -351,7 +353,7 @@ function Webhooks() {
                               disabled={retryingEventId === event.id}
                             >
                               <RefreshCw className={`h-4 w-4 mr-1 ${retryingEventId === event.id ? 'animate-spin' : ''}`} />
-                              Retry
+                              {t('table.retry')}
                             </Button>
                           )}
                         </div>
@@ -364,14 +366,14 @@ function Webhooks() {
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  Page {page + 1} of {Math.ceil((webhookData?.total || 0) / limit)}
+                  {t('pagination.page', { current: page + 1, total: Math.ceil((webhookData?.total || 0) / limit) })}
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                    Previous
+                    {t('pagination.previous')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={!webhookData?.hasMore}>
-                    Next
+                    {t('pagination.next')}
                   </Button>
                 </div>
               </div>
@@ -386,39 +388,39 @@ function Webhooks() {
           {selectedEvent && (
             <>
               <SheetHeader>
-                <SheetTitle>Webhook Event Details</SheetTitle>
-                <SheetDescription>Event ID: {selectedEvent.stripeEventId}</SheetDescription>
+                <SheetTitle>{t('detail.title')}</SheetTitle>
+                <SheetDescription>{t('detail.eventId')}: {selectedEvent.stripeEventId}</SheetDescription>
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
                 {/* Metadata */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Metadata</h3>
+                  <h3 className="font-semibold">{t('detail.metadata')}</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Status:</span>
+                      <span className="text-muted-foreground">{t('detail.statusLabel')}</span>
                       <Badge variant={getStatusVariant(selectedEvent.status)} className="ml-2">
                         {selectedEvent.status}
                       </Badge>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Event Type:</span>
+                      <span className="text-muted-foreground">{t('detail.eventTypeLabel')}</span>
                       <code className="ml-2 text-xs bg-muted px-2 py-1 rounded">{selectedEvent.eventType}</code>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Created:</span>
+                      <span className="text-muted-foreground">{t('detail.createdLabel')}</span>
                       <span className="ml-2 font-mono">{format(new Date(selectedEvent.createdAt), 'MMM dd, yyyy HH:mm:ss')}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Processing Time:</span>
+                      <span className="text-muted-foreground">{t('detail.processingTimeLabel')}</span>
                       <span className="ml-2 font-mono">{formatProcessingTime(selectedEvent.processingTime)}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Venue:</span>
-                      <span className="ml-2">{selectedEvent.venue?.name || 'N/A'}</span>
+                      <span className="text-muted-foreground">{t('detail.venueLabel')}</span>
+                      <span className="ml-2">{selectedEvent.venue?.name || t('table.na')}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Retry Count:</span>
+                      <span className="text-muted-foreground">{t('detail.retryCountLabel')}</span>
                       <span className="ml-2">{selectedEvent.retryCount}</span>
                     </div>
                   </div>
@@ -427,14 +429,14 @@ function Webhooks() {
                 {/* Error Message */}
                 {selectedEvent.errorMessage && (
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-destructive">Error Message</h3>
+                    <h3 className="font-semibold text-destructive">{t('detail.errorMessage')}</h3>
                     <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-sm">{selectedEvent.errorMessage}</div>
                   </div>
                 )}
 
                 {/* JSON Payload */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold">Event Payload</h3>
+                  <h3 className="font-semibold">{t('detail.eventPayload')}</h3>
                   <pre className="p-4 bg-muted rounded text-xs overflow-auto max-h-96">
                     {JSON.stringify(selectedEvent.payload, null, 2)}
                   </pre>
@@ -444,7 +446,7 @@ function Webhooks() {
                 {selectedEvent.status === 'FAILED' && (
                   <Button className="w-full" onClick={() => handleRetry(selectedEvent.id)} disabled={retryingEventId === selectedEvent.id}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${retryingEventId === selectedEvent.id ? 'animate-spin' : ''}`} />
-                    Retry Webhook Event
+                    {t('detail.retryWebhook')}
                   </Button>
                 )}
               </div>

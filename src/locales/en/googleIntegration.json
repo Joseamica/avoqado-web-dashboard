@@ -15,7 +15,8 @@
     "businessLocation": "Business Location",
     "lastSync": "Last Sync",
     "never": "Never",
-    "reviewsCount": "{{count}} reviews synced"
+    "reviewsCount": "{{count}} reviews synced",
+    "googleReviews": "Google Reviews"
   },
 
   "actions": {
@@ -88,5 +89,11 @@
       "confirm": "Disconnect",
       "cancel": "Cancel"
     }
+  },
+
+  "externalLinks": {
+    "googleBusinessProfile": "Google Business Profile",
+    "manageProfile": "Manage your profile on Google",
+    "open": "Open"
   }
 }

@@ -293,7 +293,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                     placeholder="0"
                     {...register('quantity', { required: true, valueAsNumber: true, min: 0.01 })}
                   />
-                  {errors.quantity && <p className="text-xs text-destructive">Required (min: 0.01)</p>}
+                  {errors.quantity && <p className="text-xs text-destructive">{t('validation.requiredMinValue', { value: '0.01' })}</p>}
                 </div>
 
                 <div className="space-y-2">

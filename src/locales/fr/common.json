@@ -193,5 +193,10 @@
         "confirm": "Supprimer"
       }
     }
-  }
+  },
+  "flags": {
+    "spain": "Drapeau de l'Espagne",
+    "uk": "Drapeau du Royaume-Uni"
+  },
+  "chooseColor": "Choisir la couleur"
 }

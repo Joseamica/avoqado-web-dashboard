@@ -406,7 +406,7 @@ export default function Products() {
             {isActive ? (
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             ) : (
-              <Badge variant="destructive" className="text-xs">86'd</Badge>
+              <Badge variant="destructive" className="text-xs">{t('products.columns.unavailable')}</Badge>
             )}
           </div>
         )

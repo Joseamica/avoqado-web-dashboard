@@ -83,7 +83,8 @@
       "stock": "Stock",
       "categories": "Catégories",
       "modifierGroups": "Groupes Modificateurs",
-      "updatedAt": "Dernière mise à jour"
+      "updatedAt": "Dernière mise à jour",
+      "unavailable": "Épuisé"
     },
     "actions": {
       "adjustStock": "Ajuster le Stock",

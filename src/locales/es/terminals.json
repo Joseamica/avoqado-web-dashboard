@@ -1,0 +1,86 @@
+{
+  "title": "Terminales",
+  "subtitle": "Gestiona terminales POS, impresoras y dispositivos KDS",
+  "createTerminal": "Crear Terminal",
+  "totalTerminals": "Total de Terminales",
+  "online": "en línea",
+  "allTerminals": "Todas las Terminales",
+  "allTerminalsDesc": "Gestiona terminales en todos los locales",
+  "searchPlaceholder": "Buscar por nombre, serial o local...",
+  "filterByVenue": "Filtrar por local",
+  "allVenues": "Todos los Locales",
+  "loading": "Cargando...",
+  "columns": {
+    "terminal": "Terminal",
+    "venue": "Local",
+    "status": "Estado",
+    "type": "Tipo",
+    "merchants": "Comercios",
+    "lastSeen": "Última Conexión",
+    "actions": "Acciones"
+  },
+  "status": {
+    "online": "En línea",
+    "offline": "Fuera de línea",
+    "retired": "Retirado"
+  },
+  "assigned": "asignados",
+  "never": "Nunca",
+  "ago": "hace",
+  "toast": {
+    "created": "Terminal Creada",
+    "createdDesc": "La terminal fue creada exitosamente",
+    "updated": "Éxito",
+    "updatedDesc": "Terminal actualizada exitosamente",
+    "deleted": "Éxito",
+    "deletedDesc": "Terminal eliminada exitosamente",
+    "error": "Error",
+    "createFailed": "Error al crear terminal",
+    "updateFailed": "Error al actualizar terminal",
+    "deleteFailed": "Error al eliminar terminal",
+    "codeFailed": "Error al generar código",
+    "copied": "¡Copiado!",
+    "copiedDesc": "Código de activación copiado al portapapeles",
+    "codeGenerated": "Código de Activación Generado"
+  },
+  "activationCode": {
+    "title": "Código de Activación",
+    "expires": "Expira",
+    "expiresIn7Days": "El código expira en 7 días",
+    "copy": "Copiar",
+    "copyCode": "Copiar Código"
+  },
+  "confirm": {
+    "delete": "¿Estás seguro de que deseas eliminar esta terminal?"
+  },
+  "dialog": {
+    "createTitle": "Crear Nueva Terminal",
+    "editTitle": "Editar Terminal",
+    "createDescription": "Crea una nueva terminal y opcionalmente genera un código de activación",
+    "editDescription": "Actualizar configuración de terminal",
+    "venue": "Local",
+    "selectVenue": "Seleccionar local...",
+    "serialNumber": "Número de Serie",
+    "serialPlaceholder": "2841548417 (el prefijo AVQD- se agregará automáticamente)",
+    "serialHelp": "Ingresa el número de serie. El prefijo \"AVQD-\" se agregará automáticamente si no está presente.",
+    "name": "Nombre de Terminal",
+    "namePlaceholder": "Terminal POS Principal",
+    "type": "Tipo",
+    "types": {
+      "tpvAndroid": "TPV Android (Terminal de Pago)",
+      "tpvIos": "TPV iOS",
+      "receiptPrinter": "Impresora de Tickets",
+      "kitchenPrinter": "Impresora de Cocina",
+      "kds": "Sistema de Display de Cocina"
+    },
+    "brand": "Marca",
+    "model": "Modelo",
+    "assignedMerchants": "Cuentas de Comercio Asignadas (Todos los Proveedores)",
+    "generateCode": "Generar código de activación después de crear",
+    "noMerchantWarning": "No hay cuentas de comercio asignadas. La terminal no podrá procesar pagos hasta que se asigne al menos una cuenta de comercio.",
+    "cancel": "Cancelar",
+    "create": "Crear Terminal",
+    "update": "Actualizar Terminal",
+    "saving": "Guardando..."
+  }
+}

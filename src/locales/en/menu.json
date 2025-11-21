@@ -346,7 +346,8 @@
       "stock": "Stock",
       "categories": "Categories",
       "modifierGroups": "Modifier Groups",
-      "updatedAt": "Last update"
+      "updatedAt": "Last update",
+      "unavailable": "86'd"
     },
     "actions": {
       "adjustStock": "Adjust Stock",
@@ -370,7 +371,13 @@
         "notesPlaceholder": "Additional details...",
         "cancel": "Cancel",
         "save": "Save Adjustment",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "confirmAndSave": "Confirm & Save",
+        "confirmLargeAdjustment": "Confirm large adjustment:",
+        "confirmLargeAdjustmentMessage": "This will change stock by {{amount}} {{unit}} ({{percentage}}% of current stock). Click Save again to confirm.",
+        "warning": "Warning:",
+        "largeAdjustmentWarning": "This is a large adjustment ({{percentage}}% of current stock). Please verify the amount is correct.",
+        "cannotReduceBelowZero": "Cannot reduce stock below 0. Current stock is {{amount}} {{unit}}. Minimum adjustment: {{minimum}}"
       }
     },
     "toasts": {

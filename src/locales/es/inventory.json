@@ -812,6 +812,40 @@
     "no": "No",
     "status": "Estado",
     "add": "Agregar",
-    "subtract": "Restar"
+    "subtract": "Restar",
+    "continue": "Continuar",
+    "saving": "Guardando...",
+    "confirmAndSave": "Confirmar y Guardar"
+  },
+
+  "validation": {
+    "required": "Requerido",
+    "requiredMinValue": "Requerido (mín: {{value}})",
+    "requiredRange": "Requerido ({{min}}-{{max}}%)",
+    "confirmLargeAdjustment": "Confirmar ajuste grande:",
+    "confirmLargeAdjustmentMessage": "Esto cambiará el stock en {{amount}} {{unit}} ({{percentage}}% del stock actual). Haz clic en Guardar nuevamente para confirmar.",
+    "warning": "Advertencia:",
+    "largeAdjustmentWarning": "Este es un ajuste grande ({{percentage}}% del stock actual). Por favor verifica que la cantidad sea correcta.",
+    "cannotReduceBelowZero": "No se puede reducir el stock por debajo de 0. Stock actual es {{amount}} {{unit}}. Ajuste mínimo: {{minimum}}",
+    "negativeStockWarning": "Este ajuste resultará en stock negativo. El stock no puede ser negativo.",
+    "optionalPriceFloor": "Precio mínimo opcional - el precio sugerido no será menor a este valor"
+  },
+
+  "lowStockThreshold": {
+    "label": "Umbral de Alerta de Stock Bajo",
+    "labelPortions": "Umbral de Alerta de Stock Bajo (porciones)",
+    "title": "¿Qué es el Umbral de Stock Bajo?",
+    "description": "Nivel de stock que activa una alerta de stock bajo en tu panel. Cuando el stock cae por debajo de este número, el producto será resaltado.",
+    "descriptionPortions": "Número de porciones que activa una alerta de stock bajo. Cuando las porciones disponibles caen por debajo de este número, el producto será resaltado en tu panel.",
+    "defaultNote": "Por defecto: {{value}} unidades. Ajusta según tu volumen de ventas y frecuencia de reorden.",
+    "defaultNotePortions": "Por defecto: {{value}} porciones. Ajusta según tus ventas diarias y tiempo de preparación.",
+    "separateFromReorder": "Alerta cuando el stock cae por debajo de este nivel (separado del punto de reorden)",
+    "alertWhenBelow": "Alerta cuando las porciones disponibles caen por debajo de este nivel"
+  },
+
+  "pricingStrategy": {
+    "manualDescription": "Establece manualmente los precios de los productos",
+    "autoMarkupDescription": "Calcula el precio basado en costo x porcentaje de margen",
+    "autoTargetMarginDescription": "Calcula el precio para lograr el porcentaje objetivo de costo de alimentos"
   }
 }

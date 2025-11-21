@@ -2,6 +2,18 @@
   "title": "Paiements",
   "searchPlaceholder": "Rechercher par serveur, total ou méthode...",
   "errorPrefix": "Échec du chargement des paiements",
+  "selector": {
+    "loading": "Chargement des méthodes de paiement...",
+    "selectMethod": "Sélectionnez une méthode de paiement",
+    "backToExisting": "Retour aux méthodes existantes",
+    "expires": "Expire",
+    "selected": "Sélectionné",
+    "addNew": "Ajouter une nouvelle méthode de paiement"
+  },
+  "stripe": {
+    "cardLabel": "Carte de crédit ou de débit",
+    "importantNote": "Important: Aucun frais ne sera facturé pendant les 5 jours d'essai. Votre carte sera vérifiée et enregistrée pour l'abonnement mensuel qui commencera après la période d'essai."
+  },
   "filters": {
     "showing": "Affichage",
     "of": "sur",
