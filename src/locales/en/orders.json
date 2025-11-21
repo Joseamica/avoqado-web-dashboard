@@ -36,6 +36,22 @@
     "idLabel": "ID",
     "deleteWarning": "This action cannot be undone. This will permanently delete the order.",
     "copiedToClipboard": "{{label}} copied to clipboard",
+    "breadcrumb": {
+      "transactions": "Transactions"
+    },
+    "chargedTo": "Charged to",
+    "stats": {
+      "subtotal": "Subtotal",
+      "tip": "Tip",
+      "items": "Items",
+      "table": "Table"
+    },
+    "timeline": {
+      "title": "Recent activity",
+      "paymentReceived": "Payment received",
+      "statusUpdated": "Status updated",
+      "orderCreated": "Order created"
+    },
     "toast": {
       "updatedTitle": "Order updated",
       "updatedDesc": "The order has been updated successfully.",
@@ -84,19 +100,25 @@
       "waiter": "Waiter",
       "noWaiter": "No waiter",
       "orderType": "Order type",
-      "noType": "No type"
+      "noType": "No type",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone"
     },
     "items": {
       "productNotAvailable": "Product not available",
       "each": "each",
-      "modifiers": "{{count}} modifiers"
+      "modifiers": "{{count}} modifiers",
+      "noItems": "No items in this order"
     },
     "payments": {
       "base": "Base",
       "tip": "Tip",
-      "view": "View"
+      "view": "View",
+      "noPayments": "No payments yet"
     },
     "sidebar": {
+      "status": "Status",
       "statusTitle": "Order Status",
       "lastUpdate": "Last update",
       "notAvailable": "Not available",
@@ -104,6 +126,8 @@
       "tipsPercent": "{{percent}}% of subtotal",
       "base": "Base",
       "quickInfo": "Quick Info",
+      "customer": "Customer",
+      "info": "Info",
       "table": "Table",
       "waiter": "Waiter",
       "items": "Items",

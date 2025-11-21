@@ -36,6 +36,22 @@
     "idLabel": "ID",
     "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
     "copiedToClipboard": "{{label}} copiado al portapapeles",
+    "breadcrumb": {
+      "transactions": "Transacciones"
+    },
+    "chargedTo": "Cargado a",
+    "stats": {
+      "subtotal": "Subtotal",
+      "tip": "Propina",
+      "items": "Artículos",
+      "table": "Mesa"
+    },
+    "timeline": {
+      "title": "Actividad reciente",
+      "paymentReceived": "Pago recibido",
+      "statusUpdated": "Estado actualizado",
+      "orderCreated": "Orden creada"
+    },
     "toast": {
       "updatedTitle": "Orden actualizada",
       "updatedDesc": "La orden ha sido actualizada exitosamente.",
@@ -84,19 +100,25 @@
       "waiter": "Mesero",
       "noWaiter": "Sin mesero",
       "orderType": "Tipo de orden",
-      "noType": "Sin tipo"
+      "noType": "Sin tipo",
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono"
     },
     "items": {
       "productNotAvailable": "Producto no disponible",
       "each": "c/u",
-      "modifiers": "{{count}} modificadores"
+      "modifiers": "{{count}} modificadores",
+      "noItems": "No hay artículos en esta orden"
     },
     "payments": {
       "base": "Base",
       "tip": "Propina",
-      "view": "Ver"
+      "view": "Ver",
+      "noPayments": "Sin pagos aún"
     },
     "sidebar": {
+      "status": "Estado",
       "statusTitle": "Estado de la Orden",
       "lastUpdate": "Última actualización",
       "notAvailable": "No disponible",
@@ -104,6 +126,8 @@
       "tipsPercent": "{{percent}}% del subtotal",
       "base": "Base",
       "quickInfo": "Información Rápida",
+      "customer": "Cliente",
+      "info": "Información",
       "table": "Mesa",
       "waiter": "Mesero",
       "items": "Artículos",

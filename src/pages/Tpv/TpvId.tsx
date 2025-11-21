@@ -330,37 +330,37 @@ export default function TpvId() {
     },
   })
 
-  // Mutation for deleting TPV
-  const deleteTpvMutation = useMutation({
+  // Mutation for deactivating TPV (clear activatedAt)
+  const deactivateTpvMutation = useMutation({
     mutationFn: async () => {
       if (!venueId || !tpvId) {
         throw new Error(t('detail.errors.venueOrTpvUndefined'))
       }
-      const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
+      const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}/deactivate`)
       return response.data
     },
     onSuccess: () => {
       toast({
-        title: t('detail.deleteSuccess'),
-        description: t('detail.deleteSuccessDesc'),
+        title: t('detail.deactivateSuccess'),
+        description: t('detail.deactivateSuccessDesc'),
       })
-      // Navigate back to terminals list
-      navigate(`/tpv`)
+      // Refresh TPV data
+      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
     },
     onError: (error: any) => {
       toast({
-        title: t('detail.deleteError'),
+        title: t('detail.deactivateError'),
         description: error.response?.data?.message || error.message,
         variant: 'destructive',
       })
     },
   })
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 
-  const handleDelete = () => {
-    deleteTpvMutation.mutate()
-    setShowDeleteDialog(false)
+  const handleDeactivate = () => {
+    deactivateTpvMutation.mutate()
+    setShowDeactivateDialog(false)
   }
 
   const onSubmit = (values: TpvFormValues) => {
@@ -1052,17 +1052,17 @@ export default function TpvId() {
                     </TooltipProvider>
                   </PermissionGate>
 
-                  <PermissionGate permission="tpv:delete">
+                  {isSuperAdmin && tpv?.activatedAt && (
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                      onClick={() => setShowDeleteDialog(true)}
-                      disabled={!!tpv?.activatedAt || deleteTpvMutation.isPending}
+                      className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                      onClick={() => setShowDeactivateDialog(true)}
+                      disabled={deactivateTpvMutation.isPending}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {deleteTpvMutation.isPending ? t('common:deleting') : t('actions.delete')}
+                      <Wrench className="w-4 h-4 mr-2" />
+                      {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
                     </Button>
-                  </PermissionGate>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1135,17 +1135,17 @@ export default function TpvId() {
         activationData={activationData}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('detail.deleteConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('detail.deleteConfirmDescription', { name: tpv?.name })}</AlertDialogDescription>
+            <AlertDialogTitle>{t('detail.deactivateConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('detail.deactivateConfirmDescription', { name: tpv?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              {t('actions.delete')}
+            <AlertDialogAction onClick={handleDeactivate} className="bg-orange-600 hover:bg-orange-700">
+              {t('actions.deactivate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

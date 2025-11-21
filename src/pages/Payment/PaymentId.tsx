@@ -31,11 +31,12 @@ import {
 import { Link, useLocation, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Progress } from '@/components/ui/progress'
 import { useTranslation } from 'react-i18next'
@@ -54,6 +55,7 @@ export default function PaymentId() {
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
   const { can } = usePermissions()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   const { t, i18n } = useTranslation(['payment', 'common'])
   const {
@@ -118,6 +120,18 @@ export default function PaymentId() {
       })
     },
   })
+
+  // Set breadcrumb with order number
+  useEffect(() => {
+    if (payment?.order?.orderNumber && paymentId) {
+      setCustomSegment(paymentId, payment.order.orderNumber)
+    }
+    return () => {
+      if (paymentId) {
+        clearCustomSegment(paymentId)
+      }
+    }
+  }, [payment?.order?.orderNumber, paymentId, setCustomSegment, clearCustomSegment])
 
   // Enhanced status badge styling for enterprise look
   const getStatusBadgeColor = (status: string) => {

@@ -11,7 +11,9 @@
     "maintenanceMode": "Mantenimiento",
     "update": "Actualizar",
     "generateCode": "Generar Código de Activación",
-    "delete": "Eliminar Terminal"
+    "delete": "Eliminar Terminal",
+    "deactivate": "Desactivar Terminal",
+    "deactivating": "Desactivando..."
   },
   "create": {
     "title": "Crear Nuevo Terminal",
@@ -153,11 +155,11 @@
       "updateSuccess": "Terminal actualizado",
       "updateSuccessDesc": "La información del terminal se ha actualizado correctamente"
     },
-    "deleteConfirmTitle": "¿Eliminar Terminal?",
-    "deleteConfirmDescription": "¿Estás seguro de que deseas eliminar el terminal \"{{name}}\"? Esta acción no se puede deshacer. Nota: Solo se pueden eliminar terminales que no estén activados.",
-    "deleteSuccess": "Terminal Eliminado",
-    "deleteSuccessDesc": "El terminal ha sido eliminado exitosamente",
-    "deleteError": "Error al Eliminar"
+    "deactivateConfirmTitle": "¿Desactivar Terminal? (Solo Superadmin)",
+    "deactivateConfirmDescription": "¿Estás seguro de que deseas desactivar el terminal \"{{name}}\"? Esto limpiará la activación y permitirá generar un nuevo código de activación.",
+    "deactivateSuccess": "Terminal Desactivado",
+    "deactivateSuccessDesc": "El terminal ha sido desactivado exitosamente. Ahora puedes generar un nuevo código de activación.",
+    "deactivateError": "Error al Desactivar"
   },
   "pagination": {
     "selectedRows": "{{selected}} de {{total}} fila(s) seleccionada(s).",
