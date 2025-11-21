@@ -60,7 +60,7 @@
     "i18next-browser-languagedetector": "^7.2.0",
     "input-otp": "^1.4.2",
     "localforage": "^1.10.0",
-    "lucide-react": "^0.456.0",
+    "lucide-react": "^0.554.0",
     "luxon": "^3.5.0",
     "match-sorter": "^8.0.0",
     "papaparse": "^5.5.3",
