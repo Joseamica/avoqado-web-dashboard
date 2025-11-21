@@ -1,0 +1,147 @@
+{
+  "title": "TPV Terminals",
+  "subtitle": "Manage your restaurant's point-of-sale devices",
+  "actions": {
+    "createNew": "New Device",
+    "maintenance": "Put in maintenance mode",
+    "exit_maintenance": "Exit maintenance mode",
+    "update_status": "Force status update",
+    "offline": "Terminal disconnected",
+    "exitMaintenance": "Exit Maintenance",
+    "maintenanceMode": "Maintenance",
+    "update": "Update"
+  },
+  "create": {
+    "title": "Créer un Nouveau Terminal",
+    "nameLabel": "Nom du Terminal",
+    "namePlaceholder": "ex: TPV Caisse 1",
+    "serialLabel": "Numéro de Série",
+    "serialPlaceholder": "ex: ABC123456",
+    "successTitle": "Terminal {{name}} créé",
+    "successDesc": "Le terminal a été créé avec succès",
+    "errorTitle": "Erreur lors de la création du terminal",
+    "errorDesc": "Impossible de créer le terminal. Veuillez réessayer.",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameMin": "Le nom doit comporter au moins 3 caractères",
+      "nameMax": "Le nom ne peut pas dépasser 30 caractères"
+    }
+  },
+  "search": {
+    "placeholder": "Search terminals..."
+  },
+  "table": {
+    "columns": {
+      "name": "Name",
+      "status": "Status",
+      "serial": "Serial Number",
+      "version": "Version",
+      "actions": "Actions"
+    },
+    "noVersion": "Not specified"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "inactive": "Inactive",
+    "maintenance": "Maintenance",
+    "retired": "Retired",
+    "unknown": "Unknown",
+    "lastSeen": "Last seen"
+  },
+  "commandLabels": {
+    "SHUTDOWN": "Shutdown",
+    "RESTART": "Restart",
+    "MAINTENANCE_MODE": "Enter maintenance",
+    "EXIT_MAINTENANCE": "Exit maintenance",
+    "UPDATE_STATUS": "Update status",
+    "REACTIVATE": "Reactivate"
+  },
+  "commands": {
+    "sent": "Command sent",
+    "sentSuccess": "Command {{command}} sent successfully",
+    "error": "Error",
+    "sendError": "Error sending command: {{error}}",
+    "maintenancePayload": "Activated from dashboard"
+  },
+  "detail": {
+    "terminal": "Terminal",
+    "id": "ID",
+    "loading": "Loading terminal...",
+    "notFound": "Terminal Not Found",
+    "notFoundDesc": "The requested terminal could not be found with ID",
+    "goToTerminals": "Go to Terminals",
+    "noData": "No terminal data available",
+    "terminalStatus": "Terminal Status",
+    "connection": "Connection",
+    "inMaintenance": "In Maintenance",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "lastContact": "Last Contact",
+    "never": "Never",
+    "version": "Version",
+    "systemInfo": "System Information",
+    "platform": "Platform",
+    "memory": "Memory",
+    "uptime": "Uptime",
+    "ip": "IP Address",
+    "memoryUsage": "Memory Usage",
+    "terminalInfo": "Terminal Information",
+    "terminalName": "Terminal Name",
+    "systemId": "System ID",
+    "serialNumber": "Serial Number",
+    "terminalType": "Terminal Type",
+    "selectType": "Select type",
+    "types": {
+      "tpvAndroid": "TPV Android",
+      "tpvIOS": "TPV iOS",
+      "printerReceipt": "Imprimante de Reçus",
+      "printerKitchen": "Imprimante de Cuisine",
+      "kds": "Système d'Affichage de Cuisine (KDS)"
+    },
+    "notSpecified": "Not specified",
+    "advancedConfig": "Advanced Configuration",
+    "noConfig": "No configuration available",
+    "saveChanges": "Save Changes",
+    "quickActions": "Quick Actions",
+    "alerts": {
+      "inMaintenanceMode": "In maintenance mode",
+      "reactivate": "Reactivate",
+      "terminalInactive": "Terminal is inactive"
+    },
+    "activateMaintenance": "Activate Maintenance Mode",
+    "updateStatus": "Update Status",
+    "systemDetails": "System Details",
+    "venueId": "Venue ID",
+    "created": "Created",
+    "lastUpdate": "Last Update",
+    "tooltips": {
+      "reactivate": "Reactivate terminal",
+      "maintenanceMode": "Put terminal in maintenance mode",
+      "updateStatus": "Request terminal to send updated status"
+    },
+    "validation": {
+      "nameRequired": "Terminal name is required",
+      "serialRequired": "Serial number is required"
+    },
+    "errors": {
+      "venueOrTpvUndefined": "Venue or TPV ID is undefined",
+      "updateFailed": "Failed to update terminal",
+      "loadError": "Failed to load terminal",
+      "tpvIdUndefined": "TPV ID is undefined"
+    },
+    "toast": {
+      "updateSuccess": "Terminal updated",
+      "updateSuccessDesc": "Terminal information has been updated successfully"
+    }
+  },
+  "pagination": {
+    "selectedRows": "{{selected}} of {{total}} row(s) selected.",
+    "rowsPerPage": "Rows per page",
+    "pageOf": "Page {{current}} of {{total}}",
+    "firstPage": "Go to first page",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page",
+    "lastPage": "Go to last page"
+  }
+}

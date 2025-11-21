@@ -38,7 +38,8 @@ interface EditTeamMemberFormProps {
 }
 
 export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: EditTeamMemberFormProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation('team')
+  const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
 
@@ -47,19 +48,19 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
     active: z.boolean().optional(),
     pin: z
       .string()
-      .regex(/^\d{4}$/, t('team.edit.validation.pinFormat'))
+      .regex(/^\d{4}$/, t('edit.validation.pinFormat'))
       .optional()
       .or(z.literal('')),
   })
 
   const ROLE_OPTIONS = [
-    { value: StaffRole.ADMIN, label: t('team.edit.roles.admin'), description: t('team.edit.roles.adminDesc') },
-    { value: StaffRole.MANAGER, label: t('team.edit.roles.manager'), description: t('team.edit.roles.managerDesc') },
-    { value: StaffRole.WAITER, label: t('team.edit.roles.waiter'), description: t('team.edit.roles.waiterDesc') },
-    { value: StaffRole.CASHIER, label: t('team.edit.roles.cashier'), description: t('team.edit.roles.cashierDesc') },
-    { value: StaffRole.KITCHEN, label: t('team.edit.roles.kitchen'), description: t('team.edit.roles.kitchenDesc') },
-    { value: StaffRole.HOST, label: t('team.edit.roles.host'), description: t('team.edit.roles.hostDesc') },
-    { value: StaffRole.VIEWER, label: t('team.edit.roles.viewer'), description: t('team.edit.roles.viewerDesc') },
+    { value: StaffRole.ADMIN, label: t('edit.roles.admin'), description: t('edit.roles.adminDesc') },
+    { value: StaffRole.MANAGER, label: t('edit.roles.manager'), description: t('edit.roles.managerDesc') },
+    { value: StaffRole.WAITER, label: t('edit.roles.waiter'), description: t('edit.roles.waiterDesc') },
+    { value: StaffRole.CASHIER, label: t('edit.roles.cashier'), description: t('edit.roles.cashierDesc') },
+    { value: StaffRole.KITCHEN, label: t('edit.roles.kitchen'), description: t('edit.roles.kitchenDesc') },
+    { value: StaffRole.HOST, label: t('edit.roles.host'), description: t('edit.roles.hostDesc') },
+    { value: StaffRole.VIEWER, label: t('edit.roles.viewer'), description: t('edit.roles.viewerDesc') },
   ]
   const [showPin, setShowPin] = useState(false)
   const [selectedRole, setSelectedRole] = useState<StaffRole>(teamMember.role)
@@ -89,8 +90,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
   const watchedPin = watch('pin')
 
   useEffect(() => {
-    setValue('role', selectedRole)
-    setValue('active', isActive)
+    setValue('role', selectedRole, { shouldDirty: true })
+    setValue('active', isActive, { shouldDirty: true })
   }, [selectedRole, isActive, setValue])
 
   const updateMutation = useMutation({
@@ -98,8 +99,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       teamService.updateTeamMember(venueId, teamMember.id, data),
     onSuccess: (data) => {
       toast({
-        title: t('team.edit.memberUpdated'),
-        description: t('team.edit.memberUpdatedDesc', { firstName: teamMember.firstName, lastName: teamMember.lastName }),
+        title: t('edit.memberUpdated'),
+        description: t('edit.memberUpdatedDesc', { firstName: teamMember.firstName, lastName: teamMember.lastName }),
       })
       reset({
         role: data.data.role,
@@ -109,9 +110,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       onSuccess()
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || t('team.edit.updateError')
+      const errorMessage = error.response?.data?.message || tCommon('common.error')
       toast({
-        title: t('common.error'),
+        title: tCommon('common.error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -136,8 +137,8 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
     // Only submit if there are actual changes
     if (Object.keys(updateData).length === 0) {
       toast({
-        title: t('team.edit.noChanges'),
-        description: t('team.edit.noChangesDesc'),
+        title: t('edit.noChanges'),
+        description: t('edit.noChangesDesc'),
       })
       return
     }
@@ -167,7 +168,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
 
       {/* Role Selection */}
       <div className="space-y-2">
-        <Label>{t('team.edit.role')}</Label>
+        <Label>{t('edit.role')}</Label>
         <Select
           onValueChange={(value) => setSelectedRole(value as StaffRole)}
           value={selectedRole}
@@ -176,17 +177,14 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <SelectTrigger data-autofocus>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-w-[90vw] sm:max-w-md">
             {filteredRoleOptions.map((option) => (
               <SelectItem
                 key={option.value}
                 value={option.value}
                 disabled={option.value === StaffRole.SUPERADMIN}
               >
-                <div>
-                  <div className="font-medium">{option.label}</div>
-                  <div className="text-sm text-muted-foreground">{option.description}</div>
-                </div>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -195,9 +193,10 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <p className="text-sm text-destructive">{errors.role.message}</p>
         )}
         {selectedRoleInfo && selectedRole !== teamMember.role && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>{t('team.edit.newRole')}:</strong> {selectedRoleInfo.description}
+          <div className="w-full max-w-full p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md overflow-hidden">
+            <p className="text-sm text-blue-800 dark:text-blue-200 break-words whitespace-normal overflow-wrap-anywhere">
+              <strong className="font-semibold">{t('edit.newRole')}:</strong>{' '}
+              <span className="inline">{selectedRoleInfo.description}</span>
             </p>
           </div>
         )}
@@ -205,7 +204,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              {teamMember.role === StaffRole.OWNER ? t('team.edit.cannotChangeOwnerRole') : t('team.edit.cannotChangeSuperadminRole')}
+              {teamMember.role === StaffRole.OWNER ? t('edit.cannotChangeOwnerRole') : t('edit.cannotChangeSuperadminRole')}
             </AlertDescription>
           </Alert>
         )}
@@ -214,9 +213,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
       {/* Status Toggle */}
       <div className="flex items-center justify-between p-4 border border-border rounded-lg">
         <div className="space-y-1">
-          <Label className="text-base font-medium">{t('team.edit.memberStatus')}</Label>
+          <Label className="text-base font-medium">{t('edit.memberStatus')}</Label>
           <p className="text-sm text-muted-foreground">
-            {isActive ? t('team.edit.memberActive') : t('team.edit.memberInactive')}
+            {isActive ? t('edit.memberActive') : t('edit.memberInactive')}
           </p>
         </div>
         <Switch
@@ -229,19 +228,19 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            {t('team.edit.cannotDeactivateOwner')}
+            {t('edit.cannotDeactivateOwner')}
           </AlertDescription>
         </Alert>
       )}
 
       {/* PIN Field */}
       <div className="space-y-2">
-        <Label htmlFor="pin">{t('team.edit.changePin')}</Label>
+        <Label htmlFor="pin">{t('edit.changePin')}</Label>
         <div className="relative">
           <Input
             id="pin"
             type={showPin ? 'text' : 'password'}
-            placeholder={t('team.edit.newPin')}
+            placeholder={t('edit.newPin')}
             className="pr-10"
             maxLength={4}
             {...register('pin')}
@@ -259,7 +258,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
         )}
         {watchedPin && (
           <p className="text-sm text-blue-600 dark:text-blue-400">
-            {t('team.edit.newPinSet')}
+            {t('edit.newPinSet')}
           </p>
         )}
       </div>
@@ -270,13 +269,13 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <div className="text-2xl font-bold text-foreground">
             ${teamMember.totalSales.toLocaleString()}
           </div>
-          <div className="text-sm text-muted-foreground">{t('team.edit.totalSales')}</div>
+          <div className="text-sm text-muted-foreground">{t('edit.totalSales')}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-foreground">
             {teamMember.totalOrders}
           </div>
-          <div className="text-sm text-muted-foreground">{t('team.edit.orders')}</div>
+          <div className="text-sm text-muted-foreground">{t('edit.orders')}</div>
         </div>
       </div>
 
@@ -290,12 +289,12 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           {updateMutation.isPending ? (
             <>
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-              {t('team.edit.saving')}
+              {t('edit.saving')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              {t('team.edit.saveChanges')}
+              {t('edit.saveChanges')}
             </>
           )}
         </Button>

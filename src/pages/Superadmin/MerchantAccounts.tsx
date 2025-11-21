@@ -13,12 +13,19 @@ import {
 } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Building2, Plus, Shield, Pencil, Trash2 } from 'lucide-react'
+import { Building2, Plus, Shield, Pencil, Trash2, Zap, Power } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useTranslation } from 'react-i18next'
 import { MerchantAccountDialog } from './components/MerchantAccountDialog'
+import { BlumonAutoFetchDialog } from './components/BlumonAutoFetchDialog'
 import { useToast } from '@/hooks/use-toast'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const MerchantAccounts: React.FC = () => {
   const { t } = useTranslation('payment')
@@ -27,6 +34,7 @@ const MerchantAccounts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedVenueId, setSelectedVenueId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [blumonDialogOpen, setBlumonDialogOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<MerchantAccount | null>(null)
 
   // Fetch venues for the filter
@@ -73,6 +81,18 @@ const MerchantAccounts: React.FC = () => {
     },
   })
 
+  // Toggle active status mutation
+  const toggleMutation = useMutation({
+    mutationFn: paymentProviderAPI.toggleMerchantAccountStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      toast({ title: 'Success', description: 'Merchant account status updated successfully' })
+    },
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update merchant account status', variant: 'destructive' })
+    },
+  })
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: paymentProviderAPI.deleteMerchantAccount,
@@ -80,8 +100,13 @@ const MerchantAccounts: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
       toast({ title: 'Success', description: 'Merchant account deleted successfully' })
     },
-    onError: () => {
-      toast({ title: 'Error', description: 'Failed to delete merchant account', variant: 'destructive' })
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || 'Failed to delete merchant account'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
     },
   })
 
@@ -101,6 +126,10 @@ const MerchantAccounts: React.FC = () => {
   const handleAdd = () => {
     setSelectedAccount(null)
     setDialogOpen(true)
+  }
+
+  const handleToggle = async (id: string) => {
+    await toggleMutation.mutateAsync(id)
   }
 
   const handleDelete = async (id: string) => {
@@ -166,26 +195,73 @@ const MerchantAccounts: React.FC = () => {
       cell: ({ row }) => row.original._count?.costStructures || 0,
     },
     {
+      accessorKey: '_count.venueConfigs',
+      header: 'Venue Configs',
+      cell: ({ row }) => row.original._count?.venueConfigs || 0,
+    },
+    {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(row.original.id)}
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const account = row.original
+        const costStructuresCount = account._count?.costStructures || 0
+        const venueConfigsCount = account._count?.venueConfigs || 0
+        const isInUse = costStructuresCount > 0 || venueConfigsCount > 0
+
+        const usageDetails = []
+        if (costStructuresCount > 0) usageDetails.push(`${costStructuresCount} cost structure(s)`)
+        if (venueConfigsCount > 0) usageDetails.push(`${venueConfigsCount} venue config(s)`)
+
+        return (
+          <TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEdit(account)}
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleToggle(account.id)}
+                  >
+                    <Power className={`w-4 h-4 ${account.active ? 'text-green-600' : 'text-muted-foreground'}`} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{account.active ? 'Deactivate' : 'Activate'}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(account.id)}
+                      disabled={isInUse}
+                    >
+                      <Trash2 className={`w-4 h-4 ${isInUse ? 'text-muted-foreground' : 'text-destructive'}`} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isInUse
+                    ? `Cannot delete: In use by ${usageDetails.join(', ')}. Deactivate instead.`
+                    : 'Delete merchant account'
+                  }</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )
+      },
     },
   ]
 
@@ -197,18 +273,29 @@ const MerchantAccounts: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">{t('merchantAccounts.title')}</h1>
           <p className="text-muted-foreground">{t('merchantAccounts.subtitle')}</p>
         </div>
-        <Button onClick={handleAdd}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('merchantAccounts.create')}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleAdd} variant="outline">
+            <Plus className="w-4 h-4 mr-2" />
+            {t('merchantAccounts.create')}
+          </Button>
+          <Button onClick={() => setBlumonDialogOpen(true)} className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700">
+            <Zap className="w-4 h-4 mr-2" />
+            Blumon Auto-Fetch
+          </Button>
+        </div>
       </div>
 
-      {/* Dialog */}
+      {/* Dialogs */}
       <MerchantAccountDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         account={selectedAccount}
         onSave={handleSave}
+      />
+      <BlumonAutoFetchDialog
+        open={blumonDialogOpen}
+        onOpenChange={setBlumonDialogOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })}
       />
 
       {/* Statistics */}

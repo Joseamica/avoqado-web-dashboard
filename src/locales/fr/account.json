@@ -1,0 +1,41 @@
+{
+  "title": "Compte",
+  "subtitle": "Gérez les paramètres et préférences de votre compte",
+  "accountInfo": {
+    "title": "Informations du compte",
+    "description": "Détails de votre compte et informations d'adhésion",
+    "email": "Email",
+    "role": "Rôle",
+    "memberSince": "Membre depuis",
+    "lastLogin": "Dernière connexion"
+  },
+  "editProfile": {
+    "title": "Modifier le profil",
+    "description": "Mettez à jour vos informations personnelles",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone"
+  },
+  "password": {
+    "title": "Mot de passe",
+    "description": "Changez votre mot de passe pour la sécurité",
+    "changeButton": "Changer le mot de passe",
+    "dialog": {
+      "title": "Changer le mot de passe",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "currentPasswordRequired": "Le mot de passe actuel est requis",
+      "newPasswordRequired": "Le nouveau mot de passe est requis"
+    }
+  },
+  "toast": {
+    "success": {
+      "title": "Succès",
+      "description": "Profil mis à jour avec succès"
+    },
+    "error": {
+      "description": "Échec de la mise à jour du profil"
+    }
+  }
+}

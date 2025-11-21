@@ -508,38 +508,6 @@
       "empty": "No commission data available"
     }
   },
-  "auth": {
-    "login": {
-      "title": "Sign in",
-      "subtitle": "Enter your email and password to sign in",
-      "emailLabel": "Email",
-      "emailPlaceholder": "myemail@example.com",
-      "passwordLabel": "Password",
-      "forgotPassword": "Forgot your password?",
-      "signInButton": "Sign in",
-      "orContinueWith": "Or continue with",
-      "continueWithGoogle": "Continue with Google",
-      "noAccount": "Don't have an account?",
-      "signUp": "Sign up",
-      "terms": "Terms and Conditions",
-      "privacy": "Privacy Policy",
-      "termsText": "By clicking continue, you agree to our",
-      "and": "and",
-      "emailRequired": "Email is required",
-      "passwordRequired": "Password is required",
-      "imageAlt": "Authentication"
-    },
-    "toast": {
-      "login_success": "Login successful",
-      "login_error_title": "Login failed",
-      "login_error_desc": "Please check your credentials and try again",
-      "switched_to_venue": "Switched to {{name}}",
-      "switch_venue_error_title": "Failed to switch venue",
-      "switch_venue_error_desc": "Unable to switch venue. Please try again",
-      "auth_error_title": "Authentication error",
-      "google_login_error_desc": "Google login failed. Please try again"
-    }
-  },
   "account": {
     "title": "Account",
     "subtitle": "Manage your account settings and preferences",
@@ -693,21 +661,21 @@
     }
   },
   "routeProtection": {
-    "accessDenied": "Access Denied",
-    "noAdminPermission": "You do not have administrator permissions to access this page.",
-    "restrictedAccess": "Restricted Access",
-    "ownerOnlyMessage": "This section is available only for Owners (OWNER) and System Administrators (SUPERADMIN).",
-    "contactOwner": "If you need access to this feature, contact an Owner (OWNER).",
-    "superadminOnlyMessage": "This section is available only for System Administrators (SUPERADMIN).",
-    "contactSuperadmin": "If you need access to this feature, contact a System Administrator (SUPERADMIN).",
-    "managerOnlyMessage": "This section requires Manager level access or higher (MANAGER, ADMIN, OWNER, SUPERADMIN).",
-    "managerOrViewerOnlyMessage": "This section requires Manager level access or Viewer role (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
-    "noVenuesAssigned": "You have no venues assigned!",
-    "contactAdminForVenue": "To start using the platform, contact the administrator to have one assigned to you.",
-    "needHelp": "Need help?",
-    "contactUs": "Contact us",
-    "logout": "Log out",
-    "noPermissionSection": "You do not have permission to access this section."
+    "accessDenied": "Accès refusé",
+    "noAdminPermission": "Vous n'avez pas les permissions d'administrateur pour accéder à cette page.",
+    "restrictedAccess": "Accès restreint",
+    "ownerOnlyMessage": "Cette section est disponible uniquement pour les Propriétaires (OWNER) et les Administrateurs Système (SUPERADMIN).",
+    "contactOwner": "Si vous avez besoin d'accéder à cette fonctionnalité, contactez un Propriétaire (OWNER).",
+    "superadminOnlyMessage": "Cette section est disponible uniquement pour les Administrateurs Système (SUPERADMIN).",
+    "contactSuperadmin": "Si vous avez besoin d'accéder à cette fonctionnalité, contactez un Administrateur Système (SUPERADMIN).",
+    "managerOnlyMessage": "Cette section nécessite un accès de niveau Gestionnaire ou supérieur (MANAGER, ADMIN, OWNER, SUPERADMIN).",
+    "managerOrViewerOnlyMessage": "Cette section nécessite un accès de niveau Gestionnaire ou rôle Visualiseur (MANAGER, ADMIN, OWNER, SUPERADMIN, VIEWER).",
+    "noVenuesAssigned": "Vous n'avez pas de lieux assignés !",
+    "contactAdminForVenue": "Pour commencer à utiliser la plateforme, contactez l'administrateur pour qu'il vous en assigne un.",
+    "needHelp": "Besoin d'aide ?",
+    "contactUs": "Contactez-nous",
+    "logout": "Se déconnecter",
+    "noPermissionSection": "Vous n'avez pas la permission d'accéder à cette section."
   },
   "templates": {
     "card": {
@@ -1086,6 +1054,12 @@
         "title": "Delete Venue",
         "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
       },
+      "kycRejected": {
+        "title": "Documentation KYC Rejetée",
+        "description": "Votre documentation KYC a été rejetée. Veuillez examiner la raison ci-dessous et soumettre à nouveau vos documents.",
+        "reason": "Raison du Rejet:",
+        "resubmitButton": "Soumettre à Nouveau les Documents"
+      },
       "notFound": "Venue not found",
       "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",
       "noLogo": "No logo"
@@ -1252,12 +1226,11 @@
       "terminalType": "Terminal Type",
       "selectType": "Select type",
       "types": {
-        "androidTablet": "Android Tablet",
-        "windowsPC": "Windows PC",
-        "linuxDevice": "Linux Device",
-        "mobileDevice": "Mobile Device",
-        "kiosk": "Kiosk",
-        "other": "Other"
+        "tpvAndroid": "TPV Android",
+        "tpvIOS": "TPV iOS",
+        "printerReceipt": "Imprimante de Reçus",
+        "printerKitchen": "Imprimante de Cuisine",
+        "kds": "Système d'Affichage de Cuisine (KDS)"
       },
       "notSpecified": "Not specified",
       "advancedConfig": "Advanced Configuration",

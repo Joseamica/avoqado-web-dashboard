@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, ClickableTableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -95,7 +96,8 @@ function DataTable<TData>({
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
-    manualPagination: false, // Always use client-side pagination since we fetch all data at once
+    manualPagination: !!setPagination, // Use manual pagination when pagination state is controlled externally
+    rowCount: _rowCount, // Total number of rows for server-side pagination
     getCoreRowModel: getCoreRowModel(),
     defaultColumn: {
       size: 10,
@@ -120,7 +122,26 @@ function DataTable<TData>({
   }, [tableId, columnVisibility])
 
   if (isLoading) {
-    return <TableSkeleton columns={columns.length} rows={5} />
+    const skeletonRows = pagination?.pageSize || defaultPagination.pageSize
+    return (
+      <>
+        {/* Toolbar Skeleton */}
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Bar Skeleton */}
+          {enableSearch && (
+            <div className="flex-1">
+              <Skeleton className="h-10 w-full max-w-md" />
+            </div>
+          )}
+
+          {/* Column Customizer Skeleton */}
+          {showColumnCustomizer && <Skeleton className="h-10 w-48" />}
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton columns={columns.length} rows={skeletonRows} />
+      </>
+    )
   }
 
   // Handle case where there's no data yet
@@ -137,13 +158,13 @@ function DataTable<TData>({
 
         {/* Column Customizer */}
         {showColumnCustomizer && (
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="default" className="gap-2">
-                <Settings2 className="h-4 w-4" /> {t('common.customize_columns')}
+                <Settings2 className="h-4 w-4" /> {t('customize_columns')}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
               {table
                 .getAllLeafColumns()
                 .filter(col => col.getCanHide())

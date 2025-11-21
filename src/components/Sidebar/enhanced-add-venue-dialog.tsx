@@ -424,7 +424,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                 </div>
                                 <div className="flex justify-between mt-4">
                                   <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                                    {t('common.cancel')}
+                                    {t('cancel')}
                                   </Button>
                                   <Button type="button" onClick={handleCropConfirm} disabled={uploading}>
                                     {t('venueMgmt.basicInfo.confirmLogo')}
@@ -956,7 +956,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
           <DialogFooter className="flex justify-between">
             <div className="flex space-x-2">
               <Button variant="outline" type="button" onClick={onClose} disabled={uploading || isPending}>
-                {t('common.cancel')}
+                {t('cancel')}
               </Button>
               {currentStep !== 'basic' && (
                 <Button

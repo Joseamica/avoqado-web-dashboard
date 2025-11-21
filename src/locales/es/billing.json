@@ -1,0 +1,180 @@
+{
+  "pageTitle": "Facturación y Suscripciones",
+  "pageSubtitle": "Administra tus suscripciones activas, consulta el historial de facturación y explora funciones disponibles",
+  "activeSubscriptions": {
+    "title": "Suscripciones Activas",
+    "noSubscriptions": "Aún no tienes suscripciones activas",
+    "exploreFeatures": "Explora nuestras funciones a continuación para comenzar",
+    "trial": "Prueba",
+    "active": "Activa",
+    "canceled": "Cancelada",
+    "trialEnds": "Prueba termina el {{date}}",
+    "nextBilling": "Próximo cobro: {{date}}",
+    "canceledOn": "Cancelada el {{date}}",
+    "monthlyPrice": "{{price}}/mes",
+    "perMonth": "/mes",
+    "cancelButton": "Cancelar Suscripción",
+    "activateButton": "Activar",
+    "managingButton": "Administrando..."
+  },
+  "billingHistory": {
+    "title": "Historial de Facturación",
+    "noInvoices": "Aún no hay facturas",
+    "description": "Tu historial de facturas aparecerá aquí una vez que comiences a recibir cobros",
+    "sort": {
+      "dateDesc": "Más Recientes Primero",
+      "dateAsc": "Más Antiguos Primero",
+      "amountDesc": "Mayor Monto",
+      "amountAsc": "Menor Monto"
+    },
+    "filters": {
+      "show": "Mostrar Filtros",
+      "hide": "Ocultar Filtros",
+      "search": "Buscar",
+      "searchPlaceholder": "Factura # o descripción...",
+      "status": "Estado",
+      "statusPlaceholder": "Todos los estados",
+      "fromDate": "Desde Fecha",
+      "toDate": "Hasta Fecha",
+      "allStatuses": "Todos los Estados",
+      "showing": "Mostrando {{count}} de {{total}} factura",
+      "showing_other": "Mostrando {{count}} de {{total}} facturas",
+      "clearFilters": "Limpiar Filtros",
+      "noResults": "No hay facturas que coincidan con tus filtros",
+      "noResultsHint": "Intenta ajustar tus criterios de búsqueda o filtros"
+    },
+    "columns": {
+      "date": "Fecha",
+      "description": "Descripción",
+      "amount": "Monto",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "status": {
+      "paid": "Pagado",
+      "open": "Abierto",
+      "draft": "Borrador",
+      "uncollectible": "Incobrable",
+      "void": "Anulado"
+    },
+    "downloadButton": "Descargar Factura",
+    "downloading": "Descargando...",
+    "retryButton": "Reintentar Pago",
+    "retrying": "Reintentando...",
+    "retrySuccess": "Pago reintentado exitosamente",
+    "retryError": "Error al reintentar pago"
+  },
+  "availableFeatures": {
+    "title": "Funciones Disponibles",
+    "subtitle": "Explora funciones adicionales para mejorar la gestión de tu restaurante",
+    "noFeatures": "¡Todas las funciones ya están activas!",
+    "description": "Estás usando todas las funciones disponibles",
+    "startTrial": "Iniciar Prueba Gratuita de {{days}} días",
+    "subscribe": "Suscribirse Ahora",
+    "subscribing": "Activando...",
+    "perMonth": "/mes",
+    "features": "Características:",
+    "subscribeNoTrial": "Suscribirse (Sin Prueba)"
+  },
+  "confirmCancel": {
+    "title": "¿Cancelar Suscripción?",
+    "description": "¿Estás seguro de que deseas cancelar {{feature}}? Perderás el acceso a esta función al final de tu periodo de facturación actual ({{date}}).",
+    "confirm": "Sí, Cancelar Suscripción",
+    "cancel": "Mantener Suscripción"
+  },
+  "confirmSubscribe": {
+    "title": "Confirmar Suscripción",
+    "description": "Estás por suscribirte a {{feature}} por {{price}}/mes. El cargo será inmediato ya que has usado esta función anteriormente.",
+    "descriptionWithTrial": "Estás por iniciar una prueba gratuita de {{days}} días para {{feature}}. Después de la prueba, se te cobrará {{price}}/mes.",
+    "paymentMethod": "Método de Pago",
+    "cardEnding": "Tarjeta terminada en {{last4}}",
+    "cardExpires": "Vence {{month}}/{{year}}",
+    "noPaymentMethod": "No hay método de pago registrado",
+    "addPaymentMethod": "Agregar Método de Pago",
+    "immediateCharge": "⚠️ Se hará el cargo a tu tarjeta inmediatamente",
+    "trialInfo": "💳 Se hará el cargo a tu tarjeta después de que termine la prueba",
+    "confirm": "Confirmar Suscripción",
+    "cancel": "Cancelar"
+  },
+  "manageBilling": {
+    "button": "Administrar Facturación",
+    "addButton": "Agregar Método de Pago",
+    "redirecting": "Redirigiendo..."
+  },
+  "paymentMethods": {
+    "title": "Métodos de Pago",
+    "subtitle": "Administra tus métodos de pago guardados",
+    "noPaymentMethods": "No hay métodos de pago guardados",
+    "addFirst": "Agrega tu primer método de pago para habilitar suscripciones",
+    "addButton": "Agregar Método de Pago",
+    "removeButton": "Eliminar",
+    "setDefaultButton": "Establecer como Predeterminado",
+    "defaultBadge": "Predeterminado",
+    "defaultDescription": "Este es tu método de pago predeterminado utilizado para suscripciones",
+    "cardBrand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express",
+      "discover": "Discover",
+      "diners": "Diners Club",
+      "jcb": "JCB",
+      "unionpay": "UnionPay",
+      "unknown": "Tarjeta"
+    },
+    "cardEnding": "•••• {{last4}}",
+    "expiresOn": "Vence {{month}}/{{year}}",
+    "warnings": {
+      "cardExpiring": {
+        "title_one": "Método de Pago Por Vencer",
+        "title_other": "Métodos de Pago Por Vencer",
+        "description": "{{brand}} terminada en {{last4}} vence en {{days}} días ({{date}})",
+        "updateButton": "Actualizar Tarjeta"
+      }
+    },
+    "dialog": {
+      "title": "Agregar Método de Pago",
+      "description": "Agrega una tarjeta de crédito o débito para habilitar suscripciones y facturación automática"
+    },
+    "form": {
+      "cardLabel": "Tarjeta de Crédito o Débito",
+      "securityNotice": "🔒 Tu información de pago es procesada de forma segura por Stripe. Nunca almacenamos los detalles de tu tarjeta.",
+      "submitButton": "Agregar Método de Pago"
+    },
+    "confirmRemove": {
+      "title": "¿Eliminar Método de Pago?",
+      "description": "¿Estás seguro de que deseas eliminar este método de pago? Si este es tu método de pago predeterminado, necesitarás establecer otro.",
+      "confirm": "Sí, Eliminar",
+      "cancel": "Cancelar"
+    },
+    "toasts": {
+      "addSuccess": "Método de pago agregado exitosamente",
+      "removeSuccess": "Método de pago eliminado exitosamente",
+      "setDefaultSuccess": "Método de pago predeterminado actualizado",
+      "removeError": "Error al eliminar método de pago",
+      "setDefaultError": "Error al actualizar método de pago predeterminado"
+    },
+    "errors": {
+      "noVenue": "No hay venue seleccionado",
+      "incompleteCard": "Por favor completa la información de la tarjeta",
+      "confirmFailed": "Error al confirmar método de pago",
+      "setupFailed": "Error al configurar método de pago",
+      "addFailed": "Error al agregar método de pago"
+    }
+  },
+  "toast": {
+    "cancelSuccess": "Suscripción cancelada exitosamente",
+    "cancelError": "Error al cancelar suscripción",
+    "activateSuccess": "¡Función activada! Iniciando prueba gratuita de {{days}} días",
+    "activateSuccessGeneric": "Función activada exitosamente",
+    "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 2 días.",
+    "activateProcessing": "Procesando pago...",
+    "activateProcessingDescription": "Estamos procesando tu pago. Te notificaremos cuando la función esté activa.",
+    "activateError": "Error al activar función",
+    "downloadError": "Error al descargar factura",
+    "billingPortalError": "No se pudo abrir el portal de facturación. Por favor, inténtalo de nuevo.",
+    "paymentSuccess": "✅ ¡Pago exitoso!",
+    "paymentSuccessDescription": "{{feature}} está activa. Tu suscripción ha sido confirmada.",
+    "subscriptionDeactivated": "Suscripción desactivada",
+    "subscriptionDeactivatedDescription": "La suscripción de {{feature}} ha sido cancelada o el pago falló."
+  }
+}

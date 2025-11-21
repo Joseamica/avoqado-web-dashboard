@@ -8,6 +8,8 @@ import { useProgressiveLoader } from '@/hooks/use-intersection-observer'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { getLast7Days, getToday, getYesterday, getLast30Days, getPreviousPeriod } from '@/utils/datetime'
+import { useAuth } from '@/context/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/locale'
@@ -26,6 +28,7 @@ import {
   TableSkeleton,
 } from '@/components/skeleton/DashboardSkeleton'
 import { CHART_TYPES, DashboardProgressiveService, METRIC_TYPES } from '@/services/dashboard.progressive.service'
+import { KYCStatusBanner } from '@/components/KYCStatusBanner'
 
 // i18n keys are used instead of a local map
 
@@ -59,7 +62,7 @@ const MetricCard = ({
   comparisonLabel?: string
   isPercentageLoading?: boolean
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -117,7 +120,7 @@ const MetricCard = ({
                     </>
                   ) : (
                     <span>
-                      {t('home.noChange', { defaultValue: 'Sin cambios' })} vs {comparisonLabel}
+                      {t('noChange', { defaultValue: 'Sin cambios' })} vs {comparisonLabel}
                     </span>
                   )}
                 </div>
@@ -132,22 +135,26 @@ const MetricCard = ({
 
 const Home = () => {
   const { venueId } = useCurrentVenue()
-  const { t, i18n } = useTranslation()
+  const { activeVenue } = useAuth()
+  const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
   const dateLocale = i18n.language?.startsWith('fr') ? localeFr : i18n.language?.startsWith('en') ? localeEn : localeEs
   const [exportLoading, setExportLoading] = useState(false)
   const [compareType, setCompareType] = useState<ComparisonPeriod>('')
-  const [comparisonLabel, setComparisonLabel] = useState(t('home.comparison.previousPeriod'))
+  const [comparisonLabel, setComparisonLabel] = useState(t('comparison.previousPeriod'))
 
-  // Define ranges
-  const [selectedRange, setSelectedRange] = useState({
-    from: new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000), // last 7 days
-    to: new Date(new Date().setHours(23, 59, 59, 999)), // today
+  // Get venue timezone for date calculations
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
+
+  // Define ranges using venue timezone (NOT browser timezone!)
+  const [selectedRange, setSelectedRange] = useState(() => {
+    const range = getLast7Days(venueTimezone)
+    return range
   })
 
-  const [compareRange, setCompareRange] = useState({
-    from: new Date(new Date().setHours(0, 0, 0, 0) - 14 * 24 * 60 * 60 * 1000), // previous 7 days
-    to: new Date(new Date(new Date().setHours(0, 0, 0, 0) - 8 * 24 * 60 * 60 * 1000).getTime() - 1), // day before the selectedRange starts
+  const [compareRange, setCompareRange] = useState(() => {
+    const range = getLast7Days(venueTimezone)
+    return getPreviousPeriod(range)
   })
 
   const [activeFilter, setActiveFilter] = useState('7days')
@@ -157,59 +164,39 @@ const Home = () => {
 
   // Handler for "Today" filter
   const handleToday = useCallback(() => {
-    const today = new Date()
-    const todayStart = new Date(today.setHours(0, 0, 0, 0))
-    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999))
+    const todayRange = getToday(venueTimezone)
+    const yesterdayRange = getYesterday(venueTimezone)
 
-    const yesterdayStart = new Date(todayStart)
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
-    const yesterdayEnd = new Date(yesterdayStart)
-    yesterdayEnd.setHours(23, 59, 59, 999)
-
-    setSelectedRange({ from: todayStart, to: todayEnd })
-    setCompareRange({ from: yesterdayStart, to: yesterdayEnd })
+    setSelectedRange(todayRange)
+    setCompareRange(yesterdayRange)
     setCompareType('day')
-    setComparisonLabel(t('home.comparison.yesterday'))
+    setComparisonLabel(t('comparison.yesterday'))
     setActiveFilter('today')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Handler for "Last 7 days" filter
   const handleLast7Days = useCallback(() => {
-    const today = new Date()
-    const end = new Date(today.setHours(23, 59, 59, 999))
-    const start = new Date(new Date().setHours(0, 0, 0, 0) - 7 * 24 * 60 * 60 * 1000)
+    const range = getLast7Days(venueTimezone)
+    const prevRange = getPreviousPeriod(range)
 
-    const compareEnd = new Date(start)
-    compareEnd.setMilliseconds(compareEnd.getMilliseconds() - 1)
-    const compareStart = new Date(compareEnd)
-    compareStart.setDate(compareStart.getDate() - 7)
-    compareStart.setHours(0, 0, 0, 0)
-
-    setSelectedRange({ from: start, to: end })
-    setCompareRange({ from: compareStart, to: compareEnd })
+    setSelectedRange(range)
+    setCompareRange(prevRange)
     setCompareType('week')
-    setComparisonLabel(t('home.comparison.prev7days'))
+    setComparisonLabel(t('comparison.prev7days'))
     setActiveFilter('7days')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Handler for "Last 30 days" filter
   const handleLast30Days = useCallback(() => {
-    const today = new Date()
-    const end = new Date(today.setHours(23, 59, 59, 999))
-    const start = new Date(new Date().setHours(0, 0, 0, 0) - 30 * 24 * 60 * 60 * 1000)
+    const range = getLast30Days(venueTimezone)
+    const prevRange = getPreviousPeriod(range)
 
-    const compareEnd = new Date(start)
-    compareEnd.setMilliseconds(compareEnd.getMilliseconds() - 1)
-    const compareStart = new Date(compareEnd)
-    compareStart.setDate(compareStart.getDate() - 30)
-    compareStart.setHours(0, 0, 0, 0)
-
-    setSelectedRange({ from: start, to: end })
-    setCompareRange({ from: compareStart, to: compareEnd })
+    setSelectedRange(range)
+    setCompareRange(prevRange)
     setCompareType('month')
-    setComparisonLabel(t('home.comparison.prev30days'))
+    setComparisonLabel(t('comparison.prev30days'))
     setActiveFilter('30days')
-  }, [t])
+  }, [t, venueTimezone])
 
   // Basic metrics query (priority load)
   const {
@@ -219,12 +206,14 @@ const Home = () => {
     error: basicError,
     refetch: refetchBasicData,
   } = useQuery({
-    queryKey: ['basic_metrics', venueId, selectedRange?.from?.toISOString(), selectedRange?.to?.toISOString()],
+    queryKey: ['basic_metrics', venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
     queryFn: async () => {
       return await dashboardService.getBasicMetrics(selectedRange)
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0, // Don't cache results
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
   })
 
   // Comparison data query
@@ -233,13 +222,15 @@ const Home = () => {
     isLoading: isCompareLoading,
     refetch: refetchCompareData,
   } = useQuery({
-    queryKey: ['basic_metrics_compare', venueId, compareRange?.from?.toISOString(), compareRange?.to?.toISOString()],
+    queryKey: ['basic_metrics_compare', venueId, compareRange.from.toISOString(), compareRange.to.toISOString()],
     queryFn: async () => {
       if (!compareType) return null
       return await dashboardService.getBasicMetrics(compareRange)
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0, // Don't cache results
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
     enabled: !!compareType,
   })
 
@@ -364,12 +355,14 @@ const Home = () => {
   const convertToCSV = (data: any[], headers: string[]): string => {
     const csvHeaders = headers.join(',')
     const csvRows = data.map(row =>
-      headers.map(header => {
-        const value = row[header] ?? ''
-        // Escape commas and quotes in values
-        const stringValue = String(value).replace(/"/g, '""')
-        return `"${stringValue}"`
-      }).join(',')
+      headers
+        .map(header => {
+          const value = row[header] ?? ''
+          // Escape commas and quotes in values
+          const stringValue = String(value).replace(/"/g, '""')
+          return `"${stringValue}"`
+        })
+        .join(','),
     )
     return [csvHeaders, ...csvRows].join('\n')
   }
@@ -377,7 +370,7 @@ const Home = () => {
   // Export functions
   const exportToCSV = useCallback(async () => {
     if (!basicData) return
-    
+
     setExportLoading(true)
     try {
       // Prepare payment data for CSV
@@ -390,7 +383,7 @@ const Home = () => {
         maskedPan: payment.maskedPan || '',
         createdAt: new Date(payment.createdAt).toLocaleDateString(localeCode),
         tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
-        status: payment.status
+        status: payment.status,
       }))
 
       // Prepare reviews data for CSV
@@ -399,45 +392,49 @@ const Home = () => {
         stars: review.stars,
         comment: review.comment || '',
         createdAt: new Date(review.createdAt).toLocaleDateString(localeCode),
-        customerName: review.customerName || ''
+        customerName: review.customerName || '',
       }))
 
       // Prepare payment methods summary for CSV
       const paymentMethodsForCSV = paymentMethodsData.map(method => ({
         method: method.method,
         total: method.total,
-        count: method.count || 0
+        count: method.count || 0,
       }))
 
       // Create CSV content
       const paymentsCSV = convertToCSV(paymentsForCSV, [
-        'id', 'amount', 'method', 'source', 'cardBrand', 'maskedPan', 'createdAt', 'tips', 'status'
+        'id',
+        'amount',
+        'method',
+        'source',
+        'cardBrand',
+        'maskedPan',
+        'createdAt',
+        'tips',
+        'status',
       ])
 
-      const reviewsCSV = convertToCSV(reviewsForCSV, [
-        'id', 'stars', 'comment', 'createdAt', 'customerName'
-      ])
+      const reviewsCSV = convertToCSV(reviewsForCSV, ['id', 'stars', 'comment', 'createdAt', 'customerName'])
 
-      const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, [
-        'method', 'total', 'count'
-      ])
+      const paymentMethodsCSV = convertToCSV(paymentMethodsForCSV, ['method', 'total', 'count'])
 
       // Combine all data with section headers
       const combinedCSV = [
-        '# ' + t('home.export.payments'),
+        '# ' + t('export.payments'),
         paymentsCSV,
         '',
-        '# ' + t('home.export.reviews'),
+        '# ' + t('export.reviews'),
         reviewsCSV,
         '',
-        '# ' + t('home.export.paymentMethods'),
+        '# ' + t('export.paymentMethods'),
         paymentMethodsCSV,
         '',
-        '# ' + t('home.export.summary'),
-        `"${t('home.cards.totalSales')}","${Currency(totalAmount)}"`,
-        `"${t('home.cards.fiveStars')}","${fiveStarReviews}"`,
-        `"${t('home.cards.totalTips')}","${Currency(tipStats.totalTips)}"`,
-        `"${t('home.cards.avgTipPercentage')}","${tipStats.avgTipPercentage}%"`
+        '# ' + t('export.summary'),
+        `"${t('cards.totalSales')}","${Currency(totalAmount)}"`,
+        `"${t('cards.fiveStars')}","${fiveStarReviews}"`,
+        `"${t('cards.totalTips')}","${Currency(tipStats.totalTips)}"`,
+        `"${t('cards.avgTipPercentage')}","${tipStats.avgTipPercentage}%"`,
       ].join('\n')
 
       // Create and download file
@@ -450,7 +447,6 @@ const Home = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
     } catch (error) {
       console.error('Export to CSV failed:', error)
       // Could add toast notification here
@@ -461,7 +457,7 @@ const Home = () => {
 
   const exportToJSON = useCallback(async () => {
     if (!basicData) return
-    
+
     setExportLoading(true)
     try {
       // Prepare comprehensive data for JSON export
@@ -470,10 +466,10 @@ const Home = () => {
           exportDate: new Date().toISOString(),
           dateRange: {
             from: selectedRange.from.toISOString(),
-            to: selectedRange.to.toISOString()
+            to: selectedRange.to.toISOString(),
           },
           venue: venueId,
-          locale: i18n.language
+          locale: i18n.language,
         },
         summary: {
           totalSales: totalAmount,
@@ -481,34 +477,36 @@ const Home = () => {
           totalTips: tipStats.totalTips,
           avgTipPercentage: parseFloat(String(tipStats.avgTipPercentage)),
           totalPayments: filteredPayments.length,
-          totalReviews: filteredReviews.length
+          totalReviews: filteredReviews.length,
         },
         payments: filteredPayments.map(payment => ({
           ...payment,
           tips: payment.tips?.reduce((sum, tip) => sum + Number(tip.amount), 0) || 0,
-          createdAt: new Date(payment.createdAt).toISOString()
+          createdAt: new Date(payment.createdAt).toISOString(),
         })),
         reviews: filteredReviews.map(review => ({
           ...review,
-          createdAt: new Date(review.createdAt).toISOString()
+          createdAt: new Date(review.createdAt).toISOString(),
         })),
         paymentMethods: paymentMethodsData,
-        comparison: compareType ? {
-          type: compareType,
-          label: comparisonLabel,
-          data: {
-            totalSales: compareAmount,
-            fiveStarReviews: compareFiveStarReviews,
-            totalTips: compareTipStats.totalTips,
-            avgTipPercentage: parseFloat(String(compareTipStats.avgTipPercentage))
-          },
-          percentageChanges: {
-            sales: amountChangePercentage,
-            reviews: reviewsChangePercentage,
-            tips: tipsChangePercentage,
-            avgTipPercentage: tipAvgChangePercentage
-          }
-        } : null
+        comparison: compareType
+          ? {
+              type: compareType,
+              label: comparisonLabel,
+              data: {
+                totalSales: compareAmount,
+                fiveStarReviews: compareFiveStarReviews,
+                totalTips: compareTipStats.totalTips,
+                avgTipPercentage: parseFloat(String(compareTipStats.avgTipPercentage)),
+              },
+              percentageChanges: {
+                sales: amountChangePercentage,
+                reviews: reviewsChangePercentage,
+                tips: tipsChangePercentage,
+                avgTipPercentage: tipAvgChangePercentage,
+              },
+            }
+          : null,
       }
 
       // Create and download file
@@ -522,7 +520,6 @@ const Home = () => {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      
     } catch (error) {
       console.error('Export to JSON failed:', error)
       // Could add toast notification here
@@ -530,12 +527,12 @@ const Home = () => {
       setExportLoading(false)
     }
   }, [
-    basicData, 
-    filteredPayments, 
-    filteredReviews, 
-    paymentMethodsData, 
-    totalAmount, 
-    fiveStarReviews, 
+    basicData,
+    filteredPayments,
+    filteredReviews,
+    paymentMethodsData,
+    totalAmount,
+    fiveStarReviews,
     tipStats,
     selectedRange,
     venueId,
@@ -548,7 +545,7 @@ const Home = () => {
     amountChangePercentage,
     reviewsChangePercentage,
     tipsChangePercentage,
-    tipAvgChangePercentage
+    tipAvgChangePercentage,
   ])
 
   return (
@@ -556,7 +553,7 @@ const Home = () => {
       {/* Header with date range buttons */}
       <div className="sticky top-0 z-10 bg-background border-b border-border shadow-sm p-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-2xl font-bold text-foreground">{t('home.title')}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
             {/* Quick filter buttons */}
             <div className="flex space-x-2">
@@ -566,7 +563,7 @@ const Home = () => {
                 onClick={handleToday}
                 className="whitespace-nowrap"
               >
-                {t('home.filters.today')}
+                {t('filters.today')}
               </Button>
               <Button
                 size="sm"
@@ -574,7 +571,7 @@ const Home = () => {
                 onClick={handleLast7Days}
                 className="whitespace-nowrap"
               >
-                {t('home.filters.last7')}
+                {t('filters.last7')}
               </Button>
               <Button
                 size="sm"
@@ -582,7 +579,7 @@ const Home = () => {
                 onClick={handleLast30Days}
                 className="whitespace-nowrap"
               >
-                {t('home.filters.last30')}
+                {t('filters.last30')}
               </Button>
             </div>
 
@@ -591,13 +588,11 @@ const Home = () => {
               onUpdate={({ range }) => {
                 setSelectedRange(range)
 
-                const selectedDuration = range.to.getTime() - range.from.getTime()
-                const compareEnd = new Date(range.from.getTime() - 1)
-                const compareStart = new Date(compareEnd.getTime() - selectedDuration)
+                const prevRange = getPreviousPeriod(range)
 
-                setCompareRange({ from: compareStart, to: compareEnd })
+                setCompareRange(prevRange)
                 setCompareType('custom')
-                setComparisonLabel(t('home.comparison.previousPeriod'))
+                setComparisonLabel(t('comparison.previousPeriod'))
                 setActiveFilter('custom')
               }}
               initialDateFrom={selectedRange.from}
@@ -607,7 +602,7 @@ const Home = () => {
             />
 
             <div className="relative">
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="sm"
@@ -618,19 +613,19 @@ const Home = () => {
                     {exportLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>{t('home.export.exporting')}</span>
+                        <span>{t('export.exporting')}</span>
                       </>
                     ) : (
                       <>
                         <Download className="h-4 w-4" />
-                        <span>{t('home.export.export')}</span>
+                        <span>{t('export.export')}</span>
                       </>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={exportToJSON}>{t('home.export.json')}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportToCSV}>{t('home.export.csv')}</DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
+                  <DropdownMenuItem onClick={exportToJSON}>{t('export.json')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportToCSV}>{t('export.csv')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -638,20 +633,25 @@ const Home = () => {
         </div>
       </div>
 
+      {/* KYC Status Banner (shown when KYC verification is needed) */}
+      <div className="px-2 md:px-4 pt-4">
+        <KYCStatusBanner />
+      </div>
+
       {/* Main content */}
       <div className="flex-1 p-2 md:p-4 space-y-4 mx-auto w-full section-soft cards-tinted">
         {isBasicError ? (
           <Card className="p-6">
             <div className="text-center space-y-4">
-              <h2 className="text-xl font-semibold text-destructive">{t('home.error.failedTitle')}</h2>
-              <p className="text-muted-foreground">{basicError?.message || t('home.error.unknown')}</p>
+              <h2 className="text-xl font-semibold text-destructive">{t('error.failedTitle')}</h2>
+              <p className="text-muted-foreground">{basicError?.message || t('error.unknown')}</p>
               <Button
                 onClick={() => {
                   refetchBasicData()
                   if (compareType) refetchCompareData()
                 }}
               >
-                {t('header.retry')}
+                {t('common:tryAgain')}
               </Button>
             </div>
           </Card>
@@ -660,7 +660,7 @@ const Home = () => {
             {/* Key metrics cards - Priority Load */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <MetricCard
-                title={t('home.cards.totalSales')}
+                title={t('cards.totalSales')}
                 value={isBasicLoading ? null : Currency(totalAmount)}
                 isLoading={isBasicLoading}
                 icon={<DollarIcon />}
@@ -669,7 +669,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title={t('home.cards.fiveStars')}
+                title={t('cards.fiveStars')}
                 value={isBasicLoading ? null : fiveStarReviews}
                 isLoading={isBasicLoading}
                 icon={<StarIcon />}
@@ -678,7 +678,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title={t('home.cards.totalTips')}
+                title={t('cards.totalTips')}
                 value={isBasicLoading ? null : Currency(tipStats.totalTips, false)}
                 isLoading={isBasicLoading}
                 icon={<TipIcon />}
@@ -687,7 +687,7 @@ const Home = () => {
                 isPercentageLoading={compareType ? isCompareLoading : false}
               />
               <MetricCard
-                title={t('home.cards.avgTipPercentage')}
+                title={t('cards.avgTipPercentage')}
                 value={isBasicLoading ? null : `${tipStats.avgTipPercentage}%`}
                 isLoading={isBasicLoading}
                 icon={<PercentIcon />}
@@ -701,13 +701,13 @@ const Home = () => {
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
               <Card className="lg:col-span-4 flex flex-col">
                 <CardHeader className="items-center pb-0">
-                  <CardTitle>{t('home.sections.paymentMethods')}</CardTitle>
+                  <CardTitle>{t('sections.paymentMethods')}</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
                       ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: dateLocale })} - ${format(selectedRange.to, 'dd MMM yyyy', {
                           locale: dateLocale,
                         })}`
-                      : t('home.currentPeriod')}
+                      : t('currentPeriod')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 pb-0">
@@ -718,13 +718,13 @@ const Home = () => {
                     </div>
                   ) : !paymentMethodsData || paymentMethodsData.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">{t('home.noData')}</p>
+                      <p className="text-muted-foreground">{t('noData')}</p>
                     </div>
                   ) : (
                     <ChartContainer
                       config={{
                         total: {
-                          label: t('home.total'),
+                          label: t('total'),
                         },
                         ...paymentMethodsData.reduce((acc, item, index) => {
                           const raw = typeof item.method === 'string' ? item.method : String(item.method)
@@ -733,11 +733,12 @@ const Home = () => {
                           const candidates = ['card', 'cash'] as const
                           const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
                           // Fallback normalization by common aliases
-                          const norm = matchedKey
-                            || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                          const norm =
+                            matchedKey ||
+                            (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
                               ? 'card'
-                              : undefined)
-                            || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                              : undefined) ||
+                            (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
                           const methodKey = (norm || lower) as 'card' | 'cash' | string
                           return {
                             ...acc,
@@ -746,7 +747,7 @@ const Home = () => {
                               color: `var(--chart-${(index % 5) + 1})`,
                             },
                           }
-                        }, {})
+                        }, {}),
                       }}
                       className="mx-auto aspect-square max-h-[250px]"
                     >
@@ -762,13 +763,8 @@ const Home = () => {
                                 return (
                                   <div className="flex w-full items-center justify-between gap-3">
                                     <div className="flex items-center gap-2">
-                                      <span
-                                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                                        style={{ backgroundColor: color }}
-                                      />
-                                      <span className="text-zinc-500 dark:text-zinc-400">
-                                        {t(`payments.methods.${methodKey}`)}
-                                      </span>
+                                      <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: color }} />
+                                      <span className="text-zinc-500 dark:text-zinc-400">{t(`payments.methods.${methodKey}`)}</span>
                                     </div>
                                     <span className="font-mono font-medium tabular-nums text-zinc-950 dark:text-zinc-50">
                                       {Currency(Number(value), false)}
@@ -785,11 +781,12 @@ const Home = () => {
                             const lower = raw.trim().toLowerCase()
                             const candidates = ['card', 'cash'] as const
                             const matchedKey = candidates.find(k => t(`payments.methods.${k}`) === raw)
-                            const norm = matchedKey
-                              || (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
+                            const norm =
+                              matchedKey ||
+                              (['card', 'tarjeta', 'credito', 'crédito', 'tc', 'visa', 'mastercard'].some(alias => lower.includes(alias))
                                 ? 'card'
-                                : undefined)
-                              || (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
+                                : undefined) ||
+                              (['cash', 'efectivo', 'contado'].some(alias => lower.includes(alias)) ? 'cash' : undefined)
                             const methodKey = (norm || lower) as 'card' | 'cash' | string
                             return {
                               ...item,
@@ -807,19 +804,11 @@ const Home = () => {
                               if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                                 return (
                                   <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                                    <tspan
-                                      x={viewBox.cx}
-                                      y={viewBox.cy}
-                                      className="fill-foreground text-xl font-bold"
-                                    >
+                                    <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-xl font-bold">
                                       {Currency(totalAmount, false)}
                                     </tspan>
-                                    <tspan
-                                      x={viewBox.cx}
-                                      y={(viewBox.cy || 0) + 20}
-                                      className="fill-muted-foreground text-sm"
-                                    >
-                                      {t('home.total')}
+                                    <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-sm">
+                                      {t('total')}
                                     </tspan>
                                   </text>
                                 )
@@ -836,18 +825,20 @@ const Home = () => {
                     <div className="flex items-center gap-2 font-medium leading-none">
                       {amountChangePercentage > 0 ? (
                         <>
-                          {t('home.comparison.trending')} {amountChangePercentage}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4" />
+                          {t('comparison.trending')} {amountChangePercentage}% {t('comparison.thisMonth')}{' '}
+                          <TrendingUp className="h-4 w-4" />
                         </>
                       ) : amountChangePercentage < 0 ? (
                         <>
-                          {t('home.comparison.trending')} {Math.abs(amountChangePercentage)}% {t('home.comparison.thisMonth')} <TrendingUp className="h-4 w-4 rotate-180" />
+                          {t('comparison.trending')} {Math.abs(amountChangePercentage)}% {t('comparison.thisMonth')}{' '}
+                          <TrendingUp className="h-4 w-4 rotate-180" />
                         </>
                       ) : (
-                        t('home.comparison.noChange')
+                        t('comparison.noChange')
                       )}
                     </div>
                     <div className="leading-none text-muted-foreground">
-                      {t('home.comparison.showingTotal')} vs {comparisonLabel}
+                      {t('comparison.showingTotal')} vs {comparisonLabel}
                     </div>
                   </CardFooter>
                 )}
@@ -937,7 +928,7 @@ const ProgressiveChartSection = ({
 }) => {
   const [ref, isVisible] = useProgressiveLoader()
   const dashboardService = useMemo(() => new DashboardProgressiveService(venueId), [venueId])
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
 
   const { data, isLoading } = useQuery({
     queryKey: ['chart', chartType, venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
@@ -975,7 +966,7 @@ const ProgressiveMetricSection = ({
 }) => {
   const [ref, isVisible] = useProgressiveLoader()
   const dashboardService = useMemo(() => new DashboardProgressiveService(venueId), [venueId])
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
 
   const { data, isLoading } = useQuery({
     queryKey: ['metric', metricType, venueId, selectedRange.from.toISOString(), selectedRange.to.toISOString()],
@@ -1009,7 +1000,7 @@ const ProgressiveMetricSection = ({
 
 // Helper function to render chart content
 const renderChartContent = (chartType: string, data: any, t: (k: string, o?: any) => string) => {
-  if (!data) return <div>{t('home.noData')}</div>
+  if (!data) return <div>{t('noData')}</div>
 
   switch (chartType) {
     case CHART_TYPES.BEST_SELLING_PRODUCTS:
@@ -1044,7 +1035,7 @@ const renderChartContent = (chartType: string, data: any, t: (k: string, o?: any
             <CardTitle>{chartType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-muted-foreground">{t('home.chartContent.placeholder', { name: chartType })}</div>
+            <div className="p-8 text-center text-muted-foreground">{t('chartContent.placeholder', { name: chartType })}</div>
           </CardContent>
         </Card>
       )
@@ -1053,7 +1044,7 @@ const renderChartContent = (chartType: string, data: any, t: (k: string, o?: any
 
 // Helper function to render metric content
 const renderMetricContent = (metricType: string, data: any, t: (k: string, o?: any) => string) => {
-  if (!data) return <div>{t('home.noData')}</div>
+  if (!data) return <div>{t('noData')}</div>
 
   switch (metricType) {
     case 'staff-efficiency':
@@ -1072,7 +1063,7 @@ const renderMetricContent = (metricType: string, data: any, t: (k: string, o?: a
             <CardTitle>{metricType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-8 text-center text-muted-foreground">{t('home.metricContent.placeholder', { name: metricType })}</div>
+            <div className="p-8 text-center text-muted-foreground">{t('metricContent.placeholder', { name: metricType })}</div>
           </CardContent>
         </Card>
       )
@@ -1083,7 +1074,7 @@ const renderMetricContent = (metricType: string, data: any, t: (k: string, o?: a
 
 // Best Selling Products Chart
 const BestSellingProductsChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   // Process products data for best sellers by category
   const bestSellingProducts = useMemo(() => {
     const productsData = data?.products || []
@@ -1117,15 +1108,15 @@ const BestSellingProductsChart = ({ data }: { data: any }) => {
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.bestSellers')}</CardTitle>
+        <CardTitle>{t('sections.bestSellers')}</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-5">
           {Object.entries(bestSellingProducts).map(([category, products]) => (
             <div key={category} className="space-y-2">
-              <h3 className="font-medium text-sm text-muted-foreground">{t(`home.categories.${String(category)}`)}</h3>
+              <h3 className="font-medium text-sm text-muted-foreground">{t(`categories.${String(category)}`)}</h3>
               {products.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('home.noData')}</p>
+                <p className="text-sm text-muted-foreground">{t('noData')}</p>
               ) : (
                 <ul className="space-y-1">
                   {products.map((product: any, idx: number) => (
@@ -1146,30 +1137,30 @@ const BestSellingProductsChart = ({ data }: { data: any }) => {
 
 // Peak Hours Chart
 const PeakHoursChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const peakHoursData = data || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.peakHours')}</CardTitle>
-        <CardDescription>{t('home.sections.peakHoursDesc')}</CardDescription>
+        <CardTitle>{t('sections.peakHours')}</CardTitle>
+        <CardDescription>{t('sections.peakHoursDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6 px-2 sm:px-4" style={{ height: '360px' }}>
         {!peakHoursData || peakHoursData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               sales: {
-                label: t('home.charts.sales'),
+                label: t('charts.sales'),
                 color: CHART_COLORS[0],
               },
               transactions: {
-                label: t('home.charts.transactions'),
+                label: t('charts.transactions'),
                 color: CHART_COLORS[1],
               },
             }}
@@ -1192,13 +1183,13 @@ const PeakHoursChart = ({ data }: { data: any }) => {
                 tickMargin={10}
                 axisLine={false}
                 tickFormatter={value => `${value}:00`}
-                label={{ value: t('home.charts.hourOfDay'), position: 'insideBottomRight', offset: -10 }}
+                label={{ value: t('charts.hourOfDay'), position: 'insideBottomRight', offset: -10 }}
               />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     formatter={(value: any, name: any) =>
-                      name === 'sales' ? Currency(Number(value), false) : `${value} ${t('home.charts.transactionsSuffix')}`
+                      name === 'sales' ? Currency(Number(value), false) : `${value} ${t('charts.transactionsSuffix')}`
                     }
                   />
                 }
@@ -1216,11 +1207,11 @@ const PeakHoursChart = ({ data }: { data: any }) => {
 
 // Tips Over Time Chart - Interactive Line Chart
 const TipsOverTimeChart = ({ data }: { data: any }) => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
-  
+
   const [activeMetric, setActiveMetric] = useState<'tips' | 'tipPercentage'>('tips')
-  
+
   // Process tips data over time with additional metrics
   const tipsOverTime = useMemo(() => {
     const payments = data?.payments || []
@@ -1253,7 +1244,7 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
       .map(([date, tips]) => {
         const revenue = revenueByDate.get(date) || 0
         const tipPercentage = revenue > 0 ? (tips / revenue) * 100 : 0
-        
+
         return {
           date,
           tips,
@@ -1267,9 +1258,8 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
   // Calculate totals
   const stats = useMemo(() => {
     const totalTips = tipsOverTime.reduce((acc, curr) => acc + curr.tips, 0)
-    const avgTipPercentage = tipsOverTime.length > 0 
-      ? tipsOverTime.reduce((acc, curr) => acc + curr.tipPercentage, 0) / tipsOverTime.length
-      : 0
+    const avgTipPercentage =
+      tipsOverTime.length > 0 ? tipsOverTime.reduce((acc, curr) => acc + curr.tipPercentage, 0) / tipsOverTime.length : 0
 
     return {
       tips: totalTips,
@@ -1279,38 +1269,33 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 
   const chartConfig = {
     tips: {
-      label: t('home.charts.tips'),
+      label: t('charts.tips'),
       color: 'var(--chart-1)',
     },
     tipPercentage: {
-      label: t('home.charts.tipPercentage'),
+      label: t('charts.tipPercentage'),
       color: 'var(--chart-2)',
     },
   }
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
-          <CardTitle>{t('home.sections.tipsOverTime')}</CardTitle>
-          <CardDescription>{t('home.sections.tipsOverTimeDesc')}</CardDescription>
+          <CardTitle>{t('sections.tipsOverTime')}</CardTitle>
+          <CardDescription>{t('sections.tipsOverTimeDesc')}</CardDescription>
         </div>
         <div className="flex flex-wrap">
-          {(['tips', 'tipPercentage'] as const).map((key) => (
+          {(['tips', 'tipPercentage'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'tips' 
-                  ? Currency(stats[key], false)
-                  : `${stats[key]}%`
-                }
+                {key === 'tips' ? Currency(stats[key], false) : `${stats[key]}%`}
               </span>
             </button>
           ))}
@@ -1319,13 +1304,10 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
       <CardContent className="px-2 sm:p-6">
         {!tipsOverTime || tipsOverTime.length === 0 ? (
           <div className="flex items-center justify-center h-[250px]">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[220px] sm:h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] sm:h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={tipsOverTime}
@@ -1335,18 +1317,12 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
               }}
             >
               <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="formattedDate"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={32}
-              />
+              <XAxis dataKey="formattedDate" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       const matchingData = tipsOverTime.find(d => d.formattedDate === value)
                       if (matchingData) {
                         const date = new Date(matchingData.date)
@@ -1358,21 +1334,11 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
                       }
                       return value
                     }}
-                    formatter={(value: any) =>
-                      activeMetric === 'tips'
-                        ? Currency(Number(value), false)
-                        : `${value}%`
-                    }
+                    formatter={(value: any) => (activeMetric === 'tips' ? Currency(Number(value), false) : `${value}%`)}
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
@@ -1383,53 +1349,51 @@ const TipsOverTimeChart = ({ data }: { data: any }) => {
 
 // Revenue Trends Chart - Interactive Line Chart
 const RevenueTrendsChart = ({ data }: { data: any }) => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
   const revenueData = useMemo(() => data?.revenue ?? [], [data?.revenue])
-  
+
   // Add state for interactive chart
   const [activeMetric, setActiveMetric] = useState<'revenue' | 'orders'>('revenue')
-  
+
   // Calculate totals for header buttons
-  const totals = useMemo(() => ({
-    revenue: revenueData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0),
-    orders: revenueData.reduce((acc: number, curr: any) => acc + (curr.orders || 0), 0),
-  }), [revenueData])
+  const totals = useMemo(
+    () => ({
+      revenue: revenueData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0),
+      orders: revenueData.reduce((acc: number, curr: any) => acc + (curr.orders || 0), 0),
+    }),
+    [revenueData],
+  )
 
   const chartConfig = {
     revenue: {
-      label: t('home.charts.revenue'),
+      label: t('charts.revenue'),
       color: 'var(--chart-1)',
     },
     orders: {
-      label: t('home.charts.orders'),
+      label: t('charts.orders'),
       color: 'var(--chart-2)',
     },
   }
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
-          <CardTitle>{t('home.sections.revenueTrends')}</CardTitle>
-          <CardDescription>{t('home.sections.revenueTrendsDesc')}</CardDescription>
+          <CardTitle>{t('sections.revenueTrends')}</CardTitle>
+          <CardDescription>{t('sections.revenueTrendsDesc')}</CardDescription>
         </div>
         <div className="flex flex-wrap">
-          {(['revenue', 'orders'] as const).map((key) => (
+          {(['revenue', 'orders'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex basis-1/2 sm:basis-auto flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'revenue' 
-                  ? Currency(totals[key], false)
-                  : totals[key].toLocaleString()
-                }
+                {key === 'revenue' ? Currency(totals[key], false) : totals[key].toLocaleString()}
               </span>
             </button>
           ))}
@@ -1438,13 +1402,10 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
       <CardContent className="px-2 sm:p-6">
         {!revenueData || revenueData.length === 0 ? (
           <div className="flex items-center justify-center h-[250px]">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[220px] sm:h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[220px] sm:h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={revenueData}
@@ -1460,7 +1421,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                 axisLine={false}
                 tickMargin={8}
                 minTickGap={32}
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   // Handle both formatted dates and raw dates
                   if (typeof value === 'string' && value.includes(' ')) {
                     return value // Already formatted
@@ -1476,7 +1437,7 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
@@ -1488,20 +1449,12 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
                       })
                     }}
                     formatter={(value: any) =>
-                      activeMetric === 'revenue'
-                        ? Currency(Number(value), false)
-                        : `${value} ${t('home.charts.ordersLabel')}`
+                      activeMetric === 'revenue' ? Currency(Number(value), false) : `${value} ${t('charts.ordersLabel')}`
                     }
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
@@ -1512,18 +1465,18 @@ const RevenueTrendsChart = ({ data }: { data: any }) => {
 
 // Average Order Value Trends Chart - Interactive Line Chart
 const AOVTrendsChart = ({ data }: { data: any }) => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
   const aovData = useMemo(() => data?.aov ?? [], [data?.aov])
-  
+
   const [activeMetric, setActiveMetric] = useState<'aov' | 'orderCount'>('aov')
-  
+
   // Calculate totals and averages
   const stats = useMemo(() => {
     const totalRevenue = aovData.reduce((acc: number, curr: any) => acc + (curr.revenue || 0), 0)
     const totalOrders = aovData.reduce((acc: number, curr: any) => acc + (curr.orderCount || 0), 0)
     const avgAOV = totalOrders > 0 ? totalRevenue / totalOrders : 0
-    
+
     return {
       aov: avgAOV,
       orderCount: totalOrders,
@@ -1532,38 +1485,33 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
 
   const chartConfig = {
     aov: {
-      label: t('home.aov.title'),
+      label: t('aov.title'),
       color: 'var(--chart-1)',
     },
     orderCount: {
-      label: t('home.charts.totalOrders'),
+      label: t('charts.totalOrders'),
       color: 'var(--chart-2)',
     },
   }
 
   return (
     <Card className="py-4 sm:py-0">
-      <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
+      <CardHeader className="flex flex-col items-stretch border-b p-0! sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pb-3 sm:pb-0">
-          <CardTitle>{t('home.aov.title')}</CardTitle>
-          <CardDescription>{t('home.aov.desc')}</CardDescription>
+          <CardTitle>{t('aov.title')}</CardTitle>
+          <CardDescription>{t('aov.desc')}</CardDescription>
         </div>
         <div className="flex">
-          {(['aov', 'orderCount'] as const).map((key) => (
+          {(['aov', 'orderCount'] as const).map(key => (
             <button
               key={key}
               data-active={activeMetric === key}
               className="data-[active=true]:bg-muted/50 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
               onClick={() => setActiveMetric(key)}
             >
-              <span className="text-muted-foreground text-xs">
-                {chartConfig[key].label}
-              </span>
+              <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
               <span className="text-lg leading-none font-bold sm:text-2xl">
-                {key === 'aov' 
-                  ? Currency(stats[key], false)
-                  : stats[key].toLocaleString()
-                }
+                {key === 'aov' ? Currency(stats[key], false) : stats[key].toLocaleString()}
               </span>
             </button>
           ))}
@@ -1572,13 +1520,10 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
       <CardContent className="px-2 sm:p-6">
         {!aovData || aovData.length === 0 ? (
           <div className="flex items-center justify-center h-[250px]">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
-          >
+          <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
             <LineChart
               accessibilityLayer
               data={aovData}
@@ -1594,7 +1539,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                 axisLine={false}
                 tickMargin={8}
                 minTickGap={32}
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   if (typeof value === 'string' && value.includes(' ')) {
                     return value
                   }
@@ -1609,7 +1554,7 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     className="w-[180px]"
-                    labelFormatter={(value) => {
+                    labelFormatter={value => {
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
@@ -1621,20 +1566,12 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
                       })
                     }}
                     formatter={(value: any) =>
-                      activeMetric === 'aov'
-                        ? Currency(Number(value), false)
-                        : `${value} ${t('home.charts.ordersLabel')}`
+                      activeMetric === 'aov' ? Currency(Number(value), false) : `${value} ${t('charts.ordersLabel')}`
                     }
                   />
                 }
               />
-              <Line
-                dataKey={activeMetric}
-                type="monotone"
-                stroke={`var(--color-${activeMetric})`}
-                strokeWidth={2}
-                dot={false}
-              />
+              <Line dataKey={activeMetric} type="monotone" stroke={`var(--color-${activeMetric})`} strokeWidth={2} dot={false} />
             </LineChart>
           </ChartContainer>
         )}
@@ -1645,26 +1582,26 @@ const AOVTrendsChart = ({ data }: { data: any }) => {
 
 // Order Frequency Chart
 const OrderFrequencyChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const frequencyData = data?.frequency || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.orderFrequency.title')}</CardTitle>
-        <CardDescription>{t('home.orderFrequency.desc')}</CardDescription>
+        <CardTitle>{t('orderFrequency.title')}</CardTitle>
+        <CardDescription>{t('orderFrequency.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!frequencyData || frequencyData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full w-full aspect-auto"
             config={{
               orders: {
-                label: t('home.charts.ordersLabel'),
+                label: t('charts.ordersLabel'),
                 color: CHART_COLORS[3],
               },
             }}
@@ -1682,7 +1619,7 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
             >
               <CartesianGrid vertical={false} />
               <XAxis dataKey="hour" tickLine={false} tickMargin={10} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('home.charts.ordersLabel')}`} />} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('charts.ordersLabel')}`} />} />
               <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
             </BarChart>
           </ChartContainer>
@@ -1694,30 +1631,30 @@ const OrderFrequencyChart = ({ data }: { data: any }) => {
 
 // Customer Satisfaction Chart
 const CustomerSatisfactionChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const satisfactionData = data?.satisfaction || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.customerSatisfaction.title')}</CardTitle>
-        <CardDescription>{t('home.customerSatisfaction.desc')}</CardDescription>
+        <CardTitle>{t('customerSatisfaction.title')}</CardTitle>
+        <CardDescription>{t('customerSatisfaction.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!satisfactionData || satisfactionData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full"
             config={{
               rating: {
-                label: t('home.charts.rating'),
+                label: t('charts.rating'),
                 color: CHART_COLORS[4],
               },
               reviewCount: {
-                label: t('home.charts.reviewCount'),
+                label: t('charts.reviewCount'),
                 color: CHART_COLORS[5],
               },
             }}
@@ -1739,7 +1676,7 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
                 content={
                   <ChartTooltipContent
                     formatter={(value: any, name: any) =>
-                      name === 'rating' ? `${value} ${t('home.tooltips.starsSuffix')}` : `${value} ${t('home.tooltips.reviewsSuffix')}`
+                      name === 'rating' ? `${value} ${t('tooltips.starsSuffix')}` : `${value} ${t('tooltips.reviewsSuffix')}`
                     }
                   />
                 }
@@ -1757,30 +1694,30 @@ const CustomerSatisfactionChart = ({ data }: { data: any }) => {
 
 // Kitchen Performance Chart
 const KitchenPerformanceChart = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const kitchenData = data?.kitchen || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.kitchen.title')}</CardTitle>
-        <CardDescription>{t('home.kitchen.desc')}</CardDescription>
+        <CardTitle>{t('kitchen.title')}</CardTitle>
+        <CardDescription>{t('kitchen.desc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-6" style={{ height: '360px' }}>
         {!kitchenData || kitchenData.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <ChartContainer
             className="h-full w-full aspect-auto"
             config={{
               prepTime: {
-                label: t('home.charts.prepTime'),
+                label: t('charts.prepTime'),
                 color: CHART_COLORS[0],
               },
               target: {
-                label: t('home.charts.target'),
+                label: t('charts.target'),
                 color: CHART_COLORS[2],
               },
             }}
@@ -1798,7 +1735,7 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
             >
               <CartesianGrid vertical={false} />
               <XAxis dataKey="category" tickLine={false} tickMargin={8} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('home.tooltips.minutesSuffix')}`} />} />
+              <ChartTooltip content={<ChartTooltipContent formatter={(value: any) => `${value} ${t('tooltips.minutesSuffix')}`} />} />
               <ChartLegend content={<ChartLegendContent />} />
               <Bar dataKey="prepTime" fill="var(--color-prepTime)" radius={4} maxBarSize={30} />
               <Bar dataKey="target" fill="var(--color-target)" radius={4} maxBarSize={30} />
@@ -1812,19 +1749,19 @@ const KitchenPerformanceChart = ({ data }: { data: any }) => {
 
 // Strategic Metric Components
 const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const staffData = data?.staffPerformance || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.staffEfficiency')}</CardTitle>
-        <CardDescription>{t('home.sections.staffEfficiencyDesc')}</CardDescription>
+        <CardTitle>{t('sections.staffEfficiency')}</CardTitle>
+        <CardDescription>{t('sections.staffEfficiencyDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!staffData || staffData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1842,7 +1779,7 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
                 <div className="text-right">
                   <p className="font-medium text-foreground">{Currency(staff.totalSales || 0, false)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {staff.orderCount || 0} {t('home.charts.orders')}
+                    {staff.orderCount || 0} {t('charts.orders')}
                   </p>
                 </div>
               </div>
@@ -1855,19 +1792,19 @@ const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
 }
 
 const TableEfficiencyMetrics = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const tableData = data?.tablePerformance || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.tableEfficiency')}</CardTitle>
-        <CardDescription>{t('home.sections.tableEfficiencyDesc')}</CardDescription>
+        <CardTitle>{t('sections.tableEfficiency')}</CardTitle>
+        <CardDescription>{t('sections.tableEfficiencyDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!tableData || tableData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1879,17 +1816,17 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
                   </div>
                   <div>
                     <p className="font-medium text-foreground">
-                      {t('home.table', { defaultValue: 'Mesa' })} {table.tableNumber}
+                      {t('table', { defaultValue: 'Mesa' })} {table.tableNumber}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {table.orderCount || 0} {t('home.charts.orders')}
+                      {table.orderCount || 0} {t('charts.orders')}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-foreground">{Currency(table.totalRevenue || 0, false)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {Currency(table.avgTicket || 0, false)} {t('home.charts.avg')}
+                    {Currency(table.avgTicket || 0, false)} {t('charts.avg')}
                   </p>
                 </div>
               </div>
@@ -1902,19 +1839,19 @@ const TableEfficiencyMetrics = ({ data }: { data: any }) => {
 }
 
 const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('home')
   const productData = data?.productProfitability || []
 
   return (
     <Card>
       <CardHeader className="border-b pb-3">
-        <CardTitle>{t('home.sections.productAnalytics')}</CardTitle>
-        <CardDescription>{t('home.sections.productAnalyticsDesc')}</CardDescription>
+        <CardTitle>{t('sections.productAnalytics')}</CardTitle>
+        <CardDescription>{t('sections.productAnalyticsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
         {!productData || productData.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">{t('home.noData')}</p>
+            <p className="text-muted-foreground">{t('noData')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1927,14 +1864,14 @@ const ProductAnalyticsMetrics = ({ data }: { data: any }) => {
                   <div>
                     <p className="font-medium">{product.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {product.quantity || 0} {t('home.charts.sold')}
+                      {product.quantity || 0} {t('charts.sold')}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{Currency(product.totalRevenue || 0, false)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {(product.marginPercentage || 0).toFixed(1)}% {t('home.charts.margin')}
+                    {(product.marginPercentage || 0).toFixed(1)}% {t('charts.margin')}
                   </p>
                 </div>
               </div>

@@ -1,14 +1,214 @@
 {
   "cancel": "Cancel",
+  "close": "Close",
+  "edit": "Edit",
   "save": "Save",
   "saving": "Saving...",
   "delete": "Delete",
   "deleting": "Deleting...",
   "success": "Success",
   "error": "Error",
+  "errorOops": "Oops!",
+  "errorUnexpected": "Something unexpected happened. Please try again later.",
+  "back_to_home": "Back to Home",
+  "copied": "Copied!",
+  "goBack": "Go Back",
+  "tryAgain": "Try Again",
+  "you": "You",
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "toggle_theme": "Toggle theme",
+  "refresh": "Refresh",
+  "settings": "Settings",
+  "filters": "Filters",
+  "retry": "Retry",
+  "selectAll": "Select all",
   "optional": "Optional",
   "none": "None",
+  "unknown": "Unknown",
+  "no_results": "No results",
+  "customize_columns": "Customize columns",
   "primary": "Primary",
   "secondary": "Secondary",
-  "tertiary": "Tertiary"
+  "tertiary": "Tertiary",
+  "add": "Add",
+  "subtract": "Subtract",
+  "there": "there",
+  "getStarted": "Get Started",
+  "finish": "Finish",
+  "loading": "Loading...",
+  "verifying_session": "Verifying session...",
+  "previous": "Previous",
+  "continue": "Continue",
+  "skip": "Skip",
+  "login": "Login",
+  "logout": "Logout",
+  "compare": "Compare",
+  "apply": "Apply",
+  "selectPlaceholder": "Select an option",
+  "errors": {
+    "unauthorized": "Unauthorized",
+    "noPermission": "You don't have permission to perform this action",
+    "offline": "You're offline",
+    "offlineDescription": "Please check your internet connection and try again"
+  },
+  "dateRange": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "last7": "Last 7 days",
+    "last14": "Last 14 days",
+    "last30": "Last 30 days",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "thisYear": "This year",
+    "lastYear": "Last year"
+  },
+  "trialBanner": {
+    "urgentTitle": "⚠️ Only {{days}} day remaining in your free trial!",
+    "urgentTitle_plural": "⚠️ Only {{days}} days remaining in your free trial!",
+    "warningTitle": "🕐 {{days}} days remaining in your free trial",
+    "normalTitle": "✨ You have {{days}} days left in your free trial",
+    "description": "Enjoying {{feature}}? Add a payment method to continue using it after your trial ends.",
+    "manageButton": "Manage Billing",
+    "redirecting": "Redirecting...",
+    "dismissButton": "Dismiss"
+  },
+  "demoBanner": {
+    "title": "🎉 You're in Demo Mode",
+    "description": "This is a demo venue. Click below to convert to a real venue and start accepting payments.",
+    "convertButton": "Convert to Real",
+    "dismissButton": "Dismiss banner"
+  },
+  "header": {
+    "superadmin": "Superadmin"
+  },
+  "venuesSwitcher": {
+    "title": "Venues",
+    "addVenue": "Add venue",
+    "selectVenue": "Select venue",
+    "current": "(current)"
+  },
+  "layout": {
+    "noVenuesAssigned": "No venues assigned",
+    "noVenuesAssignedDesc": "It looks like you don't have any venues assigned to your account yet. Please contact your administrator for access.",
+    "needHelp": "Need help?",
+    "contactUs": "Contact us",
+    "testPageTitle": "Test Page",
+    "authenticated": "Authenticated",
+    "notAuthenticated": "Not authenticated"
+  },
+  "chat": {
+    "title": "Avoqado Assistant",
+    "queriesRemaining": "queries remaining",
+    "welcome": "Hello! I'm your AI assistant. How can I help you today?",
+    "input": {
+      "placeholder": "Type your message here..."
+    },
+    "errors": {
+      "assistantTitle": "Assistant Error",
+      "sendFailed": "Failed to send message. Please try again.",
+      "clearFailed": "Unable to clear history. Please try again.",
+      "saveFailed": "Could not save the conversation.",
+      "createConversation": "Failed to create new conversation."
+    },
+    "feedback": {
+      "thanksTitle": "Thank you!",
+      "thanksDesc": "Your feedback helps us improve.",
+      "sendError": "Failed to send feedback.",
+      "sentTitle": "Feedback sent",
+      "correctedDesc": "We've recorded your feedback and updated the response.",
+      "recordedDesc": "We've recorded your feedback.",
+      "previousQuestion": "Previous question",
+      "unavailableTitle": "Feedback unavailable",
+      "unavailableDesc": "Cannot provide feedback on cached responses.",
+      "dialog": {
+        "title": "Help us improve",
+        "desc": "Please describe what was wrong with this response and provide a better answer."
+      },
+      "form": {
+        "label": "What was wrong? (Optional: provide a better answer)",
+        "placeholder": "The information was incorrect because..."
+      },
+      "sending": "Sending...",
+      "submit": "Submit Feedback"
+    },
+    "toast": {
+      "historyCleared": {
+        "title": "History cleared",
+        "desc": "Conversation history has been cleared."
+      },
+      "nothingToSave": {
+        "title": "Nothing to save",
+        "desc": "You need at least one conversation to save it."
+      },
+      "conversationUpdated": {
+        "title": "Conversation updated",
+        "desc": "Your conversation has been updated."
+      },
+      "conversationSaved": {
+        "title": "Conversation saved",
+        "desc": "Your conversation has been saved."
+      },
+      "alreadyNew": {
+        "title": "Already a new conversation",
+        "desc": "You're already in a new conversation."
+      },
+      "newConversation": {
+        "title": "New conversation started",
+        "desc": "Previous conversation has been saved."
+      },
+      "conversationLoaded": {
+        "title": "Conversation loaded",
+        "desc": "Loaded: {{title}}"
+      },
+      "conversationDeleted": {
+        "title": "Conversation deleted",
+        "desc": "Deleted: {{title}}"
+      }
+    },
+    "actions": {
+      "collapse_chat": "Collapse chat",
+      "expand_chat": "Expand chat",
+      "view_conversations": "View conversations",
+      "view_saved_conversations": "View saved conversations",
+      "save_conversation": "Save conversation",
+      "nothing_to_save": "Nothing to save",
+      "save_current": "Save current conversation",
+      "already_saved": "Already saved",
+      "new_conversation": "New conversation",
+      "create_new_conversation": "Create new conversation",
+      "clear_history": "Clear history",
+      "nothing_to_clear": "Nothing to clear",
+      "close_chat": "Close chat"
+    },
+    "saved": {
+      "title": "Saved Conversations",
+      "back": "Back to chat",
+      "empty": "No saved conversations yet."
+    },
+    "labels": {
+      "cache": "Cached"
+    },
+    "a11y": {
+      "positiveFeedback": "Mark as helpful",
+      "negativeFeedback": "Mark as not helpful",
+      "close": "Close assistant",
+      "open": "Open assistant"
+    },
+    "confirm": {
+      "clear": {
+        "title": "Clear conversation history?",
+        "desc": "This will permanently delete your current conversation. This action cannot be undone.",
+        "confirm": "Clear History"
+      },
+      "delete": {
+        "title": "Delete conversation?",
+        "desc": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+        "confirm": "Delete"
+      }
+    }
+  }
 }

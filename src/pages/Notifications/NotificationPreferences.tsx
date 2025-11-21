@@ -1,8 +1,8 @@
 import React from 'react'
-import NotificationPreferences from '@/components/notifications/NotificationPreferences'
+import NotificationPreferencesV2 from '@/components/notifications/NotificationPreferencesV2'
 
 const NotificationPreferencesPage: React.FC = () => {
-  return <NotificationPreferences />
+  return <NotificationPreferencesV2 />
 }
 
 export default NotificationPreferencesPage

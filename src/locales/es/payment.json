@@ -2,13 +2,31 @@
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",
+  "filters": {
+    "showing": "Mostrando",
+    "of": "de",
+    "payments": "pagos",
+    "clearAll": "Limpiar filtros",
+    "searchPlaceholder": "Buscar por ID, mesero o monto...",
+    "merchantAccount": "Cuenta Comercial",
+    "allMerchantAccounts": "Todas las Cuentas",
+    "method": "Método de Pago",
+    "allMethods": "Todos los Métodos",
+    "source": "Origen",
+    "allSources": "Todos los Orígenes",
+    "waiter": "Mesero",
+    "allWaiters": "Todos los Meseros"
+  },
   "columns": {
     "date": "Fecha",
     "waiter": "Mesero",
+    "merchantAccount": "Cuenta Comercial",
+    "notAvailable": "N/D",
     "tip": "Propina",
     "source": "Origen",
     "method": "Método",
     "subtotal": "Subtotal",
+    "profit": "Ganancia Avoqado",
     "total": "Total"
   },
   "methods": {
@@ -115,6 +133,14 @@
     },
     "unknownVenue": "Restaurante"
   },
+  "export": {
+    "button": "Exportar",
+    "asCSV": "Exportar como CSV",
+    "asExcel": "Exportar como Excel (.xlsx)",
+    "success": "Se exportaron {{count}} pagos exitosamente",
+    "error": "Error al exportar pagos",
+    "noData": "No hay datos para exportar"
+  },
   "detail": {
     "title": "Detalles del Pago",
     "idLabel": "ID",
@@ -134,15 +160,26 @@
       "tips": "Propinas",
       "method": "Método",
       "waiter": "Mesero",
-      "waiterUnknown": "N/A"
+      "waiterUnknown": "N/A",
+      "merchantAccount": "Cuenta Comercial",
+      "notAvailable": "N/D"
     },
     "totals": {
       "total": "Total"
     },
+    "timeline": {
+      "title": "Actividad Reciente",
+      "receiptViewed": "Recibo visto",
+      "receiptSent": "Recibo enviado",
+      "paymentProcessed": "Pago procesado",
+      "statusUpdated": "Estado actualizado"
+    },
     "sections": {
       "transactionInfo": "Información de la Transacción",
       "transactionInfoDesc": "Detalles completos de la transacción y metadatos",
-      "billInfo": "Información de la Cuenta"
+      "billInfo": "Información de la Cuenta",
+      "merchantAccountInfo": "Información de la Cuenta Comercial",
+      "merchantAccountDesc": "Información de la cuenta comercial"
     },
     "fields": {
       "dateTime": "Fecha y Hora",
@@ -153,7 +190,13 @@
       "referenceNumber": "Número de Referencia",
       "orderId": "ID de Orden",
       "shiftId": "ID de Turno",
-      "entryMode": "Modo de Entrada"
+      "entryMode": "Modo de Entrada",
+      "merchantName": "Nombre del Comercio",
+      "bankName": "Banco",
+      "clabeNumber": "Número CLABE",
+      "accountHolder": "Titular de la Cuenta",
+      "blumonSerial": "Número de Serie Blumon",
+      "provider": "Proveedor de Pagos"
     },
     "entryModes": {
       "contactless": "Sin contacto",
@@ -208,6 +251,13 @@
       "amount": "Monto de Propina",
       "percentage": "Porcentaje",
       "beneficiary": "Beneficiario"
+    },
+    "sidebar": {
+      "quickInfo": "Información Rápida",
+      "table": "Mesa",
+      "processedBy": "Procesado por",
+      "shift": "Turno",
+      "noBeneficiary": "Sin beneficiario"
     },
     "footer": {
       "copyright": "© 2025 Avoqado. Todos los derechos reservados.",

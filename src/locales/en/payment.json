@@ -2,13 +2,31 @@
   "title": "Payments",
   "searchPlaceholder": "Search by waiter, total or method...",
   "errorPrefix": "Failed to load payments",
+  "filters": {
+    "showing": "Showing",
+    "of": "of",
+    "payments": "payments",
+    "clearAll": "Clear all filters",
+    "searchPlaceholder": "Search by ID, waiter, or amount...",
+    "merchantAccount": "Merchant Account",
+    "allMerchantAccounts": "All Accounts",
+    "method": "Payment Method",
+    "allMethods": "All Methods",
+    "source": "Source",
+    "allSources": "All Sources",
+    "waiter": "Waiter",
+    "allWaiters": "All Waiters"
+  },
   "columns": {
     "date": "Date",
     "waiter": "Waiter",
+    "merchantAccount": "Merchant Account",
+    "notAvailable": "N/A",
     "tip": "Tip",
     "source": "Source",
     "method": "Method",
     "subtotal": "Subtotal",
+    "profit": "Avoqado Profit",
     "total": "Total"
   },
   "methods": {
@@ -115,6 +133,14 @@
     },
     "unknownVenue": "Restaurant"
   },
+  "export": {
+    "button": "Export",
+    "asCSV": "Export as CSV",
+    "asExcel": "Export as Excel (.xlsx)",
+    "success": "Exported {{count}} payments successfully",
+    "error": "Failed to export payments",
+    "noData": "No data to export"
+  },
   "detail": {
     "title": "Payment Details",
     "idLabel": "ID",
@@ -134,15 +160,26 @@
       "tips": "Tips",
       "method": "Method",
       "waiter": "Waiter",
-      "waiterUnknown": "N/A"
+      "waiterUnknown": "N/A",
+      "merchantAccount": "Merchant Account",
+      "notAvailable": "N/A"
     },
     "totals": {
       "total": "Total"
     },
+    "timeline": {
+      "title": "Recent Activity",
+      "receiptViewed": "Receipt viewed",
+      "receiptSent": "Receipt sent",
+      "paymentProcessed": "Payment processed",
+      "statusUpdated": "Status updated"
+    },
     "sections": {
       "transactionInfo": "Transaction Information",
       "transactionInfoDesc": "Complete transaction details and metadata",
-      "billInfo": "Bill Information"
+      "billInfo": "Bill Information",
+      "merchantAccountInfo": "Merchant Account Information",
+      "merchantAccountDesc": "Merchant account information"
     },
     "fields": {
       "dateTime": "Date & Time",
@@ -153,7 +190,13 @@
       "referenceNumber": "Reference Number",
       "orderId": "Order ID",
       "shiftId": "Shift ID",
-      "entryMode": "Entry Mode"
+      "entryMode": "Entry Mode",
+      "merchantName": "Merchant Name",
+      "bankName": "Bank",
+      "clabeNumber": "CLABE Number",
+      "accountHolder": "Account Holder",
+      "blumonSerial": "Blumon Serial Number",
+      "provider": "Payment Provider"
     },
     "entryModes": {
       "contactless": "Contactless",
@@ -208,6 +251,13 @@
       "amount": "Tip Amount",
       "percentage": "Percentage",
       "beneficiary": "Beneficiary"
+    },
+    "sidebar": {
+      "quickInfo": "Quick Info",
+      "table": "Table",
+      "processedBy": "Processed by",
+      "shift": "Shift",
+      "noBeneficiary": "No beneficiary"
     },
     "footer": {
       "copyright": "© 2025 Avoqado. All rights reserved.",

@@ -9,7 +9,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight, Lock, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom' // Import Link
 import { useTranslation } from 'react-i18next'
 
@@ -22,9 +22,14 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    superadminOnly?: boolean
+    locked?: boolean
+    permission?: string
     items?: {
       title: string
       url: string
+      superadminOnly?: boolean
+      permission?: string | null
     }[]
   }[]
   superadminItems?: {
@@ -32,15 +37,27 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    superadminOnly?: boolean
     items?: {
       title: string
       url: string
+      superadminOnly?: boolean
     }[]
   }[]
 }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('sidebar')
+
+  const isSuperadminPath = (url: string) => url.startsWith('/superadmin')
+  const superadminButtonClass =
+    'hover:bg-amber-500/10 dark:hover:bg-amber-500/20 focus-visible:ring-amber-400/60 data-[active=true]:bg-amber-500/15 dark:data-[active=true]:bg-amber-500/25 data-[active=true]:shadow-[0_0_14px_rgba(251,191,36,0.35)]'
+  const superadminSubButtonClass =
+    'hover:bg-amber-500/10 dark:hover:bg-amber-500/20 focus-visible:ring-amber-400/60 data-[active=true]:bg-amber-500/15 dark:data-[active=true]:bg-amber-500/25'
+  const superadminGradientTextClass =
+    'inline-block bg-linear-to-r from-amber-300 via-orange-400 to-pink-500 bg-clip-text text-transparent font-semibold drop-shadow-[0_0_12px_rgba(251,191,36,0.35)] dark:from-amber-200 dark:via-orange-300 dark:to-pink-400'
+  const superadminIconClass =
+    'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.35)] dark:text-amber-200 dark:drop-shadow-[0_0_10px_rgba(251,191,36,0.45)]'
 
   // Determine if a primary item is active based on current pathname.
   const isItemActive = (url: string) => {
@@ -65,45 +82,73 @@ export function NavMain({
       <SidebarGroup>
         <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
         <SidebarMenu>
-          {items.map(item =>
-            item.items ? (
-              <Collapsible
-                key={item.url}
-                asChild
-                defaultOpen={item.isActive || (item.items?.some(s => isSubItemActive(s.url)) ?? false)}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.items.map(subItem => (
-                        <SidebarMenuSubItem key={subItem.url}>
-                          <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)}>
-                            <NavLink to={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            ) : (
+          {items.map(item => {
+            const isSuperadminItem = isSuperadminPath(item.url) || !!item.superadminOnly
+
+            if (item.items) {
+              return (
+                <Collapsible
+                  key={item.url}
+                  asChild
+                  defaultOpen={item.isActive || (item.items?.some(s => isSubItemActive(s.url)) ?? false)}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={isItemActive(item.url)}
+                        className={isSuperadminItem ? superadminButtonClass : undefined}
+                      >
+                        {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
+                        <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map(subItem => {
+                          const isSuperadminSubItem = isSuperadminPath(subItem.url) || !!subItem.superadminOnly
+                          return (
+                            <SidebarMenuSubItem key={subItem.url}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isSubItemActive(subItem.url)}
+                                className={isSuperadminSubItem ? superadminSubButtonClass : undefined}
+                              >
+                                <NavLink to={subItem.url}>
+                                  <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>{subItem.title}</span>
+                                </NavLink>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          )
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )
+            }
+
+            return (
               // Render direct link for items without sub-items
               <SidebarMenuItem key={item.url}>
-                <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={isItemActive(item.url)}
+                  className={isSuperadminItem ? superadminButtonClass : undefined}
+                >
                   <NavLink
-                    to={item.url}
-                    className="flex items-center"
+                    to={item.locked ? 'kyc-required' : item.url}
+                    className="flex items-center gap-2"
                     onClick={e => {
+                      // For locked items, redirect to KYC required page
+                      if (item.locked) {
+                        e.preventDefault()
+                        navigate('kyc-required')
+                        return
+                      }
                       // For superadmin routes, prevent default and navigate manually
                       if (item.url.startsWith('/superadmin')) {
                         e.preventDefault()
@@ -111,13 +156,16 @@ export function NavMain({
                       }
                     }}
                   >
-                    {item.icon && <item.icon />}
-                    <span className="">{item.title}</span>
+                    {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
+                    <span className={isSuperadminItem ? superadminGradientTextClass : undefined}>{item.title}</span>
+                    {item.locked && (
+                      <Lock className="ml-auto h-3 w-3 text-muted-foreground opacity-70" aria-label="Requires KYC verification" />
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            ),
-          )}
+            )
+          })}
         </SidebarMenu>
       </SidebarGroup>
 
@@ -135,9 +183,9 @@ export function NavMain({
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
+                      <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
+                        {item.icon && <item.icon className={superadminIconClass} />}
+                        <span className={superadminGradientTextClass}>{item.title}</span>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -145,9 +193,9 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items.map(subItem => (
                           <SidebarMenuSubItem key={subItem.url}>
-                            <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)}>
+                            <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
                               <NavLink to={subItem.url}>
-                                <span>{subItem.title}</span>
+                                <span className={superadminGradientTextClass}>{subItem.title}</span>
                               </NavLink>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -158,7 +206,7 @@ export function NavMain({
                 </Collapsible>
               ) : (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
                     <NavLink
                       to={item.url}
                       className="flex items-center"
@@ -169,8 +217,8 @@ export function NavMain({
                         }
                       }}
                     >
-                      {item.icon && <item.icon />}
-                      <span className="">{item.title}</span>
+                      {item.icon && <item.icon className={superadminIconClass} />}
+                      <span className={superadminGradientTextClass}>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

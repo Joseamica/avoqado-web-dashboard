@@ -1,0 +1,116 @@
+{
+  "title": "Saldo Disponible",
+  "description": "Visualiza tu calendario de liquidación y fondos disponibles por método de pago",
+
+  "error": {
+    "prefix": "Error",
+    "noVenue": "No hay sucursal seleccionada",
+    "unexpected": "Ocurrió un error inesperado"
+  },
+
+  "kpi": {
+    "availableNow": "Disponible Ahora",
+    "availableNowDescription": "Ya liquidado y disponible para retiro",
+    "pending": "Pendiente de Liquidación",
+    "pendingDescription": "En espera de liquidación del procesador de pagos",
+    "nextSettlement": "Próxima Liquidación",
+    "nextSettlementDate": "Esperada para {{date}}"
+  },
+
+  "breakdown": {
+    "title": "Desglose por Tipo de Tarjeta",
+    "description": "Detalles de liquidación por método de pago",
+    "table": {
+      "cardType": "Tipo de Tarjeta",
+      "transactions": "Transacciones",
+      "totalSales": "Ventas Totales",
+      "fees": "Comisiones",
+      "netAmount": "Monto Neto",
+      "settlementDays": "Tiempo de Liquidación",
+      "pending": "Pendiente",
+      "settled": "Liquidado",
+      "days": "{{count}} día",
+      "days_other": "{{count}} días",
+      "noData": "No se encontraron transacciones"
+    }
+  },
+
+  "cardType": {
+    "debit": "Débito",
+    "credit": "Crédito",
+    "amex": "American Express",
+    "international": "Internacional"
+  },
+
+  "timeline": {
+    "title": "Línea de Tiempo de Liquidaciones",
+    "description": "Liquidaciones históricas y proyectadas",
+    "table": {
+      "date": "Fecha de Transacción",
+      "status": "Estado",
+      "transactions": "Transacciones",
+      "gross": "Monto Bruto",
+      "fees": "Comisiones",
+      "net": "Monto Neto",
+      "settlementDate": "Fecha de Liquidación",
+      "noData": "No hay datos de liquidación disponibles"
+    },
+    "viewAll": "Ver Todo ({{count}})"
+  },
+
+  "status": {
+    "settled": "Liquidado",
+    "pending": "Pendiente",
+    "projected": "Proyectado"
+  },
+
+  "simulate": {
+    "button": "Simular Transacción",
+    "title": "Simulador de Transacciones",
+    "description": "Calcula la fecha de liquidación para una transacción hipotética",
+    "form": {
+      "amount": "Monto de Transacción",
+      "amountPlaceholder": "Ingresa el monto",
+      "cardType": "Tipo de Tarjeta",
+      "cardTypePlaceholder": "Selecciona tipo de tarjeta",
+      "transactionDate": "Fecha de Transacción",
+      "transactionTime": "Hora de Transacción (Opcional)",
+      "transactionTimePlaceholder": "HH:MM",
+      "submit": "Calcular Liquidación",
+      "cancel": "Cancelar"
+    },
+    "result": {
+      "title": "Resultado de Simulación",
+      "settlementDate": "Fecha Estimada de Liquidación",
+      "settlementDays": "Días de Liquidación",
+      "grossAmount": "Monto Bruto",
+      "fees": "Comisiones Estimadas",
+      "netAmount": "Monto Neto de Liquidación",
+      "configuration": "Configuración de Liquidación",
+      "configDays": "{{count}} {{type}}",
+      "businessDays": "día hábil",
+      "businessDays_other": "días hábiles",
+      "calendarDays": "día calendario",
+      "calendarDays_other": "días calendario",
+      "cutoffTime": "Hora de corte: {{time}}"
+    },
+    "error": "Error al simular transacción"
+  },
+
+  "projection": {
+    "button": "Ver Proyección",
+    "title": "Proyección de Saldo",
+    "description": "Liquidaciones proyectadas basadas en patrones históricos",
+    "days": "Período de Proyección (Días)",
+    "daysPlaceholder": "Ingresa número de días",
+    "submit": "Generar Proyección",
+    "result": {
+      "projectedBalance": "Saldo Proyectado",
+      "dailyAverage": "Promedio Diario de Liquidación",
+      "confidence": "Nivel de Confianza",
+      "confidenceHigh": "Alto",
+      "confidenceMedium": "Medio",
+      "confidenceLow": "Bajo"
+    }
+  }
+}

@@ -2,6 +2,7 @@
   "summary": "Résumé",
   "main": "Tableau de bord principal",
   "analytics": "Analytique",
+  "availableBalance": "Solde Disponible",
   "alerts": "Alertes",
   "superadmin": "Superadministrateur",
   "business": "Gestion commerciale",
@@ -29,5 +30,26 @@
     "view": "Afficher",
     "share": "Partager",
     "delete": "Supprimer"
+  },
+  "routes": {
+    "home": "Accueil",
+    "menu": "Produits",
+    "menumaker": "Produits",
+    "overview": "Aperçu",
+    "inventory": "Inventaire",
+    "payments": "Paiements",
+    "orders": "Commandes",
+    "shifts": "Quarts de travail",
+    "tpv": "Terminaux",
+    "reviews": "Avis",
+    "settings": "Paramètres",
+    "editvenue": "Modifier l'établissement",
+    "teams": "Équipes",
+    "billing": "Facturation",
+    "limits": "Limites",
+    "categories": "Catégories",
+    "products": "Produits",
+    "users": "Utilisateurs",
+    "waiters": "Serveurs"
   }
 }

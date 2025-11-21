@@ -30,8 +30,8 @@ export default function CreateCategory() {
   })
 
   const { data: products, isLoading: isProductsLoading } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
 

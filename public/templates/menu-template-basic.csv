@@ -1,0 +1,7 @@
+name,sku,price,category,description,type
+Cheeseburger,BURGER-001,12.99,Burgers,Classic beef burger with cheese,FOOD
+French Fries,FRIES-001,4.99,Sides,Crispy golden fries,FOOD
+Soda,SODA-001,2.50,Beverages,Refreshing soft drink,BEVERAGE
+Caesar Salad,SALAD-001,8.99,Salads,Fresh romaine with caesar dressing,FOOD
+Chicken Wings,WINGS-001,10.99,Appetizers,Spicy buffalo wings with ranch,FOOD
+Beer,BEER-001,5.99,Beverages,Cold draft beer,ALCOHOL

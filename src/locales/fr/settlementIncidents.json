@@ -1,0 +1,41 @@
+{
+  "pendingAlert": {
+    "title": "{{count}} Confirmation de Règlement en Attente",
+    "title_plural": "{{count}} Confirmations de Règlement en Attente",
+    "description": "Vous avez des règlements totalisant {{amount}} qui nécessitent une confirmation"
+  },
+  "pendingIncidents": {
+    "title": "Confirmations de Règlement en Attente",
+    "description": "Veuillez confirmer si ces règlements attendus sont arrivés sur votre compte bancaire",
+    "expectedOn": "Attendu le",
+    "confirmButton": "Confirmer",
+    "totalPending": "Total en Attente"
+  },
+  "confirmDialog": {
+    "title": "Confirmer le Statut du Règlement",
+    "description": "Veuillez confirmer si ce règlement est arrivé sur votre compte bancaire",
+    "processor": "Processeur",
+    "expectedDate": "Date Prévue",
+    "amount": "Montant",
+    "cardType": "Type de Carte",
+    "question": "Cet argent est-il arrivé sur votre compte bancaire?",
+    "yes": "Oui, il est arrivé",
+    "no": "Non, pas encore arrivé",
+    "actualDate": "Quand est-il arrivé?",
+    "selectDate": "Sélectionner la date",
+    "notes": "Notes",
+    "notesPlaceholder": "Ajoutez des notes supplémentaires sur ce règlement...",
+    "success": "Règlement confirmé avec succès",
+    "error": "Erreur lors de la confirmation du règlement",
+    "errorDescription": "Une erreur s'est produite lors de la confirmation du règlement. Veuillez réessayer."
+  },
+  "stats": {
+    "title": "Fiabilité des Règlements",
+    "total": "Total des Incidents",
+    "pending": "En Attente de Confirmation",
+    "delayed": "Retards Confirmés",
+    "resolved": "Résolus",
+    "escalated": "Escaladés",
+    "averageDelay": "Retard Moyen"
+  }
+}

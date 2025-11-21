@@ -1,0 +1,26 @@
+{
+  "title": "Shifts",
+  "open": "Open",
+  "closed": "Closed",
+  "columns": {
+    "status": "Status",
+    "shiftId": "Shift ID",
+    "openTime": "Open time",
+    "closeTime": "Close time",
+    "totalTip": "Total tip",
+    "totalSales": "Total Sales",
+    "subtotal": "Subtotal",
+    "total": "Total"
+  },
+  "detail": {
+    "turnIdLabel": "Shift ID",
+    "systemIdLabel": "System ID",
+    "openTimeLabel": "Opening Time",
+    "closeTimeLabel": "Closing Time"
+  },
+  "notifications": {
+    "shiftOpened": "Shift Opened",
+    "shiftClosed": "Shift Closed",
+    "shiftClosedDescription": "Total sales: {{amount}}"
+  }
+}

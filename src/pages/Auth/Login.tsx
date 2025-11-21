@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Loader2 } from 'lucide-react'
 
 import Logo from '@/assets/logo'
 import CoverLogin from '@/assets/cover-login.png'
@@ -8,13 +9,92 @@ import { UserAuthForm } from './components/UserAuthForm'
 import { ThemeToggle } from '@/components/theme-toggle'
 import LanguageSwitcher from '@/components/language-switcher'
 import { clearAllChatStorage } from '@/services/chatService'
+import { useToast } from '@/hooks/use-toast'
+import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
+import { useAuth } from '@/context/AuthContext'
+import { liveDemoAutoLogin, isLiveDemoEnvironment } from '@/services/liveDemo.service'
+import { useNavigate } from 'react-router-dom'
 
 const Login: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('auth')
+  const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const { isAuthenticated, loginWithOneTap } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     clearAllChatStorage()
-  }, [])
+
+    // 🎭 Auto-login for live demo environment
+    if (isLiveDemoEnvironment()) {
+      setIsRedirecting(true)
+      liveDemoAutoLogin()
+        .then(() => {
+          // Redirect to dashboard after successful auto-login
+          window.location.href = '/'
+        })
+        .catch((error) => {
+          console.error('Live demo auto-login failed:', error)
+          setIsRedirecting(false)
+          toast({
+            title: 'Demo Error',
+            description: 'Failed to initialize demo session. Please try again.',
+            variant: 'destructive',
+          })
+        })
+      return // Exit early, don't run other login logic
+    }
+
+    // Check if user just verified their email
+    const verified = searchParams.get('verified')
+    if (verified === 'true') {
+      toast({
+        title: t('verification.successTitle'),
+        description: t('verification.successDescriptionLogin'),
+      })
+    }
+
+    // Check if there's a pending invitation URL after logout
+    const pendingInvitationUrl = localStorage.getItem('pendingInvitationUrl')
+    if (pendingInvitationUrl) {
+      setIsRedirecting(true)
+      // Clear the stored URL
+      localStorage.removeItem('pendingInvitationUrl')
+      // Redirect to the invitation page
+      window.location.href = pendingInvitationUrl
+    }
+  }, [searchParams, toast, t, navigate])
+
+  // Initialize Google One Tap
+  useGoogleOneTap({
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+    onSuccess: async (credential) => {
+      try {
+        await loginWithOneTap(credential)
+      } catch (error) {
+        // Error is already handled in AuthContext
+        console.error('Google One Tap login failed:', error)
+      }
+    },
+    onError: (error) => {
+      // Silently fail - One Tap is a nice-to-have feature
+      console.debug('Google One Tap not available:', error)
+    },
+    disabled: isAuthenticated || isRedirecting,
+  })
+
+  // Show loading state during redirect
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">{t('login.redirecting')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2 bg-background text-foreground">
@@ -37,13 +117,13 @@ const Login: React.FC = () => {
           </div>
         </div>
         <div className="text-center text-sm text-muted-foreground">
-          {t('auth.login.termsText')}{' '}
+          {t('login.termsText')}{' '}
           <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
-            {t('auth.login.terms')}
+            {t('login.terms')}
           </Link>{' '}
-          {t('auth.login.and')}{' '}
+          {t('login.and')}{' '}
           <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">
-            {t('auth.login.privacy')}
+            {t('login.privacy')}
           </Link>
           .
         </div>
@@ -51,7 +131,7 @@ const Login: React.FC = () => {
       <div className="bg-muted relative hidden lg:block">
         <img
           src={CoverLogin}
-          alt={t('auth.login.imageAlt')}
+          alt={t('login.imageAlt')}
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>

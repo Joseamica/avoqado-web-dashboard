@@ -393,7 +393,7 @@ export default function LogsSettings() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => clearLogsMutation.mutate()} className={buttonVariants({ variant: 'destructive' })}>
                       {clearLogsMutation.isPending ? (
                         <>

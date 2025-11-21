@@ -2,6 +2,37 @@
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
 
+  "badge": {
+    "status": {
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock"
+    },
+    "method": {
+      "label": "Tracking Method",
+      "quantity": "Quantity (Simple Count)",
+      "recipe": "Recipe (Calculated from Ingredients)"
+    },
+    "unit": "Unit",
+    "modal": {
+      "description": "Detailed inventory information"
+    },
+    "quantity": {
+      "title": "Stock Information",
+      "currentStock": "Current Stock",
+      "reorderPoint": "Reorder Point",
+      "lowStockWarning": "Stock is below reorder point. Consider restocking soon."
+    },
+    "recipe": {
+      "title": "Recipe Information",
+      "maxPortions": "Maximum Portions Available",
+      "ingredients": "Ingredient Breakdown",
+      "required": "Required per portion",
+      "portions": "portions",
+      "cost": "Recipe Cost per Portion"
+    }
+  },
+
   "tabs": {
     "rawMaterials": "Raw Materials",
     "recipes": "Recipes",
@@ -14,6 +45,7 @@
 
   "nav": {
     "rawMaterials": "Raw Materials",
+    "productStock": "Product Stock",
     "recipes": "Recipes",
     "pricing": "Pricing"
   },
@@ -85,6 +117,9 @@
       "reason": "Reason",
       "reference": "Reference",
       "date": "Date",
+      "loading": "Loading recent movements...",
+      "noRecentMovements": "No recent stock movements",
+      "recentActivity": "Recent Activity",
       "types": {
         "PURCHASE": "Purchase",
         "USAGE": "Usage",
@@ -124,6 +159,44 @@
       "costPerUnit": "The cost per unit of measurement you selected. For example, if you selected 'kg', enter the cost per kilogram. If 'liters', enter cost per liter.",
       "perishable": "Check this if the ingredient has an expiration date or limited shelf life (meat, dairy, produce). Enables expiration tracking and alerts.",
       "shelfLifeDays": "The number of days this ingredient stays fresh after receiving it. This is used to automatically calculate expiration dates for each batch you receive. For example, if milk has a 7-day shelf life, a batch received today will expire in 7 days."
+    }
+  },
+
+  "productStock": {
+    "title": "Product Stock",
+    "subtitle": "View and manage simple stock products inventory",
+    "searchPlaceholder": "Search products...",
+    "status": {
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "configError": "Configuration Error"
+    },
+    "errors": {
+      "missingRawMaterial": "Raw material not found",
+      "cannotAdjustMissingRawMaterial": "Cannot adjust: raw material does not exist",
+      "cannotViewMissingRawMaterial": "Cannot view movements: raw material does not exist"
+    },
+    "table": {
+      "columns": {
+        "product": "Product",
+        "currentStock": "Current Stock",
+        "reorderPoint": "Reorder Point",
+        "costPerUnit": "Cost Per Unit",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "noResults": "No products found with simple stock inventory tracking"
+    },
+    "actions": {
+      "adjustStock": "Adjust Stock",
+      "viewMovements": "View Movements"
+    },
+    "stats": {
+      "totalProducts": "Total Products",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "totalValue": "Total Inventory Value"
     }
   },
 
@@ -461,9 +534,29 @@
       "noInventoryDesc": "Best for services, classes, or digital products",
       "useInventory": "Track Inventory",
       "useInventoryDesc": "Track stock levels and costs",
-      "inventoryTypeQuestion": "How do you want to track inventory?",
-      "simpleStock": "Simple Stock",
-      "simpleStockDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
+      "inventoryMethodQuestion": "How do you want to track inventory?",
+      "inventoryMethodHelp": {
+        "title": "Choosing Your Tracking Method",
+        "description": "This decision affects how inventory is managed and costs are calculated.",
+        "quantity": {
+          "title": "Quantity Tracking",
+          "when": "Use when:",
+          "example1": "Selling finished products (retail items, pre-packaged goods)",
+          "example2": "You buy and sell the exact same item",
+          "example3": "No recipe or preparation involved",
+          "note": "Stock is counted directly. Each sale deducts 1 unit."
+        },
+        "recipe": {
+          "title": "Recipe-Based Tracking",
+          "when": "Use when:",
+          "example1": "Making products from ingredients (food, beverages)",
+          "example2": "Need to track ingredient costs and portions",
+          "example3": "Want automatic stock calculation based on available ingredients",
+          "note": "System calculates available portions from ingredient stock."
+        }
+      },
+      "quantityTracking": "Quantity Tracking",
+      "quantityTrackingDesc": "For retail items (jewelry, clothing, etc.) - tracks quantity only",
       "recipeBased": "Recipe-Based",
       "recipeBasedDesc": "For restaurants - tracks ingredients and calculates costs",
       "success": "Inventory configured successfully!",
@@ -471,7 +564,7 @@
     },
     "step3": {
       "title": "Setup Inventory",
-      "simpleStockInfo": "Set up initial stock levels for this product. Each sale will deduct 1 unit.",
+      "simpleStockInfo": "Set up initial stock levels for quantity tracking. Each sale will deduct 1 unit.",
       "recipeInfo": "Configure the recipe for this product. You can add ingredients later.",
       "initialStock": "Initial Stock",
       "initialStockHelp": "How many units do you currently have in stock? (tracked as unit count)",
@@ -495,18 +588,18 @@
   "conversion": {
     "toRecipe": {
       "title": "Switch to Recipe?",
-      "message": "To add ingredients, we'll update your configuration. Your current simple stock will be removed and switched to recipe-based tracking.",
+      "message": "To add ingredients, we'll update your configuration. Your current quantity tracking will be removed and switched to recipe-based tracking.",
       "confirm": "Yes, switch",
       "cancel": "Cancel",
       "success": "Configuration updated to recipe",
       "error": "Failed to change configuration"
     },
-    "toSimpleStock": {
-      "title": "Switch to Simple Stock?",
-      "message": "To use simple stock, we'll update your configuration. Your current recipe and its ingredients will be removed and switched to unit tracking.",
+    "toQuantity": {
+      "title": "Switch to Quantity Tracking?",
+      "message": "To use quantity tracking, we'll update your configuration. Your current recipe and its ingredients will be removed and switched to unit tracking.",
       "confirm": "Yes, switch",
       "cancel": "Cancel",
-      "success": "Configuration updated to simple stock",
+      "success": "Configuration updated to quantity tracking",
       "error": "Failed to change configuration"
     },
     "confirmationNeeded": "Confirmation Required",
@@ -582,6 +675,117 @@
     "HOUR_plural": "Hours",
     "DAY": "Day",
     "DAY_plural": "Days"
+  },
+
+  "waste": {
+    "title": "Log Waste",
+    "reason": "Waste Reason",
+    "selectReason": "Select a waste reason",
+    "reasonRequired": "Waste reason is required",
+    "quantityWasted": "Quantity Wasted",
+    "quantityRequired": "Quantity is required",
+    "quantityMinimum": "Quantity must be greater than 0",
+    "afterWaste": "After Waste",
+    "wastedAmount": "Wasted Amount",
+    "willBeDeducted": "will be deducted from stock",
+    "insufficientStock": "This waste log will result in negative stock. Stock cannot be negative.",
+    "notes": "Additional Notes",
+    "notesPlaceholder": "Add any additional details about this waste...",
+    "notesHelp": "Optional: Provide context, batch numbers, or other relevant information",
+    "logWaste": "Log Waste",
+    "logged": "Waste Logged",
+    "loggedDesc": "Waste has been recorded and stock adjusted",
+    "errorLogging": "Failed to log waste",
+    "categories": {
+      "quality": "Product Quality",
+      "operational": "Operational",
+      "customer": "Customer-Related",
+      "intentional": "Intentional Use",
+      "loss": "Loss/Theft",
+      "other": "Other"
+    },
+    "reasons": {
+      "EXPIRED": {
+        "label": "Expired",
+        "description": "Product past expiration/best-by date"
+      },
+      "SPOILED": {
+        "label": "Spoiled/Damaged",
+        "description": "Product spoiled, moldy, or damaged before use"
+      },
+      "CONTAMINATED": {
+        "label": "Contaminated",
+        "description": "Product contaminated or compromised"
+      },
+      "DEFECTIVE": {
+        "label": "Defective",
+        "description": "Received defective or substandard quality"
+      },
+      "OVERPRODUCTION": {
+        "label": "Overproduction",
+        "description": "Prepared too much, not sold"
+      },
+      "PREP_ERROR": {
+        "label": "Preparation Error",
+        "description": "Mistake during preparation/cooking"
+      },
+      "BURNT": {
+        "label": "Burnt/Overcooked",
+        "description": "Product burnt or overcooked"
+      },
+      "UNDERCOOKED": {
+        "label": "Undercooked",
+        "description": "Product undercooked or improperly prepared"
+      },
+      "DROPPED": {
+        "label": "Dropped/Spilled",
+        "description": "Accidentally dropped or spilled"
+      },
+      "CUSTOMER_RETURN": {
+        "label": "Customer Return",
+        "description": "Customer complaint or dissatisfaction"
+      },
+      "WRONG_ORDER": {
+        "label": "Wrong Order",
+        "description": "Incorrect order prepared"
+      },
+      "CUSTOMER_CHANGE": {
+        "label": "Customer Changed Mind",
+        "description": "Customer modified or cancelled order"
+      },
+      "TESTING": {
+        "label": "Testing/Sampling",
+        "description": "Quality testing or customer samples"
+      },
+      "STAFF_MEAL": {
+        "label": "Staff Meal",
+        "description": "Provided to staff members"
+      },
+      "PROMOTION": {
+        "label": "Promotion/Comp",
+        "description": "Promotional giveaway or comp"
+      },
+      "DONATION": {
+        "label": "Donation",
+        "description": "Donated to charity or community"
+      },
+      "THEFT": {
+        "label": "Theft",
+        "description": "Product stolen"
+      },
+      "MISSING": {
+        "label": "Missing/Unaccounted",
+        "description": "Cannot locate inventory"
+      },
+      "PEST_DAMAGE": {
+        "label": "Pest Damage",
+        "description": "Damaged by pests or rodents"
+      },
+      "OTHER": {
+        "label": "Other",
+        "description": "Other reason (specify in notes)"
+      }
+    }
   },
 
   "common": {

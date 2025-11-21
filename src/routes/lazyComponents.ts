@@ -4,8 +4,14 @@ import React from 'react'
 export const Dashboard = React.lazy(() => import('@/dashboard'))
 export const ErrorPage = React.lazy(() => import('@/error-page'))
 export const Login = React.lazy(() => import('@/pages/Auth/Login'))
+export const Signup = React.lazy(() => import('@/pages/Auth/Signup'))
+export const ForgotPassword = React.lazy(() => import('@/pages/Auth/ForgotPassword'))
+export const ResetPassword = React.lazy(() => import('@/pages/Auth/ResetPassword'))
+export const EmailVerification = React.lazy(() => import('@/pages/Auth/EmailVerification'))
 export const GoogleOAuthCallback = React.lazy(() => import('@/pages/Auth/GoogleOAuthCallback'))
+export const OnboardingWizard = React.lazy(() => import('@/pages/Onboarding/OnboardingWizard'))
 export const Home = React.lazy(() => import('@/pages/Home'))
+export const AvailableBalance = React.lazy(() => import('@/pages/AvailableBalance/AvailableBalance'))
 export const Categories = React.lazy(() => import('@/pages/Menu/Categories/Categories'))
 export const CategoryId = React.lazy(() => import('@/pages/Menu/Categories/categoryId'))
 export const CreateCategory = React.lazy(() => import('@/pages/Menu/Categories/createCategory'))
@@ -33,7 +39,13 @@ export const Reviews = React.lazy(() => import('@/pages/Review/Reviews'))
 export const Teams = React.lazy(() => import('@/pages/Team/Teams'))
 export const TeamMemberDetails = React.lazy(() => import('@/pages/Team/TeamMemberDetails'))
 export const EditVenue = React.lazy(() => import('@/pages/Venue/Venue.edit'))
+export const VenueEditLayout = React.lazy(() => import('@/pages/Venue/VenueEditLayout'))
+export const BasicInfo = React.lazy(() => import('@/pages/Venue/Edit/BasicInfo'))
+export const ContactImages = React.lazy(() => import('@/pages/Venue/Edit/ContactImages'))
+export const VenueDocuments = React.lazy(() => import('@/pages/Venue/Edit/Documents'))
+export const VenueIntegrations = React.lazy(() => import('@/pages/Venue/Edit/Integrations'))
 export const VenuePaymentConfig = React.lazy(() => import('@/pages/Venue/VenuePaymentConfig'))
+export const EcommerceMerchants = React.lazy(() => import('@/pages/Venue/EcommerceMerchants'))
 export const Shifts = React.lazy(() => import('@/pages/Shift/Shifts'))
 // export const WaiterId = React.lazy(() => import('@/pages/Waiter/waiterId'))
 export const ShiftId = React.lazy(() => import('@/pages/Shift/ShiftId'))
@@ -62,14 +74,17 @@ export { default as SuperadminLayout } from '@/pages/Superadmin/SuperadminLayout
 export { default as SuperadminDashboard } from '@/pages/Superadmin/SuperadminDashboard'
 export { default as SuperadminFeatureManagement } from '@/pages/Superadmin/FeatureManagement'
 export { default as SuperadminVenueManagement } from '@/pages/Superadmin/VenueManagement'
+export { default as KYCReview } from '@/pages/Superadmin/KYCReview'
 export { default as RevenueDashboard } from '@/pages/Superadmin/RevenueDashboard'
 export { default as ProfitAnalyticsDashboard } from '@/pages/Superadmin/ProfitAnalyticsDashboard'
 export { default as TestingPayments } from '@/pages/Superadmin/Testing/TestingPayments'
 export { default as PaymentProviders } from '@/pages/Superadmin/PaymentProviders'
 export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts'
+export { default as Terminals } from '@/pages/Superadmin/Terminals'
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
 export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
+export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
 
 // Legal components
 export const Terms = React.lazy(() => import('@/pages/Legal/Terms'))
@@ -82,8 +97,11 @@ export const AnalyticsOverview = React.lazy(() => import('@/pages/Analytics/Anal
 // Inventory
 export const InventoryLayout = React.lazy(() => import('@/pages/Inventory/InventoryLayout'))
 export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMaterials'))
+export const ProductStock = React.lazy(() => import('@/pages/Inventory/ProductStock'))
 export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
 
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
+export const Billing = React.lazy(() => import('@/pages/Settings/Billing'))
+export const GoogleIntegration = React.lazy(() => import('@/pages/Settings/GoogleIntegration'))

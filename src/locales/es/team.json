@@ -1,0 +1,129 @@
+{
+  "edit": {
+    "memberUpdated": "Miembro actualizado",
+    "memberUpdatedDesc": "Se actualizó correctamente la información de {{firstName}} {{lastName}}.",
+    "noChanges": "Sin cambios",
+    "noChangesDesc": "No se detectaron cambios para guardar.",
+    "cannotChangeOwnerRole": "No puedes cambiar el rol de un Propietario.",
+    "cannotChangeSuperadminRole": "No puedes cambiar el rol de un Super Administrador.",
+    "cannotDeactivateOwner": "No puedes desactivar al propietario del venue.",
+    "memberStatus": "Estado del miembro",
+    "memberActive": "El miembro puede acceder al sistema",
+    "memberInactive": "El miembro no puede acceder al sistema",
+    "changePin": "Cambiar PIN (opcional)",
+    "newPin": "Nuevo PIN de 4 dígitos",
+    "newPinSet": "Se establecerá un nuevo PIN para el miembro",
+    "totalSales": "Ventas Totales",
+    "orders": "Ordenes",
+    "saving": "Guardando...",
+    "saveChanges": "Guardar Cambios",
+    "role": "Rol",
+    "newRole": "Nuevo Rol",
+    "roles": {
+      "admin": "Administrador",
+      "adminDesc": "Acceso completo a configuración del venue y gestión de equipo",
+      "manager": "Gerente",
+      "managerDesc": "Gestionar personal, turnos y análisis básicos",
+      "waiter": "Mesero",
+      "waiterDesc": "Tomar y gestionar órdenes, acceso al menú",
+      "cashier": "Cajero",
+      "cashierDesc": "Procesar pagos y manejar transacciones",
+      "kitchen": "Cocina",
+      "kitchenDesc": "Ver y preparar órdenes desde la cocina",
+      "host": "Anfitrión",
+      "hostDesc": "Gestionar reservas de mesas y asientos",
+      "viewer": "Visualizador",
+      "viewerDesc": "Acceso de solo lectura a análisis y reportes"
+    },
+    "validation": {
+      "pinFormat": "El PIN debe tener exactamente 4 dígitos"
+    }
+  },
+  "invite": {
+    "invitationSent": "Invitación enviada",
+    "invitationSentDesc": "Se envió una invitación a {{email}}. La invitación expira en 7 días.",
+    "emailLabel": "Correo del invitado",
+    "firstNameLabel": "Nombre",
+    "lastNameLabel": "Apellido",
+    "roleLabel": "Rol",
+    "messageLabel": "Mensaje personalizado (opcional)",
+    "messagePlaceholder": "Escribe un mensaje de bienvenida para el nuevo miembro del equipo...",
+    "infoAlert": "El invitado recibirá un correo con un enlace para crear su cuenta y unirse al equipo. Puede iniciar sesión con su cuenta de Google o crear una contraseña. La invitación expira automáticamente en 7 días.",
+    "sending": "Enviando...",
+    "sendButton": "Enviar Invitación",
+    "emailPlaceholder": "ejemplo@empresa.com",
+    "firstNamePlaceholder": "Nombre",
+    "lastNamePlaceholder": "Apellido",
+    "roleSelectPlaceholder": "Selecciona un rol",
+    "validation": {
+      "emailFormat": "Por favor ingresa un correo válido",
+      "emailRequired": "El correo es requerido",
+      "firstNameRequired": "El nombre es requerido",
+      "firstNameMax": "El nombre no puede exceder 50 caracteres",
+      "lastNameRequired": "El apellido es requerido",
+      "lastNameMax": "El apellido no puede exceder 50 caracteres",
+      "roleRequired": "El rol es requerido",
+      "messageMax": "El mensaje no puede exceder 500 caracteres"
+    },
+    "invitationError": "Error al enviar la invitación"
+  },
+  "header": {
+    "title": "Miembros del Equipo",
+    "subtitle": "Gestiona tu equipo e invita nuevos miembros",
+    "inviteButton": "Invitar Miembro",
+    "inviteDialog": {
+      "title": "Invitar Nuevo Miembro",
+      "desc": "Envía una invitación a un nuevo miembro para unirse a tu venue"
+    }
+  },
+  "tabs": {
+    "members": "Miembros",
+    "invitations": "Invitaciones Pendientes"
+  },
+  "columns": {
+    "name": "Nombre",
+    "role": "Rol",
+    "status": "Estado",
+    "totalSales": "Ventas Totales",
+    "totalOrders": "Órdenes Totales",
+    "email": "Correo",
+    "invitedBy": "Invitado por {{name}}",
+    "sent": "Fecha de Envío",
+    "expires": "Expira"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "expired": "Expirada"
+  },
+  "actions": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "resend": "Reenviar",
+    "cancel": "Cancelar"
+  },
+  "cards": {
+    "pendingInvitationsTitle": "Invitaciones Pendientes",
+    "pendingInvitationsDesc": "Estas invitaciones están esperando respuesta. Expiran automáticamente después de 7 días."
+  },
+  "dialogs": {
+    "editMemberTitle": "Editar Miembro",
+    "editMemberDesc": "Actualiza el rol y configuración de {{firstName}} {{lastName}}.",
+    "removeTitle": "¿Eliminar miembro del equipo?",
+    "removeDesc": "¿Estás seguro de que deseas eliminar a {{firstName}} {{lastName}} del equipo? Esta acción no se puede deshacer y el miembro perderá acceso al dashboard.",
+    "removeConfirm": "Eliminar",
+    "removeCancel": "Cancelar",
+    "removing": "Eliminando..."
+  },
+  "toasts": {
+    "memberRemovedTitle": "Miembro eliminado",
+    "memberRemovedDesc": "{{firstName}} {{lastName}} ha sido eliminado del equipo.",
+    "memberRemoveError": "Error al eliminar miembro",
+    "invitationCancelled": "Invitación cancelada",
+    "invitationCancelledDesc": "La invitación a {{email}} ha sido cancelada.",
+    "invitationCancelError": "Error al cancelar invitación",
+    "invitationResent": "Invitación reenviada",
+    "invitationResentDesc": "Se envió una nueva invitación a {{email}}.",
+    "invitationResendError": "Error al reenviar invitación"
+  }
+}

@@ -8,6 +8,7 @@
     "collapseAll": "Collapse All",
     "createNewProduct": "Create New Product",
     "manageCategories": "Manage Categories",
+    "importMenu": "Import Menu",
     "create": "Create",
     "errorLoading": "Error loading data: {{message}}",
     "draggedItem": "Item",
@@ -166,8 +167,10 @@
       "actions": "Actions"
     },
     "actions": {
+      "title": "Actions",
       "edit": "Edit",
       "assignModifiers": "Assign modifiers and products",
+      "assignModifiersAndProducts": "Assign modifiers and products",
       "delete": "Delete",
       "openMenu": "Open menu"
     },
@@ -176,7 +179,13 @@
       "deleteDescription": "Are you sure you want to delete this modifier group? This action cannot be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel",
-      "deleting": "Deleting..."
+      "deleting": "Deleting...",
+      "delete": {
+        "title": "Delete modifier group",
+        "description": "Are you sure you want to delete this modifier group? This action cannot be undone.",
+        "delete": "Delete",
+        "deleting": "Deleting..."
+      }
     },
     "toasts": {
       "updated": "Modifier group updated",
@@ -265,6 +274,8 @@
       "maxPerModifierDesc": "Maximum number of times the same modifier can be selected",
       "modifiers": "Modifiers",
       "modifiersDesc": "Select the modifiers for this group",
+      "productAssignment": "Product Assignment",
+      "productAssignmentDesc": "Select which products will have this modifier group available",
       "selectExistingModifiers": "Select existing modifiers",
       "selectExistingPlaceholder": "Select existing modifiers...",
       "addNewModifiers": "Add new modifiers",
@@ -274,11 +285,48 @@
       "addAnother": "Add another modifier",
       "creating": "Creating...",
       "createButton": "Create Modifier Group",
+      "removeModifier": "Remove {{name}}",
+      "modifier": "modifier {{index}}",
       "toasts": {
         "created": "Modifier group created",
         "createdDesc": "The modifier group has been created successfully.",
         "createError": "Error creating",
         "createErrorDesc": "There was a problem creating the modifier group."
+      },
+      "errors": {
+        "minMaxInvalid": "Maximum must be greater than or equal to minimum",
+        "requiredMinInvalid": "Required groups must have minimum of at least 1",
+        "noModifiers": "Please add at least one modifier",
+        "duplicateNames": "Modifier names must be unique",
+        "nameTooLong": "Name must be 100 characters or less",
+        "nameExists": "A modifier group with this name already exists",
+        "invalidData": "Invalid data submitted. Please check your inputs."
+      }
+    },
+    "editModifier": {
+      "title": "Edit Modifier",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "Modifier name",
+        "price": "Price",
+        "active": "Active",
+        "activeDesc": "When active, this modifier will be available for selection"
+      },
+      "validation": {
+        "nameRequired": "Name is required",
+        "priceRequired": "Price is required"
+      },
+      "buttons": {
+        "back": "Back",
+        "cancel": "Cancel",
+        "save": "Save Changes",
+        "saving": "Saving..."
+      },
+      "toast": {
+        "updated": "Modifier updated",
+        "updatedDesc": "The modifier has been updated successfully.",
+        "error": "Error updating modifier",
+        "errorDesc": "There was a problem updating the modifier: {{message}}"
       }
     }
   },
@@ -286,18 +334,57 @@
     "title": "Products",
     "new": "New product",
     "imageAlt": "Product",
+    "tabs": {
+      "details": "Details",
+      "inventory": "Inventory",
+      "modifiers": "Modifiers"
+    },
     "columns": {
       "photo": "Photo",
       "name": "Name",
       "price": "Price",
+      "stock": "Stock",
       "categories": "Categories",
       "modifierGroups": "Modifier Groups",
       "updatedAt": "Last update"
+    },
+    "actions": {
+      "adjustStock": "Adjust Stock",
+      "adjustStockDialog": {
+        "title": "Adjust Stock - {{productName}}",
+        "currentStock": "Current Stock",
+        "adjustment": "Adjustment",
+        "adjustmentPlaceholder": "Enter amount (+ to add, - to remove)",
+        "reason": "Reason",
+        "reasonPlaceholder": "Why are you adjusting stock?",
+        "reasons": {
+          "recount": "Physical recount",
+          "damage": "Damaged/Spoiled",
+          "theft": "Theft/Loss",
+          "correction": "Correction",
+          "receiving": "Receiving delivery",
+          "other": "Other"
+        },
+        "newStock": "New Stock",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Additional details...",
+        "cancel": "Cancel",
+        "save": "Save Adjustment",
+        "saving": "Saving..."
+      }
     },
     "toasts": {
       "activated": "Product activated",
       "deactivated": "Product deactivated",
       "saved": "Changes have been saved successfully."
+    },
+    "lowStock": {
+      "alert": "{{count}} product is low on stock",
+      "alert_other": "{{count}} products are low on stock",
+      "viewDetails": "View Details",
+      "filterLabel": "Low Stock Only",
+      "clearFilter": "Clear filter",
+      "noLowStock": "All products are well stocked!"
     },
     "create": {
       "title": "New product",
@@ -368,6 +455,47 @@
       "skuPattern": "SKU can only contain letters, numbers, hyphens and underscores.",
       "imageUnavailable": "Image unavailable",
       "imageCouldNotLoad": "The image could not be loaded",
+      "inventory": {
+        "trackingMethod": "Inventory Tracking",
+        "noTracking": "Don't track inventory",
+        "noTrackingDesc": "No stock management for this product",
+        "trackByQuantity": "Track by quantity",
+        "trackByQuantityDesc": "Simple stock counting (e.g., 50 units in stock)",
+        "trackByRecipe": "Track by recipe",
+        "trackByRecipeDesc": "Calculate availability from ingredient stock",
+        "currentStock": "Current Stock",
+        "currentStockPlaceholder": "0",
+        "currentStockHelp": "How many units you have right now",
+        "costPerUnit": "Cost Per Unit",
+        "costPerUnitPlaceholder": "0.00",
+        "costPerUnitHelp": "How much each unit costs you",
+        "reorderPoint": "Reorder Point",
+        "reorderPointPlaceholder": "10",
+        "reorderPointHelp": "Get alerts when stock falls below this number",
+        "unit": "Unit",
+        "unitPlaceholder": "units, kg, L, etc.",
+        "unitHelp": "How you measure this product (units, kg, liters, etc.)",
+        "portionYield": "Portions per Recipe",
+        "portionYieldPlaceholder": "1",
+        "portionYieldHelp": "How many servings this recipe makes",
+        "prepTime": "Prep Time (minutes)",
+        "prepTimePlaceholder": "0",
+        "cookTime": "Cook Time (minutes)",
+        "cookTimePlaceholder": "0",
+        "recipeNotes": "Recipe Notes",
+        "recipeNotesPlaceholder": "Optional preparation notes...",
+        "ingredients": "Ingredients",
+        "addIngredient": "Add Ingredient",
+        "editRecipe": "Edit Recipe",
+        "noIngredients": "No ingredients added yet. Add at least one ingredient for recipe-based tracking.",
+        "ingredientName": "Ingredient",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "ingredientQuantity": "Quantity",
+        "ingredientUnit": "Unit",
+        "ingredientCost": "Cost",
+        "removeIngredient": "Remove ingredient"
+      },
       "toasts": {
         "saved": "Product saved",
         "savedDesc": "The changes have been saved successfully.",
@@ -378,6 +506,46 @@
         "deleted": "Product deleted",
         "deletedDesc": "The product has been deleted successfully."
       }
+    }
+  },
+  "createMenu": {
+    "loading": "Loading menu form...",
+    "buttons": {
+      "save": "Save menu",
+      "saving": "Saving..."
+    },
+    "toast": {
+      "categoryCreated": "Menu {{name}} created",
+      "categoryCreatedDesc": "The menu has been created successfully.",
+      "errorSaving": "Error saving",
+      "errorSavingDesc": "We couldn't save the menu. Try again."
+    },
+    "validation": {
+      "nameRequired": "Menu name is required.",
+      "dayRequired": "Select at least one day.",
+      "minInterval": "End time must be at least one hour after the start time."
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "fields": {
+      "menuActive": "Menu active",
+      "menuActiveDesc": "Enable this menu to make it visible to your staff and customers.",
+      "menuName": "Menu name",
+      "menuNamePlaceholder": "Enter a menu name",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "selectTime": "Select a time",
+      "allDay": "Available all day",
+      "categories": "Categories",
+      "selectCategories": "Select categories",
+      "noCategoriesFound": "No categories found"
     }
   },
   "menuId": {

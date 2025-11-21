@@ -1,0 +1,41 @@
+{
+  "pendingAlert": {
+    "title": "{{count}} Confirmación de Liquidación Pendiente",
+    "title_plural": "{{count}} Confirmaciones de Liquidación Pendientes",
+    "description": "Tienes liquidaciones por un total de {{amount}} que necesitan confirmación"
+  },
+  "pendingIncidents": {
+    "title": "Confirmaciones de Liquidación Pendientes",
+    "description": "Por favor confirma si estas liquidaciones esperadas han llegado a tu cuenta bancaria",
+    "expectedOn": "Esperado el",
+    "confirmButton": "Confirmar",
+    "totalPending": "Total Pendiente"
+  },
+  "confirmDialog": {
+    "title": "Confirmar Estado de Liquidación",
+    "description": "Por favor confirma si esta liquidación ha llegado a tu cuenta bancaria",
+    "processor": "Procesador",
+    "expectedDate": "Fecha Esperada",
+    "amount": "Monto",
+    "cardType": "Tipo de Tarjeta",
+    "question": "¿Llegó este dinero a tu cuenta bancaria?",
+    "yes": "Sí, llegó",
+    "no": "No, aún no ha llegado",
+    "actualDate": "¿Cuándo llegó?",
+    "selectDate": "Seleccionar fecha",
+    "notes": "Notas",
+    "notesPlaceholder": "Agrega cualquier nota adicional sobre esta liquidación...",
+    "success": "Liquidación confirmada exitosamente",
+    "error": "Error al confirmar la liquidación",
+    "errorDescription": "Hubo un error al confirmar la liquidación. Por favor intenta de nuevo."
+  },
+  "stats": {
+    "title": "Confiabilidad de Liquidaciones",
+    "total": "Incidentes Totales",
+    "pending": "Pendiente de Confirmación",
+    "delayed": "Retrasos Confirmados",
+    "resolved": "Resueltos",
+    "escalated": "Escalados",
+    "averageDelay": "Retraso Promedio"
+  }
+}

@@ -54,7 +54,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
   provider,
   onSave,
 }) => {
-  const { t: _t } = useTranslation()
+  const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     code: '',

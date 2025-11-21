@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CreditCard, Settings, AlertCircle, Loader2, Trash2 } from 'lucide-react'
+import { CreditCard, Settings, AlertCircle, Loader2, Trash2, ShoppingCart, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/context/AuthContext'
@@ -169,6 +169,32 @@ const VenuePaymentConfig: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* E-commerce Merchants Promotion Card */}
+      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-blue-600" />
+            Canales de E-commerce
+          </CardTitle>
+          <CardDescription className="text-blue-800 dark:text-blue-200">
+            Gestiona tus canales de pago online (web, app, marketplace) con credenciales y API keys dedicadas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Configura canales de pago separados para tu sitio web, aplicación móvil, y marketplaces como Rappi o Uber Eats
+            </p>
+            <Link to={`/venues/${slug}/ecommerce-merchants`}>
+              <Button variant="outline" className="ml-4">
+                Gestionar Canales
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Merchant Accounts */}
       {paymentConfig && (

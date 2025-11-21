@@ -296,6 +296,8 @@
       "markRead": "Mark as read",
       "view_all": "View all notifications",
       "none": "No notifications",
+      "unread_count": "{{count}} unread",
+      "unread_count_plural": "{{count}} unread",
       "noneFound": "No notifications found",
       "adjustFilters": "Try adjusting your search or filters",
       "upToDate": "You're up to date! New notifications will show up here.",
@@ -506,38 +508,6 @@
       "monthlyProjection": "Monthly Projection",
       "byVenue": "Commission by Venue",
       "empty": "No commission data available"
-    }
-  },
-  "auth": {
-    "login": {
-      "title": "Sign in",
-      "subtitle": "Enter your email and password to sign in",
-      "emailLabel": "Email",
-      "emailPlaceholder": "myemail@example.com",
-      "passwordLabel": "Password",
-      "forgotPassword": "Forgot your password?",
-      "signInButton": "Sign in",
-      "orContinueWith": "Or continue with",
-      "continueWithGoogle": "Continue with Google",
-      "noAccount": "Don't have an account?",
-      "signUp": "Sign up",
-      "terms": "Terms and Conditions",
-      "privacy": "Privacy Policy",
-      "termsText": "By clicking continue, you agree to our",
-      "and": "and",
-      "emailRequired": "Email is required",
-      "passwordRequired": "Password is required",
-      "imageAlt": "Authentication"
-    },
-    "toast": {
-      "login_success": "Login successful",
-      "login_error_title": "Login failed",
-      "login_error_desc": "Please check your credentials and try again",
-      "switched_to_venue": "Switched to {{name}}",
-      "switch_venue_error_title": "Failed to switch venue",
-      "switch_venue_error_desc": "Unable to switch venue. Please try again",
-      "auth_error_title": "Authentication error",
-      "google_login_error_desc": "Google login failed. Please try again"
     }
   },
   "account": {
@@ -756,7 +726,13 @@
     "seeAllNotifications": "See all notifications",
     "accountSettings": "Account Settings",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "noSearchResults": "No results found",
+    "searchSections": {
+      "venues": "Venues",
+      "activities": "Recent Activities",
+      "alerts": "Alerts"
+    }
   },
   "layout": {
     "noVenuesAssigned": "You have no assigned venues!",
@@ -1086,6 +1062,12 @@
         "title": "Delete Venue",
         "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
       },
+      "kycRejected": {
+        "title": "KYC Documentation Rejected",
+        "description": "Your KYC documentation was rejected. Please review the reason below and resubmit your documents.",
+        "reason": "Rejection Reason:",
+        "resubmitButton": "Resubmit Documents"
+      },
       "notFound": "Venue not found",
       "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",
       "noLogo": "No logo"
@@ -1252,12 +1234,11 @@
       "terminalType": "Terminal Type",
       "selectType": "Select type",
       "types": {
-        "androidTablet": "Android Tablet",
-        "windowsPC": "Windows PC",
-        "linuxDevice": "Linux Device",
-        "mobileDevice": "Mobile Device",
-        "kiosk": "Kiosk",
-        "other": "Other"
+        "tpvAndroid": "TPV Android",
+        "tpvIOS": "TPV iOS",
+        "printerReceipt": "Receipt Printer",
+        "printerKitchen": "Kitchen Printer",
+        "kds": "Kitchen Display System (KDS)"
       },
       "notSpecified": "Not specified",
       "advancedConfig": "Advanced Configuration",
@@ -2579,7 +2560,26 @@
       "orders": "Orders",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
-      "role": "Role"
+      "role": "Role",
+      "roles": {
+        "admin": "Administrator",
+        "adminDesc": "Full access to venue settings and team management",
+        "manager": "Manager",
+        "managerDesc": "Manage staff, shifts, and basic analytics",
+        "waiter": "Waiter",
+        "waiterDesc": "Take and manage orders, access menu",
+        "cashier": "Cashier",
+        "cashierDesc": "Process payments and handle transactions",
+        "kitchen": "Kitchen",
+        "kitchenDesc": "View and prepare orders from the kitchen",
+        "host": "Host",
+        "hostDesc": "Manage table reservations and seating",
+        "viewer": "Viewer",
+        "viewerDesc": "View-only access to analytics and reports"
+      },
+      "validation": {
+        "pinFormat": "PIN must be exactly 4 digits"
+      }
     },
     "invite": {
       "invitationSent": "Invitation sent",
@@ -2596,7 +2596,82 @@
       "emailPlaceholder": "example@company.com",
       "firstNamePlaceholder": "First Name",
       "lastNamePlaceholder": "Last Name",
-      "roleSelectPlaceholder": "Select a role"
+      "roleSelectPlaceholder": "Select a role",
+      "validation": {
+        "emailFormat": "Please enter a valid email address",
+        "emailRequired": "Email is required",
+        "firstNameRequired": "First name is required",
+        "firstNameMax": "First name cannot exceed 50 characters",
+        "lastNameRequired": "Last name is required",
+        "lastNameMax": "Last name cannot exceed 50 characters",
+        "roleRequired": "Role is required",
+        "messageMax": "Message cannot exceed 500 characters"
+      },
+      "invitationError": "Failed to send invitation"
+    },
+    "header": {
+      "title": "Team Members",
+      "subtitle": "Manage your team and invite new members",
+      "inviteButton": "Invite Member",
+      "inviteDialog": {
+        "title": "Invite Team Member",
+        "desc": "Send an invitation to a new team member to join your venue"
+      }
+    },
+    "tabs": {
+      "members": "Members",
+      "invitations": "Pending Invitations"
+    },
+    "columns": {
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "totalSales": "Total Sales",
+      "totalOrders": "Total Orders",
+      "email": "Email",
+      "invitedBy": "Invited by {{name}}",
+      "sent": "Sent Date",
+      "expires": "Expires"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Remove",
+      "cancel": "Cancel Invitation",
+      "resend": "Resend Invitation"
+    },
+    "cards": {
+      "pendingInvitationsTitle": "Pending Invitations",
+      "pendingInvitationsDesc": "Invitations that are waiting to be accepted"
+    },
+    "dialogs": {
+      "editMemberTitle": "Edit Team Member",
+      "editMemberDesc": "Update {{firstName}} {{lastName}}'s role and status",
+      "removeTitle": "Remove Team Member",
+      "removeDesc": "Are you sure you want to remove {{firstName}} {{lastName}} from the team?",
+      "removeCancel": "Cancel",
+      "removeConfirm": "Remove Member",
+      "removing": "Removing..."
+    },
+    "labels": {
+      "expiredTag": "Expired"
+    },
+    "toasts": {
+      "memberRemovedTitle": "Member removed",
+      "memberRemovedDesc": "The team member has been removed successfully.",
+      "memberRemoveErrorTitle": "Error",
+      "memberRemoveErrorDesc": "Failed to remove team member.",
+      "invitationCanceledTitle": "Invitation canceled",
+      "invitationCanceledDesc": "The invitation has been canceled successfully.",
+      "invitationCancelErrorTitle": "Error",
+      "invitationCancelErrorDesc": "Failed to cancel invitation.",
+      "invitationResentTitle": "Invitation resent",
+      "invitationResentDesc": "The invitation has been resent successfully.",
+      "invitationResendErrorTitle": "Error",
+      "invitationResendErrorDesc": "Failed to resend invitation."
     }
   },
   "config": {
@@ -2851,6 +2926,159 @@
       "venueCreated": "Venue created",
       "venueCreatedDesc": "The new venue has been created successfully.",
       "createVenueError": "Could not create venue."
+    }
+  },
+  "demoBanner": {
+    "title": "🎉 You're in Demo Mode",
+    "description": "This is a demo venue. Click below to convert to a real venue and start accepting payments.",
+    "convertButton": "Convert to Real",
+    "dismissButton": "Dismiss banner"
+  },
+  "trialBanner": {
+    "urgentTitle": "⚠️ Trial ends in {{days}} day(s)!",
+    "warningTitle": "⏰ Trial ends in {{days}} days",
+    "normalTitle": "🎁 Free trial: {{days}} days remaining",
+    "description": "Your trial for {{feature}} is ending soon. Update your payment method to continue using this feature.",
+    "manageButton": "Manage Billing",
+    "dismissButton": "Dismiss",
+    "redirecting": "Redirecting..."
+  },
+  "conversionWizard": {
+    "title": "Convert to Real Venue",
+    "subtitle": "Complete the following steps to activate your venue and start accepting real payments.",
+    "step": "Step",
+    "of": "of",
+    "back": "Back",
+    "next": "Next",
+    "convert": "Convert Now",
+    "step1": {
+      "title": "Tax Information",
+      "description": "Enter your business tax information",
+      "rfcLabel": "RFC (Tax ID)",
+      "legalNameLabel": "Legal Business Name",
+      "legalNamePlaceholder": "Enter your business legal name",
+      "fiscalRegimeLabel": "Fiscal Regime",
+      "fiscalRegimePlaceholder": "e.g., General Tax Regime"
+    },
+    "step2": {
+      "title": "Tax Documents",
+      "description": "Upload your tax situation certificate and, if available, your articles of incorporation",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "constanciaLabel": "Tax situation certificate (required)",
+      "actaLabel": "Articles of incorporation (optional)",
+      "actaHint": "PDF, JPG, PNG (MAX. 10MB)"
+    },
+    "step3": {
+      "title": "Identification",
+      "description": "Upload your official identification",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "idLabel": "Official ID (required)"
+    },
+    "step4": {
+      "title": "Select Features",
+      "description": "Choose the features you want to activate",
+      "loading": "Loading features...",
+      "noFeatures": "No features available at this time",
+      "helpText": "Select the features you want to enable for your venue. You can change these settings later from the dashboard."
+    },
+    "step5": {
+      "title": "Review & Confirm",
+      "description": "Review your information before converting",
+      "summaryTitle": "Summary",
+      "venueName": "Venue Name",
+      "rfc": "RFC",
+      "legalName": "Legal Name",
+      "confirmationMessage": "By clicking 'Convert Now', you confirm that all information provided is accurate and you agree to our terms of service."
+    },
+    "success": {
+      "title": "Conversion Successful!",
+      "description": "Your venue has been converted successfully. You can now accept real payments."
+    },
+    "shared": {
+      "selectFile": "Select file",
+      "uploading": "Uploading file..."
+    },
+    "documents": {
+      "title": "Uploaded documents",
+      "pending": "Pending",
+      "completed": "Ready",
+      "optional": "Optional"
+    },
+    "error": {
+      "title": "Conversion Failed",
+      "description": "There was an error converting your venue. Please try again or contact support.",
+      "fetchFeatures": "Failed to load features. Please try again."
+    }
+  },
+  "paymentConfiguration": {
+    "title": "Payment Configuration",
+    "configured": "Configured",
+    "description": {
+      "selectVenue": "Select a venue to configure payment accounts",
+      "withConfig": "Merchant accounts for {{venueName}}",
+      "withoutConfig": "Assign PRIMARY/SECONDARY/TERTIARY merchant accounts"
+    },
+    "alerts": {
+      "selectVenue": "Please select a venue from the dropdown above to manage its payment configuration.",
+      "configurationRequired": "Configuration Required: You must assign at least a PRIMARY merchant account before setting pricing structures. This links the venue to specific payment processors.",
+      "tip": "Tip: Set pricing structures for each account type below. PRIMARY rates will apply to transactions using the PRIMARY merchant account."
+    },
+    "accountTypes": {
+      "primary": {
+        "label": "PRIMARY",
+        "title": "Primary Merchant Account",
+        "required": "(Required)",
+        "placeholder": "Select PRIMARY merchant account",
+        "description": "Main account for standard transactions. Most payments will use this account.",
+        "badge": "Main account"
+      },
+      "secondary": {
+        "label": "SECONDARY",
+        "title": "Secondary Merchant Account",
+        "optional": "(Optional)",
+        "placeholder": "Select SECONDARY merchant account (optional)",
+        "description": "For routing based on card BIN, amount thresholds, or special conditions.",
+        "badge": "Backup account",
+        "none": "None"
+      },
+      "tertiary": {
+        "label": "TERTIARY",
+        "title": "Tertiary Merchant Account",
+        "optional": "(Optional)",
+        "placeholder": "Select TERTIARY merchant account (optional)",
+        "description": "For failover or specialized payment scenarios.",
+        "badge": "Failover account",
+        "none": "None"
+      }
+    },
+    "actions": {
+      "edit": "Edit",
+      "save": "Save Configuration",
+      "create": "Create Configuration",
+      "update": "Update Configuration",
+      "cancel": "Cancel",
+      "saving": "Saving..."
+    },
+    "messages": {
+      "success": {
+        "created": "Payment configuration created successfully",
+        "updated": "Payment configuration updated successfully"
+      },
+      "error": {
+        "create": "Failed to create payment configuration",
+        "update": "Failed to update payment configuration",
+        "selectVenue": "Please select a venue first",
+        "primaryRequired": "PRIMARY merchant account is required"
+      }
+    },
+    "providerCard": {
+      "name": "Merchant Name",
+      "provider": "Payment Provider",
+      "serialNumber": "Serial Number",
+      "active": "Active",
+      "inactive": "Inactive"
     }
   }
 }

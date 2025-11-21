@@ -2,6 +2,37 @@
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
 
+  "badge": {
+    "status": {
+      "inStock": "En Stock",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock"
+    },
+    "method": {
+      "label": "Método de Seguimiento",
+      "quantity": "Cantidad (Conteo Simple)",
+      "recipe": "Receta (Calculado desde Ingredientes)"
+    },
+    "unit": "Unidad",
+    "modal": {
+      "description": "Información detallada del inventario"
+    },
+    "quantity": {
+      "title": "Información de Stock",
+      "currentStock": "Stock Actual",
+      "reorderPoint": "Punto de Reorden",
+      "lowStockWarning": "El stock está por debajo del punto de reorden. Considere reabastecer pronto."
+    },
+    "recipe": {
+      "title": "Información de Receta",
+      "maxPortions": "Porciones Máximas Disponibles",
+      "ingredients": "Desglose de Ingredientes",
+      "required": "Requerido por porción",
+      "portions": "porciones",
+      "cost": "Costo de Receta por Porción"
+    }
+  },
+
   "tabs": {
     "rawMaterials": "Materias Primas",
     "recipes": "Recetas",
@@ -14,6 +45,7 @@
 
   "nav": {
     "rawMaterials": "Materias Primas",
+    "productStock": "Stock de Productos",
     "recipes": "Recetas",
     "pricing": "Precios"
   },
@@ -85,6 +117,9 @@
       "reason": "Razón",
       "reference": "Referencia",
       "date": "Fecha",
+      "loading": "Cargando movimientos recientes...",
+      "noRecentMovements": "No hay movimientos recientes de stock",
+      "recentActivity": "Actividad Reciente",
       "types": {
         "PURCHASE": "Compra",
         "USAGE": "Uso",
@@ -124,6 +159,44 @@
       "costPerUnit": "El costo por la unidad de medida que seleccionaste. Por ejemplo, si seleccionaste 'kg', ingresa el costo por kilogramo. Si 'litros', ingresa el costo por litro.",
       "perishable": "Marca esto si el ingrediente tiene fecha de vencimiento o vida útil limitada (carne, lácteos, frutas/verduras). Activa el seguimiento de vencimiento y alertas.",
       "shelfLifeDays": "El número de días que este ingrediente se mantiene fresco después de recibirlo. Esto se usa para calcular automáticamente las fechas de vencimiento de cada lote que recibas. Por ejemplo, si la leche tiene una vida útil de 7 días, un lote recibido hoy vencerá en 7 días."
+    }
+  },
+
+  "productStock": {
+    "title": "Stock de Productos",
+    "subtitle": "Ver y administrar el inventario de productos de stock simple",
+    "searchPlaceholder": "Buscar productos...",
+    "status": {
+      "inStock": "En Stock",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock",
+      "configError": "Error de Configuración"
+    },
+    "errors": {
+      "missingRawMaterial": "Materia prima no encontrada",
+      "cannotAdjustMissingRawMaterial": "No se puede ajustar: materia prima no existe",
+      "cannotViewMissingRawMaterial": "No se pueden ver movimientos: materia prima no existe"
+    },
+    "table": {
+      "columns": {
+        "product": "Producto",
+        "currentStock": "Stock Actual",
+        "reorderPoint": "Punto de Reorden",
+        "costPerUnit": "Costo por Unidad",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "noResults": "No se encontraron productos con seguimiento de inventario de stock simple"
+    },
+    "actions": {
+      "adjustStock": "Ajustar Stock",
+      "viewMovements": "Ver Movimientos"
+    },
+    "stats": {
+      "totalProducts": "Total de Productos",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Sin Stock",
+      "totalValue": "Valor Total de Inventario"
     }
   },
 
@@ -461,9 +534,29 @@
       "noInventoryDesc": "Ideal para servicios, clases o productos digitales",
       "useInventory": "Rastrear Inventario",
       "useInventoryDesc": "Rastrea niveles de stock y costos",
-      "inventoryTypeQuestion": "¿Cómo deseas rastrear el inventario?",
-      "simpleStock": "Stock Simple",
-      "simpleStockDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
+      "inventoryMethodQuestion": "¿Cómo deseas rastrear el inventario?",
+      "inventoryMethodHelp": {
+        "title": "Eligiendo tu Método de Seguimiento",
+        "description": "Esta decisión afecta cómo se gestiona el inventario y se calculan los costos.",
+        "quantity": {
+          "title": "Seguimiento de Cantidad",
+          "when": "Usar cuando:",
+          "example1": "Vendes productos terminados (artículos de retail, productos pre-empacados)",
+          "example2": "Compras y vendes exactamente el mismo artículo",
+          "example3": "No hay receta o preparación involucrada",
+          "note": "El stock se cuenta directamente. Cada venta deduce 1 unidad."
+        },
+        "recipe": {
+          "title": "Seguimiento Basado en Recetas",
+          "when": "Usar cuando:",
+          "example1": "Elaboras productos a partir de ingredientes (comida, bebidas)",
+          "example2": "Necesitas rastrear costos de ingredientes y porciones",
+          "example3": "Quieres cálculo automático de stock basado en ingredientes disponibles",
+          "note": "El sistema calcula porciones disponibles a partir del stock de ingredientes."
+        }
+      },
+      "quantityTracking": "Seguimiento de Cantidad",
+      "quantityTrackingDesc": "Para artículos de retail (joyería, ropa, etc.) - rastrea solo cantidad",
       "recipeBased": "Basado en Recetas",
       "recipeBasedDesc": "Para restaurantes - rastrea ingredientes y calcula costos",
       "success": "¡Inventario configurado exitosamente!",
@@ -471,7 +564,7 @@
     },
     "step3": {
       "title": "Configurar Inventario",
-      "simpleStockInfo": "Configura los niveles iniciales de stock para este producto. Cada venta deducirá 1 unidad.",
+      "simpleStockInfo": "Configura los niveles iniciales de stock para seguimiento de cantidad. Cada venta deducirá 1 unidad.",
       "recipeInfo": "Configura la receta para este producto. Puedes agregar ingredientes después.",
       "initialStock": "Stock Inicial",
       "initialStockHelp": "¿Cuántas unidades tienes actualmente en stock? (se rastrea como conteo de unidades)",
@@ -495,18 +588,18 @@
   "conversion": {
     "toRecipe": {
       "title": "¿Cambiar a Receta?",
-      "message": "Para agregar ingredientes, vamos a actualizar tu configuración. El stock simple actual se eliminará y se cambiará a seguimiento basado en recetas.",
+      "message": "Para agregar ingredientes, vamos a actualizar tu configuración. El seguimiento por cantidad actual se eliminará y se cambiará a seguimiento basado en recetas.",
       "confirm": "Sí, cambiar",
       "cancel": "Cancelar",
       "success": "Configuración actualizada a receta",
       "error": "Error al cambiar la configuración"
     },
-    "toSimpleStock": {
-      "title": "¿Cambiar a Stock Simple?",
-      "message": "Para usar stock simple, vamos a actualizar tu configuración. La receta actual y sus ingredientes se eliminarán y se cambiará a seguimiento por unidades.",
+    "toQuantity": {
+      "title": "¿Cambiar a Cantidad?",
+      "message": "Para usar seguimiento por cantidad, vamos a actualizar tu configuración. La receta actual y sus ingredientes se eliminarán y se cambiará a seguimiento por unidades.",
       "confirm": "Sí, cambiar",
       "cancel": "Cancelar",
-      "success": "Configuración actualizada a stock simple",
+      "success": "Configuración actualizada a cantidad",
       "error": "Error al cambiar la configuración"
     },
     "confirmationNeeded": "Confirmación Requerida",
@@ -582,6 +675,117 @@
     "HOUR_plural": "Horas",
     "DAY": "Día",
     "DAY_plural": "Días"
+  },
+
+  "waste": {
+    "title": "Registrar Desperdicio",
+    "reason": "Razón del Desperdicio",
+    "selectReason": "Selecciona una razón",
+    "reasonRequired": "La razón es obligatoria",
+    "quantityWasted": "Cantidad Desperdiciada",
+    "quantityRequired": "La cantidad es obligatoria",
+    "quantityMinimum": "La cantidad debe ser mayor a 0",
+    "afterWaste": "Después del Desperdicio",
+    "wastedAmount": "Cantidad Desperdiciada",
+    "willBeDeducted": "se deducirá del inventario",
+    "insufficientStock": "Este registro resultará en stock negativo. El stock no puede ser negativo.",
+    "notes": "Notas Adicionales",
+    "notesPlaceholder": "Agrega detalles adicionales sobre este desperdicio...",
+    "notesHelp": "Opcional: Proporciona contexto, números de lote u otra información relevante",
+    "logWaste": "Registrar Desperdicio",
+    "logged": "Desperdicio Registrado",
+    "loggedDesc": "El desperdicio ha sido registrado y el stock ajustado",
+    "errorLogging": "Error al registrar desperdicio",
+    "categories": {
+      "quality": "Calidad del Producto",
+      "operational": "Operacional",
+      "customer": "Relacionado con Cliente",
+      "intentional": "Uso Intencional",
+      "loss": "Pérdida/Robo",
+      "other": "Otro"
+    },
+    "reasons": {
+      "EXPIRED": {
+        "label": "Vencido",
+        "description": "Producto pasado de fecha de vencimiento"
+      },
+      "SPOILED": {
+        "label": "Echado a Perder/Dañado",
+        "description": "Producto echado a perder, con moho o dañado antes de usar"
+      },
+      "CONTAMINATED": {
+        "label": "Contaminado",
+        "description": "Producto contaminado o comprometido"
+      },
+      "DEFECTIVE": {
+        "label": "Defectuoso",
+        "description": "Recibido defectuoso o calidad inferior"
+      },
+      "OVERPRODUCTION": {
+        "label": "Sobreproducción",
+        "description": "Se preparó demasiado, no se vendió"
+      },
+      "PREP_ERROR": {
+        "label": "Error de Preparación",
+        "description": "Error durante la preparación/cocción"
+      },
+      "BURNT": {
+        "label": "Quemado/Sobrecocido",
+        "description": "Producto quemado o sobrecocido"
+      },
+      "UNDERCOOKED": {
+        "label": "Poco Cocido",
+        "description": "Producto poco cocido o mal preparado"
+      },
+      "DROPPED": {
+        "label": "Caído/Derramado",
+        "description": "Accidentalmente caído o derramado"
+      },
+      "CUSTOMER_RETURN": {
+        "label": "Devolución de Cliente",
+        "description": "Queja o insatisfacción del cliente"
+      },
+      "WRONG_ORDER": {
+        "label": "Orden Incorrecta",
+        "description": "Orden preparada incorrectamente"
+      },
+      "CUSTOMER_CHANGE": {
+        "label": "Cliente Cambió de Opinión",
+        "description": "Cliente modificó o canceló orden"
+      },
+      "TESTING": {
+        "label": "Pruebas/Muestreo",
+        "description": "Pruebas de calidad o muestras para clientes"
+      },
+      "STAFF_MEAL": {
+        "label": "Comida de Personal",
+        "description": "Proporcionado a miembros del personal"
+      },
+      "PROMOTION": {
+        "label": "Promoción/Cortesía",
+        "description": "Regalo promocional o cortesía"
+      },
+      "DONATION": {
+        "label": "Donación",
+        "description": "Donado a caridad o comunidad"
+      },
+      "THEFT": {
+        "label": "Robo",
+        "description": "Producto robado"
+      },
+      "MISSING": {
+        "label": "Faltante/Sin Contabilizar",
+        "description": "No se puede ubicar el inventario"
+      },
+      "PEST_DAMAGE": {
+        "label": "Daño por Plagas",
+        "description": "Dañado por plagas o roedores"
+      },
+      "OTHER": {
+        "label": "Otro",
+        "description": "Otra razón (especificar en notas)"
+      }
+    }
   },
 
   "common": {

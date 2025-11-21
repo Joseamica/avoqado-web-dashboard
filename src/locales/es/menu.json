@@ -8,6 +8,7 @@
     "collapseAll": "Contraer Todo",
     "createNewProduct": "Crear Nuevo Producto",
     "manageCategories": "Gestionar Categorías",
+    "importMenu": "Importar Menú",
     "create": "Crear",
     "errorLoading": "Error al cargar los datos: {{message}}",
     "draggedItem": "Elemento",
@@ -166,8 +167,10 @@
       "actions": "Acciones"
     },
     "actions": {
+      "title": "Acciones",
       "edit": "Editar",
       "assignModifiers": "Asignar modificadores y productos",
+      "assignModifiersAndProducts": "Asignar modificadores y productos",
       "delete": "Eliminar",
       "openMenu": "Abrir menú"
     },
@@ -176,7 +179,13 @@
       "deleteDescription": "¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "deleteCancel": "Cancelar",
-      "deleting": "Eliminando..."
+      "deleting": "Eliminando...",
+      "delete": {
+        "title": "Eliminar grupo modificador",
+        "description": "¿Estás seguro de que deseas eliminar este grupo modificador? Esta acción no se puede deshacer.",
+        "delete": "Eliminar",
+        "deleting": "Eliminando..."
+      }
     },
     "toasts": {
       "updated": "Grupo modificador actualizado",
@@ -265,6 +274,8 @@
       "maxPerModifierDesc": "Cantidad máxima de veces que se puede seleccionar un mismo modificador",
       "modifiers": "Modificadores",
       "modifiersDesc": "Selecciona los modificadores para este grupo",
+      "productAssignment": "Asignación de Productos",
+      "productAssignmentDesc": "Selecciona qué productos tendrán disponible este grupo modificador",
       "selectExistingModifiers": "Seleccionar modificadores existentes",
       "selectExistingPlaceholder": "Selecciona modificadores existentes...",
       "addNewModifiers": "Agregar nuevos modificadores",
@@ -280,24 +291,89 @@
         "createError": "Error al crear",
         "createErrorDesc": "Hubo un problema al crear el grupo modificador."
       }
+    },
+    "editModifier": {
+      "title": "Editar Modificador",
+      "fields": {
+        "name": "Nombre",
+        "namePlaceholder": "Nombre del modificador",
+        "price": "Precio",
+        "active": "Activo",
+        "activeDesc": "Cuando está activo, este modificador estará disponible para selección"
+      },
+      "validation": {
+        "nameRequired": "El nombre es obligatorio",
+        "priceRequired": "El precio es obligatorio"
+      },
+      "buttons": {
+        "back": "Atrás",
+        "cancel": "Cancelar",
+        "save": "Guardar Cambios",
+        "saving": "Guardando..."
+      },
+      "toast": {
+        "updated": "Modificador actualizado",
+        "updatedDesc": "El modificador se ha actualizado correctamente.",
+        "error": "Error al actualizar modificador",
+        "errorDesc": "Hubo un problema al actualizar el modificador: {{message}}"
+      }
     }
   },
   "products": {
     "title": "Productos",
     "new": "Nuevo producto",
     "imageAlt": "Producto",
+    "tabs": {
+      "details": "Detalles",
+      "inventory": "Inventario",
+      "modifiers": "Modificadores"
+    },
     "columns": {
       "photo": "Foto",
       "name": "Nombre",
       "price": "Precio",
+      "stock": "Stock",
       "categories": "Categorías",
       "modifierGroups": "Grupos Modificadores",
       "updatedAt": "Última actualización"
+    },
+    "actions": {
+      "adjustStock": "Ajustar Stock",
+      "adjustStockDialog": {
+        "title": "Ajustar Stock - {{productName}}",
+        "currentStock": "Stock Actual",
+        "adjustment": "Ajuste",
+        "adjustmentPlaceholder": "Ingresa cantidad (+ agregar, - quitar)",
+        "reason": "Razón",
+        "reasonPlaceholder": "¿Por qué ajustas el stock?",
+        "reasons": {
+          "recount": "Reconteo físico",
+          "damage": "Dañado/Echado a perder",
+          "theft": "Robo/Pérdida",
+          "correction": "Corrección",
+          "receiving": "Recepción de entrega",
+          "other": "Otro"
+        },
+        "newStock": "Nuevo Stock",
+        "notes": "Notas (opcional)",
+        "notesPlaceholder": "Detalles adicionales...",
+        "cancel": "Cancelar",
+        "save": "Guardar Ajuste",
+        "saving": "Guardando..."
+      }
     },
     "toasts": {
       "activated": "Producto activado",
       "deactivated": "Producto desactivado",
       "saved": "Los cambios se han guardado correctamente."
+    },
+    "lowStock": {
+      "alert": "{{count}} producto tiene stock bajo",
+      "alert_other": "{{count}} productos tienen stock bajo",
+      "viewDetails": "Ver Detalles",
+      "filterLabel": "Solo Stock Bajo",
+      "clearFilter": "Limpiar filtro",
+      "noLowStock": "¡Todos los productos tienen buen stock!"
     },
     "create": {
       "title": "Nuevo producto",
@@ -368,6 +444,46 @@
       "skuPattern": "El SKU solo puede contener letras, números, guiones y guiones bajos.",
       "imageUnavailable": "Imagen no disponible",
       "imageCouldNotLoad": "La imagen no pudo cargarse",
+      "inventory": {
+        "trackingMethod": "Seguimiento de Inventario",
+        "noTracking": "No rastrear inventario",
+        "noTrackingDesc": "Sin gestión de stock para este producto",
+        "trackByQuantity": "Rastrear por cantidad",
+        "trackByQuantityDesc": "Conteo simple de stock (ej., 50 unidades en stock)",
+        "trackByRecipe": "Rastrear por receta",
+        "trackByRecipeDesc": "Calcular disponibilidad desde stock de ingredientes",
+        "currentStock": "Stock Actual",
+        "currentStockPlaceholder": "0",
+        "currentStockHelp": "Cuántas unidades tienes ahora mismo",
+        "costPerUnit": "Costo Por Unidad",
+        "costPerUnitPlaceholder": "0.00",
+        "costPerUnitHelp": "Cuánto te cuesta cada unidad",
+        "reorderPoint": "Punto de Reorden",
+        "reorderPointPlaceholder": "10",
+        "reorderPointHelp": "Recibe alertas cuando el stock caiga por debajo de este número",
+        "unit": "Unidad",
+        "unitPlaceholder": "unidades, kg, L, etc.",
+        "unitHelp": "Cómo mides este producto (unidades, kg, litros, etc.)",
+        "portionYield": "Porciones por Receta",
+        "portionYieldPlaceholder": "1",
+        "portionYieldHelp": "Cuántas porciones produce esta receta",
+        "prepTime": "Tiempo de Preparación (minutos)",
+        "prepTimePlaceholder": "0",
+        "cookTime": "Tiempo de Cocción (minutos)",
+        "cookTimePlaceholder": "0",
+        "recipeNotes": "Notas de Receta",
+        "recipeNotesPlaceholder": "Notas opcionales de preparación...",
+        "ingredients": "Ingredientes",
+        "addIngredient": "Agregar Ingrediente",
+        "editRecipe": "Editar Receta",
+        "noIngredients": "No se han agregado ingredientes aún. Agrega al menos un ingrediente para el rastreo basado en recetas.",
+        "ingredientName": "Ingrediente",
+        "quantity": "Cantidad",
+        "ingredientQuantity": "Cantidad",
+        "ingredientUnit": "Unidad",
+        "ingredientCost": "Costo",
+        "removeIngredient": "Eliminar ingrediente"
+      },
       "toasts": {
         "saved": "Producto guardado",
         "savedDesc": "Los cambios se han guardado correctamente.",
@@ -378,6 +494,46 @@
         "deleted": "Producto eliminado",
         "deletedDesc": "El producto se ha eliminado correctamente."
       }
+    }
+  },
+  "createMenu": {
+    "loading": "Cargando formulario de menú...",
+    "buttons": {
+      "save": "Guardar menú",
+      "saving": "Guardando..."
+    },
+    "toast": {
+      "categoryCreated": "Menú {{name}} creado",
+      "categoryCreatedDesc": "El menú se creó correctamente.",
+      "errorSaving": "Error al guardar",
+      "errorSavingDesc": "No pudimos guardar el menú. Intenta nuevamente."
+    },
+    "validation": {
+      "nameRequired": "Debes ingresar el nombre del menú.",
+      "dayRequired": "Selecciona al menos un día.",
+      "minInterval": "La hora de cierre debe ser al menos una hora después de la hora de inicio."
+    },
+    "days": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mié",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "Sáb",
+      "sun": "Dom"
+    },
+    "fields": {
+      "menuActive": "Menú activo",
+      "menuActiveDesc": "Activa este menú para que sea visible para tu personal y clientes.",
+      "menuName": "Nombre del menú",
+      "menuNamePlaceholder": "Introduce un nombre para el menú",
+      "startTime": "Hora de inicio",
+      "endTime": "Hora de cierre",
+      "selectTime": "Selecciona una hora",
+      "allDay": "Disponible todo el día",
+      "categories": "Categorías",
+      "selectCategories": "Selecciona categorías",
+      "noCategoriesFound": "No se encontraron categorías"
     }
   },
   "menuId": {

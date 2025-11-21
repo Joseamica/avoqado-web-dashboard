@@ -1,0 +1,322 @@
+{
+  "stepProgress": "Étape {{current}} sur {{total}}",
+  "steps": {
+    "welcome": "Bienvenue",
+    "type": "Choisissez Votre Chemin",
+    "businessInfo": "Informations de l'Entreprise",
+    "menuData": "Configuration du Menu",
+    "teamInvites": "Invitations d'Équipe",
+    "features": "Fonctionnalités",
+    "payment": "Configuration des Paiements"
+  },
+  "welcome": {
+    "greeting": "Welcome, {{name}}!",
+    "subtitle": "Let's get your business set up in just a few minutes",
+    "whatWeWillSetup": "What we'll set up together:",
+    "setupItems": {
+      "venueInfo": "Your business information (name, location, hours)",
+      "menu": "Your catalog with categories and products",
+      "payment": "Payment processing and banking details",
+      "team": "Team members and their roles (optional)"
+    },
+    "keyFeatures": "Powerful features that set Avoqado apart:",
+    "features": {
+      "reconciliation": {
+        "title": "Centralized Reconciliation",
+        "description": "All in one place: POS, cash, payment terminals. No more reconciling multiple systems"
+      },
+      "smartRouting": {
+        "title": "Intelligent Payment Routing",
+        "description": "AI optimizes every transaction to minimize fees. Save 20-30% on commissions"
+      },
+      "inventory": {
+        "title": "Automated Inventory",
+        "description": "Real-time stock tracking with automatic deduction on every sale"
+      },
+      "chatbot": {
+        "title": "AI Business Assistant",
+        "description": "Ask questions about your business and get instant insights powered by AI"
+      },
+      "posIntegrations": {
+        "title": "POS Integrations",
+        "description": "Connect with your existing point-of-sale system seamlessly"
+      },
+      "automaticTips": {
+        "title": "Automatic Tips",
+        "description": "Tips paid instantly and automatically to your staff. No manual calculations"
+      },
+      "competitivePricing": {
+        "title": "Competitive Rates",
+        "description": "Lower fees than Mercado Pago, Clip, and Sr Pago. They charge 3-3.5%, we're better"
+      },
+      "smartPOS": {
+        "title": "Intelligent POS",
+        "description": "Order, pay, split bills, route payments, and assign tips all in one smart terminal"
+      }
+    },
+    "timeEstimate": "⏱️ This process takes about 5-10 minutes"
+  },
+  "footer": {
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support"
+  },
+  "onboardingType": {
+    "title": "How would you like to get started?",
+    "subtitle": "Choose the option that best fits your needs",
+    "demo": {
+      "title": "Start with Demo Data",
+      "description": "Get up and running quickly with a pre-configured business and sample catalog",
+      "features": {
+        "preConfigured": "Pre-configured business with all settings",
+        "sampleMenu": "Complete sample catalog with categories and products",
+        "quickStart": "Start selling in minutes"
+      },
+      "badge": "Recommended"
+    },
+    "manual": {
+      "title": "Start from Scratch",
+      "description": "Build your business from the ground up with complete control",
+      "features": {
+        "fullControl": "Complete control over every setting",
+        "customSetup": "Set up your business exactly how you want it",
+        "yourWay": "Perfect for experienced users"
+      }
+    },
+    "selected": "Selected",
+    "helpText": "Don't worry, you can always change your catalog and settings later"
+  },
+  "businessInfo": {
+    "title": "Tell us about your business",
+    "subtitle": "This information will help us personalize your experience",
+    "form": {
+      "businessName": "Business Name",
+      "businessNamePlaceholder": "Enter your business name",
+      "businessNameHelp": "This will appear on receipts and customer-facing materials",
+      "businessType": "Business Type",
+      "businessTypePlaceholder": "Select your business type",
+      "address": "Street Address",
+      "addressPlaceholder": "123 Main Street",
+      "city": "City",
+      "cityPlaceholder": "Enter city",
+      "state": "State/Province",
+      "statePlaceholder": "Enter state or province",
+      "country": "Country",
+      "countryPlaceholder": "Select country",
+      "zipCode": "Postal Code",
+      "zipCodePlaceholder": "Enter postal code",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+52 123 456 7890",
+      "email": "Business Email",
+      "emailPlaceholder": "contact@business.com",
+      "timezone": "Timezone",
+      "timezoneHelp": "Used for reporting and scheduling",
+      "currency": "Currency",
+      "currencyHelp": "Default currency for pricing and payments"
+    },
+    "businessTypes": {
+      "RESTAURANT": "Restaurant",
+      "BAR": "Bar",
+      "CAFE": "Café",
+      "FAST_FOOD": "Fast Food",
+      "FOOD_TRUCK": "Food Truck",
+      "RETAIL_STORE": "Retail Store",
+      "HOTEL_RESTAURANT": "Hotel Restaurant",
+      "FITNESS_STUDIO": "Fitness Studio",
+      "SPA": "Spa",
+      "OTHER": "Other"
+    },
+    "validation": {
+      "nameRequired": "Business name is required",
+      "nameMin": "Business name must be at least 2 characters",
+      "typeRequired": "Business type is required",
+      "addressRequired": "Street address is required",
+      "cityRequired": "City is required",
+      "stateRequired": "State/Province is required",
+      "countryRequired": "Country is required",
+      "zipCodeRequired": "Postal code is required",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Please enter a valid phone number",
+      "emailRequired": "Business email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "timezoneRequired": "Timezone is required",
+      "currencyRequired": "Currency is required"
+    },
+    "optionalSteps": {
+      "title": "Les Étapes Suivantes Sont Optionnelles",
+      "description": "Les étapes suivantes vous aident à configurer votre entreprise plus complètement, mais vous pouvez les ignorer et ajouter ces informations plus tard:",
+      "step4": "Configuration du Menu - Ajoutez votre menu manuellement ou importez depuis CSV",
+      "step5": "Invitations d'Équipe - Invitez des membres du personnel à rejoindre votre entreprise",
+      "step6": "Sélection de Fonctionnalités - Choisissez des fonctionnalités premium pour améliorer votre entreprise",
+      "step7": "Configuration des Paiements - Configurez votre CLABE pour recevoir des dépôts",
+      "choice": "Vous pouvez continuer à les configurer maintenant, ou passer et compléter la configuration de votre entreprise."
+    }
+  },
+  "menuData": {
+    "title": "Configurez Votre Menu",
+    "subtitle": "Ajoutez vos produits et catégories, ou passez et faites-le plus tard",
+    "method": {
+      "title": "Comment souhaitez-vous ajouter votre menu?",
+      "manual": {
+        "title": "Saisie Manuelle",
+        "description": "Ajoutez des catégories et des produits un par un",
+        "badge": "Recommandé"
+      },
+      "csv": {
+        "title": "Importer depuis CSV",
+        "description": "Téléchargez un fichier CSV avec les données de votre menu",
+        "badge": "Avancé"
+      }
+    },
+    "manual": {
+      "categories": {
+        "title": "Catégories",
+        "description": "Ajoutez des catégories de menu (ex: Entrées, Plats Principaux, Boissons)",
+        "add": "Ajouter une Catégorie",
+        "name": "Nom de la Catégorie",
+        "namePlaceholder": "ex: Plats Principaux",
+        "slug": "Slug",
+        "slugPlaceholder": "ex: plats-principaux",
+        "slugHelp": "Identifiant convivial pour les URL (auto-généré à partir du nom)",
+        "empty": "Aucune catégorie ajoutée pour le moment"
+      },
+      "products": {
+        "title": "Produits",
+        "description": "Ajoutez des produits à votre menu",
+        "add": "Ajouter un Produit",
+        "name": "Nom du Produit",
+        "namePlaceholder": "ex: Cheeseburger",
+        "sku": "SKU",
+        "skuPlaceholder": "ex: BURGER-001",
+        "skuHelp": "Unité de Gestion de Stock (identifiant unique)",
+        "price": "Prix",
+        "pricePlaceholder": "0.00",
+        "category": "Catégorie",
+        "categoryPlaceholder": "Sélectionner une catégorie",
+        "categoryRequired": "Veuillez d'abord ajouter au moins une catégorie",
+        "empty": "Aucun produit ajouté pour le moment"
+      },
+      "validation": {
+        "categoryNameRequired": "Le nom de la catégorie est requis",
+        "categorySlugRequired": "Le slug est requis",
+        "productNameRequired": "Le nom du produit est requis",
+        "productSkuRequired": "Le SKU est requis",
+        "productPriceRequired": "Le prix est requis",
+        "productPricePositive": "Le prix doit être positif",
+        "productCategoryRequired": "La catégorie est requise"
+      }
+    },
+    "csv": {
+      "title": "Télécharger un Fichier CSV",
+      "description": "Téléchargez un fichier CSV avec les données de votre menu. Le fichier doit avoir les colonnes: name, sku, price, category",
+      "download": "Télécharger le Modèle",
+      "upload": "Choisir un Fichier",
+      "uploaded": "Fichier téléchargé: {{filename}}",
+      "dragDrop": "Glissez-déposez un fichier CSV ici, ou cliquez pour parcourir",
+      "format": {
+        "title": "Exigences du Format CSV",
+        "description": "Votre fichier CSV doit avoir ces colonnes:",
+        "columns": {
+          "name": "name - Nom du produit",
+          "sku": "sku - Identifiant unique du produit",
+          "price": "price - Prix du produit (numérique)",
+          "category": "category - Nom de la catégorie"
+        },
+        "example": "Exemple: Cheeseburger,BURGER-001,12.99,Plats Principaux"
+      }
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez ajouter votre menu plus tard depuis le tableau de bord"
+    }
+  },
+  "teamInvites": {
+    "title": "Invitez Votre Équipe",
+    "subtitle": "Ajoutez des membres de l'équipe qui aideront à gérer votre entreprise, ou passez et faites-le plus tard",
+    "description": "Envoyez des invitations aux membres de votre équipe. Ils recevront un e-mail avec des instructions pour rejoindre votre entreprise.",
+    "form": {
+      "email": "Adresse E-mail",
+      "emailPlaceholder": "equipe@exemple.com",
+      "role": "Rôle",
+      "rolePlaceholder": "Sélectionner le rôle",
+      "add": "Ajouter une Invitation",
+      "empty": "Aucune invitation ajoutée pour le moment"
+    },
+    "roles": {
+      "ADMIN": "Admin - Accès complet à toutes les fonctionnalités",
+      "MANAGER": "Manager - Opérations et gestion du personnel",
+      "CASHIER": "Caissier - Traitement des paiements",
+      "WAITER": "Serveur - Gestion des commandes",
+      "KITCHEN": "Cuisine - Affichage cuisine",
+      "HOST": "Hôte - Réservations et placement",
+      "VIEWER": "Observateur - Accès en lecture seule"
+    },
+    "validation": {
+      "emailRequired": "L'e-mail est requis",
+      "emailInvalid": "Veuillez entrer une adresse e-mail valide",
+      "roleRequired": "Le rôle est requis",
+      "emailDuplicate": "Cet e-mail est déjà dans la liste"
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez inviter des membres de l'équipe plus tard depuis le tableau de bord"
+    }
+  },
+  "features": {
+    "title": "Choisissez Vos Fonctionnalités",
+    "subtitle": "Sélectionnez des fonctionnalités premium pour améliorer votre entreprise, ou passez et faites-le plus tard",
+    "description": "Ces fonctionnalités peuvent être activées ou désactivées à tout moment depuis les paramètres de votre tableau de bord.",
+    "available": {
+      "CHATBOT": {
+        "name": "Chatbot IA",
+        "description": "Assistant IA 24/7 pour répondre aux questions des clients et fournir des insights d'entreprise"
+      },
+      "ADVANCED_ANALYTICS": {
+        "name": "Analytique Avancée",
+        "description": "Insights approfondis sur les ventes, le comportement des clients et les métriques de performance"
+      },
+      "INVENTORY_TRACKING": {
+        "name": "Suivi des Stocks",
+        "description": "Gestion des stocks en temps réel avec déductions automatiques"
+      },
+      "LOYALTY_PROGRAM": {
+        "name": "Programme de Fidélité",
+        "description": "Récompensez vos clients et augmentez la rétention avec des points et des récompenses"
+      },
+      "ONLINE_ORDERING": {
+        "name": "Commande en Ligne",
+        "description": "Acceptez les commandes directement depuis votre site web ou application mobile"
+      },
+      "RESERVATIONS": {
+        "name": "Réservations",
+        "description": "Gérez les réservations de tables et optimisez la disposition des sièges"
+      }
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez activer les fonctionnalités plus tard depuis le tableau de bord"
+    }
+  },
+  "payment": {
+    "title": "Configuration des Paiements",
+    "subtitle": "Configurez votre CLABE pour recevoir des paiements, ou passez et faites-le plus tard",
+    "description": "Votre CLABE (Clave Bancaria Estandarizada) est nécessaire pour recevoir les paiements d'Avoqado directement sur votre compte bancaire.",
+    "form": {
+      "clabe": "CLABE",
+      "clabePlaceholder": "123456789012345678",
+      "clabeHelp": "Numéro de compte bancaire à 18 chiffres",
+      "bankName": "Nom de la Banque (Facultatif)",
+      "bankNamePlaceholder": "ex: BBVA, Santander, HSBC",
+      "accountHolder": "Titulaire du Compte (Facultatif)",
+      "accountHolderPlaceholder": "Nom complet du titulaire du compte"
+    },
+    "validation": {
+      "clabeRequired": "La CLABE est requise",
+      "clabeInvalid": "La CLABE doit contenir exactement 18 chiffres",
+      "clabeNumeric": "La CLABE ne doit contenir que des chiffres"
+    },
+    "actions": {
+      "skip": "Passer Pour l'Instant",
+      "skipDescription": "Vous pouvez ajouter vos informations de paiement plus tard depuis le tableau de bord"
+    }
+  }
+}

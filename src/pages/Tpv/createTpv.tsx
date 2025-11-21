@@ -11,7 +11,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 
 export default function CreateTpv() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['tpv', 'common'])
   const { venueId } = useCurrentVenue()
 
   const location = useLocation()
@@ -28,15 +28,15 @@ export default function CreateTpv() {
     },
     onSuccess: (_, data: any) => {
       toast({
-        title: t('tpv.create.successTitle', { name: data.name }),
-        description: t('tpv.create.successDesc'),
+        title: t('create.successTitle', { name: data.name }),
+        description: t('create.successDesc'),
       })
       navigate(from)
     },
     onError: (error: any) => {
       toast({
-        title: t('tpv.create.errorTitle'),
-        description: error?.response?.data?.message || error.message || t('tpv.create.errorDesc'),
+        title: t('create.errorTitle'),
+        description: error?.response?.data?.message || error.message || t('create.errorDesc'),
         variant: 'destructive',
       })
     },
@@ -67,29 +67,29 @@ export default function CreateTpv() {
         </div>
         <div className="space-x-3 flex-row-center">
           <LoadingButton loading={createTpv.isPending} onClick={form.handleSubmit(onSubmit)} variant="default">
-            {createTpv.isPending ? t('common.saving') : t('common.save')}
+            {createTpv.isPending ? t('common:saving') : t('common:save')}
           </LoadingButton>
         </div>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 space-y-6 ">
-          <h1 className="text-xl font-semibold">{t('tpv.create.title')}</h1>
+          <h1 className="text-xl font-semibold">{t('create.title')}</h1>
 
           <FormField
             control={form.control}
             name="name"
             rules={{
-              required: { value: true, message: t('tpv.create.validation.nameRequired') },
-              minLength: { value: 3, message: t('tpv.create.validation.nameMin') },
-              maxLength: { value: 30, message: t('tpv.create.validation.nameMax') },
+              required: { value: true, message: t('create.validation.nameRequired') },
+              minLength: { value: 3, message: t('create.validation.nameMin') },
+              maxLength: { value: 30, message: t('create.validation.nameMax') },
             }}
             render={({ field }) => {
               return (
                 <FormItem>
-                  <FormLabel>{t('tpv.create.nameLabel')}</FormLabel>
+                  <FormLabel>{t('create.nameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('tpv.create.namePlaceholder')} className="max-w-96" {...field} />
+                    <Input placeholder={t('create.namePlaceholder')} className="max-w-96" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -103,9 +103,9 @@ export default function CreateTpv() {
             name="serial"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('tpv.create.serialLabel')}</FormLabel>
+                <FormLabel>{t('create.serialLabel')}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('tpv.create.serialPlaceholder')} className="max-w-96" {...field} />
+                  <Input placeholder={t('create.serialPlaceholder')} className="max-w-96" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

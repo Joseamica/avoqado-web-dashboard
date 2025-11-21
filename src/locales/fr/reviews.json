@@ -1,0 +1,132 @@
+{
+  "title": "Avis Clients",
+  "establishments": "Note Globale",
+  "averageDescription": "Basé sur {{count}} avis",
+  "loading": "Chargement des avis...",
+  "error": "Erreur lors du chargement des avis",
+  "unknownError": "Une erreur inconnue s'est produite",
+  "noReviews": "Aucun avis disponible pour cette période",
+  "star": "étoile",
+  "stars": "étoiles",
+  "reviewCount": "{{count}} avis",
+
+  "sources": {
+    "avoqado": "Avoqado",
+    "google": "Google",
+    "tripadvisor": "TripAdvisor",
+    "facebook": "Facebook",
+    "yelp": "Yelp",
+    "tpv": "Terminal TPV"
+  },
+
+  "sentiment": {
+    "positive": "Positif",
+    "neutral": "Neutre",
+    "negative": "Négatif"
+  },
+
+  "card": {
+    "anonymousCustomer": "Client Anonyme",
+    "ratings": {
+      "food": "Nourriture",
+      "service": "Service",
+      "ambience": "Ambiance"
+    },
+    "response": {
+      "title": "Votre Réponse",
+      "aiGenerated": "Généré par IA"
+    },
+    "actions": {
+      "respond": "Répondre à l'Avis"
+    }
+  },
+
+  "filters": {
+    "title": "Filtres",
+    "reset": "Réinitialiser",
+    "search": {
+      "label": "Rechercher dans les Commentaires",
+      "placeholder": "Rechercher dans les commentaires d'avis..."
+    },
+    "sources": {
+      "label": "Source de l'Avis"
+    },
+    "rating": {
+      "label": "Note Minimale",
+      "all": "Toutes les notes",
+      "exactly": "Exactement {{rating}} étoiles",
+      "andUp": "{{rating}}+ étoiles"
+    },
+    "sentiment": {
+      "label": "Sentiment",
+      "all": "Tous les sentiments"
+    },
+    "responseStatus": {
+      "label": "Statut de Réponse",
+      "all": "Tous les avis",
+      "responded": "Répondu",
+      "unresponded": "Non répondu"
+    }
+  },
+
+  "stats": {
+    "totalReviews": "Total des Avis",
+    "averageRating": "Note Moyenne",
+    "responseRate": "Taux de Réponse",
+    "avgResponseTimeLabel": "Temps de Réponse Moyen",
+    "allTime": "Tout le temps",
+    "vsLastWeek": "vs semaine dernière",
+    "responded": "répondu",
+    "averageTime": "Temps moyen de réponse",
+    "avgResponseTime": {
+      "minutes": "{{minutes}}min",
+      "hours": "{{hours}}h",
+      "days": "{{days}}j"
+    }
+  },
+
+  "responseDialog": {
+    "title": "Répondre à l'Avis",
+    "description": "Générer une réponse alimentée par IA pour l'avis de {{customerName}}",
+    "responseLabel": "Réponse",
+    "edited": "Modifié",
+    "generating": "L'IA génère une réponse...",
+    "responsePlaceholder": "Écrivez votre réponse ici...",
+    "aiPowered": "Propulsé par IA",
+    "characters": "caractères",
+    "cancel": "Annuler",
+    "regenerate": "Régénérer",
+    "send": "Envoyer la Réponse",
+    "sending": "Envoi en cours...",
+    "success": {
+      "title": "Réponse Envoyée!",
+      "description": "Votre réponse a été envoyée avec succès."
+    },
+    "errors": {
+      "generateFailed": "Échec de la génération de la réponse IA",
+      "submitFailed": "Échec de l'envoi de la réponse",
+      "emptyResponse": "Impossible d'envoyer une réponse vide",
+      "emptyResponseDescription": "Veuillez écrire une réponse avant d'envoyer."
+    },
+    "feedback": {
+      "thanksTitle": "Merci pour vos commentaires!",
+      "thanksDescription": "Vos commentaires nous aident à améliorer nos réponses IA."
+    }
+  },
+
+  "sorting": {
+    "label": "Trier par",
+    "newest": "Plus récents d'abord",
+    "oldest": "Plus anciens d'abord",
+    "highestRated": "Mieux notés",
+    "lowestRated": "Moins bien notés",
+    "unresponded": "Non répondus d'abord"
+  },
+
+  "emptyState": {
+    "title": "Aucun avis pour le moment",
+    "description": "Les avis de vos clients apparaîtront ici.",
+    "noResults": "Aucun avis ne correspond à vos filtres",
+    "adjustFilters": "Essayez d'ajuster vos filtres pour voir plus de résultats."
+  }
+}

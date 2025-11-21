@@ -1,6 +1,6 @@
 import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,12 +12,18 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useLocation } from 'react-router-dom'
+import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
+import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
+import { useToast } from '@/hooks/use-toast'
+
 export default function Shifts() {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('shifts')
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -36,34 +42,76 @@ export default function Shifts() {
     },
   })
 
+  // Real-time shift updates via Socket.IO
+  useShiftSocketEvents(venueId, {
+    onShiftOpened: event => {
+      console.log('🟢 Shift opened:', event.shiftId, 'by', event.staffName)
+      toast({
+        title: t('notifications.shiftOpened'),
+        description: `${event.staffName} - ${formatTime(event.startTime)}`,
+      })
+      // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+    onShiftClosed: event => {
+      console.log('🔴 Shift closed:', event.shiftId, 'Total sales:', event.totalSales)
+      toast({
+        title: t('notifications.shiftClosed'),
+        description: `${event.staffName} - ${t('columns.totalSales')}: ${Currency(event.totalSales || 0)}`,
+      })
+      // ✅ FIX: Invalidate ALL shift queries (including paginated ones)
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+  })
+
+  // Real-time payment updates to refresh shift totals
+  const handlePaymentCompleted = useCallback(
+    (event: any) => {
+      console.log('💰 Payment completed:', event.paymentId, 'Amount:', event.amount)
+      // Invalidate ALL shift queries to refresh totals when payments are processed
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+    },
+    [venueId, queryClient],
+  )
+
+  usePaymentSocketEvents(venueId, {
+    onPaymentCompleted: handlePaymentCompleted,
+  })
+
   const totalShifts = data?.meta?.totalCount || 0
 
   const columns: ColumnDef<any, unknown>[] = [
     {
       accessorFn: row => {
-        return row.endTime ? t('shifts.closed') : t('shifts.open')
+        return row.endTime ? t('closed') : t('open')
       },
       id: 'active',
       sortDescFirst: true,
-      header: t('shifts.columns.status'),
+      header: t('columns.status'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
 
-        if (value === t('shifts.open')) {
+        if (value === t('open')) {
           return (
             <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
-              {t('shifts.open')}
+              {t('open')}
             </span>
           )
         } else {
-          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('shifts.closed')}</span>
+          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('closed')}</span>
         }
       },
     },
     {
       accessorKey: 'id',
       sortDescFirst: true,
-      header: t('shifts.columns.shiftId'),
+      header: t('columns.shiftId'),
       cell: ({ cell }) => {
         const value = cell.getValue() as string
         return value.slice(-8) // Show last 8 characters of ID
@@ -74,7 +122,7 @@ export default function Shifts() {
       sortDescFirst: true,
       header: () => (
         <div className="flex flex-col">
-          <span>{t('shifts.columns.openTime')}</span>
+          <span>{t('columns.openTime')}</span>
           <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
         </div>
       ),
@@ -99,7 +147,7 @@ export default function Shifts() {
       sortDescFirst: true,
       header: () => (
         <div className="flex flex-col">
-          <span>{t('shifts.columns.closeTime')}</span>
+          <span>{t('columns.closeTime')}</span>
           <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
         </div>
       ),
@@ -122,9 +170,20 @@ export default function Shifts() {
     },
 
     {
+      accessorKey: 'totalSales',
+      id: 'totalSales',
+      header: t('columns.subtotal'),
+      cell: ({ cell }) => {
+        const value = cell.getValue() as number
+        return value ? Currency(value) : Currency(0)
+      },
+      footer: props => props.column.id,
+      sortingFn: 'alphanumeric',
+    },
+    {
       accessorKey: 'totalTips',
       id: 'totalTips',
-      header: t('shifts.columns.totalTip'),
+      header: t('columns.totalTip'),
       cell: ({ row }) => {
         // Robust locale-aware parse: handles "1,231.00", "1.231,00", and plain numbers
         const parseAmount = (v: any): number => {
@@ -202,19 +261,6 @@ export default function Shifts() {
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
     },
-
-    {
-      accessorKey: 'totalSales',
-      id: 'totalSales',
-      header: t('shifts.columns.subtotal'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as number
-        return value ? Currency(value) : Currency(0)
-      },
-      footer: props => props.column.id,
-      sortingFn: 'alphanumeric',
-    },
-
     {
       accessorFn: row => {
         const totalSales = row.totalSales || 0
@@ -222,7 +268,7 @@ export default function Shifts() {
         return totalSales + totalTips
       },
       id: 'totalAmount',
-      header: t('shifts.columns.total'),
+      header: t('columns.total'),
       cell: ({ cell }) => {
         const value = cell.getValue() as number
         return value ? Currency(value) : Currency(0)
@@ -253,7 +299,7 @@ export default function Shifts() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('shifts.title')}</h1>
+        <h1 className="text-xl font-semibold">{t('title')}</h1>
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}

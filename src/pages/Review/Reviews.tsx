@@ -1,39 +1,69 @@
 import api from '@/api'
 import { DateRangePicker } from '@/components/date-range-picker'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { ReviewCard } from '@/components/Review/ReviewCard'
+import { ReviewFilters, ReviewFiltersState } from '@/components/Review/ReviewFilters'
+import { ReviewResponseDialog } from '@/components/Review/ReviewResponseDialog'
+import { ReviewStats } from '@/components/Review/ReviewStats'
+import { getSentimentFromRating } from '@/components/Review/SentimentBadge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useQuery } from '@tanstack/react-query'
-import { Star } from 'lucide-react'
-import { useState } from 'react'
-import { useThemeClasses } from '@/hooks/use-theme-classes'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-// Review interface based on new backend structure
+// Review interface based on backend structure
 interface Review {
   id: string
   venueId: string
-  overallRating: number // 1-5 rating
+  overallRating: number
   foodRating?: number
   serviceRating?: number
   ambienceRating?: number
   comment?: string
   customerName?: string
   customerEmail?: string
-  source: string
+  source: 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP' | 'TPV'
   externalId?: string
   createdAt: string
   updatedAt: string
+  responseText?: string
+  respondedAt?: string
+  responseAutomated?: boolean
 }
+
+type SortOption = 'newest' | 'oldest' | 'highestRated' | 'lowestRated' | 'unresponded'
+
+const REVIEWS_PER_PAGE = 20
 
 export default function ReviewSummary() {
   const { venueId } = useCurrentVenue()
-  const theme = useThemeClasses()
-  const { t } = useTranslation()
+  const { t } = useTranslation('reviews')
 
-  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date } | null>(null)
+  // Initialize with a default date range (last 365 days)
+  const getDefaultRange = () => {
+    const to = new Date()
+    const from = new Date()
+    from.setFullYear(from.getFullYear() - 1)
+    return { from, to }
+  }
 
-  // Se obtiene la lista de todas las reviews sin filtrar
+  const [selectedRange, setSelectedRange] = useState<{ from: Date; to: Date }>(getDefaultRange())
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null)
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false)
+
+  const [filters, setFilters] = useState<ReviewFiltersState>({
+    sources: [],
+    minRating: null,
+    sentiment: null,
+    responseStatus: 'all',
+    searchQuery: '',
+  })
+
+  // Fetch reviews from API
   const {
     data: reviewsData,
     isLoading,
@@ -47,101 +77,231 @@ export default function ReviewSummary() {
     enabled: !!venueId,
   })
 
-  const reviews = reviewsData?.reviews || []
+  // Memoize reviews to prevent dependency issues in subsequent useMemo
+  const reviews: Review[] = useMemo(() => reviewsData?.reviews || [], [reviewsData])
 
-  // Filtrar las reviews en el frontend según el rango seleccionado
-  const filteredReviews: Review[] =
-    selectedRange && reviews.length > 0
-      ? reviews.filter((review: Review) => {
-          const reviewDate = new Date(review.createdAt)
-          return reviewDate >= selectedRange.from && reviewDate <= selectedRange.to
-        })
-      : reviews
-  // Procesamos las reseñas y asignamos valores por defecto
+  // Apply all filters and sorting
+  const { filteredAndSortedReviews, totalCount } = useMemo(() => {
+    let result = [...reviews]
 
-  // Calculamos el promedio numérico de las estrellas (overallRating en el nuevo modelo)
-  const average =
-    filteredReviews?.length > 0 ? filteredReviews.reduce((sum, review) => sum + review.overallRating, 0) / filteredReviews?.length : 0
+    // Date range filter
+    if (selectedRange) {
+      result = result.filter(review => {
+        const reviewDate = new Date(review.createdAt)
+        const toDateEndOfDay = new Date(selectedRange.to)
+        toDateEndOfDay.setHours(23, 59, 59, 999)
+        return reviewDate >= selectedRange.from && reviewDate <= toDateEndOfDay
+      })
+    }
 
-  const averageRating = filteredReviews?.length > 0 ? average.toFixed(1) : 'N/A'
+    // Source filter
+    if (filters.sources.length > 0) {
+      result = result.filter(review => filters.sources.includes(review.source))
+    }
+
+    // Rating filter
+    if (filters.minRating !== null) {
+      result = result.filter(review => review.overallRating >= filters.minRating!)
+    }
+
+    // Sentiment filter
+    if (filters.sentiment) {
+      result = result.filter(review => {
+        const sentiment = getSentimentFromRating(review.overallRating)
+        return sentiment === filters.sentiment
+      })
+    }
+
+    // Response status filter
+    if (filters.responseStatus === 'responded') {
+      result = result.filter(review => review.responseText)
+    } else if (filters.responseStatus === 'unresponded') {
+      result = result.filter(review => !review.responseText)
+    }
+
+    // Search filter
+    if (filters.searchQuery.trim()) {
+      const query = filters.searchQuery.toLowerCase()
+      result = result.filter(
+        review => review.comment?.toLowerCase().includes(query) || review.customerName?.toLowerCase().includes(query),
+      )
+    }
+
+    const totalCount = result.length
+
+    // Sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'highestRated':
+          return b.overallRating - a.overallRating
+        case 'lowestRated':
+          return a.overallRating - b.overallRating
+        case 'unresponded':
+          if (!a.responseText && b.responseText) return -1
+          if (a.responseText && !b.responseText) return 1
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        default:
+          return 0
+      }
+    })
+
+    return { filteredAndSortedReviews: result, totalCount }
+  }, [reviews, selectedRange, filters, sortBy])
+
+  // Pagination
+  const paginatedReviews = useMemo(() => {
+    const startIndex = (currentPage - 1) * REVIEWS_PER_PAGE
+    const endIndex = startIndex + REVIEWS_PER_PAGE
+    return filteredAndSortedReviews.slice(startIndex, endIndex)
+  }, [filteredAndSortedReviews, currentPage])
+
+  const totalPages = Math.ceil(filteredAndSortedReviews.length / REVIEWS_PER_PAGE)
+
+  // Reset to page 1 when filters change
+  const handleFiltersChange = (newFilters: ReviewFiltersState) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }
+
+  const handleSortChange = (value: SortOption) => {
+    setSortBy(value)
+    setCurrentPage(1)
+  }
+
+  const handleRespond = (review: Review) => {
+    setSelectedReview(review)
+    setResponseDialogOpen(true)
+  }
+
+  const defaultRange = getDefaultRange()
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2 text-foreground">{t('loading')}</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <div className="text-center py-12 text-destructive">
+          <p className="text-lg font-semibold">{t('error')}</p>
+          <p className="text-sm text-muted-foreground mt-2">{error instanceof Error ? error.message : t('unknownError')}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-foreground">{t('reviews.title')}</h1>
-      <DateRangePicker
-        showCompare={false}
-        onUpdate={({ range }) => {
-          setSelectedRange(range)
-        }}
-        initialDateFrom="2020-01-01"
-        initialDateTo="2030-12-31"
-        align="start"
-        locale="es-ES"
-      />
-      <Card className={`p-4 grid grid-cols-1 md:grid-cols-2 gap-6 ${theme.card}`}>
-        <div>
-          <CardHeader>
-            <CardTitle>{t('reviews.establishments')}</CardTitle>
-            <CardDescription>
-              {t('reviews.averageDescription', { count: filteredReviews?.length })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="ml-2 text-foreground">{t('reviews.loading')}</span>
-              </div>
-            ) : error ? (
-              <div className="text-center py-8 text-destructive">
-                <p>{t('reviews.error')}</p>
-                <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : t('reviews.unknownError')}</p>
-              </div>
-            ) : filteredReviews.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>{t('reviews.noReviews')}</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col items-center">
-                  <div className="text-4xl font-bold mb-2 text-foreground">{averageRating}</div>
-                  <div className="flex items-center space-x-1 mb-4">
-                    {[...Array(Math.round(average))].map((_, i) => (
-                      <Star key={i} className="text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" size={20} />
-                    ))}
-                  </div>
-                </div>
-                <TooltipProvider delayDuration={100}>
-                  <ul className="text-muted-foreground space-y-1">
-                    {[5, 4, 3, 2, 1].map(stars => {
-                      const count = filteredReviews?.filter(r => r.overallRating === stars).length || 0
-                      const percentage = filteredReviews?.length > 0 ? (count / filteredReviews?.length) * 100 : 0
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <DateRangePicker
+          showCompare={false}
+          onUpdate={({ range }) => {
+            if (range.from && range.to) {
+              setSelectedRange(range)
+              setCurrentPage(1)
+            }
+          }}
+          initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
+          initialDateTo={defaultRange.to.toISOString().split('T')[0]}
+          align="end"
+          locale="es-ES"
+        />
+      </div>
 
-                      return (
-                        <li key={stars} className="flex items-center space-x-2 flex-row">
-                          <span className="shrink-0 w-20 text-foreground">
-                            {stars} {t(stars === 1 ? 'reviews.star' : 'reviews.stars')}
-                          </span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="w-full h-3 bg-muted border border-border rounded">
-                                <div className="h-full bg-yellow-500 dark:bg-yellow-400 rounded" style={{ width: `${percentage}%` }}></div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t('reviews.reviewCount', { count })}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </TooltipProvider>
-              </>
-            )}
-          </CardContent>
+      {/* Stats */}
+      <ReviewStats reviews={filteredAndSortedReviews} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Filters Sidebar */}
+        <div className="lg:col-span-1">
+          <ReviewFilters filters={filters} onFiltersChange={handleFiltersChange} totalCount={reviews.length} filteredCount={totalCount} />
         </div>
-      </Card>
+
+        {/* Reviews List */}
+        <div className="lg:col-span-3 space-y-4">
+          {/* Sort Controls */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {t('averageDescription', { count: totalCount })}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{t('sorting.label')}</span>
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">{t('sorting.newest')}</SelectItem>
+                  <SelectItem value="oldest">{t('sorting.oldest')}</SelectItem>
+                  <SelectItem value="highestRated">{t('sorting.highestRated')}</SelectItem>
+                  <SelectItem value="lowestRated">{t('sorting.lowestRated')}</SelectItem>
+                  <SelectItem value="unresponded">{t('sorting.unresponded')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Reviews Grid */}
+          {paginatedReviews.length === 0 ? (
+            <div className="text-center py-12 px-4 bg-muted/30 rounded-lg border border-dashed">
+              <p className="text-lg font-semibold text-muted-foreground">{reviews.length === 0 ? t('emptyState.title') : t('emptyState.noResults')}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {reviews.length === 0 ? t('emptyState.description') : t('emptyState.adjustFilters')}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {paginatedReviews.map(review => (
+                <ReviewCard key={review.id} review={review} onRespond={handleRespond} />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Response Dialog */}
+      <ReviewResponseDialog review={selectedReview} open={responseDialogOpen} onOpenChange={setResponseDialogOpen} />
     </div>
   )
 }

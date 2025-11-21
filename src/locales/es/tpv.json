@@ -1,0 +1,194 @@
+{
+  "title": "Terminales punto de venta",
+  "subtitle": "Gestiona los dispositivos TPV de tu restaurante",
+  "actions": {
+    "createNew": "Nuevo dispositivo",
+    "maintenance": "Poner en modo mantenimiento",
+    "exit_maintenance": "Salir del modo mantenimiento",
+    "update_status": "Forzar actualización de estado",
+    "offline": "Terminal desconectado",
+    "exitMaintenance": "Salir Mantenimiento",
+    "maintenanceMode": "Mantenimiento",
+    "update": "Actualizar",
+    "generateCode": "Generar Código de Activación",
+    "delete": "Eliminar Terminal",
+    "deactivate": "Desactivar Terminal",
+    "deactivating": "Desactivando..."
+  },
+  "create": {
+    "title": "Crear Nuevo Terminal",
+    "nameLabel": "Nombre del Terminal",
+    "namePlaceholder": "Ej: TPV Caja 1",
+    "serialLabel": "Número de Serie",
+    "serialPlaceholder": "Ej: ABC123456",
+    "successTitle": "Terminal {{name}} creado",
+    "successDesc": "El terminal ha sido creado exitosamente",
+    "errorTitle": "Error al crear terminal",
+    "errorDesc": "No se pudo crear el terminal. Por favor intenta de nuevo.",
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "nameMin": "El nombre debe tener al menos 3 caracteres",
+      "nameMax": "El nombre no puede exceder 30 caracteres"
+    }
+  },
+  "search": {
+    "placeholder": "Buscar terminales..."
+  },
+  "table": {
+    "columns": {
+      "name": "Nombre",
+      "status": "Estado",
+      "serial": "Número de serie",
+      "version": "Versión",
+      "actions": "Acciones"
+    },
+    "noVersion": "No especificada"
+  },
+  "status": {
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "inactive": "Inactivo",
+    "maintenance": "Mantenimiento",
+    "retired": "Retirado",
+    "unknown": "Desconocido",
+    "lastSeen": "Visto por última vez",
+    "activated": "Activado",
+    "notActivated": "Sin Activar"
+  },
+  "commandLabels": {
+    "SHUTDOWN": "Apagar",
+    "RESTART": "Reiniciar",
+    "MAINTENANCE_MODE": "Entrar en mantenimiento",
+    "EXIT_MAINTENANCE": "Salir de mantenimiento",
+    "UPDATE_STATUS": "Actualizar estado",
+    "REACTIVATE": "Reactivar"
+  },
+  "commands": {
+    "sent": "Comando enviado",
+    "sentSuccess": "Comando {{command}} enviado exitosamente",
+    "error": "Error",
+    "sendError": "Error enviando comando: {{error}}",
+    "maintenancePayload": "Activado desde dashboard"
+  },
+  "detail": {
+    "terminal": "Terminal",
+    "id": "ID",
+    "loading": "Cargando terminal...",
+    "notFound": "Terminal No Encontrado",
+    "notFoundDesc": "No se pudo encontrar el terminal solicitado con ID",
+    "goToTerminals": "Ir a Terminales",
+    "noData": "No hay datos de terminal disponibles",
+    "terminalStatus": "Estado del Terminal",
+    "connection": "Conexión",
+    "activationStatus": "Estado de Activación",
+    "activated": "Activado",
+    "notActivated": "Sin Activar",
+    "inMaintenance": "En Mantenimiento",
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "lastContact": "Último Contacto",
+    "never": "Nunca",
+    "version": "Versión",
+    "systemInfo": "Información del Sistema",
+    "platform": "Plataforma",
+    "memory": "Memoria",
+    "uptime": "Tiempo Activo",
+    "ip": "Dirección IP",
+    "memoryUsage": "Uso de Memoria",
+    "terminalInfo": "Información del Terminal",
+    "terminalName": "Nombre del Terminal",
+    "systemId": "ID del Sistema",
+    "serialNumber": "Número de Serie",
+    "terminalType": "Tipo de Terminal",
+    "brand": "Marca",
+    "model": "Modelo",
+    "selectType": "Seleccionar tipo",
+    "types": {
+      "tpvAndroid": "Android",
+      "tpvIOS": "iOS",
+      "printerReceipt": "Impresora de Tickets",
+      "printerKitchen": "Impresora de Cocina",
+      "kds": "Sistema de Display de Cocina (KDS)"
+    },
+    "notSpecified": "No especificado",
+    "advancedConfig": "Configuración Avanzada",
+    "noConfig": "No hay configuración disponible",
+    "saveChanges": "Guardar Cambios",
+    "quickActions": "Acciones Rápidas",
+    "alerts": {
+      "inMaintenanceMode": "En modo mantenimiento",
+      "reactivate": "Reactivar",
+      "terminalInactive": "El terminal está inactivo"
+    },
+    "activateMaintenance": "Activar Modo Mantenimiento",
+    "updateStatus": "Actualizar Estado",
+    "systemDetails": "Detalles del Sistema",
+    "venueId": "ID del Venue",
+    "created": "Creado",
+    "lastUpdate": "Última Actualización",
+    "activatedOn": "Activado el",
+    "pendingActivation": "Activación Pendiente",
+    "tooltips": {
+      "reactivate": "Reactivar terminal",
+      "maintenanceMode": "Poner terminal en modo mantenimiento",
+      "updateStatus": "Solicitar al terminal que envíe estado actualizado"
+    },
+    "selectStatus": "Seleccionar estado",
+    "statusOptions": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "maintenance": "Mantenimiento",
+      "retired": "Retirado"
+    },
+    "retiredWarning": "Terminales RETIRADOS no pueden ser reactivados. Esta acción desactiva permanentemente el terminal.",
+    "validation": {
+      "nameRequired": "El nombre del terminal es obligatorio",
+      "serialRequired": "El número de serie es obligatorio"
+    },
+    "errors": {
+      "venueOrTpvUndefined": "El ID del Venue o TPV no está definido",
+      "updateFailed": "Error al actualizar el terminal",
+      "loadError": "Error al cargar el terminal",
+      "tpvIdUndefined": "El ID del TPV no está definido"
+    },
+    "toast": {
+      "updateSuccess": "Terminal actualizado",
+      "updateSuccessDesc": "La información del terminal se ha actualizado correctamente"
+    },
+    "deactivateConfirmTitle": "¿Desactivar Terminal? (Solo Superadmin)",
+    "deactivateConfirmDescription": "¿Estás seguro de que deseas desactivar el terminal \"{{name}}\"? Esto limpiará la activación y permitirá generar un nuevo código de activación.",
+    "deactivateSuccess": "Terminal Desactivado",
+    "deactivateSuccessDesc": "El terminal ha sido desactivado exitosamente. Ahora puedes generar un nuevo código de activación.",
+    "deactivateError": "Error al Desactivar"
+  },
+  "pagination": {
+    "selectedRows": "{{selected}} de {{total}} fila(s) seleccionada(s).",
+    "rowsPerPage": "Filas por página",
+    "pageOf": "Página {{current}} de {{total}}",
+    "firstPage": "Ir a la primera página",
+    "previousPage": "Ir a la página anterior",
+    "nextPage": "Ir a la página siguiente",
+    "lastPage": "Ir a la última página"
+  },
+  "activation": {
+    "title": "Código de Activación del Terminal",
+    "description": "Comparte este código con el personal para activar el terminal en el dispositivo Android",
+    "code": "Código de Activación",
+    "expiresIn": "Expira en {{days}} días",
+    "expiresAt": "Expira el",
+    "copyCode": "Copiar Código",
+    "copied": "¡Código copiado al portapapeles!",
+    "close": "Cerrar",
+    "generateSuccess": "Código de activación generado exitosamente",
+    "generateError": "Error al generar código de activación",
+    "alreadyActivated": "El terminal ya está activado",
+    "alreadyActivatedTooltip": "Este terminal ya ha sido activado. No se puede generar un nuevo código de activación.",
+    "instructions": {
+      "title": "Instrucciones de Activación",
+      "step1": "1. Abre la app Avoqado TPV en el dispositivo Android",
+      "step2": "2. Ingresa el número de serie del dispositivo: {{serialNumber}}",
+      "step3": "3. Ingresa este código de activación",
+      "step4": "4. El terminal estará activado y listo para usar"
+    }
+  }
+}

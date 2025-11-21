@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { getToday, getYesterday, getLast7Days, getLast30Days, getPreviousPeriod } from '@/utils/datetime'
+import { useAuth } from '@/context/AuthContext'
+import { DateTime } from 'luxon'
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -92,6 +95,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   showCompare = true,
 }): JSX.Element => {
   const { t } = useTranslation()
+  const { activeVenue } = useAuth()
+  const venueTimezone = activeVenue?.timezone || 'America/Mexico_City'
   const [isOpen, setIsOpen] = useState(false)
 
   const [range, setRange] = useState<DateRange>({
@@ -112,6 +117,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   // Refs to store the values of range and rangeCompare when the date picker is opened
   const openedRangeRef = useRef<DateRange | undefined>()
   const openedRangeCompareRef = useRef<DateRange | undefined>()
+  const prevIsOpenRef = useRef(isOpen)
 
   const [selectedPreset, setSelectedPreset] = useState<string | undefined>(undefined)
 
@@ -134,97 +140,142 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
   }, [])
 
-  const getPresetRange = (presetName: string): DateRange => {
+  const getPresetRange = (presetName: string, timezone: string): DateRange => {
     const preset = PRESETS.find(({ name }) => name === presetName)
     if (!preset) throw new Error(`Unknown date range preset: ${presetName}`)
-    const from = new Date()
-    const to = new Date()
-    const first = from.getDate() - from.getDay()
+
+    const now = DateTime.now().setZone(timezone)
 
     switch (preset.name) {
-      case 'today':
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'yesterday':
-        from.setDate(from.getDate() - 1)
-        from.setHours(0, 0, 0, 0)
-        to.setDate(to.getDate() - 1)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'last7':
-        from.setDate(from.getDate() - 6)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'last14':
-        from.setDate(from.getDate() - 13)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'last30':
-        from.setDate(from.getDate() - 29)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'thisWeek':
-        from.setDate(first)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'lastWeek':
-        from.setDate(from.getDate() - 7 - from.getDay())
-        to.setDate(to.getDate() - to.getDay() - 1)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'thisMonth':
-        from.setDate(1)
-        from.setHours(0, 0, 0, 0)
-        to.setHours(23, 59, 59, 999)
-        break
-
-      case 'lastMonth':
-        from.setMonth(from.getMonth() - 1)
-        from.setDate(1)
-        from.setHours(0, 0, 0, 0)
-        to.setDate(0)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'thisYear':
-        from.setMonth(0, 1)
-        from.setHours(0, 0, 0, 0)
-        to.setMonth(11, 31)
-        to.setHours(23, 59, 59, 999)
-        break
-      case 'lastYear':
-        from.setFullYear(from.getFullYear() - 1)
-        from.setMonth(0, 1)
-        from.setHours(0, 0, 0, 0)
-        to.setFullYear(to.getFullYear() - 1)
-        to.setMonth(11, 31)
-        to.setHours(23, 59, 59, 999)
-        break
+      case 'today': {
+        const range = getToday(timezone)
+        return { from: range.from, to: range.to }
+      }
+      case 'yesterday': {
+        const range = getYesterday(timezone)
+        return { from: range.from, to: range.to }
+      }
+      case 'last7': {
+        const range = getLast7Days(timezone)
+        return { from: range.from, to: range.to }
+      }
+      case 'last14': {
+        const fourteenDaysAgo = now.minus({ days: 14 })
+        return {
+          from: fourteenDaysAgo.toJSDate(),
+          to: now.toJSDate(),
+        }
+      }
+      case 'last30': {
+        const range = getLast30Days(timezone)
+        return { from: range.from, to: range.to }
+      }
+      case 'thisWeek': {
+        // Calendar week (Monday-Sunday)
+        const startOfWeek = now.startOf('week')
+        const endOfWeek = now.endOf('week')
+        return {
+          from: startOfWeek.toJSDate(),
+          to: endOfWeek.toJSDate(),
+        }
+      }
+      case 'lastWeek': {
+        // Previous calendar week
+        const lastWeekStart = now.minus({ weeks: 1 }).startOf('week')
+        const lastWeekEnd = now.minus({ weeks: 1 }).endOf('week')
+        return {
+          from: lastWeekStart.toJSDate(),
+          to: lastWeekEnd.toJSDate(),
+        }
+      }
+      case 'thisMonth': {
+        // Calendar month
+        const startOfMonth = now.startOf('month')
+        const endOfMonth = now.endOf('month')
+        return {
+          from: startOfMonth.toJSDate(),
+          to: endOfMonth.toJSDate(),
+        }
+      }
+      case 'lastMonth': {
+        // Previous calendar month
+        const lastMonthStart = now.minus({ months: 1 }).startOf('month')
+        const lastMonthEnd = now.minus({ months: 1 }).endOf('month')
+        return {
+          from: lastMonthStart.toJSDate(),
+          to: lastMonthEnd.toJSDate(),
+        }
+      }
+      case 'thisYear': {
+        // Calendar year
+        const startOfYear = now.startOf('year')
+        const endOfYear = now.endOf('year')
+        return {
+          from: startOfYear.toJSDate(),
+          to: endOfYear.toJSDate(),
+        }
+      }
+      case 'lastYear': {
+        // Previous calendar year
+        const lastYearStart = now.minus({ years: 1 }).startOf('year')
+        const lastYearEnd = now.minus({ years: 1 }).endOf('year')
+        return {
+          from: lastYearStart.toJSDate(),
+          to: lastYearEnd.toJSDate(),
+        }
+      }
+      default: {
+        // Fallback to today
+        const range = getToday(timezone)
+        return { from: range.from, to: range.to }
+      }
     }
+  }
 
-    return { from, to }
+  /**
+   * Adjust date range to include the full "to" day
+   *
+   * When a user selects "Sept 1 - Sept 8", they expect ALL of Sept 8 to be included,
+   * not just Sept 8 00:00:00. This function adjusts the "to" date to 23:59:59.999.
+   *
+   * @param range - Original date range with "to" at start of day
+   * @returns Adjusted range with "to" at end of day
+   */
+  const adjustRangeToEndOfDay = (range: DateRange): DateRange => {
+    if (!range.to) return range
+
+    // Set time to end of day: 23:59:59.999
+    const endOfDay = new Date(range.to)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    return {
+      from: range.from,
+      to: endOfDay,
+    }
   }
 
   const setPreset = (preset: string): void => {
-    const range = getPresetRange(preset)
+    const range = getPresetRange(preset, venueTimezone)
     setRange(range)
+
+    let updatedRangeCompare = rangeCompare
     if (rangeCompare) {
-      const rangeCompare = {
+      updatedRangeCompare = {
         from: new Date(range.from.getFullYear() - 1, range.from.getMonth(), range.from.getDate()),
         to: range.to ? new Date(range.to.getFullYear() - 1, range.to.getMonth(), range.to.getDate()) : undefined,
       }
-      setRangeCompare(rangeCompare)
+      setRangeCompare(updatedRangeCompare)
     }
+
+    // Auto-apply preset selection (don't wait for "Apply" button)
+    // Note: Presets already return end-of-day times, so no adjustment needed
+    setIsOpen(false)
+    onUpdate?.({ range, rangeCompare: updatedRangeCompare })
   }
 
   const checkPreset = useCallback((): void => {
     for (const preset of PRESETS) {
-      const presetRange = getPresetRange(preset.name)
+      const presetRange = getPresetRange(preset.name, venueTimezone)
 
       const normalizedRangeFrom = new Date(range.from)
       normalizedRangeFrom.setHours(0, 0, 0, 0)
@@ -244,7 +295,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     }
 
     setSelectedPreset(undefined)
-  }, [range, setSelectedPreset])
+  }, [range, setSelectedPreset, venueTimezone])
 
   const resetValues = (): void => {
     setRange({
@@ -273,9 +324,39 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     )
   }
 
+  // Sync props to internal state ONLY when popover is closed
+  // This allows external buttons (Hoy, Últimos 7 días) to update the display
+  // while NOT interfering with manual date selection when popover is open
+  useEffect(() => {
+    if (!isOpen) {
+      const newFrom = getDateAdjustedForTimezone(initialDateFrom)
+      const newTo = initialDateTo ? getDateAdjustedForTimezone(initialDateTo) : getDateAdjustedForTimezone(initialDateFrom)
+
+      // Only update if dates actually changed (avoid unnecessary re-renders)
+      if (range.from.getTime() !== newFrom.getTime() || range.to?.getTime() !== newTo.getTime()) {
+        setRange({
+          from: newFrom,
+          to: newTo,
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDateFrom, initialDateTo, isOpen])
+
   useEffect(() => {
     checkPreset()
   }, [range, checkPreset])
+
+  // Save initial values ONLY when popover opens (not while it's open)
+  // This ensures "Apply" button can detect changes made by the user
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      // Popover just opened - save the current values
+      openedRangeRef.current = range
+      openedRangeCompareRef.current = rangeCompare
+    }
+    prevIsOpenRef.current = isOpen
+  }, [isOpen, range, rangeCompare])
 
   const PresetButton = ({ preset, label, isSelected }: { preset: string; label: string; isSelected: boolean }): JSX.Element => (
     <Button
@@ -299,13 +380,6 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     if (!a || !b) return a === b // If either is undefined, return true if both are undefined
     return a.from.getTime() === b.from.getTime() && (!a.to || !b.to || a.to.getTime() === b.to.getTime())
   }
-
-  useEffect(() => {
-    if (isOpen) {
-      openedRangeRef.current = range
-      openedRangeCompareRef.current = rangeCompare
-    }
-  }, [isOpen, range, rangeCompare])
 
   // Helper to focus the first focusable element within the popover
   const focusFirstInPopover = (): void => {
@@ -391,7 +465,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                       }}
                       id="compare-mode"
                     />
-                    <Label htmlFor="compare-mode">{t('common.compare')}</Label>
+                    <Label htmlFor="compare-mode">{t('compare')}</Label>
                   </div>
                 )}
                 <div className="flex flex-col gap-2">
@@ -466,12 +540,12 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   }}
                 >
                   <SelectTrigger className="w-[180px] mx-auto mb-2">
-                    <SelectValue placeholder={t('common.selectPlaceholder')} />
+                    <SelectValue placeholder={t('selectPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {PRESETS.map(preset => (
                       <SelectItem key={preset.name} value={preset.name}>
-                        {t(`common.dateRange.${preset.name}`)}
+                        {t(`dateRange.${preset.name}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -499,7 +573,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   <PresetButton
                     key={preset.name}
                     preset={preset.name}
-                    label={t(`common.dateRange.${preset.name}`)}
+                    label={t(`dateRange.${preset.name}`)}
                     isSelected={selectedPreset === preset.name}
                   />
                 ))}
@@ -515,17 +589,21 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
             }}
             variant="ghost"
           >
-            {t('common.cancel')}
+            {t('cancel')}
           </Button>
           <Button
             onClick={() => {
               setIsOpen(false)
               if (!areRangesEqual(range, openedRangeRef.current) || !areRangesEqual(rangeCompare, openedRangeCompareRef.current)) {
-                onUpdate?.({ range, rangeCompare })
+                // Adjust "to" date to end of day so full day is included
+                const adjustedRange = adjustRangeToEndOfDay(range)
+                const adjustedRangeCompare = rangeCompare ? adjustRangeToEndOfDay(rangeCompare) : undefined
+
+                onUpdate?.({ range: adjustedRange, rangeCompare: adjustedRangeCompare })
               }
             }}
           >
-            {t('common.apply')}
+            {t('apply')}
           </Button>
         </div>
       </PopoverContent>

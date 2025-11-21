@@ -1,5 +1,15 @@
 import api from '@/api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +32,7 @@ import {
   Cpu,
   HardDrive,
   Home,
+  Key,
   MemoryStick,
   PencilIcon,
   RefreshCw,
@@ -29,6 +40,7 @@ import {
   Settings,
   Shield,
   Terminal,
+  Trash2,
   Wifi,
   WifiOff,
   Wrench,
@@ -41,12 +53,18 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as z from 'zod'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
+import { generateActivationCode } from '@/services/tpv.service'
+import { ActivationCodeDialog } from './ActivationCodeDialog'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 
 // Type for the form values
 type TpvFormValues = {
   name: string
   serialNumber: string
   type?: string
+  brand?: string
+  model?: string
   status?: string
   config?: string
 }
@@ -56,6 +74,8 @@ interface TpvData {
   name: string
   serialNumber: string
   type?: string
+  brand?: string // Hardware manufacturer (PAX, Ingenico, etc.)
+  model?: string // Hardware model (A910S, D220, etc.)
   status?: string
   lastHeartbeat?: string
   config?: any // JSON field
@@ -64,6 +84,7 @@ interface TpvData {
   updatedAt?: string
   version?: string
   ipAddress?: string
+  activatedAt?: string | null // 🆕 Activation timestamp (null = not activated)
   systemInfo?: {
     platform?: string
     memory?: {
@@ -77,18 +98,30 @@ interface TpvData {
 }
 
 export default function TpvId() {
-  const { t } = useTranslation()
+  const { t } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { user } = useAuth()
+  const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const [isEditing, setIsEditing] = useState(false)
+  const [activationDialogOpen, setActivationDialogOpen] = useState(false)
+  const [activationData, setActivationData] = useState<{
+    activationCode: string
+    expiresAt: string
+    expiresIn: number
+    serialNumber: string
+    venueName: string
+  } | null>(null)
 
   const tpvFormSchema = z.object({
-    name: z.string().min(1, { message: t('tpv.detail.validation.nameRequired') }),
-    serialNumber: z.string().min(1, { message: t('tpv.detail.validation.serialRequired') }),
+    name: z.string().min(1, { message: t('detail.validation.nameRequired') }),
+    serialNumber: z.string().min(1, { message: t('detail.validation.serialRequired') }),
     type: z.string().optional(),
+    brand: z.string().optional(),
+    model: z.string().optional(),
     status: z.string().optional(),
     config: z.string().optional(),
   })
@@ -100,6 +133,8 @@ export default function TpvId() {
       name: '',
       serialNumber: '',
       type: '',
+      brand: '',
+      model: '',
       status: '',
       config: '',
     },
@@ -107,7 +142,7 @@ export default function TpvId() {
 
   // Helper functions
   const getTerminalStatusStyle = (status?: string, lastHeartbeat?: string) => {
-    if (!status) return { variant: 'secondary' as const, label: t('tpv.status.unknown'), icon: AlertCircle }
+    if (!status) return { variant: 'secondary' as const, label: t('status.unknown'), icon: AlertCircle }
 
     const cutoff = new Date(Date.now() - 2 * 60 * 1000) // 2 minutes ago
     const isRecentHeartbeat = lastHeartbeat && new Date(lastHeartbeat) > cutoff
@@ -117,14 +152,14 @@ export default function TpvId() {
         if (isRecentHeartbeat) {
           return {
             variant: 'default' as const,
-            label: t('tpv.status.online'),
+            label: t('status.online'),
             icon: Activity,
             className: 'bg-green-500/10 text-green-700 hover:bg-green-500/20 dark:text-green-400',
           }
         } else {
           return {
             variant: 'destructive' as const,
-            label: t('tpv.status.offline'),
+            label: t('status.offline'),
             icon: WifiOff,
             className: 'bg-destructive/10 text-destructive hover:bg-destructive/20',
           }
@@ -132,16 +167,16 @@ export default function TpvId() {
       case 'MAINTENANCE':
         return {
           variant: 'secondary' as const,
-          label: t('tpv.status.maintenance'),
+          label: t('status.maintenance'),
           icon: Wrench,
           className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent',
         }
       case 'INACTIVE':
-        return { variant: 'secondary' as const, label: t('tpv.status.inactive'), icon: XIcon }
+        return { variant: 'secondary' as const, label: t('status.inactive'), icon: XIcon }
       case 'RETIRED':
-        return { variant: 'secondary' as const, label: t('tpv.status.retired'), icon: XIcon }
+        return { variant: 'secondary' as const, label: t('status.retired'), icon: XIcon }
       default:
-        return { variant: 'secondary' as const, label: t('tpv.status.unknown'), icon: AlertCircle }
+        return { variant: 'secondary' as const, label: t('status.unknown'), icon: AlertCircle }
     }
   }
 
@@ -197,6 +232,8 @@ export default function TpvId() {
         name: tpv.name || '',
         serialNumber: tpv.serialNumber || '',
         type: tpv.type || '',
+        brand: tpv.brand || '',
+        model: tpv.model || '',
         status: tpv.status || '',
         config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
@@ -207,7 +244,7 @@ export default function TpvId() {
   const updateTpvMutation = useMutation({
     mutationFn: async (updatedData: TpvFormValues) => {
       if (!venueId || !tpvId) {
-        throw new Error(t('tpv.detail.errors.venueOrTpvUndefined'))
+        throw new Error(t('detail.errors.venueOrTpvUndefined'))
       }
       const response = await api.put(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, updatedData)
       return response.data
@@ -219,14 +256,14 @@ export default function TpvId() {
 
       setIsEditing(false)
       toast({
-        title: t('tpv.detail.toast.updateSuccess'),
-        description: t('tpv.detail.toast.updateSuccessDesc'),
+        title: t('detail.toast.updateSuccess'),
+        description: t('detail.toast.updateSuccessDesc'),
       })
     },
     onError: error => {
       toast({
-        title: t('common.error'),
-        description: t('tpv.detail.errors.updateFailed'),
+        title: t('common:error'),
+        description: t('detail.errors.updateFailed'),
         variant: 'destructive',
       })
       console.error('Error updating TPV:', error)
@@ -236,31 +273,94 @@ export default function TpvId() {
   // Mutation for sending commands to TPV
   const commandMutation = useMutation({
     mutationFn: async ({ command, payload }: { command: string; payload?: any }) => {
-      if (!tpvId) throw new Error(t('tpv.detail.errors.tpvIdUndefined'))
+      if (!tpvId) throw new Error(t('detail.errors.tpvIdUndefined'))
       const response = await api.post(`/api/v1/dashboard/tpv/${tpvId}/command`, { command, payload })
       return response.data
     },
     onSuccess: (_, variables) => {
       toast({
-        title: t('tpv.commands.sent'),
-        description: t('tpv.commands.sentSuccess', { command: variables.command }),
+        title: t('commands.sent'),
+        description: t('commands.sentSuccess', { command: variables.command }),
       })
       // Refresh the TPV data to show updated status
       queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
     },
     onError: (error: any) => {
       toast({
-        title: t('tpv.commands.error'),
-        description: t('tpv.commands.sendError', { error: error.response?.data?.message || error.message }),
+        title: t('commands.error'),
+        description: t('commands.sendError', { error: error.response?.data?.message || error.message }),
         variant: 'destructive',
       })
     },
   })
 
   const sendTpvCommand = (command: string) => {
-    const payload = command === 'MAINTENANCE_MODE' ? { message: t('tpv.commands.maintenancePayload'), duration: 0 } : undefined
+    const payload = command === 'MAINTENANCE_MODE' ? { message: t('commands.maintenancePayload'), duration: 0 } : undefined
 
     commandMutation.mutate({ command, payload })
+  }
+
+  // Mutation for generating activation code
+  const generateActivationCodeMutation = useMutation({
+    mutationFn: async () => {
+      if (!venueId || !tpvId) {
+        throw new Error(t('detail.errors.venueOrTpvUndefined'))
+      }
+      return generateActivationCode(venueId, tpvId)
+    },
+    onSuccess: (data) => {
+      setActivationData({
+        activationCode: data.activationCode,
+        expiresAt: data.expiresAt,
+        expiresIn: data.expiresIn,
+        serialNumber: tpv?.serialNumber || '',
+        venueName: data.venueName || '',
+      })
+      setActivationDialogOpen(true)
+      toast({
+        title: t('activation.generateSuccess'),
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('activation.generateError'),
+        description: error.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Mutation for deactivating TPV (clear activatedAt)
+  const deactivateTpvMutation = useMutation({
+    mutationFn: async () => {
+      if (!venueId || !tpvId) {
+        throw new Error(t('detail.errors.venueOrTpvUndefined'))
+      }
+      const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}/deactivate`)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({
+        title: t('detail.deactivateSuccess'),
+        description: t('detail.deactivateSuccessDesc'),
+      })
+      // Refresh TPV data
+      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('detail.deactivateError'),
+        description: error.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
+
+  const handleDeactivate = () => {
+    deactivateTpvMutation.mutate()
+    setShowDeactivateDialog(false)
   }
 
   const onSubmit = (values: TpvFormValues) => {
@@ -274,6 +374,8 @@ export default function TpvId() {
         name: tpv.name || '',
         serialNumber: tpv.serialNumber || '',
         type: tpv.type || '',
+        brand: tpv.brand || '',
+        model: tpv.model || '',
         status: tpv.status || '',
         config: tpv.config ? JSON.stringify(tpv.config, null, 2) : '',
       })
@@ -287,7 +389,7 @@ export default function TpvId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground">{t('tpv.detail.loading')}</p>
+        <p className="text-muted-foreground">{t('detail.loading')}</p>
       </div>
     )
   }
@@ -301,20 +403,20 @@ export default function TpvId() {
             <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mb-4">
               <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
-            <CardTitle className="text-xl">{t('tpv.detail.notFound')}</CardTitle>
+            <CardTitle className="text-xl">{t('detail.notFound')}</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              {t('tpv.detail.notFoundDesc')} <code className="bg-muted px-2 py-1 rounded text-sm">{tpvId}</code>
+              {t('detail.notFoundDesc')} <code className="bg-muted px-2 py-1 rounded text-sm">{tpvId}</code>
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button variant="outline" onClick={() => navigate(-1)} className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                {t('common.goBack')}
+                {t('common:goBack')}
               </Button>
               <Button onClick={() => navigate(`/venues/${venueId}/tpv`)} className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
-                {t('tpv.detail.goToTerminals')}
+                {t('detail.goToTerminals')}
               </Button>
             </div>
           </CardContent>
@@ -329,14 +431,14 @@ export default function TpvId() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{t('tpv.detail.errors.loadError')}</AlertDescription>
+          <AlertDescription>{t('detail.errors.loadError')}</AlertDescription>
         </Alert>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('common.goBack')}
+            {t('common:goBack')}
           </Button>
-          <Button onClick={() => window.location.reload()}>{t('common.tryAgain')}</Button>
+          <Button onClick={() => window.location.reload()}>{t('common:tryAgain')}</Button>
         </div>
       </div>
     )
@@ -346,10 +448,10 @@ export default function TpvId() {
   if (!tpv) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <p className="text-muted-foreground">{t('tpv.detail.noData')}</p>
+        <p className="text-muted-foreground">{t('detail.noData')}</p>
         <Button onClick={() => navigate(`/venues/${venueId}/tpv`)}>
           <Home className="h-4 w-4 mr-2" />
-          {t('tpv.detail.goToTerminals')}
+          {t('detail.goToTerminals')}
         </Button>
       </div>
     )
@@ -376,8 +478,10 @@ export default function TpvId() {
                     <Terminal className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h1 className="text-lg font-semibold text-foreground">{tpv?.name || t('tpv.detail.terminal')}</h1>
-                    <p className="text-sm text-muted-foreground">{t('tpv.detail.id')}: {tpv?.id?.slice(-8) || 'N/A'}</p>
+                    <h1 className="text-lg font-semibold text-foreground">{tpv?.name || t('detail.terminal')}</h1>
+                    <p className="text-sm text-muted-foreground">
+                      {t('detail.id')}: {tpv?.id?.slice(-8) || 'N/A'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -397,14 +501,14 @@ export default function TpvId() {
                       <Tooltip>
                         <TooltipTrigger asChild></TooltipTrigger>
                         <TooltipContent>
-                          <p>{t('tpv.detail.tooltips.reactivate')}</p>
+                          <p>{t('detail.tooltips.reactivate')}</p>
                         </TooltipContent>
                       </Tooltip>
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild></TooltipTrigger>
                         <TooltipContent>
-                          <p>{terminalOnline ? t('tpv.detail.tooltips.maintenanceMode') : t('tpv.actions.offline')}</p>
+                          <p>{terminalOnline ? t('detail.tooltips.maintenanceMode') : t('actions.offline')}</p>
                         </TooltipContent>
                       </Tooltip>
                     )}
@@ -420,11 +524,11 @@ export default function TpvId() {
                             disabled={!terminalOnline || commandMutation.isPending}
                           >
                             <RefreshCw className="w-4 h-4 mr-2" />
-                            {t('tpv.actions.update')}
+                            {t('actions.update')}
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{terminalOnline ? t('tpv.detail.tooltips.updateStatus') : t('tpv.actions.offline')}</p>
+                          <p>{terminalOnline ? t('detail.tooltips.updateStatus') : t('actions.offline')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </PermissionGate>
@@ -438,7 +542,7 @@ export default function TpvId() {
                         className="border-primary/30 text-primary hover:bg-primary/5"
                       >
                         <PencilIcon className="w-4 h-4 mr-2" />
-                        {t('common.edit')}
+                        {t('common:edit')}
                       </Button>
                     </PermissionGate>
                   </div>
@@ -450,7 +554,7 @@ export default function TpvId() {
                     <div className="flex items-center space-x-2">
                       <Button variant="outline" size="sm" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
                         <XIcon className="w-4 h-4 mr-2" />
-                        {t('common.cancel')}
+                        {t('common:cancel')}
                       </Button>
                       <Button
                         size="sm"
@@ -459,7 +563,7 @@ export default function TpvId() {
                         className="bg-primary hover:bg-primary/90"
                       >
                         <SaveIcon className="w-4 h-4 mr-2" />
-                        {updateTpvMutation.isPending ? t('common.saving') : t('common.save')}
+                        {updateTpvMutation.isPending ? t('common:saving') : t('common:save')}
                       </Button>
                     </div>
                   </PermissionGate>
@@ -476,14 +580,14 @@ export default function TpvId() {
             <div className="xl:col-span-2 space-y-6">
               {/* Status Overview Card */}
               <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
+                <CardHeader className="bg-linear-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
                   <CardTitle className="flex items-center text-lg">
                     <Activity className="w-5 h-5 mr-2 text-primary" />
-                    {t('tpv.detail.terminalStatus')}
+                    {t('detail.terminalStatus')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="text-center p-4 rounded-lg bg-muted">
                       <div className="flex justify-center mb-2">
                         {isInMaintenance ? (
@@ -494,7 +598,7 @@ export default function TpvId() {
                           <WifiOff className="w-8 h-8 text-destructive" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{t('tpv.detail.connection')}</p>
+                      <p className="text-sm text-muted-foreground">{t('detail.connection')}</p>
                       <p
                         className={`font-semibold ${
                           isInMaintenance
@@ -504,7 +608,21 @@ export default function TpvId() {
                             : 'text-destructive'
                         }`}
                       >
-                        {isInMaintenance ? t('tpv.detail.inMaintenance') : terminalOnline ? t('tpv.detail.connected') : t('tpv.detail.disconnected')}
+                        {isInMaintenance ? t('detail.inMaintenance') : terminalOnline ? t('detail.connected') : t('detail.disconnected')}
+                      </p>
+                    </div>
+
+                    <div className="text-center p-4 rounded-lg bg-muted">
+                      <div className="flex justify-center mb-2">
+                        {tpv?.activatedAt ? (
+                          <Key className="w-8 h-8 text-green-600" />
+                        ) : (
+                          <Key className="w-8 h-8 text-yellow-600 dark:text-yellow-500" />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{t('detail.activationStatus')}</p>
+                      <p className={`font-semibold ${tpv?.activatedAt ? 'text-green-600' : 'text-yellow-600 dark:text-yellow-500'}`}>
+                        {tpv?.activatedAt ? t('detail.activated') : t('detail.notActivated')}
                       </p>
                     </div>
 
@@ -512,7 +630,7 @@ export default function TpvId() {
                       <div className="flex justify-center mb-2">
                         <Clock className="w-8 h-8 text-blue-600" />
                       </div>
-                      <p className="text-sm text-muted-foreground">{t('tpv.detail.lastContact')}</p>
+                      <p className="text-sm text-muted-foreground">{t('detail.lastContact')}</p>
                       <p className="font-semibold text-foreground">
                         {tpv?.lastHeartbeat ? (
                           <span className="text-xs">
@@ -524,7 +642,7 @@ export default function TpvId() {
                             })}
                           </span>
                         ) : (
-                          t('tpv.detail.never')
+                          t('detail.never')
                         )}
                       </p>
                     </div>
@@ -533,7 +651,7 @@ export default function TpvId() {
                       <div className="flex justify-center mb-2">
                         <Shield className="w-8 h-8 text-primary" />
                       </div>
-                      <p className="text-sm text-muted-foreground">{t('tpv.detail.version')}</p>
+                      <p className="text-sm text-muted-foreground">{t('detail.version')}</p>
                       <p className="font-semibold text-foreground">{tpv?.version || 'N/A'}</p>
                     </div>
                   </div>
@@ -541,12 +659,12 @@ export default function TpvId() {
                   {/* System Info */}
                   {tpv?.systemInfo && (
                     <div className="mt-6 pt-6 border-t border-border">
-                      <h4 className="text-sm font-medium text-foreground mb-4">{t('tpv.detail.systemInfo')}</h4>
+                      <h4 className="text-sm font-medium text-foreground mb-4">{t('detail.systemInfo')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {tpv.systemInfo.platform && (
                           <div className="flex items-center space-x-2">
                             <Cpu className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('tpv.detail.platform')}:</span>
+                            <span className="text-sm text-muted-foreground">{t('detail.platform')}:</span>
                             <span className="text-sm font-mono text-foreground">{tpv.systemInfo.platform}</span>
                           </div>
                         )}
@@ -554,7 +672,7 @@ export default function TpvId() {
                         {tpv.systemInfo.memory && (
                           <div className="flex items-center space-x-2">
                             <MemoryStick className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('tpv.detail.memory')}:</span>
+                            <span className="text-sm text-muted-foreground">{t('detail.memory')}:</span>
                             <span className="text-sm font-mono text-foreground">
                               {formatBytes(tpv.systemInfo.memory.used)} / {formatBytes(tpv.systemInfo.memory.total)}
                             </span>
@@ -564,7 +682,7 @@ export default function TpvId() {
                         {tpv.systemInfo.uptime && (
                           <div className="flex items-center space-x-2">
                             <Zap className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('tpv.detail.uptime')}:</span>
+                            <span className="text-sm text-muted-foreground">{t('detail.uptime')}:</span>
                             <span className="text-sm font-mono text-foreground">{formatUptime(tpv.systemInfo.uptime)}</span>
                           </div>
                         )}
@@ -572,7 +690,7 @@ export default function TpvId() {
                         {tpv?.ipAddress && (
                           <div className="flex items-center space-x-2">
                             <Wifi className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('tpv.detail.ip')}:</span>
+                            <span className="text-sm text-muted-foreground">{t('detail.ip')}:</span>
                             <span className="text-sm font-mono text-foreground">{tpv.ipAddress}</span>
                           </div>
                         )}
@@ -582,7 +700,7 @@ export default function TpvId() {
                       {tpv.systemInfo.memory && tpv.systemInfo.memory.total > 0 && (
                         <div className="mt-4">
                           <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">{t('tpv.detail.memoryUsage')}</span>
+                            <span className="text-muted-foreground">{t('detail.memoryUsage')}</span>
                             <span className="text-foreground font-mono">
                               {Math.round((tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100)}%
                             </span>
@@ -600,7 +718,7 @@ export default function TpvId() {
                 <CardHeader>
                   <CardTitle className="flex items-center text-lg">
                     <Settings className="w-5 h-5 mr-2 text-primary" />
-                    {t('tpv.detail.terminalInfo')}
+                    {t('detail.terminalInfo')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -613,7 +731,7 @@ export default function TpvId() {
                           name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('tpv.detail.terminalName')}</FormLabel>
+                              <FormLabel className="text-sm font-medium">{t('detail.terminalName')}</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
@@ -626,19 +744,12 @@ export default function TpvId() {
                           )}
                         />
 
-                        <div>
-                          <Label className="text-sm font-medium text-foreground">{t('tpv.detail.systemId')}</Label>
-                          <Input value={tpv?.id || ''} disabled className="bg-muted font-mono text-sm mt-2" />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
                           control={form.control}
                           name="serialNumber"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('tpv.detail.serialNumber')}</FormLabel>
+                              <FormLabel className="text-sm font-medium">{t('detail.serialNumber')}</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
@@ -654,27 +765,125 @@ export default function TpvId() {
                         <FormField
                           control={form.control}
                           name="type"
+                          render={({ field }) => {
+                            // Map enum values to translations
+                            const typeTranslations: Record<string, string> = {
+                              TPV_ANDROID: t('detail.types.tpvAndroid'),
+                              TPV_IOS: t('detail.types.tpvIOS'),
+                              PRINTER_RECEIPT: t('detail.types.printerReceipt'),
+                              PRINTER_KITCHEN: t('detail.types.printerKitchen'),
+                              KDS: t('detail.types.kds'),
+                            }
+                            const displayValue = field.value ? typeTranslations[field.value] || field.value : t('detail.notSpecified')
+
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium">{t('detail.terminalType')}</FormLabel>
+                                <FormControl>
+                                  {isEditing ? (
+                                    <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
+                                      <SelectTrigger className="border-primary/50 focus:border-primary">
+                                        <SelectValue placeholder={t('detail.selectType')} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="TPV_ANDROID">{t('detail.types.tpvAndroid')}</SelectItem>
+                                        <SelectItem value="TPV_IOS">{t('detail.types.tpvIOS')}</SelectItem>
+                                        <SelectItem value="PRINTER_RECEIPT">{t('detail.types.printerReceipt')}</SelectItem>
+                                        <SelectItem value="PRINTER_KITCHEN">{t('detail.types.printerKitchen')}</SelectItem>
+                                        <SelectItem value="KDS">{t('detail.types.kds')}</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Input value={displayValue} disabled className="bg-muted" />
+                                  )}
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )
+                          }}
+                        />
+
+                        {/* Status Selector - SUPERADMIN Only */}
+                        {isSuperAdmin && (
+                          <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => {
+                              // Map enum values to translations
+                              const statusTranslations: Record<string, string> = {
+                                ACTIVE: t('detail.statusOptions.active'),
+                                INACTIVE: t('detail.statusOptions.inactive'),
+                                MAINTENANCE: t('detail.statusOptions.maintenance'),
+                                RETIRED: t('detail.statusOptions.retired'),
+                              }
+                              const displayValue = field.value ? statusTranslations[field.value] || field.value : t('detail.notSpecified')
+
+                              return (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">{t('detail.terminalStatus')}</FormLabel>
+                                  <FormControl>
+                                    {isEditing ? (
+                                      <Select onValueChange={field.onChange} value={field.value || 'ACTIVE'} defaultValue={field.value || 'ACTIVE'}>
+                                        <SelectTrigger className="border-primary/50 focus:border-primary">
+                                          <SelectValue placeholder={t('detail.selectStatus')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="ACTIVE">{t('detail.statusOptions.active')}</SelectItem>
+                                          <SelectItem value="INACTIVE">{t('detail.statusOptions.inactive')}</SelectItem>
+                                          <SelectItem value="MAINTENANCE">{t('detail.statusOptions.maintenance')}</SelectItem>
+                                          <SelectItem value="RETIRED">{t('detail.statusOptions.retired')}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      <Input value={displayValue} disabled className="bg-muted" />
+                                    )}
+                                  </FormControl>
+                                  <FormMessage />
+                                  {field.value === 'RETIRED' && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      ⚠️ {t('detail.retiredWarning')}
+                                    </p>
+                                  )}
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="brand"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('tpv.detail.terminalType')}</FormLabel>
+                              <FormLabel className="text-sm font-medium">{t('detail.brand')}</FormLabel>
                               <FormControl>
-                                {isEditing ? (
-                                  <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
-                                    <SelectTrigger className="border-primary/50 focus:border-primary">
-                                      <SelectValue placeholder={t('tpv.detail.selectType')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="ANDROID_TABLET">{t('tpv.detail.types.androidTablet')}</SelectItem>
-                                      <SelectItem value="WINDOWS_PC">{t('tpv.detail.types.windowsPC')}</SelectItem>
-                                      <SelectItem value="LINUX_DEVICE">{t('tpv.detail.types.linuxDevice')}</SelectItem>
-                                      <SelectItem value="MOBILE_DEVICE">{t('tpv.detail.types.mobileDevice')}</SelectItem>
-                                      <SelectItem value="KIOSK">{t('tpv.detail.types.kiosk')}</SelectItem>
-                                      <SelectItem value="OTHER">{t('tpv.detail.types.other')}</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <Input value={field.value || t('tpv.detail.notSpecified')} disabled className="bg-muted" />
-                                )}
+                                <Input
+                                  {...field}
+                                  disabled={!isEditing}
+                                  placeholder="PAX, Ingenico, Verifone"
+                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="model"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">{t('detail.model')}</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  disabled={!isEditing}
+                                  placeholder="A910S, D220, VX520"
+                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -686,7 +895,7 @@ export default function TpvId() {
                       <div className="space-y-4">
                         <h4 className="text-sm font-medium text-foreground flex items-center">
                           <HardDrive className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {t('tpv.detail.advancedConfig')}
+                          {t('detail.advancedConfig')}
                         </h4>
                         <FormField
                           control={form.control}
@@ -717,7 +926,7 @@ export default function TpvId() {
                                 ) : (
                                   <div className="p-8 text-center border-2 border-dashed border-border rounded-lg">
                                     <HardDrive className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                                    <p className="text-sm text-muted-foreground">{t('tpv.detail.noConfig')}</p>
+                                    <p className="text-sm text-muted-foreground">{t('detail.noConfig')}</p>
                                   </div>
                                 )}
                               </FormControl>
@@ -732,11 +941,11 @@ export default function TpvId() {
                           <div className="flex justify-end space-x-3 pt-6 border-t border-border">
                             <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
                               <XIcon className="w-4 h-4 mr-2" />
-                              {t('common.cancel')}
+                              {t('common:cancel')}
                             </Button>
                             <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
                               <SaveIcon className="w-4 h-4 mr-2" />
-                              {updateTpvMutation.isPending ? t('common.saving') : t('tpv.detail.saveChanges')}
+                              {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
                             </Button>
                           </div>
                         </PermissionGate>
@@ -752,7 +961,7 @@ export default function TpvId() {
               {/* Quick Actions */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t('tpv.detail.quickActions')}</CardTitle>
+                  <CardTitle className="text-lg">{t('detail.quickActions')}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
                   {/* Status Actions */}
@@ -762,15 +971,17 @@ export default function TpvId() {
                         <Wrench className="h-4 w-4" />
                         <AlertDescription>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm">{t('tpv.detail.alerts.inMaintenanceMode')}</span>
+                            <span className="text-sm">{t('detail.alerts.inMaintenanceMode')}</span>
+                            {/* TODO: Botón "Reactivar" comentado temporalmente - puede confundir al usuario
                             <Button
                               size="sm"
                               onClick={() => sendTpvCommand('EXIT_MAINTENANCE')}
                               disabled={commandMutation.isPending}
                               className="ml-2 bg-green-600 hover:bg-green-700 text-background  h-7 px-3 "
                             >
-                              {t('tpv.detail.alerts.reactivate')}
+                              {t('detail.alerts.reactivate')}
                             </Button>
+                            */}
                           </div>
                         </AlertDescription>
                       </Alert>
@@ -779,15 +990,17 @@ export default function TpvId() {
                         <XIcon className="h-4 w-4" />
                         <AlertDescription>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm">{t('tpv.detail.alerts.terminalInactive')}</span>
+                            <span className="text-sm">{t('detail.alerts.terminalInactive')}</span>
+                            {/* TODO: Botón "Reactivar" comentado temporalmente - puede confundir al usuario
                             <Button
                               size="sm"
                               onClick={() => sendTpvCommand('REACTIVATE')}
                               disabled={commandMutation.isPending}
                               className="ml-2 bg-green-600 hover:bg-green-700 text-background h-7 px-3"
                             >
-                              {t('tpv.detail.alerts.reactivate')}
+                              {t('detail.alerts.reactivate')}
                             </Button>
+                            */}
                           </div>
                         </AlertDescription>
                       </Alert>
@@ -799,7 +1012,7 @@ export default function TpvId() {
                         disabled={!terminalOnline || commandMutation.isPending}
                       >
                         <Wrench className="w-4 h-4 mr-2" />
-                        {t('tpv.detail.activateMaintenance')}
+                        {t('detail.activateMaintenance')}
                       </Button>
                     )}
                   </PermissionGate>
@@ -812,26 +1025,56 @@ export default function TpvId() {
                       disabled={!terminalOnline || commandMutation.isPending}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      {t('tpv.detail.updateStatus')}
+                      {t('detail.updateStatus')}
                     </Button>
                   </PermissionGate>
+
+                  <PermissionGate permission="tpv:update">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => generateActivationCodeMutation.mutate()}
+                            disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
+                          >
+                            <Key className="w-4 h-4 mr-2" />
+                            {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
+                          </Button>
+                        </TooltipTrigger>
+                        {tpv?.activatedAt && (
+                          <TooltipContent>
+                            <p>{t('activation.alreadyActivatedTooltip')}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </PermissionGate>
+
+                  {isSuperAdmin && tpv?.activatedAt && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                      onClick={() => setShowDeactivateDialog(true)}
+                      disabled={deactivateTpvMutation.isPending}
+                    >
+                      <Wrench className="w-4 h-4 mr-2" />
+                      {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
               {/* System Details */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t('tpv.detail.systemDetails')}</CardTitle>
+                  <CardTitle className="text-lg">{t('detail.systemDetails')}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   <div className="grid grid-cols-1 gap-4">
                     <div className="p-3 rounded-lg bg-muted">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('tpv.detail.venueId')}</Label>
-                      <p className="text-sm font-mono text-foreground mt-1 break-all">{tpv?.venueId}</p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-muted">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('tpv.detail.created')}</Label>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.created')}</Label>
                       <p className="text-sm text-foreground mt-1">
                         {tpv?.createdAt
                           ? new Date(tpv.createdAt).toLocaleDateString('es-ES', {
@@ -846,7 +1089,7 @@ export default function TpvId() {
                     </div>
 
                     <div className="p-3 rounded-lg bg-muted">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('tpv.detail.lastUpdate')}</Label>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.lastUpdate')}</Label>
                       <p className="text-sm text-foreground mt-1">
                         {tpv?.updatedAt
                           ? new Date(tpv.updatedAt).toLocaleDateString('es-ES', {
@@ -859,6 +1102,24 @@ export default function TpvId() {
                           : '-'}
                       </p>
                     </div>
+
+                    <div className={`p-3 rounded-lg ${tpv?.activatedAt ? 'bg-green-50 dark:bg-green-950/30' : 'bg-yellow-50 dark:bg-yellow-950/30'}`}>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <Key className="w-3 h-3" />
+                        {t('detail.activatedOn')}
+                      </Label>
+                      <p className={`text-sm font-medium mt-1 ${tpv?.activatedAt ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                        {tpv?.activatedAt
+                          ? new Date(tpv.activatedAt).toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : t('detail.pendingActivation')}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -866,6 +1127,29 @@ export default function TpvId() {
           </div>
         </div>
       </div>
+
+      {/* Activation Code Dialog */}
+      <ActivationCodeDialog
+        open={activationDialogOpen}
+        onOpenChange={setActivationDialogOpen}
+        activationData={activationData}
+      />
+
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('detail.deactivateConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('detail.deactivateConfirmDescription', { name: tpv?.name })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeactivate} className="bg-orange-600 hover:bg-orange-700">
+              {t('actions.deactivate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   )
 }

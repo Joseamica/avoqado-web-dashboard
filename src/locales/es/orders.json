@@ -1,0 +1,184 @@
+{
+  "title": "Ordenes",
+  "searchPlaceholder": "Buscar por folio o mesero...",
+  "errorPrefix": "Error al cargar órdenes",
+  "counter": "Mostrador",
+  "columns": {
+    "date": "Fecha",
+    "orderNumber": "Folio",
+    "customer": "Cliente",
+    "type": "Tipo",
+    "waiter": "Mesero",
+    "status": "Estado",
+    "tip": "Propina",
+    "total": "Total"
+  },
+  "types": {
+    "DINE_IN": "Para Comer Aquí",
+    "TAKEOUT": "Para Llevar",
+    "DELIVERY": "Entrega a Domicilio",
+    "PICKUP": "Recoger"
+  },
+  "statuses": {
+    "PENDING": "Pendiente",
+    "CONFIRMED": "Confirmada",
+    "PREPARING": "En Preparación",
+    "READY": "Lista",
+    "COMPLETED": "Completada",
+    "CANCELLED": "Cancelada"
+  },
+  "export": {
+    "button": "Exportar",
+    "asCSV": "Exportar como CSV",
+    "asExcel": "Exportar como Excel (.xlsx)",
+    "success": "Se exportaron {{count}} órdenes exitosamente",
+    "error": "Error al exportar órdenes",
+    "noData": "No hay datos para exportar"
+  },
+  "detail": {
+    "title": "Orden {{number}}",
+    "loading": "Cargando orden...",
+    "notFound": "Orden no encontrada",
+    "backToOrders": "Volver a órdenes",
+    "backToList": "Volver a órdenes",
+    "idLabel": "ID",
+    "deleteWarning": "Esta acción no se puede deshacer. Esto eliminará permanentemente la orden.",
+    "copiedToClipboard": "{{label}} copiado al portapapeles",
+    "breadcrumb": {
+      "transactions": "Transacciones"
+    },
+    "chargedTo": "Cargado a",
+    "stats": {
+      "subtotal": "Subtotal",
+      "tip": "Propina",
+      "items": "Artículos",
+      "table": "Mesa"
+    },
+    "timeline": {
+      "title": "Actividad reciente",
+      "paymentReceived": "Pago recibido",
+      "statusUpdated": "Estado actualizado",
+      "orderCreated": "Orden creada"
+    },
+    "toast": {
+      "updatedTitle": "Orden actualizada",
+      "updatedDesc": "La orden ha sido actualizada exitosamente.",
+      "deletedTitle": "Orden eliminada",
+      "deletedDesc": "La orden ha sido eliminada exitosamente.",
+      "updateErrorTitle": "Error",
+      "updateErrorDesc": "No se pudo actualizar la orden",
+      "deleteErrorTitle": "Error",
+      "deleteErrorDesc": "No se pudo eliminar la orden"
+    },
+    "totals": {
+      "total": "Total"
+    },
+    "overview": {
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "items": "Artículos",
+      "uniqueProducts": "{{count}} productos únicos",
+      "table": "Mesa",
+      "noArea": "Sin área",
+      "total": "Total"
+    },
+    "actions": {
+      "title": "Acciones de la Orden",
+      "copyId": "Copiar ID",
+      "export": "Exportar"
+    },
+    "sections": {
+      "orderInfo": "Información de la Orden",
+      "orderInfoDesc": "Detalles generales de la orden",
+      "items": "Artículos de la Orden",
+      "itemsDesc": "Lista de productos en esta orden",
+      "payments": "Pagos",
+      "paymentsDesc": "Historial de pagos de esta orden"
+    },
+    "fields": {
+      "orderId": "ID de orden",
+      "dateTime": "Fecha y Hora",
+      "createdAt": "Creada el",
+      "orderNumber": "Folio",
+      "customer": "Cliente",
+      "customerName": "Nombre del cliente",
+      "customerPlaceholder": "Nombre del cliente",
+      "table": "Mesa",
+      "noTable": "Sin mesa",
+      "waiter": "Mesero",
+      "noWaiter": "Sin mesero",
+      "orderType": "Tipo de orden",
+      "noType": "Sin tipo",
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono"
+    },
+    "items": {
+      "productNotAvailable": "Producto no disponible",
+      "each": "c/u",
+      "modifiers": "{{count}} modificadores",
+      "noItems": "No hay artículos en esta orden"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Propina",
+      "view": "Ver",
+      "noPayments": "Sin pagos aún"
+    },
+    "sidebar": {
+      "status": "Estado",
+      "statusTitle": "Estado de la Orden",
+      "lastUpdate": "Última actualización",
+      "notAvailable": "No disponible",
+      "financialSummary": "Resumen Financiero",
+      "tipsPercent": "{{percent}}% del subtotal",
+      "base": "Base",
+      "quickInfo": "Información Rápida",
+      "customer": "Cliente",
+      "info": "Información",
+      "table": "Mesa",
+      "waiter": "Mesero",
+      "items": "Artículos",
+      "itemsCount": "{{total}} total ({{unique}} únicos)",
+      "type": "Tipo",
+      "payments": "Pagos"
+    },
+    "footer": {
+      "copyright": "© 2025 Avoqado",
+      "orderId": "ID de orden: {{id}}",
+      "generated": "Generado: {{date}}"
+    },
+    "financialSummary": {
+      "title": "Resumen financiero",
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "total": "Total"
+    },
+    "associatedPayments": {
+      "title": "Pagos asociados",
+      "fields": {
+        "paymentId": "ID de pago",
+        "amount": "Monto",
+        "tip": "Propina",
+        "method": "Método"
+      }
+    },
+    "statuses": {
+      "OPEN": "Abierta",
+      "PAID": "Pagada",
+      "PENDING": "Pendiente",
+      "CONFIRMED": "Confirmada",
+      "PREPARING": "En Preparación",
+      "READY": "Lista",
+      "CLOSED": "Cerrada",
+      "COMPLETED": "Completada",
+      "CANCELED": "Cancelada",
+      "CANCELLED": "Cancelada",
+      "PRECREATED": "Pre-creada",
+      "WITHOUT_TABLE": "Sin mesa",
+      "DELETED": "Eliminada",
+      "EARLYACCESS": "Acceso anticipado",
+      "COURTESY": "Cortesía"
+    }
+  }
+}

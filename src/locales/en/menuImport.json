@@ -1,0 +1,79 @@
+{
+  "title": "Import Menu",
+  "description": "Upload a CSV file to quickly create your menu with categories, products, and modifiers",
+  "export": {
+    "title": "Export Your Current Menu",
+    "yourData": "Your Data",
+    "description": "Download your existing menu to edit and re-import later. All your products, categories, and settings will be exported.",
+    "basicButton": "Export Basic",
+    "advancedButton": "Export Advanced",
+    "basicDesc": "Basic format exported",
+    "advancedDesc": "Advanced format with all details exported",
+    "success": "Menu exported successfully!",
+    "error": "Failed to export menu",
+    "noData": "No menu data to export",
+    "or": "or"
+  },
+  "templates": {
+    "title": "Download Empty Template",
+    "empty": "Example",
+    "basic": "Basic Template",
+    "basicDesc": "Simple menu with categories and products (name, SKU, price, description)",
+    "advanced": "Advanced Template",
+    "advancedDesc": "Complete menu with inventory, modifiers, allergens, tags, and more"
+  },
+  "download": {
+    "button": "Download Template",
+    "basic": "Download Basic Template",
+    "advanced": "Download Advanced Template"
+  },
+  "upload": {
+    "title": "Upload CSV File",
+    "dropzone": "Drag and drop your CSV file here, or click to browse",
+    "selected": "Selected file: {{filename}}",
+    "changeFile": "Change file",
+    "fileSize": "{{size}} KB"
+  },
+  "mode": {
+    "title": "Import Mode",
+    "merge": "Add / Update",
+    "mergeDesc": "Add new products and categories. Update existing products by SKU. Don't delete anything.",
+    "replace": "Replace All",
+    "replaceDesc": "Delete all existing menu data and replace with CSV contents. This cannot be undone!",
+    "warning": "⚠️ Warning: Replace mode will permanently delete your current menu"
+  },
+  "preview": {
+    "title": "Preview",
+    "categories": "{{count}} categories",
+    "products": "{{count}} products",
+    "modifiers": "{{count}} modifier groups",
+    "noData": "No data to preview. Upload a CSV file first."
+  },
+  "validation": {
+    "title": "Validation",
+    "checking": "Validating CSV...",
+    "valid": "✓ CSV is valid and ready to import",
+    "invalid": "✗ CSV has errors. Please fix them before importing:",
+    "errors": "{{count}} errors found"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "import": "Import Menu",
+    "importing": "Importing...",
+    "close": "Close"
+  },
+  "success": {
+    "title": "Menu imported successfully!",
+    "message": "Created {{categories}} categories, {{products}} products, and {{modifierGroups}} modifier groups",
+    "messageShort": "Menu imported successfully"
+  },
+  "errors": {
+    "title": "Import failed",
+    "parseError": "Failed to parse CSV file",
+    "validationError": "CSV validation failed",
+    "uploadError": "Failed to upload menu",
+    "emptyFile": "CSV file is empty",
+    "invalidFormat": "Invalid CSV format",
+    "serverError": "Server error: {{message}}"
+  }
+}

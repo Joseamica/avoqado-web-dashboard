@@ -7,6 +7,8 @@ import { ThemeToggle } from './components/theme-toggle'
 import { useAuth } from './context/AuthContext'
 import { useEffect, useState, useRef } from 'react'
 import { ChatBubble } from './components/Chatbot'
+import { DemoBanner } from './components/DemoBanner'
+import { TrialStatusBanner } from './components/TrialStatusBanner'
 import { StaffRole } from './types'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
@@ -14,31 +16,33 @@ import { Shield, ArrowLeft } from 'lucide-react'
 import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
 import { useTranslation } from 'react-i18next'
+import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
-  payments: 'routes.payments',
-  orders: 'routes.orders',
-  home: 'routes.home',
-  menu: 'routes.menu',
-  settings: 'routes.settings',
-  shifts: 'routes.shifts',
-  categories: 'routes.categories',
-  products: 'routes.products',
-  users: 'routes.users',
-  waiters: 'routes.waiters',
-  tpv: 'routes.tpv',
-  overview: 'routes.overview',
-  menumaker: 'routes.menumaker',
-  editvenue: 'routes.editvenue',
+  payments: 'sidebar:routes.payments',
+  orders: 'sidebar:routes.orders',
+  home: 'sidebar:routes.home',
+  menu: 'sidebar:routes.menu',
+  settings: 'sidebar:routes.settings',
+  shifts: 'sidebar:routes.shifts',
+  categories: 'sidebar:routes.categories',
+  products: 'sidebar:routes.products',
+  users: 'sidebar:routes.users',
+  waiters: 'sidebar:routes.waiters',
+  tpv: 'sidebar:routes.tpv',
+  overview: 'sidebar:routes.overview',
+  menumaker: 'sidebar:routes.menumaker',
+  editvenue: 'sidebar:routes.editvenue',
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
+  const { customSegments } = useBreadcrumb()
 
   // Estado para manejar el cambio de venues y prevenir parpadeo de "acceso denegado"
   const [isVenueSwitching, setIsVenueSwitching] = useState(false)
@@ -153,6 +157,11 @@ export default function Dashboard() {
 
   // Get the display name for a path segment
   const getDisplayName = (segment: string, index: number): string => {
+    // Check for custom breadcrumb first
+    if (customSegments[segment]) {
+      return customSegments[segment]
+    }
+
     // Si es el primer segmento (slug del venue), usar el nombre del venue actual
     if (index === 0 && venue && segment === venueSlug) {
       return venue.name
@@ -235,20 +244,35 @@ export default function Dashboard() {
             <ThemeToggle />
           </div>
         </header>
+
+        {/* Onboarding Demo Banner - only show if venue is in onboarding demo mode */}
+        {venue?.isOnboardingDemo && <DemoBanner />}
+
+        {/* Trial Status Banner - show if venue has active trials */}
+        {!venue?.isOnboardingDemo && <TrialStatusBanner />}
+
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
-          <div className={`min-h-[100vh] flex-1 rounded-xl bg-background md:min-h-min transition-colors duration-200`}>
+          <div className={`min-h-screen flex-1 rounded-xl bg-background md:min-h-min transition-colors duration-200`}>
             <Outlet />
           </div>
         </div>
 
         {/* ChatBubble positioned at bottom-right edge */}
-        {venue && checkFeatureAccess('AI_ASSISTANT_BUBBLE') && (
+        {venue && checkFeatureAccess('CHATBOT') && (
           <div className="fixed bottom-4 right-4 z-50">
             <ChatBubble />
           </div>
         )}
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <BreadcrumbProvider>
+      <DashboardContent />
+    </BreadcrumbProvider>
   )
 }

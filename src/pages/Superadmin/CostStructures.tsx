@@ -13,7 +13,7 @@ import { ProviderCostStructureDialog } from './components/ProviderCostStructureD
 import { useToast } from '@/hooks/use-toast'
 
 const CostStructures: React.FC = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: costStructures = [], isLoading } = useQuery({
@@ -38,8 +38,7 @@ const CostStructures: React.FC = () => {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      paymentProviderAPI.updateProviderCostStructure(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => paymentProviderAPI.updateProviderCostStructure(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-cost-structures'] })
       toast({ title: t('costStructures.toasts.success'), description: t('costStructures.toasts.updateSuccess') })
@@ -104,10 +103,13 @@ const CostStructures: React.FC = () => {
   }
 
   // Filter cost structures based on search
-  const filteredCostStructures = costStructures.filter(cs =>
-    cs.merchantAccount.provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (cs.merchantAccount.alias?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-    (cs.proposalReference?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+  const filteredCostStructures = costStructures.filter(
+    cs =>
+      cs.merchantAccount.provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cs.merchantAccount.alias?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false ||
+      cs.proposalReference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false,
   )
 
   const columns: ColumnDef<ProviderCostStructure>[] = [
@@ -152,7 +154,11 @@ const CostStructures: React.FC = () => {
       accessorKey: 'active',
       header: t('costStructures.columns.status'),
       cell: ({ row }) => (
-        <Badge className={row.original.active ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200' : 'bg-muted text-muted-foreground'}>
+        <Badge
+          className={
+            row.original.active ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200' : 'bg-muted text-muted-foreground'
+          }
+        >
           {row.original.active ? (
             <>
               <CheckCircle className="w-3 h-3 mr-1" />
@@ -172,27 +178,15 @@ const CostStructures: React.FC = () => {
       header: t('costStructures.columns.actions'),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
             <Pencil className="w-4 h-4" />
           </Button>
           {row.original.active && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeactivate(row.original.id)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => handleDeactivate(row.original.id)}>
               <XCircle className="w-4 h-4 text-orange-600" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(row.original.id)}
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleDelete(row.original.id)}>
             <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
         </div>

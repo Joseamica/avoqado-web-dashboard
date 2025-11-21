@@ -104,10 +104,13 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'home:read',
     'analytics:read',
     'analytics:export',
+    'settlements:read',
+    'settlements:simulate',
     'menu:read',
     'menu:create',
     'menu:update',
     'menu:delete',
+    'menu:import',
     'orders:read',
     'orders:create',
     'orders:update',
@@ -202,7 +205,7 @@ export const PERMISSION_CATEGORIES = {
   },
   MENU: {
     label: 'Menu Management',
-    permissions: ['menu:read', 'menu:create', 'menu:update', 'menu:delete'],
+    permissions: ['menu:read', 'menu:create', 'menu:update', 'menu:delete', 'menu:import'],
   },
   ORDERS: {
     label: 'Orders',

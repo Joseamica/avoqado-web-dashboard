@@ -20,45 +20,28 @@ import { useTranslation } from 'react-i18next'
 type DayItem = {
   label: string
   selected: boolean
+  value: DayOfWeek
 }
 
 type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
 
-const getInitialDays = (t: (key: string) => string): DayItem[] => [
-  { label: t('createMenu.days.mon'), selected: false },
-  { label: t('createMenu.days.tue'), selected: false },
-  { label: t('createMenu.days.wed'), selected: false },
-  { label: t('createMenu.days.thu'), selected: false },
-  { label: t('createMenu.days.fri'), selected: false },
-  { label: t('createMenu.days.sat'), selected: false },
-  { label: t('createMenu.days.sun'), selected: false },
+const DAY_DEFINITIONS: { value: DayOfWeek; translationKey: string }[] = [
+  { value: 'MONDAY', translationKey: 'mon' },
+  { value: 'TUESDAY', translationKey: 'tue' },
+  { value: 'WEDNESDAY', translationKey: 'wed' },
+  { value: 'THURSDAY', translationKey: 'thu' },
+  { value: 'FRIDAY', translationKey: 'fri' },
+  { value: 'SATURDAY', translationKey: 'sat' },
+  { value: 'SUNDAY', translationKey: 'sun' },
 ]
 
-// --------------------------------------------------
-// Helpers para días
-// --------------------------------------------------
-function dayLabelToEnum(label: string): DayOfWeek {
-  switch (label) {
-    case 'Lun':
-      return 'MONDAY'
-    case 'Mar':
-      return 'TUESDAY'
-    case 'Mié':
-      return 'WEDNESDAY'
-    case 'Jue':
-      return 'THURSDAY'
-    case 'Vie':
-      return 'FRIDAY'
-    case 'Sáb':
-      return 'SATURDAY'
-    case 'Dom':
-      return 'SUNDAY'
-    default:
-      return 'MONDAY'
-  }
-}
+const getInitialDays = (t: (key: string) => string): DayItem[] =>
+  DAY_DEFINITIONS.map(({ value, translationKey }) => ({
+    label: t(`createMenu.days.${translationKey}`),
+    selected: false,
+    value,
+  }))
 
-// --------------------------------------------------
 // Helpers para horas
 // --------------------------------------------------
 /** Genera "HH:mm" desde 00:00 hasta 23:59 en intervalos de 30 min. */
@@ -171,8 +154,8 @@ export default function MenuScheduleWithMenuDayModel() {
   })
 
   // 3) Manejadores de días, checkbox y validaciones
-  function toggleDay(dayLabel: string) {
-    const updatedDays = days.map(d => (d.label === dayLabel ? { ...d, selected: !d.selected } : d))
+  function toggleDay(dayValue: DayOfWeek) {
+    const updatedDays = days.map(d => (d.value === dayValue ? { ...d, selected: !d.selected } : d))
     setValue('days', updatedDays, { shouldDirty: true })
 
     // Si ahora tenemos al menos un día seleccionado, limpiamos el error en "days"
@@ -245,7 +228,7 @@ export default function MenuScheduleWithMenuDayModel() {
     // Si pasa todas las validaciones, construimos "menuDays" y enviamos
     const selectedDays = days.filter((day: DayItem) => day.selected)
     const menuDays = selectedDays.map((day: DayItem) => ({
-      day: dayLabelToEnum(day.label),
+      day: day.value,
       isFixed: isAllDay,
       startTime: isAllDay ? null : startTime,
       endTime: isAllDay ? null : endTime,
@@ -309,8 +292,8 @@ export default function MenuScheduleWithMenuDayModel() {
             {days.map(day => (
               <button
                 type="button"
-                key={day.label}
-                onClick={() => toggleDay(day.label)}
+                key={day.value}
+                onClick={() => toggleDay(day.value)}
                 className={
                   'px-3 py-1 cursor-pointer transition-colors w-full ' + (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
                 }

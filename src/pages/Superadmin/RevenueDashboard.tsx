@@ -12,7 +12,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const RevenueDashboard: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('superadmin')
   const [dateRange, setDateRange] = useState({
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),

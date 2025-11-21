@@ -1,0 +1,180 @@
+{
+  "pageTitle": "Billing & Subscriptions",
+  "pageSubtitle": "Manage your active subscriptions, view billing history, and explore available features",
+  "activeSubscriptions": {
+    "title": "Active Subscriptions",
+    "noSubscriptions": "You don't have any active subscriptions yet",
+    "exploreFeatures": "Explore our features below to get started",
+    "trial": "Trial",
+    "active": "Active",
+    "canceled": "Canceled",
+    "trialEnds": "Trial ends {{date}}",
+    "nextBilling": "Next billing: {{date}}",
+    "canceledOn": "Canceled on {{date}}",
+    "monthlyPrice": "{{price}}/month",
+    "perMonth": "/month",
+    "cancelButton": "Cancel Subscription",
+    "activateButton": "Activate",
+    "managingButton": "Managing..."
+  },
+  "billingHistory": {
+    "title": "Billing History",
+    "noInvoices": "No invoices yet",
+    "description": "Your invoice history will appear here once you start getting charged",
+    "sort": {
+      "dateDesc": "Newest First",
+      "dateAsc": "Oldest First",
+      "amountDesc": "Highest Amount",
+      "amountAsc": "Lowest Amount"
+    },
+    "filters": {
+      "show": "Show Filters",
+      "hide": "Hide Filters",
+      "search": "Search",
+      "searchPlaceholder": "Invoice # or description...",
+      "status": "Status",
+      "statusPlaceholder": "All statuses",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "allStatuses": "All Statuses",
+      "showing": "Showing {{count}} of {{total}} invoice",
+      "showing_other": "Showing {{count}} of {{total}} invoices",
+      "clearFilters": "Clear Filters",
+      "noResults": "No invoices match your filters",
+      "noResultsHint": "Try adjusting your search or filter criteria"
+    },
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "paid": "Paid",
+      "open": "Open",
+      "draft": "Draft",
+      "uncollectible": "Uncollectible",
+      "void": "Void"
+    },
+    "downloadButton": "Download Invoice",
+    "downloading": "Downloading...",
+    "retryButton": "Retry Payment",
+    "retrying": "Retrying...",
+    "retrySuccess": "Payment retry successful",
+    "retryError": "Failed to retry payment"
+  },
+  "availableFeatures": {
+    "title": "Available Features",
+    "subtitle": "Explore additional features to enhance your restaurant management",
+    "noFeatures": "All features are already active!",
+    "description": "You're using all available features",
+    "startTrial": "Start {{days}}-day Free Trial",
+    "subscribe": "Subscribe Now",
+    "subscribing": "Activating...",
+    "perMonth": "/month",
+    "features": "Features:",
+    "subscribeNoTrial": "Subscribe (No Trial)"
+  },
+  "confirmCancel": {
+    "title": "Cancel Subscription?",
+    "description": "Are you sure you want to cancel {{feature}}? You'll lose access to this feature at the end of your current billing period ({{date}}).",
+    "confirm": "Yes, Cancel Subscription",
+    "cancel": "Keep Subscription"
+  },
+  "confirmSubscribe": {
+    "title": "Confirm Subscription",
+    "description": "You're about to subscribe to {{feature}} for {{price}}/month. This charge will be immediate since you've used this feature before.",
+    "descriptionWithTrial": "You're about to start a {{days}}-day free trial for {{feature}}. After the trial, you'll be charged {{price}}/month.",
+    "paymentMethod": "Payment Method",
+    "cardEnding": "Card ending in {{last4}}",
+    "cardExpires": "Expires {{month}}/{{year}}",
+    "noPaymentMethod": "No payment method on file",
+    "addPaymentMethod": "Add Payment Method",
+    "immediateCharge": "⚠️ Your card will be charged immediately",
+    "trialInfo": "💳 Your card will be charged after the trial ends",
+    "confirm": "Confirm Subscription",
+    "cancel": "Cancel"
+  },
+  "manageBilling": {
+    "button": "Manage Billing",
+    "addButton": "Add Payment Method",
+    "redirecting": "Redirecting..."
+  },
+  "paymentMethods": {
+    "title": "Payment Methods",
+    "subtitle": "Manage your saved payment methods",
+    "noPaymentMethods": "No payment methods saved",
+    "addFirst": "Add your first payment method to enable subscriptions",
+    "addButton": "Add Payment Method",
+    "removeButton": "Remove",
+    "setDefaultButton": "Set as Default",
+    "defaultBadge": "Default",
+    "defaultDescription": "This is your default payment method used for subscriptions",
+    "cardBrand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express",
+      "discover": "Discover",
+      "diners": "Diners Club",
+      "jcb": "JCB",
+      "unionpay": "UnionPay",
+      "unknown": "Card"
+    },
+    "cardEnding": "•••• {{last4}}",
+    "expiresOn": "Expires {{month}}/{{year}}",
+    "warnings": {
+      "cardExpiring": {
+        "title_one": "Payment Method Expiring Soon",
+        "title_other": "Payment Methods Expiring Soon",
+        "description": "{{brand}} ending in {{last4}} expires in {{days}} days ({{date}})",
+        "updateButton": "Update Card"
+      }
+    },
+    "dialog": {
+      "title": "Add Payment Method",
+      "description": "Add a credit or debit card to enable subscriptions and automatic billing"
+    },
+    "form": {
+      "cardLabel": "Credit or Debit Card",
+      "securityNotice": "🔒 Your payment information is securely processed by Stripe. We never store your card details.",
+      "submitButton": "Add Payment Method"
+    },
+    "confirmRemove": {
+      "title": "Remove Payment Method?",
+      "description": "Are you sure you want to remove this payment method? If this is your default payment method, you'll need to set another one.",
+      "confirm": "Yes, Remove",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "addSuccess": "Payment method added successfully",
+      "removeSuccess": "Payment method removed successfully",
+      "setDefaultSuccess": "Default payment method updated",
+      "removeError": "Failed to remove payment method",
+      "setDefaultError": "Failed to update default payment method"
+    },
+    "errors": {
+      "noVenue": "No venue selected",
+      "incompleteCard": "Please complete the card information",
+      "confirmFailed": "Failed to confirm payment method",
+      "setupFailed": "Failed to set up payment method",
+      "addFailed": "Failed to add payment method"
+    }
+  },
+  "toast": {
+    "cancelSuccess": "Subscription canceled successfully",
+    "cancelError": "Failed to cancel subscription",
+    "activateSuccess": "Feature activated! Starting {{days}}-day free trial",
+    "activateSuccessGeneric": "Feature activated successfully",
+    "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 2-day free trial.",
+    "activateProcessing": "Processing payment...",
+    "activateProcessingDescription": "We're processing your payment. You'll be notified when the feature is active.",
+    "activateError": "Failed to activate feature",
+    "downloadError": "Failed to download invoice",
+    "billingPortalError": "Failed to open billing portal. Please try again.",
+    "paymentSuccess": "✅ Payment successful!",
+    "paymentSuccessDescription": "{{feature}} is now active. Your subscription has been confirmed.",
+    "subscriptionDeactivated": "Subscription deactivated",
+    "subscriptionDeactivatedDescription": "{{feature}} subscription has been canceled or payment failed."
+  }
+}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat } from 'lucide-react'
+import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat, DollarSign, Clock } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,7 +41,7 @@ export default function RawMaterials() {
   const [recipeUsageDialogOpen, setRecipeUsageDialogOpen] = useState(false)
   const [recipeEditDialogOpen, setRecipeEditDialogOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<RawMaterial | null>(null)
-  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{id: string, name: string, price: number} | null>(null)
+  const [selectedProductForRecipe, setSelectedProductForRecipe] = useState<{ id: string; name: string; price: number } | null>(null)
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -74,26 +74,18 @@ export default function RawMaterials() {
 
   useEffect(() => {
     if (!highlightId || !rawMaterials || isLoading) {
-      console.log('Highlight check:', { highlightId, hasRawMaterials: !!rawMaterials, isLoading })
       return
     }
 
     try {
       // Find the material to highlight
       const materialIndex = rawMaterials.findIndex(m => m.id === highlightId)
-      console.log('Looking for material with ID:', highlightId)
-      console.log('Material found at index:', materialIndex)
-      console.log('Current filters:', { categoryFilter, stockFilter, searchTerm })
 
       if (materialIndex === -1) {
-        console.warn('Material not found in current list. ID:', highlightId)
-        console.log('Available materials:', rawMaterials.map(m => ({ id: m.id, name: m.name })))
-
         // Check if filters are applied
         const hasFilters = categoryFilter !== 'all' || stockFilter !== 'all' || searchTerm !== ''
 
         if (hasFilters) {
-          console.log('Filters detected, clearing them to find material...')
           // Clear filters to show all materials
           setCategoryFilter('all')
           setStockFilter('all')
@@ -123,7 +115,7 @@ export default function RawMaterials() {
         pageSize,
         currentPage: pagination.pageIndex,
         targetPage,
-        rowIndexInPage
+        rowIndexInPage,
       })
 
       // If material is on a different page, change to that page
@@ -146,7 +138,7 @@ export default function RawMaterials() {
           console.log('Looking for row at index:', rowIndexInPage)
 
           // Use the row index within the current page
-          const row = Array.from(rowElements)[rowIndexInPage]
+          const row = Array.from(rowElements)[rowIndexInPage] as HTMLElement
 
           if (row) {
             console.log('Row found! Highlighting...')
@@ -196,7 +188,14 @@ export default function RawMaterials() {
             }
           } else {
             console.warn('Row element not found in DOM')
-            console.log('Row index in page:', rowIndexInPage, 'Available rows:', rowElements.length, 'Material global index:', materialIndex)
+            console.log(
+              'Row index in page:',
+              rowIndexInPage,
+              'Available rows:',
+              rowElements.length,
+              'Material global index:',
+              materialIndex,
+            )
             // Remove highlight param if row not found
             const newParams = new URLSearchParams(searchParams)
             newParams.delete('highlight')
@@ -234,8 +233,7 @@ export default function RawMaterials() {
 
   // Toggle active mutation
   const toggleActiveMutation = useMutation({
-    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
-      rawMaterialsApi.update(venueId, id, { active }),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) => rawMaterialsApi.update(venueId, id, { active }),
     onSuccess: (_, variables) => {
       // Invalidate all rawMaterials queries for this venue (handles all filter combinations)
       queryClient.invalidateQueries({ queryKey: ['rawMaterials', venueId] })
@@ -320,13 +318,13 @@ export default function RawMaterials() {
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border shadow-sm">
-                <Package className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-border shadow-sm shrink-0">
+                <Package className="h-4 w-4 text-primary" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">{material.name}</span>
-                <span className="text-xs text-muted-foreground">{material.sku}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-medium text-foreground truncate">{material.name}</span>
+                <span className="text-xs text-muted-foreground truncate hidden xl:inline">{material.sku}</span>
               </div>
             </div>
           )
@@ -335,14 +333,28 @@ export default function RawMaterials() {
       {
         accessorKey: 'category',
         meta: { label: t('rawMaterials.fields.category') },
-        header: t('rawMaterials.fields.category'),
+        header: () => (
+          <div className="flex items-center justify-center">
+            <span className="2xl:hidden text-base" title={t('rawMaterials.fields.category')}>🏷️</span>
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.category')}</span>
+          </div>
+        ),
         cell: ({ cell }) => {
           const category = cell.getValue() as string
           const categoryInfo = getCategoryInfo(category as any)
           return (
-            <Badge variant="outline" className="bg-background">
-              {categoryInfo.icon} {t(`rawMaterials.categories.${category}`)}
-            </Badge>
+            <div className="flex justify-center">
+              <Badge
+                variant="outline"
+                className="bg-background flex items-center justify-center gap-2 px-2 py-1"
+                title={t(`rawMaterials.categories.${category}`)}
+              >
+                <span aria-hidden className="text-base">
+                  {categoryInfo.icon}
+                </span>
+                <span className="whitespace-normal hidden 2xl:inline">{t(`rawMaterials.categories.${category}`)}</span>
+              </Badge>
+            </div>
           )
         },
       },
@@ -365,17 +377,21 @@ export default function RawMaterials() {
           const isOutOfStock = stock === 0
 
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <div className="flex flex-col items-end">
-                <span className={`text-sm font-semibold ${isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'}`}>
-                  {stock.toFixed(2)} {formatUnitWithQuantity(stock, material.unit)}
+                <span
+                  className={`text-sm font-semibold ${
+                    isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'
+                  }`}
+                >
+                  {stock.toFixed(2)} <span className="hidden xl:inline">{formatUnitWithQuantity(stock, material.unit)}</span>
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground hidden 2xl:inline">
                   {t('rawMaterials.fields.minimumStock')}: {minimumStock.toFixed(2)}
                 </span>
               </div>
-              {isOutOfStock && <AlertTriangle className="h-4 w-4 text-destructive" />}
-              {isLowStock && !isOutOfStock && <TrendingDown className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />}
+              {isOutOfStock && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
+              {isLowStock && !isOutOfStock && <TrendingDown className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0" />}
             </div>
           )
         },
@@ -384,13 +400,21 @@ export default function RawMaterials() {
       {
         accessorKey: 'costPerUnit',
         meta: { label: t('rawMaterials.fields.costPerUnit') },
-        header: t('rawMaterials.fields.costPerUnit'),
+        header: () => (
+          <div className="flex items-center justify-center">
+            <DollarSign className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.costPerUnit')} />
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.costPerUnit')}</span>
+          </div>
+        ),
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-medium text-foreground">{Currency(Number(material.costPerUnit))}</span>
-              <span className="text-xs text-muted-foreground">
+            <div className="flex flex-col items-center 2xl:items-end">
+              <div className="flex items-center gap-1">
+                <DollarSign className="h-3 w-3 2xl:hidden text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">{Currency(Number(material.costPerUnit))}</span>
+              </div>
+              <span className="text-xs text-muted-foreground hidden 2xl:inline">
                 {t('rawMaterials.fields.avgCostPerUnit')}: {Currency(Number(material.avgCostPerUnit))}
               </span>
             </div>
@@ -400,17 +424,34 @@ export default function RawMaterials() {
       {
         accessorKey: 'perishable',
         meta: { label: t('rawMaterials.fields.perishable') },
-        header: t('rawMaterials.fields.perishable'),
+        header: () => (
+          <div className="flex items-center justify-center">
+            <Clock className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.perishable')} />
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
+          </div>
+        ),
         cell: ({ row }) => {
           const material = row.original
           if (!material.perishable) {
-            return <Badge variant="outline">{t('common.no')}</Badge>
+            return (
+              <div className="flex justify-center">
+                <Badge variant="outline" className="2xl:inline-flex">
+                  <span className="2xl:hidden">✖️</span>
+                  <span className="hidden 2xl:inline">{t('common.no')}</span>
+                </Badge>
+              </div>
+            )
           }
           return (
-            <div className="flex flex-col gap-1">
-              <Badge variant="secondary">{t('common.yes')}</Badge>
+            <div className="flex flex-col gap-1 items-center">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Clock className="h-3 w-3 2xl:hidden" />
+                <span className="hidden 2xl:inline">{t('common.yes')}</span>
+              </Badge>
               {material.shelfLifeDays && (
-                <span className="text-xs text-muted-foreground">{material.shelfLifeDays} {t('rawMaterials.fields.shelfLifeDays').split(' ')[2]}</span>
+                <span className="text-xs text-muted-foreground hidden 2xl:inline">
+                  {material.shelfLifeDays} {t('rawMaterials.fields.shelfLifeDays').split(' ')[2]}
+                </span>
               )}
             </div>
           )
@@ -433,14 +474,14 @@ export default function RawMaterials() {
                 setSelectedMaterial(material)
                 setRecipeUsageDialogOpen(true)
               }}
-              className="gap-2 whitespace-nowrap"
+              className="gap-1 whitespace-nowrap px-1"
               title={recipeCount > 0 ? t('rawMaterials.usage.inRecipes', { count: recipeCount }) : t('rawMaterials.usage.notUsed')}
             >
               <ChefHat className="h-4 w-4 shrink-0" />
               {recipeCount > 0 ? (
-                <span className="text-sm hidden lg:inline">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
+                <span className="text-sm hidden 2xl:inline">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
               ) : (
-                <span className="text-sm text-muted-foreground hidden lg:inline">{t('rawMaterials.usage.notUsed')}</span>
+                <span className="text-sm text-muted-foreground hidden 2xl:inline">{t('rawMaterials.usage.notUsed')}</span>
               )}
             </Button>
           )
@@ -455,7 +496,7 @@ export default function RawMaterials() {
           return (
             <Switch
               checked={material.active}
-              onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: material.id, active: checked })}
+              onCheckedChange={checked => toggleActiveMutation.mutate({ id: material.id, active: checked })}
               onClick={e => e.stopPropagation()}
               disabled={toggleActiveMutation.isPending}
             />
@@ -467,7 +508,7 @@ export default function RawMaterials() {
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
               <PermissionGate permission="inventory:adjust">
                 <Button
                   variant="ghost"
@@ -477,11 +518,11 @@ export default function RawMaterials() {
                     setSelectedMaterial(material)
                     setAdjustStockDialogOpen(true)
                   }}
-                  className="gap-2 whitespace-nowrap"
+                  className="gap-1 whitespace-nowrap px-1"
                   title={t('rawMaterials.adjustStock')}
                 >
                   <TrendingDown className="h-4 w-4 shrink-0" />
-                  <span className="hidden lg:inline">{t('rawMaterials.adjustStock')}</span>
+                  <span className="hidden 2xl:inline">{t('rawMaterials.adjustStock')}</span>
                 </Button>
               </PermissionGate>
               <Button
@@ -492,11 +533,11 @@ export default function RawMaterials() {
                   setSelectedMaterial(material)
                   setMovementsDialogOpen(true)
                 }}
-                className="gap-2 whitespace-nowrap"
+                className="gap-1 whitespace-nowrap px-1"
                 title={t('rawMaterials.viewMovements')}
               >
                 <History className="h-4 w-4 shrink-0" />
-                <span className="hidden lg:inline">{t('rawMaterials.viewMovements')}</span>
+                <span className="hidden 2xl:inline">{t('rawMaterials.viewMovements')}</span>
               </Button>
               <PermissionGate permission="inventory:update">
                 <Button
@@ -507,6 +548,7 @@ export default function RawMaterials() {
                     setSelectedMaterial(material)
                     setEditDialogOpen(true)
                   }}
+                  className="px-1"
                   title={t('common.edit')}
                 >
                   <Edit className="h-4 w-4" />
@@ -521,6 +563,7 @@ export default function RawMaterials() {
                     handleDeleteClick(material)
                   }}
                   disabled={deleteMutation.isPending}
+                  className="px-1"
                   title={t('common.delete')}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -552,48 +595,50 @@ export default function RawMaterials() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="flex-1 min-w-0">
             <Input
               placeholder={t('rawMaterials.filters.search')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="max-w-md"
+              className="w-full"
             />
           </div>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('rawMaterials.fields.category')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              {categories.map(category => {
-                const categoryInfo = getCategoryInfo(category as any)
-                return (
-                  <SelectItem key={category} value={category}>
-                    {categoryInfo.icon} {t(`rawMaterials.categories.${category}`)}
-                  </SelectItem>
-                )
-              })}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 sm:gap-4">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder={t('rawMaterials.fields.category')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
+                {categories.map(category => {
+                  const categoryInfo = getCategoryInfo(category as any)
+                  return (
+                    <SelectItem key={category} value={category}>
+                      {categoryInfo.icon} {t(`rawMaterials.categories.${category}`)}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
 
-          <Select value={stockFilter} onValueChange={setStockFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('common.filter')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              <SelectItem value="lowStock">{t('rawMaterials.filters.lowStock')}</SelectItem>
-              <SelectItem value="active">{t('rawMaterials.filters.active')}</SelectItem>
-              <SelectItem value="inactive">{t('rawMaterials.filters.inactive')}</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={stockFilter} onValueChange={setStockFilter}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder={t('common.filter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
+                <SelectItem value="lowStock">{t('rawMaterials.filters.lowStock')}</SelectItem>
+                <SelectItem value="active">{t('rawMaterials.filters.active')}</SelectItem>
+                <SelectItem value="inactive">{t('rawMaterials.filters.inactive')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Data Table - Fully responsive */}
       <DataTable
         data={rawMaterials || []}
         rowCount={rawMaterials?.length || 0}
@@ -608,24 +653,11 @@ export default function RawMaterials() {
       {/* Dialogs */}
       <RawMaterialDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} mode="create" />
 
-      <RawMaterialDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        mode="edit"
-        rawMaterial={selectedMaterial}
-      />
+      <RawMaterialDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} mode="edit" rawMaterial={selectedMaterial} />
 
-      <AdjustStockDialog
-        open={adjustStockDialogOpen}
-        onOpenChange={setAdjustStockDialogOpen}
-        rawMaterial={selectedMaterial}
-      />
+      <AdjustStockDialog open={adjustStockDialogOpen} onOpenChange={setAdjustStockDialogOpen} rawMaterial={selectedMaterial} />
 
-      <StockMovementsDialog
-        open={movementsDialogOpen}
-        onOpenChange={setMovementsDialogOpen}
-        rawMaterial={selectedMaterial}
-      />
+      <StockMovementsDialog open={movementsDialogOpen} onOpenChange={setMovementsDialogOpen} rawMaterial={selectedMaterial} />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
@@ -634,7 +666,7 @@ export default function RawMaterials() {
         title={t('rawMaterials.delete')}
         description={`${t('common.confirm')}? ${t('rawMaterials.delete')} "${selectedMaterial?.name}"`}
         confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={handleDeleteConfirm}
       />
@@ -649,12 +681,7 @@ export default function RawMaterials() {
 
       {/* Recipe Edit Dialog */}
       {selectedProductForRecipe && (
-        <RecipeDialog
-          open={recipeEditDialogOpen}
-          onOpenChange={setRecipeEditDialogOpen}
-          mode="edit"
-          product={selectedProductForRecipe}
-        />
+        <RecipeDialog open={recipeEditDialogOpen} onOpenChange={setRecipeEditDialogOpen} mode="edit" product={selectedProductForRecipe} />
       )}
     </div>
   )

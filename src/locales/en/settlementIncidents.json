@@ -1,0 +1,41 @@
+{
+  "pendingAlert": {
+    "title": "{{count}} Pending Settlement Confirmation",
+    "title_plural": "{{count}} Pending Settlement Confirmations",
+    "description": "You have settlements totaling {{amount}} that need confirmation"
+  },
+  "pendingIncidents": {
+    "title": "Pending Settlement Confirmations",
+    "description": "Please confirm whether these expected settlements have arrived in your bank account",
+    "expectedOn": "Expected on",
+    "confirmButton": "Confirm",
+    "totalPending": "Total Pending"
+  },
+  "confirmDialog": {
+    "title": "Confirm Settlement Status",
+    "description": "Please confirm whether this settlement has arrived in your bank account",
+    "processor": "Processor",
+    "expectedDate": "Expected Date",
+    "amount": "Amount",
+    "cardType": "Card Type",
+    "question": "Did this money arrive in your bank account?",
+    "yes": "Yes, it arrived",
+    "no": "No, it hasn't arrived yet",
+    "actualDate": "When did it arrive?",
+    "selectDate": "Select date",
+    "notes": "Notes",
+    "notesPlaceholder": "Add any additional notes about this settlement...",
+    "success": "Settlement confirmed successfully",
+    "error": "Error confirming settlement",
+    "errorDescription": "There was an error confirming the settlement. Please try again."
+  },
+  "stats": {
+    "title": "Settlement Reliability",
+    "total": "Total Incidents",
+    "pending": "Pending Confirmation",
+    "delayed": "Confirmed Delays",
+    "resolved": "Resolved",
+    "escalated": "Escalated",
+    "averageDelay": "Average Delay"
+  }
+}

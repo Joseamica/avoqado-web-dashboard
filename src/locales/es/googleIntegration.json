@@ -1,0 +1,92 @@
+{
+  "title": "Integración con Google Business Profile",
+  "description": "Conecta tu perfil de Google Business para sincronizar reseñas y responder directamente desde Avoqado",
+
+  "status": {
+    "title": "Estado de Conexión",
+    "connected": "Tu Google Business Profile está conectado",
+    "notConnected": "Conéctate para comenzar a sincronizar reseñas",
+    "connectedBadge": "Conectado",
+    "notConnectedBadge": "No Conectado"
+  },
+
+  "connectedInfo": {
+    "account": "Cuenta Conectada",
+    "businessLocation": "Ubicación del Negocio",
+    "lastSync": "Última Sincronización",
+    "never": "Nunca",
+    "reviewsCount": "{{count}} reseñas sincronizadas"
+  },
+
+  "actions": {
+    "connect": "Conectar Google Business Profile",
+    "disconnect": "Desconectar",
+    "syncNow": "Sincronizar Ahora",
+    "syncing": "Sincronizando..."
+  },
+
+  "authorization": {
+    "title": "Lo que autorizarás:",
+    "readReviews": "Leer reseñas de tu Google Business Profile",
+    "postResponses": "Publicar respuestas a reseñas en tu nombre",
+    "accessInfo": "Acceder a información básica del perfil comercial"
+  },
+
+  "instructions": {
+    "title": "Cómo Conectar",
+    "step1": {
+      "title": "1. Haz clic en \"Conectar Google Business Profile\"",
+      "description": "Serás redirigido a la página de autorización de Google"
+    },
+    "step2": {
+      "title": "2. Inicia sesión con tu cuenta de Google del negocio",
+      "description": "Usa la cuenta que administra tu Google Business Profile"
+    },
+    "step3": {
+      "title": "3. Otorga permisos",
+      "description": "Permite que Avoqado lea y responda a las reseñas"
+    },
+    "step4": {
+      "title": "4. Selecciona tu ubicación comercial",
+      "description": "Si administras múltiples ubicaciones, elige la de este local"
+    }
+  },
+
+  "requirements": {
+    "title": "Requisitos",
+    "verified": "Tu negocio debe estar verificado en Google",
+    "owner": "Debes ser el propietario o administrador del Google Business Profile",
+    "active": "Tu Google Business Profile debe estar activo y publicado"
+  },
+
+  "benefits": {
+    "title": "Beneficios de Conectar",
+    "autoSync": "Sincronización automática de reseñas cada 6 horas",
+    "centralResponse": "Responde a todas las reseñas desde un solo dashboard",
+    "aiPowered": "Sugerencias de respuesta impulsadas por IA",
+    "analytics": "Análisis unificado de todas las fuentes de reseñas"
+  },
+
+  "errors": {
+    "connectionFailed": "Error al conectar Google Business Profile",
+    "noLocations": "No se encontraron ubicaciones comerciales en tu cuenta de Google",
+    "syncFailed": "Error al sincronizar reseñas",
+    "disconnectFailed": "Error al desconectar",
+    "unauthorized": "No tienes permiso para administrar este Google Business Profile"
+  },
+
+  "success": {
+    "connected": "¡Google Business Profile conectado exitosamente!",
+    "disconnected": "Google Business Profile desconectado",
+    "synced": "Reseñas sincronizadas exitosamente"
+  },
+
+  "confirm": {
+    "disconnect": {
+      "title": "¿Desconectar Google Business Profile?",
+      "description": "Tus reseñas sincronizadas existentes permanecerán en Avoqado, pero las nuevas reseñas no se sincronizarán automáticamente. Puedes reconectar en cualquier momento.",
+      "confirm": "Desconectar",
+      "cancel": "Cancelar"
+    }
+  }
+}

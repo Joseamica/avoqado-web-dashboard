@@ -374,6 +374,22 @@ export interface Venue {
   active: boolean
   operationalSince: string | null
 
+  // Demo mode
+  isOnboardingDemo?: boolean
+  demoExpiresAt?: string | null
+
+  // Tax Information (for converting from demo to real)
+  rfc?: string | null // RFC (Tax ID) for Mexico
+  legalName?: string | null // Legal business name
+  fiscalRegime?: string | null // Fiscal regime code
+  taxDocumentUrl?: string | null // URL to tax document
+  idDocumentUrl?: string | null // URL to ID document
+  actaDocumentUrl?: string | null // URL to Acta Constitutiva document
+
+  // KYC Verification (for payment processing access control)
+  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycRejectionReason?: string | null
+
   // POS Integration
   posType: PosType | null
   posConfig: any | null // Json type
@@ -459,6 +475,12 @@ export interface VenueFeature {
 
   startDate: string
   endDate: string | null
+
+  // Stripe subscription fields
+  stripeSubscriptionId?: string | null
+  stripeSubscriptionItemId?: string | null
+  stripePriceId?: string | null
+  trialEndDate?: string | null
 }
 
 // ANTERIOR: No existía o era parcial
@@ -595,7 +617,10 @@ export interface Product {
 
   // Inventory tracking
   trackInventory: boolean
+  inventoryMethod: 'QUANTITY' | 'RECIPE' | null
   unit: string | null
+  availableQuantity?: number | null // Toast POS style unified field for both QUANTITY and RECIPE
+  lowStockThreshold?: number | null // Alert threshold for low stock warnings (configurable per product)
 
   // Status
   active: boolean
@@ -747,6 +772,24 @@ export interface Payment {
   staffId: string | null
   staff?: Staff | null
 
+  // Merchant account tracking
+  merchantAccountId: string | null
+  merchantAccount?: {
+    id: string
+    displayName: string | null
+    externalMerchantId: string
+    bankName: string | null
+    clabeNumber: string | null
+    accountHolder: string | null
+    blumonSerialNumber: string | null
+    blumonPosId: string | null
+    provider: {
+      id: string
+      code: string
+      name: string
+    }
+  } | null
+
   // Amounts
   amount: number
   tipAmount: number
@@ -780,6 +823,21 @@ export interface Payment {
   receiptPhoneStatus: ReceiptStatus | null
 
   transactions?: VenueTransaction[]
+
+  // Transaction cost/profit (for SUPERADMIN)
+  transactionCost?: {
+    id: string
+    transactionType: string // DEBIT, CREDIT, AMEX, INTERNATIONAL
+    amount: number
+    providerRate: number // Rate charged by provider
+    providerCostAmount: number // What Avoqado pays to provider
+    providerFixedFee: number
+    venueRate: number // Rate Avoqado charges to venue
+    venueChargeAmount: number // What Avoqado charges to venue
+    venueFixedFee: number
+    grossProfit: number // venueCharge - providerCost (Avoqado's profit)
+    profitMargin: number // grossProfit / venueCharge
+  } | null
 
   createdAt: string
   updatedAt: string
@@ -1181,8 +1239,13 @@ export interface SessionVenue {
   currency: string
   // El rol que el usuario logueado tiene EN ESTE venue específico
   role: StaffRole
+  // Whether this venue is in demo mode
+  isOnboardingDemo?: boolean
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
+  // KYC Verification (for payment processing access control)
+  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycRejectionReason?: string | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
   features: Array<{
     feature: {

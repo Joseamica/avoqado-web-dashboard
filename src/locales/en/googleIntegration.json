@@ -1,0 +1,92 @@
+{
+  "title": "Google Business Profile Integration",
+  "description": "Connect your Google Business Profile to sync reviews and respond directly from Avoqado",
+
+  "status": {
+    "title": "Connection Status",
+    "connected": "Your Google Business Profile is connected",
+    "notConnected": "Connect to start syncing reviews",
+    "connectedBadge": "Connected",
+    "notConnectedBadge": "Not Connected"
+  },
+
+  "connectedInfo": {
+    "account": "Connected Account",
+    "businessLocation": "Business Location",
+    "lastSync": "Last Sync",
+    "never": "Never",
+    "reviewsCount": "{{count}} reviews synced"
+  },
+
+  "actions": {
+    "connect": "Connect Google Business Profile",
+    "disconnect": "Disconnect",
+    "syncNow": "Sync Now",
+    "syncing": "Syncing..."
+  },
+
+  "authorization": {
+    "title": "What you'll authorize:",
+    "readReviews": "Read reviews from your Google Business Profile",
+    "postResponses": "Post responses to reviews on your behalf",
+    "accessInfo": "Access basic business profile information"
+  },
+
+  "instructions": {
+    "title": "How to Connect",
+    "step1": {
+      "title": "1. Click \"Connect Google Business Profile\"",
+      "description": "You'll be redirected to Google's authorization page"
+    },
+    "step2": {
+      "title": "2. Sign in with your business Google account",
+      "description": "Use the account that manages your Google Business Profile"
+    },
+    "step3": {
+      "title": "3. Grant permissions",
+      "description": "Allow Avoqado to read and respond to reviews"
+    },
+    "step4": {
+      "title": "4. Select your business location",
+      "description": "If you manage multiple locations, choose the one for this venue"
+    }
+  },
+
+  "requirements": {
+    "title": "Requirements",
+    "verified": "Your business must be verified on Google",
+    "owner": "You must be the owner or manager of the Google Business Profile",
+    "active": "Your Google Business Profile must be active and published"
+  },
+
+  "benefits": {
+    "title": "Benefits of Connecting",
+    "autoSync": "Automatic review synchronization every 6 hours",
+    "centralResponse": "Respond to all reviews from one dashboard",
+    "aiPowered": "AI-powered response suggestions",
+    "analytics": "Unified analytics across all review sources"
+  },
+
+  "errors": {
+    "connectionFailed": "Failed to connect Google Business Profile",
+    "noLocations": "No business locations found in your Google account",
+    "syncFailed": "Failed to sync reviews",
+    "disconnectFailed": "Failed to disconnect",
+    "unauthorized": "You don't have permission to manage this Google Business Profile"
+  },
+
+  "success": {
+    "connected": "Google Business Profile connected successfully!",
+    "disconnected": "Google Business Profile disconnected",
+    "synced": "Reviews synced successfully"
+  },
+
+  "confirm": {
+    "disconnect": {
+      "title": "Disconnect Google Business Profile?",
+      "description": "Your existing synced reviews will remain in Avoqado, but new reviews won't be synced automatically. You can reconnect at any time.",
+      "confirm": "Disconnect",
+      "cancel": "Cancel"
+    }
+  }
+}

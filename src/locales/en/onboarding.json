@@ -1,0 +1,327 @@
+{
+  "stepProgress": "Step {{current}} of {{total}}",
+  "steps": {
+    "welcome": "Welcome",
+    "type": "Choose Your Path",
+    "businessInfo": "Business Information",
+    "menuData": "Menu Setup",
+    "teamInvites": "Team Invitations",
+    "features": "Features",
+    "payment": "Payment Configuration"
+  },
+  "welcome": {
+    "greeting": "Welcome, {{name}}!",
+    "subtitle": "Let's get your business set up in just a few minutes",
+    "whatWeWillSetup": "What we'll set up together:",
+    "setupItems": {
+      "venueInfo": "Your business information (name, location, hours)",
+      "menu": "Your catalog with categories and products",
+      "payment": "Payment processing and banking details",
+      "team": "Team members and their roles (optional)"
+    },
+    "keyFeatures": "Powerful features that set Avoqado apart:",
+    "features": {
+      "reconciliation": {
+        "title": "Centralized Reconciliation",
+        "description": "All in one place: POS, cash, payment terminals. No more reconciling multiple systems"
+      },
+      "smartRouting": {
+        "title": "Intelligent Payment Routing",
+        "description": "AI optimizes every transaction to minimize fees. Save 20-30% on commissions"
+      },
+      "inventory": {
+        "title": "Automated Inventory",
+        "description": "Real-time stock tracking with automatic deduction on every sale"
+      },
+      "chatbot": {
+        "title": "AI Business Assistant",
+        "description": "Ask questions about your business and get instant insights powered by AI"
+      },
+      "posIntegrations": {
+        "title": "POS Integrations",
+        "description": "Connect with your existing point-of-sale system seamlessly"
+      },
+      "automaticTips": {
+        "title": "Automatic Tips",
+        "description": "Tips paid instantly and automatically to your staff. No manual calculations"
+      },
+      "competitivePricing": {
+        "title": "Competitive Rates",
+        "description": "Lower fees than Mercado Pago, Clip, and Sr Pago. They charge 3-3.5%, we're better"
+      },
+      "smartPOS": {
+        "title": "Intelligent POS",
+        "description": "Order, pay, split bills, route payments, and assign tips all in one smart terminal"
+      }
+    },
+    "timeEstimate": "⏱️ This process takes about 5-10 minutes"
+  },
+  "footer": {
+    "needHelp": "Need help?",
+    "contactSupport": "Contact Support"
+  },
+  "onboardingType": {
+    "title": "How would you like to get started?",
+    "subtitle": "Choose the option that best fits your needs",
+    "demo": {
+      "title": "Start with Demo Data",
+      "description": "Get up and running quickly with a pre-configured business and sample catalog",
+      "features": {
+        "preConfigured": "Pre-configured business with all settings",
+        "sampleMenu": "Complete sample catalog with categories and products",
+        "quickStart": "Start selling in minutes"
+      },
+      "badge": "Recommended"
+    },
+    "manual": {
+      "title": "Start from Scratch",
+      "description": "Build your business from the ground up with complete control",
+      "features": {
+        "fullControl": "Complete control over every setting",
+        "customSetup": "Set up your business exactly how you want it",
+        "yourWay": "Perfect for experienced users"
+      }
+    },
+    "selected": "Selected",
+    "helpText": "Don't worry, you can always change your catalog and settings later"
+  },
+  "businessInfo": {
+    "title": "Tell us about your business",
+    "subtitle": "This information will help us personalize your experience",
+    "form": {
+      "businessName": "Business Name",
+      "businessNamePlaceholder": "Enter your business name",
+      "businessNameHelp": "This will appear on receipts and customer-facing materials",
+      "businessType": "Business Type",
+      "businessTypePlaceholder": "Select your business type",
+      "address": "Street Address",
+      "addressPlaceholder": "123 Main Street",
+      "city": "City",
+      "cityPlaceholder": "Enter city",
+      "state": "State/Province",
+      "statePlaceholder": "Enter state or province",
+      "country": "Country",
+      "countryPlaceholder": "Select country",
+      "zipCode": "Postal Code",
+      "zipCodePlaceholder": "Enter postal code",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+52 123 456 7890",
+      "email": "Business Email",
+      "emailPlaceholder": "contact@business.com",
+      "timezone": "Timezone",
+      "timezoneHelp": "Used for reporting and scheduling",
+      "currency": "Currency",
+      "currencyHelp": "Default currency for pricing and payments"
+    },
+    "businessTypes": {
+      "RESTAURANT": "Restaurant",
+      "BAR": "Bar",
+      "CAFE": "Café",
+      "FAST_FOOD": "Fast Food",
+      "FOOD_TRUCK": "Food Truck",
+      "RETAIL_STORE": "Retail Store",
+      "HOTEL_RESTAURANT": "Hotel Restaurant",
+      "FITNESS_STUDIO": "Fitness Studio",
+      "SPA": "Spa",
+      "OTHER": "Other"
+    },
+    "validation": {
+      "nameRequired": "Business name is required",
+      "nameMin": "Business name must be at least 2 characters",
+      "typeRequired": "Business type is required",
+      "addressRequired": "Street address is required",
+      "cityRequired": "City is required",
+      "stateRequired": "State/Province is required",
+      "countryRequired": "Country is required",
+      "zipCodeRequired": "Postal code is required",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Please enter a valid phone number",
+      "emailRequired": "Business email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "timezoneRequired": "Timezone is required",
+      "currencyRequired": "Currency is required"
+    },
+    "optionalSteps": {
+      "title": "Next Steps are Optional",
+      "description": "The following steps help you set up your business more completely, but you can skip them and add this information later:",
+      "step4": "Menu Setup - Add your menu manually or import from CSV",
+      "step5": "Team Invitations - Invite staff members to join your business",
+      "step6": "Feature Selection - Choose premium features to enhance your business",
+      "step7": "Payment Configuration - Set up CLABE for receiving deposits",
+      "choice": "You can continue to set these up now, or skip and complete your business setup."
+    }
+  },
+  "menuData": {
+    "title": "Set Up Your Menu",
+    "subtitle": "Add your products and categories, or skip and do it later",
+    "method": {
+      "title": "How would you like to add your menu?",
+      "manual": {
+        "title": "Manual Entry",
+        "description": "Add categories and products one by one",
+        "badge": "Recommended"
+      },
+      "csv": {
+        "title": "Import from CSV",
+        "description": "Upload a CSV file with your menu data",
+        "badge": "Advanced"
+      }
+    },
+    "manual": {
+      "categories": {
+        "title": "Categories",
+        "description": "Add menu categories (e.g., Appetizers, Main Dishes, Drinks)",
+        "add": "Add Category",
+        "name": "Category Name",
+        "namePlaceholder": "e.g., Main Dishes",
+        "slug": "Slug",
+        "slugPlaceholder": "e.g., main-dishes",
+        "slugHelp": "URL-friendly identifier (auto-generated from name)",
+        "empty": "No categories added yet"
+      },
+      "products": {
+        "title": "Products",
+        "description": "Add products to your menu",
+        "add": "Add Product",
+        "name": "Product Name",
+        "namePlaceholder": "e.g., Cheeseburger",
+        "sku": "SKU",
+        "skuPlaceholder": "e.g., BURGER-001",
+        "skuHelp": "Stock Keeping Unit (unique identifier)",
+        "price": "Price",
+        "pricePlaceholder": "0.00",
+        "category": "Category",
+        "categoryPlaceholder": "Select category",
+        "categoryRequired": "Please add at least one category first",
+        "empty": "No products added yet"
+      },
+      "validation": {
+        "categoryNameRequired": "Category name is required",
+        "categorySlugRequired": "Slug is required",
+        "productNameRequired": "Product name is required",
+        "productSkuRequired": "SKU is required",
+        "productPriceRequired": "Price is required",
+        "productPricePositive": "Price must be positive",
+        "productCategoryRequired": "Category is required"
+      }
+    },
+    "csv": {
+      "title": "Upload CSV File",
+      "description": "Upload a CSV file with your menu data. The file should have columns: name, sku, price, category",
+      "download": "Download Template",
+      "upload": "Choose File",
+      "uploaded": "File uploaded: {{filename}}",
+      "dragDrop": "Drag and drop a CSV file here, or click to browse",
+      "format": {
+        "title": "CSV Format Requirements",
+        "description": "Your CSV file must have these columns:",
+        "columns": {
+          "name": "name - Product name",
+          "sku": "sku - Unique product identifier",
+          "price": "price - Product price (numeric)",
+          "category": "category - Category name"
+        },
+        "example": "Example: Cheeseburger,BURGER-001,12.99,Main Dishes"
+      }
+    },
+    "actions": {
+      "skip": "Skip for Now",
+      "skipDescription": "You can add your menu later from the dashboard"
+    }
+  },
+  "teamInvites": {
+    "title": "Invite Your Team",
+    "subtitle": "Add team members who will help manage your business, or skip and do it later",
+    "description": "Send invitations to your team members. They'll receive an email with instructions to join your business.",
+    "form": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Enter first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Enter last name",
+      "email": "Email Address",
+      "emailPlaceholder": "team@example.com",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "add": "Add Invitation",
+      "empty": "No invitations added yet"
+    },
+    "roles": {
+      "ADMIN": "Admin - Full access to all features",
+      "MANAGER": "Manager - Operations and staff management",
+      "CASHIER": "Cashier - Payment processing",
+      "WAITER": "Waiter - Order management",
+      "KITCHEN": "Kitchen - Kitchen display",
+      "HOST": "Host - Reservations and seating",
+      "VIEWER": "Viewer - Read-only access"
+    },
+    "validation": {
+      "nameRequired": "First name and last name are required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "roleRequired": "Role is required",
+      "emailDuplicate": "This email is already in the list"
+    },
+    "actions": {
+      "skip": "Skip for Now",
+      "skipDescription": "You can invite team members later from the dashboard"
+    }
+  },
+  "features": {
+    "title": "Choose Your Features",
+    "subtitle": "Select premium features to enhance your business, or skip and do it later",
+    "description": "These features can be enabled or disabled at any time from your dashboard settings.",
+    "available": {
+      "CHATBOT": {
+        "name": "AI Chatbot",
+        "description": "24/7 AI assistant to answer customer questions and provide business insights"
+      },
+      "ADVANCED_ANALYTICS": {
+        "name": "Advanced Analytics",
+        "description": "Deep insights into sales, customer behavior, and performance metrics"
+      },
+      "INVENTORY_TRACKING": {
+        "name": "Inventory Tracking",
+        "description": "Real-time inventory management with automatic stock deductions"
+      },
+      "LOYALTY_PROGRAM": {
+        "name": "Loyalty Program",
+        "description": "Reward your customers and increase retention with points and rewards"
+      },
+      "ONLINE_ORDERING": {
+        "name": "Online Ordering",
+        "description": "Accept orders directly from your website or mobile app"
+      },
+      "RESERVATIONS": {
+        "name": "Reservations",
+        "description": "Manage table bookings and optimize seating arrangements"
+      }
+    },
+    "actions": {
+      "skip": "Skip for Now",
+      "skipDescription": "You can enable features later from the dashboard"
+    }
+  },
+  "payment": {
+    "title": "Payment Configuration",
+    "subtitle": "Set up your CLABE for receiving payments, or skip and do it later",
+    "description": "Your CLABE (Clave Bancaria Estandarizada) is required to receive payments from Avoqado directly to your bank account.",
+    "form": {
+      "clabe": "CLABE",
+      "clabePlaceholder": "123456789012345678",
+      "clabeHelp": "18-digit bank account number",
+      "bankName": "Bank Name (Optional)",
+      "bankNamePlaceholder": "e.g., BBVA, Santander, HSBC",
+      "accountHolder": "Account Holder (Optional)",
+      "accountHolderPlaceholder": "Full name of account holder"
+    },
+    "validation": {
+      "clabeRequired": "CLABE is required",
+      "clabeInvalid": "CLABE must be exactly 18 digits",
+      "clabeNumeric": "CLABE must contain only numbers"
+    },
+    "actions": {
+      "skip": "Skip for Now",
+      "skipDescription": "You can add your payment information later from the dashboard"
+    }
+  }
+}

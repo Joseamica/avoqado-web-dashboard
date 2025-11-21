@@ -241,16 +241,25 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     if (!socket || !isConnected) return
 
     // Listen for new notifications
-    const handleNewNotification = (notification: Notification) => {
+    const handleNewNotification = (notification: any) => {
       console.log('Received new notification:', notification)
-      dispatch({ type: 'ADD_NOTIFICATION', payload: notification })
-      
+
+      // Transform backend field names to frontend format
+      // Backend sends: { notificationId, ... }
+      // Frontend expects: { id, ... }
+      const transformedNotification: Notification = {
+        ...notification,
+        id: notification.notificationId || notification.id,
+      }
+
+      dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })
+
       // Show browser notification with appropriate options based on priority
       const options = getNotificationOptions(notification.priority)
       showBrowserNotification(notification.title, {
         ...options,
         body: notification.message,
-        tag: notification.id
+        tag: transformedNotification.id
       })
     }
 

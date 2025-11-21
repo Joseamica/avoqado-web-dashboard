@@ -119,6 +119,7 @@ export interface SuperadminVenue {
     totalMonthlyBill: number
     paymentStatus: 'PAID' | 'PENDING' | 'OVERDUE'
   }
+  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null  // KYC verification status
   approvedAt?: string
   approvedBy?: string
   createdAt: string

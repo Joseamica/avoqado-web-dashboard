@@ -17,7 +17,7 @@ const Root: React.FC = () => {
         <SocketProvider>
           <NotificationProvider>
             <Toaster />
-            <Suspense fallback={<LoadingScreen message={t('common.loading')} />}>
+            <Suspense fallback={<LoadingScreen message={t('loading')} />}>
               <Outlet />
               <ScrollRestoration />
             </Suspense>

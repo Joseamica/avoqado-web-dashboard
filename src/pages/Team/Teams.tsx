@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -45,7 +45,8 @@ export default function Teams() {
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('team')
+  const { t: tCommon } = useTranslation()
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -73,16 +74,16 @@ export default function Teams() {
     mutationFn: (memberId: string) => teamService.removeTeamMember(venueId, memberId),
     onSuccess: () => {
       toast({
-        title: t('teams.toasts.memberRemovedTitle'),
-        description: t('teams.toasts.memberRemovedDesc'),
+        title: t('toasts.memberRemovedTitle'),
+        description: t('toasts.memberRemovedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
       setRemovingMember(null)
     },
     onError: (error: any) => {
       toast({
-        title: t('teams.toasts.memberRemoveErrorTitle'),
-        description: error.response?.data?.message || t('teams.toasts.memberRemoveErrorDesc'),
+        title: tCommon('common.error'),
+        description: error.response?.data?.message || t('toasts.memberRemoveError'),
         variant: 'destructive',
       })
     },
@@ -93,15 +94,15 @@ export default function Teams() {
     mutationFn: (invitationId: string) => teamService.cancelInvitation(venueId, invitationId),
     onSuccess: () => {
       toast({
-        title: t('teams.toasts.invitationCanceledTitle'),
-        description: t('teams.toasts.invitationCanceledDesc'),
+        title: t('toasts.invitationCancelled'),
+        description: t('toasts.invitationCancelledDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
     },
     onError: (error: any) => {
       toast({
-        title: t('teams.toasts.invitationCancelErrorTitle'),
-        description: error.response?.data?.message || t('teams.toasts.invitationCancelErrorDesc'),
+        title: tCommon('common.error'),
+        description: error.response?.data?.message || t('toasts.invitationCancelError'),
         variant: 'destructive',
       })
     },
@@ -112,26 +113,35 @@ export default function Teams() {
     mutationFn: (invitationId: string) => teamService.resendInvitation(venueId, invitationId),
     onSuccess: () => {
       toast({
-        title: t('teams.toasts.invitationResentTitle'),
-        description: t('teams.toasts.invitationResentDesc'),
+        title: t('toasts.invitationResent'),
+        description: t('toasts.invitationResentDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
     },
     onError: (error: any) => {
       toast({
-        title: t('teams.toasts.invitationResendErrorTitle'),
-        description: error.response?.data?.message || t('teams.toasts.invitationResendErrorDesc'),
+        title: tCommon('common.error'),
+        description: error.response?.data?.message || t('toasts.invitationResendError'),
         variant: 'destructive',
       })
     },
   })
 
   // Filter team members to hide superadmins from non-superadmin users
-  const filteredTeamMembers = filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role)
-  const filteredInvitations = filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role)
+  // CRITICAL: Must be memoized to prevent infinite re-render loop
+  // filterSuperadminFromTeam() returns new array for non-SUPERADMIN roles
+  const filteredTeamMembers = useMemo(
+    () => filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role),
+    [teamData?.data, staffInfo?.role]
+  )
 
-  // Client-side search like Payments page
-  const handleMemberSearch = (search: string, rows: TeamMember[]) => {
+  const filteredInvitations = useMemo(
+    () => filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role),
+    [invitationsData?.data, staffInfo?.role]
+  )
+
+  // Client-side search like Payments page - wrapped in useCallback to prevent recreation
+  const handleMemberSearch = useCallback((search: string, rows: TeamMember[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
     return rows.filter(m => {
@@ -140,9 +150,9 @@ export default function Teams() {
       const role = (m.role || '').toString().toLowerCase()
       return name.includes(q) || email.includes(q) || role.includes(q)
     })
-  }
+  }, [])
 
-  const handleInvitationSearch = (search: string, rows: Invitation[]) => {
+  const handleInvitationSearch = useCallback((search: string, rows: Invitation[]) => {
     if (!search) return rows
     const q = search.toLowerCase()
     return rows.filter(inv => {
@@ -151,14 +161,15 @@ export default function Teams() {
       const role = (inv.role || '').toString().toLowerCase()
       return email.includes(q) || inviter.includes(q) || role.includes(q)
     })
-  }
+  }, [])
 
-  const teamColumns: ColumnDef<TeamMember>[] = [
+  // Memoize column definitions to prevent recreation on every render
+  const teamColumns: ColumnDef<TeamMember>[] = useMemo(() => [
     {
       accessorKey: 'firstName',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('teams.columns.name')}
+          {t('columns.name')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
@@ -175,7 +186,7 @@ export default function Teams() {
     },
     {
       accessorKey: 'role',
-      header: t('teams.columns.role'),
+      header: t('columns.role'),
       cell: ({ row }) => (
         <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
@@ -184,10 +195,10 @@ export default function Teams() {
     },
     {
       accessorKey: 'active',
-      header: t('teams.columns.status'),
+      header: t('columns.status'),
       cell: ({ row }) => (
         <Badge variant={row.original.active ? 'default' : 'secondary'}>
-          {row.original.active ? t('teams.status.active') : t('teams.status.inactive')}
+          {row.original.active ? t('status.active') : t('status.inactive')}
         </Badge>
       ),
     },
@@ -195,7 +206,7 @@ export default function Teams() {
       accessorKey: 'totalSales',
       header: ({ column }) => (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('teams.columns.totalSales')}
+          {t('columns.totalSales')}
           <ArrowUpDown className="w-4 h-4 ml-2" />
         </Button>
       ),
@@ -207,53 +218,53 @@ export default function Teams() {
     },
     {
       accessorKey: 'totalOrders',
-      header: t('teams.columns.totalOrders'),
+      header: t('columns.totalOrders'),
       cell: ({ row }) => <div className="text-right">{row.original.totalOrders}</div>,
     },
     {
       id: 'actions',
-      header: t('common.actions'),
+      header: tCommon('common.actions'),
       cell: ({ row }) => (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" sideOffset={5} className="w-48">
             <PermissionGate permission="teams:update">
               <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
                 <Pencil className="h-4 w-4 mr-2" />
-                {t('teams.actions.edit')}
+                {t('actions.edit')}
               </DropdownMenuItem>
             </PermissionGate>
             <DropdownMenuSeparator />
             <PermissionGate permission="teams:delete">
               <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
                 <Trash2 className="h-4 w-4 mr-2" />
-                {t('teams.actions.delete')}
+                {t('actions.delete')}
               </DropdownMenuItem>
             </PermissionGate>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
     },
-  ]
+  ], [t, i18n.language, staffInfo?.role])
 
-  const invitationColumns: ColumnDef<Invitation>[] = [
+  const invitationColumns: ColumnDef<Invitation>[] = useMemo(() => [
     {
       accessorKey: 'email',
-      header: t('teams.columns.email'),
+      header: t('columns.email'),
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.email}</div>
-          <div className="text-sm text-muted-foreground">{t('teams.columns.invitedBy', { name: row.original.invitedBy.name })}</div>
+          <div className="text-sm text-muted-foreground">{t('columns.invitedBy', { name: row.original.invitedBy.name })}</div>
         </div>
       ),
     },
     {
       accessorKey: 'role',
-      header: t('teams.columns.role'),
+      header: t('columns.role'),
       cell: ({ row }) => (
         <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
@@ -262,28 +273,28 @@ export default function Teams() {
     },
     {
       accessorKey: 'createdAt',
-      header: t('teams.columns.sent'),
+      header: t('columns.sent'),
       cell: ({ row }) => (
         <div className="text-sm">{new Date(row.original.createdAt).toLocaleDateString(getIntlLocale(i18n.language))}</div>
       ),
     },
     {
       accessorKey: 'expiresAt',
-      header: t('teams.columns.expires'),
+      header: t('columns.expires'),
       cell: ({ row }) => {
         const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
         return (
           <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
             <Clock className="h-4 w-4 inline mr-1" />
             {new Date(row.original.expiresAt).toLocaleDateString(getIntlLocale(i18n.language))}
-            {isExpired && <span className="ml-1 text-xs">{t('teams.labels.expiredTag')}</span>}
+            {isExpired && <span className="ml-1 text-xs">{t('status.expired')}</span>}
           </div>
         )
       },
     },
     {
       id: 'actions',
-      header: t('common.actions'),
+      header: tCommon('common.actions'),
       cell: ({ row }) => {
         const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
 
@@ -295,7 +306,7 @@ export default function Teams() {
               onClick={() => resendInvitationMutation.mutate(row.original.id)}
               disabled={resendInvitationMutation.isPending}
             >
-              {t('teams.actions.resend')}
+              {t('actions.resend')}
             </Button>
           )
         }
@@ -307,19 +318,19 @@ export default function Teams() {
             onClick={() => cancelInvitationMutation.mutate(row.original.id)}
             disabled={cancelInvitationMutation.isPending}
           >
-            {t('teams.actions.cancel')}
+            {t('actions.cancel')}
           </Button>
         )
       },
     },
-  ]
+  ], [t, tCommon, i18n.language, staffInfo?.role])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('teams.header.title')}</h1>
-          <p className="text-muted-foreground">{t('teams.header.subtitle')}</p>
+          <h1 className="text-2xl font-bold">{t('header.title')}</h1>
+          <p className="text-muted-foreground">{t('header.subtitle')}</p>
         </div>
 
         <PermissionGate permission="teams:invite">
@@ -327,32 +338,34 @@ export default function Teams() {
             <DialogTrigger asChild>
               <Button id="invite-member-button">
                 <UserPlus className="h-4 w-4 mr-2" />
-                {t('teams.header.inviteButton')}
+                {t('header.inviteButton')}
               </Button>
             </DialogTrigger>
-          <DialogContent
-            className="max-w-md"
-            onCloseAutoFocus={e => {
-              // Restore focus to the invite button for seamless keyboard flow
-              e.preventDefault()
-              const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
-              el?.focus()
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>{t('teams.header.inviteDialog.title')}</DialogTitle>
-              <DialogDescription>{t('teams.header.inviteDialog.desc')}</DialogDescription>
-            </DialogHeader>
-            <InviteTeamMemberForm
-              venueId={venueId}
-              onSuccess={() => {
-                setShowInviteDialog(false)
-                queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
-                queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+            {showInviteDialog && (
+              <DialogContent
+                className="max-w-md"
+                onCloseAutoFocus={e => {
+                  // Restore focus to the invite button for seamless keyboard flow
+                  e.preventDefault()
+                  const el = document.getElementById('invite-member-button') as HTMLButtonElement | null
+                  el?.focus()
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle>{t('header.inviteDialog.title')}</DialogTitle>
+                  <DialogDescription>{t('header.inviteDialog.desc')}</DialogDescription>
+                </DialogHeader>
+                <InviteTeamMemberForm
+                  venueId={venueId}
+                  onSuccess={() => {
+                    setShowInviteDialog(false)
+                    queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+                    queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
+                  }}
+                />
+              </DialogContent>
+            )}
+          </Dialog>
         </PermissionGate>
       </div>
 
@@ -362,7 +375,7 @@ export default function Teams() {
             value="members"
             className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
-            <span>{t('teams.tabs.members')}</span>
+            <span>{t('tabs.members')}</span>
             <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
               {teamData?.meta.totalCount || 0}
             </span>
@@ -371,7 +384,7 @@ export default function Teams() {
             value="invitations"
             className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
-            <span>{t('teams.tabs.invitations')}</span>
+            <span>{t('tabs.invitations')}</span>
             <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
               {invitationsData?.data.length || 0}
             </span>
@@ -388,7 +401,7 @@ export default function Teams() {
             tableId="team:members"
             rowCount={teamData?.meta.totalCount || 0}
             enableSearch={true}
-            searchPlaceholder={t('common.search')}
+            searchPlaceholder={tCommon('common.search')}
             onSearch={handleMemberSearch}
             clickableRow={row => ({ to: row.id })}
           />
@@ -399,9 +412,9 @@ export default function Teams() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Mail className="h-5 w-5 mr-2" />
-                {t('teams.cards.pendingInvitationsTitle')}
+                {t('cards.pendingInvitationsTitle')}
               </CardTitle>
-              <CardDescription>{t('teams.cards.pendingInvitationsDesc')}</CardDescription>
+              <CardDescription>{t('cards.pendingInvitationsDesc')}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <DataTable
@@ -413,7 +426,7 @@ export default function Teams() {
                 tableId="team:invitations"
                 rowCount={invitationsData?.data.length || 0}
                 enableSearch={true}
-                searchPlaceholder={t('common.search')}
+                searchPlaceholder={tCommon('common.search')}
                 onSearch={handleInvitationSearch}
               />
             </CardContent>
@@ -433,9 +446,9 @@ export default function Teams() {
             }}
           >
             <DialogHeader>
-              <DialogTitle>{t('teams.dialogs.editMemberTitle')}</DialogTitle>
+              <DialogTitle>{t('dialogs.editMemberTitle')}</DialogTitle>
               <DialogDescription>
-                {t('teams.dialogs.editMemberDesc', { firstName: editingMember.firstName, lastName: editingMember.lastName })}
+                {t('dialogs.editMemberDesc', { firstName: editingMember.firstName, lastName: editingMember.lastName })}
               </DialogDescription>
             </DialogHeader>
             <EditTeamMemberForm
@@ -455,19 +468,19 @@ export default function Teams() {
         <AlertDialog open={!!removingMember} onOpenChange={() => setRemovingMember(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('teams.dialogs.removeTitle')}</AlertDialogTitle>
+              <AlertDialogTitle>{t('dialogs.removeTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t('teams.dialogs.removeDesc', { firstName: removingMember.firstName, lastName: removingMember.lastName })}
+                {t('dialogs.removeDesc', { firstName: removingMember.firstName, lastName: removingMember.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('teams.dialogs.removeCancel')}</AlertDialogCancel>
+              <AlertDialogCancel>{t('dialogs.removeCancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => removeTeamMemberMutation.mutate(removingMember.id)}
                 disabled={removeTeamMemberMutation.isPending}
                 className="bg-red-600 hover:bg-red-700"
               >
-                {removeTeamMemberMutation.isPending ? t('teams.dialogs.removing') : t('teams.dialogs.removeConfirm')}
+                {removeTeamMemberMutation.isPending ? t('dialogs.removing') : t('dialogs.removeConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

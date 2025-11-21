@@ -1,0 +1,124 @@
+{
+  "title": "Dashboard",
+  "filters": {
+    "today": "Hoy",
+    "last7": "Últimos 7 días",
+    "last30": "Últimos 30 días",
+    "from": "Desde",
+    "to": "Hasta",
+    "venue": "Local",
+    "provider": "Proveedor",
+    "allVenues": "Todos los Locales",
+    "allProviders": "Todos los Proveedores"
+  },
+  "comparison": {
+    "previousPeriod": "período anterior",
+    "yesterday": "ayer",
+    "prev7days": "7 días anteriores",
+    "prev30days": "30 días anteriores",
+    "trending": "tendencia",
+    "thisMonth": "este mes",
+    "showingTotal": "Mostrando total"
+  },
+  "payments": {
+    "methods": {
+      "card": "Tarjeta",
+      "cash": "Efectivo"
+    }
+  },
+  "export": {
+    "exporting": "Exportando...",
+    "export": "Exportar",
+    "json": "Exportar como JSON",
+    "csv": "Exportar como CSV (Excel)",
+    "payments": "Pagos",
+    "reviews": "Reseñas",
+    "paymentMethods": "Métodos de Pago",
+    "summary": "Resumen"
+  },
+  "noData": "No hay datos disponibles",
+  "currentPeriod": "Periodo actual",
+  "total": "Total",
+  "noChange": "Sin cambios",
+  "table": "Mesa",
+  "tableTexts": {
+    "paymentsList": "Lista de los pagos realizados."
+  },
+  "chartContent": {
+    "placeholder": "Aquí se mostraría el gráfico de {{name}}"
+  },
+  "metricContent": {
+    "placeholder": "Aquí se mostraría la métrica de {{name}}"
+  },
+  "sections": {
+    "bestSellers": "Productos mejor vendidos",
+    "paymentMethods": "Métodos de pago",
+    "peakHours": "Horas Pico de Ventas",
+    "peakHoursDesc": "Actividad de ventas por hora del día",
+    "tipsOverTime": "Propinas a lo largo del tiempo",
+    "tipsOverTimeDesc": "Evolución de las propinas recibidas",
+    "revenueTrends": "Tendencias de Ingresos",
+    "revenueTrendsDesc": "Ingresos diarios y crecimiento",
+    "staffEfficiency": "Eficiencia del Personal",
+    "staffEfficiencyDesc": "Top 5 miembros del equipo por ventas",
+    "tableEfficiency": "Eficiencia de Mesas",
+    "tableEfficiencyDesc": "Top 5 mesas por ingresos",
+    "productAnalytics": "Análisis de Productos",
+    "productAnalyticsDesc": "Top 5 productos más rentables"
+  },
+  "charts": {
+    "sales": "Ventas",
+    "transactions": "NÂ° Transacciones",
+    "tips": "Propinas",
+    "tipPercentage": "Propinas %",
+    "revenue": "Ingresos",
+    "hourOfDay": "Hora del día",
+    "transactionsSuffix": "transacciones",
+    "avg": "promedio",
+    "orders": "órdenes",
+    "margin": "margen",
+    "sold": "vendidos",
+    "totalOrders": "Ordenes totales",
+    "ordersLabel": "Ordenes",
+    "rating": "Calificación",
+    "reviewCount": "NÂ° Reviews",
+    "prepTime": "Tiempo Real",
+    "target": "Meta"
+  },
+  "orderFrequency": {
+    "title": "Frecuencia de Ordenes",
+    "desc": "Número de órdenes por hora"
+  },
+  "aov": {
+    "title": "Ticket Promedio",
+    "desc": "Valor promedio por orden"
+  },
+  "customerSatisfaction": {
+    "title": "Satisfacción del Cliente",
+    "desc": "Calificaciones promedio y tendencias de reviews"
+  },
+  "kitchen": {
+    "title": "Rendimiento de Cocina",
+    "desc": "Tiempos de preparación vs metas"
+  },
+  "tooltips": {
+    "starsSuffix": "estrellas",
+    "reviewsSuffix": "reviews",
+    "minutesSuffix": "min"
+  },
+  "categories": {
+    "FOOD": "Comida",
+    "BEVERAGE": "Bebida",
+    "OTHER": "Otros"
+  },
+  "error": {
+    "failedTitle": "Error al cargar datos del dashboard",
+    "unknown": "Ocurrió un error desconocido"
+  },
+  "cards": {
+    "totalSales": "Total ventas",
+    "fiveStars": "5 estrellas Google",
+    "totalTips": "Total propinas",
+    "avgTipPercentage": "Promedio propinas %"
+  }
+}

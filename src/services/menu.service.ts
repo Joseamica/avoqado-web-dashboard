@@ -130,8 +130,21 @@ export const reorderMenuCategories = async (venueId: string, categories: { id: s
 /**
  * Get all products for a venue
  */
-export const getProducts = async (venueId: string): Promise<Product[]> => {
-  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`)
+export const getProducts = async (
+  venueId: string,
+  options?: {
+    orderBy?: 'displayOrder' | 'name'
+    categoryId?: string
+    includeRecipe?: boolean
+  },
+): Promise<Product[]> => {
+  const params = new URLSearchParams()
+  if (options?.orderBy) params.append('orderBy', options.orderBy)
+  if (options?.categoryId) params.append('categoryId', options.categoryId)
+  if (options?.includeRecipe) params.append('includeRecipe', 'true')
+
+  const url = `/api/v1/dashboard/venues/${venueId}/products${params.toString() ? `?${params.toString()}` : ''}`
+  const response = await api.get(url)
   return (response.data?.data ?? response.data) as Product[]
 }
 

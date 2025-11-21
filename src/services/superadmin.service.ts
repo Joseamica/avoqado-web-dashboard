@@ -1,5 +1,9 @@
 import api from '@/api'
-import type { PlatformFeature as SAPlatformFeature, SuperadminVenue as SASuperadminVenue, SuperadminDashboardData as SASuperadminDashboardData } from '@/types/superadmin'
+import type {
+  PlatformFeature as SAPlatformFeature,
+  SuperadminVenue as SASuperadminVenue,
+  SuperadminDashboardData as SASuperadminDashboardData,
+} from '@/types/superadmin'
 
 // ===== TYPES =====
 
@@ -232,10 +236,7 @@ export async function disableFeatureForVenue(venueId: string, featureCode: strin
 /**
  * Get revenue metrics
  */
-export async function getRevenueMetrics(params?: {
-  startDate?: string
-  endDate?: string
-}): Promise<RevenueMetrics> {
+export async function getRevenueMetrics(params?: { startDate?: string; endDate?: string }): Promise<RevenueMetrics> {
   const response = await api.get('/api/v1/dashboard/superadmin/revenue/metrics', { params })
   return response.data.data
 }
@@ -243,12 +244,34 @@ export async function getRevenueMetrics(params?: {
 /**
  * Get revenue breakdown
  */
-export async function getRevenueBreakdown(params?: {
-  startDate?: string
-  endDate?: string
-}): Promise<RevenueBreakdown> {
+export async function getRevenueBreakdown(params?: { startDate?: string; endDate?: string }): Promise<RevenueBreakdown> {
   const response = await api.get('/api/v1/dashboard/superadmin/revenue/breakdown', { params })
   return response.data.data
+}
+
+/**
+ * Get KYC review data for a venue
+ */
+export async function getKYCReview(venueId: string): Promise<any> {
+  const response = await api.get(`/api/v1/superadmin/kyc/${venueId}`)
+  return response.data.data
+}
+
+/**
+ * Approve KYC for a venue
+ */
+export async function approveKYC(venueId: string): Promise<void> {
+  await api.post(`/api/v1/superadmin/kyc/${venueId}/approve`)
+}
+
+/**
+ * Reject KYC for a venue
+ */
+export async function rejectKYC(venueId: string, reason: string, rejectedDocuments?: string[]): Promise<void> {
+  await api.post(`/api/v1/superadmin/kyc/${venueId}/reject`, {
+    rejectionReason: reason,
+    rejectedDocuments: rejectedDocuments
+  })
 }
 
 // Convenience API object (canonical import target for components expecting superadminAPI)
@@ -289,5 +312,14 @@ export const superadminAPI = {
   },
   disableFeatureForVenue: async (venueId: string, featureCode: string): Promise<void> => {
     await disableFeatureForVenue(venueId, featureCode)
+  },
+  getKYCReview: async (venueId: string): Promise<any> => {
+    return await getKYCReview(venueId)
+  },
+  approveKYC: async (venueId: string): Promise<void> => {
+    await approveKYC(venueId)
+  },
+  rejectKYC: async (venueId: string, reason: string, rejectedDocuments?: string[]): Promise<void> => {
+    await rejectKYC(venueId, reason, rejectedDocuments)
   },
 }

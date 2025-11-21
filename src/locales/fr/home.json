@@ -1,0 +1,124 @@
+{
+  "title": "Dashboard",
+  "filters": {
+    "today": "Today",
+    "last7": "Last 7 days",
+    "last30": "Last 30 days",
+    "from": "From",
+    "to": "To",
+    "venue": "Venue",
+    "provider": "Provider",
+    "allVenues": "All Venues",
+    "allProviders": "All Providers"
+  },
+  "comparison": {
+    "previousPeriod": "previous period",
+    "yesterday": "yesterday",
+    "prev7days": "previous 7 days",
+    "prev30days": "previous 30 days",
+    "trending": "tendance",
+    "thisMonth": "ce mois",
+    "showingTotal": "Affichage du total"
+  },
+  "payments": {
+    "methods": {
+      "card": "Carte",
+      "cash": "Espèces"
+    }
+  },
+  "export": {
+    "exporting": "Exporting...",
+    "export": "Export",
+    "json": "Export as JSON",
+    "csv": "Export as CSV (Excel)",
+    "payments": "Payments",
+    "reviews": "Reviews",
+    "paymentMethods": "Payment Methods",
+    "summary": "Summary"
+  },
+  "noData": "No data available",
+  "currentPeriod": "Current period",
+  "total": "Total",
+  "noChange": "No change",
+  "table": "Table",
+  "tableTexts": {
+    "paymentsList": "List of payments made."
+  },
+  "chartContent": {
+    "placeholder": "Chart content for {{name}} would be rendered here"
+  },
+  "metricContent": {
+    "placeholder": "Metric content for {{name}} would be rendered here"
+  },
+  "sections": {
+    "bestSellers": "Best Selling Products",
+    "paymentMethods": "Payment Methods",
+    "peakHours": "Peak Sales Hours",
+    "peakHoursDesc": "Sales activity by hour of day",
+    "tipsOverTime": "Tips Over Time",
+    "tipsOverTimeDesc": "Evolution of received tips",
+    "revenueTrends": "Revenue Trends",
+    "revenueTrendsDesc": "Daily revenue and growth",
+    "staffEfficiency": "Staff Efficiency",
+    "staffEfficiencyDesc": "Top 5 team members by sales",
+    "tableEfficiency": "Table Efficiency",
+    "tableEfficiencyDesc": "Top 5 tables by revenue",
+    "productAnalytics": "Product Analytics",
+    "productAnalyticsDesc": "Top 5 most profitable products"
+  },
+  "charts": {
+    "sales": "Sales",
+    "transactions": "# Transactions",
+    "tips": "Tips",
+    "tipPercentage": "Tip %",
+    "revenue": "Revenue",
+    "hourOfDay": "Hour of day",
+    "transactionsSuffix": "transactions",
+    "avg": "average",
+    "orders": "orders",
+    "margin": "margin",
+    "sold": "sold",
+    "totalOrders": "Total orders",
+    "ordersLabel": "Orders",
+    "rating": "Rating",
+    "reviewCount": "Reviews",
+    "prepTime": "Actual Time",
+    "target": "Target"
+  },
+  "orderFrequency": {
+    "title": "Order Frequency",
+    "desc": "Number of orders by hour"
+  },
+  "aov": {
+    "title": "Average Ticket",
+    "desc": "Average value per order"
+  },
+  "customerSatisfaction": {
+    "title": "Customer Satisfaction",
+    "desc": "Average ratings and trends"
+  },
+  "kitchen": {
+    "title": "Kitchen Performance",
+    "desc": "Prep times versus targets"
+  },
+  "tooltips": {
+    "starsSuffix": "stars",
+    "reviewsSuffix": "reviews",
+    "minutesSuffix": "min"
+  },
+  "categories": {
+    "FOOD": "Food",
+    "BEVERAGE": "Beverage",
+    "OTHER": "Other"
+  },
+  "error": {
+    "failedTitle": "Failed to load dashboard data",
+    "unknown": "An unknown error occurred"
+  },
+  "cards": {
+    "totalSales": "Total sales",
+    "fiveStars": "Google 5-stars",
+    "totalTips": "Total tips",
+    "avgTipPercentage": "Average tips %"
+  }
+}

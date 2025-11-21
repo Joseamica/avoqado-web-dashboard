@@ -1,0 +1,116 @@
+{
+  "title": "Solde Disponible",
+  "description": "Consultez votre calendrier de règlement et les fonds disponibles par mode de paiement",
+
+  "error": {
+    "prefix": "Erreur",
+    "noVenue": "Aucun établissement sélectionné",
+    "unexpected": "Une erreur inattendue s'est produite"
+  },
+
+  "kpi": {
+    "availableNow": "Disponible Maintenant",
+    "availableNowDescription": "Déjà réglé et disponible pour retrait",
+    "pending": "En Attente de Règlement",
+    "pendingDescription": "En attente de règlement du processeur de paiement",
+    "nextSettlement": "Prochain Règlement",
+    "nextSettlementDate": "Prévu pour {{date}}"
+  },
+
+  "breakdown": {
+    "title": "Répartition par Type de Carte",
+    "description": "Détails du règlement par mode de paiement",
+    "table": {
+      "cardType": "Type de Carte",
+      "transactions": "Transactions",
+      "totalSales": "Ventes Totales",
+      "fees": "Frais",
+      "netAmount": "Montant Net",
+      "settlementDays": "Délai de Règlement",
+      "pending": "En Attente",
+      "settled": "Réglé",
+      "days": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "noData": "Aucune transaction trouvée"
+    }
+  },
+
+  "cardType": {
+    "debit": "Débit",
+    "credit": "Crédit",
+    "amex": "American Express",
+    "international": "International"
+  },
+
+  "timeline": {
+    "title": "Chronologie des Règlements",
+    "description": "Règlements historiques et projetés",
+    "table": {
+      "date": "Date de Transaction",
+      "status": "Statut",
+      "transactions": "Transactions",
+      "gross": "Montant Brut",
+      "fees": "Frais",
+      "net": "Montant Net",
+      "settlementDate": "Date de Règlement",
+      "noData": "Aucune donnée de règlement disponible"
+    },
+    "viewAll": "Voir Tout ({{count}})"
+  },
+
+  "status": {
+    "settled": "Réglé",
+    "pending": "En Attente",
+    "projected": "Projeté"
+  },
+
+  "simulate": {
+    "button": "Simuler une Transaction",
+    "title": "Simulateur de Transactions",
+    "description": "Calculer la date de règlement pour une transaction hypothétique",
+    "form": {
+      "amount": "Montant de la Transaction",
+      "amountPlaceholder": "Entrez le montant",
+      "cardType": "Type de Carte",
+      "cardTypePlaceholder": "Sélectionnez le type de carte",
+      "transactionDate": "Date de Transaction",
+      "transactionTime": "Heure de Transaction (Optionnel)",
+      "transactionTimePlaceholder": "HH:MM",
+      "submit": "Calculer le Règlement",
+      "cancel": "Annuler"
+    },
+    "result": {
+      "title": "Résultat de la Simulation",
+      "settlementDate": "Date de Règlement Estimée",
+      "settlementDays": "Jours de Règlement",
+      "grossAmount": "Montant Brut",
+      "fees": "Frais Estimés",
+      "netAmount": "Montant Net de Règlement",
+      "configuration": "Configuration de Règlement",
+      "configDays": "{{count}} {{type}}",
+      "businessDays": "jour ouvrable",
+      "businessDays_other": "jours ouvrables",
+      "calendarDays": "jour calendaire",
+      "calendarDays_other": "jours calendaires",
+      "cutoffTime": "Heure limite: {{time}}"
+    },
+    "error": "Échec de la simulation de la transaction"
+  },
+
+  "projection": {
+    "button": "Voir la Projection",
+    "title": "Projection du Solde",
+    "description": "Règlements projetés basés sur les tendances historiques",
+    "days": "Période de Projection (Jours)",
+    "daysPlaceholder": "Entrez le nombre de jours",
+    "submit": "Générer la Projection",
+    "result": {
+      "projectedBalance": "Solde Projeté",
+      "dailyAverage": "Moyenne Quotidienne de Règlement",
+      "confidence": "Niveau de Confiance",
+      "confidenceHigh": "Élevé",
+      "confidenceMedium": "Moyen",
+      "confidenceLow": "Faible"
+    }
+  }
+}

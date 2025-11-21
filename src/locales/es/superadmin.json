@@ -411,12 +411,11 @@
       "terminalType": "Tipo de Terminal",
       "selectType": "Seleccionar tipo",
       "types": {
-        "androidTablet": "Tableta Android",
-        "windowsPC": "PC Windows",
-        "linuxDevice": "Dispositivo Linux",
-        "mobileDevice": "Dispositivo Móvil",
-        "kiosk": "Kiosco",
-        "other": "Otro"
+        "tpvAndroid": "TPV Android",
+        "tpvIOS": "TPV iOS",
+        "printerReceipt": "Impresora de Tickets",
+        "printerKitchen": "Impresora de Cocina",
+        "kds": "Sistema de Display de Cocina (KDS)"
       },
       "notSpecified": "No especificado",
       "advancedConfig": "Configuración Avanzada",
@@ -510,6 +509,8 @@
       "markRead": "Marcar como leída",
       "view_all": "Ver todas las notificaciones",
       "none": "No hay notificaciones",
+      "unread_count": "{{count}} sin leer",
+      "unread_count_plural": "{{count}} sin leer",
       "noneFound": "No se encontraron notificaciones",
       "adjustFilters": "Intenta ajustar tu búsqueda o filtros",
       "upToDate": "¡Estás al día! Las nuevas notificaciones aparecerán aquí.",
@@ -720,38 +721,6 @@
       "monthlyProjection": "Proyección Mensual",
       "byVenue": "Comisiones por Local",
       "empty": "No hay datos de comisiones disponibles"
-    }
-  },
-  "auth": {
-    "login": {
-      "title": "Iniciar sesión",
-      "subtitle": "Ingresa tu email y contraseña para ingresar",
-      "emailLabel": "Email",
-      "emailPlaceholder": "myemail@example.com",
-      "passwordLabel": "Contraseña",
-      "forgotPassword": "¿Olvidaste tu contraseña?",
-      "signInButton": "Iniciar sesión",
-      "orContinueWith": "O continua con",
-      "continueWithGoogle": "Continuar con Google",
-      "noAccount": "¿No tienes una cuenta?",
-      "signUp": "Regístrate",
-      "terms": "Términos y condiciones",
-      "privacy": "Políticas de privacidad",
-      "termsText": "Al hacer click en continuar, estas aceptando nuestros",
-      "and": "y",
-      "emailRequired": "El correo electrónico es requerido",
-      "passwordRequired": "La contraseña es requerida",
-      "imageAlt": "Autenticación"
-    },
-    "toast": {
-      "login_success": "Inicio de sesión exitoso",
-      "login_error_title": "Error al iniciar sesión",
-      "login_error_desc": "Por favor verifica tus credenciales e intenta de nuevo",
-      "switched_to_venue": "Cambiado a {{name}}",
-      "switch_venue_error_title": "Error al cambiar de local",
-      "switch_venue_error_desc": "No se pudo cambiar de local. Por favor intenta de nuevo",
-      "auth_error_title": "Error de autenticación",
-      "google_login_error_desc": "Error al iniciar sesión con Google. Por favor intenta de nuevo"
     }
   },
   "account": {
@@ -968,7 +937,13 @@
     "seeAllNotifications": "Ver todas las notificaciones",
     "accountSettings": "Configuración de Cuenta",
     "settings": "Configuración",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "noSearchResults": "No se encontraron resultados",
+    "searchSections": {
+      "venues": "Locales",
+      "activities": "Actividad Reciente",
+      "alerts": "Alertas"
+    }
   },
   "layout": {
     "noVenuesAssigned": "¡No tienes sucursales asignadas!",
@@ -1311,6 +1286,12 @@
       "deleteDialog": {
         "title": "Eliminar Establecimiento",
         "description": "¿Estás seguro de que deseas eliminar {{venueName}}? Escribe \"delete {{venueName}}\" para confirmar. Esta acción no se puede deshacer."
+      },
+      "kycRejected": {
+        "title": "Documentación KYC Rechazada",
+        "description": "Tu documentación KYC fue rechazada. Por favor revisa la razón a continuación y reenvía tus documentos.",
+        "reason": "Motivo del Rechazo:",
+        "resubmitButton": "Reenviar Documentos"
       },
       "notFound": "Establecimiento no encontrado",
       "notFoundDesc": "El establecimiento que buscas no existe o ha sido eliminado.",
@@ -2031,7 +2012,26 @@
         "orders": "Ordenes",
         "saving": "Guardando...",
         "saveChanges": "Guardar Cambios",
-        "role": "Rol"
+        "role": "Rol",
+        "roles": {
+          "admin": "Administrador",
+          "adminDesc": "Acceso completo a configuración del venue y gestión de equipo",
+          "manager": "Gerente",
+          "managerDesc": "Gestionar personal, turnos y análisis básicos",
+          "waiter": "Mesero",
+          "waiterDesc": "Tomar y gestionar órdenes, acceso al menú",
+          "cashier": "Cajero",
+          "cashierDesc": "Procesar pagos y manejar transacciones",
+          "kitchen": "Cocina",
+          "kitchenDesc": "Ver y preparar órdenes desde la cocina",
+          "host": "Anfitrión",
+          "hostDesc": "Gestionar reservas de mesas y asientos",
+          "viewer": "Visualizador",
+          "viewerDesc": "Acceso de solo lectura a análisis y reportes"
+        },
+        "validation": {
+          "pinFormat": "El PIN debe tener exactamente 4 dígitos"
+        }
       },
       "invite": {
         "invitationSent": "Invitación enviada",
@@ -2048,7 +2048,82 @@
         "emailPlaceholder": "ejemplo@empresa.com",
         "firstNamePlaceholder": "Nombre",
         "lastNamePlaceholder": "Apellido",
-        "roleSelectPlaceholder": "Selecciona un rol"
+        "roleSelectPlaceholder": "Selecciona un rol",
+        "validation": {
+          "emailFormat": "Por favor ingresa un email válido",
+          "emailRequired": "El email es requerido",
+          "firstNameRequired": "El nombre es requerido",
+          "firstNameMax": "El nombre no puede exceder 50 caracteres",
+          "lastNameRequired": "El apellido es requerido",
+          "lastNameMax": "El apellido no puede exceder 50 caracteres",
+          "roleRequired": "El rol es requerido",
+          "messageMax": "El mensaje no puede exceder 500 caracteres"
+        },
+        "invitationError": "Error al enviar la invitación"
+      },
+      "header": {
+        "title": "Miembros del Equipo",
+        "subtitle": "Gestiona tu equipo e invita nuevos miembros",
+        "inviteButton": "Invitar Miembro",
+        "inviteDialog": {
+          "title": "Invitar Miembro del Equipo",
+          "desc": "Envía una invitación a un nuevo miembro para unirse a tu venue"
+        }
+      },
+      "tabs": {
+        "members": "Miembros",
+        "invitations": "Invitaciones Pendientes"
+      },
+      "columns": {
+        "name": "Nombre",
+        "role": "Rol",
+        "status": "Estado",
+        "totalSales": "Ventas Totales",
+        "totalOrders": "Órdenes Totales",
+        "email": "Email",
+        "invitedBy": "Invitado por {{name}}",
+        "sent": "Fecha de Envío",
+        "expires": "Expira"
+      },
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "actions": {
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "cancel": "Cancelar Invitación",
+        "resend": "Reenviar Invitación"
+      },
+      "cards": {
+        "pendingInvitationsTitle": "Invitaciones Pendientes",
+        "pendingInvitationsDesc": "Invitaciones que están esperando ser aceptadas"
+      },
+      "dialogs": {
+        "editMemberTitle": "Editar Miembro del Equipo",
+        "editMemberDesc": "Actualizar el rol y estado de {{firstName}} {{lastName}}",
+        "removeTitle": "Eliminar Miembro del Equipo",
+        "removeDesc": "¿Estás seguro de que quieres eliminar a {{firstName}} {{lastName}} del equipo?",
+        "removeCancel": "Cancelar",
+        "removeConfirm": "Eliminar Miembro",
+        "removing": "Eliminando..."
+      },
+      "labels": {
+        "expiredTag": "Expirada"
+      },
+      "toasts": {
+        "memberRemovedTitle": "Miembro eliminado",
+        "memberRemovedDesc": "El miembro del equipo ha sido eliminado exitosamente.",
+        "memberRemoveErrorTitle": "Error",
+        "memberRemoveErrorDesc": "Error al eliminar miembro del equipo.",
+        "invitationCanceledTitle": "Invitación cancelada",
+        "invitationCanceledDesc": "La invitación ha sido cancelada exitosamente.",
+        "invitationCancelErrorTitle": "Error",
+        "invitationCancelErrorDesc": "Error al cancelar invitación.",
+        "invitationResentTitle": "Invitación reenviada",
+        "invitationResentDesc": "La invitación ha sido reenviada exitosamente.",
+        "invitationResendErrorTitle": "Error",
+        "invitationResendErrorDesc": "Error al reenviar invitación."
       }
     },
     "config": {
@@ -2441,6 +2516,159 @@
           "createErrorDesc": "No se pudo crear el establecimiento."
         }
       }
+    }
+  },
+  "demoBanner": {
+    "title": "🎉 Estás en Modo Demo",
+    "description": "Este es un establecimiento de demostración. Haz clic abajo para convertirlo en un establecimiento real y comenzar a aceptar pagos.",
+    "convertButton": "Convertir a Real",
+    "dismissButton": "Cerrar banner"
+  },
+  "trialBanner": {
+    "urgentTitle": "⚠️ ¡Tu prueba termina en {{days}} día(s)!",
+    "warningTitle": "⏰ Tu prueba termina en {{days}} días",
+    "normalTitle": "🎁 Prueba gratuita: {{days}} días restantes",
+    "description": "Tu prueba de {{feature}} está por terminar. Actualiza tu método de pago para continuar usando esta función.",
+    "manageButton": "Gestionar Facturación",
+    "dismissButton": "Cerrar",
+    "redirecting": "Redirigiendo..."
+  },
+  "conversionWizard": {
+    "title": "Convertir a Establecimiento Real",
+    "subtitle": "Completa los siguientes pasos para activar tu establecimiento y comenzar a aceptar pagos reales.",
+    "step": "Paso",
+    "of": "de",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "convert": "Convertir Ahora",
+    "step1": {
+      "title": "Información Fiscal",
+      "description": "Ingresa la información fiscal de tu negocio",
+      "rfcLabel": "RFC",
+      "legalNameLabel": "Razón Social",
+      "legalNamePlaceholder": "Ingresa la razón social de tu negocio",
+      "fiscalRegimeLabel": "Régimen Fiscal",
+      "fiscalRegimePlaceholder": "ej., Régimen General de Ley"
+    },
+    "step2": {
+      "title": "Documentos Fiscales",
+      "description": "Sube tu constancia de situación fiscal y, si aplica, tu acta constitutiva",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "constanciaLabel": "Constancia de situación fiscal (obligatoria)",
+      "actaLabel": "Acta constitutiva (opcional)",
+      "actaHint": "PDF, JPG, PNG (MÁX. 10MB)"
+    },
+    "step3": {
+      "title": "Identificación",
+      "description": "Sube tu identificación oficial",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "idLabel": "Identificación oficial (obligatoria)"
+    },
+    "step4": {
+      "title": "Seleccionar Funcionalidades",
+      "description": "Elige las funcionalidades que deseas activar",
+      "loading": "Cargando funcionalidades...",
+      "noFeatures": "No hay funcionalidades disponibles en este momento",
+      "helpText": "Selecciona las funcionalidades que deseas habilitar para tu establecimiento. Puedes cambiar esta configuración más tarde desde el panel de control."
+    },
+    "step5": {
+      "title": "Revisar y Confirmar",
+      "description": "Revisa tu información antes de convertir",
+      "summaryTitle": "Resumen",
+      "venueName": "Nombre del Establecimiento",
+      "rfc": "RFC",
+      "legalName": "Razón Social",
+      "confirmationMessage": "Al hacer clic en 'Convertir Ahora', confirmas que toda la información proporcionada es correcta y aceptas nuestros términos de servicio."
+    },
+    "success": {
+      "title": "¡Conversión Exitosa!",
+      "description": "Tu establecimiento ha sido convertido exitosamente. Ahora puedes aceptar pagos reales."
+    },
+    "shared": {
+      "selectFile": "Seleccionar archivo",
+      "uploading": "Subiendo archivo..."
+    },
+    "documents": {
+      "title": "Documentos cargados",
+      "pending": "Pendiente",
+      "completed": "Listo",
+      "optional": "Opcional"
+    },
+    "error": {
+      "title": "Conversión Fallida",
+      "description": "Hubo un error al convertir tu establecimiento. Por favor intenta de nuevo o contacta a soporte.",
+      "fetchFeatures": "No se pudieron cargar las funcionalidades. Por favor intenta de nuevo."
+    }
+  },
+  "paymentConfiguration": {
+    "title": "Configuración de Pagos",
+    "configured": "Configurado",
+    "description": {
+      "selectVenue": "Selecciona un establecimiento para configurar cuentas de pago",
+      "withConfig": "Cuentas comerciales para {{venueName}}",
+      "withoutConfig": "Asignar cuentas comerciales PRIMARIA/SECUNDARIA/TERCIARIA"
+    },
+    "alerts": {
+      "selectVenue": "Por favor selecciona un establecimiento del menú desplegable arriba para gestionar su configuración de pagos.",
+      "configurationRequired": "Configuración Requerida: Debes asignar al menos una cuenta comercial PRIMARIA antes de configurar estructuras de precios. Esto vincula el establecimiento a procesadores de pago específicos.",
+      "tip": "Consejo: Configura estructuras de precios para cada tipo de cuenta abajo. Las tarifas PRIMARIAS se aplicarán a las transacciones usando la cuenta comercial PRIMARIA."
+    },
+    "accountTypes": {
+      "primary": {
+        "label": "PRIMARIA",
+        "title": "Cuenta Comercial Primaria",
+        "required": "(Requerida)",
+        "placeholder": "Seleccionar cuenta comercial PRIMARIA",
+        "description": "Cuenta principal para transacciones estándar. La mayoría de los pagos usarán esta cuenta.",
+        "badge": "Cuenta principal"
+      },
+      "secondary": {
+        "label": "SECUNDARIA",
+        "title": "Cuenta Comercial Secundaria",
+        "optional": "(Opcional)",
+        "placeholder": "Seleccionar cuenta comercial SECUNDARIA (opcional)",
+        "description": "Para enrutamiento basado en BIN de tarjeta, umbrales de monto o condiciones especiales.",
+        "badge": "Cuenta de respaldo",
+        "none": "Ninguna"
+      },
+      "tertiary": {
+        "label": "TERCIARIA",
+        "title": "Cuenta Comercial Terciaria",
+        "optional": "(Opcional)",
+        "placeholder": "Seleccionar cuenta comercial TERCIARIA (opcional)",
+        "description": "Para respaldo o escenarios de pago especializados.",
+        "badge": "Cuenta de contingencia",
+        "none": "Ninguna"
+      }
+    },
+    "actions": {
+      "edit": "Editar",
+      "save": "Guardar Configuración",
+      "create": "Crear Configuración",
+      "update": "Actualizar Configuración",
+      "cancel": "Cancelar",
+      "saving": "Guardando..."
+    },
+    "messages": {
+      "success": {
+        "created": "Configuración de pagos creada exitosamente",
+        "updated": "Configuración de pagos actualizada exitosamente"
+      },
+      "error": {
+        "create": "Error al crear configuración de pagos",
+        "update": "Error al actualizar configuración de pagos",
+        "selectVenue": "Por favor selecciona un establecimiento primero",
+        "primaryRequired": "La cuenta comercial PRIMARIA es requerida"
+      }
+    },
+    "providerCard": {
+      "name": "Nombre Comercial",
+      "provider": "Proveedor de Pagos",
+      "serialNumber": "Número de Serie",
+      "active": "Activo",
+      "inactive": "Inactivo"
     }
   }
 }

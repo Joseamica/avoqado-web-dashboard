@@ -10,7 +10,7 @@ export function Layout() {
   const { t } = useTranslation()
 
   if (isLoading) {
-    return <div>{t('common.loading')}</div>
+    return <div>{t('loading')}</div>
   }
 
   if (!isAuthenticated) {
@@ -28,6 +28,13 @@ export function Layout() {
     return <Navigate to="/superadmin" />
   }
 
+  // World-Class Pattern (Stripe/Shopify): OWNER without venues should complete onboarding
+  // This prevents the flash of "No venues assigned" message during signup flow
+  if (isAuthenticated && user.role === 'OWNER' && user.venues.length === 0) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  // Other users without venues show error message (not OWNER, not SUPERADMIN)
   if (user.role !== 'SUPERADMIN' && isAuthenticated && user.venues.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-background">
@@ -44,9 +51,9 @@ export function Layout() {
               {t('layout.contactUs')}
             </a>
           </p>
-          <Button aria-label={t('common.logout')} onClick={() => logout()}>
+          <Button aria-label={t('logout')} onClick={() => logout()}>
             <LogOut />
-            {t('common.logout')}
+            {t('logout')}
           </Button>
         </div>
       </div>
@@ -62,10 +69,10 @@ export function Layout() {
       {isAuthenticated ? <h2>{t('layout.authenticated')}</h2> : <h2>{t('layout.notAuthenticated')}</h2>}
 
       <Link to="/login" className="mr-4">
-        {t('common.login')}
+        {t('login')}
       </Link>
-      <Button variant="outline" aria-label={t('common.logout')} onClick={() => logout()}>
-        {t('common.logout')}
+      <Button variant="outline" aria-label={t('logout')} onClick={() => logout()}>
+        {t('logout')}
       </Button>
     </div>
   )

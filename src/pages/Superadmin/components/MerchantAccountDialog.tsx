@@ -50,7 +50,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
   account,
   onSave,
 }) => {
-  const { t: _t } = useTranslation()
+  const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
 

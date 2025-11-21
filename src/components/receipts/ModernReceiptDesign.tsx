@@ -55,7 +55,7 @@ interface ModernReceiptDesignProps {
 const ReceiptLoader = () => {
   const { t } = useTranslation('payment')
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardContent className="p-8 text-center space-y-6">
           <div className="relative">
@@ -79,7 +79,7 @@ const ReceiptLoader = () => {
 
 // Error Component
 const ReceiptError = ({ error }: { error: string }) => (
-  <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
+  <div className="min-h-screen bg-linear-to-br from-background via-muted/30 to-background flex items-center justify-center p-4">
     <Card className="w-full max-w-md">
       <CardContent className="p-8">
         <Alert variant="destructive">
@@ -271,17 +271,17 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   const datetime = payment?.createdAt ? formatDate(payment.createdAt) : null
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-background via-muted/30 to-background ${className}`}>
+    <div className={`min-h-screen bg-linear-to-br from-background via-muted/30 to-background ${className}`}>
       {/* Mobile-First Layout */}
       {/* Add receipt-container for print CSS to target only the receipt area */}
       <div className="receipt-container container mx-auto p-3 sm:p-6 max-w-2xl">
         <div ref={receiptRef} className="space-y-4">
           {/* Header Card */}
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/50">
+          <Card className="overflow-hidden border-0 shadow-lg bg-linear-to-br from-card to-card/50">
             <div className="relative">
               {/* Decorative background pattern */}
               <div className="absolute inset-0 opacity-5">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,currentColor_1px,transparent_1px)] [background-size:16px_16px]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,currentColor_1px,transparent_1px)] bg-size-[16px_16px]" />
               </div>
 
               <CardContent className="p-6 sm:p-8 text-center relative">
@@ -313,9 +313,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                 </div>
 
                 {/* Venue Info */}
-                <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground mb-2">
-                  {venue?.name || t('receipt.unknownVenue')}
-                </h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground mb-2">{venue?.name || t('receipt.unknownVenue')}</h1>
 
                 <div className="space-y-1 text-muted-foreground text-sm">
                   <div className="flex items-center justify-center gap-1">
@@ -488,14 +486,14 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
 
                 <Separator />
 
-                <div className="flex justify-between items-center text-xl font-bold bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-xl">
+                <div className="flex justify-between items-center text-xl font-bold bg-linear-to-r from-primary/10 to-primary/5 p-4 rounded-xl">
                   <span>{t('receipt.labels.totalPaid')}</span>
                   <span className="text-primary">{Currency(payment?.amount + (payment?.tipAmount ?? 0))}</span>
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="bg-gradient-to-r from-muted/50 to-muted/30 p-4 rounded-xl">
+              <div className="bg-linear-to-r from-muted/50 to-muted/30 p-4 rounded-xl">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-background shadow-sm flex items-center justify-center">
                     <CreditCard className="w-6 h-6 text-primary" />
@@ -575,7 +573,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
           </Card>
 
           {/* Footer */}
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-primary/5 to-transparent">
+          <Card className="border-0 shadow-lg bg-linear-to-r from-primary/5 to-transparent">
             <CardContent className="p-6 text-center">
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 text-primary">
@@ -584,9 +582,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
 
-                <p className="text-muted-foreground">
-                  {t('receipt.footer.seeYou', { venue: venue?.name || t('receipt.unknownVenue') })}
-                </p>
+                <p className="text-muted-foreground">{t('receipt.footer.seeYou', { venue: venue?.name || t('receipt.unknownVenue') })}</p>
 
                 <div className="pt-3 space-y-1 text-xs text-muted-foreground">
                   <p>{t('receipt.footer.generatedBy')}</p>

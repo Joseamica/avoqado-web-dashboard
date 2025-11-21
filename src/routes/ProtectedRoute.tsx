@@ -8,8 +8,14 @@ import { useTranslation } from 'react-i18next'
 export const ProtectedRoute = () => {
   const { user, isAuthenticated, logout } = useAuth() || {}
   const location = useLocation()
-  const { t } = useTranslation()
+  const { t } = useTranslation('superadmin')
 
+  // FAANG Pattern: Validate email verification FIRST (before venue check)
+  if (isAuthenticated && user && !user.emailVerified) {
+    return <Navigate to={`/auth/verify-email?email=${encodeURIComponent(user.email)}`} replace />
+  }
+
+  // Then check if user has venues assigned (only for non-OWNER/SUPERADMIN)
   if (user?.role !== StaffRole.OWNER && user?.role !== StaffRole.SUPERADMIN && isAuthenticated && user?.venues.length === 0) {
     return (
       <div className="flex flex-col justify-center items-center p-6 h-screen text-center bg-background">

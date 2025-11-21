@@ -1,0 +1,146 @@
+{
+  "addDialog": {
+    "title": "Agregar nueva sucursal",
+    "description": "Completa la información de la nueva sucursal para agregarla al sistema.",
+    "fields": {
+      "requiredError": "Este campo es requerido",
+      "name": "Nombre",
+      "namePlaceholder": "Nombre de la sucursal",
+      "type": "Tipo de sucursal",
+      "typePlaceholder": "Selecciona un tipo de negocio",
+      "typeOptions": {
+        "RESTAURANT": "Restaurante",
+        "STUDIO": "Estudio",
+        "HOTEL": "Hotel"
+      },
+      "pos": "POS",
+      "posPlaceholder": "Selecciona que POS usas",
+      "posOptions": {
+        "SOFTRESTAURANT": "Soft Restaurant",
+        "NONE": "Ninguno"
+      },
+      "logo": "Logo"
+    },
+    "upload": {
+      "remove": "Quitar",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar"
+    },
+    "toast": {
+      "successTitle": "Sucursal creada",
+      "successDesc": "La sucursal se ha creado correctamente.",
+      "errorTitle": "Error al guardar",
+      "errorDesc": "Hubo un problema al guardar los cambios."
+    }
+  },
+  "edit": {
+    "readOnly": "Modo solo lectura: no tienes permisos para editar la información del establecimiento.",
+    "logoAlt": "Logo",
+    "netProfit": "Beneficio Neto",
+    "margin": "margen",
+    "sections": {
+      "basicInfo": "Información Básica",
+      "preferences": "Preferencias",
+      "contact": "Contacto e Imágenes",
+      "pos": "Integración con POS"
+    },
+    "labels": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "state": "Estado",
+      "country": "País",
+      "zipCode": "Código Postal",
+      "phone": "Teléfono",
+      "email": "Email",
+      "timezone": "Zona Horaria",
+      "currency": "Moneda",
+      "website": "Sitio Web",
+      "logo": "Logo",
+      "primaryColor": "Color Primario",
+      "secondaryColor": "Color Secundario",
+      "latitude": "Latitud",
+      "longitude": "Longitud",
+      "posType": "Sistema POS"
+    },
+    "placeholders": {
+      "name": "Nombre del establecimiento",
+      "type": "Selecciona un tipo de establecimiento",
+      "address": "Dirección completa",
+      "city": "Ciudad",
+      "state": "Estado",
+      "country": "Selecciona un país",
+      "zipCode": "Código postal",
+      "phone": "+52 123 456 7890",
+      "email": "email@ejemplo.com",
+      "timezone": "America/Mexico_City",
+      "currency": "Selecciona una moneda",
+      "website": "https://tusitio.com",
+      "logo": "https://ejemplo.com/logo.jpg",
+      "primaryColor": "#FF5733",
+      "secondaryColor": "#33C4FF",
+      "latitude": "19.432608",
+      "longitude": "-99.133209",
+      "posType": "Selecciona un sistema POS"
+    },
+    "types": {
+      "restaurant": "Restaurante",
+      "bar": "Bar",
+      "cafe": "Cafetería",
+      "fastFood": "Comida Rápida",
+      "foodTruck": "Food Truck",
+      "retailStore": "Tienda Retail",
+      "hotelRestaurant": "Restaurante de Hotel",
+      "fitnessStudio": "Gimnasio",
+      "spa": "Spa",
+      "other": "Otro"
+    },
+    "currencies": {
+      "mxn": "MXN - Peso Mexicano",
+      "usd": "USD - Dólar Estadounidense",
+      "eur": "EUR - Euro",
+      "cad": "CAD - Dólar Canadiense"
+    },
+    "posTypes": {
+      "softRestaurant": "Soft Restaurant",
+      "square": "Square",
+      "toast": "Toast",
+      "clover": "Clover",
+      "aloha": "Aloha",
+      "micros": "Micros",
+      "ncr": "NCR",
+      "custom": "Personalizado",
+      "none": "Ninguno"
+    },
+    "toast": {
+      "logoUploadedTitle": "Logo actualizado",
+      "logoUploadedDesc": "El logo se ha actualizado correctamente.",
+      "logoRemovedTitle": "Logo eliminado",
+      "logoRemovedDesc": "El logo se ha eliminado correctamente.",
+      "logoErrorTitle": "Error con el logo",
+      "logoErrorDesc": "No se pudo procesar la imagen del logo.",
+      "updateSuccess": "Establecimiento actualizado",
+      "updateSuccessDesc": "El establecimiento se ha actualizado correctamente.",
+      "updateError": "Error al actualizar establecimiento",
+      "updateErrorTitle": "Error de actualización",
+      "deleteSuccess": "Establecimiento eliminado",
+      "deleteSuccessDesc": "El establecimiento se ha eliminado correctamente.",
+      "deleteError": "Error al eliminar establecimiento",
+      "deleteErrorTitle": "Error de eliminación"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Establecimiento",
+      "description": "¿Estás seguro de que deseas eliminar {{venueName}}? Escribe \"delete {{venueName}}\" para confirmar. Esta acción no se puede deshacer."
+    },
+    "kycRejected": {
+      "title": "Documentación KYC Rechazada",
+      "description": "Tu documentación KYC fue rechazada. Por favor revisa la razón a continuación y reenvía tus documentos.",
+      "reason": "Motivo del Rechazo:",
+      "resubmitButton": "Reenviar Documentos"
+    },
+    "notFound": "Establecimiento no encontrado",
+    "notFoundDesc": "El establecimiento que buscas no existe o ha sido eliminado.",
+    "noLogo": "Sin logo"
+  }
+}

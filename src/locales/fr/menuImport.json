@@ -1,0 +1,79 @@
+{
+  "title": "Importer le Menu",
+  "description": "Téléchargez un fichier CSV pour créer rapidement votre menu avec catégories, produits et modificateurs",
+  "export": {
+    "title": "Exporter Votre Menu Actuel",
+    "yourData": "Vos Données",
+    "description": "Téléchargez votre menu existant pour le modifier et le ré-importer plus tard. Tous vos produits, catégories et paramètres seront exportés.",
+    "basicButton": "Exporter Basique",
+    "advancedButton": "Exporter Avancé",
+    "basicDesc": "Format basique exporté",
+    "advancedDesc": "Format avancé avec tous les détails exporté",
+    "success": "Menu exporté avec succès!",
+    "error": "Échec de l'exportation du menu",
+    "noData": "Aucune donnée de menu à exporter",
+    "or": "ou"
+  },
+  "templates": {
+    "title": "Télécharger un Modèle Vide",
+    "empty": "Exemple",
+    "basic": "Modèle Basique",
+    "basicDesc": "Menu simple avec catégories et produits (nom, SKU, prix, description)",
+    "advanced": "Modèle Avancé",
+    "advancedDesc": "Menu complet avec inventaire, modificateurs, allergènes, étiquettes et plus"
+  },
+  "download": {
+    "button": "Télécharger le Modèle",
+    "basic": "Télécharger le Modèle Basique",
+    "advanced": "Télécharger le Modèle Avancé"
+  },
+  "upload": {
+    "title": "Télécharger un Fichier CSV",
+    "dropzone": "Glissez-déposez votre fichier CSV ici, ou cliquez pour parcourir",
+    "selected": "Fichier sélectionné: {{filename}}",
+    "changeFile": "Changer de fichier",
+    "fileSize": "{{size}} KB"
+  },
+  "mode": {
+    "title": "Mode d'Importation",
+    "merge": "Ajouter / Mettre à Jour",
+    "mergeDesc": "Ajouter de nouveaux produits et catégories. Mettre à jour les produits existants par SKU. Ne rien supprimer.",
+    "replace": "Tout Remplacer",
+    "replaceDesc": "Supprimer toutes les données du menu existant et remplacer par le contenu du CSV. Cela ne peut pas être annulé!",
+    "warning": "⚠️ Attention: Le mode Remplacer supprimera définitivement votre menu actuel"
+  },
+  "preview": {
+    "title": "Aperçu",
+    "categories": "{{count}} catégories",
+    "products": "{{count}} produits",
+    "modifiers": "{{count}} groupes de modificateurs",
+    "noData": "Aucune donnée à prévisualiser. Téléchargez d'abord un fichier CSV."
+  },
+  "validation": {
+    "title": "Validation",
+    "checking": "Validation du CSV...",
+    "valid": "✓ Le CSV est valide et prêt à être importé",
+    "invalid": "✗ Le CSV contient des erreurs. Veuillez les corriger avant d'importer:",
+    "errors": "{{count}} erreurs trouvées"
+  },
+  "actions": {
+    "cancel": "Annuler",
+    "import": "Importer le Menu",
+    "importing": "Importation...",
+    "close": "Fermer"
+  },
+  "success": {
+    "title": "Menu importé avec succès!",
+    "message": "Créé {{categories}} catégories, {{products}} produits et {{modifierGroups}} groupes de modificateurs",
+    "messageShort": "Menu importé avec succès"
+  },
+  "errors": {
+    "title": "Échec de l'importation",
+    "parseError": "Échec de l'analyse du fichier CSV",
+    "validationError": "La validation du CSV a échoué",
+    "uploadError": "Échec du téléchargement du menu",
+    "emptyFile": "Le fichier CSV est vide",
+    "invalidFormat": "Format CSV invalide",
+    "serverError": "Erreur du serveur: {{message}}"
+  }
+}

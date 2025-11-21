@@ -16,7 +16,7 @@ export default function Overview() {
   const [data, setData] = useState<AnalyticsOverviewResponse | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('analytics')
   const { venueId } = useCurrentVenue()
 
   const query = useMemo(() => {
@@ -39,7 +39,7 @@ export default function Overview() {
     // Don't fetch if venueId is not available
     if (!venueId) {
       setLoading(false)
-      setErr(t('analytics.errorPrefix') + ' ' + t('common.error.noVenue', 'No venue selected'))
+      setErr(t('errorPrefix') + ' ' + t('common.error.noVenue', 'No venue selected'))
       return
     }
 
@@ -60,10 +60,10 @@ export default function Overview() {
     }
   }, [query, venueId, t])
 
-  if (loading) return <div className="p-2">{t('analytics.loading')}</div>
+  if (loading) return <div className="p-2">{t('loading')}</div>
   if (err) return (
     <div className="p-2 text-red-600">
-      {t('analytics.errorPrefix')} {err}
+      {t('errorPrefix')} {err}
     </div>
   )
   if (!data) return null
@@ -77,19 +77,19 @@ export default function Overview() {
 
   // Metric definitions for tooltips (localized)
   const defs: Record<string, string> = {
-    ARR: t('analytics.tooltips.arr'),
-    MRR: t('analytics.tooltips.mrr'),
-    'Net New ARR': t('analytics.tooltips.netNewArr'),
-    NRR: t('analytics.tooltips.nrr'),
-    Churn: t('analytics.tooltips.churn'),
-    Signups: t('analytics.tooltips.signups'),
-    Activation: t('analytics.tooltips.activation'),
-    'Win Rate': t('analytics.tooltips.winRate'),
-    'Sales Cycle (d)': t('analytics.tooltips.salesCycleDays'),
-    DAU: t('analytics.tooltips.dau'),
-    MAU: t('analytics.tooltips.mau'),
-    Stickiness: t('analytics.tooltips.stickiness'),
-    Uptime: t('analytics.tooltips.uptime'),
+    ARR: t('tooltips.arr'),
+    MRR: t('tooltips.mrr'),
+    'Net New ARR': t('tooltips.netNewArr'),
+    NRR: t('tooltips.nrr'),
+    Churn: t('tooltips.churn'),
+    Signups: t('tooltips.signups'),
+    Activation: t('tooltips.activation'),
+    'Win Rate': t('tooltips.winRate'),
+    'Sales Cycle (d)': t('tooltips.salesCycleDays'),
+    DAU: t('tooltips.dau'),
+    MAU: t('tooltips.mau'),
+    Stickiness: t('tooltips.stickiness'),
+    Uptime: t('tooltips.uptime'),
   }
 
   return (
@@ -98,15 +98,15 @@ export default function Overview() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold tracking-tight">{t('analytics.overviewSection.title')}</CardTitle>
+            <CardTitle className="text-lg font-semibold tracking-tight">{t('overviewSection.title')}</CardTitle>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary">
-                {t('analytics.compare.badge', {
+                {t('compare.badge', {
                   label: t(`analytics.compare.${o.compareTo}`),
                 })}
               </Badge>
               <span>
-                {t('analytics.refreshed', {
+                {t('refreshed', {
                   date: new Date(data.meta.refreshedAt).toLocaleString(),
                 })}
               </span>
@@ -115,25 +115,25 @@ export default function Overview() {
         </CardHeader>
         <CardContent className="grid gap-3">
           <div className="grid gap-3 md:grid-cols-5">
-            <KpiCard title={t('analytics.kpis.arr')} value={lockIfNull(fin.arr)} format="currency" tooltip={defs['ARR']} trend={o.visuals.timeseries.mrr} />
-            <KpiCard title={t('analytics.kpis.mrr')} value={lockIfNull(fin.mrr)} format="currency" tooltip={defs['MRR']} trend={o.visuals.timeseries.mrr} />
-            <KpiCard title={t('analytics.kpis.netNewArr')} value={lockIfNull(fin.netNewArr)} format="currency" tooltip={defs['Net New ARR']} />
-            <KpiCard title={t('analytics.kpis.nrr')} value={fin.nrr} format="percent" tooltip={defs['NRR']} />
-            <KpiCard title={t('analytics.kpis.churn')} value={fin.churnRate} format="percent" tooltip={defs['Churn']} />
+            <KpiCard title={t('kpis.arr')} value={lockIfNull(fin.arr)} format="currency" tooltip={defs['ARR']} trend={o.visuals.timeseries.mrr} />
+            <KpiCard title={t('kpis.mrr')} value={lockIfNull(fin.mrr)} format="currency" tooltip={defs['MRR']} trend={o.visuals.timeseries.mrr} />
+            <KpiCard title={t('kpis.netNewArr')} value={lockIfNull(fin.netNewArr)} format="currency" tooltip={defs['Net New ARR']} />
+            <KpiCard title={t('kpis.nrr')} value={fin.nrr} format="percent" tooltip={defs['NRR']} />
+            <KpiCard title={t('kpis.churn')} value={fin.churnRate} format="percent" tooltip={defs['Churn']} />
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
-            <KpiCard title={t('analytics.kpis.signups')} value={gro.signups} format="number" tooltip={defs['Signups']} trend={o.visuals.timeseries.dau} />
-            <KpiCard title={t('analytics.kpis.activation')} value={gro.activationRate} format="percent" tooltip={defs['Activation']} />
-            <KpiCard title={t('analytics.kpis.winRate')} value={gro.winRate} format="percent" tooltip={defs['Win Rate']} />
-            <KpiCard title={t('analytics.kpis.salesCycleDays')} value={gro.salesCycleDays} format="number" tooltip={defs['Sales Cycle (d)']} />
+            <KpiCard title={t('kpis.signups')} value={gro.signups} format="number" tooltip={defs['Signups']} trend={o.visuals.timeseries.dau} />
+            <KpiCard title={t('kpis.activation')} value={gro.activationRate} format="percent" tooltip={defs['Activation']} />
+            <KpiCard title={t('kpis.winRate')} value={gro.winRate} format="percent" tooltip={defs['Win Rate']} />
+            <KpiCard title={t('kpis.salesCycleDays')} value={gro.salesCycleDays} format="number" tooltip={defs['Sales Cycle (d)']} />
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
-            <KpiCard title={t('analytics.kpis.dau')} value={eng.dau} format="number" tooltip={defs['DAU']} trend={o.visuals.timeseries.dau} />
-            <KpiCard title={t('analytics.kpis.mau')} value={eng.mau} format="number" tooltip={defs['MAU']} />
-            <KpiCard title={t('analytics.kpis.stickiness')} value={eng.stickiness} format="percent" tooltip={defs['Stickiness']} trend={o.visuals.timeseries.stickiness} />
-            <KpiCard title={t('analytics.kpis.uptime')} value={eng.uptime} format="percent" tooltip={defs['Uptime']} />
+            <KpiCard title={t('kpis.dau')} value={eng.dau} format="number" tooltip={defs['DAU']} trend={o.visuals.timeseries.dau} />
+            <KpiCard title={t('kpis.mau')} value={eng.mau} format="number" tooltip={defs['MAU']} />
+            <KpiCard title={t('kpis.stickiness')} value={eng.stickiness} format="percent" tooltip={defs['Stickiness']} trend={o.visuals.timeseries.stickiness} />
+            <KpiCard title={t('kpis.uptime')} value={eng.uptime} format="percent" tooltip={defs['Uptime']} />
           </div>
         </CardContent>
       </Card>
@@ -143,15 +143,15 @@ export default function Overview() {
         <Card className="col-span-2">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <CardTitle>{t('analytics.charts.mrr12mTitle')}</CardTitle>
+              <CardTitle>{t('charts.mrr12mTitle')}</CardTitle>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('analytics.charts.aria.aboutChart', { name: t('analytics.kpis.mrr') })}>
+                    <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('charts.aria.aboutChart', { name: t('kpis.mrr') })}>
                       <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{t('analytics.charts.mrr12mTooltip')}</TooltipContent>
+                  <TooltipContent>{t('charts.mrr12mTooltip')}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -163,15 +163,15 @@ export default function Overview() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <CardTitle>{t('analytics.charts.dauWindowTitle', { window: '30d' })}</CardTitle>
+              <CardTitle>{t('charts.dauWindowTitle', { window: '30d' })}</CardTitle>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('analytics.charts.aria.aboutChart', { name: t('analytics.kpis.dau') })}>
+                    <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('charts.aria.aboutChart', { name: t('kpis.dau') })}>
                       <Info className="h-4 w-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{t('analytics.charts.dauWindowTooltip', { days: 30 })}</TooltipContent>
+                  <TooltipContent>{t('charts.dauWindowTooltip', { days: 30 })}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -185,7 +185,7 @@ export default function Overview() {
       {o.visuals.revenueBridge && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle>{t('analytics.revenueBridge.title')}</CardTitle>
+            <CardTitle>{t('revenueBridge.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-3 flex-wrap">
@@ -210,15 +210,15 @@ export default function Overview() {
         <Card>
           <CardHeader className="pb-0">
           <div className="flex items-center gap-2 mb-3">
-            <CardTitle className="font-medium">{t('analytics.activationFunnel.title')}</CardTitle>
+            <CardTitle className="font-medium">{t('activationFunnel.title')}</CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('analytics.aria.aboutActivationFunnel')}>
+                  <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('aria.aboutActivationFunnel')}>
                     <Info className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>{t('analytics.activationFunnel.tooltip', 'Drop-offs from signups to PQLs/SQLs/Won for the period.')}</TooltipContent>
+                <TooltipContent>{t('activationFunnel.tooltip', 'Drop-offs from signups to PQLs/SQLs/Won for the period.')}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -236,11 +236,11 @@ export default function Overview() {
         <Card>
           <CardHeader className="pb-0">
           <div className="flex items-center gap-2 mb-3">
-            <CardTitle className="font-medium">{t('analytics.cohortRetention.title')}</CardTitle>
+            <CardTitle className="font-medium">{t('cohortRetention.title')}</CardTitle>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('analytics.aria.aboutCohortRetention')}>
+                  <button className="text-muted-foreground/70 hover:text-foreground" aria-label={t('aria.aboutCohortRetention')}>
                     <Info className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
@@ -275,7 +275,7 @@ export default function Overview() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>{t('analytics.insights.title')}</CardTitle>
+          <CardTitle>{t('insights.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap text-sm">
@@ -297,7 +297,7 @@ export default function Overview() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>{t('analytics.metricDefinitions.title')}</CardTitle>
+          <CardTitle>{t('metricDefinitions.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="text-sm list-disc ml-5">

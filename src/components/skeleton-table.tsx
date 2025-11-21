@@ -7,7 +7,7 @@ interface TableSkeletonProps {
   rows?: number
 }
 
-const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 4 }) => {
+const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 10 }) => {
   const skeletonRows = Array.from({ length: rows })
 
   return (
@@ -26,8 +26,8 @@ const TableSkeleton: React.FC<TableSkeletonProps> = ({ columns, rows = 4 }) => {
           {skeletonRows.map((_, rowIdx) => (
             <tr key={rowIdx} className="border-t">
               {Array.from({ length: columns }).map((_, colIdx) => (
-                <td key={colIdx} className="p-4">
-                  <Skeleton className="w-full h-4" />
+                <td key={colIdx} className="px-4 py-6">
+                  <Skeleton className="w-full h-5" />
                 </td>
               ))}
             </tr>

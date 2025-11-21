@@ -1,0 +1,73 @@
+{
+  "joinTitle": "Join the Team",
+  "invitedTo": "You have been invited to join",
+  "at": "at",
+  "as": "as",
+  "emailLabel": "Email",
+  "loading": "Loading invitation...",
+  "invalidTitle": "Invalid Invitation",
+  "expiredTitle": "Invitation Expired",
+  "expiredDescription": "This invitation expired on {{date}}. Please contact the team administrator for a new invitation.",
+  "goToLogin": "Go to Login",
+  "labels": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "pin": "PIN (optional)"
+  },
+  "placeholders": {
+    "firstName": "Your first name",
+    "lastName": "Your last name",
+    "password": "Enter your password",
+    "confirmPassword": "Confirm your password",
+    "pin": "4 digits for quick access"
+  },
+  "pinHelp": "The PIN will allow you to quickly access from POS terminals",
+  "nameEditNote": "Your name can be edited later in your account settings.",
+  "acceptButton": "Accept invitation and create account",
+  "creatingAccount": "Creating account...",
+  "termsText": "By accepting this invitation, you accept the terms of use.",
+  "haveAccount": "Already have an account?",
+  "loginHere": "Log in here",
+  "validation": {
+    "firstNameRequired": "First name is required",
+    "firstNameMax": "First name must be at most 50 characters",
+    "lastNameRequired": "Last name is required",
+    "lastNameMax": "Last name must be at most 50 characters",
+    "passwordMin": "Password must be at least 8 characters",
+    "pinFormat": "PIN must be exactly 4 digits",
+    "passwordMatch": "Passwords do not match"
+  },
+  "errors": {
+    "invalidToken": "Invalid invitation token",
+    "notFound": "Invitation not found",
+    "alreadyUsed": "This invitation has already been used",
+    "loadError": "Error loading invitation details",
+    "acceptError": "Error accepting invitation"
+  },
+  "success": {
+    "title": "Account created successfully",
+    "description": "Your account has been created. You can now log in.",
+    "loginMessage": "Your account has been created successfully. Please log in with your credentials."
+  },
+  "emailMismatch": {
+    "title": "Email Mismatch",
+    "subtitle": "You're logged in with a different email",
+    "warning": "Session and Invitation Don't Match",
+    "currentSession": "Current session",
+    "invitationFor": "Invitation for",
+    "explanation": "This invitation was sent to a different email address than your current session. To accept this invitation, you need to log out and continue with the invited email.",
+    "logoutAndContinue": "Log out and continue",
+    "helpText": "After logging out, you'll be automatically redirected back to this invitation to create an account with the correct email.",
+    "loggedOut": "Logged out successfully",
+    "loggedOutDescription": "Redirecting to invitation..."
+  },
+  "directAccept": {
+    "title": "Accept Team Invitation",
+    "alreadyLoggedIn": "You're already logged in as",
+    "description": "Since you're already logged in with the invited email, you can accept this invitation directly without creating a new account.",
+    "accepting": "Accepting invitation...",
+    "note": "This will add the team to your existing account"
+  }
+}

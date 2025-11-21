@@ -1,0 +1,144 @@
+{
+  "addDialog": {
+    "title": "Add new venue",
+    "description": "Complete the information for the new venue to add it to the system.",
+    "fields": {
+      "requiredError": "This field is required",
+      "name": "Name",
+      "namePlaceholder": "Venue name",
+      "type": "Venue type",
+      "typePlaceholder": "Select a business type",
+      "typeOptions": {
+        "RESTAURANT": "Restaurant",
+        "STUDIO": "Studio",
+        "HOTEL": "Hotel"
+      },
+      "pos": "POS",
+      "posPlaceholder": "Select your POS",
+      "posOptions": {
+        "SOFTRESTAURANT": "Soft Restaurant",
+        "NONE": "None"
+      },
+      "logo": "Logo"
+    },
+    "upload": {
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    },
+    "toast": {
+      "successTitle": "Venue created",
+      "successDesc": "The venue has been created successfully.",
+      "errorTitle": "Save error",
+      "errorDesc": "There was a problem saving your changes."
+    }
+  },
+  "edit": {
+    "readOnly": "Read-only mode: you do not have permission to edit this venue.",
+    "logoAlt": "Logo",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "preferences": "Preferences",
+      "contact": "Contact & Images",
+      "pos": "POS Integration"
+    },
+    "labels": {
+      "name": "Name",
+      "type": "Type",
+      "address": "Address",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "zipCode": "Zip Code",
+      "phone": "Phone",
+      "email": "Email",
+      "timezone": "Time Zone",
+      "currency": "Currency",
+      "website": "Website",
+      "logo": "Logo",
+      "primaryColor": "Primary Color",
+      "secondaryColor": "Secondary Color",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "posType": "POS System"
+    },
+    "placeholders": {
+      "name": "Venue name",
+      "type": "Select a venue type",
+      "address": "Full address",
+      "city": "City",
+      "state": "State",
+      "country": "Select a country",
+      "zipCode": "Postal code",
+      "phone": "+52 123 456 7890",
+      "email": "email@example.com",
+      "timezone": "America/Mexico_City",
+      "currency": "Select a currency",
+      "website": "https://yourwebsite.com",
+      "logo": "https://example.com/logo.jpg",
+      "primaryColor": "#FF5733",
+      "secondaryColor": "#33C4FF",
+      "latitude": "19.432608",
+      "longitude": "-99.133209",
+      "posType": "Select a POS system"
+    },
+    "types": {
+      "restaurant": "Restaurant",
+      "bar": "Bar",
+      "cafe": "Café",
+      "fastFood": "Fast Food",
+      "foodTruck": "Food Truck",
+      "retailStore": "Retail Store",
+      "hotelRestaurant": "Hotel Restaurant",
+      "fitnessStudio": "Fitness Studio",
+      "spa": "Spa",
+      "other": "Other"
+    },
+    "currencies": {
+      "mxn": "MXN - Mexican Peso",
+      "usd": "USD - US Dollar",
+      "eur": "EUR - Euro",
+      "cad": "CAD - Canadian Dollar"
+    },
+    "posTypes": {
+      "softRestaurant": "Soft Restaurant",
+      "square": "Square",
+      "toast": "Toast",
+      "clover": "Clover",
+      "aloha": "Aloha",
+      "micros": "Micros",
+      "ncr": "NCR",
+      "custom": "Custom",
+      "none": "None"
+    },
+    "toast": {
+      "logoUploadedTitle": "Logo updated",
+      "logoUploadedDesc": "The logo was updated successfully.",
+      "logoRemovedTitle": "Logo removed",
+      "logoRemovedDesc": "The logo was removed successfully.",
+      "logoErrorTitle": "Logo error",
+      "logoErrorDesc": "Could not process the logo image.",
+      "updateSuccess": "Venue updated",
+      "updateSuccessDesc": "The venue has been updated successfully.",
+      "updateError": "Error updating venue",
+      "updateErrorTitle": "Update error",
+      "deleteSuccess": "Venue deleted",
+      "deleteSuccessDesc": "The venue has been deleted successfully.",
+      "deleteError": "Error deleting venue",
+      "deleteErrorTitle": "Delete error"
+    },
+    "deleteDialog": {
+      "title": "Delete Venue",
+      "description": "Are you sure you want to delete {{venueName}}? Type \"delete {{venueName}}\" to confirm. This action cannot be undone."
+    },
+    "kycRejected": {
+      "title": "KYC Documentation Rejected",
+      "description": "Your KYC documentation was rejected. Please review the reason below and resubmit your documents.",
+      "reason": "Rejection Reason:",
+      "resubmitButton": "Resubmit Documents"
+    },
+    "notFound": "Venue not found",
+    "notFoundDesc": "The venue you are looking for does not exist or has been deleted.",
+    "noLogo": "No logo"
+  }
+}

@@ -54,8 +54,8 @@ export default function ModifierGroups() {
 
   // Query to fetch all products for the venue
   const { data: allProducts } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     enabled: !!venueId,
   })
 
@@ -181,14 +181,14 @@ export default function ModifierGroups() {
       cell: ({ row }) => {
         return (
           <div className="flex justify-end" onClick={e => e.stopPropagation()}>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 dropdown-menu-trigger">
                   <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
                 <DropdownMenuLabel>{t('modifiers.actions.title')}</DropdownMenuLabel>
                 <PermissionGate permission="menu:update">
                   <DropdownMenuItem onClick={() => navigate(`${row.original.id}`)}>
@@ -315,7 +315,7 @@ export default function ModifierGroups() {
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                {t('common.cancel')}
+                {t('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -462,7 +462,7 @@ export default function ModifierGroups() {
 
                   <SheetFooter>
                     <Button type="submit" disabled={!form.formState.isDirty || saveModifierGroup.isPending} className="ml-auto">
-                      {saveModifierGroup.isPending ? t('common.saving') : t('common.save')}
+                      {saveModifierGroup.isPending ? t('saving') : t('save')}
                     </Button>
                   </SheetFooter>
                 </form>

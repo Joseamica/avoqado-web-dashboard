@@ -2,6 +2,7 @@
   "summary": "Resumen",
   "main": "Panel principal",
   "analytics": "Analíticas",
+  "availableBalance": "Saldo Disponible",
   "alerts": "Alertas",
   "superadmin": "Superadmin",
   "business": "Gestión del negocio",
@@ -19,6 +20,7 @@
   "platform": "Plataforma",
   "features": "Funciones",
   "system": "Estado del sistema",
+  "webhooks": "Webhooks",
   "reports": "Reportes",
   "support": "Soporte",
   "admin": "Administración",
@@ -30,5 +32,26 @@
     "view": "Ver",
     "share": "Compartir",
     "delete": "Eliminar"
+  },
+  "routes": {
+    "home": "Inicio",
+    "menu": "Menu",
+    "menumaker": "Creador de Menu",
+    "overview": "Resumen",
+    "inventory": "Inventario",
+    "payments": "Pagos",
+    "orders": "Órdenes",
+    "shifts": "Turnos",
+    "tpv": "Terminales",
+    "reviews": "Reseñas",
+    "settings": "Configuración",
+    "editvenue": "Editar Local",
+    "teams": "Equipos",
+    "billing": "Facturación",
+    "limits": "Límites",
+    "categories": "Categorías",
+    "products": "Productos",
+    "users": "Usuarios",
+    "waiters": "Meseros"
   }
 }

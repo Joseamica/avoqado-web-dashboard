@@ -4,7 +4,7 @@ import { History, Loader2, Maximize2, Minimize2, Plus, Save, Send, Sparkles, Thu
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
 import { ConfirmDialog } from '../../components/ui/confirm-dialog'
@@ -619,14 +619,16 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   return (
     <Card
       className={`${
-        isExpanded ? 'w-[600px] sm:w-[700px] h-[600px]' : 'w-80 sm:w-96'
-      } fixed bottom-20 right-20 z-[9999] shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
+        isExpanded ? 'w-[700px] sm:w-[800px] h-[700px]' : 'w-80 sm:w-96'
+      } fixed bottom-20 right-20 z-9999 shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
     >
       <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background">
         <CardTitle className="text-lg font-medium">
-          {showConversations ? 'Conversaciones Guardadas' : 'Asistente Avoqado'}
+          {showConversations ? t('chat.saved.title') : t('chat.title')}
           {!showConversations && (
-            <span className="text-xs text-muted-foreground ml-2">({usageStats.remainingRequests} consultas restantes)</span>
+            <span className="text-xs text-muted-foreground ml-2">
+              ({usageStats.remainingRequests} {t('chat.queriesRemaining')})
+            </span>
           )}
         </CardTitle>
         <div className="flex items-center space-x-1">
@@ -694,7 +696,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className={`p-4 ${isExpanded ? 'h-[480px]' : 'h-80'} overflow-y-auto bg-background`}>
+      <CardContent className={`p-4 ${isExpanded ? 'h-[550px]' : 'h-72'} overflow-y-auto bg-background`}>
         {showConversations ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-4">
@@ -835,7 +837,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="p-4 pt-0 bg-background">
+      <CardFooter className="p-4 pt-2 bg-background flex flex-col gap-1.5">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
             <FormField
@@ -859,6 +861,18 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             </Button>
           </form>
         </Form>
+        <p className="text-[10px] leading-tight text-muted-foreground/60 text-center">
+          AI-generated content may be inaccurate. The chatbot is restricted to your current venue and will not disclose internal system
+          details. Do not submit sensitive personal data. Learn more in our{' '}
+          <Link to="/terms" className="underline hover:text-muted-foreground/80">
+            Terms
+          </Link>
+          {' and '}
+          <Link to="/privacy" className="underline hover:text-muted-foreground/80">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </CardFooter>
 
       {/* Diálogos de confirmación */}
@@ -868,7 +882,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         title={t('chat.confirm.clear.title')}
         description={t('chat.confirm.clear.desc')}
         confirmText={t('chat.confirm.clear.confirm')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={confirmClearHistory}
       />
@@ -881,7 +895,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           title: savedConversations.find(conv => conv.id === conversationToDelete)?.title || '',
         })}
         confirmText={t('chat.confirm.delete.confirm')}
-        cancelText={t('common.cancel')}
+        cancelText={t('cancel')}
         variant="destructive"
         onConfirm={confirmDeleteConversation}
         onCancel={() => setConversationToDelete(null)}
@@ -918,7 +932,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                     feedbackForm.reset()
                   }}
                 >
-                  {t('common.cancel')}
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" disabled={negativeFeedbackMutation.isPending} className="min-w-[120px]">
                   {negativeFeedbackMutation.isPending ? (

@@ -1,17 +1,20 @@
 import { getProducts, updateProduct, deleteProduct } from '@/services/menu.service'
+import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/inventory.service'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +36,10 @@ import {
 import { Product } from '@/types'
 import { Currency } from '@/utils/currency'
 import { PermissionGate } from '@/components/PermissionGate'
+import { InventoryBadge } from '@/components/inventory/InventoryBadge'
+import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
+import { AdjustStockDialog } from '@/components/AdjustStockDialog'
+import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 
 export default function Products() {
   const { t, i18n } = useTranslation('menu')
@@ -50,11 +57,69 @@ export default function Products() {
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
+  const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
+  const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false)
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products', venueId],
-    queryFn: () => getProducts(venueId!),
+  // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
+  const { data: products, isLoading, dataUpdatedAt } = useQuery({
+    queryKey: ['products', venueId, 'orderBy:name'],
+    queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
+    // ✅ FIX: Reduce staleTime to keep inventory data fresh
+    // Especially important for RECIPE products where availableQuantity
+    // can change when ingredient stock updates
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every minute as backup
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   })
+
+  // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
+  useMenuSocketEvents(venueId, {
+    onMenuItemAvailabilityChanged: () => {
+      // Invalidate products query when inventory changes
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
+    onMenuItemUpdated: () => {
+      // Invalidate on any menu item update
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
+  })
+
+  // ✅ SQUARE POS PATTERN: Calculate low stock items (memoized for performance)
+  const lowStockProducts = useMemo(() => {
+    if (!products) return []
+
+    return products.filter(product => {
+      // Only check products with inventory tracking
+      if (!product.trackInventory || !product.inventoryMethod) return false
+
+      // For QUANTITY method: check against reorder point OR custom threshold
+      if (product.inventoryMethod === 'QUANTITY') {
+        const currentStock = Number(product.inventory?.currentStock ?? 0)
+        // Use custom threshold if set, otherwise fall back to reorderPoint
+        const threshold = product.lowStockThreshold ?? Number(product.inventory?.reorderPoint ?? 10)
+        return currentStock <= threshold
+      }
+
+      // For RECIPE method: check availableQuantity against custom threshold
+      if (product.inventoryMethod === 'RECIPE') {
+        const availableQuantity = product.availableQuantity ?? 0
+        // Use custom threshold if set, otherwise default to 5 portions
+        const threshold = product.lowStockThreshold ?? 5
+        return availableQuantity <= threshold
+      }
+
+      return false
+    })
+  }, [products])
+
+  // ✅ Filter products based on low stock toggle
+  const filteredProducts = useMemo(() => {
+    if (!showLowStockOnly || !products) return products
+    return lowStockProducts
+  }, [showLowStockOnly, products, lowStockProducts])
 
   const toggleActive = useMutation({
     mutationFn: async ({ productId, status }: { productId: string; status: boolean }) => {
@@ -65,8 +130,13 @@ export default function Products() {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['products', venueId] })
 
-      // Snapshot the previous value
+      // Snapshot the previous value and timestamp
       const previousProducts = queryClient.getQueryData<Product[]>(['products', venueId])
+      const timestamp = Date.now()
+
+      // Find the specific product to check its current state
+      const targetProduct = previousProducts?.find(p => p.id === productId)
+      const previousActiveState = targetProduct?.active
 
       // Optimistically update the cache
       queryClient.setQueryData<Product[]>(['products', venueId], old => {
@@ -74,16 +144,37 @@ export default function Products() {
         return old.map(product => (product.id === productId ? { ...product, active: status } : product))
       })
 
-      // Return a context object with the snapshotted value
-      return { previousProducts }
+      // Return context with snapshot, timestamp, and previous state
+      return { previousProducts, timestamp, productId, previousActiveState }
     },
-    onError: (_, __, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousProducts) {
-        queryClient.setQueryData(['products', venueId], context.previousProducts)
+    onError: (error, variables, context) => {
+      // ✅ FIX: Instead of blind rollback, invalidate queries to get fresh server state
+      // This prevents restoring incorrect state if someone else modified it
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+
+      // Show error toast with more context
+      toast({
+        title: t('common.error'),
+        description: 'Failed to update product status. Please try again.',
+        variant: 'destructive',
+      })
+    },
+    onSuccess: (data, variables, context) => {
+      // Verify the operation completed successfully by checking current state
+      const currentProducts = queryClient.getQueryData<Product[]>(['products', venueId])
+      const currentProduct = currentProducts?.find(p => p.id === variables.productId)
+
+      // If current state doesn't match what we expect, show warning
+      if (currentProduct && currentProduct.active !== variables.status) {
+        toast({
+          title: t('common.warning'),
+          description: 'Product status may have been modified by another user. Refreshing data...',
+          variant: 'default',
+        })
+        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        return
       }
-    },
-    onSuccess: data => {
+
       toast({
         title: data.status ? t('products.toasts.activated') : t('products.toasts.deactivated'),
         description: t('products.toasts.saved'),
@@ -110,6 +201,33 @@ export default function Products() {
       toast({
         title: t('common.error'),
         description: t('products.detail.toasts.saveErrorDesc'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const adjustStockMutation = useMutation({
+    mutationFn: async ({ productId, adjustment, reason, notes }: { productId: string; adjustment: number; reason: string; notes: string }) => {
+      const payload: AdjustInventoryStockDto = {
+        type: 'ADJUSTMENT',
+        quantity: adjustment,
+        reason: `${reason}${notes ? ` - ${notes}` : ''}`,
+      }
+      return await productInventoryApi.adjustStock(venueId!, productId, payload)
+    },
+    onSuccess: () => {
+      setAdjustStockDialogOpen(false)
+      setProductToAdjust(null)
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+      toast({
+        title: t('products.toasts.saved'),
+        description: 'Stock adjusted successfully',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common.error'),
+        description: error.response?.data?.message || 'Failed to adjust stock',
         variant: 'destructive',
       })
     },
@@ -183,14 +301,39 @@ export default function Products() {
         return <ul>{Currency(price, false)}</ul>
       },
     },
+    {
+      id: 'stock',
+      accessorKey: 'availableQuantity',
+      meta: { label: t('products.columns.stock') },
+      header: t('products.columns.stock'),
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+
+        return (
+          <InventoryBadge
+            product={product}
+            onClick={() => {
+              setSelectedProduct(product)
+              setIsInventoryModalOpen(true)
+            }}
+          />
+        )
+      },
+    },
 
     {
       id: 'categories',
-      accessorKey: 'categories',
+      accessorKey: 'category',
       meta: { label: t('products.columns.categories') },
       header: t('products.columns.categories'),
       enableColumnFilter: false,
-      cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
+      cell: ({ row }) => {
+        const category = row.original.category
+        // Transform single category to array for ItemsCell
+        const categories = category ? [category] : []
+        return <ItemsCell cell={{ getValue: () => categories }} max_visible_items={2} />
+      },
     },
     {
       id: 'modifierGroups',
@@ -198,7 +341,30 @@ export default function Products() {
       meta: { label: t('products.columns.modifierGroups') },
       header: t('products.columns.modifierGroups'),
       enableColumnFilter: false,
-      cell: ({ cell }) => <ItemsCell cell={cell} max_visible_items={2} />,
+      cell: ({ row }) => {
+        const modifierGroups = row.original.modifierGroups || []
+        // Extract the group from each ProductModifierGroup
+        const groups = modifierGroups.map(pmg => pmg.group).filter(Boolean)
+
+        if (groups.length === 0) {
+          return <span className="text-muted-foreground">-</span>
+        }
+
+        return (
+          <div className="flex flex-wrap gap-1">
+            {groups.slice(0, 3).map((group) => (
+              <Badge key={group.id} variant="secondary" className="text-xs px-2 py-0.5">
+                {group.name}
+              </Badge>
+            ))}
+            {groups.length > 3 && (
+              <Badge variant="outline" className="text-xs px-2 py-0.5 text-muted-foreground">
+                +{groups.length - 3}
+              </Badge>
+            )}
+          </div>
+        )
+      },
     },
     {
       id: 'updatedAt',
@@ -219,6 +385,34 @@ export default function Products() {
       },
     },
     {
+      id: 'available',
+      accessorKey: 'active',
+      meta: { label: 'Available' },
+      header: 'Available',
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+        const isActive = product.active
+
+        return (
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <Switch
+              checked={isActive}
+              onCheckedChange={(checked) => {
+                toggleActive.mutate({ productId: product.id, status: checked })
+              }}
+              className={isActive ? 'data-[state=checked]:bg-green-500' : 'data-[state=unchecked]:bg-red-500'}
+            />
+            {isActive ? (
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            ) : (
+              <Badge variant="destructive" className="text-xs">86'd</Badge>
+            )}
+          </div>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: t('common.actions'),
       enableColumnFilter: false,
@@ -226,14 +420,14 @@ export default function Products() {
         const product = row.original
 
         return (
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0" onClick={e => e.stopPropagation()}>
                 <span className="sr-only">{t('modifiers.actions.openMenu')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
               <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <PermissionGate permission="menu:update">
@@ -248,6 +442,22 @@ export default function Products() {
                   {t('common.edit')}
                 </DropdownMenuItem>
               </PermissionGate>
+              {/* ✅ TOAST POS PATTERN: Quick stock adjustment from product list */}
+              {product.trackInventory && product.inventoryMethod === 'QUANTITY' && (
+                <PermissionGate permission="menu:update">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setProductToAdjust(product)
+                      setAdjustStockDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Package2 className="mr-2 h-4 w-4" />
+                    {t('products.actions.adjustStock')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+              )}
               <PermissionGate permission="menu:delete">
                 <DropdownMenuItem
                   onClick={e => {
@@ -263,26 +473,6 @@ export default function Products() {
               </PermissionGate>
             </DropdownMenuContent>
           </DropdownMenu>
-        )
-      },
-    },
-    {
-      id: 'id',
-      accessorKey: 'active',
-      header: '',
-      enableColumnFilter: false,
-      cell: ({ row, cell }) => {
-        const productId = row.original.id as string
-        const active = cell.getValue() as boolean
-
-        return (
-          <Switch
-            id={`active-switch-${productId}`}
-            checked={active}
-            onCheckedChange={() => toggleActive.mutate({ productId, status: !active })}
-            onClick={e => e.stopPropagation()} // Prevent row click when switch is clicked
-            disabled={toggleActive.isPending}
-          />
         )
       },
     },
@@ -322,9 +512,41 @@ export default function Products() {
         </PermissionGate>
       </div>
 
+      {/* ✅ SQUARE POS PATTERN: Low stock alert banner */}
+      {lowStockProducts.length > 0 && !showLowStockOnly && (
+        <Alert className="mb-4 border-orange-200 bg-orange-50 dark:bg-orange-950/50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-orange-800 dark:text-orange-200">
+              {t('products.lowStock.alert', { count: lowStockProducts.length })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLowStockOnly(true)}
+              className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300"
+            >
+              {t('products.lowStock.viewDetails')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* ✅ Active filter indicator */}
+      {showLowStockOnly && (
+        <div className="mb-4 flex items-center gap-2">
+          <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            {t('products.lowStock.filterLabel')}
+          </Badge>
+          <Button variant="ghost" size="sm" onClick={() => setShowLowStockOnly(false)}>
+            {t('products.lowStock.clearFilter')}
+          </Button>
+        </div>
+      )}
+
       <DataTable
-        data={products || []}
-        rowCount={products?.length}
+        data={filteredProducts || []}
+        rowCount={filteredProducts?.length}
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
@@ -360,6 +582,30 @@ export default function Products() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <InventoryDetailsModal
+        product={selectedProduct}
+        open={isInventoryModalOpen}
+        onOpenChange={setIsInventoryModalOpen}
+      />
+
+      {/* ✅ TOAST POS PATTERN: Quick stock adjustment dialog */}
+      <AdjustStockDialog
+        open={adjustStockDialogOpen}
+        onOpenChange={setAdjustStockDialogOpen}
+        product={productToAdjust}
+        onConfirm={(adjustment, reason, notes) => {
+          if (productToAdjust) {
+            adjustStockMutation.mutate({
+              productId: productToAdjust.id,
+              adjustment,
+              reason,
+              notes,
+            })
+          }
+        }}
+        isLoading={adjustStockMutation.isPending}
+      />
     </div>
   )
 }

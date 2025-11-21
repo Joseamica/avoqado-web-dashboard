@@ -6,11 +6,15 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePermissions } from '@/hooks/usePermissions'
 import * as menuService from '@/services/menu.service'
 import { Menu, MenuCategory, Product } from '@/types'
+import { InventoryBadge } from '@/components/inventory/InventoryBadge'
+import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
+import { MenuImportDialog } from '@/components/menu/MenuImportDialog'
+import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info } from 'lucide-react'
+import { AlertCircle, GripVertical, Image as ImageIcon, Search, Info, Upload } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -112,6 +116,7 @@ function SortableProduct({
   imageErrors,
   setImageErrors,
   canEdit,
+  onProductClick,
 }: {
   product: Product
   editedPrices: Record<string, string>
@@ -120,6 +125,7 @@ function SortableProduct({
   imageErrors: Record<string, boolean>
   setImageErrors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
   canEdit: boolean
+  onProductClick?: (product: Product) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: product.id,
@@ -159,6 +165,11 @@ function SortableProduct({
       </div>
       <div className="font-medium text-foreground flex-grow">{product.name}</div>
       <div className="ml-auto flex items-center space-x-4 pointer-events-auto">
+        <InventoryBadge
+          product={product}
+          onClick={() => onProductClick?.(product)}
+          size="sm"
+        />
         <Input
           type="text"
           value={editedPrices[product.id] ?? (product.price / 100).toFixed(2)}
@@ -194,6 +205,9 @@ export default function Overview() {
   const [editedPrices, setEditedPrices] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -224,6 +238,18 @@ export default function Overview() {
     queryKey: ['products', venueId],
     queryFn: () => menuService.getProducts(venueId!),
     enabled: !!venueId,
+  })
+
+  // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
+  useMenuSocketEvents(venueId, {
+    onMenuItemAvailabilityChanged: () => {
+      // Invalidate products query when inventory changes
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
+    onMenuItemUpdated: () => {
+      // Invalidate on any menu item update
+      queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+    },
   })
 
   useEffect(() => {
@@ -490,13 +516,20 @@ export default function Overview() {
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
             {t('overview.manageCategories')}
           </Button>
+          {/* Import button - Requires menu:import permission (MANAGER+) */}
+          {can('menu:import') && (
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="gap-2">
+              <Upload className="h-4 w-4" />
+              {t('overview.importMenu')}
+            </Button>
+          )}
           {/* Create buttons - Requires menu:create permission (MANAGER+) */}
           {can('menu:create') && (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button>{t('overview.create')}</Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent sideOffset={5} className="w-56">
                 <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
                   {t('overview.newMenu')}
                 </DropdownMenuItem>
@@ -628,6 +661,10 @@ export default function Overview() {
                         imageErrors={imageErrors}
                         setImageErrors={setImageErrors}
                         canEdit={can('menu:update')}
+                        onProductClick={product => {
+                          setSelectedProduct(product)
+                          setIsInventoryModalOpen(true)
+                        }}
                       />
                     )
                   }
@@ -681,6 +718,9 @@ export default function Overview() {
           )}
         </aside>
       </div>
+
+      <InventoryDetailsModal product={selectedProduct} open={isInventoryModalOpen} onOpenChange={setIsInventoryModalOpen} />
+      <MenuImportDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} />
     </div>
   )
 }

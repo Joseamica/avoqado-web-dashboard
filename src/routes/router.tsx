@@ -1,90 +1,109 @@
 // src/router.tsx
 
-import { createBrowserRouter } from 'react-router-dom'
-import { StaffRole } from '@/types'
 import { ComingSoon } from '@/components/ComingSoon'
+import { StaffRole } from '@/types'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import {
-  Dashboard,
-  ErrorPage,
-  Login,
-  GoogleOAuthCallback,
-  Home,
-  Categories,
-  CategoryId,
-  CreateCategory,
-  MenuMakerLayout,
-  CreateMenu,
-  Menus,
-  ModifierGroups,
-  CreateModifierGroup,
-  MenuOverview,
-  CreateProduct,
-  ProductId,
-  Products,
-  CreateTpv,
-  Tpv,
-  TpvId,
-  Account,
-  VenuePaymentConfig,
-  Payments,
-  PaymentId,
-  ReceiptViewer,
-  MenuId,
-  Reviews,
-  // Waiters,
-  EditVenue,
-  Shifts,
-  // WaiterId,
-  ShiftId,
-  Orders,
-  OrderId,
-  Teams,
-  TeamMemberDetails,
-  AdminDashboard,
-  UserManagement,
-  SystemSettings,
-  VenueManagement,
-  GlobalConfig,
-  SuperAdminManagement,
-  SuperAdminVenueEdit,
-  Venues,
-  Notifications,
-  NotificationPreferences,
   AcceptAdminInvitation,
-  InviteAccept,
-  ModifierGroupId,
-  SuperadminLayout,
-  SuperadminDashboard,
-  SuperadminFeatureManagement,
-  SuperadminVenueManagement,
-  RevenueDashboard,
-  ProfitAnalyticsDashboard,
-  TestingPayments,
-  PaymentProviders,
-  MerchantAccounts,
-  PaymentAnalytics,
-  CostStructures,
-  VenuePricing,
-  Terms,
-  Privacy,
+  Account,
+  AdminDashboard,
   AnalyticsLayout,
   AnalyticsOverview,
+  AvailableBalance,
+  BasicInfo,
+  Billing,
+  Categories,
+  CategoryId,
+  ContactImages,
+  CostStructures,
+  CreateCategory,
+  CreateMenu,
+  CreateModifierGroup,
+  CreateProduct,
+  CreateTpv,
+  Dashboard,
+  EmailVerification,
+  ErrorPage,
+  ForgotPassword,
+  GlobalConfig,
+  GoogleIntegration,
+  GoogleOAuthCallback,
+  Home,
   InventoryLayout,
-  RawMaterials,
-  Recipes,
+  InviteAccept,
+  KYCReview,
+  Login,
+  MenuId,
+  MenuMakerLayout,
+  MenuOverview,
+  Menus,
+  MerchantAccounts,
+  ModifierGroupId,
+  ModifierGroups,
+  NotificationPreferences,
+  Notifications,
+  OnboardingWizard,
+  OrderId,
+  Orders,
+  PaymentAnalytics,
+  PaymentId,
+  PaymentProviders,
+  Payments,
   Pricing,
+  Privacy,
+  ProductId,
+  Products,
+  ProductStock,
+  ProfitAnalyticsDashboard,
+  RawMaterials,
+  ReceiptViewer,
+  Recipes,
+  ResetPassword,
+  RevenueDashboard,
+  Reviews,
   RolePermissions,
+  // WaiterId,
+  ShiftId,
+  Shifts,
+  Signup,
+  SuperadminDashboard,
+  SuperadminFeatureManagement,
+  SuperadminLayout,
+  SuperAdminManagement,
+  SuperAdminVenueEdit,
+  SuperadminVenueManagement,
+  SystemSettings,
+  TeamMemberDetails,
+  Teams,
+  Terms,
+  TestingPayments,
+  Tpv,
+  TpvId,
+  UserManagement,
+  VenueDocuments,
+  VenueEditLayout,
+  VenueIntegrations,
+  VenueManagement,
+  VenuePaymentConfig,
+  EcommerceMerchants,
+  VenuePricing,
+  Venues,
+  Webhooks,
+  Terminals,
 } from './lazyComponents'
 
-import { ProtectedRoute } from './ProtectedRoute'
 import Root from '@/root'
+import { EmailVerifiedRoute } from './EmailVerifiedRoute'
+import { ProtectedRoute } from './ProtectedRoute'
 
-import { SuperProtectedRoute } from './SuperProtectedRoute'
-import { AdminProtectedRoute, AdminAccessLevel } from './AdminProtectedRoute'
+import { Layout } from '@/Layout'
+import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
+import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
+import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
-import { Layout } from '@/Layout'
+import { SuperProtectedRoute } from './SuperProtectedRoute'
 
 const router = createBrowserRouter(
   [
@@ -94,6 +113,31 @@ const router = createBrowserRouter(
         {
           path: '/login',
           element: <Login />,
+        },
+        {
+          path: '/signup',
+          element: <Signup />,
+        },
+        {
+          path: '/auth/forgot-password',
+          element: <ForgotPassword />,
+        },
+        {
+          path: '/auth/reset-password/:token',
+          element: <ResetPassword />,
+        },
+        {
+          path: '/auth/verify-email',
+          element: <EmailVerification />,
+        },
+        {
+          element: <EmailVerifiedRoute />,
+          children: [
+            {
+              path: '/onboarding',
+              element: <OnboardingWizard />,
+            },
+          ],
         },
         {
           path: '/terms',
@@ -126,9 +170,7 @@ const router = createBrowserRouter(
               children: [
                 {
                   element: <AnalyticsLayout />,
-                  children: [
-                    { index: true, element: <AnalyticsOverview /> },
-                  ],
+                  children: [{ index: true, element: <AnalyticsOverview /> }],
                 },
               ],
             },
@@ -230,6 +272,10 @@ const router = createBrowserRouter(
                       element: <SuperadminVenueManagement />,
                     },
                     {
+                      path: 'kyc/:venueId',
+                      element: <KYCReview />,
+                    },
+                    {
                       path: 'features',
                       element: <SuperadminFeatureManagement />,
                     },
@@ -282,6 +328,10 @@ const router = createBrowserRouter(
                       element: <MerchantAccounts />,
                     },
                     {
+                      path: 'terminals',
+                      element: <Terminals />,
+                    },
+                    {
                       path: 'payment-analytics',
                       element: <PaymentAnalytics />,
                     },
@@ -297,6 +347,10 @@ const router = createBrowserRouter(
                       path: 'testing',
                       element: <TestingPayments />,
                     },
+                    {
+                      path: 'webhooks',
+                      element: <Webhooks />,
+                    },
                   ],
                 },
               ],
@@ -307,6 +361,12 @@ const router = createBrowserRouter(
               element: <Dashboard />,
               errorElement: <ErrorPage />,
               children: [
+                // KYC Setup Required Page (shown when KYC verification is needed)
+                {
+                  path: 'kyc-required',
+                  element: <KYCSetupRequired />,
+                },
+
                 // Home Dashboard (requires home:read permission)
                 {
                   element: <PermissionProtectedRoute permission="home:read" />,
@@ -380,74 +440,127 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Shifts Management (requires shifts:read permission)
+                // Shifts Management (requires shifts:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="shifts:read" />,
                   children: [
-                    { path: 'shifts', element: <Shifts /> },
-                    { path: 'shifts/:shiftId', element: <ShiftId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'shifts', element: <Shifts /> },
+                        { path: 'shifts/:shiftId', element: <ShiftId /> },
+                      ],
+                    },
                   ],
                 },
 
-                // Payments (requires payments:read permission)
+                // Payments (requires payments:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="payments:read" />,
                   children: [
-                    { path: 'payments', element: <Payments /> },
-                    { path: 'payments/:paymentId', element: <PaymentId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'payments', element: <Payments /> },
+                        { path: 'payments/:paymentId', element: <PaymentId /> },
+                      ],
+                    },
                   ],
                 },
 
                 // Public receipts (no permission required)
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
 
-                // Orders (requires orders:read permission)
+                // Orders (requires orders:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="orders:read" />,
                   children: [
-                    { path: 'orders', element: <Orders /> },
-                    { path: 'orders/:orderId', element: <OrderId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'orders', element: <Orders /> },
+                        { path: 'orders/:orderId', element: <OrderId /> },
+                      ],
+                    },
                   ],
                 },
                 // Analytics nested under venue for dashboard context
-                // Requires MANAGER+ or VIEWER role
+                // Requires MANAGER+ or VIEWER role + KYC verification
                 {
                   path: 'analytics',
                   element: <ManagerProtectedRoute allowViewer={true} />,
                   children: [
                     {
-                      element: <AnalyticsLayout />,
+                      element: <KYCProtectedRoute />,
                       children: [
-                        { index: true, element: <AnalyticsOverview /> },
+                        {
+                          element: <AnalyticsLayout />,
+                          children: [{ index: true, element: <AnalyticsOverview /> }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                // Available Balance (requires settlements:read permission + KYC verification)
+                {
+                  element: <PermissionProtectedRoute permission="settlements:read" />,
+                  children: [
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [{ path: 'available-balance', element: <AvailableBalance /> }],
+                    },
+                  ],
+                },
+                {
+                  path: 'edit',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [
+                    {
+                      element: <VenueEditLayout />,
+                      children: [
+                        { index: true, element: <Navigate to="basic-info" replace /> }, // Redirect to basic-info by default
+                        { path: 'basic-info', element: <BasicInfo /> }, // New: Information básica
+                        { path: 'contact-images', element: <ContactImages /> }, // New: Contacto e imágenes
+                        { path: 'general', element: <Navigate to="../basic-info" replace /> }, // Legacy redirect
+                        { path: 'documents', element: <VenueDocuments /> },
+                        {
+                          path: 'integrations',
+                          children: [
+                            { index: true, element: <VenueIntegrations /> },
+                            { path: 'google', element: <GoogleIntegration /> },
+                          ],
+                        },
                       ],
                     },
                   ],
                 },
                 {
-                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [{ path: 'editVenue', element: <EditVenue /> }],
-                },
-                {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
-                  children: [{ path: 'payment-config', element: <VenuePaymentConfig /> }],
+                  children: [
+                    { path: 'payment-config', element: <VenuePaymentConfig /> },
+                    { path: 'ecommerce-merchants', element: <EcommerceMerchants /> },
+                  ],
                 },
 
-                // TPV Management (requires tpv:read permission)
+                // TPV Management (requires tpv:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="tpv:read" />,
                   children: [
-                    { path: 'tpv', element: <Tpv /> },
-                    { path: 'tpv/create', element: <CreateTpv /> },
-                    { path: 'tpv/:tpvId', element: <TpvId /> },
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { path: 'tpv', element: <Tpv /> },
+                        { path: 'tpv/create', element: <CreateTpv /> },
+                        { path: 'tpv/:tpvId', element: <TpvId /> },
+                      ],
+                    },
                   ],
                 },
 
                 // Reviews (requires reviews:read permission)
                 {
                   element: <PermissionProtectedRoute permission="reviews:read" />,
-                  children: [
-                    { path: 'reviews', element: <Reviews /> },
-                  ],
+                  children: [{ path: 'reviews', element: <Reviews /> }],
                 },
 
                 // { path: 'waiters', element: <Waiters /> },
@@ -478,7 +591,19 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Inventory Management (ADMIN access + inventory:read permission)
+                // Billing Management (ADMIN only)
+                {
+                  path: 'settings/billing',
+                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
+                  children: [
+                    {
+                      index: true,
+                      element: <Billing />,
+                    },
+                  ],
+                },
+
+                // Inventory Management (ADMIN access + inventory:read permission + KYC verification)
                 {
                   path: 'inventory',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
@@ -487,11 +612,17 @@ const router = createBrowserRouter(
                       element: <PermissionProtectedRoute permission="inventory:read" />,
                       children: [
                         {
-                          element: <InventoryLayout />,
+                          element: <KYCProtectedRoute />,
                           children: [
-                            { path: 'raw-materials', element: <RawMaterials /> },
-                            { path: 'recipes', element: <Recipes /> },
-                            { path: 'pricing', element: <Pricing /> },
+                            {
+                              element: <InventoryLayout />,
+                              children: [
+                                { path: 'raw-materials', element: <RawMaterials /> },
+                                { path: 'product-stock', element: <ProductStock /> },
+                                { path: 'recipes', element: <Recipes /> },
+                                { path: 'pricing', element: <Pricing /> },
+                              ],
+                            },
                           ],
                         },
                       ],

@@ -287,15 +287,20 @@ export async function sendVenueNotification(
 /**
  * Format notification type for display
  */
-export function formatNotificationType(type: NotificationType, t: TFunction): string {
-  return t(`dashboard.notifications.types.${type}`)
+export function formatNotificationType(type: NotificationType): string {
+  // Convert enum to readable format (e.g., NEW_ORDER -> New Order)
+  return type
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, l => l.toUpperCase())
 }
 
 /**
  * Format notification priority for display
  */
-export function formatNotificationPriority(priority: NotificationPriority, t: TFunction): string {
-  return t(`dashboard.notifications.priorities.${priority}`)
+export function formatNotificationPriority(priority: NotificationPriority): string {
+  // Convert enum to readable format (e.g., HIGH -> High)
+  return priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase()
 }
 
 /**

@@ -36,7 +36,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
   merchantAccountId: initialMerchantAccountId,
   onSave,
 }) => {
-  const { t: _t } = useTranslation()
+  const { t: _t } = useTranslation('superadmin')
   const [loading, setLoading] = useState(false)
 
   // Fetch merchant accounts for dropdown
@@ -99,8 +99,8 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
         creditRate: formData.creditRate / 100,
         amexRate: formData.amexRate / 100,
         internationalRate: formData.internationalRate / 100,
-        fixedCostPerTransaction: formData.fixedCostPerTransaction || undefined,
-        monthlyFee: formData.monthlyFee || undefined,
+        fixedCostPerTransaction: formData.fixedCostPerTransaction,
+        monthlyFee: formData.monthlyFee,
         proposalReference: formData.proposalReference || undefined,
         notes: formData.notes || undefined,
       })

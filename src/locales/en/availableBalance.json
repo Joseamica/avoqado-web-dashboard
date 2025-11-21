@@ -1,0 +1,116 @@
+{
+  "title": "Available Balance",
+  "description": "View your settlement schedule and available funds by payment method",
+
+  "error": {
+    "prefix": "Error",
+    "noVenue": "No venue selected",
+    "unexpected": "An unexpected error occurred"
+  },
+
+  "kpi": {
+    "availableNow": "Available Now",
+    "availableNowDescription": "Already settled and available for withdrawal",
+    "pending": "Pending Settlement",
+    "pendingDescription": "Awaiting settlement from payment processor",
+    "nextSettlement": "Next Settlement",
+    "nextSettlementDate": "Expected on {{date}}"
+  },
+
+  "breakdown": {
+    "title": "Breakdown by Card Type",
+    "description": "Settlement details by payment method",
+    "table": {
+      "cardType": "Card Type",
+      "transactions": "Transactions",
+      "totalSales": "Total Sales",
+      "fees": "Fees",
+      "netAmount": "Net Amount",
+      "settlementDays": "Settlement Time",
+      "pending": "Pending",
+      "settled": "Settled",
+      "days": "{{count}} day",
+      "days_other": "{{count}} days",
+      "noData": "No transactions found"
+    }
+  },
+
+  "cardType": {
+    "debit": "Debit",
+    "credit": "Credit",
+    "amex": "American Express",
+    "international": "International"
+  },
+
+  "timeline": {
+    "title": "Settlement Timeline",
+    "description": "Historical and projected settlements",
+    "table": {
+      "date": "Transaction Date",
+      "status": "Status",
+      "transactions": "Transactions",
+      "gross": "Gross Amount",
+      "fees": "Fees",
+      "net": "Net Amount",
+      "settlementDate": "Settlement Date",
+      "noData": "No settlement data available"
+    },
+    "viewAll": "View All ({{count}})"
+  },
+
+  "status": {
+    "settled": "Settled",
+    "pending": "Pending",
+    "projected": "Projected"
+  },
+
+  "simulate": {
+    "button": "Simulate Transaction",
+    "title": "Transaction Simulator",
+    "description": "Calculate settlement date for a hypothetical transaction",
+    "form": {
+      "amount": "Transaction Amount",
+      "amountPlaceholder": "Enter amount",
+      "cardType": "Card Type",
+      "cardTypePlaceholder": "Select card type",
+      "transactionDate": "Transaction Date",
+      "transactionTime": "Transaction Time (Optional)",
+      "transactionTimePlaceholder": "HH:MM",
+      "submit": "Calculate Settlement",
+      "cancel": "Cancel"
+    },
+    "result": {
+      "title": "Simulation Result",
+      "settlementDate": "Estimated Settlement Date",
+      "settlementDays": "Settlement Days",
+      "grossAmount": "Gross Amount",
+      "fees": "Estimated Fees",
+      "netAmount": "Net Settlement Amount",
+      "configuration": "Settlement Configuration",
+      "configDays": "{{count}} {{type}}",
+      "businessDays": "business day",
+      "businessDays_other": "business days",
+      "calendarDays": "calendar day",
+      "calendarDays_other": "calendar days",
+      "cutoffTime": "Cutoff time: {{time}}"
+    },
+    "error": "Failed to simulate transaction"
+  },
+
+  "projection": {
+    "button": "View Projection",
+    "title": "Balance Projection",
+    "description": "Projected settlements based on historical patterns",
+    "days": "Projection Period (Days)",
+    "daysPlaceholder": "Enter number of days",
+    "submit": "Generate Projection",
+    "result": {
+      "projectedBalance": "Projected Balance",
+      "dailyAverage": "Daily Average Settlement",
+      "confidence": "Confidence Level",
+      "confidenceHigh": "High",
+      "confidenceMedium": "Medium",
+      "confidenceLow": "Low"
+    }
+  }
+}

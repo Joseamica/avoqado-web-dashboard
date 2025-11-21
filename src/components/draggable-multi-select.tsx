@@ -274,6 +274,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
   ) => {
     const inputRef = React.useRef<HTMLInputElement>(null)
     const dropdownRef = React.useRef<HTMLDivElement>(null)
+    const { t } = useTranslation()
 
     const [open, setOpen] = React.useState(false)
     const [onScrollbar, setOnScrollbar] = React.useState(false)
@@ -526,7 +527,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
               </div>
 
               {/* Clear-all button in its own dedicated space */}
-              <div className="flex-shrink-0 flex items-start justify-center w-8 pt-1">
+              <div className="shrink-0 flex items-start justify-center w-8 pt-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -539,8 +540,8 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                     (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
                       'hidden',
                   )}
-          title={t('common.clearAll')}
-        >
+                  title={t('common.clearAll')}
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -553,7 +554,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
               <div className="absolute z-10 w-full border rounded-md shadow-md top-1 bg-popover text-popover-foreground animate-in overflow-hidden flex flex-col">
                 {/* Scrollable content area */}
                 <CommandList
-                  className="max-h-56 overflow-y-auto overflow-x-hidden outline-hidden flex-grow"
+                  className="max-h-56 overflow-y-auto overflow-x-hidden outline-hidden grow"
                   onMouseLeave={() => {
                     setOnScrollbar(false)
                   }}

@@ -1,0 +1,38 @@
+{
+  "setupRequired": {
+    "title": "Vérification KYC Requise",
+    "subtitle": "Complétez la vérification pour accéder aux fonctionnalités opérationnelles",
+    "missing": {
+      "title": "Vérification KYC Non Soumise",
+      "description": "Vous devez compléter la vérification KYC (Connaître votre Client) pour accéder aux fonctionnalités opérationnelles telles que les commandes, les paiements et les analyses.",
+      "action": "Démarrer la Vérification KYC"
+    },
+    "pending": {
+      "title": "Vérification en Cours",
+      "description": "Vos documents KYC sont en cours de révision par notre équipe. Patientez! Toutes les fonctionnalités opérationnelles seront automatiquement débloquées une fois la vérification approuvée.",
+      "note": "Temps estimé:",
+      "noteText": "Les révisions sont généralement terminées dans 1-2 jours ouvrables. Vous recevrez une notification par e-mail une fois approuvée."
+    },
+    "rejected": {
+      "title": "Vérification KYC Rejetée",
+      "defaultReason": "Votre soumission KYC a été rejetée. Veuillez vérifier les exigences et soumettre à nouveau vos documents.",
+      "action": "Soumettre à Nouveau les Documents"
+    },
+    "helpText": "La vérification KYC est requise pour le traitement des paiements et les opérations financières.",
+    "contactSupport": "Besoin d'aide?",
+    "contactEmail": "Contacter le support"
+  },
+  "banner": {
+    "missing": {
+      "message": "Complétez la vérification KYC pour accéder aux fonctionnalités opérationnelles (commandes, paiements, analyses)",
+      "action": "Commencer Maintenant"
+    },
+    "pending": {
+      "message": "Vérification en cours - Toutes les fonctionnalités seront débloquées une fois votre KYC approuvé (généralement 1-2 jours ouvrables)"
+    },
+    "rejected": {
+      "message": "Vérification KYC rejetée - Veuillez vérifier la raison du rejet et soumettre à nouveau vos documents",
+      "action": "Soumettre à Nouveau"
+    }
+  }
+}
