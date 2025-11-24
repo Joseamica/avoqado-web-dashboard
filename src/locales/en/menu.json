@@ -602,6 +602,11 @@
       "preview": "Preview",
       "previewText": "From {{startDate}} to {{endDate}}"
     },
+    "dialogs": {
+      "deleteTitle": "Delete menu",
+      "deleteMessage": "Are you sure you want to delete this menu? This action cannot be undone.",
+      "deleteButton": "Delete menu"
+    },
     "toast": {
       "menuUpdated": "Menu {{name}} updated",
       "menuUpdatedDesc": "The menu was saved successfully.",
@@ -609,10 +614,14 @@
       "menuStatusActiveDesc": "The menu is now available.",
       "menuStatusInactive": "Menu deactivated",
       "menuStatusInactiveDesc": "The menu is now hidden.",
+      "menuDeleted": "Menu deleted",
+      "menuDeletedDesc": "The menu has been deleted successfully.",
       "errorSaving": "Error saving",
       "errorSavingDesc": "We couldn't save the menu. Try again.",
       "errorStatus": "Error updating status",
-      "errorStatusDesc": "We couldn't update the menu status. Try again later."
+      "errorStatusDesc": "We couldn't update the menu status. Try again later.",
+      "errorDeleting": "Error deleting menu",
+      "errorDeletingDesc": "We couldn't delete the menu. {{message}}"
     },
     "validation": {
       "nameRequired": "Menu name is required.",

@@ -590,6 +590,11 @@
       "preview": "Vista previa",
       "previewText": "Del {{startDate}} al {{endDate}}"
     },
+    "dialogs": {
+      "deleteTitle": "Eliminar menú",
+      "deleteMessage": "¿Estás seguro de que quieres eliminar este menú? Esta acción no se puede deshacer.",
+      "deleteButton": "Eliminar menú"
+    },
     "toast": {
       "menuUpdated": "Menú {{name}} actualizado",
       "menuUpdatedDesc": "El menú se guardó correctamente.",
@@ -597,10 +602,14 @@
       "menuStatusActiveDesc": "El menú ahora está disponible.",
       "menuStatusInactive": "Menú desactivado",
       "menuStatusInactiveDesc": "El menú ahora está oculto.",
+      "menuDeleted": "Menú eliminado",
+      "menuDeletedDesc": "El menú se ha eliminado exitosamente.",
       "errorSaving": "Error al guardar",
       "errorSavingDesc": "No pudimos guardar el menú. Intenta nuevamente.",
       "errorStatus": "Error al actualizar el estado",
-      "errorStatusDesc": "No pudimos actualizar el estado del menú. Intenta de nuevo más tarde."
+      "errorStatusDesc": "No pudimos actualizar el estado del menú. Intenta de nuevo más tarde.",
+      "errorDeleting": "Error al eliminar menú",
+      "errorDeletingDesc": "No pudimos eliminar el menú. {{message}}"
     },
     "validation": {
       "nameRequired": "Debes ingresar el nombre del menú.",

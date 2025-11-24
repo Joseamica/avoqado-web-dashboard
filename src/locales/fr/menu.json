@@ -233,5 +233,18 @@
       "selectCategories": "Sélectionnez des catégories",
       "noCategoriesFound": "Aucune catégorie trouvée"
     }
+  },
+  "menuId": {
+    "dialogs": {
+      "deleteTitle": "Supprimer le menu",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer ce menu ? Cette action ne peut pas être annulée.",
+      "deleteButton": "Supprimer le menu"
+    },
+    "toast": {
+      "menuDeleted": "Menu supprimé",
+      "menuDeletedDesc": "Le menu a été supprimé avec succès.",
+      "errorDeleting": "Erreur lors de la suppression du menu",
+      "errorDeletingDesc": "Nous n'avons pas pu supprimer le menu. {{message}}"
+    }
   }
 }

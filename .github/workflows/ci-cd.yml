@@ -293,21 +293,25 @@ jobs:
             const version = '${{ needs.test-and-build.outputs.version }}';
             const buildSize = '${{ needs.test-and-build.outputs.build-size }}';
 
+            const body = [
+              '## 🌐 Build Successful! ✅',
+              '',
+              '### 📊 Build Summary',
+              '- **Branch**: `' + pr.head.ref + '`',
+              '- **Commit**: `' + context.sha.substring(0, 7) + '`',
+              '- **Version**: `' + version + '`',
+              '- **Build size**: `' + buildSize + '`',
+              '- **Built at**: `' + buildTime + '`',
+              '',
+              '### ✅ Quality Checks',
+              '- ESLint, i18n, TypeScript, Build all passed!',
+              '',
+              '🎯 **Ready for review!**'
+            ].join('\n');
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🌐 Build Successful! ✅
-
-### 📊 Build Summary
-- **Branch**: \`${pr.head.ref}\`
-- **Commit**: \`${context.sha.substring(0, 7)}\`
-- **Version**: \`${version}\`
-- **Build size**: \`${buildSize}\`
-- **Built at**: \`${buildTime}\`
-
-### ✅ Quality Checks
-- ESLint, i18n, TypeScript, Build all passed!
-
-🎯 **Ready for review!**`
+              body: body
             });
