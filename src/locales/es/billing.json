@@ -1,6 +1,13 @@
 {
+  "loading": "Cargando...",
   "pageTitle": "Facturación y Suscripciones",
   "pageSubtitle": "Administra tus suscripciones activas, consulta el historial de facturación y explora funciones disponibles",
+  "tabs": {
+    "subscriptions": "Suscripciones",
+    "history": "Historial",
+    "paymentMethods": "Métodos de Pago",
+    "tokens": "Tokens IA"
+  },
   "activeSubscriptions": {
     "title": "Suscripciones Activas",
     "noSubscriptions": "Aún no tienes suscripciones activas",
@@ -19,6 +26,10 @@
   },
   "billingHistory": {
     "title": "Historial de Facturación",
+    "tabs": {
+      "invoices": "Facturas",
+      "tokenPurchases": "Compras de Tokens"
+    },
     "noInvoices": "Aún no hay facturas",
     "description": "Tu historial de facturas aparecerá aquí una vez que comiences a recibir cobros",
     "sort": {
@@ -45,10 +56,15 @@
     },
     "columns": {
       "date": "Fecha",
+      "type": "Tipo",
       "description": "Descripción",
       "amount": "Monto",
       "status": "Estado",
       "actions": "Acciones"
+    },
+    "conceptType": {
+      "subscription": "Suscripción",
+      "tokens": "Tokens IA"
     },
     "status": {
       "paid": "Pagado",
@@ -59,6 +75,7 @@
     },
     "downloadButton": "Descargar Factura",
     "downloading": "Descargando...",
+    "viewReceiptButton": "Ver Recibo",
     "retryButton": "Reintentar Pago",
     "retrying": "Reintentando...",
     "retrySuccess": "Pago reintentado exitosamente",
@@ -159,6 +176,78 @@
       "confirmFailed": "Error al confirmar método de pago",
       "setupFailed": "Error al configurar método de pago",
       "addFailed": "Error al agregar método de pago"
+    }
+  },
+  "tokenBudget": {
+    "title": "Presupuesto de Tokens IA",
+    "subtitle": "Administra el uso de tokens del asistente IA y tus compras",
+    "settings": "Configuración",
+    "loadError": "Error al cargar información de tokens",
+    "currentUsage": "Uso del Mes Actual",
+    "freeTokensIncluded": "{{amount}} tokens gratis incluidos mensualmente",
+    "used": "usado",
+    "freeRemaining": "Gratis Restantes",
+    "purchased": "Comprados",
+    "totalAvailable": "Total Disponible",
+    "overageWarning": "Has usado {{tokens}} tokens sobre tu límite. Costo de excedente actual: {{cost}}",
+    "purchaseTitle": "Comprar Tokens Adicionales",
+    "tokenAmount": "Cantidad de Tokens",
+    "pricePerThousand": "{{price}} por 1,000 tokens",
+    "total": "Total",
+    "buyNow": "Comprar Ahora",
+    "purchaseSuccess": "¡Tokens comprados!",
+    "purchaseSuccessDesc": "{{amount}} tokens han sido agregados a tu cuenta",
+    "purchaseError": "Error en la compra",
+    "minimumRequired": "Mínimo 1,000 tokens",
+    "minimumRequiredDesc": "Por favor ingresa al menos 1,000 tokens para comprar",
+    "autoRechargeTitle": "Configuración de Recarga Automática",
+    "autoRechargeDesc": "Compra automáticamente tokens cuando tu saldo sea bajo",
+    "enableAutoRecharge": "Habilitar Recarga Automática",
+    "enableAutoRechargeDesc": "Comprar tokens automáticamente cuando el saldo caiga por debajo del umbral",
+    "threshold": "Umbral",
+    "thresholdDesc": "Comprar tokens cuando el saldo caiga por debajo de esta cantidad",
+    "rechargeAmount": "Cantidad a Recargar",
+    "rechargeAmountDesc": "Cantidad a comprar ({{price}})",
+    "saveSettings": "Guardar Configuración",
+    "settingsUpdated": "Configuración guardada",
+    "settingsUpdatedDesc": "Tu configuración de recarga automática ha sido actualizada",
+    "settingsError": "Error al guardar configuración",
+    "noPaymentMethod": "Agrega un método de pago arriba para comprar tokens",
+    "addFundsButton": "Añadir fondos",
+    "addFunds": {
+      "title": "Añadir fondos",
+      "description": "Cubre el uso que supere los límites de tu suscripción añadiendo fondos a tu cartera",
+      "balanceAfter": "Saldo después de la compra",
+      "tokensToAdd": "Tokens a añadir",
+      "pricePerToken": "Precio por token",
+      "totalToPay": "Total a pagar",
+      "paymentMethod": "Método de pago",
+      "customAmount": "Cantidad personalizada...",
+      "disclaimer": "Al hacer clic en Comprar, autorizas el cobro a tu tarjeta por el importe indicado arriba.",
+      "buyButton": "Comprar tokens"
+    }
+  },
+  "tokenPurchases": {
+    "title": "Historial de Compras de Tokens",
+    "noPurchases": "Aún no hay compras de tokens",
+    "description": "Tu historial de compras de tokens aparecerá aquí una vez que realices tu primera compra",
+    "columns": {
+      "date": "Fecha",
+      "tokens": "Tokens",
+      "amount": "Monto",
+      "type": "Tipo",
+      "status": "Estado"
+    },
+    "type": {
+      "manual": "Manual",
+      "autoRecharge": "Recarga automática",
+      "promotional": "Promocional"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "failed": "Fallido",
+      "refunded": "Reembolsado"
     }
   },
   "toast": {

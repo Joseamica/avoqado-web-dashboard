@@ -272,8 +272,8 @@ export default function VenueDocuments() {
       <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>No se pudo cargar la información del local</AlertDescription>
+          <AlertTitle>{t('edit.documents.error', { defaultValue: 'Error' })}</AlertTitle>
+          <AlertDescription>{t('edit.documents.loadError', { defaultValue: 'Could not load venue information' })}</AlertDescription>
         </Alert>
       </div>
     )
@@ -407,7 +407,7 @@ export default function VenueDocuments() {
           <CardContent className="pt-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">RFC</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1">{t('edit.documents.rfc', { defaultValue: 'RFC' })}</p>
                 <p className="text-sm text-foreground font-mono">{venue.rfc}</p>
               </div>
               {venue.legalName && (

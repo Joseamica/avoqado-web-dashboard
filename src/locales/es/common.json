@@ -98,6 +98,24 @@
     "title": "Asistente Avoqado",
     "queriesRemaining": "consultas restantes",
     "welcome": "¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy?",
+    "status": {
+      "unsaved": "Sin guardar",
+      "saved": "Guardado"
+    },
+    "menu": {
+      "options": "Opciones",
+      "viewHistory": "Ver conversaciones guardadas",
+      "hideHistory": "Volver al chat",
+      "expand": "Expandir",
+      "collapse": "Contraer",
+      "clearHistory": "Limpiar conversación"
+    },
+    "unsavedChanges": {
+      "title": "Cambios sin guardar",
+      "description": "Tienes cambios sin guardar en tu conversación actual. ¿Qué te gustaría hacer?",
+      "saveFirst": "Guardar primero",
+      "discard": "Descartar cambios"
+    },
     "input": {
       "placeholder": "Escribe tu mensaje aquí..."
     },
@@ -181,10 +199,27 @@
     "saved": {
       "title": "Conversaciones Guardadas",
       "back": "Volver al chat",
-      "empty": "Aún no hay conversaciones guardadas."
+      "empty": "Aún no hay conversaciones guardadas.",
+      "currentlyLoaded": "Cargada",
+      "emptyTitle": "Sin conversaciones guardadas",
+      "emptyDescription": "Tus conversaciones guardadas aparecerán aquí. Haz clic en el botón guardar para guardar la conversación actual."
+    },
+    "sidebar": {
+      "show": "Mostrar conversaciones",
+      "hide": "Ocultar conversaciones",
+      "newChat": "Nuevo chat"
     },
     "labels": {
       "cache": "En caché"
+    },
+    "tokens": {
+      "available": "Tokens disponibles para consultas",
+      "remaining": "tokens"
+    },
+    "visualization": {
+      "toggle": "Mostrar gráficas",
+      "tokenWarning": "Consume más tokens",
+      "noData": "No hay datos disponibles para la gráfica"
     },
     "a11y": {
       "positiveFeedback": "Marcar como útil",
@@ -203,6 +238,87 @@
         "desc": "¿Estás seguro de que quieres eliminar \"{{title}}\"? Esta acción no se puede deshacer.",
         "confirm": "Eliminar"
       }
+    },
+    "tokenWarning": {
+      "title": "Límite de Tokens Alcanzado",
+      "exhaustedDesc": "Has agotado todos tus tokens disponibles este mes. Enviar este mensaje generará cargos adicionales.",
+      "overageDesc": "Estás actualmente en excedente. Esta consulta se sumará a tu costo de excedente actual de ${{cost}} USD.",
+      "continueQuestion": "¿Deseas continuar de todas formas?",
+      "sendAnyway": "Enviar de Todas Formas"
+    }
+  },
+  "flags": {
+    "spain": "Bandera de España",
+    "uk": "Bandera del Reino Unido"
+  },
+  "chooseColor": "Elegir color",
+  "conversionWizard": {
+    "title": "Convertir a Establecimiento Real",
+    "subtitle": "Completa los siguientes pasos para activar tu establecimiento y comenzar a aceptar pagos reales.",
+    "step": "Paso",
+    "of": "de",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "convert": "Convertir Ahora",
+    "step1": {
+      "title": "Información Fiscal",
+      "description": "Ingresa la información fiscal de tu negocio",
+      "rfcLabel": "RFC",
+      "legalNameLabel": "Razón Social",
+      "legalNamePlaceholder": "Ingresa la razón social de tu negocio",
+      "fiscalRegimeLabel": "Régimen Fiscal",
+      "fiscalRegimePlaceholder": "ej., Régimen General de Ley"
+    },
+    "step2": {
+      "title": "Documentos Fiscales",
+      "description": "Sube tu constancia de situación fiscal y, si aplica, tu acta constitutiva",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "constanciaLabel": "Constancia de situación fiscal (obligatoria)",
+      "actaLabel": "Acta constitutiva (opcional)",
+      "actaHint": "PDF, JPG, PNG (MÁX. 10MB)"
+    },
+    "step3": {
+      "title": "Identificación",
+      "description": "Sube tu identificación oficial",
+      "uploadLabel": "Haz clic para subir o arrastra y suelta",
+      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "idLabel": "Identificación oficial (obligatoria)"
+    },
+    "step4": {
+      "title": "Seleccionar Funcionalidades",
+      "description": "Elige las funcionalidades que deseas activar",
+      "loading": "Cargando funcionalidades...",
+      "noFeatures": "No hay funcionalidades disponibles en este momento",
+      "helpText": "Selecciona las funcionalidades que deseas habilitar para tu establecimiento."
+    },
+    "step5": {
+      "title": "Revisar y Confirmar",
+      "description": "Revisa tu información antes de convertir",
+      "summaryTitle": "Resumen",
+      "venueName": "Nombre del Establecimiento",
+      "rfc": "RFC",
+      "legalName": "Razón Social",
+      "confirmationMessage": "Al hacer clic confirmas que la información es correcta."
+    },
+    "success": {
+      "title": "¡Conversión Exitosa!",
+      "description": "Tu establecimiento ha sido convertido exitosamente."
+    },
+    "shared": {
+      "selectFile": "Seleccionar archivo",
+      "uploading": "Subiendo archivo..."
+    },
+    "documents": {
+      "title": "Documentos cargados",
+      "pending": "Pendiente",
+      "completed": "Listo",
+      "optional": "Opcional"
+    },
+    "error": {
+      "title": "Error",
+      "description": "Hubo un error. Por favor intenta de nuevo.",
+      "fetchFeatures": "No se pudieron cargar las funcionalidades."
     }
   }
 }

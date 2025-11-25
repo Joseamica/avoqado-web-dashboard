@@ -58,11 +58,44 @@ interface SavedConversation {
 //   currentId: string | null
 // }
 
+// Chart visualization data returned from backend
+export interface ChartVisualization {
+  type: 'bar' | 'line' | 'pie' | 'area'
+  title: string
+  description?: string
+  data: Array<Record<string, any>>
+  config: {
+    xAxis?: { key: string; label: string }
+    yAxis?: { key: string; label: string }
+    dataKeys: Array<{ key: string; label: string; color?: string }>
+  }
+}
+
+// When visualization was requested but couldn't be generated
+export interface VisualizationSkipped {
+  skipped: true
+  reason: string
+}
+
+// Union type: either a chart or a skip reason
+export type VisualizationResult = ChartVisualization | VisualizationSkipped
+
+// Type guard to check if visualization was skipped
+export const isVisualizationSkipped = (viz: VisualizationResult | undefined): viz is VisualizationSkipped => {
+  return viz !== undefined && 'skipped' in viz && viz.skipped === true
+}
+
 interface ChatResponse {
   response: string
   suggestions?: string[]
   cached?: boolean
   trainingDataId?: string
+  visualization?: VisualizationResult
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
   metadata?: {
     confidence: number
     queryGenerated?: boolean
@@ -349,6 +382,7 @@ const generateVenueChangeContext = (previousVenue: string | null, currentVenue: 
 interface SendChatMessageOptions {
   venueSlug?: string | null
   userId?: string | null
+  includeVisualization?: boolean
 }
 
 // Función principal para enviar mensajes usando API directamente
@@ -409,6 +443,9 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     if (targetUserId) {
       payload.userId = targetUserId
     }
+    if (options?.includeVisualization) {
+      payload.includeVisualization = true
+    }
 
     const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', payload)
 
@@ -459,6 +496,8 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
       cached: false,
       metadata: safeMetadata,
       trainingDataId: result.trainingDataId,
+      visualization: result.visualization,
+      tokenUsage: result.tokenUsage,
     }
   } catch (error: any) {
     console.error('Error sending chat message:', error)
@@ -945,5 +984,155 @@ export const clearAllChatStorage = (): void => {
     keysToRemove.forEach(key => localStorage.removeItem(key))
   } catch (error) {
     console.error('Error clearing chat storage:', error)
+  }
+}
+
+// === TOKEN BUDGET API FUNCTIONS ===
+
+export interface TokenBudgetStatus {
+  freeTokensRemaining: number
+  extraTokensBalance: number // Current balance of purchased tokens (decreases as used)
+  totalAvailable: number
+  percentageUsed: number
+  isInOverage: boolean
+  overageTokensUsed: number
+  overageCost: number
+  warning?: string
+  // Historical totals (for display purposes)
+  totalTokensPurchased: number // Total tokens ever purchased (doesn't decrease)
+  totalTokensUsed: number // Total tokens ever used
+  totalAmountSpent: number // Total amount spent on purchases
+  pricing: {
+    pricePerThousandTokens: number
+    currency: string
+    freeTokensPerMonth: number
+  }
+}
+
+/**
+ * Get the current token budget status for the venue
+ * @returns Token budget status with remaining tokens, usage percentage, and pricing info
+ */
+export const getTokenBudgetStatus = async (): Promise<TokenBudgetStatus> => {
+  try {
+    const response = await api.get('/api/v1/dashboard/tokens/status')
+    return response.data.data
+  } catch (error) {
+    devLog('Error fetching token budget status:', error)
+    throw error
+  }
+}
+
+export interface AutoRechargeSettings {
+  enabled: boolean
+  threshold?: number
+  amount?: number
+}
+
+export interface TokenPurchaseResult {
+  success: boolean
+  purchaseId?: string
+  clientSecret?: string
+  tokenAmount: number
+  amountPaid: number
+}
+
+/**
+ * Purchase additional tokens for the venue
+ * @param tokenAmount Number of tokens to purchase (minimum 20000)
+ * @param paymentMethodId Stripe payment method ID to charge
+ * @returns Purchase result with payment details
+ */
+export const purchaseTokens = async (tokenAmount: number, paymentMethodId: string): Promise<TokenPurchaseResult> => {
+  try {
+    const response = await api.post('/api/v1/dashboard/tokens/purchase', { tokenAmount, paymentMethodId })
+    return response.data.data
+  } catch (error) {
+    devLog('Error purchasing tokens:', error)
+    throw error
+  }
+}
+
+/**
+ * Update auto-recharge settings for the venue
+ * @param settings Auto-recharge configuration
+ */
+export const updateAutoRecharge = async (settings: AutoRechargeSettings): Promise<void> => {
+  try {
+    await api.put('/api/v1/dashboard/tokens/auto-recharge', settings)
+  } catch (error) {
+    devLog('Error updating auto-recharge settings:', error)
+    throw error
+  }
+}
+
+// === TOKEN PURCHASE HISTORY ===
+
+export interface TokenPurchaseRecord {
+  id: string
+  tokenAmount: number
+  amountPaid: string
+  purchaseType: 'MANUAL' | 'AUTO_RECHARGE' | 'PROMOTIONAL'
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED'
+  createdAt: string
+  completedAt: string | null
+  stripeReceiptUrl: string | null // Hosted invoice URL for viewing online
+  stripeInvoicePdfUrl: string | null // PDF URL for downloading invoice
+}
+
+export interface TokenHistoryResponse {
+  usage: {
+    records: Array<{
+      id: string
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+      queryType: string
+      estimatedCost: string
+      createdAt: string
+    }>
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }
+  purchases: {
+    records: TokenPurchaseRecord[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }
+}
+
+/**
+ * Get token purchase and usage history
+ * @param options Pagination and date filtering options
+ * @returns Token history with usage records and purchase records
+ */
+export const getTokenHistory = async (options?: {
+  page?: number
+  limit?: number
+  startDate?: string
+  endDate?: string
+}): Promise<TokenHistoryResponse> => {
+  try {
+    const params = new URLSearchParams()
+    if (options?.page) params.append('page', String(options.page))
+    if (options?.limit) params.append('limit', String(options.limit))
+    if (options?.startDate) params.append('startDate', options.startDate)
+    if (options?.endDate) params.append('endDate', options.endDate)
+
+    const queryString = params.toString()
+    const url = `/api/v1/dashboard/tokens/history${queryString ? `?${queryString}` : ''}`
+    const response = await api.get(url)
+    return response.data.data
+  } catch (error) {
+    devLog('Error fetching token history:', error)
+    throw error
   }
 }

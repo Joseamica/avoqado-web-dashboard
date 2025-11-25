@@ -15,7 +15,8 @@
     "businessLocation": "Ubicación del Negocio",
     "lastSync": "Última Sincronización",
     "never": "Nunca",
-    "reviewsCount": "{{count}} reseñas sincronizadas"
+    "reviewsCount": "{{count}} reseñas sincronizadas",
+    "googleReviews": "Reseñas de Google"
   },
 
   "actions": {
@@ -88,5 +89,11 @@
       "confirm": "Desconectar",
       "cancel": "Cancelar"
     }
+  },
+
+  "externalLinks": {
+    "googleBusinessProfile": "Google Business Profile",
+    "manageProfile": "Administra tu perfil en Google",
+    "open": "Abrir"
   }
 }

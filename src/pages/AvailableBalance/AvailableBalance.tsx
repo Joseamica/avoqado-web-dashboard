@@ -1,9 +1,34 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -17,10 +42,13 @@ import {
   getBalanceByCardType,
   getSettlementTimeline,
   getSettlementCalendar,
+  simulateTransaction,
   type AvailableBalanceSummary,
   type CardTypeBreakdown,
   type TimelineEntry,
   type SettlementCalendarEntry,
+  type SimulationParams,
+  type SimulationResult,
   TransactionCardType,
 } from '@/services/availableBalance.service'
 import { Wallet, TrendingUp, Clock, CreditCard, Calculator, ArrowUpRight, Calendar } from 'lucide-react'
@@ -28,10 +56,12 @@ import { format } from 'date-fns'
 import { Currency } from '@/utils/currency'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
+import { useToast } from '@/hooks/use-toast'
 
 export default function AvailableBalance() {
   const { t } = useTranslation('availableBalance')
   const { venueId } = useCurrentVenue()
+  const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +70,21 @@ export default function AvailableBalance() {
   const [cardBreakdown, setCardBreakdown] = useState<CardTypeBreakdown[]>([])
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [settlementCalendar, setSettlementCalendar] = useState<SettlementCalendarEntry[]>([])
+
+  // Simulation dialog state
+  const [showSimulationDialog, setShowSimulationDialog] = useState(false)
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null)
+  const [simulationLoading, setSimulationLoading] = useState(false)
+
+  // Simulation form
+  const simulationForm = useForm<SimulationParams>({
+    defaultValues: {
+      amount: 0,
+      cardType: TransactionCardType.DEBIT,
+      transactionDate: format(new Date(), 'yyyy-MM-dd'),
+      transactionTime: '',
+    },
+  })
 
   // Fetch data
   useEffect(() => {
@@ -87,6 +132,50 @@ export default function AvailableBalance() {
       mounted = false
     }
   }, [venueId, t])
+
+  // Handle simulation submission
+  const handleSimulation = async (data: SimulationParams) => {
+    if (!venueId) return
+
+    try {
+      setSimulationLoading(true)
+
+      // Convert yyyy-MM-dd to ISO 8601 format
+      const dateObj = new Date(data.transactionDate + 'T00:00:00')
+      const isoDate = dateObj.toISOString()
+
+      // Format the payload properly
+      const payload: SimulationParams = {
+        amount: data.amount,
+        cardType: data.cardType,
+        transactionDate: isoDate, // Convert to ISO format
+        transactionTime: data.transactionTime || undefined, // Don't send empty string, send undefined
+      }
+
+      const response = await simulateTransaction(venueId, payload)
+      setSimulationResult(response.data)
+    } catch (err: any) {
+      toast({
+        title: t('simulate.error'),
+        description: err.message || err.response?.data?.message || t('error.unexpected'),
+        variant: 'destructive',
+      })
+    } finally {
+      setSimulationLoading(false)
+    }
+  }
+
+  // Reset simulation dialog
+  const handleCloseSimulation = () => {
+    setShowSimulationDialog(false)
+    setSimulationResult(null)
+    simulationForm.reset({
+      amount: 0,
+      cardType: TransactionCardType.DEBIT,
+      transactionDate: format(new Date(), 'yyyy-MM-dd'),
+      transactionTime: '',
+    })
+  }
 
   // Card type icon mapping
   const getCardTypeIcon = (cardType: TransactionCardType) => {
@@ -179,7 +268,7 @@ export default function AvailableBalance() {
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowSimulationDialog(true)}>
           <Calculator className="mr-2 h-4 w-4" />
           {t('simulate.button')}
         </Button>
@@ -439,6 +528,188 @@ export default function AvailableBalance() {
           )}
         </CardContent>
       </Card>
+
+      {/* Simulation Dialog */}
+      <Dialog open={showSimulationDialog} onOpenChange={handleCloseSimulation}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('simulate.title')}</DialogTitle>
+            <DialogDescription>{t('simulate.description')}</DialogDescription>
+          </DialogHeader>
+
+          <Form {...simulationForm}>
+            <form onSubmit={simulationForm.handleSubmit(handleSimulation)} className="space-y-4">
+              <FormField
+                control={simulationForm.control}
+                name="amount"
+                rules={{
+                  required: t('simulate.form.amount'),
+                  min: { value: 0.01, message: t('simulate.form.amount') },
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('simulate.form.amount')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder={t('simulate.form.amountPlaceholder')}
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={simulationForm.control}
+                name="cardType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('simulate.form.cardType')}</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('simulate.form.cardTypePlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={TransactionCardType.DEBIT}>
+                          {t('cardType.debit')}
+                        </SelectItem>
+                        <SelectItem value={TransactionCardType.CREDIT}>
+                          {t('cardType.credit')}
+                        </SelectItem>
+                        <SelectItem value={TransactionCardType.AMEX}>
+                          {t('cardType.amex')}
+                        </SelectItem>
+                        <SelectItem value={TransactionCardType.INTERNATIONAL}>
+                          {t('cardType.international')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={simulationForm.control}
+                name="transactionDate"
+                rules={{ required: t('simulate.form.transactionDate') }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('simulate.form.transactionDate')}</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={simulationForm.control}
+                name="transactionTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('simulate.form.transactionTime')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="time"
+                        placeholder={t('simulate.form.transactionTimePlaceholder')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Simulation Result */}
+              {simulationResult && (
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-lg">{t('simulate.result.title')}</h3>
+
+                  {simulationResult.estimatedSettlementDate && simulationResult.settlementDays !== null ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">{t('simulate.result.settlementDate')}</p>
+                          <p className="text-xl font-bold">
+                            {format(new Date(simulationResult.estimatedSettlementDate), 'MMM dd, yyyy')}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-muted-foreground">{t('simulate.result.netAmount')}</p>
+                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                            {Currency(simulationResult.netAmount)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('simulate.result.grossAmount')}:</span>
+                          <span className="font-medium">{Currency(simulationResult.grossAmount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('simulate.result.fees')}:</span>
+                          <span className="font-medium text-destructive">-{Currency(simulationResult.fees)}</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t">
+                          <span className="font-semibold">{t('simulate.result.netAmount')}:</span>
+                          <span className="font-bold">{Currency(simulationResult.netAmount)}</span>
+                        </div>
+                      </div>
+
+                      {simulationResult.configuration && (
+                        <div className="pt-3 border-t">
+                          <p className="text-sm font-medium mb-2">{t('simulate.result.configuration')}</p>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p>
+                              • {t('simulate.result.configDays', {
+                                count: simulationResult.configuration.settlementDays,
+                                type: simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
+                                  ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
+                                  : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays })
+                              })}
+                            </p>
+                            <p>
+                              • {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">
+                        No se encontró configuración de liquidación para este tipo de tarjeta. Por favor, configura las reglas de liquidación primero.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={handleCloseSimulation}>
+                  {t('simulate.form.cancel')}
+                </Button>
+                <Button type="submit" disabled={simulationLoading}>
+                  {simulationLoading ? t('simulate.form.submit') + '...' : t('simulate.form.submit')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

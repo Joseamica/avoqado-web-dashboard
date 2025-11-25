@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from './input'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ interface ColorPickerProps {
 
 export const ColorPicker = React.forwardRef<HTMLInputElement, ColorPickerProps>(
   ({ value = '', onChange, placeholder = '#000000', className }, ref) => {
+    const { t } = useTranslation()
     const [hexValue, setHexValue] = useState(value || '')
     const [colorValue, setColorValue] = useState(value || '#000000')
 
@@ -71,7 +73,7 @@ export const ColorPicker = React.forwardRef<HTMLInputElement, ColorPickerProps>(
               '[&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none',
               '[&::-moz-color-swatch]:rounded-md [&::-moz-color-swatch]:border-none',
             )}
-            title="Choose color"
+            title={t('common:chooseColor')}
           />
         </div>
 

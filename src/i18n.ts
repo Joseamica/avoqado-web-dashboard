@@ -85,6 +85,18 @@ import googleIntegrationFr from '@/locales/fr/googleIntegration.json'
 import menuImportEn from '@/locales/en/menuImport.json'
 import menuImportEs from '@/locales/es/menuImport.json'
 import menuImportFr from '@/locales/fr/menuImport.json'
+import terminalsEn from '@/locales/en/terminals.json'
+import terminalsEs from '@/locales/es/terminals.json'
+import terminalsFr from '@/locales/fr/terminals.json'
+import webhooksEn from '@/locales/en/webhooks.json'
+import webhooksEs from '@/locales/es/webhooks.json'
+import webhooksFr from '@/locales/fr/webhooks.json'
+import ecommerceEn from '@/locales/en/ecommerce.json'
+import ecommerceEs from '@/locales/es/ecommerce.json'
+import ecommerceFr from '@/locales/fr/ecommerce.json'
+import venuePricingEn from '@/locales/en/venuePricing.json'
+import venuePricingEs from '@/locales/es/venuePricing.json'
+import venuePricingFr from '@/locales/fr/venuePricing.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -397,6 +409,42 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'menuImport', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', terminalsEn],
+    ['es', terminalsEs],
+    ['fr', terminalsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'terminals', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', webhooksEn],
+    ['es', webhooksEs],
+    ['fr', webhooksFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'webhooks', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', ecommerceEn],
+    ['es', ecommerceEs],
+    ['fr', ecommerceFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'ecommerce', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', venuePricingEn],
+    ['es', venuePricingEs],
+    ['fr', venuePricingFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'venuePricing', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

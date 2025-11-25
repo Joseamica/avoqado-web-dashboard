@@ -29,7 +29,7 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
       <header className="border-b">
         <div className="container mx-auto flex items-center justify-between px-3 py-3 sm:px-4 sm:py-4">
           <div className="flex items-center gap-2">
-            <img src={logoSrc} alt="Avoqado" className="h-6 w-auto sm:h-8" />
+            <img src={logoSrc} alt={t('shared.logoAlt')} className="h-6 w-auto sm:h-8" />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Logout button - Stripe/Shopify pattern: discrete but accessible */}

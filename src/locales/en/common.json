@@ -104,6 +104,24 @@
     "title": "Avoqado Assistant",
     "queriesRemaining": "queries remaining",
     "welcome": "Hello! I'm your AI assistant. How can I help you today?",
+    "status": {
+      "unsaved": "Unsaved",
+      "saved": "Saved"
+    },
+    "menu": {
+      "options": "Options",
+      "viewHistory": "View saved conversations",
+      "hideHistory": "Back to chat",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "clearHistory": "Clear conversation"
+    },
+    "unsavedChanges": {
+      "title": "Unsaved changes",
+      "description": "You have unsaved changes in your current conversation. What would you like to do?",
+      "saveFirst": "Save first",
+      "discard": "Discard changes"
+    },
     "input": {
       "placeholder": "Type your message here..."
     },
@@ -187,10 +205,27 @@
     "saved": {
       "title": "Saved Conversations",
       "back": "Back to chat",
-      "empty": "No saved conversations yet."
+      "empty": "No saved conversations yet.",
+      "currentlyLoaded": "Loaded",
+      "emptyTitle": "No saved conversations",
+      "emptyDescription": "Your saved conversations will appear here. Click the save button to save the current conversation."
+    },
+    "sidebar": {
+      "show": "Show conversations",
+      "hide": "Hide conversations",
+      "newChat": "New chat"
     },
     "labels": {
       "cache": "Cached"
+    },
+    "tokens": {
+      "available": "Tokens available for queries",
+      "remaining": "tokens"
+    },
+    "visualization": {
+      "toggle": "Show charts",
+      "tokenWarning": "Uses more tokens",
+      "noData": "No data available for chart"
     },
     "a11y": {
       "positiveFeedback": "Mark as helpful",
@@ -209,6 +244,87 @@
         "desc": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
         "confirm": "Delete"
       }
+    },
+    "tokenWarning": {
+      "title": "Token Limit Reached",
+      "exhaustedDesc": "You've used all your available tokens this month. Sending this message will incur additional charges.",
+      "overageDesc": "You're currently in overage. This query will add to your current overage cost of ${{cost}} USD.",
+      "continueQuestion": "Do you want to continue anyway?",
+      "sendAnyway": "Send Anyway"
+    }
+  },
+  "flags": {
+    "spain": "Flag of Spain",
+    "uk": "Flag of the United Kingdom"
+  },
+  "chooseColor": "Choose color",
+  "conversionWizard": {
+    "title": "Convert to Real Venue",
+    "subtitle": "Complete the following steps to activate your venue and start accepting real payments.",
+    "step": "Step",
+    "of": "of",
+    "back": "Back",
+    "next": "Next",
+    "convert": "Convert Now",
+    "step1": {
+      "title": "Tax Information",
+      "description": "Enter your business tax information",
+      "rfcLabel": "RFC",
+      "legalNameLabel": "Legal Name",
+      "legalNamePlaceholder": "Enter your business legal name",
+      "fiscalRegimeLabel": "Tax Regime",
+      "fiscalRegimePlaceholder": "e.g., General Law Regime"
+    },
+    "step2": {
+      "title": "Tax Documents",
+      "description": "Upload your tax situation certificate and, if applicable, articles of incorporation",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "constanciaLabel": "Tax situation certificate (required)",
+      "actaLabel": "Articles of incorporation (optional)",
+      "actaHint": "PDF, JPG, PNG (MAX. 10MB)"
+    },
+    "step3": {
+      "title": "Identification",
+      "description": "Upload your official identification",
+      "uploadLabel": "Click to upload or drag and drop",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "idLabel": "Official identification (required)"
+    },
+    "step4": {
+      "title": "Select Features",
+      "description": "Choose the features you want to activate",
+      "loading": "Loading features...",
+      "noFeatures": "No features available at this time",
+      "helpText": "Select the features you want to enable for your venue."
+    },
+    "step5": {
+      "title": "Review and Confirm",
+      "description": "Review your information before converting",
+      "summaryTitle": "Summary",
+      "venueName": "Venue Name",
+      "rfc": "RFC",
+      "legalName": "Legal Name",
+      "confirmationMessage": "By clicking you confirm that the information is correct."
+    },
+    "success": {
+      "title": "Conversion Successful!",
+      "description": "Your venue has been successfully converted."
+    },
+    "shared": {
+      "selectFile": "Select file",
+      "uploading": "Uploading file..."
+    },
+    "documents": {
+      "title": "Uploaded documents",
+      "pending": "Pending",
+      "completed": "Done",
+      "optional": "Optional"
+    },
+    "error": {
+      "title": "Error",
+      "description": "There was an error. Please try again.",
+      "fetchFeatures": "Could not load features."
     }
   }
 }

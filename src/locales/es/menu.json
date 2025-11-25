@@ -335,7 +335,39 @@
       "stock": "Stock",
       "categories": "Categorías",
       "modifierGroups": "Grupos Modificadores",
-      "updatedAt": "Última actualización"
+      "updatedAt": "Última actualización",
+      "unavailable": "Agotado"
+    },
+    "actions": {
+      "adjustStock": "Ajustar Stock",
+      "adjustStockDialog": {
+        "title": "Ajustar Stock - {{productName}}",
+        "currentStock": "Stock Actual",
+        "adjustment": "Ajuste",
+        "adjustmentPlaceholder": "Ingresa cantidad (+ agregar, - quitar)",
+        "reason": "Razón",
+        "reasonPlaceholder": "¿Por qué ajustas el stock?",
+        "reasons": {
+          "recount": "Reconteo físico",
+          "damage": "Dañado/Echado a perder",
+          "theft": "Robo/Pérdida",
+          "correction": "Corrección",
+          "receiving": "Recepción de entrega",
+          "other": "Otro"
+        },
+        "newStock": "Nuevo Stock",
+        "notes": "Notas (opcional)",
+        "notesPlaceholder": "Detalles adicionales...",
+        "cancel": "Cancelar",
+        "save": "Guardar Ajuste",
+        "saving": "Guardando...",
+        "confirmAndSave": "Confirmar y Guardar",
+        "confirmLargeAdjustment": "Confirmar ajuste grande:",
+        "confirmLargeAdjustmentMessage": "Esto cambiará el stock en {{amount}} {{unit}} ({{percentage}}% del stock actual). Haz clic en Guardar nuevamente para confirmar.",
+        "warning": "Advertencia:",
+        "largeAdjustmentWarning": "Este es un ajuste grande ({{percentage}}% del stock actual). Por favor verifica que la cantidad sea correcta.",
+        "cannotReduceBelowZero": "No se puede reducir el stock por debajo de 0. Stock actual es {{amount}} {{unit}}. Ajuste mínimo: {{minimum}}"
+      }
     },
     "actions": {
       "adjustStock": "Ajustar Stock",
@@ -583,6 +615,11 @@
       "preview": "Vista previa",
       "previewText": "Del {{startDate}} al {{endDate}}"
     },
+    "dialogs": {
+      "deleteTitle": "Eliminar menú",
+      "deleteMessage": "¿Estás seguro de que quieres eliminar este menú? Esta acción no se puede deshacer.",
+      "deleteButton": "Eliminar menú"
+    },
     "toast": {
       "menuUpdated": "Menú {{name}} actualizado",
       "menuUpdatedDesc": "El menú se guardó correctamente.",
@@ -590,10 +627,14 @@
       "menuStatusActiveDesc": "El menú ahora está disponible.",
       "menuStatusInactive": "Menú desactivado",
       "menuStatusInactiveDesc": "El menú ahora está oculto.",
+      "menuDeleted": "Menú eliminado",
+      "menuDeletedDesc": "El menú se ha eliminado exitosamente.",
       "errorSaving": "Error al guardar",
       "errorSavingDesc": "No pudimos guardar el menú. Intenta nuevamente.",
       "errorStatus": "Error al actualizar el estado",
-      "errorStatusDesc": "No pudimos actualizar el estado del menú. Intenta de nuevo más tarde."
+      "errorStatusDesc": "No pudimos actualizar el estado del menú. Intenta de nuevo más tarde.",
+      "errorDeleting": "Error al eliminar menú",
+      "errorDeletingDesc": "No pudimos eliminar el menú. {{message}}"
     },
     "validation": {
       "nameRequired": "Debes ingresar el nombre del menú.",

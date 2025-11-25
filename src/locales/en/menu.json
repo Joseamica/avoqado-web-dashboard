@@ -346,7 +346,39 @@
       "stock": "Stock",
       "categories": "Categories",
       "modifierGroups": "Modifier Groups",
-      "updatedAt": "Last update"
+      "updatedAt": "Last update",
+      "unavailable": "86'd"
+    },
+    "actions": {
+      "adjustStock": "Adjust Stock",
+      "adjustStockDialog": {
+        "title": "Adjust Stock - {{productName}}",
+        "currentStock": "Current Stock",
+        "adjustment": "Adjustment",
+        "adjustmentPlaceholder": "Enter amount (+ to add, - to remove)",
+        "reason": "Reason",
+        "reasonPlaceholder": "Why are you adjusting stock?",
+        "reasons": {
+          "recount": "Physical recount",
+          "damage": "Damaged/Spoiled",
+          "theft": "Theft/Loss",
+          "correction": "Correction",
+          "receiving": "Receiving delivery",
+          "other": "Other"
+        },
+        "newStock": "New Stock",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Additional details...",
+        "cancel": "Cancel",
+        "save": "Save Adjustment",
+        "saving": "Saving...",
+        "confirmAndSave": "Confirm & Save",
+        "confirmLargeAdjustment": "Confirm large adjustment:",
+        "confirmLargeAdjustmentMessage": "This will change stock by {{amount}} {{unit}} ({{percentage}}% of current stock). Click Save again to confirm.",
+        "warning": "Warning:",
+        "largeAdjustmentWarning": "This is a large adjustment ({{percentage}}% of current stock). Please verify the amount is correct.",
+        "cannotReduceBelowZero": "Cannot reduce stock below 0. Current stock is {{amount}} {{unit}}. Minimum adjustment: {{minimum}}"
+      }
     },
     "actions": {
       "adjustStock": "Adjust Stock",
@@ -595,6 +627,11 @@
       "preview": "Preview",
       "previewText": "From {{startDate}} to {{endDate}}"
     },
+    "dialogs": {
+      "deleteTitle": "Delete menu",
+      "deleteMessage": "Are you sure you want to delete this menu? This action cannot be undone.",
+      "deleteButton": "Delete menu"
+    },
     "toast": {
       "menuUpdated": "Menu {{name}} updated",
       "menuUpdatedDesc": "The menu was saved successfully.",
@@ -602,10 +639,14 @@
       "menuStatusActiveDesc": "The menu is now available.",
       "menuStatusInactive": "Menu deactivated",
       "menuStatusInactiveDesc": "The menu is now hidden.",
+      "menuDeleted": "Menu deleted",
+      "menuDeletedDesc": "The menu has been deleted successfully.",
       "errorSaving": "Error saving",
       "errorSavingDesc": "We couldn't save the menu. Try again.",
       "errorStatus": "Error updating status",
-      "errorStatusDesc": "We couldn't update the menu status. Try again later."
+      "errorStatusDesc": "We couldn't update the menu status. Try again later.",
+      "errorDeleting": "Error deleting menu",
+      "errorDeletingDesc": "We couldn't delete the menu. {{message}}"
     },
     "validation": {
       "nameRequired": "Menu name is required.",

@@ -36,7 +36,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
   merchantAccountId: initialMerchantAccountId,
   onSave,
 }) => {
-  const { t: _t } = useTranslation('superadmin')
+  const { t } = useTranslation('venuePricing')
   const [loading, setLoading] = useState(false)
 
   // Fetch merchant accounts for dropdown
@@ -117,8 +117,8 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{costStructure ? 'Edit Provider Cost Structure' : 'Add Provider Cost Structure'}</DialogTitle>
-            <DialogDescription>Set the rates that the payment provider charges Avoqado</DialogDescription>
+            <DialogTitle>{t('providerCostDialog.title')}</DialogTitle>
+            <DialogDescription>{t('providerCostDialog.subtitle')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -126,8 +126,8 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
             <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
               <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="text-blue-800 dark:text-blue-200">
-                <p className="font-medium">Provider Cost Structure</p>
-                <p className="text-xs mt-1">These are the rates the payment processor charges YOU (Avoqado). This determines your costs.</p>
+                <p className="font-medium">{t('providerCostDialog.title')}</p>
+                <p className="text-xs mt-1">{t('providerCostDialog.description')}</p>
               </div>
             </div>
 
@@ -142,7 +142,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
                 disabled={!!costStructure || !!initialMerchantAccountId}
               >
                 <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder="Select merchant account..." />
+                  <SelectValue placeholder={t('providerCostDialog.selectMerchant')} />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map(account => (
@@ -168,17 +168,17 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
                 required
                 className="bg-background border-input"
               />
-              <p className="text-xs text-muted-foreground">The date when these rates become active</p>
+              <p className="text-xs text-muted-foreground">{t('providerCostDialog.effectiveDateHint')}</p>
             </div>
 
             {/* Rate Grid */}
             <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
-              <Label className="text-base font-semibold">Card Processing Rates (%)</Label>
+              <Label className="text-base font-semibold">{t('providerCostDialog.cardRates')}</Label>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Debit Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="debitRate">Debit Card Rate (%)</Label>
+                  <Label htmlFor="debitRate">{t('providerCostDialog.debitRate')}</Label>
                   <Input
                     id="debitRate"
                     type="number"
@@ -194,7 +194,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
 
                 {/* Credit Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="creditRate">Credit Card Rate (%)</Label>
+                  <Label htmlFor="creditRate">{t('providerCostDialog.creditRate')}</Label>
                   <Input
                     id="creditRate"
                     type="number"
@@ -210,7 +210,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
 
                 {/* Amex Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="amexRate">Amex Rate (%)</Label>
+                  <Label htmlFor="amexRate">{t('providerCostDialog.amexRate')}</Label>
                   <Input
                     id="amexRate"
                     type="number"
@@ -226,7 +226,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
 
                 {/* International Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="internationalRate">International Rate (%)</Label>
+                  <Label htmlFor="internationalRate">{t('providerCostDialog.internationalRate')}</Label>
                   <Input
                     id="internationalRate"
                     type="number"
@@ -245,7 +245,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
             {/* Fixed Fees */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="fixedCostPerTransaction">Fixed Cost per Transaction ($)</Label>
+                <Label htmlFor="fixedCostPerTransaction">{t('providerCostDialog.fixedCost')}</Label>
                 <Input
                   id="fixedCostPerTransaction"
                   type="number"
@@ -259,7 +259,7 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="monthlyFee">Monthly Fee ($)</Label>
+                <Label htmlFor="monthlyFee">{t('providerCostDialog.monthlyFee')}</Label>
                 <Input
                   id="monthlyFee"
                   type="number"
@@ -275,24 +275,24 @@ export const ProviderCostStructureDialog: React.FC<ProviderCostStructureDialogPr
 
             {/* Proposal Reference */}
             <div className="grid gap-2">
-              <Label htmlFor="proposalReference">Proposal Reference</Label>
+              <Label htmlFor="proposalReference">{t('providerCostDialog.proposalRef')}</Label>
               <Input
                 id="proposalReference"
                 value={formData.proposalReference}
                 onChange={e => setFormData({ ...formData, proposalReference: e.target.value })}
-                placeholder="PROP-2025-001"
+                placeholder={t('providerCostDialog.proposalRefPlaceholder')}
                 className="bg-background border-input"
               />
             </div>
 
             {/* Notes */}
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">{t('providerCostDialog.notes')}</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes about this pricing structure..."
+                placeholder={t('providerCostDialog.notesPlaceholder')}
                 rows={3}
                 className="bg-background border-input"
               />

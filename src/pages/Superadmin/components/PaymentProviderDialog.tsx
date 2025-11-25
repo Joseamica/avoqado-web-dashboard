@@ -55,6 +55,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
   onSave,
 }) => {
   const { t: _t } = useTranslation('superadmin')
+  const { t } = useTranslation('venuePricing')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     code: '',
@@ -131,7 +132,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
                 id="code"
                 value={formData.code}
                 onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="MENTA"
+                placeholder={t('providerDialog.codePlaceholder')}
                 required
                 disabled={!!provider} // Can't change code after creation
                 className="bg-background border-input"
@@ -147,7 +148,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
                 id="name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Menta Payment Solutions"
+                placeholder={t('providerDialog.namePlaceholder')}
                 required
                 className="bg-background border-input"
               />
@@ -179,7 +180,7 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
 
             {/* Countries */}
             <div className="grid gap-2">
-              <Label>Supported Countries</Label>
+              <Label>{t('providerDialog.supportedCountries')}</Label>
               <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-md bg-muted/50">
                 {COUNTRIES.map(country => (
                   <div key={country.value} className="flex items-center space-x-2">

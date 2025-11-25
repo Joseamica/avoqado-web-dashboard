@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
   onSave,
   calculateMargin,
 }) => {
+  const { t } = useTranslation('venuePricing')
   const [activeTab, setActiveTab] = useState('primary')
   const [editingAccountType, setEditingAccountType] = useState<'PRIMARY' | 'SECONDARY' | 'TERTIARY' | null>(null)
   const [formData, setFormData] = useState<any>(null)
@@ -173,7 +175,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
           {/* Debit Card */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Debit Card</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('tabs.debitCard')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
@@ -207,7 +209,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
           {/* Credit Card */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Credit Card</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('tabs.creditCard')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
@@ -241,7 +243,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
           {/* Amex */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Amex</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('tabs.amex')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
@@ -275,7 +277,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
           {/* International */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">International</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{t('tabs.international')}</CardTitle>
             </CardHeader>
             <CardContent>
               {isEditing ? (
@@ -310,14 +312,14 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
         {/* Additional Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Additional Information</CardTitle>
+            <CardTitle className="text-sm">{t('additionalInfo.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {isEditing ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="effectiveFrom">Effective From</Label>
+                    <Label htmlFor="effectiveFrom">{t('additionalInfo.effectiveFrom')}</Label>
                     <Input
                       id="effectiveFrom"
                       type="date"
@@ -326,7 +328,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="fixedFee">Fixed Fee per Transaction ($)</Label>
+                    <Label htmlFor="fixedFee">{t('additionalInfo.fixedFee')}</Label>
                     <Input
                       id="fixedFee"
                       type="number"
@@ -337,7 +339,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="monthlyFee">Monthly Service Fee ($)</Label>
+                    <Label htmlFor="monthlyFee">{t('additionalInfo.monthlyFee')}</Label>
                     <Input
                       id="monthlyFee"
                       type="number"
@@ -348,11 +350,11 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="contractRef">Contract Reference</Label>
+                    <Label htmlFor="contractRef">{t('additionalInfo.contractReference')}</Label>
                     <Input
                       id="contractRef"
                       type="text"
-                      placeholder="Optional"
+                      placeholder={t('additionalInfo.optional')}
                       value={formData?.contractReference || ''}
                       onChange={(e) => setFormData({ ...formData, contractReference: e.target.value })}
                     />
@@ -362,24 +364,24 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
             ) : (
               <>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Effective From:</span>
+                  <span className="text-muted-foreground">{t('summary.effectiveFrom')}</span>
                   <span className="font-medium">{new Date(structure.effectiveFrom).toLocaleDateString()}</span>
                 </div>
                 {structure.fixedFeePerTransaction && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Fixed Fee per Transaction:</span>
+                    <span className="text-muted-foreground">{t('summary.fixedFee')}</span>
                     <span className="font-medium">${Number(structure.fixedFeePerTransaction).toFixed(2)}</span>
                   </div>
                 )}
                 {structure.monthlyServiceFee && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Service Fee:</span>
+                    <span className="text-muted-foreground">{t('summary.monthlyFee')}</span>
                     <span className="font-medium">${Number(structure.monthlyServiceFee).toFixed(2)}</span>
                   </div>
                 )}
                 {structure.contractReference && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Contract Reference:</span>
+                    <span className="text-muted-foreground">{t('summary.contractReference')}</span>
                     <span className="font-medium">{structure.contractReference}</span>
                   </div>
                 )}

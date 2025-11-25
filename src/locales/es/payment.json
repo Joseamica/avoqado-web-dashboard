@@ -2,6 +2,18 @@
   "title": "Pagos",
   "searchPlaceholder": "Buscar por mesero, total o método...",
   "errorPrefix": "Error al cargar pagos",
+  "selector": {
+    "loading": "Cargando métodos de pago...",
+    "selectMethod": "Selecciona un método de pago",
+    "backToExisting": "Volver a métodos existentes",
+    "expires": "Vence",
+    "selected": "Seleccionado",
+    "addNew": "Agregar nuevo método de pago"
+  },
+  "stripe": {
+    "cardLabel": "Tarjeta de crédito o débito",
+    "importantNote": "Importante: No se realizará ningún cargo durante los 5 días de prueba. Tu tarjeta será verificada y se guardará para la suscripción mensual que comenzará después del período de prueba."
+  },
   "filters": {
     "showing": "Mostrando",
     "of": "de",

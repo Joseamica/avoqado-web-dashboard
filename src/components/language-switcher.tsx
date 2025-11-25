@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils'
 type SupportedLanguage = 'es' | 'en'
 
 const FlagIcon: React.FC<{ code: SupportedLanguage; className?: string }> = ({ code, className }) => {
+  const { t } = useTranslation()
   if (code === 'es') {
     return (
       <span className={cn('inline-flex items-center', className)} aria-hidden="true">
-        <svg viewBox="0 0 24 16" width="24" height="16" role="img" aria-label="Bandera de España">
+        <svg viewBox="0 0 24 16" width="24" height="16" role="img" aria-label={t('common:flags.spain')}>
           <rect width="24" height="16" fill="#AA151B" rx="2" />
           <rect y="4" width="24" height="8" fill="#F1BF00" />
         </svg>
@@ -20,7 +21,7 @@ const FlagIcon: React.FC<{ code: SupportedLanguage; className?: string }> = ({ c
 
   return (
     <span className={cn('inline-flex items-center', className)} aria-hidden="true">
-      <svg viewBox="0 0 24 16" width="24" height="16" role="img" aria-label="Flag of the United Kingdom">
+      <svg viewBox="0 0 24 16" width="24" height="16" role="img" aria-label={t('common:flags.uk')}>
         <rect width="24" height="16" fill="#012169" rx="2" />
         <path d="M0 0 L9 6 H11 L2 0 Z M24 0 L15 6 H13 L22 0 Z M0 16 L9 10 H11 L2 16 Z M24 16 L15 10 H13 L22 16 Z" fill="#FFFFFF" />
         <path d="M10 6 H0 V10 H10 V16 H14 V10 H24 V6 H14 V0 H10 Z" fill="#FFFFFF" />

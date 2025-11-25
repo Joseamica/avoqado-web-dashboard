@@ -1,0 +1,86 @@
+{
+  "title": "Terminaux",
+  "subtitle": "Gérer les terminaux POS, imprimantes et appareils KDS",
+  "createTerminal": "Créer Terminal",
+  "totalTerminals": "Total des Terminaux",
+  "online": "en ligne",
+  "allTerminals": "Tous les Terminaux",
+  "allTerminalsDesc": "Gérer les terminaux de tous les établissements",
+  "searchPlaceholder": "Rechercher par nom, série ou établissement...",
+  "filterByVenue": "Filtrer par établissement",
+  "allVenues": "Tous les Établissements",
+  "loading": "Chargement...",
+  "columns": {
+    "terminal": "Terminal",
+    "venue": "Établissement",
+    "status": "Statut",
+    "type": "Type",
+    "merchants": "Marchands",
+    "lastSeen": "Dernière Connexion",
+    "actions": "Actions"
+  },
+  "status": {
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "retired": "Retiré"
+  },
+  "assigned": "assignés",
+  "never": "Jamais",
+  "ago": "il y a",
+  "toast": {
+    "created": "Terminal Créé",
+    "createdDesc": "Le terminal a été créé avec succès",
+    "updated": "Succès",
+    "updatedDesc": "Terminal mis à jour avec succès",
+    "deleted": "Succès",
+    "deletedDesc": "Terminal supprimé avec succès",
+    "error": "Erreur",
+    "createFailed": "Échec de la création du terminal",
+    "updateFailed": "Échec de la mise à jour du terminal",
+    "deleteFailed": "Échec de la suppression du terminal",
+    "codeFailed": "Échec de la génération du code",
+    "copied": "Copié!",
+    "copiedDesc": "Code d'activation copié dans le presse-papiers",
+    "codeGenerated": "Code d'Activation Généré"
+  },
+  "activationCode": {
+    "title": "Code d'Activation",
+    "expires": "Expire",
+    "expiresIn7Days": "Le code expire dans 7 jours",
+    "copy": "Copier",
+    "copyCode": "Copier Code"
+  },
+  "confirm": {
+    "delete": "Êtes-vous sûr de vouloir supprimer ce terminal?"
+  },
+  "dialog": {
+    "createTitle": "Créer Nouveau Terminal",
+    "editTitle": "Modifier Terminal",
+    "createDescription": "Créer un nouveau terminal et optionnellement générer un code d'activation",
+    "editDescription": "Mettre à jour la configuration du terminal",
+    "venue": "Établissement",
+    "selectVenue": "Sélectionner établissement...",
+    "serialNumber": "Numéro de Série",
+    "serialPlaceholder": "2841548417 (le préfixe AVQD- sera ajouté automatiquement)",
+    "serialHelp": "Entrez le numéro de série. Le préfixe \"AVQD-\" sera ajouté automatiquement s'il n'est pas présent.",
+    "name": "Nom du Terminal",
+    "namePlaceholder": "Terminal POS Principal",
+    "type": "Type",
+    "types": {
+      "tpvAndroid": "TPV Android (Terminal de Paiement)",
+      "tpvIos": "TPV iOS",
+      "receiptPrinter": "Imprimante de Reçus",
+      "kitchenPrinter": "Imprimante de Cuisine",
+      "kds": "Système d'Affichage Cuisine"
+    },
+    "brand": "Marque",
+    "model": "Modèle",
+    "assignedMerchants": "Comptes Marchands Assignés (Tous les Fournisseurs)",
+    "generateCode": "Générer code d'activation après création",
+    "noMerchantWarning": "Aucun compte marchand assigné. Le terminal ne pourra pas traiter les paiements tant qu'au moins un compte marchand n'est pas assigné.",
+    "cancel": "Annuler",
+    "create": "Créer Terminal",
+    "update": "Mettre à Jour Terminal",
+    "saving": "Enregistrement..."
+  }
+}

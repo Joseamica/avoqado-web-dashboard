@@ -1,0 +1,118 @@
+{
+  "title": "Configuration des Paiements et Tarifs de l'Établissement",
+  "description": "Configurer les comptes marchands et définir les tarifs pour vos établissements",
+  "metrics": {
+    "pricingStructures": "Structures Tarifaires",
+    "avgProfitMargin": "Marge Bénéficiaire Moyenne",
+    "marginRange": "Fourchette de Marge",
+    "to": "à",
+    "warnings": "Avertissements",
+    "active": "{{count}} actifs",
+    "margin": "Marge {{status}}",
+    "acrossAllStructures": "Sur toutes les structures",
+    "negativeMarginsDetected": "Marges négatives détectées!",
+    "noIssuesFound": "Aucun problème trouvé"
+  },
+  "tabs": {
+    "debitCard": "Carte de Débit",
+    "creditCard": "Carte de Crédit",
+    "amex": "Amex",
+    "international": "International"
+  },
+  "additionalInfo": {
+    "title": "Informations Supplémentaires",
+    "effectiveFrom": "En Vigueur Depuis",
+    "fixedFee": "Frais Fixes par Transaction ($)",
+    "monthlyFee": "Frais de Service Mensuels ($)",
+    "contractReference": "Référence du Contrat",
+    "optional": "Optionnel"
+  },
+  "summary": {
+    "effectiveFrom": "En Vigueur Depuis:",
+    "fixedFee": "Frais Fixes par Transaction:",
+    "monthlyFee": "Frais de Service Mensuels:",
+    "contractReference": "Référence du Contrat:"
+  },
+  "wizard": {
+    "venue": "Établissement",
+    "selectVenue": "Sélectionner un établissement...",
+    "configComplete": "Configuration Terminée!",
+    "allConfigured": "Tous les comptes marchands ont des tarifs configurés."
+  },
+  "stepIndicator": {
+    "progress": "Progression"
+  },
+  "blumonDialog": {
+    "title": "Récupération Auto des Identifiants Blumon",
+    "merchant": "Marchand:",
+    "serial": "Série:",
+    "posId": "ID POS:",
+    "env": "Env:",
+    "processSteps": "Processus automatique en 3 étapes:",
+    "step1": "Token OAuth (mot de passe SHA256)",
+    "step2": "Clés de Chiffrement RSA",
+    "step3": "Clés DUKPT (optionnel - initialisé au premier paiement)",
+    "serialPlaceholder": "Numéro de série du dispositif PAX",
+    "brandPax": "PAX",
+    "brandVerifone": "Verifone",
+    "brandIngenico": "Ingenico",
+    "modelPlaceholder": "A910S",
+    "modelHint": "Modèle du dispositif (ex: A910S, A920)",
+    "displayName": "Nom d'Affichage (Optionnel)",
+    "displayNamePlaceholder": "Compte Blumon A (Sandbox)",
+    "displayNameHint": "Si non spécifié, sera généré automatiquement"
+  },
+  "merchantDialog": {
+    "selectProvider": "Sélectionner un fournisseur...",
+    "externalIdPlaceholder": "8e341c9a-0298-4aa1-ba6b-be11a526560f",
+    "alias": "Alias (Référence Interne)",
+    "aliasPlaceholder": "compte-principal",
+    "displayName": "Nom d'Affichage",
+    "displayNamePlaceholder": "Compte Principal Menta",
+    "credentials": "Identifiants (Chiffrés)",
+    "credentialsNote": "Les identifiants seront chiffrés avant d'être stockés dans la base de données",
+    "merchantIdPlaceholder": "merchant-12345",
+    "apiKeyPlaceholder": "sk_live_...",
+    "customerId": "ID Client (Optionnel)",
+    "customerIdPlaceholder": "cus_...",
+    "terminalId": "ID Terminal (Optionnel)",
+    "terminalIdPlaceholder": "term_...",
+    "providerConfig": "Config Fournisseur (JSON, Optionnel)",
+    "displayOrder": "Ordre d'Affichage"
+  },
+  "providerDialog": {
+    "codePlaceholder": "MENTA",
+    "namePlaceholder": "Menta Payment Solutions",
+    "supportedCountries": "Pays Supportés"
+  },
+  "providerCostDialog": {
+    "title": "Structure de Coûts du Fournisseur",
+    "subtitle": "Définir les tarifs que le fournisseur de paiement facture à Avoqado",
+    "description": "Ce sont les tarifs que le processeur de paiement vous facture (Avoqado)",
+    "selectMerchant": "Sélectionner un compte marchand...",
+    "effectiveDateHint": "La date à laquelle ces tarifs deviennent actifs",
+    "cardRates": "Tarifs de Traitement des Cartes (%)",
+    "debitRate": "Tarif Carte Débit (%)",
+    "creditRate": "Tarif Carte Crédit (%)",
+    "amexRate": "Tarif Amex (%)",
+    "internationalRate": "Tarif International (%)",
+    "fixedCost": "Coût Fixe par Transaction ($)",
+    "monthlyFee": "Frais Mensuels ($)",
+    "proposalRef": "Référence de Proposition",
+    "proposalRefPlaceholder": "PROP-2025-001",
+    "notes": "Notes",
+    "notesPlaceholder": "Notes supplémentaires sur cette structure tarifaire..."
+  },
+  "venuePricingDialog": {
+    "title": "Structure Tarifaire de l'Établissement",
+    "subtitle": "Définir les tarifs que vous facturez à l'établissement (votre client)",
+    "infoBannerText": "Ce sont les tarifs que VOUS facturez à l'établissement. La différence entre les tarifs de l'établissement et les coûts du fournisseur est votre marge bénéficiaire.",
+    "selectVenue": "Sélectionner un établissement...",
+    "primaryAccount": "Compte Principal",
+    "secondaryAccount": "Compte Secondaire",
+    "tertiaryAccount": "Compte Tertiaire",
+    "noSecondaryMerchant": "Aucun marchand SECONDAIRE assigné",
+    "noTertiaryMerchant": "Aucun marchand TERTIAIRE assigné",
+    "contractPlaceholder": "CONTRAT-2025-001"
+  }
+}

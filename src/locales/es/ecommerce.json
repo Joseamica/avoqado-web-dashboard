@@ -1,0 +1,46 @@
+{
+  "title": "Canales de E-commerce",
+  "noChannels": "No hay canales de e-commerce",
+  "venueNotFound": "Venue no encontrado",
+  "columns": {
+    "channel": "Canal",
+    "contactEmail": "Email de Contacto",
+    "provider": "Provider",
+    "publicKey": "Public Key",
+    "mode": "Modo",
+    "status": "Estado",
+    "actions": "Acciones"
+  },
+  "viewApiKeys": "Ver API Keys",
+  "deleteConfirm": {
+    "title": "¿Eliminar canal de e-commerce?",
+    "cancel": "Cancelar"
+  },
+  "secretKeyWarning": "Guarda tu Secret Key ahora:",
+  "apiKeysDialog": {
+    "publicKey": "Public Key (Frontend)",
+    "secretKey": "Secret Key (Backend)",
+    "secretKeyMasked": "La Secret Key está enmascarada por seguridad",
+    "regenerateWarning": "Regenerar claves invalidará las actuales",
+    "regenerateTitle": "¿Regenerar API Keys?",
+    "channel": "Canal:",
+    "mode": "Modo:",
+    "cancel": "Cancelar"
+  },
+  "merchantDialog": {
+    "namePlaceholder": "ej: Web Principal, App Móvil, Rappi",
+    "legalNamePlaceholder": "ej: Restaurante Avoqado S.A. de C.V.",
+    "rfcLabel": "RFC (opcional)",
+    "rfcPlaceholder": "ej: ABC123456XYZ",
+    "emailPlaceholder": "ej: pagos@avoqado.com",
+    "phoneLabel": "Teléfono de Contacto (opcional)",
+    "phonePlaceholder": "ej: +52 55 1234 5678",
+    "websiteLabel": "Sitio Web (opcional)",
+    "websitePlaceholder": "https://www.avoqado.com",
+    "selectProvider": "Selecciona un proveedor",
+    "webhookLabel": "Webhook URL (opcional)",
+    "webhookPlaceholder": "https://tu-sitio.com/webhooks/payment",
+    "sandboxMode": "Modo Sandbox",
+    "active": "Activo"
+  }
+}

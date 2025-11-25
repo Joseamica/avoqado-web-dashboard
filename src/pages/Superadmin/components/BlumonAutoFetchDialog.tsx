@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
   onOpenChange,
   onSuccess,
 }) => {
+  const { t } = useTranslation('venuePricing')
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -60,16 +62,16 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
         description: (
           <div className="space-y-1 text-sm">
             <p>
-              <strong>Merchant:</strong> {result.displayName}
+              <strong>{t('blumonDialog.merchant')}</strong> {result.displayName}
             </p>
             <p>
-              <strong>Serial:</strong> {result.serialNumber}
+              <strong>{t('blumonDialog.serial')}</strong> {result.serialNumber}
             </p>
             <p>
-              <strong>POS ID:</strong> {result.posId}
+              <strong>{t('blumonDialog.posId')}</strong> {result.posId}
             </p>
             <p>
-              <strong>Env:</strong> {result.blumonEnvironment}
+              <strong>{t('blumonDialog.env')}</strong> {result.blumonEnvironment}
             </p>
             {!result.dukptKeysAvailable && (
               <p className="text-yellow-600 dark:text-yellow-400 mt-2">
@@ -110,7 +112,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
           <DialogHeader>
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-yellow-500" />
-              <DialogTitle>Auto-Fetch Blumon Credentials</DialogTitle>
+              <DialogTitle>{t('blumonDialog.title')}</DialogTitle>
             </div>
             <DialogDescription>
               Ingresa solo el serial, marca y modelo. El backend obtendrá automáticamente OAuth tokens, RSA keys y
@@ -123,11 +125,11 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
             <div className="flex items-start space-x-2 text-sm bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
               <div className="space-y-1">
-                <p className="font-medium text-blue-900 dark:text-blue-100">Proceso automático en 3 pasos:</p>
+                <p className="font-medium text-blue-900 dark:text-blue-100">{t('blumonDialog.processSteps')}</p>
                 <ol className="list-decimal list-inside space-y-1 text-blue-700 dark:text-blue-300">
-                  <li>OAuth Token (SHA256 password)</li>
-                  <li>RSA Encryption Keys</li>
-                  <li>DUKPT Keys (opcional - se inicializa en primer pago)</li>
+                  <li>{t('blumonDialog.step1')}</li>
+                  <li>{t('blumonDialog.step2')}</li>
+                  <li>{t('blumonDialog.step3')}</li>
                 </ol>
               </div>
             </div>
@@ -145,7 +147,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
                 required
                 className="bg-background border-input font-mono text-sm"
               />
-              <p className="text-xs text-muted-foreground">Número de serie del dispositivo PAX</p>
+              <p className="text-xs text-muted-foreground">{t('blumonDialog.serialPlaceholder')}</p>
             </div>
 
             {/* Brand */}
@@ -158,9 +160,9 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PAX">PAX</SelectItem>
-                  <SelectItem value="Verifone">Verifone</SelectItem>
-                  <SelectItem value="Ingenico">Ingenico</SelectItem>
+                  <SelectItem value="PAX">{t('blumonDialog.brandPax')}</SelectItem>
+                  <SelectItem value="Verifone">{t('blumonDialog.brandVerifone')}</SelectItem>
+                  <SelectItem value="Ingenico">{t('blumonDialog.brandIngenico')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -174,24 +176,24 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
                 id="model"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                placeholder="A910S"
+                placeholder={t('blumonDialog.modelPlaceholder')}
                 required
                 className="bg-background border-input"
               />
-              <p className="text-xs text-muted-foreground">Modelo del dispositivo (ej: A910S, A920)</p>
+              <p className="text-xs text-muted-foreground">{t('blumonDialog.modelHint')}</p>
             </div>
 
             {/* Display Name (Optional) */}
             <div className="grid gap-2">
-              <Label htmlFor="displayName">Display Name (Opcional)</Label>
+              <Label htmlFor="displayName">{t('blumonDialog.displayName')}</Label>
               <Input
                 id="displayName"
                 value={formData.displayName}
                 onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                placeholder="Cuenta Blumon A (Sandbox)"
+                placeholder={t('blumonDialog.displayNamePlaceholder')}
                 className="bg-background border-input"
               />
-              <p className="text-xs text-muted-foreground">Si no se especifica, se genera automáticamente</p>
+              <p className="text-xs text-muted-foreground">{t('blumonDialog.displayNameHint')}</p>
             </div>
 
             {/* Environment */}

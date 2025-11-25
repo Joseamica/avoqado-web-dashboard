@@ -32,7 +32,10 @@ const rfcSchema = z.object({
     .string()
     .min(12, 'RFC debe tener al menos 12 caracteres')
     .max(13, 'RFC debe tener máximo 13 caracteres')
-    .regex(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/, 'Formato de RFC inválido'),
+    .transform(val => val.toUpperCase())
+    .refine(val => /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(val), {
+      message: 'Formato de RFC inválido',
+    }),
   legalName: z.string().min(3, 'Razón social es requerida'),
   fiscalRegime: z.string().min(1, 'Régimen fiscal es requerido'),
 })
@@ -62,6 +65,7 @@ const FEATURE_PRICING: Record<string, number> = {
 
 export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName }: ConversionWizardProps) {
   const { t } = useTranslation()
+  const { t: tOnboarding } = useTranslation('onboarding')
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<any>({})
@@ -313,7 +317,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   const getNextButtonText = () => {
     // Step 4: Features selection
     if (currentStep === 4) {
-      return selectedFeatures.length > 0 ? 'Continuar al pago' : 'Continuar sin features premium'
+      return selectedFeatures.length > 0 ? tOnboarding('shared.continueToPayment') : tOnboarding('shared.continueWithoutPremium')
     }
     // Default: "Siguiente"
     return t('conversionWizard.next')
@@ -329,7 +333,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }
 
   const getFinalButtonText = () => {
-    return selectedFeatures.length > 0 ? 'Iniciar trial gratuito de 2 días' : 'Activar cuenta gratuita'
+    return selectedFeatures.length > 0 ? tOnboarding('shared.startFreeTrial') : tOnboarding('shared.activateFreeAccount')
   }
 
   const renderStepContent = (step?: number) => {
@@ -349,7 +353,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <div className="space-y-3">
               <div>
                 <Label htmlFor="rfc">{t('conversionWizard.step1.rfcLabel')}</Label>
-                <Input id="rfc" placeholder="XAXX010101000" className="uppercase" {...rfcForm.register('rfc')} />
+                <Input id="rfc" placeholder={tOnboarding('shared.rfcPlaceholder')} className="uppercase" {...rfcForm.register('rfc')} />
                 {rfcForm.formState.errors.rfc && <p className="text-sm text-destructive mt-1">{rfcForm.formState.errors.rfc.message}</p>}
               </div>
 
@@ -613,7 +617,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{feature.name}</span>
                             <Badge variant="secondary" className="text-xs">
-                              2 días gratis
+                              {tOnboarding('shared.twoDaysFree')}
                             </Badge>
                           </div>
                           <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
@@ -632,15 +636,14 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-foreground">Total mensual después del trial</p>
+                      <p className="text-sm font-medium text-foreground">{tOnboarding('shared.totalMonthlyAfterTrial')}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''} seleccionado
-                        {selectedFeatures.length !== 1 ? 's' : ''}
+                        {tOnboarding('shared.featuresSelected', { count: selectedFeatures.length })}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-foreground">${totalMonthlyCost.toLocaleString()} MXN</p>
-                      <p className="text-xs text-muted-foreground">por mes</p>
+                      <p className="text-xs text-muted-foreground">{tOnboarding('shared.perMonth')}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -656,22 +659,23 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                         <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Tu cuenta incluirá sin costo:</p>
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{tOnboarding('shared.freeAccountIncludes')}</p>
                         <ul className="mt-2 space-y-1.5 text-sm text-blue-800 dark:text-blue-200">
                           <li className="flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            Gestión completa de menú y productos
+                            {tOnboarding('shared.freeFeatures.menuManagement')}
                           </li>
                           <li className="flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            Procesamiento de órdenes y pagos
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />1 usuario staff incluido
+                            {tOnboarding('shared.freeFeatures.orderProcessing')}
                           </li>
                           <li className="flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            Reportes básicos de ventas
+                            {tOnboarding('shared.freeFeatures.staffIncluded')}
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {tOnboarding('shared.freeFeatures.basicReports')}
                           </li>
                         </ul>
                       </div>
@@ -679,7 +683,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     <div className="flex items-start gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
                       <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <strong>Tip:</strong> Puedes agregar features premium en cualquier momento desde Configuración
+                        <strong>{tOnboarding('shared.tip')}</strong> {tOnboarding('shared.tipPremiumLater')}
                       </p>
                     </div>
                   </div>
@@ -696,11 +700,11 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           return (
             <div className="space-y-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground">Método de pago</h3>
+                <h3 className="text-lg font-semibold text-foreground">{tOnboarding('shared.paymentMethod')}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {paymentMethodId
-                    ? 'Confirma tu método de pago para el trial gratuito de 2 días'
-                    : 'Selecciona o agrega un método de pago para comenzar el trial gratuito de 2 días'}
+                    ? tOnboarding('shared.confirmPaymentMethod')
+                    : tOnboarding('shared.selectPaymentMethod')}
                 </p>
               </div>
               <PaymentMethodSelector
@@ -709,7 +713,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                   setPaymentMethodId(pmId)
                   setCurrentStep(currentStep + 1)
                 }}
-                buttonText="Continuar al resumen"
+                buttonText={tOnboarding('shared.continueToSummary')}
               />
             </div>
           )
@@ -732,8 +736,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
               <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
               <div>
-                <h4 className="font-semibold text-sm text-green-900 dark:text-green-100">¡Todo listo!</h4>
-                <p className="text-xs text-green-700 dark:text-green-300">Revisa tu información antes de confirmar</p>
+                <h4 className="font-semibold text-sm text-green-900 dark:text-green-100">{tOnboarding('shared.allReady')}</h4>
+                <p className="text-xs text-green-700 dark:text-green-300">{tOnboarding('shared.reviewBeforeConfirm')}</p>
               </div>
             </div>
 
@@ -741,16 +745,16 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <Card>
               <CardContent className="pt-6 space-y-4">
                 <div>
-                  <h5 className="font-semibold text-sm mb-3">Plan seleccionado</h5>
+                  <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.selectedPlan')}</h5>
                   {selectedFeatures.length > 0 ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="font-medium text-primary">Trial Premium - 2 días gratis</span>
+                        <span className="font-medium text-primary">{tOnboarding('shared.trialPremium')}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Después del trial: ${totalMonthlyCost.toLocaleString()} MXN/mes</p>
+                      <p className="text-xs text-muted-foreground">{tOnboarding('shared.afterTrialCost', { cost: totalMonthlyCost.toLocaleString() })}</p>
                       <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs font-medium text-foreground mb-2">Features incluidos:</p>
+                        <p className="text-xs font-medium text-foreground mb-2">{tOnboarding('shared.featuresIncluded')}</p>
                         <ul className="space-y-1">
                           {selectedFeatures.map(featureId => {
                             const feature = availableFeatures.find(f => f.id === featureId)
@@ -770,28 +774,28 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-foreground">Plan Gratuito</span>
+                        <span className="font-medium text-foreground">{tOnboarding('shared.freePlan')}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Sin cargo mensual • Puedes agregar features premium en cualquier momento
+                        {tOnboarding('shared.noMonthlyCharge')} • {tOnboarding('shared.addPremiumAnytime')}
                       </p>
                     </div>
                   )}
                 </div>
 
                 <div className="pt-3 border-t">
-                  <h5 className="font-semibold text-sm mb-3">Información del negocio</h5>
+                  <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.businessInfo')}</h5>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nombre del venue:</span>
+                      <span className="text-muted-foreground">{tOnboarding('shared.venueName')}</span>
                       <span className="font-medium">{venueName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">RFC:</span>
+                      <span className="text-muted-foreground">{tOnboarding('shared.rfc')}</span>
                       <span className="font-medium">{formData.rfc || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Razón social:</span>
+                      <span className="text-muted-foreground">{tOnboarding('shared.legalName')}</span>
                       <span className="font-medium">{formData.legalName || 'N/A'}</span>
                     </div>
                   </div>
@@ -845,15 +849,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             {selectedFeatures.length > 0 ? (
               <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💳 <strong>Importante:</strong> No se realizará ningún cargo durante los 2 días de prueba. Tu suscripción comenzará
-                  automáticamente después del período de prueba.
+                  <strong>{tOnboarding('shared.important')}</strong> {tOnboarding('shared.noChargeNotice')}
                 </p>
               </div>
             ) : (
               <div className="p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  🎉 <strong>¡Perfecto!</strong> Tu cuenta gratuita estará lista en segundos. Podrás comenzar a gestionar tu negocio
-                  inmediatamente.
+                  <strong>{tOnboarding('shared.perfect')}</strong> {tOnboarding('shared.freeAccountReady')}
                 </p>
               </div>
             )}

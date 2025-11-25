@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 
 interface Step {
@@ -13,8 +14,10 @@ interface StepIndicatorProps {
 }
 
 export const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => {
+  const { t } = useTranslation('venuePricing')
+
   return (
-    <nav aria-label="Progress">
+    <nav aria-label={t('stepIndicator.progress')}>
       <ol className="flex items-center justify-between">
         {steps.map((step, stepIdx) => (
           <li

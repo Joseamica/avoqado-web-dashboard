@@ -121,8 +121,11 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Cannot reduce stock below 0. Current stock is {currentStock.toFixed(2)} {product.unit || 'units'}.
-                Minimum adjustment: {(-currentStock).toFixed(2)}
+                {t('products.actions.adjustStockDialog.cannotReduceBelowZero', {
+                  amount: currentStock.toFixed(2),
+                  unit: product.unit || 'units',
+                  minimum: (-currentStock).toFixed(2)
+                })}
               </AlertDescription>
             </Alert>
           )}
@@ -134,13 +137,17 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
               <AlertDescription className="text-orange-800 dark:text-orange-200">
                 {showLargeAdjustmentConfirm ? (
                   <>
-                    <strong>Confirm large adjustment:</strong> This will change stock by {Math.abs(adjustmentNum).toFixed(2)} {product.unit || 'units'}
-                    ({(Math.abs(adjustmentNum) / currentStock * 100).toFixed(0)}% of current stock). Click Save again to confirm.
+                    <strong>{t('products.actions.adjustStockDialog.confirmLargeAdjustment')}</strong> {t('products.actions.adjustStockDialog.confirmLargeAdjustmentMessage', {
+                      amount: Math.abs(adjustmentNum).toFixed(2),
+                      unit: product.unit || 'units',
+                      percentage: (Math.abs(adjustmentNum) / currentStock * 100).toFixed(0)
+                    })}
                   </>
                 ) : (
                   <>
-                    <strong>Warning:</strong> This is a large adjustment ({(Math.abs(adjustmentNum) / currentStock * 100).toFixed(0)}% of current stock).
-                    Please verify the amount is correct.
+                    <strong>{t('products.actions.adjustStockDialog.warning')}</strong> {t('products.actions.adjustStockDialog.largeAdjustmentWarning', {
+                      percentage: (Math.abs(adjustmentNum) / currentStock * 100).toFixed(0)
+                    })}
                   </>
                 )}
               </AlertDescription>
@@ -182,7 +189,7 @@ export function AdjustStockDialog({ open, onOpenChange, product, onConfirm, isLo
             <Button type="submit" disabled={isLoading || adjustmentNum === 0 || wouldBeNegative}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {showLargeAdjustmentConfirm && isLargeAdjustment && !wouldBeNegative
-                ? 'Confirm & Save'
+                ? t('products.actions.adjustStockDialog.confirmAndSave')
                 : isLoading
                 ? t('products.actions.adjustStockDialog.saving')
                 : t('products.actions.adjustStockDialog.save')}

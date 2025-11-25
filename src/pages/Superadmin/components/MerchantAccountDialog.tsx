@@ -50,7 +50,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
   account,
   onSave,
 }) => {
-  const { t: _t } = useTranslation('superadmin')
+  const { t } = useTranslation('venuePricing')
   const [loading, setLoading] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
 
@@ -173,7 +173,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
                 disabled={!!account}
               >
                 <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder="Select provider..." />
+                  <SelectValue placeholder={t('merchantDialog.selectProvider')} />
                 </SelectTrigger>
                 <SelectContent>
                   {providers.map(provider => (
@@ -194,7 +194,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
                 id="externalMerchantId"
                 value={formData.externalMerchantId}
                 onChange={e => setFormData({ ...formData, externalMerchantId: e.target.value })}
-                placeholder="8e341c9a-0298-4aa1-ba6b-be11a526560f"
+                placeholder={t('merchantDialog.externalIdPlaceholder')}
                 required
                 className="bg-background border-input font-mono text-sm"
               />
@@ -202,24 +202,24 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
 
             {/* Alias */}
             <div className="grid gap-2">
-              <Label htmlFor="alias">Alias (Internal Reference)</Label>
+              <Label htmlFor="alias">{t('merchantDialog.alias')}</Label>
               <Input
                 id="alias"
                 value={formData.alias}
                 onChange={e => setFormData({ ...formData, alias: e.target.value })}
-                placeholder="main-account"
+                placeholder={t('merchantDialog.aliasPlaceholder')}
                 className="bg-background border-input"
               />
             </div>
 
             {/* Display Name */}
             <div className="grid gap-2">
-              <Label htmlFor="displayName">Display Name</Label>
+              <Label htmlFor="displayName">{t('merchantDialog.displayName')}</Label>
               <Input
                 id="displayName"
                 value={formData.displayName}
                 onChange={e => setFormData({ ...formData, displayName: e.target.value })}
-                placeholder="Main Menta Account"
+                placeholder={t('merchantDialog.displayNamePlaceholder')}
                 className="bg-background border-input"
               />
             </div>
@@ -227,7 +227,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
             {/* Credentials Section */}
             <div className="border border-border rounded-lg p-4 space-y-4 bg-muted/30">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Credentials (Encrypted)</Label>
+                <Label className="text-base font-semibold">{t('merchantDialog.credentials')}</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -241,7 +241,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
               {!account && (
                 <div className="flex items-start space-x-2 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/50 p-3 rounded-md border border-blue-200 dark:border-blue-800">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <p>Credentials will be encrypted before storing in the database</p>
+                  <p>{t('merchantDialog.credentialsNote')}</p>
                 </div>
               )}
 
@@ -256,7 +256,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
                     value={formData.merchantId}
                     onChange={e => setFormData({ ...formData, merchantId: e.target.value })}
                     required={!account}
-                    placeholder="merchant-12345"
+                    placeholder={t('merchantDialog.merchantIdPlaceholder')}
                     className="bg-background border-input font-mono text-sm"
                   />
                 </div>
@@ -271,31 +271,31 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
                     value={formData.apiKey}
                     onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
                     required={!account}
-                    placeholder="sk_live_..."
+                    placeholder={t('merchantDialog.apiKeyPlaceholder')}
                     className="bg-background border-input font-mono text-sm"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="customerId">Customer ID (Optional)</Label>
+                  <Label htmlFor="customerId">{t('merchantDialog.customerId')}</Label>
                   <Input
                     id="customerId"
                     type={showCredentials ? 'text' : 'password'}
                     value={formData.customerId}
                     onChange={e => setFormData({ ...formData, customerId: e.target.value })}
-                    placeholder="cus_..."
+                    placeholder={t('merchantDialog.customerIdPlaceholder')}
                     className="bg-background border-input font-mono text-sm"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="terminalId">Terminal ID (Optional)</Label>
+                  <Label htmlFor="terminalId">{t('merchantDialog.terminalId')}</Label>
                   <Input
                     id="terminalId"
                     type={showCredentials ? 'text' : 'password'}
                     value={formData.terminalId}
                     onChange={e => setFormData({ ...formData, terminalId: e.target.value })}
-                    placeholder="term_..."
+                    placeholder={t('merchantDialog.terminalIdPlaceholder')}
                     className="bg-background border-input font-mono text-sm"
                   />
                 </div>
@@ -304,7 +304,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
 
             {/* Provider Config (JSON) */}
             <div className="grid gap-2">
-              <Label htmlFor="providerConfig">Provider Config (JSON, Optional)</Label>
+              <Label htmlFor="providerConfig">{t('merchantDialog.providerConfig')}</Label>
               <Textarea
                 id="providerConfig"
                 value={formData.providerConfig}
@@ -317,7 +317,7 @@ export const MerchantAccountDialog: React.FC<MerchantAccountDialogProps> = ({
 
             {/* Display Order */}
             <div className="grid gap-2">
-              <Label htmlFor="displayOrder">Display Order</Label>
+              <Label htmlFor="displayOrder">{t('merchantDialog.displayOrder')}</Label>
               <Input
                 id="displayOrder"
                 type="number"

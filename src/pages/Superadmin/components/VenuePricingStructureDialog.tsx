@@ -9,6 +9,7 @@ import { type VenuePricingStructure, paymentProviderAPI } from '@/services/payme
 import { useQuery } from '@tanstack/react-query'
 import { Loader2, TrendingUp } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface VenuePricingStructureDialogProps {
   open: boolean
@@ -39,7 +40,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
   initialAccountType,
   onSave,
 }) => {
-  // const { t: _t } = useTranslation('superadmin')
+  const { t } = useTranslation('venuePricing')
   const [loading, setLoading] = useState(false)
   const [providerCost, setProviderCost] = useState<any>(null)
   const [venueConfig, setVenueConfig] = useState<any>(null)
@@ -216,8 +217,8 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{pricingStructure ? 'Edit Venue Pricing Structure' : 'Add Venue Pricing Structure'}</DialogTitle>
-            <DialogDescription>Set the rates that you charge the venue (your client)</DialogDescription>
+            <DialogTitle>{t('venuePricingDialog.title')}</DialogTitle>
+            <DialogDescription>{t('venuePricingDialog.subtitle')}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -225,9 +226,9 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
             <div className="flex items-start space-x-2 text-sm bg-green-50 dark:bg-green-950/50 p-3 rounded-md border border-green-200 dark:border-green-800">
               <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-green-600 dark:text-green-400" />
               <div className="text-green-800 dark:text-green-200">
-                <p className="font-medium">Venue Pricing Structure</p>
+                <p className="font-medium">{t('venuePricingDialog.title')}</p>
                 <p className="text-xs mt-1">
-                  These are the rates YOU charge the venue. The difference between venue rates and provider costs is your profit margin.
+                  {t('venuePricingDialog.infoBannerText')}
                 </p>
               </div>
             </div>
@@ -243,7 +244,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 disabled={!!pricingStructure || !!initialVenueId}
               >
                 <SelectTrigger className="bg-background border-input">
-                  <SelectValue placeholder="Select venue..." />
+                  <SelectValue placeholder={t('venuePricingDialog.selectVenue')} />
                 </SelectTrigger>
                 <SelectContent>
                   {venues.map((venue: any) => (
@@ -269,9 +270,9 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PRIMARY">Primary Account</SelectItem>
-                  <SelectItem value="SECONDARY">Secondary Account</SelectItem>
-                  <SelectItem value="TERTIARY">Tertiary Account</SelectItem>
+                  <SelectItem value="PRIMARY">{t('venuePricingDialog.primaryAccount')}</SelectItem>
+                  <SelectItem value="SECONDARY">{t('venuePricingDialog.secondaryAccount')}</SelectItem>
+                  <SelectItem value="TERTIARY">{t('venuePricingDialog.tertiaryAccount')}</SelectItem>
                 </SelectContent>
               </Select>
               {(pricingStructure || initialAccountType) && (
@@ -301,7 +302,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
             {/* Rate Grid */}
             <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/30">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Card Processing Rates (%)</Label>
+                <Label className="text-base font-semibold">{t('providerCostDialog.cardRates')}</Label>
                 {venueConfig && formData.accountType && (
                   <p className="text-xs text-muted-foreground">
                     {formData.accountType === 'PRIMARY' && venueConfig.primaryAccount && (
@@ -314,10 +315,10 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                       <>Margins vs. {venueConfig.tertiaryAccount.displayName}</>
                     )}
                     {formData.accountType === 'SECONDARY' && !venueConfig.secondaryAccount && (
-                      <span className="text-orange-500">⚠️ No SECONDARY merchant assigned</span>
+                      <span className="text-orange-500">{t('venuePricingDialog.noSecondaryMerchant')}</span>
                     )}
                     {formData.accountType === 'TERTIARY' && !venueConfig.tertiaryAccount && (
-                      <span className="text-orange-500">⚠️ No TERTIARY merchant assigned</span>
+                      <span className="text-orange-500">{t('venuePricingDialog.noTertiaryMerchant')}</span>
                     )}
                   </p>
                 )}
@@ -326,7 +327,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
               <div className="grid grid-cols-2 gap-3">
                 {/* Debit Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="debitRate">Debit Card Rate (%)</Label>
+                  <Label htmlFor="debitRate">{t('providerCostDialog.debitRate')}</Label>
                   <Input
                     id="debitRate"
                     type="number"
@@ -348,7 +349,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
 
                 {/* Credit Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="creditRate">Credit Card Rate (%)</Label>
+                  <Label htmlFor="creditRate">{t('providerCostDialog.creditRate')}</Label>
                   <Input
                     id="creditRate"
                     type="number"
@@ -370,7 +371,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
 
                 {/* Amex Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="amexRate">Amex Rate (%)</Label>
+                  <Label htmlFor="amexRate">{t('providerCostDialog.amexRate')}</Label>
                   <Input
                     id="amexRate"
                     type="number"
@@ -392,7 +393,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
 
                 {/* International Rate */}
                 <div className="grid gap-2">
-                  <Label htmlFor="internationalRate">International Rate (%)</Label>
+                  <Label htmlFor="internationalRate">{t('providerCostDialog.internationalRate')}</Label>
                   <Input
                     id="internationalRate"
                     type="number"
@@ -417,7 +418,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
             {/* Fixed Fees */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="fixedFeePerTransaction">Fixed Fee per Transaction ($)</Label>
+                <Label htmlFor="fixedFeePerTransaction">{t('providerCostDialog.fixedCost')}</Label>
                 <Input
                   id="fixedFeePerTransaction"
                   type="number"
@@ -433,7 +434,7 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="monthlyServiceFee">Monthly Service Fee ($)</Label>
+                <Label htmlFor="monthlyServiceFee">{t('providerCostDialog.monthlyFee')}</Label>
                 <Input
                   id="monthlyServiceFee"
                   type="number"
@@ -449,24 +450,24 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
 
             {/* Contract Reference */}
             <div className="grid gap-2">
-              <Label htmlFor="contractReference">Contract Reference</Label>
+              <Label htmlFor="contractReference">{t('additionalInfo.contractReference')}</Label>
               <Input
                 id="contractReference"
                 value={formData.contractReference}
                 onChange={e => setFormData({ ...formData, contractReference: e.target.value })}
-                placeholder="CONTRACT-2025-001"
+                placeholder={t('venuePricingDialog.contractPlaceholder')}
                 className="bg-background border-input"
               />
             </div>
 
             {/* Notes */}
             <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">{t('providerCostDialog.notes')}</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes about this pricing structure..."
+                placeholder={t('providerCostDialog.notesPlaceholder')}
                 rows={3}
                 className="bg-background border-input"
               />

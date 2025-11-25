@@ -1,0 +1,73 @@
+{
+  "title": "Monitoreo de Webhooks",
+  "subtitle": "Monitorea eventos de webhook de Stripe, depura errores y rastrea la salud del sistema",
+  "metrics": {
+    "successRate": "Tasa de Éxito",
+    "avgProcessingTime": "Tiempo Promedio de Procesamiento",
+    "perSuccessfulEvent": "Por evento exitoso",
+    "failedEvents": "Eventos Fallidos",
+    "requireAttention": "Requieren atención",
+    "pendingEvents": "Eventos Pendientes",
+    "currentlyProcessing": "Procesando actualmente",
+    "events": "eventos"
+  },
+  "events": {
+    "title": "Eventos de Webhook",
+    "description": "Registro en tiempo real de todos los eventos de webhook de Stripe",
+    "showFilters": "Mostrar Filtros",
+    "hideFilters": "Ocultar Filtros",
+    "clearFilters": "Limpiar Filtros",
+    "showing": "Mostrando {{count}} de {{total}} eventos",
+    "loading": "Cargando eventos...",
+    "noEvents": "No se encontraron eventos de webhook"
+  },
+  "filters": {
+    "eventType": "Tipo de Evento",
+    "allEvents": "Todos los Eventos",
+    "status": "Estado",
+    "allStatuses": "Todos los Estados",
+    "success": "Éxito",
+    "failed": "Fallido",
+    "pending": "Pendiente",
+    "retrying": "Reintentando",
+    "fromDate": "Desde",
+    "toDate": "Hasta"
+  },
+  "table": {
+    "dateTime": "Fecha/Hora",
+    "eventType": "Tipo de Evento",
+    "status": "Estado",
+    "venue": "Local",
+    "processingTime": "Tiempo de Procesamiento",
+    "retries": "Reintentos",
+    "actions": "Acciones",
+    "na": "N/A",
+    "view": "Ver",
+    "retry": "Reintentar"
+  },
+  "pagination": {
+    "page": "Página {{current}} de {{total}}",
+    "previous": "Anterior",
+    "next": "Siguiente"
+  },
+  "detail": {
+    "title": "Detalles del Evento de Webhook",
+    "eventId": "ID del Evento",
+    "metadata": "Metadatos",
+    "statusLabel": "Estado:",
+    "eventTypeLabel": "Tipo de Evento:",
+    "createdLabel": "Creado:",
+    "processingTimeLabel": "Tiempo de Procesamiento:",
+    "venueLabel": "Local:",
+    "retryCountLabel": "Conteo de Reintentos:",
+    "errorMessage": "Mensaje de Error",
+    "eventPayload": "Payload del Evento",
+    "retryWebhook": "Reintentar Evento de Webhook"
+  },
+  "toast": {
+    "retried": "Webhook Reintentado",
+    "retriedDesc": "El evento de webhook ha sido reprocesado exitosamente.",
+    "retryFailed": "Error al Reintentar",
+    "retryFailedDesc": "Error al reintentar evento de webhook"
+  }
+}

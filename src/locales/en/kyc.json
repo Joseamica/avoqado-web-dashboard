@@ -34,5 +34,94 @@
       "message": "KYC verification rejected - Please review the rejection reason and resubmit your documents",
       "action": "Resubmit"
     }
+  },
+  "review": {
+    "title": "KYC Review",
+    "loading": "Loading KYC data...",
+    "notFound": "KYC Data Not Found",
+    "backToVenues": "Back to Venues",
+    "rejectionReason": "Rejection Reason",
+    "approveKyc": "Approve KYC",
+    "rejectKyc": "Reject KYC",
+    "approving": "Approving...",
+    "rejecting": "Rejecting...",
+    "tabs": {
+      "documents": "Documents",
+      "venue": "Venue Info",
+      "owner": "Owner Info",
+      "banking": "Banking Info"
+    },
+    "documents": {
+      "title": "KYC Documents",
+      "description": "Review all submitted documents for verification",
+      "submitted": "Submitted",
+      "missing": "Missing",
+      "viewDocument": "View Document",
+      "download": "Download",
+      "notSubmitted": "Document not submitted",
+      "notApplicable": "Not applicable"
+    },
+    "venue": {
+      "title": "Venue Information",
+      "description": "Business details and location",
+      "venueName": "Venue Name",
+      "venueSlug": "Venue Slug",
+      "entityType": "Entity Type",
+      "kycSubmitted": "KYC Submitted",
+      "notSubmitted": "Not submitted",
+      "notSpecified": "Not specified",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "notProvided": "Not provided"
+    },
+    "owner": {
+      "title": "Owner Information",
+      "description": "Contact details for the venue owner",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "notProvided": "Not provided"
+    },
+    "banking": {
+      "title": "Banking Information",
+      "description": "Payment account details",
+      "clabe": "CLABE",
+      "bankName": "Bank Name",
+      "accountHolder": "Account Holder",
+      "notProvided": "Not provided"
+    },
+    "approveDialog": {
+      "title": "Approve KYC Verification",
+      "description": "Are you sure you want to approve KYC for {{venueName}}? This will allow them to accept payments.",
+      "cancel": "Cancel"
+    },
+    "rejectDialog": {
+      "title": "Reject KYC Verification",
+      "description": "Please provide a reason for rejecting {{venueName}}'s KYC submission. They will receive this feedback.",
+      "selectDocuments": "Select Rejected Documents (Optional)",
+      "selectDocumentsHelp": "Select specific documents that need to be resubmitted. If no documents are selected, all documents will be marked as rejected.",
+      "noDocuments": "No documents have been uploaded yet. All documents will be marked as rejected.",
+      "documentsSelected": "{{count}} document(s) selected for rejection",
+      "reasonLabel": "Rejection Reason *",
+      "reasonPlaceholder": "Explain why the KYC is being rejected...",
+      "reasonRequired": "Rejection reason is required",
+      "reasonMinLength": "{{remaining}} characters remaining (minimum {{min}})",
+      "cancel": "Cancel"
+    },
+    "status": {
+      "pendingReview": "Pending Review",
+      "inReview": "In Review",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
+    "toast": {
+      "approveSuccess": "KYC Approved",
+      "approveDescription": "{{venueName}} has been approved and can now accept payments.",
+      "approveFailed": "Approval Failed",
+      "rejectSuccess": "KYC Rejected",
+      "rejectDescription": "{{venueName}} has been notified of the rejection.",
+      "rejectFailed": "Rejection Failed"
+    }
   }
 }

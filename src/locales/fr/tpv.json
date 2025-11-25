@@ -91,6 +91,10 @@
     "systemId": "System ID",
     "serialNumber": "Serial Number",
     "terminalType": "Terminal Type",
+    "brand": "Brand",
+    "model": "Model",
+    "brandPlaceholder": "PAX, Ingenico, Verifone",
+    "modelPlaceholder": "A910S, D220, VX520",
     "selectType": "Select type",
     "types": {
       "tpvAndroid": "TPV Android",

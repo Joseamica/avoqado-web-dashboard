@@ -1,6 +1,13 @@
 {
+  "loading": "Loading...",
   "pageTitle": "Billing & Subscriptions",
   "pageSubtitle": "Manage your active subscriptions, view billing history, and explore available features",
+  "tabs": {
+    "subscriptions": "Subscriptions",
+    "history": "History",
+    "paymentMethods": "Payment Methods",
+    "tokens": "AI Tokens"
+  },
   "activeSubscriptions": {
     "title": "Active Subscriptions",
     "noSubscriptions": "You don't have any active subscriptions yet",
@@ -19,6 +26,10 @@
   },
   "billingHistory": {
     "title": "Billing History",
+    "tabs": {
+      "invoices": "Invoices",
+      "tokenPurchases": "Token Purchases"
+    },
     "noInvoices": "No invoices yet",
     "description": "Your invoice history will appear here once you start getting charged",
     "sort": {
@@ -45,10 +56,15 @@
     },
     "columns": {
       "date": "Date",
+      "type": "Type",
       "description": "Description",
       "amount": "Amount",
       "status": "Status",
       "actions": "Actions"
+    },
+    "conceptType": {
+      "subscription": "Subscription",
+      "tokens": "AI Tokens"
     },
     "status": {
       "paid": "Paid",
@@ -59,6 +75,7 @@
     },
     "downloadButton": "Download Invoice",
     "downloading": "Downloading...",
+    "viewReceiptButton": "View Receipt",
     "retryButton": "Retry Payment",
     "retrying": "Retrying...",
     "retrySuccess": "Payment retry successful",
@@ -159,6 +176,78 @@
       "confirmFailed": "Failed to confirm payment method",
       "setupFailed": "Failed to set up payment method",
       "addFailed": "Failed to add payment method"
+    }
+  },
+  "tokenBudget": {
+    "title": "AI Token Budget",
+    "subtitle": "Manage your AI assistant token usage and purchases",
+    "settings": "Settings",
+    "loadError": "Failed to load token budget information",
+    "currentUsage": "Current Month Usage",
+    "freeTokensIncluded": "{{amount}} free tokens included monthly",
+    "used": "used",
+    "freeRemaining": "Free Remaining",
+    "purchased": "Purchased",
+    "totalAvailable": "Total Available",
+    "overageWarning": "You've used {{tokens}} tokens over your limit. Current overage cost: {{cost}}",
+    "purchaseTitle": "Purchase Additional Tokens",
+    "tokenAmount": "Token Amount",
+    "pricePerThousand": "{{price}} per 1,000 tokens",
+    "total": "Total",
+    "buyNow": "Buy Now",
+    "purchaseSuccess": "Tokens purchased!",
+    "purchaseSuccessDesc": "{{amount}} tokens have been added to your account",
+    "purchaseError": "Purchase failed",
+    "minimumRequired": "Minimum 1,000 tokens",
+    "minimumRequiredDesc": "Please enter at least 1,000 tokens to purchase",
+    "autoRechargeTitle": "Auto-Recharge Settings",
+    "autoRechargeDesc": "Automatically purchase tokens when your balance runs low",
+    "enableAutoRecharge": "Enable Auto-Recharge",
+    "enableAutoRechargeDesc": "Automatically purchase tokens when balance falls below threshold",
+    "threshold": "Threshold",
+    "thresholdDesc": "Purchase tokens when balance falls below this amount",
+    "rechargeAmount": "Recharge Amount",
+    "rechargeAmountDesc": "Amount to purchase ({{price}})",
+    "saveSettings": "Save Settings",
+    "settingsUpdated": "Settings saved",
+    "settingsUpdatedDesc": "Your auto-recharge settings have been updated",
+    "settingsError": "Failed to save settings",
+    "noPaymentMethod": "Add a payment method above to purchase tokens",
+    "addFundsButton": "Add funds",
+    "addFunds": {
+      "title": "Add funds",
+      "description": "Cover usage beyond your subscription limits by adding funds to your wallet",
+      "balanceAfter": "Balance after purchase",
+      "tokensToAdd": "Tokens to add",
+      "pricePerToken": "Price per token",
+      "totalToPay": "Total to pay",
+      "paymentMethod": "Payment method",
+      "customAmount": "Custom amount...",
+      "disclaimer": "By clicking Buy, you authorize the charge to your card for the amount shown above.",
+      "buyButton": "Buy tokens"
+    }
+  },
+  "tokenPurchases": {
+    "title": "Token Purchase History",
+    "noPurchases": "No token purchases yet",
+    "description": "Your token purchase history will appear here once you make your first purchase",
+    "columns": {
+      "date": "Date",
+      "tokens": "Tokens",
+      "amount": "Amount",
+      "type": "Type",
+      "status": "Status"
+    },
+    "type": {
+      "manual": "Manual",
+      "autoRecharge": "Auto-recharge",
+      "promotional": "Promotional"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "failed": "Failed",
+      "refunded": "Refunded"
     }
   },
   "toast": {

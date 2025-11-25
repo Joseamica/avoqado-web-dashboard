@@ -164,7 +164,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
             <div className="space-y-2">
               <Label htmlFor="name">{t('rawMaterials.fields.name')} *</Label>
               <Input id="name" {...register('name', { required: true })} />
-              {errors.name && <p className="text-xs text-destructive">Required</p>}
+              {errors.name && <p className="text-xs text-destructive">{t('validation.required')}</p>}
             </div>
 
             <div className="space-y-2">
@@ -182,7 +182,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
                 </TooltipProvider>
               </div>
               <Input id="sku" {...register('sku', { required: true })} />
-              {errors.sku && <p className="text-xs text-destructive">Required</p>}
+              {errors.sku && <p className="text-xs text-destructive">{t('validation.required')}</p>}
             </div>
           </div>
 

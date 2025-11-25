@@ -149,7 +149,7 @@ const VenueManagement: React.FC = () => {
             <div className="font-medium flex items-center gap-2">
               {row.original.name}
               {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
-                <span title="KYC Pending Review">
+                <span title={t('venueMgmt.kycPendingReview', { defaultValue: 'KYC Pending Review' })}>
                   {/* ✅ Theme-aware warning icon */}
                   <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                 </span>

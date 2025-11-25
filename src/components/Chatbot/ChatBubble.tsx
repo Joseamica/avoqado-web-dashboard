@@ -1,18 +1,30 @@
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { useMutation } from '@tanstack/react-query'
-import { History, Loader2, Maximize2, Minimize2, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, BarChart3, History, Loader2, Maximize2, Minimize2, MoreVertical, PanelLeft, PanelLeftClose, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X, Zap } from 'lucide-react'
+import { useTokenBudget, getTokenWarningLevel, formatTokenCount, tokenBudgetQueryKey, shouldWarnBeforeSending } from '@/hooks/use-token-budget'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
+import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card'
+import { Card, CardHeader, CardTitle } from '../../components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip'
 import { ConfirmDialog } from '../../components/ui/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '../../components/ui/form'
 import { Input } from '../../components/ui/input'
+import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { useToast } from '../../hooks/use-toast'
+import { ChatChart } from './ChatChart'
 import {
   addMessageToHistory,
   clearConversationHistory,
@@ -22,11 +34,13 @@ import {
   getCurrentConversationId,
   getSavedConversations,
   getUsageStats,
+  isVisualizationSkipped,
   loadConversation,
   saveConversation,
   sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
+  type VisualizationResult,
 } from '../../services/chatService'
 
 const isDevEnvironment = import.meta.env.DEV
@@ -52,6 +66,12 @@ interface ChatMessage {
   cached?: boolean
   trainingDataId?: string
   feedbackGiven?: 'CORRECT' | 'INCORRECT' | null
+  visualization?: VisualizationResult
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 // Helper function to convert conversation history to chat messages
@@ -105,12 +125,40 @@ function convertHistoryToMessages(history: any[], welcomeText: string): ChatMess
   return messages
 }
 
+// Helper function to parse markdown-style bold text (**text**) into Badge components
+function parseMessageText(text: string, isUserMessage: boolean): React.ReactNode {
+  // Split by **text** pattern, keeping the captured groups
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+
+  if (parts.length === 1) {
+    // No bold text found, return as-is
+    return text
+  }
+
+  return parts.map((part, index) => {
+    // Check if this part is a bold text (surrounded by **)
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const content = part.slice(2, -2)
+      return (
+        <Badge
+          key={index}
+          variant={isUserMessage ? 'secondary' : 'default'}
+          className="mx-0.5 text-xs py-0.5 px-1.5"
+        >
+          {content}
+        </Badge>
+      )
+    }
+    return part
+  })
+}
+
 // Chat interface component inside the same file to avoid TypeScript module errors
 function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const venueSlug = slug ?? null
-  const [showConversations, setShowConversations] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
   const [savedConversations, setSavedConversations] = useState(() => getSavedConversations(venueSlug))
   const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId())
   const [isExpanded, setIsExpanded] = useState(true)
@@ -137,6 +185,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [isCreatingNew, setIsCreatingNew] = useState(false) // Prevent multiple new conversation operations
   const [isSaving, setIsSaving] = useState(false) // Prevent multiple save operations
   const [lastSavedMessageCount, setLastSavedMessageCount] = useState(0) // Track last saved state
+  const [includeVisualization, setIncludeVisualization] = useState(false) // Toggle for chart generation
 
   // Estados para diálogos de confirmación
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -147,10 +196,28 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false)
   const [feedbackMessage, setFeedbackMessage] = useState<ChatMessage | null>(null)
 
+  // Estados para diálogo de cambios sin guardar
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false)
+  const [pendingAction, setPendingAction] = useState<'new' | 'load' | null>(null)
+  const [conversationToLoad, setConversationToLoad] = useState<string | null>(null)
+
+  // Estado para diálogo de advertencia de tokens
+  const [showTokenWarningDialog, setShowTokenWarningDialog] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+
   const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Fetch real token budget status from API
+  const { data: tokenBudget, isLoading: isTokenBudgetLoading } = useTokenBudget()
 
   // Memoize usage stats; function reads external store, not component state
   const usageStats = useMemo(() => getUsageStats(venueSlug), [venueSlug])
+
+  // Token warning level for styling
+  const tokenWarningLevel = useMemo(() => {
+    return getTokenWarningLevel(tokenBudget)
+  }, [tokenBudget])
 
   // Check if there's something to save or clear
   const canSaveConversation = useMemo(() => {
@@ -187,10 +254,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Use TanStack Query mutation for chat messages
   const chatMutation = useMutation({
-    mutationFn: async (message: string) => {
+    mutationFn: async ({ message, withVisualization }: { message: string; withVisualization: boolean }) => {
       // Debug: verificar estado de autenticación antes de enviar
-      devLog('Enviando mensaje al asistente:', message, { venueSlug })
-      return await sendChatMessage(message, { venueSlug })
+      devLog('Enviando mensaje al asistente:', message, { venueSlug, includeVisualization: withVisualization })
+      return await sendChatMessage(message, { venueSlug, includeVisualization: withVisualization })
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
@@ -355,7 +422,6 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     const currentHistory = getConversationHistory(venueSlug)
     if (currentHistory.length <= 1) {
       toast({
-        variant: 'destructive',
         title: t('chat.toast.nothingToSave.title', { defaultValue: 'Nothing to save' }),
         description: t('chat.toast.nothingToSave.desc', { defaultValue: 'You need at least one conversation to save it.' }),
       })
@@ -412,35 +478,22 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     }
   }, [toast, isSaving, messages, currentConversationId, lastSavedMessageCount, t, venueSlug])
 
-  const handleNewConversation = useCallback(() => {
-    if (isCreatingNew) return
-
-    // Check if current conversation has any user messages (more than just welcome)
-    const hasUserMessages = messages.some(msg => msg.isUser)
-
-    if (!hasUserMessages) {
-      toast({
-        title: t('chat.toast.alreadyNew.title'),
-        description: t('chat.toast.alreadyNew.desc'),
-      })
-      return
-    }
-
+  // Función que ejecuta la creación de nueva conversación
+  const performCreateNewConversation = useCallback(() => {
     setIsCreatingNew(true)
 
     try {
       createNewConversation(venueSlug)
       setCurrentConversationId(null)
       setSavedConversations(getSavedConversations(venueSlug))
-      setLastSavedMessageCount(0) // Reset save tracking for new conversation
+      setLastSavedMessageCount(0)
 
-      // Reload messages
       const welcomeMessage = {
         id: 'welcome',
         text: t('chat.welcome'),
         isUser: false,
         timestamp: new Date(),
-        feedbackGiven: null, // Initialize feedback state
+        feedbackGiven: null,
       }
       setMessages([welcomeMessage])
 
@@ -456,23 +509,44 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         description: t('chat.errors.createConversation'),
       })
     } finally {
-      // Add delay to prevent spam clicking
       setTimeout(() => {
         setIsCreatingNew(false)
       }, 1000)
     }
-  }, [toast, messages, isCreatingNew, t, venueSlug])
+  }, [toast, t, venueSlug])
 
-  const handleLoadConversation = useCallback(
+  const handleNewConversation = useCallback(() => {
+    if (isCreatingNew) return
+
+    const hasUserMessages = messages.some(msg => msg.isUser)
+
+    if (!hasUserMessages) {
+      toast({
+        title: t('chat.toast.alreadyNew.title'),
+        description: t('chat.toast.alreadyNew.desc'),
+      })
+      return
+    }
+
+    // Si hay cambios sin guardar, mostrar confirmación
+    if (canSaveConversation) {
+      setPendingAction('new')
+      setShowUnsavedChangesDialog(true)
+      return
+    }
+
+    performCreateNewConversation()
+  }, [messages, isCreatingNew, canSaveConversation, t, toast, performCreateNewConversation])
+
+  // Función que ejecuta la carga de conversación
+  const performLoadConversation = useCallback(
     (conversationId: string) => {
       if (loadConversation(conversationId, venueSlug)) {
         const history = getConversationHistory(venueSlug)
         const convertedMessages = convertHistoryToMessages(history, t('chat.welcome'))
         setMessages(convertedMessages)
         setCurrentConversationId(conversationId)
-        setShowConversations(false)
 
-        // Set last saved count to current count since we're loading a saved conversation
         const currentMessageCount = convertedMessages.filter(msg => msg.id !== 'welcome').length
         setLastSavedMessageCount(currentMessageCount)
 
@@ -484,6 +558,21 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       }
     },
     [savedConversations, toast, t, venueSlug],
+  )
+
+  const handleLoadConversation = useCallback(
+    (conversationId: string) => {
+      // Si hay cambios sin guardar y es una conversación diferente, mostrar confirmación
+      if (canSaveConversation && conversationId !== currentConversationId) {
+        setPendingAction('load')
+        setConversationToLoad(conversationId)
+        setShowUnsavedChangesDialog(true)
+        return
+      }
+
+      performLoadConversation(conversationId)
+    },
+    [canSaveConversation, currentConversationId, performLoadConversation],
   )
 
   const handleDeleteConversation = useCallback((conversationId: string) => {
@@ -541,6 +630,40 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     [feedbackMessage, messages, negativeFeedbackMutation, t],
   )
 
+  // Handlers para el diálogo de cambios sin guardar
+  const handleSaveAndProceed = useCallback(async () => {
+    await handleSaveConversation()
+    setShowUnsavedChangesDialog(false)
+
+    if (pendingAction === 'new') {
+      performCreateNewConversation()
+    } else if (pendingAction === 'load' && conversationToLoad) {
+      performLoadConversation(conversationToLoad)
+    }
+
+    setPendingAction(null)
+    setConversationToLoad(null)
+  }, [handleSaveConversation, pendingAction, conversationToLoad, performCreateNewConversation, performLoadConversation])
+
+  const handleDiscardAndProceed = useCallback(() => {
+    setShowUnsavedChangesDialog(false)
+
+    if (pendingAction === 'new') {
+      performCreateNewConversation()
+    } else if (pendingAction === 'load' && conversationToLoad) {
+      performLoadConversation(conversationToLoad)
+    }
+
+    setPendingAction(null)
+    setConversationToLoad(null)
+  }, [pendingAction, conversationToLoad, performCreateNewConversation, performLoadConversation])
+
+  const handleCancelUnsavedChanges = useCallback(() => {
+    setShowUnsavedChangesDialog(false)
+    setPendingAction(null)
+    setConversationToLoad(null)
+  }, [])
+
   // Scroll to bottom when new messages are added
   useEffect(() => {
     scrollToBottom()
@@ -563,12 +686,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     }
   }, [messages, venueSlug])
 
-  const onSubmit = async (values: { message: string }) => {
-    if (!values.message.trim()) return
+  // Check token warning and show dialog if needed
+  const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
 
+  // Function to actually send the message (used by both direct send and after warning confirmation)
+  const sendMessage = useCallback((message: string) => {
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
-      text: values.message,
+      text: message,
       isUser: true,
       timestamp: new Date(),
       feedbackGiven: null, // Initialize feedback state
@@ -576,11 +701,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     // Add user message to UI and localStorage immediately
     setMessages(prev => [...prev, userMessage])
-    addMessageToHistory('user', values.message, venueSlug)
-    form.reset()
+    addMessageToHistory('user', message, venueSlug)
 
     // Use TanStack Query mutation to send the message
-    chatMutation.mutate(values.message, {
+    chatMutation.mutate({ message, withVisualization: includeVisualization }, {
       onSuccess: result => {
         const botMessage: ChatMessage = {
           id: `bot-${Date.now()}`,
@@ -590,6 +714,8 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           cached: result.cached,
           trainingDataId: result.trainingDataId,
           feedbackGiven: null, // Initialize feedback state
+          visualization: result.visualization,
+          tokenUsage: result.tokenUsage,
         }
 
         // Debug: Log trainingDataId to console
@@ -612,46 +738,112 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           }, 5000)
         }
 
+        // Invalidate token budget to refresh the count after usage
+        queryClient.invalidateQueries({ queryKey: tokenBudgetQueryKey })
+
         devLog('✅ Message exchange completed and saved to history')
       },
     })
+  }, [chatMutation, includeVisualization, queryClient, toast, venueSlug])
+
+  // Handle confirmation to send despite token warning
+  const handleConfirmSendWithWarning = useCallback(() => {
+    if (pendingMessage) {
+      sendMessage(pendingMessage)
+      setPendingMessage(null)
+    }
+    setShowTokenWarningDialog(false)
+  }, [pendingMessage, sendMessage])
+
+  const onSubmit = async (values: { message: string }) => {
+    if (!values.message.trim()) return
+
+    // Check if we should warn the user about token usage
+    if (tokenWarning.shouldWarn && (tokenWarning.warningType === 'exhausted' || tokenWarning.warningType === 'overage')) {
+      setPendingMessage(values.message)
+      setShowTokenWarningDialog(true)
+      return
+    }
+
+    form.reset()
+    sendMessage(values.message)
   }
+  // Calcular ancho basado en estado
+  const cardWidth = useMemo(() => {
+    if (!isExpanded) return 'w-80 sm:w-96'
+    if (showSidebar) return 'w-[900px] sm:w-[1000px]'
+    return 'w-[700px] sm:w-[800px]'
+  }, [isExpanded, showSidebar])
+
   return (
     <Card
-      className={`${
-        isExpanded ? 'w-[700px] sm:w-[800px] h-[700px]' : 'w-80 sm:w-96'
-      } fixed bottom-20 right-20 z-9999 shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal`}
+      className={`${cardWidth} ${
+        isExpanded ? 'h-[700px]' : 'h-auto'
+      } fixed bottom-20 right-20 z-9999 shadow-lg theme-transition bg-white overflow-hidden border border-border isolate mix-blend-normal flex flex-col`}
     >
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background">
-        <CardTitle className="text-lg font-medium">
-          {showConversations ? t('chat.saved.title') : t('chat.title')}
-          {!showConversations && (
-            <span className="text-xs text-muted-foreground ml-2">
-              ({usageStats.remainingRequests} {t('chat.queriesRemaining')})
-            </span>
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0 bg-background border-b border-border shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Toggle Sidebar - only show when expanded */}
+          {isExpanded && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowSidebar(!showSidebar)}
+              aria-label={showSidebar ? t('chat.sidebar.hide') : t('chat.sidebar.show')}
+              title={showSidebar ? t('chat.sidebar.hide') : t('chat.sidebar.show')}
+            >
+              {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            </Button>
           )}
-        </CardTitle>
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
+            {t('chat.title')}
+            {canSaveConversation && (
+              <Badge variant="outline" className="text-xs font-normal flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                {t('chat.status.unsaved')}
+              </Badge>
+            )}
+            {!canSaveConversation && currentConversationId && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {t('chat.status.saved')}
+              </Badge>
+            )}
+            {/* Token Budget Indicator */}
+            {isTokenBudgetLoading ? (
+              <span className="text-xs text-muted-foreground font-normal flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+              </span>
+            ) : tokenBudget ? (
+              <Badge
+                variant={tokenWarningLevel === 'normal' ? 'secondary' : 'outline'}
+                className={`text-xs font-normal flex items-center gap-1 ${
+                  tokenWarningLevel === 'overage'
+                    ? 'border-red-500 text-red-600 dark:text-red-400'
+                    : tokenWarningLevel === 'danger'
+                      ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                      : tokenWarningLevel === 'warning'
+                        ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                        : ''
+                }`}
+                title={tokenBudget.warning || t('chat.tokens.available')}
+              >
+                {tokenWarningLevel === 'overage' ? (
+                  <AlertTriangle className="h-3 w-3" />
+                ) : (
+                  <Zap className="h-3 w-3" />
+                )}
+                {formatTokenCount(tokenBudget.totalAvailable)} {t('chat.tokens.remaining')}
+              </Badge>
+            ) : (
+              <span className="text-xs text-muted-foreground font-normal">
+                ({usageStats.remainingRequests} {t('chat.queriesRemaining')})
+              </span>
+            )}
+          </CardTitle>
+        </div>
         <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? t('chat.actions.collapse_chat') : t('chat.actions.expand_chat')}
-            title={isExpanded ? t('chat.actions.collapse_chat') : t('chat.actions.expand_chat')}
-          >
-            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant={showConversations ? 'default' : 'ghost'}
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setShowConversations(!showConversations)}
-            aria-label={t('chat.actions.view_conversations')}
-            title={t('chat.actions.view_saved_conversations')}
-          >
-            <History className="h-4 w-4" />
-          </Button>
+          {/* Save */}
           <Button
             variant="ghost"
             size="icon"
@@ -659,16 +851,12 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             onClick={handleSaveConversation}
             disabled={!canSaveConversation || isSaving}
             aria-label={t('chat.actions.save_conversation')}
-            title={
-              !messages.some(msg => msg.isUser)
-                ? t('chat.actions.nothing_to_save')
-                : canSaveConversation
-                ? t('chat.actions.save_current')
-                : t('chat.actions.already_saved')
-            }
+            title={canSaveConversation ? t('chat.actions.save_conversation') : t('chat.actions.already_saved')}
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           </Button>
+
+          {/* New */}
           <Button
             variant="ghost"
             size="icon"
@@ -676,79 +864,117 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             onClick={handleNewConversation}
             disabled={isCreatingNew}
             aria-label={t('chat.actions.new_conversation')}
-            title={t('chat.actions.create_new_conversation')}
+            title={t('chat.actions.new_conversation')}
           >
             {isCreatingNew ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleClearHistory}
-            disabled={isClearing || !canClearConversation}
-            aria-label={t('chat.actions.clear_history')}
-            title={canClearConversation ? t('chat.actions.clear_history') : t('chat.actions.nothing_to_clear')}
-          >
-            {isClearing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          </Button>
+
+          {/* Dropdown Menu */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t('chat.menu.options')}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={5} className="z-[10000]">
+              <DropdownMenuItem onClick={() => setIsExpanded(!isExpanded)}>
+                {isExpanded ? (
+                  <>
+                    <Minimize2 className="h-4 w-4 mr-2" />
+                    {t('chat.menu.collapse')}
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-4 w-4 mr-2" />
+                    {t('chat.menu.expand')}
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleClearHistory}
+                disabled={isClearing || !canClearConversation}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('chat.menu.clearHistory')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Close */}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label={t('chat.actions.close_chat')}>
             <X className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className={`p-4 ${isExpanded ? 'h-[550px]' : 'h-72'} overflow-y-auto bg-background`}>
-        {showConversations ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <History className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-medium">{t('chat.saved.title')}</h3>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setShowConversations(false)}>
-                {t('chat.saved.back')}
+
+      {/* Main content area with sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        {showSidebar && isExpanded && (
+          <aside className="w-[220px] border-r border-border bg-muted/30 flex flex-col shrink-0">
+            {/* New conversation button */}
+            <div className="p-3 border-b border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2"
+                onClick={handleNewConversation}
+                disabled={isCreatingNew}
+              >
+                {isCreatingNew ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {t('chat.sidebar.newChat')}
               </Button>
             </div>
-            {savedConversations.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">{t('chat.saved.empty')}</p>
-            ) : (
-              savedConversations.map(conversation => (
-                <div
-                  key={conversation.id}
-                  className={`p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors ${
-                    conversation.id === currentConversationId ? 'bg-accent border-primary' : 'bg-card'
-                  }`}
-                  onClick={() => handleLoadConversation(conversation.id)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium truncate">{conversation.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{conversation.lastMessage}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {conversation.timestamp.toLocaleDateString()}{' '}
-                        {conversation.timestamp.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 ml-2 text-muted-foreground hover:text-destructive"
-                      onClick={e => {
-                        e.stopPropagation()
-                        handleDeleteConversation(conversation.id)
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+
+            {/* Conversations list */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {savedConversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center px-2">
+                  <History className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-xs text-muted-foreground">{t('chat.saved.emptyTitle')}</p>
                 </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4 bg-background">
+              ) : (
+                savedConversations.map(conversation => (
+                  <div
+                    key={conversation.id}
+                    className={`p-2 rounded-md cursor-pointer transition-colors group ${
+                      conversation.id === currentConversationId
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-accent/50'
+                    }`}
+                    onClick={() => handleLoadConversation(conversation.id)}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{conversation.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{conversation.lastMessage}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleDeleteConversation(conversation.id)
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Chat area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Messages */}
+          <div className={`flex-1 p-4 overflow-y-auto bg-background ${!isExpanded ? 'h-72' : ''}`}>
+            <div className="space-y-4">
             {messages.map((message, index) => (
               <div key={message.id} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
                 <div
@@ -756,14 +982,30 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                     message.isUser ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
+                  <p className="text-sm whitespace-pre-wrap">{parseMessageText(message.text, message.isUser)}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs opacity-70">
+                        {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                      {message.tokenUsage && message.tokenUsage.totalTokens > 0 && (
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs opacity-50 cursor-help flex items-center gap-0.5">
+                                <Zap className="w-3 h-3" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {message.tokenUsage.totalTokens.toLocaleString()} tokens
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     {message.cached && (
                       <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
                         {t('chat.labels.cache')}
@@ -797,7 +1039,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             })
                           }
                         }}
-                        disabled={positiveFeedbackMutation.isPending || message.feedbackGiven !== null}
+                        disabled={positiveFeedbackMutation.isPending}
                       >
                         <ThumbsUp className="h-3 w-3" />
                       </Button>
@@ -824,20 +1066,58 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                             })
                           }
                         }}
-                        disabled={negativeFeedbackMutation.isPending || message.feedbackGiven !== null}
+                        disabled={negativeFeedbackMutation.isPending}
                       >
                         <ThumbsDown className="h-3 w-3" />
                       </Button>
                     </div>
                   )}
+                  {/* Chart visualization or skip message */}
+                  {!message.isUser && message.visualization && (
+                    isVisualizationSkipped(message.visualization) ? (
+                      <div className="mt-2 px-2.5 py-1.5 rounded-md bg-muted/50 border border-border/50 flex items-center gap-2">
+                        <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        <span className="text-xs text-muted-foreground">
+                          {message.visualization.reason}
+                        </span>
+                      </div>
+                    ) : (
+                      <ChatChart visualization={message.visualization} />
+                    )
+                  )}
                 </div>
               </div>
             ))}
-            <div ref={setMessagesEndRef} />
+              <div ref={setMessagesEndRef} />
+            </div>
           </div>
-        )}
-      </CardContent>
-      <CardFooter className="p-4 pt-2 bg-background flex flex-col gap-1.5">
+
+          {/* Input area */}
+          <div className="p-4 pt-2 bg-background border-t border-border flex flex-col gap-1.5 shrink-0">
+            {/* Visualization toggle */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="viz-toggle"
+                  checked={includeVisualization}
+                  onCheckedChange={setIncludeVisualization}
+                  className="scale-75"
+                />
+                <label
+                  htmlFor="viz-toggle"
+                  className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer"
+                >
+                  <BarChart3 className="h-3 w-3" />
+                  {t('chat.visualization.toggle')}
+                </label>
+              </div>
+              {includeVisualization && (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  ⚡ {t('chat.visualization.tokenWarning')}
+                </span>
+              )}
+            </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full space-x-2">
             <FormField
@@ -873,7 +1153,9 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           </Link>
           .
         </p>
-      </CardFooter>
+          </div>
+        </div>
+      </div>
 
       {/* Diálogos de confirmación */}
       <ConfirmDialog
@@ -947,6 +1229,76 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved Changes Dialog */}
+      <Dialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('chat.unsavedChanges.title')}</DialogTitle>
+            <DialogDescription>{t('chat.unsavedChanges.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={handleCancelUnsavedChanges}>
+              {t('cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardAndProceed}>
+              {t('chat.unsavedChanges.discard')}
+            </Button>
+            <Button onClick={handleSaveAndProceed} disabled={isSaving}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {t('chat.unsavedChanges.saveFirst')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Token Warning Dialog */}
+      <Dialog open={showTokenWarningDialog} onOpenChange={(open) => {
+        if (!open) {
+          setPendingMessage(null)
+        }
+        setShowTokenWarningDialog(open)
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {t('chat.tokenWarning.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {tokenWarning.warningType === 'overage'
+                ? t('chat.tokenWarning.overageDesc', { cost: tokenBudget?.overageCost.toFixed(2) || '0.00' })
+                : t('chat.tokenWarning.exhaustedDesc')
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t('chat.tokenWarning.continueQuestion')}
+            </p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPendingMessage(null)
+                setShowTokenWarningDialog(false)
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={() => {
+                form.reset()
+                handleConfirmSendWithWarning()
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {t('chat.tokenWarning.sendAnyway')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

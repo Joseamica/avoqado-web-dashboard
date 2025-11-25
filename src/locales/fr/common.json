@@ -175,6 +175,15 @@
     "labels": {
       "cache": "En cache"
     },
+    "tokens": {
+      "available": "Tokens disponibles pour les requêtes",
+      "remaining": "tokens"
+    },
+    "visualization": {
+      "toggle": "Afficher les graphiques",
+      "tokenWarning": "Utilise plus de tokens",
+      "noData": "Pas de données disponibles pour le graphique"
+    },
     "a11y": {
       "positiveFeedback": "Marquer comme utile",
       "negativeFeedback": "Marquer comme non utile",
@@ -192,6 +201,87 @@
         "desc": "Êtes-vous sûr de vouloir supprimer \"{{title}}\" ? Cette action ne peut pas être annulée.",
         "confirm": "Supprimer"
       }
+    },
+    "tokenWarning": {
+      "title": "Limite de Tokens Atteinte",
+      "exhaustedDesc": "Vous avez utilisé tous vos tokens disponibles ce mois-ci. L'envoi de ce message entraînera des frais supplémentaires.",
+      "overageDesc": "Vous êtes actuellement en dépassement. Cette requête s'ajoutera à votre coût de dépassement actuel de {{cost}} $ USD.",
+      "continueQuestion": "Voulez-vous continuer quand même ?",
+      "sendAnyway": "Envoyer Quand Même"
+    }
+  },
+  "flags": {
+    "spain": "Drapeau de l'Espagne",
+    "uk": "Drapeau du Royaume-Uni"
+  },
+  "chooseColor": "Choisir la couleur",
+  "conversionWizard": {
+    "title": "Convertir en établissement réel",
+    "subtitle": "Complétez les étapes suivantes pour activer votre établissement.",
+    "step": "Étape",
+    "of": "sur",
+    "back": "Retour",
+    "next": "Suivant",
+    "convert": "Convertir maintenant",
+    "step1": {
+      "title": "Informations fiscales",
+      "description": "Entrez les informations fiscales de votre entreprise",
+      "rfcLabel": "RFC",
+      "legalNameLabel": "Raison sociale",
+      "legalNamePlaceholder": "Entrez la raison sociale",
+      "fiscalRegimeLabel": "Régime fiscal",
+      "fiscalRegimePlaceholder": "ex., Régime général"
+    },
+    "step2": {
+      "title": "Documents fiscaux",
+      "description": "Téléchargez vos documents fiscaux",
+      "uploadLabel": "Cliquez pour télécharger",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "constanciaLabel": "Certificat fiscal (obligatoire)",
+      "actaLabel": "Statuts (optionnel)",
+      "actaHint": "PDF, JPG, PNG (MAX. 10MB)"
+    },
+    "step3": {
+      "title": "Identification",
+      "description": "Téléchargez votre pièce d'identité",
+      "uploadLabel": "Cliquez pour télécharger",
+      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "idLabel": "Pièce d'identité (obligatoire)"
+    },
+    "step4": {
+      "title": "Sélectionner les fonctionnalités",
+      "description": "Choisissez les fonctionnalités à activer",
+      "loading": "Chargement...",
+      "noFeatures": "Aucune fonctionnalité disponible",
+      "helpText": "Sélectionnez les fonctionnalités pour votre établissement."
+    },
+    "step5": {
+      "title": "Vérifier et confirmer",
+      "description": "Vérifiez vos informations",
+      "summaryTitle": "Résumé",
+      "venueName": "Nom de l'établissement",
+      "rfc": "RFC",
+      "legalName": "Raison sociale",
+      "confirmationMessage": "En cliquant, vous confirmez que les informations sont correctes."
+    },
+    "success": {
+      "title": "Conversion réussie !",
+      "description": "Votre établissement a été converti avec succès."
+    },
+    "shared": {
+      "selectFile": "Sélectionner un fichier",
+      "uploading": "Téléchargement..."
+    },
+    "documents": {
+      "title": "Documents téléchargés",
+      "pending": "En attente",
+      "completed": "Terminé",
+      "optional": "Optionnel"
+    },
+    "error": {
+      "title": "Erreur",
+      "description": "Une erreur s'est produite. Veuillez réessayer.",
+      "fetchFeatures": "Impossible de charger les fonctionnalités."
     }
   }
 }

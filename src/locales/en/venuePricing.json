@@ -1,0 +1,118 @@
+{
+  "title": "Venue Payment & Pricing Configuration",
+  "description": "Configure merchant accounts and set pricing rates for your venues",
+  "metrics": {
+    "pricingStructures": "Pricing Structures",
+    "avgProfitMargin": "Avg Profit Margin",
+    "marginRange": "Margin Range",
+    "to": "to",
+    "warnings": "Warnings",
+    "active": "{{count}} active",
+    "margin": "{{status}} margin",
+    "acrossAllStructures": "Across all structures",
+    "negativeMarginsDetected": "Negative margins detected!",
+    "noIssuesFound": "No issues found"
+  },
+  "tabs": {
+    "debitCard": "Debit Card",
+    "creditCard": "Credit Card",
+    "amex": "Amex",
+    "international": "International"
+  },
+  "additionalInfo": {
+    "title": "Additional Information",
+    "effectiveFrom": "Effective From",
+    "fixedFee": "Fixed Fee per Transaction ($)",
+    "monthlyFee": "Monthly Service Fee ($)",
+    "contractReference": "Contract Reference",
+    "optional": "Optional"
+  },
+  "summary": {
+    "effectiveFrom": "Effective From:",
+    "fixedFee": "Fixed Fee per Transaction:",
+    "monthlyFee": "Monthly Service Fee:",
+    "contractReference": "Contract Reference:"
+  },
+  "wizard": {
+    "venue": "Venue",
+    "selectVenue": "Select a venue...",
+    "configComplete": "Configuration Complete!",
+    "allConfigured": "All merchant accounts have pricing configured."
+  },
+  "stepIndicator": {
+    "progress": "Progress"
+  },
+  "blumonDialog": {
+    "title": "Auto-Fetch Blumon Credentials",
+    "merchant": "Merchant:",
+    "serial": "Serial:",
+    "posId": "POS ID:",
+    "env": "Env:",
+    "processSteps": "Automated 3-step process:",
+    "step1": "OAuth Token (SHA256 password)",
+    "step2": "RSA Encryption Keys",
+    "step3": "DUKPT Keys (optional - initialized on first payment)",
+    "serialPlaceholder": "PAX device serial number",
+    "brandPax": "PAX",
+    "brandVerifone": "Verifone",
+    "brandIngenico": "Ingenico",
+    "modelPlaceholder": "A910S",
+    "modelHint": "Device model (e.g: A910S, A920)",
+    "displayName": "Display Name (Optional)",
+    "displayNamePlaceholder": "Blumon Account A (Sandbox)",
+    "displayNameHint": "If not specified, will be generated automatically"
+  },
+  "merchantDialog": {
+    "selectProvider": "Select provider...",
+    "externalIdPlaceholder": "8e341c9a-0298-4aa1-ba6b-be11a526560f",
+    "alias": "Alias (Internal Reference)",
+    "aliasPlaceholder": "main-account",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Main Menta Account",
+    "credentials": "Credentials (Encrypted)",
+    "credentialsNote": "Credentials will be encrypted before storing in the database",
+    "merchantIdPlaceholder": "merchant-12345",
+    "apiKeyPlaceholder": "sk_live_...",
+    "customerId": "Customer ID (Optional)",
+    "customerIdPlaceholder": "cus_...",
+    "terminalId": "Terminal ID (Optional)",
+    "terminalIdPlaceholder": "term_...",
+    "providerConfig": "Provider Config (JSON, Optional)",
+    "displayOrder": "Display Order"
+  },
+  "providerDialog": {
+    "codePlaceholder": "MENTA",
+    "namePlaceholder": "Menta Payment Solutions",
+    "supportedCountries": "Supported Countries"
+  },
+  "providerCostDialog": {
+    "title": "Provider Cost Structure",
+    "subtitle": "Set the rates that the payment provider charges Avoqado",
+    "description": "These are the rates the payment processor charges YOU (Avoqado)",
+    "selectMerchant": "Select merchant account...",
+    "effectiveDateHint": "The date when these rates become active",
+    "cardRates": "Card Processing Rates (%)",
+    "debitRate": "Debit Card Rate (%)",
+    "creditRate": "Credit Card Rate (%)",
+    "amexRate": "Amex Rate (%)",
+    "internationalRate": "International Rate (%)",
+    "fixedCost": "Fixed Cost per Transaction ($)",
+    "monthlyFee": "Monthly Fee ($)",
+    "proposalRef": "Proposal Reference",
+    "proposalRefPlaceholder": "PROP-2025-001",
+    "notes": "Notes",
+    "notesPlaceholder": "Additional notes about this pricing structure..."
+  },
+  "venuePricingDialog": {
+    "title": "Venue Pricing Structure",
+    "subtitle": "Set the rates that you charge the venue (your client)",
+    "infoBannerText": "These are the rates YOU charge the venue. The difference between venue rates and provider costs is your profit margin.",
+    "selectVenue": "Select venue...",
+    "primaryAccount": "Primary Account",
+    "secondaryAccount": "Secondary Account",
+    "tertiaryAccount": "Tertiary Account",
+    "noSecondaryMerchant": "No SECONDARY merchant assigned",
+    "noTertiaryMerchant": "No TERTIARY merchant assigned",
+    "contractPlaceholder": "CONTRACT-2025-001"
+  }
+}

@@ -113,7 +113,7 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{t(`features.available.${feature}.name`)}</span>
                         <Badge variant="secondary" className="text-xs">
-                          2 días gratis
+                          {t('shared.twoDaysFree')}
                         </Badge>
                       </div>
                       <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
@@ -133,15 +133,14 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Total mensual después del trial</p>
+                <p className="text-sm font-medium text-foreground">{t('shared.totalMonthlyAfterTrial')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {selectedFeatures.length} feature{selectedFeatures.length !== 1 ? 's' : ''} seleccionado
-                  {selectedFeatures.length !== 1 ? 's' : ''}
+                  {t('shared.featuresSelected', { count: selectedFeatures.length })}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-foreground">${totalMonthlyCost.toLocaleString()} MXN</p>
-                <p className="text-xs text-muted-foreground">por mes</p>
+                <p className="text-xs text-muted-foreground">{t('shared.perMonth')}</p>
               </div>
             </div>
           </CardContent>
@@ -152,12 +151,12 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
       {selectedFeatures.length > 0 && (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-foreground">Método de pago</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Agrega un método de pago para comenzar el trial gratuito de 2 días</p>
+            <h3 className="text-lg font-semibold text-foreground">{t('shared.paymentMethod')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{t('shared.addPaymentForTrial')}</p>
           </div>
           <StripePaymentMethod
             onPaymentMethodCreated={handlePaymentMethodCreated}
-            buttonText="Comenzar trial gratuito"
+            buttonText={t('shared.startFreeTrial2Days')}
           />
         </div>
       )}

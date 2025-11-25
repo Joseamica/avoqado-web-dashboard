@@ -1,3 +1,4 @@
+import AlertDialogWrapper from '@/components/alert-dialog'
 import MultipleSelector from '@/components/multi-selector'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -9,12 +10,12 @@ import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import { getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
+import { deleteMenu, getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
 import { MenuType } from '@/types'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { enUS, es } from 'date-fns/locale'
-import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react'
+import { ArrowLeft, Calendar as CalendarIcon, Trash2 } from 'lucide-react'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -205,6 +206,27 @@ export default function MenuId() {
     },
   })
 
+  // Mutation para eliminar el menú
+  const deleteMenuMutation = useMutation({
+    mutationFn: async () => {
+      await deleteMenu(venueId, menuId)
+    },
+    onSuccess: () => {
+      toast({
+        title: t('menuId.toast.menuDeleted'),
+        description: t('menuId.toast.menuDeletedDesc'),
+      })
+      navigate(from)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('menuId.toast.errorDeleting'),
+        description: t('menuId.toast.errorDeletingDesc', { message: error.message }),
+        variant: 'destructive',
+      })
+    },
+  })
+
   // Si aún se están cargando datos, mostramos el loading.
   if (isMenuLoading || isCategoriesLoading) {
     return <div>{t('menuId.loading')}</div>
@@ -325,6 +347,20 @@ export default function MenuId() {
           <span>{form.watch('name')}</span>
         </div>
         <div className="space-x-3 flex-row-center">
+          <AlertDialogWrapper
+            triggerTitle={
+              <span className="flex items-center">
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('menuId.dialogs.deleteButton')}
+              </span>
+            }
+            triggerVariant="outline"
+            title={t('menuId.dialogs.deleteTitle')}
+            message={t('menuId.dialogs.deleteMessage')}
+            rightButtonLabel={t('menuId.dialogs.deleteButton')}
+            rightButtonVariant="destructive"
+            onRightButtonClick={() => deleteMenuMutation.mutate()}
+          />
           <Button
             disabled={!form.formState.isDirty || updateMenuMutation.isPending}
             onClick={form.handleSubmit(onSubmit)}

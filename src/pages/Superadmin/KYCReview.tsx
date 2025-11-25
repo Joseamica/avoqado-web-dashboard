@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,6 +78,7 @@ interface KYCData {
 }
 
 const KYCReview: React.FC = () => {
+  const { t } = useTranslation('kyc')
   const { venueId } = useParams<{ venueId: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -100,8 +102,8 @@ const KYCReview: React.FC = () => {
     mutationFn: () => superadminAPI.approveKYC(venueId!),
     onSuccess: () => {
       toast({
-        title: 'KYC Approved',
-        description: `${kycData?.venue.name} has been approved and can now accept payments.`,
+        title: t('review.toast.approveSuccess'),
+        description: t('review.toast.approveDescription', { venueName: kycData?.venue.name }),
       })
       queryClient.invalidateQueries({ queryKey: ['kyc-review', venueId] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
@@ -110,7 +112,7 @@ const KYCReview: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: 'Approval Failed',
+        title: t('review.toast.approveFailed'),
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
@@ -124,8 +126,8 @@ const KYCReview: React.FC = () => {
     },
     onSuccess: () => {
       toast({
-        title: 'KYC Rejected',
-        description: `${kycData?.venue.name} has been notified of the rejection.`,
+        title: t('review.toast.rejectSuccess'),
+        description: t('review.toast.rejectDescription', { venueName: kycData?.venue.name }),
       })
       queryClient.invalidateQueries({ queryKey: ['kyc-review', venueId] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
@@ -137,7 +139,7 @@ const KYCReview: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: 'Rejection Failed',
+        title: t('review.toast.rejectFailed'),
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
@@ -175,10 +177,10 @@ const KYCReview: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      PENDING_REVIEW: 'Pending Review',
-      IN_REVIEW: 'In Review',
-      VERIFIED: 'Verified',
-      REJECTED: 'Rejected',
+      PENDING_REVIEW: t('review.status.pendingReview'),
+      IN_REVIEW: t('review.status.inReview'),
+      VERIFIED: t('review.status.verified'),
+      REJECTED: t('review.status.rejected'),
     }
     return labels[status] || status
   }
@@ -186,7 +188,7 @@ const KYCReview: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-muted-foreground">Loading KYC data...</div>
+        <div className="text-muted-foreground">{t('review.loading')}</div>
       </div>
     )
   }
@@ -195,10 +197,10 @@ const KYCReview: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-4">
         <AlertCircle className="w-12 h-12 text-muted-foreground" />
-        <div className="text-lg font-medium text-foreground">KYC Data Not Found</div>
+        <div className="text-lg font-medium text-foreground">{t('review.notFound')}</div>
         <Button onClick={() => navigate('/superadmin/venues')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Venues
+          {t('review.backToVenues')}
         </Button>
       </div>
     )
@@ -242,13 +244,13 @@ const KYCReview: React.FC = () => {
 
     // Validate
     if (trimmedReason.length === 0) {
-      setRejectionReasonError('La razón de rechazo es requerida')
+      setRejectionReasonError(t('review.rejectDialog.reasonRequired'))
       return
     }
 
     if (trimmedReason.length < minLength) {
       const remaining = minLength - trimmedReason.length
-      setRejectionReasonError(`Faltan ${remaining} caracteres (mínimo ${minLength})`)
+      setRejectionReasonError(t('review.rejectDialog.reasonMinLength', { remaining, min: minLength }))
       return
     }
 
@@ -269,7 +271,7 @@ const KYCReview: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">KYC Review</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t('review.title')}</h1>
             <p className="text-muted-foreground">{venue.name}</p>
           </div>
         </div>
@@ -285,7 +287,7 @@ const KYCReview: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-red-800 dark:text-red-200 flex items-center space-x-2">
               <XCircle className="w-5 h-5" />
-              <span>Rejection Reason</span>
+              <span>{t('review.rejectionReason')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -300,13 +302,13 @@ const KYCReview: React.FC = () => {
           {canApprove && (
             <Button onClick={() => setIsApproveDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
               <CheckCircle className="w-4 h-4 mr-2" />
-              Approve KYC
+              {t('review.approveKyc')}
             </Button>
           )}
           {canReject && (
             <Button variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
               <XCircle className="w-4 h-4 mr-2" />
-              Reject KYC
+              {t('review.rejectKyc')}
             </Button>
           )}
         </div>
@@ -315,18 +317,18 @@ const KYCReview: React.FC = () => {
       {/* Main Content */}
       <Tabs defaultValue="documents" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="venue">Venue Info</TabsTrigger>
-          <TabsTrigger value="owner">Owner Info</TabsTrigger>
-          <TabsTrigger value="banking">Banking Info</TabsTrigger>
+          <TabsTrigger value="documents">{t('review.tabs.documents')}</TabsTrigger>
+          <TabsTrigger value="venue">{t('review.tabs.venue')}</TabsTrigger>
+          <TabsTrigger value="owner">{t('review.tabs.owner')}</TabsTrigger>
+          <TabsTrigger value="banking">{t('review.tabs.banking')}</TabsTrigger>
         </TabsList>
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>KYC Documents</CardTitle>
-              <CardDescription>Review all submitted documents for verification</CardDescription>
+              <CardTitle>{t('review.documents.title')}</CardTitle>
+              <CardDescription>{t('review.documents.description')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -338,7 +340,7 @@ const KYCReview: React.FC = () => {
                           <FileText className="w-5 h-5 text-muted-foreground" />
                           <CardTitle className="text-base">{doc.label}</CardTitle>
                         </div>
-                        {doc.required && <Badge variant={doc.url ? 'default' : 'destructive'}>{doc.url ? 'Submitted' : 'Missing'}</Badge>}
+                        {doc.required && <Badge variant={doc.url ? 'default' : 'destructive'}>{doc.url ? t('review.documents.submitted') : t('review.documents.missing')}</Badge>}
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -347,18 +349,18 @@ const KYCReview: React.FC = () => {
                           <Button variant="outline" size="sm" asChild className="w-full">
                             <a href={doc.url} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
-                              View Document
+                              {t('review.documents.viewDocument')}
                             </a>
                           </Button>
                           <Button variant="outline" size="sm" asChild className="w-full">
                             <a href={doc.url} download>
                               <Download className="w-4 h-4 mr-2" />
-                              Download
+                              {t('review.documents.download')}
                             </a>
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">{doc.required ? 'Document not submitted' : 'Not applicable'}</p>
+                        <p className="text-sm text-muted-foreground">{doc.required ? t('review.documents.notSubmitted') : t('review.documents.notApplicable')}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -372,37 +374,37 @@ const KYCReview: React.FC = () => {
         <TabsContent value="venue" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Venue Information</CardTitle>
-              <CardDescription>Business details and location</CardDescription>
+              <CardTitle>{t('review.venue.title')}</CardTitle>
+              <CardDescription>{t('review.venue.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">Venue Name</Label>
+                  <Label className="text-muted-foreground">{t('review.venue.venueName')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Building2 className="w-4 h-4 text-muted-foreground" />
                     <p className="font-medium">{venue.name}</p>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Venue Slug</Label>
+                  <Label className="text-muted-foreground">{t('review.venue.venueSlug')}</Label>
                   <p className="mt-1 font-mono text-sm">{venue.slug}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Entity Type</Label>
-                  <p className="mt-1 font-medium">{venue.entityType || 'Not specified'}</p>
+                  <Label className="text-muted-foreground">{t('review.venue.entityType')}</Label>
+                  <p className="mt-1 font-medium">{venue.entityType || t('review.venue.notSpecified')}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">KYC Submitted</Label>
+                  <Label className="text-muted-foreground">{t('review.venue.kycSubmitted')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <p>{venue.kycSubmittedAt ? new Date(venue.kycSubmittedAt).toLocaleDateString() : 'Not submitted'}</p>
+                    <p>{venue.kycSubmittedAt ? new Date(venue.kycSubmittedAt).toLocaleDateString() : t('review.venue.notSubmitted')}</p>
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-border">
-                <Label className="text-muted-foreground">Address</Label>
+                <Label className="text-muted-foreground">{t('review.venue.address')}</Label>
                 <div className="flex items-start space-x-2 mt-2">
                   <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
                   <div className="text-sm">
@@ -420,17 +422,17 @@ const KYCReview: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                 <div>
-                  <Label className="text-muted-foreground">Phone</Label>
+                  <Label className="text-muted-foreground">{t('review.venue.phone')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Phone className="w-4 h-4 text-muted-foreground" />
-                    <p>{venue.phone || 'Not provided'}</p>
+                    <p>{venue.phone || t('review.venue.notProvided')}</p>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Email</Label>
+                  <Label className="text-muted-foreground">{t('review.venue.email')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <p>{venue.email || 'Not provided'}</p>
+                    <p>{venue.email || t('review.venue.notProvided')}</p>
                   </div>
                 </div>
               </div>
@@ -442,13 +444,13 @@ const KYCReview: React.FC = () => {
         <TabsContent value="owner" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Owner Information</CardTitle>
-              <CardDescription>Contact details for the venue owner</CardDescription>
+              <CardTitle>{t('review.owner.title')}</CardTitle>
+              <CardDescription>{t('review.owner.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">Full Name</Label>
+                  <Label className="text-muted-foreground">{t('review.owner.fullName')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <p className="font-medium">
@@ -457,17 +459,17 @@ const KYCReview: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Email</Label>
+                  <Label className="text-muted-foreground">{t('review.owner.email')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Mail className="w-4 h-4 text-muted-foreground" />
                     <p>{owner.email}</p>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Phone</Label>
+                  <Label className="text-muted-foreground">{t('review.owner.phone')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Phone className="w-4 h-4 text-muted-foreground" />
-                    <p>{owner.phone || 'Not provided'}</p>
+                    <p>{owner.phone || t('review.owner.notProvided')}</p>
                   </div>
                 </div>
               </div>
@@ -479,22 +481,22 @@ const KYCReview: React.FC = () => {
         <TabsContent value="banking" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Banking Information</CardTitle>
-              <CardDescription>Payment account details</CardDescription>
+              <CardTitle>{t('review.banking.title')}</CardTitle>
+              <CardDescription>{t('review.banking.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-muted-foreground">CLABE</Label>
-                  <p className="mt-1 font-mono text-sm">{bankInfo.clabe || 'Not provided'}</p>
+                  <Label className="text-muted-foreground">{t('review.banking.clabe')}</Label>
+                  <p className="mt-1 font-mono text-sm">{bankInfo.clabe || t('review.banking.notProvided')}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Bank Name</Label>
-                  <p className="mt-1">{bankInfo.bankName || 'Not provided'}</p>
+                  <Label className="text-muted-foreground">{t('review.banking.bankName')}</Label>
+                  <p className="mt-1">{bankInfo.bankName || t('review.banking.notProvided')}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Account Holder</Label>
-                  <p className="mt-1">{bankInfo.accountHolder || 'Not provided'}</p>
+                  <Label className="text-muted-foreground">{t('review.banking.accountHolder')}</Label>
+                  <p className="mt-1">{bankInfo.accountHolder || t('review.banking.notProvided')}</p>
                 </div>
               </div>
             </CardContent>
@@ -506,21 +508,21 @@ const KYCReview: React.FC = () => {
       <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Approve KYC Verification</DialogTitle>
+            <DialogTitle>{t('review.approveDialog.title')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to approve KYC for {venue.name}? This will allow them to accept payments.
+              {t('review.approveDialog.description', { venueName: venue.name })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>
-              Cancel
+              {t('review.approveDialog.cancel')}
             </Button>
             <Button
               onClick={() => approveMutation.mutate()}
               disabled={approveMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
-              {approveMutation.isPending ? 'Approving...' : 'Approve KYC'}
+              {approveMutation.isPending ? t('review.approving') : t('review.approveKyc')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -530,18 +532,17 @@ const KYCReview: React.FC = () => {
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Reject KYC Verification</DialogTitle>
+            <DialogTitle>{t('review.rejectDialog.title')}</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting {venue.name}'s KYC submission. They will receive this feedback.
+              {t('review.rejectDialog.description', { venueName: venue.name })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Document Selection */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Select Rejected Documents (Optional)</Label>
+              <Label className="text-base font-semibold">{t('review.rejectDialog.selectDocuments')}</Label>
               <p className="text-sm text-muted-foreground">
-                Select specific documents that need to be resubmitted. If no documents are selected, all documents will be marked as
-                rejected.
+                {t('review.rejectDialog.selectDocumentsHelp')}
               </p>
               <div className="grid grid-cols-1 gap-2 border border-border rounded-md p-4 bg-muted/50">
                 {documents.filter(doc => doc.url).length > 0 ? (
@@ -565,21 +566,21 @@ const KYCReview: React.FC = () => {
                     ))
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    No documents have been uploaded yet. All documents will be marked as rejected.
+                    {t('review.rejectDialog.noDocuments')}
                   </p>
                 )}
               </div>
               {selectedRejectedDocs.length > 0 && (
-                <p className="text-sm text-blue-600 dark:text-blue-400">{selectedRejectedDocs.length} document(s) selected for rejection</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">{t('review.rejectDialog.documentsSelected', { count: selectedRejectedDocs.length })}</p>
               )}
             </div>
 
             {/* Rejection Reason */}
             <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+              <Label htmlFor="rejection-reason">{t('review.rejectDialog.reasonLabel')}</Label>
               <Textarea
                 id="rejection-reason"
-                placeholder="Explain why the KYC is being rejected..."
+                placeholder={t('review.rejectDialog.reasonPlaceholder')}
                 value={rejectionReason}
                 onChange={e => setRejectionReason(e.target.value)}
                 rows={4}
@@ -600,14 +601,14 @@ const KYCReview: React.FC = () => {
                 setRejectionReasonError(null)
               }}
             >
-              Cancel
+              {t('review.rejectDialog.cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleRejectClick}
               disabled={rejectMutation.isPending}
             >
-              {rejectMutation.isPending ? 'Rejecting...' : 'Reject KYC'}
+              {rejectMutation.isPending ? t('review.rejecting') : t('review.rejectKyc')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -356,7 +356,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                     min="1"
                     {...register('portionYield', { required: true, valueAsNumber: true, min: 1 })}
                   />
-                  {errors.portionYield && <p className="text-xs text-destructive">Required (min: 1)</p>}
+                  {errors.portionYield && <p className="text-xs text-destructive">{t('validation.requiredMinValue', { value: '1' })}</p>}
                 </div>
 
                 <div className="space-y-2">

@@ -1,0 +1,73 @@
+{
+  "title": "Webhook Monitoring",
+  "subtitle": "Monitor Stripe webhook events, debug failures, and track system health",
+  "metrics": {
+    "successRate": "Success Rate",
+    "avgProcessingTime": "Avg Processing Time",
+    "perSuccessfulEvent": "Per successful event",
+    "failedEvents": "Failed Events",
+    "requireAttention": "Require attention",
+    "pendingEvents": "Pending Events",
+    "currentlyProcessing": "Currently processing",
+    "events": "events"
+  },
+  "events": {
+    "title": "Webhook Events",
+    "description": "Real-time log of all Stripe webhook events",
+    "showFilters": "Show Filters",
+    "hideFilters": "Hide Filters",
+    "clearFilters": "Clear Filters",
+    "showing": "Showing {{count}} of {{total}} events",
+    "loading": "Loading events...",
+    "noEvents": "No webhook events found"
+  },
+  "filters": {
+    "eventType": "Event Type",
+    "allEvents": "All Events",
+    "status": "Status",
+    "allStatuses": "All Statuses",
+    "success": "Success",
+    "failed": "Failed",
+    "pending": "Pending",
+    "retrying": "Retrying",
+    "fromDate": "From Date",
+    "toDate": "To Date"
+  },
+  "table": {
+    "dateTime": "Date/Time",
+    "eventType": "Event Type",
+    "status": "Status",
+    "venue": "Venue",
+    "processingTime": "Processing Time",
+    "retries": "Retries",
+    "actions": "Actions",
+    "na": "N/A",
+    "view": "View",
+    "retry": "Retry"
+  },
+  "pagination": {
+    "page": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "detail": {
+    "title": "Webhook Event Details",
+    "eventId": "Event ID",
+    "metadata": "Metadata",
+    "statusLabel": "Status:",
+    "eventTypeLabel": "Event Type:",
+    "createdLabel": "Created:",
+    "processingTimeLabel": "Processing Time:",
+    "venueLabel": "Venue:",
+    "retryCountLabel": "Retry Count:",
+    "errorMessage": "Error Message",
+    "eventPayload": "Event Payload",
+    "retryWebhook": "Retry Webhook Event"
+  },
+  "toast": {
+    "retried": "Webhook Retried",
+    "retriedDesc": "The webhook event has been reprocessed successfully.",
+    "retryFailed": "Retry Failed",
+    "retryFailedDesc": "Failed to retry webhook event"
+  }
+}

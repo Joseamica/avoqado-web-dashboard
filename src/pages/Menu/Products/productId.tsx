@@ -116,11 +116,6 @@ export default function ProductId() {
 
       const validModifierIds = requestedModifierIds.filter((id: string) => modifierGroups?.some(mg => mg.id === id))
 
-      if (requestedModifierIds.length !== validModifierIds.length) {
-        const invalidIds = requestedModifierIds.filter((id: string) => !validModifierIds.includes(id))
-        console.warn('🗑️ Removed invalid modifier groups:', invalidIds)
-      }
-
       const payload: any = {
         name: formValues.name,
         description: formValues.description || undefined,
@@ -140,7 +135,6 @@ export default function ProductId() {
         payload.unit = formValues.unit
       }
 
-      console.log('📦 Saving product with payload:', payload)
       return await updateProduct(venueId!, productId!, payload)
     },
     onSuccess: () => {
@@ -261,12 +255,26 @@ export default function ProductId() {
 
     const mappedModifierGroups = Array.isArray(data.modifierGroups)
       ? data.modifierGroups
-          .map((mg: any) => ({
-            label: mg?.name || mg?.group?.name || '',
-            value: mg?.id || mg?.groupId || mg?.group?.id,
-            disabled: false,
-          }))
-          .filter((opt: any) => !!opt.value)
+          .map((mg: any) => {
+            // FIXED: Use groupId first (the actual ModifierGroup ID), not the join table ID
+            const mapped = {
+              label: mg?.group?.name || mg?.name || '',
+              value: mg?.groupId || mg?.group?.id,
+              disabled: false,
+            }
+            return mapped
+          })
+          .filter((opt: any) => {
+            // Filter out invalid IDs only
+            if (!opt.value) return false
+
+            // If modifier groups query hasn't loaded yet, keep all items temporarily
+            if (!modifierGroups) return true
+
+            // Check if this modifier group still exists in the database
+            const exists = modifierGroups.some(availableMg => availableMg.id === opt.value)
+            return exists
+          })
       : []
 
     const categoryId = data.categoryId ?? data.category?.id ?? ''
@@ -294,7 +302,7 @@ export default function ProductId() {
       costPerUnit: data.inventory?.costPerUnit?.toString() || '',
       reorderPoint: data.inventory?.reorderPoint?.toString() || '10',
     })
-  }, [data, categories, form, productId, setCustomSegment])
+  }, [data, categories, modifierGroups, form, productId, setCustomSegment])
 
   // Esta función podría ser para borrar la imagen en el servidor.
   // Por simplicidad, aquí solo se hace el "remove" localmente.

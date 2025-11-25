@@ -161,7 +161,7 @@ export function PaymentMethodsSection({
         </CardHeader>
         <CardContent>
           {loadingPaymentMethods ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">{t('loading')}</p>
           ) : !paymentMethods?.length ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
