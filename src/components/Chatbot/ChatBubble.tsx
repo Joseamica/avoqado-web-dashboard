@@ -1,7 +1,7 @@
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, BarChart3, History, Loader2, Maximize2, Minimize2, MoreVertical, PanelLeft, PanelLeftClose, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X, Zap } from 'lucide-react'
-import { useTokenBudget, getTokenWarningLevel, formatTokenCount, tokenBudgetQueryKey } from '@/hooks/use-token-budget'
+import { useTokenBudget, getTokenWarningLevel, formatTokenCount, tokenBudgetQueryKey, shouldWarnBeforeSending } from '@/hooks/use-token-budget'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardHeader, CardTitle } from '../../components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip'
 import { ConfirmDialog } from '../../components/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -33,12 +34,13 @@ import {
   getCurrentConversationId,
   getSavedConversations,
   getUsageStats,
+  isVisualizationSkipped,
   loadConversation,
   saveConversation,
   sendChatMessage,
   submitFeedback,
   submitFeedbackWithCorrection,
-  type ChartVisualization,
+  type VisualizationResult,
 } from '../../services/chatService'
 
 const isDevEnvironment = import.meta.env.DEV
@@ -64,7 +66,12 @@ interface ChatMessage {
   cached?: boolean
   trainingDataId?: string
   feedbackGiven?: 'CORRECT' | 'INCORRECT' | null
-  visualization?: ChartVisualization
+  visualization?: VisualizationResult
+  tokenUsage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 // Helper function to convert conversation history to chat messages
@@ -194,6 +201,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [pendingAction, setPendingAction] = useState<'new' | 'load' | null>(null)
   const [conversationToLoad, setConversationToLoad] = useState<string | null>(null)
 
+  // Estado para diálogo de advertencia de tokens
+  const [showTokenWarningDialog, setShowTokenWarningDialog] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -205,8 +216,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Token warning level for styling
   const tokenWarningLevel = useMemo(() => {
-    if (!tokenBudget) return 'normal'
-    return getTokenWarningLevel(tokenBudget.percentageUsed)
+    return getTokenWarningLevel(tokenBudget)
   }, [tokenBudget])
 
   // Check if there's something to save or clear
@@ -676,12 +686,14 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     }
   }, [messages, venueSlug])
 
-  const onSubmit = async (values: { message: string }) => {
-    if (!values.message.trim()) return
+  // Check token warning and show dialog if needed
+  const tokenWarning = useMemo(() => shouldWarnBeforeSending(tokenBudget), [tokenBudget])
 
+  // Function to actually send the message (used by both direct send and after warning confirmation)
+  const sendMessage = useCallback((message: string) => {
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
-      text: values.message,
+      text: message,
       isUser: true,
       timestamp: new Date(),
       feedbackGiven: null, // Initialize feedback state
@@ -689,11 +701,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
     // Add user message to UI and localStorage immediately
     setMessages(prev => [...prev, userMessage])
-    addMessageToHistory('user', values.message, venueSlug)
-    form.reset()
+    addMessageToHistory('user', message, venueSlug)
 
     // Use TanStack Query mutation to send the message
-    chatMutation.mutate({ message: values.message, withVisualization: includeVisualization }, {
+    chatMutation.mutate({ message, withVisualization: includeVisualization }, {
       onSuccess: result => {
         const botMessage: ChatMessage = {
           id: `bot-${Date.now()}`,
@@ -704,6 +715,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
           trainingDataId: result.trainingDataId,
           feedbackGiven: null, // Initialize feedback state
           visualization: result.visualization,
+          tokenUsage: result.tokenUsage,
         }
 
         // Debug: Log trainingDataId to console
@@ -732,6 +744,29 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         devLog('✅ Message exchange completed and saved to history')
       },
     })
+  }, [chatMutation, includeVisualization, queryClient, toast, venueSlug])
+
+  // Handle confirmation to send despite token warning
+  const handleConfirmSendWithWarning = useCallback(() => {
+    if (pendingMessage) {
+      sendMessage(pendingMessage)
+      setPendingMessage(null)
+    }
+    setShowTokenWarningDialog(false)
+  }, [pendingMessage, sendMessage])
+
+  const onSubmit = async (values: { message: string }) => {
+    if (!values.message.trim()) return
+
+    // Check if we should warn the user about token usage
+    if (tokenWarning.shouldWarn && (tokenWarning.warningType === 'exhausted' || tokenWarning.warningType === 'overage')) {
+      setPendingMessage(values.message)
+      setShowTokenWarningDialog(true)
+      return
+    }
+
+    form.reset()
+    sendMessage(values.message)
   }
   // Calcular ancho basado en estado
   const cardWidth = useMemo(() => {
@@ -949,12 +984,28 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                 >
                   <p className="text-sm whitespace-pre-wrap">{parseMessageText(message.text, message.isUser)}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs opacity-70">
+                        {message.timestamp.toLocaleTimeString(getIntlLocale(i18n.language), {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                      {message.tokenUsage && message.tokenUsage.totalTokens > 0 && (
+                        <TooltipProvider delayDuration={0}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs opacity-50 cursor-help flex items-center gap-0.5">
+                                <Zap className="w-3 h-3" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {message.tokenUsage.totalTokens.toLocaleString()} tokens
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     {message.cached && (
                       <span className="text-xs px-1 rounded border bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">
                         {t('chat.labels.cache')}
@@ -1021,9 +1072,18 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
                       </Button>
                     </div>
                   )}
-                  {/* Chart visualization */}
+                  {/* Chart visualization or skip message */}
                   {!message.isUser && message.visualization && (
-                    <ChatChart visualization={message.visualization} />
+                    isVisualizationSkipped(message.visualization) ? (
+                      <div className="mt-2 px-2.5 py-1.5 rounded-md bg-muted/50 border border-border/50 flex items-center gap-2">
+                        <BarChart3 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        <span className="text-xs text-muted-foreground">
+                          {message.visualization.reason}
+                        </span>
+                      </div>
+                    ) : (
+                      <ChatChart visualization={message.visualization} />
+                    )
                   )}
                 </div>
               </div>
@@ -1189,6 +1249,54 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
             <Button onClick={handleSaveAndProceed} disabled={isSaving}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {t('chat.unsavedChanges.saveFirst')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Token Warning Dialog */}
+      <Dialog open={showTokenWarningDialog} onOpenChange={(open) => {
+        if (!open) {
+          setPendingMessage(null)
+        }
+        setShowTokenWarningDialog(open)
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {t('chat.tokenWarning.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {tokenWarning.warningType === 'overage'
+                ? t('chat.tokenWarning.overageDesc', { cost: tokenBudget?.overageCost.toFixed(2) || '0.00' })
+                : t('chat.tokenWarning.exhaustedDesc')
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              {t('chat.tokenWarning.continueQuestion')}
+            </p>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPendingMessage(null)
+                setShowTokenWarningDialog(false)
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={() => {
+                form.reset()
+                handleConfirmSendWithWarning()
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {t('chat.tokenWarning.sendAnyway')}
             </Button>
           </DialogFooter>
         </DialogContent>

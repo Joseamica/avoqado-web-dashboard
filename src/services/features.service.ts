@@ -56,6 +56,7 @@ export interface StripeInvoice {
   status: 'paid' | 'open' | 'draft' | 'uncollectible' | 'void'
   description: string | null
   invoice_pdf: string
+  hosted_invoice_url: string | null
 }
 
 /**

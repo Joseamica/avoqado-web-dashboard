@@ -201,6 +201,13 @@
         "desc": "Êtes-vous sûr de vouloir supprimer \"{{title}}\" ? Cette action ne peut pas être annulée.",
         "confirm": "Supprimer"
       }
+    },
+    "tokenWarning": {
+      "title": "Limite de Tokens Atteinte",
+      "exhaustedDesc": "Vous avez utilisé tous vos tokens disponibles ce mois-ci. L'envoi de ce message entraînera des frais supplémentaires.",
+      "overageDesc": "Vous êtes actuellement en dépassement. Cette requête s'ajoutera à votre coût de dépassement actuel de {{cost}} $ USD.",
+      "continueQuestion": "Voulez-vous continuer quand même ?",
+      "sendAnyway": "Envoyer Quand Même"
     }
   },
   "flags": {

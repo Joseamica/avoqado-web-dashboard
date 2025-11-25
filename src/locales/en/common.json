@@ -244,6 +244,13 @@
         "desc": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
         "confirm": "Delete"
       }
+    },
+    "tokenWarning": {
+      "title": "Token Limit Reached",
+      "exhaustedDesc": "You've used all your available tokens this month. Sending this message will incur additional charges.",
+      "overageDesc": "You're currently in overage. This query will add to your current overage cost of ${{cost}} USD.",
+      "continueQuestion": "Do you want to continue anyway?",
+      "sendAnyway": "Send Anyway"
     }
   },
   "flags": {

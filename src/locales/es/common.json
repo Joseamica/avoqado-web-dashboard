@@ -238,6 +238,13 @@
         "desc": "¿Estás seguro de que quieres eliminar \"{{title}}\"? Esta acción no se puede deshacer.",
         "confirm": "Eliminar"
       }
+    },
+    "tokenWarning": {
+      "title": "Límite de Tokens Alcanzado",
+      "exhaustedDesc": "Has agotado todos tus tokens disponibles este mes. Enviar este mensaje generará cargos adicionales.",
+      "overageDesc": "Estás actualmente en excedente. Esta consulta se sumará a tu costo de excedente actual de ${{cost}} USD.",
+      "continueQuestion": "¿Deseas continuar de todas formas?",
+      "sendAnyway": "Enviar de Todas Formas"
     }
   },
   "flags": {

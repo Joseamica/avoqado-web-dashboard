@@ -103,5 +103,11 @@ export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
 
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
-export const Billing = React.lazy(() => import('@/pages/Settings/Billing'))
 export const GoogleIntegration = React.lazy(() => import('@/pages/Settings/GoogleIntegration'))
+
+// Billing pages
+export const BillingLayout = React.lazy(() => import('@/pages/Settings/Billing/BillingLayout'))
+export const BillingSubscriptions = React.lazy(() => import('@/pages/Settings/Billing/Subscriptions'))
+export const BillingHistory = React.lazy(() => import('@/pages/Settings/Billing/History'))
+export const BillingPaymentMethods = React.lazy(() => import('@/pages/Settings/Billing/PaymentMethods'))
+export const BillingTokens = React.lazy(() => import('@/pages/Settings/Billing/Tokens'))
