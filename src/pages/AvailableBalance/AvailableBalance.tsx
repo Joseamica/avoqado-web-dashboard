@@ -139,7 +139,20 @@ export default function AvailableBalance() {
 
     try {
       setSimulationLoading(true)
-      const response = await simulateTransaction(venueId, data)
+
+      // Convert yyyy-MM-dd to ISO 8601 format
+      const dateObj = new Date(data.transactionDate + 'T00:00:00')
+      const isoDate = dateObj.toISOString()
+
+      // Format the payload properly
+      const payload: SimulationParams = {
+        amount: data.amount,
+        cardType: data.cardType,
+        transactionDate: isoDate, // Convert to ISO format
+        transactionTime: data.transactionTime || undefined, // Don't send empty string, send undefined
+      }
+
+      const response = await simulateTransaction(venueId, payload)
       setSimulationResult(response.data)
     } catch (err: any) {
       toast({
@@ -620,56 +633,68 @@ export default function AvailableBalance() {
                 <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-4">
                   <h3 className="font-semibold text-lg">{t('simulate.result.title')}</h3>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('simulate.result.settlementDate')}</p>
-                      <p className="text-xl font-bold">
-                        {format(new Date(simulationResult.estimatedSettlementDate), 'MMM dd, yyyy')}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})
-                      </p>
-                    </div>
+                  {simulationResult.estimatedSettlementDate && simulationResult.settlementDays !== null ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">{t('simulate.result.settlementDate')}</p>
+                          <p className="text-xl font-bold">
+                            {format(new Date(simulationResult.estimatedSettlementDate), 'MMM dd, yyyy')}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})
+                          </p>
+                        </div>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('simulate.result.netAmount')}</p>
-                      <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                        {Currency(simulationResult.netAmount)}
-                      </p>
-                    </div>
-                  </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">{t('simulate.result.netAmount')}</p>
+                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                            {Currency(simulationResult.netAmount)}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('simulate.result.grossAmount')}:</span>
-                      <span className="font-medium">{Currency(simulationResult.grossAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('simulate.result.fees')}:</span>
-                      <span className="font-medium text-destructive">-{Currency(simulationResult.fees)}</span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="font-semibold">{t('simulate.result.netAmount')}:</span>
-                      <span className="font-bold">{Currency(simulationResult.netAmount)}</span>
-                    </div>
-                  </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('simulate.result.grossAmount')}:</span>
+                          <span className="font-medium">{Currency(simulationResult.grossAmount)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">{t('simulate.result.fees')}:</span>
+                          <span className="font-medium text-destructive">-{Currency(simulationResult.fees)}</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t">
+                          <span className="font-semibold">{t('simulate.result.netAmount')}:</span>
+                          <span className="font-bold">{Currency(simulationResult.netAmount)}</span>
+                        </div>
+                      </div>
 
-                  <div className="pt-3 border-t">
-                    <p className="text-sm font-medium mb-2">{t('simulate.result.configuration')}</p>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <p>
-                        • {t('simulate.result.configDays', {
-                          count: simulationResult.configuration.settlementDays,
-                          type: simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
-                            ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
-                            : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays })
-                        })}
-                      </p>
-                      <p>
-                        • {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
+                      {simulationResult.configuration && (
+                        <div className="pt-3 border-t">
+                          <p className="text-sm font-medium mb-2">{t('simulate.result.configuration')}</p>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p>
+                              • {t('simulate.result.configDays', {
+                                count: simulationResult.configuration.settlementDays,
+                                type: simulationResult.configuration.settlementDayType === 'BUSINESS_DAYS'
+                                  ? t('simulate.result.businessDays', { count: simulationResult.configuration.settlementDays })
+                                  : t('simulate.result.calendarDays', { count: simulationResult.configuration.settlementDays })
+                              })}
+                            </p>
+                            <p>
+                              • {t('simulate.result.cutoffTime', { time: simulationResult.configuration.cutoffTime })}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-muted-foreground">
+                        No se encontró configuración de liquidación para este tipo de tarjeta. Por favor, configura las reglas de liquidación primero.
                       </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 

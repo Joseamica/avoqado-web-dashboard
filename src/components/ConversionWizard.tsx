@@ -32,7 +32,10 @@ const rfcSchema = z.object({
     .string()
     .min(12, 'RFC debe tener al menos 12 caracteres')
     .max(13, 'RFC debe tener máximo 13 caracteres')
-    .regex(/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/, 'Formato de RFC inválido'),
+    .transform(val => val.toUpperCase())
+    .refine(val => /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(val), {
+      message: 'Formato de RFC inválido',
+    }),
   legalName: z.string().min(3, 'Razón social es requerida'),
   fiscalRegime: z.string().min(1, 'Régimen fiscal es requerido'),
 })

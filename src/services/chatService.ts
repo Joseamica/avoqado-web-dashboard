@@ -58,11 +58,25 @@ interface SavedConversation {
 //   currentId: string | null
 // }
 
+// Chart visualization data returned from backend
+export interface ChartVisualization {
+  type: 'bar' | 'line' | 'pie' | 'area'
+  title: string
+  description?: string
+  data: Array<Record<string, any>>
+  config: {
+    xAxis?: { key: string; label: string }
+    yAxis?: { key: string; label: string }
+    dataKeys: Array<{ key: string; label: string; color?: string }>
+  }
+}
+
 interface ChatResponse {
   response: string
   suggestions?: string[]
   cached?: boolean
   trainingDataId?: string
+  visualization?: ChartVisualization
   metadata?: {
     confidence: number
     queryGenerated?: boolean
@@ -349,6 +363,7 @@ const generateVenueChangeContext = (previousVenue: string | null, currentVenue: 
 interface SendChatMessageOptions {
   venueSlug?: string | null
   userId?: string | null
+  includeVisualization?: boolean
 }
 
 // Función principal para enviar mensajes usando API directamente
@@ -409,6 +424,9 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     if (targetUserId) {
       payload.userId = targetUserId
     }
+    if (options?.includeVisualization) {
+      payload.includeVisualization = true
+    }
 
     const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', payload)
 
@@ -459,6 +477,7 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
       cached: false,
       metadata: safeMetadata,
       trainingDataId: result.trainingDataId,
+      visualization: result.visualization,
     }
   } catch (error: any) {
     console.error('Error sending chat message:', error)
@@ -945,5 +964,37 @@ export const clearAllChatStorage = (): void => {
     keysToRemove.forEach(key => localStorage.removeItem(key))
   } catch (error) {
     console.error('Error clearing chat storage:', error)
+  }
+}
+
+// === TOKEN BUDGET API FUNCTIONS ===
+
+export interface TokenBudgetStatus {
+  freeTokensRemaining: number
+  extraTokensBalance: number
+  totalAvailable: number
+  percentageUsed: number
+  isInOverage: boolean
+  overageTokensUsed: number
+  overageCost: number
+  warning?: string
+  pricing: {
+    pricePerThousandTokens: number
+    currency: string
+    freeTokensPerMonth: number
+  }
+}
+
+/**
+ * Get the current token budget status for the venue
+ * @returns Token budget status with remaining tokens, usage percentage, and pricing info
+ */
+export const getTokenBudgetStatus = async (): Promise<TokenBudgetStatus> => {
+  try {
+    const response = await api.get('/api/v1/dashboard/tokens/status')
+    return response.data.data
+  } catch (error) {
+    devLog('Error fetching token budget status:', error)
+    throw error
   }
 }

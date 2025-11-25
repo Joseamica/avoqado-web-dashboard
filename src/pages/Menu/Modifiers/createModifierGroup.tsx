@@ -361,11 +361,18 @@ export default function CreateModifierGroup() {
                         <Input
                           type="number"
                           min={minValue}
-                          {...field}
+                          value={field.value === 0 ? '' : field.value}
                           onChange={e => {
                             const val = e.target.value
-                            field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                            field.onChange(val === '' ? '' : parseInt(val) || 0)
                           }}
+                          onBlur={e => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                            field.onBlur()
+                          }}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>{t('modifiers.createGroup.minSelectionsDesc')}</FormDescription>
@@ -384,11 +391,18 @@ export default function CreateModifierGroup() {
                         <Input
                           type="number"
                           min={1}
-                          {...field}
+                          value={field.value === 1 ? '' : field.value}
                           onChange={e => {
                             const val = e.target.value
-                            field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                            field.onChange(val === '' ? '' : parseInt(val) || 1)
                           }}
+                          onBlur={e => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                            field.onBlur()
+                          }}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormDescription>{t('modifiers.createGroup.maxSelectionsDesc')}</FormDescription>
@@ -410,11 +424,18 @@ export default function CreateModifierGroup() {
                         type="number"
                         min={0}
                         placeholder={t('modifiers.createGroup.multipleSelectionPlaceholder')}
-                        {...field}
+                        value={field.value === 0 ? '' : field.value}
                         onChange={e => {
                           const val = e.target.value
-                          field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                          field.onChange(val === '' ? '' : parseInt(val) || 0)
                         }}
+                        onBlur={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                          field.onBlur()
+                        }}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormDescription>{t('modifiers.createGroup.multipleSelectionDesc')}</FormDescription>
@@ -433,11 +454,18 @@ export default function CreateModifierGroup() {
                       <Input
                         type="number"
                         min={1}
-                        {...field}
+                        value={field.value === 1 ? '' : field.value}
                         onChange={e => {
                           const val = e.target.value
-                          field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                          field.onChange(val === '' ? '' : parseInt(val) || 1)
                         }}
+                        onBlur={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                          field.onBlur()
+                        }}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormDescription>{t('modifiers.createGroup.maxPerModifierDesc')}</FormDescription>
