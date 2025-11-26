@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +10,19 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle2, Upload, FileText, CreditCard, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  CheckCircle2,
+  Upload,
+  FileText,
+  CreditCard,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Building2,
+  User,
+  AlertCircle,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Progress } from '@/components/ui/progress'
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector'
@@ -26,8 +38,10 @@ interface ConversionWizardProps {
   venueName: string
 }
 
-// Zod schemas for each step
-const rfcSchema = z.object({
+type EntityType = 'PERSONA_FISICA' | 'PERSONA_MORAL'
+
+// Zod schema for business info step
+const businessInfoSchema = z.object({
   rfc: z
     .string()
     .min(12, 'RFC debe tener al menos 12 caracteres')
@@ -40,18 +54,10 @@ const rfcSchema = z.object({
   fiscalRegime: z.string().min(1, 'Régimen fiscal es requerido'),
 })
 
-const taxDocumentsSchema = z.object({
-  constanciaFile: z.any().optional(),
-  actaFile: z.any().optional(),
-})
+type BusinessInfoFormData = z.infer<typeof businessInfoSchema>
 
-const idDocumentsSchema = z.object({
-  idFile: z.any().optional(),
-})
-
-type RFCFormData = z.infer<typeof rfcSchema>
-type TaxDocumentsFormData = z.infer<typeof taxDocumentsSchema>
-type IDDocumentsFormData = z.infer<typeof idDocumentsSchema>
+// Document types for upload
+type DocumentType = 'ID' | 'CSF' | 'DOMICILIO' | 'CARATULA' | 'ACTA' | 'PODER'
 
 // Pricing in MXN (matches backend seed data and FeaturesStep)
 const FEATURE_PRICING: Record<string, number> = {
@@ -67,44 +73,94 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   const { t } = useTranslation()
   const { t: tOnboarding } = useTranslation('onboarding')
   const { toast } = useToast()
+
+  // Entity type state
+  const [entityType, setEntityType] = useState<EntityType | null>(null)
+
+  // Current step
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<any>({})
-  const [taxDocumentFile, setTaxDocumentFile] = useState<File | null>(null)
-  const [actaDocumentFile, setActaDocumentFile] = useState<File | null>(null)
+
+  // Document files and URLs
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null)
-  const [taxDocumentUrl, setTaxDocumentUrl] = useState<string | null>(null)
-  const [actaDocumentUrl, setActaDocumentUrl] = useState<string | null>(null)
   const [idDocumentUrl, setIdDocumentUrl] = useState<string | null>(null)
-  const [uploadingTaxDoc, setUploadingTaxDoc] = useState(false)
-  const [uploadingActaDoc, setUploadingActaDoc] = useState(false)
   const [uploadingIdDoc, setUploadingIdDoc] = useState(false)
+
+  const [rfcDocumentFile, setRfcDocumentFile] = useState<File | null>(null)
+  const [rfcDocumentUrl, setRfcDocumentUrl] = useState<string | null>(null)
+  const [uploadingRfcDoc, setUploadingRfcDoc] = useState(false)
+
+  const [comprobanteDomicilioFile, setComprobanteDomicilioFile] = useState<File | null>(null)
+  const [comprobanteDomicilioUrl, setComprobanteDomicilioUrl] = useState<string | null>(null)
+  const [uploadingComprobante, setUploadingComprobante] = useState(false)
+
+  const [caratulaBancariaFile, setCaratulaBancariaFile] = useState<File | null>(null)
+  const [caratulaBancariaUrl, setCaratulaBancariaUrl] = useState<string | null>(null)
+  const [uploadingCaratula, setUploadingCaratula] = useState(false)
+
+  // PERSONA_MORAL only documents
+  const [actaDocumentFile, setActaDocumentFile] = useState<File | null>(null)
+  const [actaDocumentUrl, setActaDocumentUrl] = useState<string | null>(null)
+  const [uploadingActaDoc, setUploadingActaDoc] = useState(false)
+
+  const [poderLegalFile, setPoderLegalFile] = useState<File | null>(null)
+  const [poderLegalUrl, setPoderLegalUrl] = useState<string | null>(null)
+  const [uploadingPoderLegal, setUploadingPoderLegal] = useState(false)
+
+  // Features and payment
   const [availableFeatures, setAvailableFeatures] = useState<any[]>([])
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
   const [loadingFeatures, setLoadingFeatures] = useState(false)
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const totalSteps = 6
+  // Dynamic total steps based on entity type
+  // PERSONA_FISICA: 1-EntityType, 2-BusinessInfo, 3-Docs1(INE+CSF), 4-Docs2(Domicilio+Caratula), 5-Features, 6-Payment, 7-Summary = 7 steps
+  // PERSONA_MORAL: 1-EntityType, 2-BusinessInfo, 3-Docs1(INE+CSF), 4-Docs2(Domicilio+Caratula), 5-Docs3(Acta+Poder), 6-Features, 7-Payment, 8-Summary = 8 steps
+  const totalSteps = entityType === 'PERSONA_MORAL' ? 8 : 7
   const progress = (currentStep / totalSteps) * 100
+
+  // Business info form
+  const businessInfoForm = useForm<BusinessInfoFormData>({
+    resolver: zodResolver(businessInfoSchema),
+    defaultValues: {
+      rfc: '',
+      legalName: '',
+      fiscalRegime: '',
+    },
+  })
 
   // Reset all states when dialog opens
   useEffect(() => {
     if (open) {
       setCurrentStep(1)
+      setEntityType(null)
       setFormData({})
-      setTaxDocumentFile(null)
-      setActaDocumentFile(null)
+      // Reset all document states
       setIdDocumentFile(null)
-      setTaxDocumentUrl(null)
-      setActaDocumentUrl(null)
       setIdDocumentUrl(null)
-      setUploadingTaxDoc(false)
-      setUploadingActaDoc(false)
+      setRfcDocumentFile(null)
+      setRfcDocumentUrl(null)
+      setComprobanteDomicilioFile(null)
+      setComprobanteDomicilioUrl(null)
+      setCaratulaBancariaFile(null)
+      setCaratulaBancariaUrl(null)
+      setActaDocumentFile(null)
+      setActaDocumentUrl(null)
+      setPoderLegalFile(null)
+      setPoderLegalUrl(null)
+      // Reset uploading states
       setUploadingIdDoc(false)
+      setUploadingRfcDoc(false)
+      setUploadingComprobante(false)
+      setUploadingCaratula(false)
+      setUploadingActaDoc(false)
+      setUploadingPoderLegal(false)
+      // Reset features and payment
       setSelectedFeatures([])
       setPaymentMethodId(null)
-      rfcForm.reset()
-      taxDocumentsForm.reset()
-      idDocumentsForm.reset()
+      setIsSubmitting(false)
+      businessInfoForm.reset()
     }
   }, [open])
 
@@ -135,16 +191,15 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }, [open, t, toast])
 
   // Helper function to upload file to Firebase Storage
-  // documentType: 'CSF' for tax documents, 'ACTA' for articles of incorporation, 'ID' for identification documents
-  const uploadFile = async (file: File, documentType: 'CSF' | 'ID' | 'ACTA'): Promise<string | null> => {
+  const uploadFile = async (file: File, documentType: DocumentType): Promise<string | null> => {
     try {
       // Step 1: Send to backend for validation
-      const formData = new FormData()
-      formData.append('file', file)
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
 
       const response = await api.post(
         `/api/v1/dashboard/venues/${venueId}/upload-document?type=${documentType.toLowerCase()}`,
-        formData,
+        formDataUpload,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -164,9 +219,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
       // Step 3: Upload to Firebase Storage with renamed file
       const timestamp = Date.now()
-      // Extract file extension from original filename or mimeType
       const fileExtension = filename.split('.').pop() || mimeType.split('/')[1]
-      // Rename file: CSF.pdf or ID.jpg, etc.
       const renamedFilename = `${documentType}.${fileExtension}`
       const storagePath = `venues/${venueSlug}/documents/${timestamp}_${renamedFilename}`
       const storageRef = ref(storage, storagePath)
@@ -193,57 +246,87 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       console.error('Error uploading file to Firebase:', error)
       toast({
         title: t('conversionWizard.error.title'),
-        description: error?.response?.data?.message || 'Error al subir el archivo',
+        description: error?.response?.data?.message || t('conversionWizard.error.uploadFailed'),
         variant: 'destructive',
       })
       return null
     }
   }
 
-  // Forms for each step
-  const rfcForm = useForm<RFCFormData>({
-    resolver: zodResolver(rfcSchema),
-    defaultValues: {
-      rfc: '',
-      legalName: '',
-      fiscalRegime: '',
-    },
-  })
+  // Calculate step numbers based on entity type
+  const getStepForFeatures = () => (entityType === 'PERSONA_MORAL' ? 6 : 5)
+  const getStepForPayment = () => (entityType === 'PERSONA_MORAL' ? 7 : 6)
+  const getStepForSummary = () => (entityType === 'PERSONA_MORAL' ? 8 : 7)
 
-  const taxDocumentsForm = useForm<TaxDocumentsFormData>({
-    resolver: zodResolver(taxDocumentsSchema),
-  })
+  // Check if all required documents are uploaded
+  const areBaseDocumentsComplete = useMemo(() => {
+    return !!idDocumentUrl && !!rfcDocumentUrl && !!comprobanteDomicilioUrl && !!caratulaBancariaUrl
+  }, [idDocumentUrl, rfcDocumentUrl, comprobanteDomicilioUrl, caratulaBancariaUrl])
 
-  const idDocumentsForm = useForm<IDDocumentsFormData>({
-    resolver: zodResolver(idDocumentsSchema),
-  })
+  const areMoralDocumentsComplete = useMemo(() => {
+    if (entityType !== 'PERSONA_MORAL') return true
+    return !!actaDocumentUrl // Poder legal is optional
+  }, [entityType, actaDocumentUrl])
+
+  const areAllDocumentsComplete = areBaseDocumentsComplete && areMoralDocumentsComplete
 
   const handleNext = async () => {
     let isValid = false
 
     if (currentStep === 1) {
-      isValid = await rfcForm.trigger()
-      if (isValid) {
-        setFormData({ ...formData, ...rfcForm.getValues() })
+      // Entity type selection
+      isValid = !!entityType
+      if (!isValid) {
+        toast({
+          title: t('conversionWizard.error.title'),
+          description: t('conversionWizard.entityType.required'),
+          variant: 'destructive',
+        })
       }
     } else if (currentStep === 2) {
-      isValid = await taxDocumentsForm.trigger()
+      // Business info
+      isValid = await businessInfoForm.trigger()
       if (isValid) {
-        setFormData({ ...formData, ...taxDocumentsForm.getValues() })
+        setFormData({ ...formData, ...businessInfoForm.getValues() })
       }
     } else if (currentStep === 3) {
-      isValid = await idDocumentsForm.trigger()
-      if (isValid) {
-        setFormData({ ...formData, ...idDocumentsForm.getValues() })
+      // Documents step 1: INE + CSF
+      isValid = !!idDocumentUrl && !!rfcDocumentUrl
+      if (!isValid) {
+        toast({
+          title: t('conversionWizard.error.title'),
+          description: t('conversionWizard.documents.step1Required'),
+          variant: 'destructive',
+        })
       }
     } else if (currentStep === 4) {
-      // Step 4: Save selected features
+      // Documents step 2: Comprobante domicilio + Carátula bancaria
+      isValid = !!comprobanteDomicilioUrl && !!caratulaBancariaUrl
+      if (!isValid) {
+        toast({
+          title: t('conversionWizard.error.title'),
+          description: t('conversionWizard.documents.step2Required'),
+          variant: 'destructive',
+        })
+      }
+    } else if (currentStep === 5 && entityType === 'PERSONA_MORAL') {
+      // Documents step 3 (PERSONA_MORAL only): Acta + Poder Legal
+      isValid = !!actaDocumentUrl
+      if (!isValid) {
+        toast({
+          title: t('conversionWizard.error.title'),
+          description: t('conversionWizard.documents.actaRequired'),
+          variant: 'destructive',
+        })
+      }
+    } else if (currentStep === getStepForFeatures()) {
+      // Features selection
       setFormData({ ...formData, selectedFeatures })
       isValid = true
 
-      // If no features selected, skip payment step (Step 5) and go directly to summary (Step 6)
-      if (selectedFeatures.length === 0 && currentStep < totalSteps) {
-        setCurrentStep(6) // Jump to summary
+      // If no features selected, skip payment step and go directly to summary
+      if (selectedFeatures.length === 0) {
+        setCurrentStep(getStepForSummary())
         return
       }
     } else {
@@ -257,9 +340,9 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   const handleBack = () => {
     if (currentStep > 1) {
-      // If on step 6 and no features selected, skip step 5 (payment) and go to step 4
-      if (currentStep === 6 && selectedFeatures.length === 0) {
-        setCurrentStep(4)
+      // If on summary and no features selected, skip payment step
+      if (currentStep === getStepForSummary() && selectedFeatures.length === 0) {
+        setCurrentStep(getStepForFeatures())
       } else {
         setCurrentStep(currentStep - 1)
       }
@@ -267,8 +350,11 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }
 
   const handleSubmit = async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+
     try {
-      // Convert feature IDs to feature codes BEFORE API call
+      // Convert feature IDs to feature codes
       const featureCodes = selectedFeatures
         .map(featureId => {
           const feature = availableFeatures.find(f => f.id === featureId)
@@ -276,16 +362,25 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         })
         .filter(Boolean) as string[]
 
-      // Call API to convert venue from demo to real (SINGLE REQUEST with payment + features)
+      // Call API to convert venue from demo to real
       const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, {
-        rfc: formData.rfc,
+        entityType,
+        rfc: formData.rfc?.toUpperCase(),
         legalName: formData.legalName,
         fiscalRegime: formData.fiscalRegime,
-        taxDocumentUrl: taxDocumentUrl,
-        actaDocumentUrl: actaDocumentUrl,
-        idDocumentUrl: idDocumentUrl,
-        paymentMethodId: paymentMethodId, // ✅ Fixed: Correct field name (was stripePaymentMethodId)
-        selectedFeatures: featureCodes, // ✅ Added: Backend will create trial subscriptions
+        // Required documents for all
+        idDocumentUrl,
+        rfcDocumentUrl,
+        comprobanteDomicilioUrl,
+        caratulaBancariaUrl,
+        // PERSONA_MORAL only documents
+        ...(entityType === 'PERSONA_MORAL' && {
+          actaDocumentUrl,
+          poderLegalUrl,
+        }),
+        // Optional: payment and features
+        ...(paymentMethodId && { paymentMethodId }),
+        selectedFeatures: featureCodes,
       })
 
       if (response.data.success) {
@@ -310,25 +405,23 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         description: error?.response?.data?.message || t('conversionWizard.error.description'),
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  // Helper function to get dynamic button text
+  // Helper to get dynamic button text
   const getNextButtonText = () => {
-    // Step 4: Features selection
-    if (currentStep === 4) {
+    if (currentStep === getStepForFeatures()) {
       return selectedFeatures.length > 0 ? tOnboarding('shared.continueToPayment') : tOnboarding('shared.continueWithoutPremium')
     }
-    // Default: "Siguiente"
     return t('conversionWizard.next')
   }
 
   const getNextButtonVariant = () => {
-    // Step 4 without features: outline variant for less emphasis
-    if (currentStep === 4 && selectedFeatures.length === 0) {
+    if (currentStep === getStepForFeatures() && selectedFeatures.length === 0) {
       return 'outline' as const
     }
-    // Default: solid/default variant
     return 'default' as const
   }
 
@@ -336,541 +429,670 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     return selectedFeatures.length > 0 ? tOnboarding('shared.startFreeTrial') : tOnboarding('shared.activateFreeAccount')
   }
 
-  const renderStepContent = (step?: number) => {
-    const stepToRender = step ?? currentStep
-    switch (stepToRender) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <div>
-                <h4 className="font-semibold text-sm">{t('conversionWizard.step1.title')}</h4>
-                <p className="text-xs text-muted-foreground">{t('conversionWizard.step1.description')}</p>
-              </div>
-            </div>
+  // Render document upload box
+  const renderDocumentUpload = (
+    id: string,
+    label: string,
+    hint: string,
+    file: File | null,
+    setFile: (file: File | null) => void,
+    url: string | null,
+    setUrl: (url: string | null) => void,
+    uploading: boolean,
+    setUploading: (uploading: boolean) => void,
+    docType: DocumentType,
+    required: boolean = true,
+  ) => (
+    <div
+      className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors ${
+        url ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-border'
+      }`}
+    >
+      <Upload className={`h-10 w-10 mx-auto mb-3 ${url ? 'text-green-600' : 'text-muted-foreground'}`} />
+      <p className="text-sm font-medium mb-1">
+        {label}
+        {required && <span className="text-destructive ml-1">*</span>}
+      </p>
+      <p className="text-xs text-muted-foreground mb-3">{hint}</p>
+      <div className="flex flex-col items-center gap-2">
+        <label
+          htmlFor={id}
+          className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2"
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          {url ? t('conversionWizard.shared.changeFile') : t('conversionWizard.shared.selectFile')}
+        </label>
+        <Input
+          id={id}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          className="hidden"
+          onChange={async e => {
+            const selectedFile = e.target.files?.[0]
+            if (selectedFile) {
+              setFile(selectedFile)
+              setUploading(true)
 
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="rfc">{t('conversionWizard.step1.rfcLabel')}</Label>
-                <Input id="rfc" placeholder={tOnboarding('shared.rfcPlaceholder')} className="uppercase" {...rfcForm.register('rfc')} />
-                {rfcForm.formState.errors.rfc && <p className="text-sm text-destructive mt-1">{rfcForm.formState.errors.rfc.message}</p>}
-              </div>
+              const uploadedUrl = await uploadFile(selectedFile, docType)
+              if (uploadedUrl) {
+                setUrl(uploadedUrl)
+              }
 
-              <div>
-                <Label htmlFor="legalName">{t('conversionWizard.step1.legalNameLabel')}</Label>
-                <Input id="legalName" placeholder={t('conversionWizard.step1.legalNamePlaceholder')} {...rfcForm.register('legalName')} />
-                {rfcForm.formState.errors.legalName && (
-                  <p className="text-sm text-destructive mt-1">{rfcForm.formState.errors.legalName.message}</p>
-                )}
-              </div>
+              setUploading(false)
+              e.target.value = ''
+            }
+          }}
+        />
+        {uploading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span>{t('conversionWizard.shared.uploading')}</span>
+          </div>
+        )}
+        {file && !uploading && url && (
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <span className="text-green-600 truncate max-w-[200px]">{file.name}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
-              <div>
-                <Label htmlFor="fiscalRegime">{t('conversionWizard.step1.fiscalRegimeLabel')}</Label>
-                <Input
-                  id="fiscalRegime"
-                  placeholder={t('conversionWizard.step1.fiscalRegimePlaceholder')}
-                  {...rfcForm.register('fiscalRegime')}
-                />
-                {rfcForm.formState.errors.fiscalRegime && (
-                  <p className="text-sm text-destructive mt-1">{rfcForm.formState.errors.fiscalRegime.message}</p>
-                )}
-              </div>
+  const renderStepContent = () => {
+    // Step 1: Entity Type Selection
+    if (currentStep === 1) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <Building2 className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.entityType.title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.entityType.description')}</p>
             </div>
           </div>
-        )
 
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-              <FileText className="h-5 w-5 text-primary" />
-              <div>
-                <h4 className="font-semibold text-sm">{t('conversionWizard.step2.title')}</h4>
-                <p className="text-xs text-muted-foreground">{t('conversionWizard.step2.description')}</p>
-              </div>
+          <RadioGroup
+            value={entityType || ''}
+            onValueChange={value => setEntityType(value as EntityType)}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <div>
+              <RadioGroupItem value="PERSONA_FISICA" id="persona-fisica" className="peer sr-only" />
+              <Label
+                htmlFor="persona-fisica"
+                className="flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-6 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+              >
+                <User className="h-10 w-10 mb-3 text-primary" />
+                <span className="font-semibold">{t('conversionWizard.entityType.fisica')}</span>
+                <span className="text-xs text-muted-foreground text-center mt-2">
+                  {t('conversionWizard.entityType.fisicaDescription')}
+                </span>
+              </Label>
             </div>
-
-            <div className="space-y-6">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm font-medium mb-2">{t('conversionWizard.step2.constanciaLabel')}</p>
-                <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step2.uploadHint')}</p>
-                <div className="flex flex-col items-center gap-3">
-                  <label
-                    htmlFor="taxDocumentFile"
-                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {t('conversionWizard.shared.selectFile')}
-                  </label>
-                  <Input
-                    id="taxDocumentFile"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    onChange={async e => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setTaxDocumentFile(file)
-                        setUploadingTaxDoc(true)
-
-                        // Upload file to Firebase Storage (CSF = Constancia de Situación Fiscal)
-                        const url = await uploadFile(file, 'CSF')
-                        if (url) {
-                          setTaxDocumentUrl(url)
-                        }
-
-                        setUploadingTaxDoc(false)
-
-                        // Clear input value to allow re-selecting the same file
-                        e.target.value = ''
-                      }
-                    }}
-                  />
-                  {uploadingTaxDoc && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                      <span>{t('conversionWizard.shared.uploading')}</span>
-                    </div>
-                  )}
-                  {taxDocumentFile && !uploadingTaxDoc && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600">{taxDocumentFile.name}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors bg-muted/20">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm font-medium mb-2">{t('conversionWizard.step2.actaLabel')}</p>
-                <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step2.actaHint')}</p>
-                <div className="flex flex-col items-center gap-3">
-                  <label
-                    htmlFor="actaDocumentFile"
-                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {t('conversionWizard.shared.selectFile')}
-                  </label>
-                  <Input
-                    id="actaDocumentFile"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    className="hidden"
-                    onChange={async e => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setActaDocumentFile(file)
-                        setUploadingActaDoc(true)
-
-                        // Upload file to Firebase Storage (ACTA = Acta Constitutiva)
-                        const url = await uploadFile(file, 'ACTA')
-                        if (url) {
-                          setActaDocumentUrl(url)
-                        }
-
-                        setUploadingActaDoc(false)
-
-                        // Clear input value to allow re-selecting the same file
-                        e.target.value = ''
-                      }
-                    }}
-                  />
-                  {uploadingActaDoc && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                      <span>{t('conversionWizard.shared.uploading')}</span>
-                    </div>
-                  )}
-                  {actaDocumentFile && !uploadingActaDoc && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600">{actaDocumentFile.name}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div>
+              <RadioGroupItem value="PERSONA_MORAL" id="persona-moral" className="peer sr-only" />
+              <Label
+                htmlFor="persona-moral"
+                className="flex flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-6 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+              >
+                <Building2 className="h-10 w-10 mb-3 text-primary" />
+                <span className="font-semibold">{t('conversionWizard.entityType.moral')}</span>
+                <span className="text-xs text-muted-foreground text-center mt-2">
+                  {t('conversionWizard.entityType.moralDescription')}
+                </span>
+              </Label>
             </div>
-          </div>
-        )
+          </RadioGroup>
 
-      case 3:
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <div>
-                <h4 className="font-semibold text-sm">{t('conversionWizard.step3.title')}</h4>
-                <p className="text-xs text-muted-foreground">{t('conversionWizard.step3.description')}</p>
-              </div>
-            </div>
-
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
-              <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm font-medium mb-2">{t('conversionWizard.step3.uploadLabel')}</p>
-              <p className="text-xs text-muted-foreground mb-4">{t('conversionWizard.step3.uploadHint')}</p>
-              <div className="flex flex-col items-center gap-3">
-                <label
-                  htmlFor="idDocumentFile"
-                  className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {t('conversionWizard.shared.selectFile')}
-                </label>
-                <Input
-                  id="idDocumentFile"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={async e => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      setIdDocumentFile(file)
-                      setUploadingIdDoc(true)
-
-                      // Upload file to Firebase Storage (ID = Identificación)
-                      const url = await uploadFile(file, 'ID')
-                      if (url) {
-                        setIdDocumentUrl(url)
-                      }
-
-                      setUploadingIdDoc(false)
-
-                      // Clear input value to allow re-selecting the same file
-                      e.target.value = ''
-                    }
-                  }}
-                />
-                {uploadingIdDoc && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span>{t('conversionWizard.shared.uploading')}</span>
-                  </div>
-                )}
-                {idDocumentFile && !uploadingIdDoc && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600">{idDocumentFile.name}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-
-      case 4: {
-        // Calculate total monthly cost
-        const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
-          const feature = availableFeatures.find(f => f.id === featureId)
-          const featureCode = feature?.code
-          return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
-        }, 0)
-
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <div>
-                <h4 className="font-semibold text-sm">{t('conversionWizard.step4.title')}</h4>
-                <p className="text-xs text-muted-foreground">{t('conversionWizard.step4.description')}</p>
-              </div>
-            </div>
-
-            {loadingFeatures ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">{t('conversionWizard.step4.loading')}</p>
-              </div>
-            ) : availableFeatures.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">{t('conversionWizard.step4.noFeatures')}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {availableFeatures.map(feature => {
-                  const price = FEATURE_PRICING[feature.code] || 0
-                  return (
-                    <div
-                      key={feature.id}
-                      className={`flex items-start gap-3 p-4 border rounded-lg transition-colors ${
-                        selectedFeatures.includes(feature.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
-                      }`}
-                    >
-                      <Checkbox
-                        id={`feature-${feature.id}`}
-                        checked={selectedFeatures.includes(feature.id)}
-                        onCheckedChange={checked => {
-                          if (checked) {
-                            setSelectedFeatures([...selectedFeatures, feature.id])
-                          } else {
-                            setSelectedFeatures(selectedFeatures.filter(id => id !== feature.id))
-                          }
-                        }}
-                        className="mt-0.5"
-                      />
-                      <label htmlFor={`feature-${feature.id}`} className="flex-1 cursor-pointer space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">{feature.name}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {tOnboarding('shared.twoDaysFree')}
-                            </Badge>
-                          </div>
-                          <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
-                        </div>
-                        {feature.description && <p className="text-sm text-muted-foreground">{feature.description}</p>}
-                      </label>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Pricing Summary */}
-            {selectedFeatures.length > 0 && (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{tOnboarding('shared.totalMonthlyAfterTrial')}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {tOnboarding('shared.featuresSelected', { count: selectedFeatures.length })}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">${totalMonthlyCost.toLocaleString()} MXN</p>
-                      <p className="text-xs text-muted-foreground">{tOnboarding('shared.perMonth')}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {selectedFeatures.length === 0 && (
-              <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2">
-                      <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 mt-0.5">
-                        <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{tOnboarding('shared.freeAccountIncludes')}</p>
-                        <ul className="mt-2 space-y-1.5 text-sm text-blue-800 dark:text-blue-200">
-                          <li className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {tOnboarding('shared.freeFeatures.menuManagement')}
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {tOnboarding('shared.freeFeatures.orderProcessing')}
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {tOnboarding('shared.freeFeatures.staffIncluded')}
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {tOnboarding('shared.freeFeatures.basicReports')}
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                      <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <strong>{tOnboarding('shared.tip')}</strong> {tOnboarding('shared.tipPremiumLater')}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )
-      }
-
-      case 5:
-        // Step 5: Stripe Payment (only if features selected)
-        if (selectedFeatures.length > 0) {
-          return (
-            <div className="space-y-4">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground">{tOnboarding('shared.paymentMethod')}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {paymentMethodId
-                    ? tOnboarding('shared.confirmPaymentMethod')
-                    : tOnboarding('shared.selectPaymentMethod')}
-                </p>
-              </div>
-              <PaymentMethodSelector
-                venueId={venueId}
-                onPaymentMethodSelected={pmId => {
-                  setPaymentMethodId(pmId)
-                  setCurrentStep(currentStep + 1)
-                }}
-                buttonText={tOnboarding('shared.continueToSummary')}
-              />
-            </div>
-          )
-        } else {
-          // No features selected, skip to summary
-          return renderStepContent(6)
-        }
-
-      case 6: {
-        // Calculate total monthly cost for summary
-        const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
-          const feature = availableFeatures.find(f => f.id === featureId)
-          const featureCode = feature?.code
-          return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
-        }, 0)
-
-        return (
-          <div className="space-y-4">
-            {/* Success header */}
-            <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <div>
-                <h4 className="font-semibold text-sm text-green-900 dark:text-green-100">{tOnboarding('shared.allReady')}</h4>
-                <p className="text-xs text-green-700 dark:text-green-300">{tOnboarding('shared.reviewBeforeConfirm')}</p>
-              </div>
-            </div>
-
-            {/* Plan summary */}
-            <Card>
-              <CardContent className="pt-6 space-y-4">
+          {entityType && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
                 <div>
-                  <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.selectedPlan')}</h5>
-                  {selectedFeatures.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="font-medium text-primary">{tOnboarding('shared.trialPremium')}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{tOnboarding('shared.afterTrialCost', { cost: totalMonthlyCost.toLocaleString() })}</p>
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs font-medium text-foreground mb-2">{tOnboarding('shared.featuresIncluded')}</p>
-                        <ul className="space-y-1">
-                          {selectedFeatures.map(featureId => {
-                            const feature = availableFeatures.find(f => f.id === featureId)
-                            if (!feature) return null
-                            const price = feature.code ? FEATURE_PRICING[feature.code] : 0
-                            return (
-                              <li key={featureId} className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{feature.name}</span>
-                                <span className="font-medium">${price.toLocaleString()} MXN</span>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="font-medium text-foreground">{tOnboarding('shared.freePlan')}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {tOnboarding('shared.noMonthlyCharge')} • {tOnboarding('shared.addPremiumAnytime')}
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    {t('conversionWizard.entityType.documentsNeeded')}
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-blue-800 dark:text-blue-200">
+                    <li>• {t('conversionWizard.documents.ine')}</li>
+                    <li>• {t('conversionWizard.documents.csf')}</li>
+                    <li>• {t('conversionWizard.documents.comprobanteDomicilio')}</li>
+                    <li>• {t('conversionWizard.documents.caratulaBancaria')}</li>
+                    {entityType === 'PERSONA_MORAL' && (
+                      <>
+                        <li>• {t('conversionWizard.documents.actaConstitutiva')}</li>
+                        <li>• {t('conversionWizard.documents.poderLegal')} ({t('conversionWizard.documents.optional')})</li>
+                      </>
+                    )}
+                  </ul>
                 </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
 
-                <div className="pt-3 border-t">
-                  <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.businessInfo')}</h5>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{tOnboarding('shared.venueName')}</span>
-                      <span className="font-medium">{venueName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{tOnboarding('shared.rfc')}</span>
-                      <span className="font-medium">{formData.rfc || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{tOnboarding('shared.legalName')}</span>
-                      <span className="font-medium">{formData.legalName || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
+    // Step 2: Business Information
+    if (currentStep === 2) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.businessInfo.title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.businessInfo.description')}</p>
+            </div>
+          </div>
 
-                <div className="pt-3 border-t">
-                  <h5 className="font-semibold text-sm mb-3">{t('conversionWizard.documents.title')}</h5>
-                  <div className="space-y-2 text-sm">
-                    {[
-                      {
-                        label: t('conversionWizard.step2.constanciaLabel'),
-                        completed: !!taxDocumentUrl,
-                        optional: false,
-                      },
-                      {
-                        label: t('conversionWizard.step2.actaLabel'),
-                        completed: !!actaDocumentUrl,
-                        optional: true,
-                      },
-                      {
-                        label: t('conversionWizard.step3.idLabel'),
-                        completed: !!idDocumentUrl,
-                        optional: false,
-                      },
-                    ].map(doc => (
-                      <div key={doc.label} className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{doc.label}</span>
-                        <div className="flex items-center gap-1">
-                          {doc.completed ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                              <span className="text-green-600">{t('conversionWizard.documents.completed')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">
-                                {doc.optional ? t('conversionWizard.documents.optional') : t('conversionWizard.documents.pending')}
-                              </span>
-                            </>
-                          )}
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="rfc">{t('conversionWizard.businessInfo.rfcLabel')}</Label>
+              <Input
+                id="rfc"
+                placeholder={tOnboarding('shared.rfcPlaceholder')}
+                className="uppercase"
+                {...businessInfoForm.register('rfc')}
+              />
+              {businessInfoForm.formState.errors.rfc && (
+                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.rfc.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="legalName">{t('conversionWizard.businessInfo.legalNameLabel')}</Label>
+              <Input
+                id="legalName"
+                placeholder={t('conversionWizard.businessInfo.legalNamePlaceholder')}
+                {...businessInfoForm.register('legalName')}
+              />
+              {businessInfoForm.formState.errors.legalName && (
+                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.legalName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="fiscalRegime">{t('conversionWizard.businessInfo.fiscalRegimeLabel')}</Label>
+              <Input
+                id="fiscalRegime"
+                placeholder={t('conversionWizard.businessInfo.fiscalRegimePlaceholder')}
+                {...businessInfoForm.register('fiscalRegime')}
+              />
+              {businessInfoForm.formState.errors.fiscalRegime && (
+                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.fiscalRegime.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 3: Documents Part 1 (INE + CSF)
+    if (currentStep === 3) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <FileText className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.documents.step1Title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.documents.step1Description')}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {renderDocumentUpload(
+              'idDocument',
+              t('conversionWizard.documents.ine'),
+              t('conversionWizard.documents.ineHint'),
+              idDocumentFile,
+              setIdDocumentFile,
+              idDocumentUrl,
+              setIdDocumentUrl,
+              uploadingIdDoc,
+              setUploadingIdDoc,
+              'ID',
+              true,
+            )}
+            {renderDocumentUpload(
+              'rfcDocument',
+              t('conversionWizard.documents.csf'),
+              t('conversionWizard.documents.csfHint'),
+              rfcDocumentFile,
+              setRfcDocumentFile,
+              rfcDocumentUrl,
+              setRfcDocumentUrl,
+              uploadingRfcDoc,
+              setUploadingRfcDoc,
+              'CSF',
+              true,
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // Step 4: Documents Part 2 (Comprobante Domicilio + Carátula Bancaria)
+    if (currentStep === 4) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <FileText className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.documents.step2Title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.documents.step2Description')}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {renderDocumentUpload(
+              'comprobanteDomicilio',
+              t('conversionWizard.documents.comprobanteDomicilio'),
+              t('conversionWizard.documents.comprobanteDomicilioHint'),
+              comprobanteDomicilioFile,
+              setComprobanteDomicilioFile,
+              comprobanteDomicilioUrl,
+              setComprobanteDomicilioUrl,
+              uploadingComprobante,
+              setUploadingComprobante,
+              'DOMICILIO',
+              true,
+            )}
+            {renderDocumentUpload(
+              'caratulaBancaria',
+              t('conversionWizard.documents.caratulaBancaria'),
+              t('conversionWizard.documents.caratulaBancariaHint'),
+              caratulaBancariaFile,
+              setCaratulaBancariaFile,
+              caratulaBancariaUrl,
+              setCaratulaBancariaUrl,
+              uploadingCaratula,
+              setUploadingCaratula,
+              'CARATULA',
+              true,
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // Step 5 (PERSONA_MORAL only): Documents Part 3 (Acta + Poder Legal)
+    if (currentStep === 5 && entityType === 'PERSONA_MORAL') {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <FileText className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.documents.step3Title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.documents.step3Description')}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {renderDocumentUpload(
+              'actaDocument',
+              t('conversionWizard.documents.actaConstitutiva'),
+              t('conversionWizard.documents.actaHint'),
+              actaDocumentFile,
+              setActaDocumentFile,
+              actaDocumentUrl,
+              setActaDocumentUrl,
+              uploadingActaDoc,
+              setUploadingActaDoc,
+              'ACTA',
+              true,
+            )}
+            {renderDocumentUpload(
+              'poderLegal',
+              t('conversionWizard.documents.poderLegal'),
+              t('conversionWizard.documents.poderLegalHint'),
+              poderLegalFile,
+              setPoderLegalFile,
+              poderLegalUrl,
+              setPoderLegalUrl,
+              uploadingPoderLegal,
+              setUploadingPoderLegal,
+              'PODER',
+              false,
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // Features step
+    if (currentStep === getStepForFeatures()) {
+      const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
+        const feature = availableFeatures.find(f => f.id === featureId)
+        const featureCode = feature?.code
+        return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
+      }, 0)
+
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <div>
+              <h4 className="font-semibold text-sm">{t('conversionWizard.features.title')}</h4>
+              <p className="text-xs text-muted-foreground">{t('conversionWizard.features.description')}</p>
+            </div>
+          </div>
+
+          {loadingFeatures ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">{t('conversionWizard.features.loading')}</p>
+            </div>
+          ) : availableFeatures.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">{t('conversionWizard.features.noFeatures')}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {availableFeatures.map(feature => {
+                const price = FEATURE_PRICING[feature.code] || 0
+                return (
+                  <div
+                    key={feature.id}
+                    className={`flex items-start gap-3 p-4 border rounded-lg transition-colors ${
+                      selectedFeatures.includes(feature.id)
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
+                    }`}
+                  >
+                    <Checkbox
+                      id={`feature-${feature.id}`}
+                      checked={selectedFeatures.includes(feature.id)}
+                      onCheckedChange={checked => {
+                        if (checked) {
+                          setSelectedFeatures([...selectedFeatures, feature.id])
+                        } else {
+                          setSelectedFeatures(selectedFeatures.filter(id => id !== feature.id))
+                        }
+                      }}
+                      className="mt-0.5"
+                    />
+                    <label htmlFor={`feature-${feature.id}`} className="flex-1 cursor-pointer space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{feature.name}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {tOnboarding('shared.twoDaysFree')}
+                          </Badge>
                         </div>
+                        <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
                       </div>
-                    ))}
+                      {feature.description && <p className="text-sm text-muted-foreground">{feature.description}</p>}
+                    </label>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {selectedFeatures.length > 0 && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{tOnboarding('shared.totalMonthlyAfterTrial')}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {tOnboarding('shared.featuresSelected', { count: selectedFeatures.length })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-foreground">${totalMonthlyCost.toLocaleString()} MXN</p>
+                    <p className="text-xs text-muted-foreground">{tOnboarding('shared.perMonth')}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Confirmation message */}
-            {selectedFeatures.length > 0 ? (
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>{tOnboarding('shared.important')}</strong> {tOnboarding('shared.noChargeNotice')}
-                </p>
-              </div>
-            ) : (
-              <div className="p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  <strong>{tOnboarding('shared.perfect')}</strong> {tOnboarding('shared.freeAccountReady')}
-                </p>
-              </div>
-            )}
+          {selectedFeatures.length === 0 && (
+            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50">
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 mt-0.5">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        {tOnboarding('shared.freeAccountIncludes')}
+                      </p>
+                      <ul className="mt-2 space-y-1.5 text-sm text-blue-800 dark:text-blue-200">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {tOnboarding('shared.freeFeatures.menuManagement')}
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {tOnboarding('shared.freeFeatures.orderProcessing')}
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {tOnboarding('shared.freeFeatures.staffIncluded')}
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {tOnboarding('shared.freeFeatures.basicReports')}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                    <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      <strong>{tOnboarding('shared.tip')}</strong> {tOnboarding('shared.tipPremiumLater')}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )
+    }
+
+    // Payment step
+    if (currentStep === getStepForPayment()) {
+      if (selectedFeatures.length > 0) {
+        return (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-foreground">{tOnboarding('shared.paymentMethod')}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {paymentMethodId ? tOnboarding('shared.confirmPaymentMethod') : tOnboarding('shared.selectPaymentMethod')}
+              </p>
+            </div>
+            <PaymentMethodSelector
+              venueId={venueId}
+              onPaymentMethodSelected={pmId => {
+                setPaymentMethodId(pmId)
+                setCurrentStep(currentStep + 1)
+              }}
+              buttonText={tOnboarding('shared.continueToSummary')}
+            />
           </div>
         )
+      } else {
+        // Skip to summary if no features selected
+        return renderStepContent()
       }
-
-      default:
-        return null
     }
+
+    // Summary step
+    if (currentStep === getStepForSummary()) {
+      const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
+        const feature = availableFeatures.find(f => f.id === featureId)
+        const featureCode = feature?.code
+        return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
+      }, 0)
+
+      const allDocuments = [
+        { label: t('conversionWizard.documents.ine'), completed: !!idDocumentUrl, required: true },
+        { label: t('conversionWizard.documents.csf'), completed: !!rfcDocumentUrl, required: true },
+        { label: t('conversionWizard.documents.comprobanteDomicilio'), completed: !!comprobanteDomicilioUrl, required: true },
+        { label: t('conversionWizard.documents.caratulaBancaria'), completed: !!caratulaBancariaUrl, required: true },
+        ...(entityType === 'PERSONA_MORAL'
+          ? [
+              { label: t('conversionWizard.documents.actaConstitutiva'), completed: !!actaDocumentUrl, required: true },
+              { label: t('conversionWizard.documents.poderLegal'), completed: !!poderLegalUrl, required: false },
+            ]
+          : []),
+      ]
+
+      return (
+        <div className="space-y-4">
+          {/* Success header */}
+          <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
+            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div>
+              <h4 className="font-semibold text-sm text-green-900 dark:text-green-100">{tOnboarding('shared.allReady')}</h4>
+              <p className="text-xs text-green-700 dark:text-green-300">{tOnboarding('shared.reviewBeforeConfirm')}</p>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              {/* Entity Type */}
+              <div>
+                <h5 className="font-semibold text-sm mb-2">{t('conversionWizard.entityType.title')}</h5>
+                <div className="flex items-center gap-2">
+                  {entityType === 'PERSONA_FISICA' ? (
+                    <User className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Building2 className="h-4 w-4 text-primary" />
+                  )}
+                  <span className="font-medium">
+                    {entityType === 'PERSONA_FISICA'
+                      ? t('conversionWizard.entityType.fisica')
+                      : t('conversionWizard.entityType.moral')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Plan summary */}
+              <div className="pt-3 border-t">
+                <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.selectedPlan')}</h5>
+                {selectedFeatures.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-primary">{tOnboarding('shared.trialPremium')}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {tOnboarding('shared.afterTrialCost', { cost: totalMonthlyCost.toLocaleString() })}
+                    </p>
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs font-medium text-foreground mb-2">{tOnboarding('shared.featuresIncluded')}</p>
+                      <ul className="space-y-1">
+                        {selectedFeatures.map(featureId => {
+                          const feature = availableFeatures.find(f => f.id === featureId)
+                          if (!feature) return null
+                          const price = feature.code ? FEATURE_PRICING[feature.code] : 0
+                          return (
+                            <li key={featureId} className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">{feature.name}</span>
+                              <span className="font-medium">${price.toLocaleString()} MXN</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-foreground">{tOnboarding('shared.freePlan')}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {tOnboarding('shared.noMonthlyCharge')} • {tOnboarding('shared.addPremiumAnytime')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Business info */}
+              <div className="pt-3 border-t">
+                <h5 className="font-semibold text-sm mb-3">{tOnboarding('shared.businessInfo')}</h5>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{tOnboarding('shared.venueName')}</span>
+                    <span className="font-medium">{venueName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{tOnboarding('shared.rfc')}</span>
+                    <span className="font-medium">{formData.rfc || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{tOnboarding('shared.legalName')}</span>
+                    <span className="font-medium">{formData.legalName || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Documents */}
+              <div className="pt-3 border-t">
+                <h5 className="font-semibold text-sm mb-3">{t('conversionWizard.documents.title')}</h5>
+                <div className="space-y-2 text-sm">
+                  {allDocuments.map(doc => (
+                    <div key={doc.label} className="flex items-center justify-between">
+                      <span className="text-muted-foreground">{doc.label}</span>
+                      <div className="flex items-center gap-1">
+                        {doc.completed ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <span className="text-green-600">{t('conversionWizard.documents.completed')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">
+                              {doc.required ? t('conversionWizard.documents.pending') : t('conversionWizard.documents.optional')}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KYC Notice */}
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>{t('conversionWizard.summary.kycNotice.title')}</strong>{' '}
+              {t('conversionWizard.summary.kycNotice.description')}
+            </p>
+          </div>
+
+          {/* Confirmation message */}
+          {selectedFeatures.length > 0 ? (
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>{tOnboarding('shared.important')}</strong> {tOnboarding('shared.noChargeNotice')}
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-sm text-green-800 dark:text-green-200">
+                <strong>{tOnboarding('shared.perfect')}</strong> {tOnboarding('shared.freeAccountReady')}
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return null
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
@@ -893,7 +1115,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         {/* Step content */}
         <div
           key={`step-${currentStep}`}
-          className="min-h-[300px] max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+          className="min-h-[300px] max-h-[55vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
         >
           {renderStepContent()}
         </div>
@@ -905,8 +1127,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             {t('conversionWizard.back')}
           </Button>
 
-          {/* Hide forward navigation on Step 5 (Stripe payment) when features selected - StripePaymentMethod has its own button */}
-          {currentStep === 5 && selectedFeatures.length > 0 ? (
+          {/* Hide forward navigation on Payment step when features selected - PaymentMethodSelector has its own button */}
+          {currentStep === getStepForPayment() && selectedFeatures.length > 0 ? (
             <div></div>
           ) : currentStep < totalSteps ? (
             <Button onClick={handleNext} variant={getNextButtonVariant()}>
@@ -914,8 +1136,16 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} className="bg-linear-to-r from-blue-600 via-purple-600 to-pink-600">
-              <Sparkles className="mr-2 h-4 w-4" />
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !areAllDocumentsComplete}
+              className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+            >
+              {isSubmitting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
               {getFinalButtonText()}
             </Button>
           )}

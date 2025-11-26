@@ -260,7 +260,17 @@
     "back": "Atrás",
     "next": "Siguiente",
     "convert": "Convertir Ahora",
-    "step1": {
+    "entityType": {
+      "title": "Tipo de Persona",
+      "description": "Selecciona el tipo de entidad legal de tu negocio",
+      "fisica": "Persona Física",
+      "fisicaDescription": "Individuos o autónomos con actividad empresarial",
+      "moral": "Persona Moral",
+      "moralDescription": "Empresas, sociedades y otras entidades legales",
+      "required": "Por favor selecciona el tipo de persona",
+      "documentsNeeded": "Documentos requeridos:"
+    },
+    "businessInfo": {
       "title": "Información Fiscal",
       "description": "Ingresa la información fiscal de tu negocio",
       "rfcLabel": "RFC",
@@ -269,56 +279,59 @@
       "fiscalRegimeLabel": "Régimen Fiscal",
       "fiscalRegimePlaceholder": "ej., Régimen General de Ley"
     },
-    "step2": {
-      "title": "Documentos Fiscales",
-      "description": "Sube tu constancia de situación fiscal y, si aplica, tu acta constitutiva",
-      "uploadLabel": "Haz clic para subir o arrastra y suelta",
-      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
-      "constanciaLabel": "Constancia de situación fiscal (obligatoria)",
-      "actaLabel": "Acta constitutiva (opcional)",
-      "actaHint": "PDF, JPG, PNG (MÁX. 10MB)"
+    "documents": {
+      "title": "Documentos cargados",
+      "step1Title": "Identificación y RFC",
+      "step1Description": "Sube tu identificación oficial y constancia de situación fiscal",
+      "step2Title": "Comprobante de Domicilio y Carátula Bancaria",
+      "step2Description": "Sube tu comprobante de domicilio y carátula bancaria con CLABE",
+      "step3Title": "Documentos Corporativos",
+      "step3Description": "Sube tu acta constitutiva y poder legal (si aplica)",
+      "ine": "Identificación oficial (INE/IFE)",
+      "ineHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "csf": "Constancia de Situación Fiscal",
+      "csfHint": "PDF, JPG, PNG (MÁX. 10MB)",
+      "comprobanteDomicilio": "Comprobante de Domicilio",
+      "comprobanteDomicilioHint": "Recibo de luz, agua, teléfono o estado de cuenta (máx. 3 meses)",
+      "caratulaBancaria": "Carátula Bancaria (CLABE)",
+      "caratulaBancariaHint": "Estado de cuenta o documento con CLABE visible",
+      "actaConstitutiva": "Acta Constitutiva",
+      "actaHint": "PDF (MÁX. 10MB)",
+      "poderLegal": "Poder del Representante Legal",
+      "poderLegalHint": "PDF (MÁX. 10MB) - Solo si aplica",
+      "optional": "Opcional",
+      "pending": "Pendiente",
+      "completed": "Listo",
+      "step1Required": "Por favor sube tu identificación oficial y constancia de situación fiscal",
+      "step2Required": "Por favor sube tu comprobante de domicilio y carátula bancaria",
+      "actaRequired": "El acta constitutiva es requerida para Persona Moral"
     },
-    "step3": {
-      "title": "Identificación",
-      "description": "Sube tu identificación oficial",
-      "uploadLabel": "Haz clic para subir o arrastra y suelta",
-      "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
-      "idLabel": "Identificación oficial (obligatoria)"
-    },
-    "step4": {
+    "features": {
       "title": "Seleccionar Funcionalidades",
-      "description": "Elige las funcionalidades que deseas activar",
+      "description": "Elige las funcionalidades premium que deseas activar",
       "loading": "Cargando funcionalidades...",
-      "noFeatures": "No hay funcionalidades disponibles en este momento",
-      "helpText": "Selecciona las funcionalidades que deseas habilitar para tu establecimiento."
+      "noFeatures": "No hay funcionalidades disponibles en este momento"
     },
-    "step5": {
-      "title": "Revisar y Confirmar",
-      "description": "Revisa tu información antes de convertir",
-      "summaryTitle": "Resumen",
-      "venueName": "Nombre del Establecimiento",
-      "rfc": "RFC",
-      "legalName": "Razón Social",
-      "confirmationMessage": "Al hacer clic confirmas que la información es correcta."
+    "summary": {
+      "kycNotice": {
+        "title": "Verificación en proceso:",
+        "description": "Tus documentos serán revisados por nuestro equipo. Recibirás una notificación cuando tu cuenta esté verificada (1-2 días hábiles)."
+      }
     },
     "success": {
       "title": "¡Conversión Exitosa!",
-      "description": "Tu establecimiento ha sido convertido exitosamente."
+      "description": "Tu establecimiento ha sido convertido. Tus documentos están siendo revisados."
     },
     "shared": {
       "selectFile": "Seleccionar archivo",
+      "changeFile": "Cambiar archivo",
       "uploading": "Subiendo archivo..."
-    },
-    "documents": {
-      "title": "Documentos cargados",
-      "pending": "Pendiente",
-      "completed": "Listo",
-      "optional": "Opcional"
     },
     "error": {
       "title": "Error",
       "description": "Hubo un error. Por favor intenta de nuevo.",
-      "fetchFeatures": "No se pudieron cargar las funcionalidades."
+      "fetchFeatures": "No se pudieron cargar las funcionalidades.",
+      "uploadFailed": "Error al subir el archivo. Por favor intenta de nuevo."
     }
   }
 }
