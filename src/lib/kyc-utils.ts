@@ -7,9 +7,9 @@
  * RULES:
  * - Demo venues: Always have full access (bypass KYC)
  * - Verified venues: Full access to all operational features
+ * - NOT_SUBMITTED: Blocked - needs to upload KYC documents
  * - Pending/In Review: Blocked from operational features
  * - Rejected: Blocked from operational features
- * - No KYC status (null): Blocked from operational features
  */
 
 import type { SessionVenue, Venue } from '@/types'
@@ -41,10 +41,10 @@ export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null)
   if (venue.kycStatus === 'VERIFIED') return true
 
   // All other statuses are blocked:
+  // - NOT_SUBMITTED: Documents not yet uploaded
   // - PENDING_REVIEW: KYC submitted, awaiting review
   // - IN_REVIEW: Currently being reviewed by superadmin
   // - REJECTED: KYC rejected, needs resubmission
-  // - null: No KYC submitted yet
   return false
 }
 
@@ -69,15 +69,14 @@ export function getKYCBlockReason(venue: SessionVenue | Venue | null): string | 
   if (venue.kycStatus === 'VERIFIED') return null // Verified venues not blocked
 
   switch (venue.kycStatus) {
+    case 'NOT_SUBMITTED':
+      return 'KYC verification not submitted'
     case 'PENDING_REVIEW':
       return 'KYC verification pending review'
     case 'IN_REVIEW':
       return 'KYC verification in progress'
     case 'REJECTED':
       return 'KYC verification rejected'
-    case null:
-    case undefined:
-      return 'KYC verification not submitted'
     default:
       return 'KYC verification required'
   }
@@ -119,9 +118,7 @@ export function getKYCBannerVariant(venue: SessionVenue | Venue | null): 'missin
       return 'pending'
     case 'REJECTED':
       return 'rejected'
-    case null:
-    case undefined:
-      return 'missing'
+    case 'NOT_SUBMITTED':
     default:
       return 'missing'
   }

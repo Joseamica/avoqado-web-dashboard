@@ -243,7 +243,7 @@ function DataTable<TData>({
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className={`h-10 text-center text-muted-foreground`}>
-                {t('common.no_results')}
+                {t('no_results')}
               </TableCell>
             </TableRow>
           )}

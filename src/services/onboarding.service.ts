@@ -14,7 +14,7 @@ export const startOnboarding = async (organizationId: string) => {
  */
 export const updateStep2 = async (organizationId: string, onboardingType: 'demo' | 'manual') => {
   const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/2`, {
-    onboardingType: onboardingType.toUpperCase(), // Backend expects DEMO or REAL
+    onboardingType: onboardingType === 'demo' ? 'DEMO' : 'REAL',
   })
   return response.data
 }

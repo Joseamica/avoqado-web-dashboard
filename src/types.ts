@@ -387,7 +387,7 @@ export interface Venue {
   actaDocumentUrl?: string | null // URL to Acta Constitutiva document
 
   // KYC Verification (for payment processing access control)
-  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycStatus?: 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
   kycRejectionReason?: string | null
 
   // POS Integration
@@ -1244,7 +1244,7 @@ export interface SessionVenue {
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
   // KYC Verification (for payment processing access control)
-  kycStatus?: 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
+  kycStatus?: 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
   kycRejectionReason?: string | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
   features: Array<{

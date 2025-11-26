@@ -6,13 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -140,9 +134,7 @@ export default function RolePermissions() {
     setModifiedPermissions(permissions)
     // Check if permissions have changed from current
     const currentPermissions = currentRolePermission?.permissions || []
-    const hasChanged =
-      permissions.length !== currentPermissions.length ||
-      !permissions.every(p => currentPermissions.includes(p))
+    const hasChanged = permissions.length !== currentPermissions.length || !permissions.every(p => currentPermissions.includes(p))
     setHasChanges(hasChanged)
   }
 
@@ -206,7 +198,7 @@ export default function RolePermissions() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 p-5">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -215,18 +207,12 @@ export default function RolePermissions() {
               <Shield className="h-8 w-8" />
               {t('rolePermissions.title', 'Role Permissions')}
             </h1>
-            <p className="text-muted-foreground">
-              {t('rolePermissions.description', 'Customize permissions for each role in your venue')}
-            </p>
+            <p className="text-muted-foreground">{t('rolePermissions.description', 'Customize permissions for each role in your venue')}</p>
           </div>
 
           {/* Save button */}
           {selectedRole && (
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || updateMutation.isPending}
-              size="default"
-            >
+            <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default">
               {updateMutation.isPending ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
@@ -258,11 +244,15 @@ export default function RolePermissions() {
               <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs px-1 py-0">+</Badge>
+              <Badge variant="outline" className="text-xs px-1 py-0">
+                +
+              </Badge>
               <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs px-1 py-0">-</Badge>
+              <Badge variant="outline" className="text-xs px-1 py-0">
+                -
+              </Badge>
               <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
             </div>
           </div>
@@ -275,7 +265,10 @@ export default function RolePermissions() {
       <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
         <AlertDescription className="text-blue-800 dark:text-blue-200">
-          {t('rolePermissions.infoAlert', 'Changes to role permissions will affect all users with that role. Individual staff members can have custom permissions in Team Management.')}
+          {t(
+            'rolePermissions.infoAlert',
+            'Changes to role permissions will affect all users with that role. Individual staff members can have custom permissions in Team Management.',
+          )}
         </AlertDescription>
       </Alert>
 
@@ -285,9 +278,7 @@ export default function RolePermissions() {
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-lg">{t('rolePermissions.selectRole', 'Select Role')}</CardTitle>
-            <CardDescription>
-              {t('rolePermissions.selectRoleDesc', 'Choose a role to customize permissions')}
-            </CardDescription>
+            <CardDescription>{t('rolePermissions.selectRoleDesc', 'Choose a role to customize permissions')}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -307,9 +298,7 @@ export default function RolePermissions() {
                       key={role}
                       onClick={() => handleRoleChange(role)}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card hover:bg-accent border-border'
+                        isSelected ? 'bg-primary text-primary-foreground border-primary' : 'bg-card hover:bg-accent border-border'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -323,8 +312,7 @@ export default function RolePermissions() {
                       <div className="text-sm opacity-80 mt-1">
                         {roleData?.permissions?.includes('*:*')
                           ? t('rolePermissions.allPermissions', 'All permissions')
-                          : `${getPermissionCount(roleData?.permissions)} ${t('rolePermissions.permissions', 'permissions')}`
-                        }
+                          : `${getPermissionCount(roleData?.permissions)} ${t('rolePermissions.permissions', 'permissions')}`}
                       </div>
                     </button>
                   )
@@ -342,9 +330,7 @@ export default function RolePermissions() {
                 <div className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     {getRoleDisplayName(selectedRole)}
-                    {currentRolePermission.isCustom && (
-                      <Badge variant="secondary">{t('rolePermissions.customized', 'Customized')}</Badge>
-                    )}
+                    {currentRolePermission.isCustom && <Badge variant="secondary">{t('rolePermissions.customized', 'Customized')}</Badge>}
                   </CardTitle>
                   <CardDescription>
                     {currentRolePermission.isCustom
@@ -353,12 +339,7 @@ export default function RolePermissions() {
                   </CardDescription>
                 </div>
                 {currentRolePermission.isCustom && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRevert}
-                    disabled={revertMutation.isPending}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleRevert} disabled={revertMutation.isPending}>
                     <RotateCcw className="h-4 w-4 mr-2" />
                     {t('rolePermissions.revertToDefaults', 'Revert to Defaults')}
                   </Button>
