@@ -406,7 +406,7 @@ export default function Billing() {
   if (loadingFeatures) {
     return (
       <div className="p-8">
-        <p>Loading...</p>
+        <p>{t('loading')}</p>
       </div>
     )
   }
@@ -529,7 +529,7 @@ export default function Billing() {
         </CardHeader>
         <CardContent>
           {loadingInvoices ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">{t('loading')}</p>
           ) : !invoices?.length ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />

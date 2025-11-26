@@ -41,7 +41,7 @@ interface PermissionGateProps {
  *
  * @example Single permission
  * <PermissionGate permission="tpv:create">
- *   <Button>Create Terminal</Button>
+ *   <Button>{t('tpv.create')}</Button>
  * </PermissionGate>
  *
  * @example Multiple permissions (OR logic - show if has ANY)
@@ -57,9 +57,9 @@ interface PermissionGateProps {
  * @example With fallback
  * <PermissionGate
  *   permission="analytics:export"
- *   fallback={<Button disabled>Export (Upgrade Required)</Button>}
+ *   fallback={<Button disabled>{t('export.upgradeRequired')}</Button>}
  * >
- *   <Button>Export Data</Button>
+ *   <Button>{t('export.data')}</Button>
  * </PermissionGate>
  */
 export function PermissionGate({
