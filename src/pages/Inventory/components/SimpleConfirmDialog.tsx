@@ -16,19 +16,19 @@ interface SimpleConfirmDialogProps {
 }
 
 /**
- * SimpleConfirmDialog - Diálogo de confirmación simple y directo
+ * SimpleConfirmDialog - Simple and direct confirmation dialog
  *
- * Componente diseñado para ser extremadamente simple para usuarios no técnicos.
- * Muestra un mensaje claro con dos botones: Cancelar y Confirmar.
+ * Component designed to be extremely simple for non-technical users.
+ * Shows a clear message with two buttons: Cancel and Confirm.
  *
  * @example
  * ```tsx
  * <SimpleConfirmDialog
  *   open={isOpen}
  *   onOpenChange={setIsOpen}
- *   title="¿Cambiar a Receta?"
- *   message="Para agregar ingredientes, vamos a actualizar tu configuración."
- *   confirmLabel="Sí, cambiar"
+ *   title={t('confirmDialog.title')}
+ *   message={t('confirmDialog.message')}
+ *   confirmLabel={t('confirmDialog.confirm')}
  *   onConfirm={handleConfirm}
  * />
  * ```
