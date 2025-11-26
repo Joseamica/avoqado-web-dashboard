@@ -62,7 +62,7 @@ function KYCMissingBanner() {
       <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
       <AlertDescription className="flex items-center justify-between gap-4 text-blue-900 dark:text-blue-100">
         <p className="text-sm font-medium">{t('banner.missing.message')}</p>
-        <Button size="sm" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/onboarding`)}>
+        <Button size="sm" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}>
           {t('banner.missing.action')}
         </Button>
       </AlertDescription>
