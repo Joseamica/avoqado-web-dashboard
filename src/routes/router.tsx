@@ -26,10 +26,14 @@ import {
   CreateModifierGroup,
   CreateProduct,
   CreateTpv,
+  CouponForm,
+  Coupons,
   CustomerDetail,
   CustomerGroups,
   Customers,
   Dashboard,
+  DiscountForm,
+  Discounts,
   EmailVerification,
   ErrorPage,
   ForgotPassword,
@@ -600,6 +604,28 @@ const router = createBrowserRouter(
                   path: 'loyalty',
                   element: <PermissionProtectedRoute permission="loyalty:read" />,
                   children: [{ index: true, element: <LoyaltySettings /> }],
+                },
+
+                // Promotions - Discounts (requires discounts:read permission)
+                {
+                  path: 'promotions/discounts',
+                  element: <PermissionProtectedRoute permission="discounts:read" />,
+                  children: [
+                    { index: true, element: <Discounts /> },
+                    { path: 'create', element: <DiscountForm /> },
+                    { path: ':discountId', element: <DiscountForm /> },
+                  ],
+                },
+
+                // Promotions - Coupons (requires coupons:read permission)
+                {
+                  path: 'promotions/coupons',
+                  element: <PermissionProtectedRoute permission="coupons:read" />,
+                  children: [
+                    { index: true, element: <Coupons /> },
+                    { path: 'create', element: <CouponForm /> },
+                    { path: ':couponId', element: <CouponForm /> },
+                  ],
                 },
 
                 { path: 'notifications', element: <Notifications /> },

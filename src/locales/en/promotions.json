@@ -1,0 +1,395 @@
+{
+  "discounts": {
+    "title": "Discounts",
+    "subtitle": "Manage automatic and manual discounts",
+    "create": {
+      "title": "Create Discount",
+      "subtitle": "Configure a new discount for your venue"
+    },
+    "edit": {
+      "title": "Edit Discount",
+      "subtitle": "Update discount settings"
+    },
+    "list": {
+      "searchPlaceholder": "Search discounts...",
+      "emptyState": "No discounts found",
+      "emptyStateDesc": "Create your first discount to start offering promotions",
+      "columns": {
+        "name": "Name",
+        "type": "Type",
+        "scope": "Scope",
+        "value": "Value",
+        "validPeriod": "Valid Period",
+        "uses": "Uses",
+        "status": "Status"
+      },
+      "filters": {
+        "allTypes": "All Types",
+        "allScopes": "All Scopes",
+        "automatic": "Automatic Only",
+        "manual": "Manual Only",
+        "active": "Active Only",
+        "inactive": "Inactive Only"
+      }
+    },
+    "detail": {
+      "overview": "Overview",
+      "targets": "Targets",
+      "rules": "Rules",
+      "timeRestrictions": "Time Restrictions",
+      "usageStats": "Usage Statistics",
+      "assignedCustomers": "Assigned Customers",
+      "noTargets": "Applies to all items",
+      "noTimeRestrictions": "Always valid",
+      "noUsageLimit": "Unlimited"
+    },
+    "form": {
+      "sections": {
+        "basicInfo": "Basic Information",
+        "scopeTargets": "Scope & Targets",
+        "rulesLimits": "Rules & Limits",
+        "timeRestrictions": "Time Restrictions",
+        "advancedOptions": "Advanced Options"
+      },
+      "fields": {
+        "name": "Discount Name",
+        "description": "Description",
+        "type": "Discount Type",
+        "value": "Value",
+        "scope": "Scope",
+        "targetItems": "Target Products",
+        "targetCategories": "Target Categories",
+        "targetModifiers": "Target Modifiers",
+        "targetModifierGroups": "Target Modifier Groups",
+        "customerGroup": "Customer Group",
+        "minPurchaseAmount": "Minimum Purchase Amount",
+        "maxDiscountAmount": "Maximum Discount Amount",
+        "maxTotalUses": "Maximum Total Uses",
+        "maxUsesPerCustomer": "Maximum Uses Per Customer",
+        "validFrom": "Valid From",
+        "validUntil": "Valid Until",
+        "daysOfWeek": "Days of Week",
+        "timeFrom": "Start Time",
+        "timeUntil": "End Time",
+        "isAutomatic": "Automatic Application",
+        "priority": "Priority",
+        "isStackable": "Stackable",
+        "applyBeforeTax": "Apply Before Tax",
+        "requiresApproval": "Requires Approval",
+        "compReason": "Comp Reason",
+        "active": "Active"
+      },
+      "placeholders": {
+        "name": "e.g., 10% Off Lunch",
+        "description": "Optional description for internal use",
+        "value": "Enter value",
+        "minPurchaseAmount": "0.00",
+        "maxDiscountAmount": "No limit",
+        "maxTotalUses": "Unlimited",
+        "maxUsesPerCustomer": "Unlimited",
+        "compReason": "Reason for comp discount",
+        "selectProducts": "Select products...",
+        "selectCategories": "Select categories...",
+        "selectModifiers": "Select modifiers...",
+        "selectModifierGroups": "Select modifier groups...",
+        "selectCustomerGroup": "Select customer group..."
+      },
+      "validation": {
+        "nameRequired": "Discount name is required",
+        "nameMax": "Name must be 100 characters or less",
+        "descriptionMax": "Description must be 500 characters or less",
+        "typeRequired": "Discount type is required",
+        "valueRequired": "Discount value is required",
+        "valuePercentageRange": "Percentage must be between 0 and 100",
+        "valuePositive": "Value must be positive",
+        "scopeRequired": "Discount scope is required",
+        "bogoRequired": "BOGO configuration is required for quantity scope",
+        "timeRangeInvalid": "End time must be after start time"
+      },
+      "types": {
+        "PERCENTAGE": "Percentage",
+        "PERCENTAGE_DESC": "Discount as a percentage off the total",
+        "FIXED_AMOUNT": "Fixed Amount",
+        "FIXED_AMOUNT_DESC": "Fixed dollar amount off the total",
+        "COMP": "Comped",
+        "COMP_DESC": "100% off - requires manager approval"
+      },
+      "scopes": {
+        "ORDER": "Entire Order",
+        "ORDER_DESC": "Apply to the entire order total",
+        "ITEM": "Specific Products",
+        "ITEM_DESC": "Apply to selected products only",
+        "CATEGORY": "Categories",
+        "CATEGORY_DESC": "Apply to all items in selected categories",
+        "MODIFIER": "Modifiers",
+        "MODIFIER_DESC": "Apply to specific modifiers",
+        "MODIFIER_GROUP": "Modifier Groups",
+        "MODIFIER_GROUP_DESC": "Apply to all modifiers in selected groups",
+        "CUSTOMER_GROUP": "Customer Group",
+        "CUSTOMER_GROUP_DESC": "Available to specific customer groups",
+        "QUANTITY": "BOGO",
+        "QUANTITY_DESC": "Buy X, Get Y deals"
+      },
+      "days": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
+      "hints": {
+        "automatic": "When enabled, this discount will be automatically applied at checkout when conditions are met",
+        "priority": "Higher priority discounts are applied first (default: 0)",
+        "stackable": "When enabled, this discount can be combined with other discounts",
+        "applyBeforeTax": "Apply the discount before calculating taxes"
+      }
+    },
+    "bogo": {
+      "title": "Buy One Get One Configuration",
+      "description": "Configure the BOGO deal details",
+      "buyQuantity": "Buy Quantity",
+      "buyQuantityDesc": "Number of items customer must buy",
+      "getQuantity": "Get Quantity",
+      "getQuantityDesc": "Number of items customer receives",
+      "buyFrom": "Buy From Products",
+      "buyFromDesc": "Products that qualify for the 'buy' requirement",
+      "getFrom": "Get From Products",
+      "getFromDesc": "Products that qualify for the 'get' items",
+      "discountPercent": "Discount on Get Items",
+      "discountPercentDesc": "Percentage off the 'get' items (100% = FREE)",
+      "freeLabel": "FREE",
+      "preview": "Preview",
+      "previewFormat": "Buy {{buy}}, Get {{get}} at {{discount}}% off",
+      "previewFormatFree": "Buy {{buy}}, Get {{get}} FREE"
+    },
+    "actions": {
+      "create": "Create Discount",
+      "edit": "Edit",
+      "clone": "Clone",
+      "delete": "Delete",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "assignToCustomer": "Assign to Customer"
+    },
+    "delete": {
+      "title": "Delete Discount",
+      "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "stats": {
+      "totalDiscounts": "Total Discounts",
+      "activeDiscounts": "Active Discounts",
+      "automaticDiscounts": "Automatic",
+      "totalRedemptions": "Total Redemptions",
+      "totalSaved": "Total Saved"
+    },
+    "toasts": {
+      "createSuccess": "Discount created successfully",
+      "updateSuccess": "Discount updated successfully",
+      "deleteSuccess": "Discount deleted successfully",
+      "cloneSuccess": "Discount cloned successfully",
+      "assignSuccess": "Discount assigned to customer",
+      "removeSuccess": "Discount removed from customer",
+      "error": "An error occurred"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "expired": "Expired",
+      "scheduled": "Scheduled"
+    }
+  },
+  "coupons": {
+    "title": "Coupon Codes",
+    "subtitle": "Create and manage promotional codes",
+    "create": {
+      "title": "Create Coupon",
+      "subtitle": "Generate a new coupon code"
+    },
+    "edit": {
+      "title": "Edit Coupon",
+      "subtitle": "Update coupon settings"
+    },
+    "list": {
+      "searchPlaceholder": "Search by code...",
+      "emptyState": "No coupons found",
+      "emptyStateDesc": "Create your first coupon code to start promoting",
+      "columns": {
+        "code": "Code",
+        "discount": "Discount",
+        "validPeriod": "Valid Period",
+        "uses": "Uses",
+        "status": "Status"
+      },
+      "filters": {
+        "allDiscounts": "All Discounts",
+        "active": "Active Only",
+        "inactive": "Inactive Only",
+        "createDiscount": "Create Discount"
+      }
+    },
+    "detail": {
+      "overview": "Overview",
+      "redemptions": "Redemptions",
+      "noRedemptions": "No redemptions yet"
+    },
+    "form": {
+      "fields": {
+        "discount": "Parent Discount",
+        "code": "Coupon Code",
+        "maxUses": "Maximum Uses",
+        "maxUsesPerCustomer": "Maximum Uses Per Customer",
+        "minPurchaseAmount": "Minimum Purchase Amount",
+        "validFrom": "Valid From",
+        "validUntil": "Valid Until",
+        "active": "Active"
+      },
+      "placeholders": {
+        "discount": "Select a discount...",
+        "code": "e.g., SUMMER2024",
+        "maxUses": "Unlimited",
+        "maxUsesPerCustomer": "Unlimited",
+        "minPurchaseAmount": "No minimum"
+      },
+      "validation": {
+        "discountRequired": "A parent discount is required",
+        "codeRequired": "Coupon code is required",
+        "codeMin": "Code must be at least 3 characters",
+        "codeMax": "Code must be 30 characters or less",
+        "codeFormat": "Code can only contain letters, numbers, hyphens, and underscores"
+      },
+      "hints": {
+        "codeUnique": "Coupon codes must be unique",
+        "autoGenerate": "Click to auto-generate a random code"
+      },
+      "createDiscount": "Create Discount",
+      "noDiscounts": "No discounts"
+    },
+    "bulkGenerate": {
+      "title": "Bulk Generate Coupons",
+      "description": "Generate multiple unique coupon codes at once",
+      "fields": {
+        "discount": "Parent Discount",
+        "prefix": "Code Prefix",
+        "quantity": "Number of Codes",
+        "codeLength": "Code Length",
+        "maxUsesPerCode": "Max Uses Per Code",
+        "maxUsesPerCustomer": "Max Uses Per Customer",
+        "validFrom": "Valid From",
+        "validUntil": "Valid Until"
+      },
+      "placeholders": {
+        "prefix": "e.g., PROMO",
+        "quantity": "1-1000",
+        "codeLength": "4-20"
+      },
+      "validation": {
+        "quantityMin": "Generate at least 1 code",
+        "quantityMax": "Maximum 1000 codes at once",
+        "codeLengthMin": "Code length must be at least 4",
+        "codeLengthMax": "Code length must be 20 or less"
+      },
+      "generate": "Generate Codes",
+      "generating": "Generating...",
+      "success": {
+        "title": "Codes Generated",
+        "description": "Successfully generated {{count}} coupon codes"
+      },
+      "result": {
+        "title": "Generated Codes",
+        "copyAll": "Copy All",
+        "download": "Download CSV",
+        "copied": "Copied to clipboard"
+      }
+    },
+    "validate": {
+      "title": "Validate Coupon",
+      "description": "Test if a coupon code is valid",
+      "fields": {
+        "code": "Coupon Code",
+        "orderTotal": "Order Total (optional)",
+        "customerId": "Customer ID (optional)"
+      },
+      "button": "Validate",
+      "validating": "Validating...",
+      "result": {
+        "valid": "Valid",
+        "invalid": "Invalid"
+      }
+    },
+    "errors": {
+      "NOT_FOUND": "Coupon code not found",
+      "INACTIVE": "This coupon is inactive",
+      "EXPIRED": "This coupon has expired",
+      "NOT_STARTED": "This coupon is not yet active",
+      "USAGE_LIMIT": "This coupon has reached its usage limit",
+      "MIN_PURCHASE": "Minimum purchase amount not met",
+      "CUSTOMER_LIMIT": "You have reached the usage limit for this coupon"
+    },
+    "actions": {
+      "create": "Create Coupon",
+      "bulkGenerate": "Bulk Generate",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "autoGenerate": "Auto-generate"
+    },
+    "delete": {
+      "title": "Delete Coupon",
+      "description": "Are you sure you want to delete the coupon \"{{code}}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "stats": {
+      "totalCoupons": "Total Coupons",
+      "activeCoupons": "Active Coupons",
+      "totalRedemptions": "Total Redemptions",
+      "totalSaved": "Total Saved",
+      "averageSaved": "Average Savings",
+      "redemptionRate": "Redemption Rate"
+    },
+    "redemptions": {
+      "title": "Redemption History",
+      "columns": {
+        "date": "Date",
+        "code": "Code",
+        "order": "Order",
+        "customer": "Customer",
+        "amountSaved": "Amount Saved"
+      },
+      "emptyState": "No redemptions yet"
+    },
+    "toasts": {
+      "createSuccess": "Coupon created successfully",
+      "updateSuccess": "Coupon updated successfully",
+      "deleteSuccess": "Coupon deleted successfully",
+      "bulkGenerateSuccess": "{{count}} coupons generated successfully",
+      "error": "An error occurred"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "expired": "Expired",
+      "scheduled": "Scheduled"
+    }
+  },
+  "common": {
+    "always": "Always",
+    "unlimited": "Unlimited",
+    "noLimit": "No limit",
+    "off": "off",
+    "usesFormat": "{{current}}/{{max}}",
+    "usesUnlimited": "{{current}} uses",
+    "dateRange": "{{from}} - {{to}}",
+    "validAlways": "Always valid",
+    "validUntil": "Valid until {{date}}",
+    "validFrom": "Valid from {{date}}",
+    "currentlyValid": "Currently valid",
+    "notYetValid": "Not yet valid",
+    "noLongerValid": "No longer valid"
+  }
+}

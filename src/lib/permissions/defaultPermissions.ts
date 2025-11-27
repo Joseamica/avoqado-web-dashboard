@@ -29,6 +29,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'teams:read',
     'customers:read',
     'loyalty:read',
+    'discounts:read',
+    'coupons:read',
   ],
 
   /**
@@ -103,6 +105,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'customers:read',
     'loyalty:read',
     'loyalty:redeem', // Can redeem points at POS
+    'coupons:read', // Can validate coupons at POS
   ],
 
   /**
@@ -163,6 +166,15 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'loyalty:update',
     'loyalty:redeem',
     'loyalty:adjust',
+    // Promotions (Discounts & Coupons)
+    'discounts:read',
+    'discounts:create',
+    'discounts:update',
+    'discounts:delete',
+    'coupons:read',
+    'coupons:create',
+    'coupons:update',
+    'coupons:delete',
   ],
 
   /**
@@ -280,5 +292,13 @@ export const PERMISSION_CATEGORIES = {
   LOYALTY: {
     label: 'Loyalty Program',
     permissions: ['loyalty:read', 'loyalty:update', 'loyalty:redeem', 'loyalty:adjust'],
+  },
+  DISCOUNTS: {
+    label: 'Discounts',
+    permissions: ['discounts:read', 'discounts:create', 'discounts:update', 'discounts:delete'],
+  },
+  COUPONS: {
+    label: 'Coupons',
+    permissions: ['coupons:read', 'coupons:create', 'coupons:update', 'coupons:delete'],
   },
 } as const

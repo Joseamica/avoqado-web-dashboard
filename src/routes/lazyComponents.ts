@@ -119,3 +119,9 @@ export const CustomerGroups = React.lazy(() => import('@/pages/Customers/Custome
 
 // Loyalty
 export const LoyaltySettings = React.lazy(() => import('@/pages/Loyalty/LoyaltySettings'))
+
+// Promotions
+export const Discounts = React.lazy(() => import('@/pages/Promotions/Discounts'))
+export const DiscountForm = React.lazy(() => import('@/pages/Promotions/DiscountForm'))
+export const Coupons = React.lazy(() => import('@/pages/Promotions/Coupons'))
+export const CouponForm = React.lazy(() => import('@/pages/Promotions/CouponForm'))

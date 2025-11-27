@@ -1,0 +1,395 @@
+{
+  "discounts": {
+    "title": "Descuentos",
+    "subtitle": "Gestiona descuentos automáticos y manuales",
+    "create": {
+      "title": "Crear Descuento",
+      "subtitle": "Configura un nuevo descuento para tu local"
+    },
+    "edit": {
+      "title": "Editar Descuento",
+      "subtitle": "Actualizar configuración del descuento"
+    },
+    "list": {
+      "searchPlaceholder": "Buscar descuentos...",
+      "emptyState": "No se encontraron descuentos",
+      "emptyStateDesc": "Crea tu primer descuento para comenzar a ofrecer promociones",
+      "columns": {
+        "name": "Nombre",
+        "type": "Tipo",
+        "scope": "Alcance",
+        "value": "Valor",
+        "validPeriod": "Período de Validez",
+        "uses": "Usos",
+        "status": "Estado"
+      },
+      "filters": {
+        "allTypes": "Todos los Tipos",
+        "allScopes": "Todos los Alcances",
+        "automatic": "Solo Automáticos",
+        "manual": "Solo Manuales",
+        "active": "Solo Activos",
+        "inactive": "Solo Inactivos"
+      }
+    },
+    "detail": {
+      "overview": "Resumen",
+      "targets": "Objetivos",
+      "rules": "Reglas",
+      "timeRestrictions": "Restricciones de Tiempo",
+      "usageStats": "Estadísticas de Uso",
+      "assignedCustomers": "Clientes Asignados",
+      "noTargets": "Aplica a todos los artículos",
+      "noTimeRestrictions": "Siempre válido",
+      "noUsageLimit": "Sin límite"
+    },
+    "form": {
+      "sections": {
+        "basicInfo": "Información Básica",
+        "scopeTargets": "Alcance y Objetivos",
+        "rulesLimits": "Reglas y Límites",
+        "timeRestrictions": "Restricciones de Tiempo",
+        "advancedOptions": "Opciones Avanzadas"
+      },
+      "fields": {
+        "name": "Nombre del Descuento",
+        "description": "Descripción",
+        "type": "Tipo de Descuento",
+        "value": "Valor",
+        "scope": "Alcance",
+        "targetItems": "Productos Objetivo",
+        "targetCategories": "Categorías Objetivo",
+        "targetModifiers": "Modificadores Objetivo",
+        "targetModifierGroups": "Grupos de Modificadores Objetivo",
+        "customerGroup": "Grupo de Clientes",
+        "minPurchaseAmount": "Monto Mínimo de Compra",
+        "maxDiscountAmount": "Monto Máximo de Descuento",
+        "maxTotalUses": "Usos Totales Máximos",
+        "maxUsesPerCustomer": "Usos Máximos por Cliente",
+        "validFrom": "Válido Desde",
+        "validUntil": "Válido Hasta",
+        "daysOfWeek": "Días de la Semana",
+        "timeFrom": "Hora de Inicio",
+        "timeUntil": "Hora de Fin",
+        "isAutomatic": "Aplicación Automática",
+        "priority": "Prioridad",
+        "isStackable": "Acumulable",
+        "applyBeforeTax": "Aplicar Antes de Impuestos",
+        "requiresApproval": "Requiere Aprobación",
+        "compReason": "Razón de Cortesía",
+        "active": "Activo"
+      },
+      "placeholders": {
+        "name": "ej., 10% Descuento Almuerzo",
+        "description": "Descripción opcional para uso interno",
+        "value": "Ingresa el valor",
+        "minPurchaseAmount": "0.00",
+        "maxDiscountAmount": "Sin límite",
+        "maxTotalUses": "Sin límite",
+        "maxUsesPerCustomer": "Sin límite",
+        "compReason": "Razón del descuento de cortesía",
+        "selectProducts": "Seleccionar productos...",
+        "selectCategories": "Seleccionar categorías...",
+        "selectModifiers": "Seleccionar modificadores...",
+        "selectModifierGroups": "Seleccionar grupos de modificadores...",
+        "selectCustomerGroup": "Seleccionar grupo de clientes..."
+      },
+      "validation": {
+        "nameRequired": "El nombre del descuento es requerido",
+        "nameMax": "El nombre debe tener 100 caracteres o menos",
+        "descriptionMax": "La descripción debe tener 500 caracteres o menos",
+        "typeRequired": "El tipo de descuento es requerido",
+        "valueRequired": "El valor del descuento es requerido",
+        "valuePercentageRange": "El porcentaje debe estar entre 0 y 100",
+        "valuePositive": "El valor debe ser positivo",
+        "scopeRequired": "El alcance del descuento es requerido",
+        "bogoRequired": "La configuración BOGO es requerida para el alcance de cantidad",
+        "timeRangeInvalid": "La hora de fin debe ser posterior a la hora de inicio"
+      },
+      "types": {
+        "PERCENTAGE": "Porcentaje",
+        "PERCENTAGE_DESC": "Descuento como porcentaje del total",
+        "FIXED_AMOUNT": "Monto Fijo",
+        "FIXED_AMOUNT_DESC": "Monto fijo de descuento del total",
+        "COMP": "Cortesía",
+        "COMP_DESC": "100% de descuento - requiere aprobación del gerente"
+      },
+      "scopes": {
+        "ORDER": "Orden Completa",
+        "ORDER_DESC": "Aplicar al total de la orden",
+        "ITEM": "Productos Específicos",
+        "ITEM_DESC": "Aplicar solo a productos seleccionados",
+        "CATEGORY": "Categorías",
+        "CATEGORY_DESC": "Aplicar a todos los artículos de las categorías seleccionadas",
+        "MODIFIER": "Modificadores",
+        "MODIFIER_DESC": "Aplicar a modificadores específicos",
+        "MODIFIER_GROUP": "Grupos de Modificadores",
+        "MODIFIER_GROUP_DESC": "Aplicar a todos los modificadores de los grupos seleccionados",
+        "CUSTOMER_GROUP": "Grupo de Clientes",
+        "CUSTOMER_GROUP_DESC": "Disponible para grupos de clientes específicos",
+        "QUANTITY": "BOGO",
+        "QUANTITY_DESC": "Ofertas de Compra X, Lleva Y"
+      },
+      "days": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      },
+      "hints": {
+        "automatic": "Cuando está habilitado, este descuento se aplicará automáticamente al pagar cuando se cumplan las condiciones",
+        "priority": "Los descuentos con mayor prioridad se aplican primero (predeterminado: 0)",
+        "stackable": "Cuando está habilitado, este descuento puede combinarse con otros descuentos",
+        "applyBeforeTax": "Aplicar el descuento antes de calcular impuestos"
+      }
+    },
+    "bogo": {
+      "title": "Configuración Compra Uno Lleva Uno",
+      "description": "Configura los detalles de la oferta BOGO",
+      "buyQuantity": "Cantidad a Comprar",
+      "buyQuantityDesc": "Número de artículos que el cliente debe comprar",
+      "getQuantity": "Cantidad a Recibir",
+      "getQuantityDesc": "Número de artículos que el cliente recibe",
+      "buyFrom": "Comprar de Productos",
+      "buyFromDesc": "Productos que califican para el requisito de 'compra'",
+      "getFrom": "Recibir de Productos",
+      "getFromDesc": "Productos que califican para los artículos 'recibidos'",
+      "discountPercent": "Descuento en Artículos Recibidos",
+      "discountPercentDesc": "Porcentaje de descuento en los artículos 'recibidos' (100% = GRATIS)",
+      "freeLabel": "GRATIS",
+      "preview": "Vista Previa",
+      "previewFormat": "Compra {{buy}}, Lleva {{get}} con {{discount}}% de descuento",
+      "previewFormatFree": "Compra {{buy}}, Lleva {{get}} GRATIS"
+    },
+    "actions": {
+      "create": "Crear Descuento",
+      "edit": "Editar",
+      "clone": "Clonar",
+      "delete": "Eliminar",
+      "save": "Guardar Cambios",
+      "cancel": "Cancelar",
+      "assignToCustomer": "Asignar a Cliente"
+    },
+    "delete": {
+      "title": "Eliminar Descuento",
+      "description": "¿Estás seguro de que deseas eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "stats": {
+      "totalDiscounts": "Total de Descuentos",
+      "activeDiscounts": "Descuentos Activos",
+      "automaticDiscounts": "Automáticos",
+      "totalRedemptions": "Total de Canjes",
+      "totalSaved": "Total Ahorrado"
+    },
+    "toasts": {
+      "createSuccess": "Descuento creado exitosamente",
+      "updateSuccess": "Descuento actualizado exitosamente",
+      "deleteSuccess": "Descuento eliminado exitosamente",
+      "cloneSuccess": "Descuento clonado exitosamente",
+      "assignSuccess": "Descuento asignado al cliente",
+      "removeSuccess": "Descuento removido del cliente",
+      "error": "Ocurrió un error"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "expired": "Expirado",
+      "scheduled": "Programado"
+    }
+  },
+  "coupons": {
+    "title": "Códigos de Cupón",
+    "subtitle": "Crea y gestiona códigos promocionales",
+    "create": {
+      "title": "Crear Cupón",
+      "subtitle": "Genera un nuevo código de cupón"
+    },
+    "edit": {
+      "title": "Editar Cupón",
+      "subtitle": "Actualizar configuración del cupón"
+    },
+    "list": {
+      "searchPlaceholder": "Buscar por código...",
+      "emptyState": "No se encontraron cupones",
+      "emptyStateDesc": "Crea tu primer código de cupón para comenzar a promocionar",
+      "columns": {
+        "code": "Código",
+        "discount": "Descuento",
+        "validPeriod": "Período de Validez",
+        "uses": "Usos",
+        "status": "Estado"
+      },
+      "filters": {
+        "allDiscounts": "Todos los Descuentos",
+        "active": "Solo Activos",
+        "inactive": "Solo Inactivos",
+        "createDiscount": "Crear Descuento"
+      }
+    },
+    "detail": {
+      "overview": "Resumen",
+      "redemptions": "Canjes",
+      "noRedemptions": "Sin canjes aún"
+    },
+    "form": {
+      "fields": {
+        "discount": "Descuento Padre",
+        "code": "Código de Cupón",
+        "maxUses": "Usos Máximos",
+        "maxUsesPerCustomer": "Usos Máximos por Cliente",
+        "minPurchaseAmount": "Monto Mínimo de Compra",
+        "validFrom": "Válido Desde",
+        "validUntil": "Válido Hasta",
+        "active": "Activo"
+      },
+      "placeholders": {
+        "discount": "Seleccionar un descuento...",
+        "code": "ej., VERANO2024",
+        "maxUses": "Sin límite",
+        "maxUsesPerCustomer": "Sin límite",
+        "minPurchaseAmount": "Sin mínimo"
+      },
+      "validation": {
+        "discountRequired": "Se requiere un descuento padre",
+        "codeRequired": "El código de cupón es requerido",
+        "codeMin": "El código debe tener al menos 3 caracteres",
+        "codeMax": "El código debe tener 30 caracteres o menos",
+        "codeFormat": "El código solo puede contener letras, números, guiones y guiones bajos"
+      },
+      "hints": {
+        "codeUnique": "Los códigos de cupón deben ser únicos",
+        "autoGenerate": "Clic para auto-generar un código aleatorio"
+      },
+      "createDiscount": "Crear Descuento",
+      "noDiscounts": "Sin descuentos"
+    },
+    "bulkGenerate": {
+      "title": "Generar Cupones en Masa",
+      "description": "Genera múltiples códigos de cupón únicos a la vez",
+      "fields": {
+        "discount": "Descuento Padre",
+        "prefix": "Prefijo del Código",
+        "quantity": "Número de Códigos",
+        "codeLength": "Longitud del Código",
+        "maxUsesPerCode": "Usos Máximos por Código",
+        "maxUsesPerCustomer": "Usos Máximos por Cliente",
+        "validFrom": "Válido Desde",
+        "validUntil": "Válido Hasta"
+      },
+      "placeholders": {
+        "prefix": "ej., PROMO",
+        "quantity": "1-1000",
+        "codeLength": "4-20"
+      },
+      "validation": {
+        "quantityMin": "Genera al menos 1 código",
+        "quantityMax": "Máximo 1000 códigos a la vez",
+        "codeLengthMin": "La longitud del código debe ser al menos 4",
+        "codeLengthMax": "La longitud del código debe ser 20 o menos"
+      },
+      "generate": "Generar Códigos",
+      "generating": "Generando...",
+      "success": {
+        "title": "Códigos Generados",
+        "description": "Se generaron exitosamente {{count}} códigos de cupón"
+      },
+      "result": {
+        "title": "Códigos Generados",
+        "copyAll": "Copiar Todos",
+        "download": "Descargar CSV",
+        "copied": "Copiado al portapapeles"
+      }
+    },
+    "validate": {
+      "title": "Validar Cupón",
+      "description": "Prueba si un código de cupón es válido",
+      "fields": {
+        "code": "Código de Cupón",
+        "orderTotal": "Total de la Orden (opcional)",
+        "customerId": "ID del Cliente (opcional)"
+      },
+      "button": "Validar",
+      "validating": "Validando...",
+      "result": {
+        "valid": "Válido",
+        "invalid": "Inválido"
+      }
+    },
+    "errors": {
+      "NOT_FOUND": "Código de cupón no encontrado",
+      "INACTIVE": "Este cupón está inactivo",
+      "EXPIRED": "Este cupón ha expirado",
+      "NOT_STARTED": "Este cupón aún no está activo",
+      "USAGE_LIMIT": "Este cupón ha alcanzado su límite de uso",
+      "MIN_PURCHASE": "No se cumple el monto mínimo de compra",
+      "CUSTOMER_LIMIT": "Has alcanzado el límite de uso para este cupón"
+    },
+    "actions": {
+      "create": "Crear Cupón",
+      "bulkGenerate": "Generar en Masa",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "save": "Guardar Cambios",
+      "cancel": "Cancelar",
+      "autoGenerate": "Auto-generar"
+    },
+    "delete": {
+      "title": "Eliminar Cupón",
+      "description": "¿Estás seguro de que deseas eliminar el cupón \"{{code}}\"? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "stats": {
+      "totalCoupons": "Total de Cupones",
+      "activeCoupons": "Cupones Activos",
+      "totalRedemptions": "Total de Canjes",
+      "totalSaved": "Total Ahorrado",
+      "averageSaved": "Ahorro Promedio",
+      "redemptionRate": "Tasa de Canje"
+    },
+    "redemptions": {
+      "title": "Historial de Canjes",
+      "columns": {
+        "date": "Fecha",
+        "code": "Código",
+        "order": "Orden",
+        "customer": "Cliente",
+        "amountSaved": "Monto Ahorrado"
+      },
+      "emptyState": "Sin canjes aún"
+    },
+    "toasts": {
+      "createSuccess": "Cupón creado exitosamente",
+      "updateSuccess": "Cupón actualizado exitosamente",
+      "deleteSuccess": "Cupón eliminado exitosamente",
+      "bulkGenerateSuccess": "{{count}} cupones generados exitosamente",
+      "error": "Ocurrió un error"
+    },
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "expired": "Expirado",
+      "scheduled": "Programado"
+    }
+  },
+  "common": {
+    "always": "Siempre",
+    "unlimited": "Sin límite",
+    "noLimit": "Sin límite",
+    "off": "de descuento",
+    "usesFormat": "{{current}}/{{max}}",
+    "usesUnlimited": "{{current}} usos",
+    "dateRange": "{{from}} - {{to}}",
+    "validAlways": "Siempre válido",
+    "validUntil": "Válido hasta {{date}}",
+    "validFrom": "Válido desde {{date}}",
+    "currentlyValid": "Actualmente válido",
+    "notYetValid": "Aún no válido",
+    "noLongerValid": "Ya no válido"
+  }
+}

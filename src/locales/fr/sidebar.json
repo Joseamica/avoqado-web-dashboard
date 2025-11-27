@@ -15,6 +15,11 @@
     "groups": "Groupes de Clients",
     "loyalty": "Programme de Fidélité"
   },
+  "promotionsMenu": {
+    "title": "Promotions",
+    "discounts": "Réductions",
+    "coupons": "Codes Promo"
+  },
   "growth": "Croissance",
   "paymentProviders": "Fournisseurs de paiement",
   "merchantAccounts": "Comptes commerçant",

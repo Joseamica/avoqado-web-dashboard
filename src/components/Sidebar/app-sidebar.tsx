@@ -12,6 +12,7 @@
   Settings2,
   Smartphone,
   Star,
+  Tag,
   TrendingUp,
   Ungroup,
   Users,
@@ -123,6 +124,27 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Users,
         locked: false,
         items: customersSubItems,
+        permission: null as any,
+      } as any)
+    }
+
+    // Promotions submenu - filter subitems based on permissions
+    const promotionsSubItems = [
+      { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read' },
+      { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read' },
+    ].filter(item => !item.permission || can(item.permission))
+
+    // Only show Promotions menu if user has at least one subitem
+    if (promotionsSubItems.length > 0) {
+      // Find index after Customers menu to insert Promotions menu
+      const customersIndex = filteredItems.findIndex(item => item.url === '#customers')
+      const insertIndex = customersIndex !== -1 ? customersIndex + 1 : filteredItems.length
+      filteredItems.splice(insertIndex, 0, {
+        title: t('sidebar:promotionsMenu.title'),
+        url: '#promotions',
+        icon: Tag,
+        locked: false,
+        items: promotionsSubItems,
         permission: null as any,
       } as any)
     }

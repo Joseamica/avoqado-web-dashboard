@@ -16,6 +16,11 @@
     "groups": "Customer Groups",
     "loyalty": "Loyalty Program"
   },
+  "promotionsMenu": {
+    "title": "Promotions",
+    "discounts": "Discounts",
+    "coupons": "Coupon Codes"
+  },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",
   "merchantAccounts": "Merchant Accounts",
