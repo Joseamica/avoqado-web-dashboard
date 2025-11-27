@@ -27,6 +27,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'shifts:read',
     'reviews:read',
     'teams:read',
+    'customers:read',
+    'loyalty:read',
   ],
 
   /**
@@ -44,6 +46,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reservations:update',
     'reservations:cancel',
     'teams:read',
+    'customers:read',
+    'loyalty:read',
   ],
 
   /**
@@ -77,6 +81,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'reviews:read',
     'teams:read',
     'tpv:read', // Can view TPV terminals (but not create/edit/command)
+    'customers:read',
+    'loyalty:read',
   ],
 
   /**
@@ -94,6 +100,9 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'shifts:read',
     'reviews:read',
     'teams:read',
+    'customers:read',
+    'loyalty:read',
+    'loyalty:redeem', // Can redeem points at POS
   ],
 
   /**
@@ -141,6 +150,19 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'teams:delete',
     'teams:invite',
     'venues:read', // Can view venue settings (but not edit)
+    // Customer & Loyalty Management
+    'customers:read',
+    'customers:create',
+    'customers:update',
+    'customers:delete',
+    'customer-groups:read',
+    'customer-groups:create',
+    'customer-groups:update',
+    'customer-groups:delete',
+    'loyalty:read',
+    'loyalty:update',
+    'loyalty:redeem',
+    'loyalty:adjust',
   ],
 
   /**
@@ -246,5 +268,17 @@ export const PERMISSION_CATEGORIES = {
   VENUES: {
     label: 'Venue Settings',
     permissions: ['venues:read', 'venues:update'],
+  },
+  CUSTOMERS: {
+    label: 'Customer Management',
+    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete'],
+  },
+  CUSTOMER_GROUPS: {
+    label: 'Customer Groups',
+    permissions: ['customer-groups:read', 'customer-groups:create', 'customer-groups:update', 'customer-groups:delete'],
+  },
+  LOYALTY: {
+    label: 'Loyalty Program',
+    permissions: ['loyalty:read', 'loyalty:update', 'loyalty:redeem', 'loyalty:adjust'],
   },
 } as const

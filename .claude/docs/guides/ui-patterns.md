@@ -4,8 +4,97 @@ This guide documents common UI patterns used throughout the Avoqado Dashboard. T
 
 ## Table of Contents
 
+- [Pill-Style Tabs (MANDATORY)](#pill-style-tabs-mandatory)
 - [Icon-Based Radio Group Selection](#icon-based-radio-group-selection)
 - [Horizontal Navigation (VenueEditLayout Pattern)](#horizontal-navigation-venueeditlayout-pattern)
+
+---
+
+## Pill-Style Tabs (MANDATORY)
+
+**⚠️ ALWAYS use this pattern for tabs. DO NOT use the default Radix tabs styling.**
+
+**When to use:** Any interface with tab navigation (2+ tabs) for switching between content sections.
+
+**Reference implementation:** `/src/pages/Team/Teams.tsx` (lines 372-392)
+
+### Visual Specifications
+
+- **Container**: Rounded-full with subtle background (`rounded-full bg-muted/60`)
+- **Border**: 1px border (`border border-border`)
+- **Padding**: 4px container padding (`px-1 py-1`)
+- **Tab Triggers**: Rounded-full pills with hover and active states
+- **Count Badge**: Inline rounded badge showing item counts
+
+### Code Example
+
+```typescript
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+<Tabs defaultValue="items" className="space-y-4">
+  <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+    <TabsTrigger
+      value="items"
+      className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+    >
+      <span>{t('tabs.items')}</span>
+      <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+        {itemCount}
+      </span>
+    </TabsTrigger>
+    <TabsTrigger
+      value="history"
+      className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+    >
+      <span>{t('tabs.history')}</span>
+      <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+        {historyCount}
+      </span>
+    </TabsTrigger>
+  </TabsList>
+
+  <TabsContent value="items">
+    {/* Content */}
+  </TabsContent>
+  <TabsContent value="history">
+    {/* Content */}
+  </TabsContent>
+</Tabs>
+```
+
+### Key Classes Breakdown
+
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| `TabsList` | `rounded-full bg-muted/60 border border-border` | Pill-shaped container |
+| `TabsTrigger` | `rounded-full px-4 py-2` | Pill-shaped buttons |
+| `TabsTrigger` active | `data-[state=active]:bg-foreground data-[state=active]:text-background` | Inverted colors when active |
+| Count badge | `bg-foreground/10 group-data-[state=active]:bg-background/20` | Subtle badge that adapts to state |
+
+### Without Count Badge
+
+If you don't need count badges, simplify the trigger:
+
+```typescript
+<TabsTrigger
+  value="items"
+  className="rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+>
+  {t('tabs.items')}
+</TabsTrigger>
+```
+
+### Real-World Usage
+
+**Examples in codebase:**
+- `/src/pages/Team/Teams.tsx` (lines 372-392) - **Reference implementation**
+- `/src/pages/Customers/CustomerDetail.tsx` (lines 417-437)
+
+**Where to apply:**
+- ✅ ALL tab interfaces in the application
+- ✅ Page sections (Orders/History, Members/Invitations)
+- ✅ Detail views with multiple content sections
+- ❌ Do NOT use default Radix `TabsList` styling
 
 ---
 

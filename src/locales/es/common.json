@@ -47,6 +47,13 @@
   "compare": "Comparar",
   "apply": "Aplicar",
   "selectPlaceholder": "Selecciona una opción",
+  "descending": "Descendente",
+  "ascending": "Ascendente",
+  "actions": "Acciones",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "daysAgo": "días atrás",
+  "weeksAgo": "semanas atrás",
   "dateRange": {
     "today": "Hoy",
     "yesterday": "Ayer",

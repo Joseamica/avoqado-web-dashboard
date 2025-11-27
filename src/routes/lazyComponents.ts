@@ -111,3 +111,11 @@ export const BillingSubscriptions = React.lazy(() => import('@/pages/Settings/Bi
 export const BillingHistory = React.lazy(() => import('@/pages/Settings/Billing/History'))
 export const BillingPaymentMethods = React.lazy(() => import('@/pages/Settings/Billing/PaymentMethods'))
 export const BillingTokens = React.lazy(() => import('@/pages/Settings/Billing/Tokens'))
+
+// Customers
+export const Customers = React.lazy(() => import('@/pages/Customers/Customers'))
+export const CustomerDetail = React.lazy(() => import('@/pages/Customers/CustomerDetail'))
+export const CustomerGroups = React.lazy(() => import('@/pages/Customers/CustomerGroups'))
+
+// Loyalty
+export const LoyaltySettings = React.lazy(() => import('@/pages/Loyalty/LoyaltySettings'))

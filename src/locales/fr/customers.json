@@ -1,0 +1,207 @@
+{
+	"title": "Clients",
+	"subtitle": "Gérez votre base de données clients et programme de fidélité",
+	"emptyState": {
+		"title": "Aucun client pour le moment",
+		"description": "Vos clients apparaîtront ici une fois qu'ils auront effectué des achats"
+	},
+	"list": {
+		"searchPlaceholder": "Rechercher par nom, email ou téléphone...",
+		"filters": {
+			"allGroups": "Tous les Groupes",
+			"noGroup": "Sans Groupe"
+		},
+		"sort": {
+			"label": "Trier par",
+			"createdAt": "Date d'ajout",
+			"totalSpent": "Total dépensé",
+			"visitCount": "Visites",
+			"lastVisit": "Dernière visite"
+		},
+		"columns": {
+			"name": "Nom",
+			"email": "Email",
+			"phone": "Téléphone",
+			"group": "Groupe",
+			"totalSpent": "Total Dépensé",
+			"visits": "Visites",
+			"points": "Points",
+			"lastVisit": "Dernière Visite"
+		}
+	},
+	"detail": {
+		"backToList": "Retour aux Clients",
+		"memberSince": "Membre depuis {{date}}",
+		"lastVisit": "Dernière visite {{date}}",
+		"noLastVisit": "Aucune visite pour le moment",
+		"stats": {
+			"totalSpent": "Total Dépensé",
+			"visits": "Visites",
+			"avgOrder": "Commande Moy.",
+			"points": "Points de Fidélité"
+		},
+		"tabs": {
+			"orders": "Commandes",
+			"loyalty": "Historique Fidélité",
+			"notes": "Notes"
+		},
+		"orders": {
+			"title": "Commandes Récentes",
+			"emptyState": "Aucune commande pour le moment",
+			"orderNumber": "Commande #{{number}}",
+			"viewOrder": "Voir la Commande"
+		},
+		"loyalty": {
+			"title": "Transactions de Fidélité",
+			"emptyState": "Aucune transaction de fidélité pour le moment",
+			"currentBalance": "Solde Actuel",
+			"pointsValue": "Valeur de {{value}}",
+			"filterType": "Filtrer par type",
+			"allTypes": "Tous les Types",
+			"types": {
+				"EARN": "Gagnés",
+				"REDEEM": "Échangés",
+				"EXPIRE": "Expirés",
+				"ADJUST": "Ajustés"
+			}
+		}
+	},
+	"form": {
+		"createTitle": "Nouveau Client",
+		"editTitle": "Modifier le Client",
+		"fields": {
+			"firstName": "Prénom",
+			"lastName": "Nom",
+			"email": "Email",
+			"phone": "Téléphone",
+			"group": "Groupe de Client"
+		},
+		"placeholders": {
+			"firstName": "Entrez le prénom",
+			"lastName": "Entrez le nom",
+			"email": "Entrez l'adresse email",
+			"phone": "Entrez le numéro de téléphone",
+			"selectGroup": "Sélectionnez un groupe (optionnel)"
+		},
+		"validation": {
+			"firstNameRequired": "Le prénom est requis",
+			"lastNameRequired": "Le nom est requis",
+			"emailRequired": "L'email est requis",
+			"emailInvalid": "Veuillez entrer un email valide",
+			"phoneRequired": "Le téléphone est requis",
+			"phoneInvalid": "Le numéro de téléphone doit avoir au moins 10 caractères"
+		},
+		"buttons": {
+			"create": "Créer le Client",
+			"save": "Enregistrer les Modifications",
+			"cancel": "Annuler"
+		}
+	},
+	"delete": {
+		"title": "Supprimer le Client",
+		"description": "Êtes-vous sûr de vouloir supprimer {{name}} ? Cette action est irréversible.",
+		"confirm": "Supprimer le Client",
+		"cancel": "Annuler"
+	},
+	"adjustPoints": {
+		"title": "Ajuster les Points de Fidélité",
+		"description": "Ajuster manuellement les points de fidélité de {{name}}",
+		"currentBalance": "Solde Actuel",
+		"fields": {
+			"points": "Points à Ajouter/Retirer",
+			"reason": "Raison"
+		},
+		"placeholders": {
+			"points": "Entrez les points (utilisez négatif pour soustraire)",
+			"reason": "Entrez la raison de l'ajustement (requis)"
+		},
+		"validation": {
+			"pointsRequired": "Le montant de points est requis",
+			"reasonRequired": "La raison est requise",
+			"reasonMin": "La raison doit avoir au moins 5 caractères",
+			"reasonMax": "La raison ne peut pas dépasser 500 caractères",
+			"insufficientPoints": "Impossible de réduire en dessous de 0 points"
+		},
+		"newBalance": "Nouveau Solde",
+		"submit": "Ajuster les Points",
+		"cancel": "Annuler"
+	},
+	"groups": {
+		"title": "Groupes de Clients",
+		"subtitle": "Organisez les clients en groupes pour un meilleur ciblage",
+		"emptyState": {
+			"title": "Aucun groupe pour le moment",
+			"description": "Créez votre premier groupe de clients pour commencer à les organiser"
+		},
+		"columns": {
+			"name": "Nom",
+			"description": "Description",
+			"customers": "Clients",
+			"status": "Statut"
+		},
+		"status": {
+			"active": "Actif",
+			"inactive": "Inactif"
+		},
+		"form": {
+			"createTitle": "Nouveau Groupe de Clients",
+			"editTitle": "Modifier le Groupe de Clients",
+			"fields": {
+				"name": "Nom du Groupe",
+				"description": "Description",
+				"color": "Couleur",
+				"active": "Actif"
+			},
+			"placeholders": {
+				"name": "Entrez le nom du groupe",
+				"description": "Entrez une description (optionnel)"
+			},
+			"validation": {
+				"nameRequired": "Le nom du groupe est requis",
+				"colorRequired": "La couleur est requise"
+			},
+			"buttons": {
+				"create": "Créer le Groupe",
+				"save": "Enregistrer les Modifications"
+			}
+		},
+		"delete": {
+			"title": "Supprimer le Groupe",
+			"description": "Êtes-vous sûr de vouloir supprimer le groupe \"{{name}}\" ? Les clients de ce groupe en seront retirés.",
+			"confirm": "Supprimer le Groupe"
+		},
+		"assign": {
+			"title": "Assigner des Clients",
+			"description": "Sélectionnez les clients à ajouter à ce groupe",
+			"searchPlaceholder": "Rechercher des clients...",
+			"selectedCount": "{{count}} sélectionnés",
+			"submit": "Assigner au Groupe",
+			"success": "{{count}} clients assignés au groupe"
+		},
+		"remove": {
+			"title": "Retirer du Groupe",
+			"description": "Sélectionnez les clients à retirer de ce groupe",
+			"submit": "Retirer du Groupe",
+			"success": "{{count}} clients retirés du groupe"
+		}
+	},
+	"toasts": {
+		"createSuccess": "Client créé avec succès",
+		"updateSuccess": "Client mis à jour avec succès",
+		"deleteSuccess": "Client supprimé avec succès",
+		"adjustPointsSuccess": "Points ajustés avec succès",
+		"groupCreateSuccess": "Groupe de clients créé avec succès",
+		"groupUpdateSuccess": "Groupe de clients mis à jour avec succès",
+		"groupDeleteSuccess": "Groupe de clients supprimé avec succès",
+		"error": "Une erreur s'est produite. Veuillez réessayer."
+	},
+	"actions": {
+		"newCustomer": "Nouveau Client",
+		"edit": "Modifier",
+		"delete": "Supprimer",
+		"adjustPoints": "Ajuster les Points",
+		"viewDetails": "Voir les Détails",
+		"assignToGroup": "Assigner au Groupe",
+		"removeFromGroup": "Retirer du Groupe"
+	}
+}

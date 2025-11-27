@@ -1,0 +1,126 @@
+{
+	"title": "Programme de Fidélité",
+	"subtitle": "Configurez votre système de récompenses pour clients",
+	"settings": {
+		"title": "Paramètres de Fidélité",
+		"status": {
+			"label": "Statut du Programme",
+			"active": "Actif",
+			"inactive": "Inactif",
+			"description": "Activer ou désactiver le programme de fidélité pour votre établissement"
+		},
+		"earning": {
+			"title": "Règles d'Accumulation",
+			"description": "Configurez comment les clients gagnent des points de fidélité",
+			"pointsPerDollar": {
+				"label": "Points par Dollar Dépensé",
+				"description": "Nombre de points que les clients gagnent pour chaque dollar dépensé",
+				"suffix": "points/$1"
+			},
+			"pointsPerVisit": {
+				"label": "Points Bonus par Visite",
+				"description": "Points supplémentaires accordés pour chaque visite (0 pour désactiver)",
+				"suffix": "points/visite"
+			}
+		},
+		"redemption": {
+			"title": "Règles d'Échange",
+			"description": "Configurez comment les clients peuvent échanger leurs points",
+			"redemptionRate": {
+				"label": "Taux d'Échange",
+				"description": "Valeur en dollars de chaque point lors de l'échange",
+				"suffix": "par point",
+				"example": "{{points}} points = {{value}} de réduction"
+			},
+			"minPointsRedeem": {
+				"label": "Points Minimum pour Échanger",
+				"description": "Points minimum requis avant que les clients puissent échanger",
+				"suffix": "points"
+			}
+		},
+		"expiration": {
+			"title": "Expiration des Points",
+			"description": "Configurez quand les points non utilisés expirent",
+			"enabled": {
+				"label": "Activer l'Expiration",
+				"description": "Les points expireront après un nombre défini de jours"
+			},
+			"days": {
+				"label": "Jours Jusqu'à l'Expiration",
+				"description": "Nombre de jours avant l'expiration des points non utilisés",
+				"suffix": "jours",
+				"neverExpire": "Les points n'expirent jamais"
+			}
+		},
+		"save": "Enregistrer les Modifications",
+		"saving": "Enregistrement...",
+		"toasts": {
+			"updateSuccess": "Paramètres de fidélité mis à jour avec succès",
+			"updateError": "Échec de la mise à jour des paramètres de fidélité"
+		}
+	},
+	"dashboard": {
+		"title": "Aperçu de la Fidélité",
+		"stats": {
+			"totalPointsIssued": "Total des Points Émis",
+			"totalPointsRedeemed": "Total des Points Échangés",
+			"activeMembers": "Membres Actifs",
+			"redemptionRate": "Taux d'Échange"
+		},
+		"topEarners": {
+			"title": "Meilleurs Accumulateurs",
+			"emptyState": "Aucun client n'a encore gagné de points"
+		}
+	},
+	"redeem": {
+		"title": "Échanger des Points",
+		"availablePoints": "Points Disponibles",
+		"pointsValue": "Valeur de {{value}} en réductions",
+		"fields": {
+			"points": "Points à Échanger",
+			"discount": "Montant de la Réduction"
+		},
+		"placeholders": {
+			"points": "Entrez les points à échanger"
+		},
+		"validation": {
+			"pointsRequired": "Le montant de points est requis",
+			"minPoints": "Minimum {{min}} points requis",
+			"maxPoints": "Ne peut pas dépasser le solde disponible",
+			"insufficientPoints": "Points insuffisants"
+		},
+		"preview": {
+			"discount": "Réduction",
+			"newBalance": "Nouveau Solde"
+		},
+		"submit": "Échanger les Points",
+		"cancel": "Annuler",
+		"toasts": {
+			"success": "{{points}} points échangés avec succès pour {{discount}} de réduction",
+			"error": "Échec de l'échange des points"
+		}
+	},
+	"transactions": {
+		"title": "Historique des Transactions",
+		"emptyState": "Aucune transaction pour le moment",
+		"types": {
+			"EARN": "Gagnés",
+			"REDEEM": "Échangés",
+			"EXPIRE": "Expirés",
+			"ADJUST": "Ajustés"
+		},
+		"reasons": {
+			"purchase": "Achat",
+			"visit": "Bonus de visite",
+			"redemption": "Échange de réduction",
+			"expiration": "Expiration des points",
+			"adjustment": "Ajustement manuel"
+		},
+		"fromOrder": "De la commande #{{orderNumber}}",
+		"byStaff": "Par {{staffName}}"
+	},
+	"common": {
+		"points": "points",
+		"point": "point"
+	}
+}

@@ -1,0 +1,126 @@
+{
+	"title": "Loyalty Program",
+	"subtitle": "Configure your customer loyalty rewards system",
+	"settings": {
+		"title": "Loyalty Settings",
+		"status": {
+			"label": "Program Status",
+			"active": "Active",
+			"inactive": "Inactive",
+			"description": "Enable or disable the loyalty program for your venue"
+		},
+		"earning": {
+			"title": "Earning Rules",
+			"description": "Configure how customers earn loyalty points",
+			"pointsPerDollar": {
+				"label": "Points per Dollar Spent",
+				"description": "Number of points customers earn for each dollar spent",
+				"suffix": "points/$1"
+			},
+			"pointsPerVisit": {
+				"label": "Bonus Points per Visit",
+				"description": "Extra points awarded for each visit (0 to disable)",
+				"suffix": "points/visit"
+			}
+		},
+		"redemption": {
+			"title": "Redemption Rules",
+			"description": "Configure how customers can redeem their points",
+			"redemptionRate": {
+				"label": "Redemption Rate",
+				"description": "Dollar value of each point when redeemed",
+				"suffix": "per point",
+				"example": "{{points}} points = {{value}} discount"
+			},
+			"minPointsRedeem": {
+				"label": "Minimum Points to Redeem",
+				"description": "Minimum points required before customers can redeem",
+				"suffix": "points"
+			}
+		},
+		"expiration": {
+			"title": "Points Expiration",
+			"description": "Configure when unused points expire",
+			"enabled": {
+				"label": "Enable Expiration",
+				"description": "Points will expire after a set number of days"
+			},
+			"days": {
+				"label": "Days Until Expiration",
+				"description": "Number of days before unused points expire",
+				"suffix": "days",
+				"neverExpire": "Points never expire"
+			}
+		},
+		"save": "Save Changes",
+		"saving": "Saving...",
+		"toasts": {
+			"updateSuccess": "Loyalty settings updated successfully",
+			"updateError": "Failed to update loyalty settings"
+		}
+	},
+	"dashboard": {
+		"title": "Loyalty Overview",
+		"stats": {
+			"totalPointsIssued": "Total Points Issued",
+			"totalPointsRedeemed": "Total Points Redeemed",
+			"activeMembers": "Active Members",
+			"redemptionRate": "Redemption Rate"
+		},
+		"topEarners": {
+			"title": "Top Earners",
+			"emptyState": "No customers have earned points yet"
+		}
+	},
+	"redeem": {
+		"title": "Redeem Points",
+		"availablePoints": "Available Points",
+		"pointsValue": "Worth {{value}} in discounts",
+		"fields": {
+			"points": "Points to Redeem",
+			"discount": "Discount Amount"
+		},
+		"placeholders": {
+			"points": "Enter points to redeem"
+		},
+		"validation": {
+			"pointsRequired": "Points amount is required",
+			"minPoints": "Minimum {{min}} points required",
+			"maxPoints": "Cannot exceed available balance",
+			"insufficientPoints": "Insufficient points"
+		},
+		"preview": {
+			"discount": "Discount",
+			"newBalance": "New Balance"
+		},
+		"submit": "Redeem Points",
+		"cancel": "Cancel",
+		"toasts": {
+			"success": "Successfully redeemed {{points}} points for {{discount}} discount",
+			"error": "Failed to redeem points"
+		}
+	},
+	"transactions": {
+		"title": "Transaction History",
+		"emptyState": "No transactions yet",
+		"types": {
+			"EARN": "Earned",
+			"REDEEM": "Redeemed",
+			"EXPIRE": "Expired",
+			"ADJUST": "Adjusted"
+		},
+		"reasons": {
+			"purchase": "Purchase",
+			"visit": "Visit bonus",
+			"redemption": "Discount redemption",
+			"expiration": "Points expiration",
+			"adjustment": "Manual adjustment"
+		},
+		"fromOrder": "From order #{{orderNumber}}",
+		"byStaff": "By {{staffName}}"
+	},
+	"common": {
+		"points": "points",
+		"point": "point"
+	}
+}

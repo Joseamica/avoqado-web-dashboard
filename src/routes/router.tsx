@@ -26,6 +26,9 @@ import {
   CreateModifierGroup,
   CreateProduct,
   CreateTpv,
+  CustomerDetail,
+  CustomerGroups,
+  Customers,
   Dashboard,
   EmailVerification,
   ErrorPage,
@@ -38,6 +41,7 @@ import {
   InviteAccept,
   KYCReview,
   Login,
+  LoyaltySettings,
   MenuId,
   MenuMakerLayout,
   MenuOverview,
@@ -578,6 +582,24 @@ const router = createBrowserRouter(
                     { index: true, element: <Teams /> },
                     { path: ':memberId', element: <TeamMemberDetails /> },
                   ],
+                },
+
+                // Customer Management (requires customers:read permission)
+                {
+                  path: 'customers',
+                  element: <PermissionProtectedRoute permission="customers:read" />,
+                  children: [
+                    { index: true, element: <Customers /> },
+                    { path: 'groups', element: <CustomerGroups /> },
+                    { path: ':customerId', element: <CustomerDetail /> },
+                  ],
+                },
+
+                // Loyalty Settings (requires loyalty:read permission)
+                {
+                  path: 'loyalty',
+                  element: <PermissionProtectedRoute permission="loyalty:read" />,
+                  children: [{ index: true, element: <LoyaltySettings /> }],
                 },
 
                 { path: 'notifications', element: <Notifications /> },

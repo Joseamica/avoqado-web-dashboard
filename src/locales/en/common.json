@@ -47,6 +47,13 @@
   "compare": "Compare",
   "apply": "Apply",
   "selectPlaceholder": "Select an option",
+  "descending": "Descending",
+  "ascending": "Ascending",
+  "actions": "Actions",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "daysAgo": "days ago",
+  "weeksAgo": "weeks ago",
   "errors": {
     "unauthorized": "Unauthorized",
     "noPermission": "You don't have permission to perform this action",

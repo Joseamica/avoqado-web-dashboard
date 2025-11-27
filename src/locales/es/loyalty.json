@@ -1,0 +1,126 @@
+{
+	"title": "Programa de Lealtad",
+	"subtitle": "Configura tu sistema de recompensas para clientes",
+	"settings": {
+		"title": "Configuración de Lealtad",
+		"status": {
+			"label": "Estado del Programa",
+			"active": "Activo",
+			"inactive": "Inactivo",
+			"description": "Habilita o deshabilita el programa de lealtad para tu establecimiento"
+		},
+		"earning": {
+			"title": "Reglas de Acumulación",
+			"description": "Configura cómo los clientes ganan puntos de lealtad",
+			"pointsPerDollar": {
+				"label": "Puntos por Dólar Gastado",
+				"description": "Número de puntos que los clientes ganan por cada dólar gastado",
+				"suffix": "puntos/$1"
+			},
+			"pointsPerVisit": {
+				"label": "Puntos Bonus por Visita",
+				"description": "Puntos extra otorgados por cada visita (0 para deshabilitar)",
+				"suffix": "puntos/visita"
+			}
+		},
+		"redemption": {
+			"title": "Reglas de Canje",
+			"description": "Configura cómo los clientes pueden canjear sus puntos",
+			"redemptionRate": {
+				"label": "Tasa de Canje",
+				"description": "Valor en dólares de cada punto al canjear",
+				"suffix": "por punto",
+				"example": "{{points}} puntos = {{value}} de descuento"
+			},
+			"minPointsRedeem": {
+				"label": "Mínimo de Puntos para Canjear",
+				"description": "Puntos mínimos requeridos antes de que los clientes puedan canjear",
+				"suffix": "puntos"
+			}
+		},
+		"expiration": {
+			"title": "Expiración de Puntos",
+			"description": "Configura cuándo expiran los puntos no utilizados",
+			"enabled": {
+				"label": "Habilitar Expiración",
+				"description": "Los puntos expirarán después de un número determinado de días"
+			},
+			"days": {
+				"label": "Días Hasta Expiración",
+				"description": "Número de días antes de que los puntos no utilizados expiren",
+				"suffix": "días",
+				"neverExpire": "Los puntos nunca expiran"
+			}
+		},
+		"save": "Guardar Cambios",
+		"saving": "Guardando...",
+		"toasts": {
+			"updateSuccess": "Configuración de lealtad actualizada exitosamente",
+			"updateError": "Error al actualizar la configuración de lealtad"
+		}
+	},
+	"dashboard": {
+		"title": "Resumen de Lealtad",
+		"stats": {
+			"totalPointsIssued": "Total de Puntos Emitidos",
+			"totalPointsRedeemed": "Total de Puntos Canjeados",
+			"activeMembers": "Miembros Activos",
+			"redemptionRate": "Tasa de Canje"
+		},
+		"topEarners": {
+			"title": "Mayores Acumuladores",
+			"emptyState": "Ningún cliente ha ganado puntos aún"
+		}
+	},
+	"redeem": {
+		"title": "Canjear Puntos",
+		"availablePoints": "Puntos Disponibles",
+		"pointsValue": "Equivale a {{value}} en descuentos",
+		"fields": {
+			"points": "Puntos a Canjear",
+			"discount": "Monto del Descuento"
+		},
+		"placeholders": {
+			"points": "Ingresa los puntos a canjear"
+		},
+		"validation": {
+			"pointsRequired": "La cantidad de puntos es requerida",
+			"minPoints": "Se requieren mínimo {{min}} puntos",
+			"maxPoints": "No puede exceder el saldo disponible",
+			"insufficientPoints": "Puntos insuficientes"
+		},
+		"preview": {
+			"discount": "Descuento",
+			"newBalance": "Nuevo Saldo"
+		},
+		"submit": "Canjear Puntos",
+		"cancel": "Cancelar",
+		"toasts": {
+			"success": "Se canjearon exitosamente {{points}} puntos por {{discount}} de descuento",
+			"error": "Error al canjear puntos"
+		}
+	},
+	"transactions": {
+		"title": "Historial de Transacciones",
+		"emptyState": "Sin transacciones aún",
+		"types": {
+			"EARN": "Ganados",
+			"REDEEM": "Canjeados",
+			"EXPIRE": "Expirados",
+			"ADJUST": "Ajustados"
+		},
+		"reasons": {
+			"purchase": "Compra",
+			"visit": "Bonus de visita",
+			"redemption": "Canje de descuento",
+			"expiration": "Expiración de puntos",
+			"adjustment": "Ajuste manual"
+		},
+		"fromOrder": "Del pedido #{{orderNumber}}",
+		"byStaff": "Por {{staffName}}"
+	},
+	"common": {
+		"points": "puntos",
+		"point": "punto"
+	}
+}

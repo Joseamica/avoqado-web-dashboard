@@ -10,6 +10,12 @@
   "terminals": "Terminals",
   "revenue": "Revenue",
   "customers": "Customers",
+  "customersMenu": {
+    "title": "Customers",
+    "all": "All Customers",
+    "groups": "Customer Groups",
+    "loyalty": "Loyalty Program"
+  },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",
   "merchantAccounts": "Merchant Accounts",

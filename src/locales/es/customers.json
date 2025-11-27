@@ -1,0 +1,207 @@
+{
+	"title": "Clientes",
+	"subtitle": "Gestiona tu base de datos de clientes y programa de lealtad",
+	"emptyState": {
+		"title": "Sin clientes aún",
+		"description": "Tus clientes aparecerán aquí una vez que comiencen a realizar compras"
+	},
+	"list": {
+		"searchPlaceholder": "Buscar por nombre, email o teléfono...",
+		"filters": {
+			"allGroups": "Todos los Grupos",
+			"noGroup": "Sin Grupo"
+		},
+		"sort": {
+			"label": "Ordenar por",
+			"createdAt": "Fecha de registro",
+			"totalSpent": "Total gastado",
+			"visitCount": "Visitas",
+			"lastVisit": "Última visita"
+		},
+		"columns": {
+			"name": "Nombre",
+			"email": "Email",
+			"phone": "Teléfono",
+			"group": "Grupo",
+			"totalSpent": "Total Gastado",
+			"visits": "Visitas",
+			"points": "Puntos",
+			"lastVisit": "Última Visita"
+		}
+	},
+	"detail": {
+		"backToList": "Volver a Clientes",
+		"memberSince": "Miembro desde {{date}}",
+		"lastVisit": "Última visita {{date}}",
+		"noLastVisit": "Sin visitas aún",
+		"stats": {
+			"totalSpent": "Total Gastado",
+			"visits": "Visitas",
+			"avgOrder": "Pedido Prom.",
+			"points": "Puntos de Lealtad"
+		},
+		"tabs": {
+			"orders": "Pedidos",
+			"loyalty": "Historial de Lealtad",
+			"notes": "Notas"
+		},
+		"orders": {
+			"title": "Pedidos Recientes",
+			"emptyState": "Sin pedidos aún",
+			"orderNumber": "Pedido #{{number}}",
+			"viewOrder": "Ver Pedido"
+		},
+		"loyalty": {
+			"title": "Transacciones de Lealtad",
+			"emptyState": "Sin transacciones de lealtad aún",
+			"currentBalance": "Saldo Actual",
+			"pointsValue": "Equivale a {{value}}",
+			"filterType": "Filtrar por tipo",
+			"allTypes": "Todos los Tipos",
+			"types": {
+				"EARN": "Ganados",
+				"REDEEM": "Canjeados",
+				"EXPIRE": "Expirados",
+				"ADJUST": "Ajustados"
+			}
+		}
+	},
+	"form": {
+		"createTitle": "Nuevo Cliente",
+		"editTitle": "Editar Cliente",
+		"fields": {
+			"firstName": "Nombre",
+			"lastName": "Apellido",
+			"email": "Email",
+			"phone": "Teléfono",
+			"group": "Grupo de Cliente"
+		},
+		"placeholders": {
+			"firstName": "Ingresa el nombre",
+			"lastName": "Ingresa el apellido",
+			"email": "Ingresa el email",
+			"phone": "Ingresa el teléfono",
+			"selectGroup": "Selecciona un grupo (opcional)"
+		},
+		"validation": {
+			"firstNameRequired": "El nombre es requerido",
+			"lastNameRequired": "El apellido es requerido",
+			"emailRequired": "El email es requerido",
+			"emailInvalid": "Por favor ingresa un email válido",
+			"phoneRequired": "El teléfono es requerido",
+			"phoneInvalid": "El teléfono debe tener al menos 10 caracteres"
+		},
+		"buttons": {
+			"create": "Crear Cliente",
+			"save": "Guardar Cambios",
+			"cancel": "Cancelar"
+		}
+	},
+	"delete": {
+		"title": "Eliminar Cliente",
+		"description": "¿Estás seguro de que deseas eliminar a {{name}}? Esta acción no se puede deshacer.",
+		"confirm": "Eliminar Cliente",
+		"cancel": "Cancelar"
+	},
+	"adjustPoints": {
+		"title": "Ajustar Puntos de Lealtad",
+		"description": "Ajustar manualmente los puntos de lealtad de {{name}}",
+		"currentBalance": "Saldo Actual",
+		"fields": {
+			"points": "Puntos a Agregar/Quitar",
+			"reason": "Razón"
+		},
+		"placeholders": {
+			"points": "Ingresa puntos (usa negativo para restar)",
+			"reason": "Ingresa la razón del ajuste (requerido)"
+		},
+		"validation": {
+			"pointsRequired": "La cantidad de puntos es requerida",
+			"reasonRequired": "La razón es requerida",
+			"reasonMin": "La razón debe tener al menos 5 caracteres",
+			"reasonMax": "La razón no puede exceder 500 caracteres",
+			"insufficientPoints": "No se puede reducir por debajo de 0 puntos"
+		},
+		"newBalance": "Nuevo Saldo",
+		"submit": "Ajustar Puntos",
+		"cancel": "Cancelar"
+	},
+	"groups": {
+		"title": "Grupos de Clientes",
+		"subtitle": "Organiza clientes en grupos para mejor segmentación",
+		"emptyState": {
+			"title": "Sin grupos aún",
+			"description": "Crea tu primer grupo de clientes para comenzar a organizarlos"
+		},
+		"columns": {
+			"name": "Nombre",
+			"description": "Descripción",
+			"customers": "Clientes",
+			"status": "Estado"
+		},
+		"status": {
+			"active": "Activo",
+			"inactive": "Inactivo"
+		},
+		"form": {
+			"createTitle": "Nuevo Grupo de Clientes",
+			"editTitle": "Editar Grupo de Clientes",
+			"fields": {
+				"name": "Nombre del Grupo",
+				"description": "Descripción",
+				"color": "Color",
+				"active": "Activo"
+			},
+			"placeholders": {
+				"name": "Ingresa el nombre del grupo",
+				"description": "Ingresa descripción (opcional)"
+			},
+			"validation": {
+				"nameRequired": "El nombre del grupo es requerido",
+				"colorRequired": "El color es requerido"
+			},
+			"buttons": {
+				"create": "Crear Grupo",
+				"save": "Guardar Cambios"
+			}
+		},
+		"delete": {
+			"title": "Eliminar Grupo",
+			"description": "¿Estás seguro de que deseas eliminar el grupo \"{{name}}\"? Los clientes en este grupo serán removidos de él.",
+			"confirm": "Eliminar Grupo"
+		},
+		"assign": {
+			"title": "Asignar Clientes",
+			"description": "Selecciona clientes para agregar a este grupo",
+			"searchPlaceholder": "Buscar clientes...",
+			"selectedCount": "{{count}} seleccionados",
+			"submit": "Asignar al Grupo",
+			"success": "{{count}} clientes asignados al grupo"
+		},
+		"remove": {
+			"title": "Remover del Grupo",
+			"description": "Selecciona clientes para remover de este grupo",
+			"submit": "Remover del Grupo",
+			"success": "{{count}} clientes removidos del grupo"
+		}
+	},
+	"toasts": {
+		"createSuccess": "Cliente creado exitosamente",
+		"updateSuccess": "Cliente actualizado exitosamente",
+		"deleteSuccess": "Cliente eliminado exitosamente",
+		"adjustPointsSuccess": "Puntos ajustados exitosamente",
+		"groupCreateSuccess": "Grupo de clientes creado exitosamente",
+		"groupUpdateSuccess": "Grupo de clientes actualizado exitosamente",
+		"groupDeleteSuccess": "Grupo de clientes eliminado exitosamente",
+		"error": "Ocurrió un error. Por favor intenta de nuevo."
+	},
+	"actions": {
+		"newCustomer": "Nuevo Cliente",
+		"edit": "Editar",
+		"delete": "Eliminar",
+		"adjustPoints": "Ajustar Puntos",
+		"viewDetails": "Ver Detalles",
+		"assignToGroup": "Asignar a Grupo",
+		"removeFromGroup": "Remover del Grupo"
+	}
+}
