@@ -13,6 +13,8 @@
   "back_to_home": "Retour à l'accueil",
   "copied": "Copié !",
   "goBack": "Retour",
+  "back": "Retour",
+  "next": "Suivant",
   "tryAgain": "Réessayer",
   "you": "Vous",
   "system": "Système",
@@ -33,6 +35,7 @@
   "secondary": "Secondaire",
   "tertiary": "Tertiaire",
   "add": "Ajouter",
+  "create": "Créer",
   "subtract": "Soustraire",
   "there": "là",
   "getStarted": "Commencer",
@@ -215,6 +218,13 @@
     "uk": "Drapeau du Royaume-Uni"
   },
   "chooseColor": "Choisir la couleur",
+  "time": {
+    "hour": "Heure",
+    "min": "Min",
+    "ampm": "AM/PM",
+    "am": "AM",
+    "pm": "PM"
+  },
   "conversionWizard": {
     "title": "Convertir en établissement réel",
     "subtitle": "Complétez les étapes suivantes pour activer votre établissement.",

@@ -30,6 +30,8 @@ export interface MultipleSelectorProps {
   loadingIndicator?: React.ReactNode
   /** Empty component. */
   emptyIndicator?: React.ReactNode
+  /** Footer component rendered at the bottom of the dropdown. */
+  footer?: React.ReactNode
   /** Debounce time for async search. Only work with `onSearch`. */
   delay?: number
   /**
@@ -167,6 +169,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       onSearchSync,
       loadingIndicator,
       emptyIndicator,
+      footer,
       maxSelected = Number.MAX_SAFE_INTEGER,
       onMaxSelected,
       hidePlaceholderWhenSelected,
@@ -419,7 +422,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
       >
         <div
           className={cn(
-            'min-h-10 rounded-md border border-input text-base md:text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+            'min-h-10 rounded-md border border-input bg-linear-to-b from-muted to-muted/70 dark:from-zinc-900 dark:to-zinc-950 text-base md:text-sm shadow-xs ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
             {
               'px-3 py-2': selected.length !== 0,
               'cursor-text': !disabled && selected.length !== 0,
@@ -519,7 +522,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
         <div className="relative">
           {open && (
             <CommandList
-              className="absolute z-10 w-full border rounded-md shadow-md outline-hidden top-1 bg-popover text-popover-foreground animate-in "
+              className="absolute z-50 w-full max-h-64 overflow-auto border rounded-md shadow-md outline-hidden top-1 bg-popover text-popover-foreground animate-in "
               onMouseLeave={() => {
                 setOnScrollbar(false)
               }}
@@ -538,7 +541,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
                   {CreatableItem()}
                   {!selectFirstItem && <CommandItem value="-" className="hidden" />}
                   {Object.entries(selectables).map(([key, dropdowns]) => (
-                    <CommandGroup key={key} heading={key} className="h-full overflow-auto bg-background">
+                    <CommandGroup key={key} heading={key} className="bg-background">
                       <>
                         {dropdowns.map(option => {
                           return (
@@ -569,6 +572,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
                       </>
                     </CommandGroup>
                   ))}
+                  {footer && <div className="border-t">{footer}</div>}
                 </>
               )}
             </CommandList>

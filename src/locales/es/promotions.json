@@ -62,6 +62,8 @@
         "targetModifiers": "Modificadores Objetivo",
         "targetModifierGroups": "Grupos de Modificadores Objetivo",
         "customerGroup": "Grupo de Clientes",
+        "product": "Producto",
+        "category": "Categoría",
         "minPurchaseAmount": "Monto Mínimo de Compra",
         "maxDiscountAmount": "Monto Máximo de Descuento",
         "maxTotalUses": "Usos Totales Máximos",
@@ -92,7 +94,8 @@
         "selectCategories": "Seleccionar categorías...",
         "selectModifiers": "Seleccionar modificadores...",
         "selectModifierGroups": "Seleccionar grupos de modificadores...",
-        "selectCustomerGroup": "Seleccionar grupo de clientes..."
+        "selectCustomerGroup": "Seleccionar grupo de clientes...",
+        "selectDays": "Selecciona los días..."
       },
       "validation": {
         "nameRequired": "El nombre del descuento es requerido",
@@ -200,6 +203,108 @@
       "inactive": "Inactivo",
       "expired": "Expirado",
       "scheduled": "Programado"
+    },
+    "wizard": {
+      "title": "Crear Nuevo Descuento",
+      "subtitle": "Sigue los pasos para crear tu descuento",
+      "progress": "Paso {{current}} de {{total}}",
+      "create": "Crear Descuento",
+      "step1": {
+        "title": "Información Básica",
+        "header": "Comencemos con lo básico",
+        "description": "Nombra tu descuento y elige cómo se calculará"
+      },
+      "step2": {
+        "title": "Alcance y Objetivos",
+        "header": "¿Dónde aplicará este descuento?",
+        "description": "Elige qué productos u órdenes afecta este descuento"
+      },
+      "step3": {
+        "title": "Reglas y Tiempo",
+        "header": "Establece límites y horarios",
+        "description": "Define límites de uso y cuándo estará disponible el descuento"
+      },
+      "step4": {
+        "title": "Opciones Avanzadas",
+        "header": "Afina tu descuento",
+        "description": "Configura aplicación automática, acumulación e impuestos",
+        "stacking": "Opciones de Acumulación",
+        "tax": "Cálculo de Impuestos",
+        "comp": "Configuración de Cortesía",
+        "compDescription": "Configuración adicional para descuentos de cortesía"
+      },
+      "hints": {
+        "type": {
+          "title": "Tipo de Descuento",
+          "percentage": "Ideal para: Ventas, promociones. Ejemplo: 20% de descuento en bebidas",
+          "fixedAmount": "Ideal para: Vales, créditos. Ejemplo: $50 de descuento en tu orden",
+          "comp": "Ideal para: VIPs, quejas. Requiere aprobación del gerente"
+        },
+        "scope": {
+          "title": "Entendiendo los Alcances",
+          "description": "El alcance determina a qué aplica el descuento:",
+          "order": "Aplica al monto total de la orden",
+          "item": "Solo aplica a productos específicos que selecciones",
+          "category": "Aplica a todos los productos en las categorías seleccionadas",
+          "quantity": "Ofertas de Compra X Lleva Y (BOGO)"
+        },
+        "targetItems": "Deja vacío para aplicar a todos los productos",
+        "targetCategories": "Selecciona categorías para aplicar el descuento",
+        "customerGroup": "Solo clientes en este grupo pueden usar el descuento",
+        "bogo": {
+          "title": "Cómo Funciona BOGO",
+          "description": "El cliente compra una cantidad específica y recibe artículos adicionales con descuento",
+          "example": "Ejemplo:",
+          "exampleText": "Compra 2 pizzas, llévate 1 pizza GRATIS (100% de descuento)"
+        },
+        "limits": {
+          "title": "Límites de Uso",
+          "description": "Controla cómo y cuándo se puede usar el descuento:",
+          "subtitle": "Deja en blanco para ilimitado",
+          "minPurchase": "Total mínimo de orden requerido",
+          "maxDiscount": "Monto máximo de descuento (útil para porcentajes)",
+          "totalUses": "Total de veces que se puede usar este descuento",
+          "perCustomer": "Veces que cada cliente puede usar este descuento",
+          "totalUsesHint": "Deja vacío para usos ilimitados",
+          "perCustomerHint": "Deja vacío para ilimitado por cliente"
+        },
+        "time": {
+          "subtitle": "Deja en blanco para siempre válido",
+          "daysOfWeek": "Selecciona en qué días está activo este descuento",
+          "daysHint": "Deja vacío para aplicar todos los días",
+          "timeHint": "Deja ambos vacíos para aplicar todas las horas"
+        },
+        "automatic": {
+          "title": "Descuentos Automáticos",
+          "description": "Cuando está habilitado, este descuento se aplicará automáticamente al pagar si se cumplen las condiciones - ¡sin código necesario!",
+          "example": "Ideal para:",
+          "exampleText": "Ofertas de happy hour, recompensas de lealtad, descuentos por compra mínima"
+        },
+        "priority": {
+          "title": "Orden de Prioridad",
+          "description": "Cuando aplican múltiples descuentos automáticos, los de mayor prioridad se aplican primero.",
+          "example": "Prioridad 10 se aplica antes que Prioridad 5"
+        },
+        "stackable": {
+          "title": "Acumulación de Descuentos",
+          "description": "Controla si este descuento puede combinarse con otros en la misma orden.",
+          "enabled": "Acumulable ACTIVADO",
+          "enabledText": "Puede usarse con otros descuentos",
+          "disabled": "Acumulable DESACTIVADO",
+          "disabledText": "No puede combinarse con otros descuentos"
+        },
+        "tax": {
+          "title": "Cálculo de Impuestos",
+          "description": "Determina cuándo se aplica el descuento en relación al cálculo de impuestos.",
+          "example": "Antes de Impuestos (Recomendado)",
+          "exampleText": "Artículo de $100 con 10% de descuento = $90, luego se aplica impuesto sobre $90"
+        },
+        "comp": {
+          "approval": "Requerir aprobación del gerente antes de aplicar esta cortesía",
+          "reason": "Documenta por qué se creó este descuento de cortesía"
+        },
+        "active": "Cuando está deshabilitado, el descuento no puede usarse aunque se cumplan otras condiciones"
+      }
     }
   },
   "coupons": {

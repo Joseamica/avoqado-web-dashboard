@@ -62,6 +62,8 @@
         "targetModifiers": "Target Modifiers",
         "targetModifierGroups": "Target Modifier Groups",
         "customerGroup": "Customer Group",
+        "product": "Product",
+        "category": "Category",
         "minPurchaseAmount": "Minimum Purchase Amount",
         "maxDiscountAmount": "Maximum Discount Amount",
         "maxTotalUses": "Maximum Total Uses",
@@ -92,7 +94,8 @@
         "selectCategories": "Select categories...",
         "selectModifiers": "Select modifiers...",
         "selectModifierGroups": "Select modifier groups...",
-        "selectCustomerGroup": "Select customer group..."
+        "selectCustomerGroup": "Select customer group...",
+        "selectDays": "Select days..."
       },
       "validation": {
         "nameRequired": "Discount name is required",
@@ -200,6 +203,108 @@
       "inactive": "Inactive",
       "expired": "Expired",
       "scheduled": "Scheduled"
+    },
+    "wizard": {
+      "title": "Create New Discount",
+      "subtitle": "Follow the steps to create your discount",
+      "progress": "Step {{current}} of {{total}}",
+      "create": "Create Discount",
+      "step1": {
+        "title": "Basic Information",
+        "header": "Let's start with the basics",
+        "description": "Name your discount and choose how it will be calculated"
+      },
+      "step2": {
+        "title": "Scope & Targets",
+        "header": "Where will this discount apply?",
+        "description": "Choose what products or orders this discount affects"
+      },
+      "step3": {
+        "title": "Rules & Time",
+        "header": "Set limits and schedule",
+        "description": "Define usage limits and when the discount is available"
+      },
+      "step4": {
+        "title": "Advanced Options",
+        "header": "Fine-tune your discount",
+        "description": "Configure automatic application, stacking, and tax settings",
+        "stacking": "Stacking Options",
+        "tax": "Tax Calculation",
+        "comp": "Comp Settings",
+        "compDescription": "Additional settings for comped discounts"
+      },
+      "hints": {
+        "type": {
+          "title": "Discount Type",
+          "percentage": "Best for: Sales, promotions. Example: 20% off all drinks",
+          "fixedAmount": "Best for: Vouchers, credits. Example: $50 off your order",
+          "comp": "Best for: VIPs, complaints. Requires manager approval"
+        },
+        "scope": {
+          "title": "Understanding Scopes",
+          "description": "The scope determines what the discount applies to:",
+          "order": "Applies to the total order amount",
+          "item": "Only applies to specific products you select",
+          "category": "Applies to all products in selected categories",
+          "quantity": "Buy X Get Y deals (BOGO)"
+        },
+        "targetItems": "Leave empty to apply to all products",
+        "targetCategories": "Select categories to apply the discount",
+        "customerGroup": "Only customers in this group can use the discount",
+        "bogo": {
+          "title": "How BOGO Works",
+          "description": "Customer buys a specific quantity and gets additional items at a discount",
+          "example": "Example:",
+          "exampleText": "Buy 2 pizzas, get 1 pizza FREE (100% off)"
+        },
+        "limits": {
+          "title": "Usage Limits",
+          "description": "Control how and when the discount can be used:",
+          "subtitle": "Leave blank for unlimited",
+          "minPurchase": "Minimum order total required",
+          "maxDiscount": "Maximum discount amount (useful for percentage discounts)",
+          "totalUses": "Total times this discount can be used",
+          "perCustomer": "Times each customer can use this discount",
+          "totalUsesHint": "Leave empty for unlimited uses",
+          "perCustomerHint": "Leave empty for unlimited per customer"
+        },
+        "time": {
+          "subtitle": "Leave blank for always valid",
+          "daysOfWeek": "Select which days this discount is active",
+          "daysHint": "Leave empty to apply all days",
+          "timeHint": "Leave both empty to apply all hours"
+        },
+        "automatic": {
+          "title": "Automatic Discounts",
+          "description": "When enabled, this discount will automatically apply at checkout if conditions are met - no code needed!",
+          "example": "Best for:",
+          "exampleText": "Happy hour deals, loyalty rewards, minimum purchase discounts"
+        },
+        "priority": {
+          "title": "Priority Order",
+          "description": "When multiple automatic discounts apply, higher priority discounts are applied first.",
+          "example": "Priority 10 applies before Priority 5"
+        },
+        "stackable": {
+          "title": "Discount Stacking",
+          "description": "Controls whether this discount can combine with others on the same order.",
+          "enabled": "Stackable ON",
+          "enabledText": "Can be used with other discounts",
+          "disabled": "Stackable OFF",
+          "disabledText": "Cannot be combined with other discounts"
+        },
+        "tax": {
+          "title": "Tax Calculation",
+          "description": "Determines when the discount is applied in relation to tax calculation.",
+          "example": "Before Tax (Recommended)",
+          "exampleText": "$100 item with 10% discount = $90, then tax applied to $90"
+        },
+        "comp": {
+          "approval": "Require manager approval before applying this comp",
+          "reason": "Document why this comp discount was created"
+        },
+        "active": "When disabled, the discount cannot be used even if other conditions are met"
+      }
     }
   },
   "coupons": {

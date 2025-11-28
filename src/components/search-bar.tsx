@@ -35,7 +35,7 @@ export function SearchBar({
         value={value}
         onChange={e => onChange(e.target.value)}
         aria-label={ariaLabel}
-        className={`pl-9 bg-background border-input w-full ${inputClassName ?? ''}`}
+        className={`pl-9 w-full ${inputClassName ?? ''}`}
       />
     </div>
   )

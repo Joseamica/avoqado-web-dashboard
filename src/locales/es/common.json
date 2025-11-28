@@ -13,6 +13,8 @@
   "back_to_home": "Volver al inicio",
   "copied": "¡Copiado!",
   "goBack": "Volver",
+  "back": "Atrás",
+  "next": "Siguiente",
   "tryAgain": "Reintentar",
   "you": "Tú",
   "system": "Sistema",
@@ -33,6 +35,7 @@
   "secondary": "Secundaria",
   "tertiary": "Terciaria",
   "add": "Agregar",
+  "create": "Crear",
   "subtract": "Restar",
   "there": "ahí",
   "getStarted": "Comenzar",
@@ -259,6 +262,13 @@
     "uk": "Bandera del Reino Unido"
   },
   "chooseColor": "Elegir color",
+  "time": {
+    "hour": "Hora",
+    "min": "Min",
+    "ampm": "AM/PM",
+    "am": "AM",
+    "pm": "PM"
+  },
   "conversionWizard": {
     "title": "Convertir a Establecimiento Real",
     "subtitle": "Completa los siguientes pasos para activar tu establecimiento y comenzar a aceptar pagos reales.",

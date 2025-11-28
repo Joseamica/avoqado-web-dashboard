@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { PermissionGate } from '@/components/PermissionGate'
+import { DiscountWizard } from './components/DiscountWizard'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -56,6 +57,7 @@ export default function Discounts() {
 	const [selectedScope, setSelectedScope] = useState<string>('')
 	const [activeFilter, setActiveFilter] = useState<string>('')
 	const [deletingDiscount, setDeletingDiscount] = useState<Discount | null>(null)
+	const [wizardOpen, setWizardOpen] = useState(false)
 
 	// Fetch discounts
 	const { data: discountsData, isLoading: isLoadingDiscounts } = useQuery({
@@ -339,7 +341,7 @@ export default function Discounts() {
 				</div>
 
 				<PermissionGate permission="discounts:create">
-					<Button onClick={() => navigate('create')}>
+					<Button onClick={() => setWizardOpen(true)}>
 						<Plus className="h-4 w-4 mr-2" />
 						{t('discounts.actions.create')}
 					</Button>
@@ -428,6 +430,14 @@ export default function Discounts() {
 					</AlertDialogContent>
 				</AlertDialog>
 			)}
+
+			{/* Discount Wizard */}
+			<DiscountWizard
+				open={wizardOpen}
+				onOpenChange={setWizardOpen}
+				venueId={venueId}
+				onSuccess={(discountId) => navigate(discountId)}
+			/>
 		</div>
 	)
 }

@@ -62,6 +62,8 @@
 				"targetModifiers": "Modificateurs Cibles",
 				"targetModifierGroups": "Groupes de Modificateurs Cibles",
 				"customerGroup": "Groupe de Clients",
+				"product": "Produit",
+				"category": "Catégorie",
 				"minPurchaseAmount": "Montant Minimum d'Achat",
 				"maxDiscountAmount": "Montant Maximum de Réduction",
 				"maxTotalUses": "Utilisations Totales Maximum",
@@ -92,7 +94,8 @@
 				"selectCategories": "Sélectionner des catégories...",
 				"selectModifiers": "Sélectionner des modificateurs...",
 				"selectModifierGroups": "Sélectionner des groupes de modificateurs...",
-				"selectCustomerGroup": "Sélectionner un groupe de clients..."
+				"selectCustomerGroup": "Sélectionner un groupe de clients...",
+				"selectDays": "Sélectionner les jours..."
 			},
 			"validation": {
 				"nameRequired": "Le nom de la réduction est requis",
@@ -200,6 +203,108 @@
 			"inactive": "Inactif",
 			"expired": "Expiré",
 			"scheduled": "Programmé"
+		},
+		"wizard": {
+			"title": "Créer une Nouvelle Réduction",
+			"subtitle": "Suivez les étapes pour créer votre réduction",
+			"progress": "Étape {{current}} sur {{total}}",
+			"create": "Créer la Réduction",
+			"step1": {
+				"title": "Informations de Base",
+				"header": "Commençons par les bases",
+				"description": "Nommez votre réduction et choisissez comment elle sera calculée"
+			},
+			"step2": {
+				"title": "Portée et Cibles",
+				"header": "Où cette réduction s'appliquera-t-elle ?",
+				"description": "Choisissez quels produits ou commandes cette réduction affecte"
+			},
+			"step3": {
+				"title": "Règles et Horaires",
+				"header": "Définir les limites et le calendrier",
+				"description": "Définissez les limites d'utilisation et quand la réduction est disponible"
+			},
+			"step4": {
+				"title": "Options Avancées",
+				"header": "Affinez votre réduction",
+				"description": "Configurez l'application automatique, le cumul et les paramètres fiscaux",
+				"stacking": "Options de Cumul",
+				"tax": "Calcul des Taxes",
+				"comp": "Paramètres Offert",
+				"compDescription": "Paramètres supplémentaires pour les réductions offertes"
+			},
+			"hints": {
+				"type": {
+					"title": "Type de Réduction",
+					"percentage": "Idéal pour : Soldes, promotions. Exemple : 20% de réduction sur les boissons",
+					"fixedAmount": "Idéal pour : Bons, crédits. Exemple : 50$ de réduction sur votre commande",
+					"comp": "Idéal pour : VIP, réclamations. Nécessite approbation du gérant"
+				},
+				"scope": {
+					"title": "Comprendre les Portées",
+					"description": "La portée détermine à quoi la réduction s'applique :",
+					"order": "S'applique au montant total de la commande",
+					"item": "S'applique uniquement aux produits spécifiques que vous sélectionnez",
+					"category": "S'applique à tous les produits des catégories sélectionnées",
+					"quantity": "Offres Achetez X Obtenez Y (BOGO)"
+				},
+				"targetItems": "Laissez vide pour appliquer à tous les produits",
+				"targetCategories": "Sélectionnez les catégories pour appliquer la réduction",
+				"customerGroup": "Seuls les clients de ce groupe peuvent utiliser la réduction",
+				"bogo": {
+					"title": "Comment Fonctionne BOGO",
+					"description": "Le client achète une quantité spécifique et reçoit des articles supplémentaires avec réduction",
+					"example": "Exemple :",
+					"exampleText": "Achetez 2 pizzas, obtenez 1 pizza GRATUITE (100% de réduction)"
+				},
+				"limits": {
+					"title": "Limites d'Utilisation",
+					"description": "Contrôlez comment et quand la réduction peut être utilisée :",
+					"subtitle": "Laissez vide pour illimité",
+					"minPurchase": "Total minimum de commande requis",
+					"maxDiscount": "Montant maximum de réduction (utile pour les pourcentages)",
+					"totalUses": "Nombre total de fois que cette réduction peut être utilisée",
+					"perCustomer": "Nombre de fois que chaque client peut utiliser cette réduction",
+					"totalUsesHint": "Laissez vide pour utilisations illimitées",
+					"perCustomerHint": "Laissez vide pour illimité par client"
+				},
+				"time": {
+					"subtitle": "Laissez vide pour toujours valide",
+					"daysOfWeek": "Sélectionnez les jours où cette réduction est active",
+					"daysHint": "Laissez vide pour appliquer tous les jours",
+					"timeHint": "Laissez les deux vides pour appliquer toutes les heures"
+				},
+				"automatic": {
+					"title": "Réductions Automatiques",
+					"description": "Lorsque activé, cette réduction sera automatiquement appliquée au paiement si les conditions sont remplies - pas de code nécessaire !",
+					"example": "Idéal pour :",
+					"exampleText": "Offres happy hour, récompenses fidélité, réductions achat minimum"
+				},
+				"priority": {
+					"title": "Ordre de Priorité",
+					"description": "Lorsque plusieurs réductions automatiques s'appliquent, celles avec priorité plus élevée sont appliquées en premier.",
+					"example": "Priorité 10 s'applique avant Priorité 5"
+				},
+				"stackable": {
+					"title": "Cumul des Réductions",
+					"description": "Contrôle si cette réduction peut être combinée avec d'autres sur la même commande.",
+					"enabled": "Cumulable ACTIVÉ",
+					"enabledText": "Peut être utilisé avec d'autres réductions",
+					"disabled": "Cumulable DÉSACTIVÉ",
+					"disabledText": "Ne peut pas être combiné avec d'autres réductions"
+				},
+				"tax": {
+					"title": "Calcul des Taxes",
+					"description": "Détermine quand la réduction est appliquée par rapport au calcul des taxes.",
+					"example": "Avant Taxes (Recommandé)",
+					"exampleText": "Article à 100$ avec 10% de réduction = 90$, puis taxe appliquée sur 90$"
+				},
+				"comp": {
+					"approval": "Nécessite l'approbation du gérant avant d'appliquer cette gratuité",
+					"reason": "Documentez pourquoi cette réduction gratuite a été créée"
+				},
+				"active": "Lorsque désactivé, la réduction ne peut pas être utilisée même si les autres conditions sont remplies"
+			}
 		}
 	},
 	"coupons": {
