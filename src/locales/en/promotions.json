@@ -33,6 +33,33 @@
       }
     },
     "detail": {
+      "title": "Discount Details",
+      "notFound": "Discount not found",
+      "tabs": {
+        "general": "General",
+        "scope": "Scope",
+        "rules": "Rules",
+        "config": "Configuration"
+      },
+      "sections": {
+        "basicInfo": "Basic Information",
+        "scope": "Scope & Targets",
+        "usageLimits": "Usage Limits",
+        "timeRestrictions": "Time Restrictions",
+        "advanced": "Advanced Options"
+      },
+      "fields": {
+        "targetProducts": "Target Products",
+        "targetCategories": "Target Categories",
+        "timeRange": "Time Range"
+      },
+      "empty": {
+        "targets": "All items",
+        "noLimit": "No limit",
+        "always": "Always valid",
+        "allDays": "All days",
+        "allDay": "All day"
+      },
       "overview": "Overview",
       "targets": "Targets",
       "rules": "Rules",
@@ -207,6 +234,8 @@
     "wizard": {
       "title": "Create New Discount",
       "subtitle": "Follow the steps to create your discount",
+      "editTitle": "Edit Discount",
+      "editSubtitle": "Modify the discount configuration",
       "progress": "Step {{current}} of {{total}}",
       "create": "Create Discount",
       "step1": {

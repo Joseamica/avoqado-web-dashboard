@@ -36,7 +36,8 @@
       "viewerDesc": "Accès en lecture seule aux analyses et rapports"
     },
     "validation": {
-      "pinFormat": "Le PIN doit contenir exactement 4 chiffres"
+      "pinFormat": "Le PIN doit contenir exactement 4 chiffres",
+      "pinUnavailable": "PIN non disponible. Veuillez en choisir un autre."
     }
   },
   "invite": {
@@ -118,6 +119,8 @@
   "toasts": {
     "memberRemovedTitle": "Membre supprimé",
     "memberRemovedDesc": "{{firstName}} {{lastName}} a été supprimé de l'équipe.",
+    "memberRemoveErrorTitle": "Échec de la suppression",
+    "memberRemoveErrorDesc": "Impossible de supprimer le membre de l'équipe.",
     "memberRemoveError": "Échec de la suppression du membre",
     "invitationCancelled": "Invitation annulée",
     "invitationCancelledDesc": "L'invitation à {{email}} a été annulée.",
@@ -125,5 +128,36 @@
     "invitationResent": "Invitation renvoyée",
     "invitationResentDesc": "Une nouvelle invitation a été envoyée à {{email}}.",
     "invitationResendError": "Échec du renvoi de l'invitation"
+  },
+  "detail": {
+    "subtitle": "Détails du membre de l'équipe",
+    "kpis": {
+      "totalSales": "Ventes Totales",
+      "totalOrders": "Commandes Totales",
+      "avgRating": "Note Moyenne"
+    },
+    "performance": {
+      "title": "Métriques de Performance",
+      "desc": "Statistiques détaillées des performances du membre",
+      "totalTips": "Pourboires Totaux",
+      "avgPerOrder": "Moyenne par Commande",
+      "activeDays": "Jours Actifs",
+      "venue": "Établissement"
+    },
+    "organization": {
+      "title": "Informations de l'Organisation",
+      "organization": "Organisation",
+      "establishment": "Établissement"
+    },
+    "labels": {
+      "pin": "PIN d'Accès"
+    },
+    "errors": {
+      "memberNotFoundTitle": "Membre non trouvé",
+      "memberNotFoundDesc": "Le membre de l'équipe demandé n'a pas pu être trouvé.",
+      "backToTeam": "Retour à l'Équipe",
+      "accessDeniedTitle": "Accès Refusé",
+      "accessDeniedDesc": "Vous n'avez pas la permission de voir ce membre de l'équipe."
+    }
   }
 }

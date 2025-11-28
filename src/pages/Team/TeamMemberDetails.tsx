@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, Trash2, Shield, Clock, TrendingUp } from 'lucide-react'
@@ -20,6 +20,7 @@ import {
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { StaffRole } from '@/types'
 import teamService from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
@@ -35,7 +36,9 @@ export default function TeamMemberDetails() {
   const { toast } = useToast()
   const { staffInfo } = useAuth()
   const queryClient = useQueryClient()
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation('team')
+  const { t: tCommon } = useTranslation()
+  const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
@@ -47,20 +50,33 @@ export default function TeamMemberDetails() {
     enabled: !!memberId,
   })
 
+  // Set breadcrumb to show member name instead of ID
+  useEffect(() => {
+    if (memberDetails && memberId) {
+      const fullName = `${memberDetails.firstName} ${memberDetails.lastName}`
+      setCustomSegment(memberId, fullName)
+    }
+    return () => {
+      if (memberId) {
+        clearCustomSegment(memberId)
+      }
+    }
+  }, [memberDetails, memberId, setCustomSegment, clearCustomSegment])
+
   // Remove team member mutation
   const removeTeamMemberMutation = useMutation({
     mutationFn: () => teamService.removeTeamMember(venueId, memberId!),
     onSuccess: () => {
       toast({
-        title: t('teams.toasts.memberRemovedTitle'),
-        description: t('teams.toasts.memberRemovedDesc'),
+        title: t('toasts.memberRemovedTitle'),
+        description: t('toasts.memberRemovedDesc'),
       })
       navigate(-1)
     },
     onError: (error: any) => {
       toast({
-        title: t('teams.toasts.memberRemoveErrorTitle'),
-        description: error.response?.data?.message || t('teams.toasts.memberRemoveErrorDesc'),
+        title: t('toasts.memberRemoveErrorTitle'),
+        description: error.response?.data?.message || t('toasts.memberRemoveErrorDesc'),
         variant: 'destructive',
       })
     },
@@ -99,10 +115,10 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-foreground">{t('teams.detail.errors.memberNotFoundTitle')}</h1>
-          <p className="text-muted-foreground mt-2">{t('teams.detail.errors.memberNotFoundDesc')}</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('detail.errors.memberNotFoundTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('detail.errors.memberNotFoundDesc')}</p>
           <Button onClick={handleGoBack} className="mt-4">
-            {t('teams.detail.errors.backToTeam')}
+            {t('detail.errors.backToTeam')}
           </Button>
         </div>
       </div>
@@ -114,10 +130,10 @@ export default function TeamMemberDetails() {
     return (
       <div className="p-6 bg-background text-foreground">
         <div className="text-center py-12">
-          <h1 className="text-xl font-semibold text-foreground">{t('teams.detail.errors.accessDeniedTitle')}</h1>
-          <p className="text-muted-foreground mt-2">{t('teams.detail.errors.accessDeniedDesc')}</p>
+          <h1 className="text-xl font-semibold text-foreground">{t('detail.errors.accessDeniedTitle')}</h1>
+          <p className="text-muted-foreground mt-2">{t('detail.errors.accessDeniedDesc')}</p>
           <Button onClick={handleGoBack} className="mt-4">
-            {t('teams.detail.errors.backToTeam')}
+            {t('detail.errors.backToTeam')}
           </Button>
         </div>
       </div>
@@ -139,7 +155,7 @@ export default function TeamMemberDetails() {
             <h1 className="text-2xl font-bold">
               {memberDetails.firstName} {memberDetails.lastName}
             </h1>
-            <p className="text-muted-foreground">{t('teams.header.subtitle')}</p>
+            <p className="text-muted-foreground">{t('detail.subtitle')}</p>
           </div>
         </div>
 
@@ -147,13 +163,13 @@ export default function TeamMemberDetails() {
           {canEdit && (
             <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
               <Edit3 className="h-4 w-4 mr-2" />
-              {t('teams.actions.edit')}
+              {t('actions.edit')}
             </Button>
           )}
           {canRemove && (
             <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-destructive hover:text-destructive/80">
               <Trash2 className="h-4 w-4 mr-2" />
-              {t('teams.actions.delete')}
+              {t('actions.delete')}
             </Button>
           )}
         </div>
@@ -188,14 +204,14 @@ export default function TeamMemberDetails() {
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="text-sm">{t('account.accountInfo.memberSince')}</div>
+                  <div className="text-sm">{tCommon('account:accountInfo.memberSince')}</div>
                   <div className="text-xs text-muted-foreground">
                     {memberDetails.startDate
                       ? (() => {
                           const d = new Date(memberDetails.startDate)
-                          return isNaN(d.getTime()) ? t('common.na') : d.toLocaleDateString(getIntlLocale(i18n.language))
+                          return isNaN(d.getTime()) ? tCommon('common.na') : d.toLocaleDateString(getIntlLocale(i18n.language))
                         })()
-                      : t('common.na')}
+                      : tCommon('common.na')}
                   </div>
                 </div>
               </div>
@@ -203,9 +219,9 @@ export default function TeamMemberDetails() {
               <div className="flex items-center space-x-3">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="text-sm">{t('teams.columns.status')}</div>
+                  <div className="text-sm">{t('columns.status')}</div>
                   <Badge variant={memberDetails.active ? 'default' : 'secondary'}>
-                    {memberDetails.active ? t('teams.status.active') : t('teams.status.inactive')}
+                    {memberDetails.active ? t('status.active') : t('status.inactive')}
                   </Badge>
                 </div>
               </div>
@@ -214,7 +230,7 @@ export default function TeamMemberDetails() {
                 <div className="flex items-center space-x-3">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <div className="text-sm">{t('teams.detail.labels.pin')}</div>
+                    <div className="text-sm">{t('detail.labels.pin')}</div>
                     <div className="text-xs text-muted-foreground">••••</div>
                   </div>
                 </div>
@@ -231,7 +247,7 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.totalSales')}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.kpis.totalSales')}</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {Number(memberDetails.totalSales).toLocaleString(getIntlLocale(i18n.language))}
                     </p>
@@ -245,7 +261,7 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.totalOrders')}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.kpis.totalOrders')}</p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {Number(memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language))}
                     </p>
@@ -259,7 +275,7 @@ export default function TeamMemberDetails() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{t('teams.detail.kpis.avgRating')}</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t('detail.kpis.avgRating')}</p>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{memberDetails.averageRating.toFixed(1)}</p>
                   </div>
                   <Star className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
@@ -273,19 +289,19 @@ export default function TeamMemberDetails() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2" />
-                {t('teams.detail.performance.title')}
+                {t('detail.performance.title')}
               </CardTitle>
-              <CardDescription>{t('teams.detail.performance.desc')}</CardDescription>
+              <CardDescription>{t('detail.performance.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.totalTips')}:</span>
+                    <span className="text-sm text-muted-foreground">{t('detail.performance.totalTips')}:</span>
                     <span className="font-medium">{Number(memberDetails.totalTips).toLocaleString(getIntlLocale(i18n.language))}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.avgPerOrder')}:</span>
+                    <span className="text-sm text-muted-foreground">{t('detail.performance.avgPerOrder')}:</span>
                     <span className="font-medium">
                       {memberDetails.totalOrders > 0
                         ? (memberDetails.totalSales / memberDetails.totalOrders).toLocaleString(getIntlLocale(i18n.language), {
@@ -299,18 +315,18 @@ export default function TeamMemberDetails() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.activeDays')}:</span>
+                    <span className="text-sm text-muted-foreground">{t('detail.performance.activeDays')}:</span>
                     <span className="font-medium">
                       {(() => {
                         const d = new Date(memberDetails.startDate)
-                        if (isNaN(d.getTime())) return t('common.na')
+                        if (isNaN(d.getTime())) return tCommon('common.na')
                         const days = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
                         return days.toLocaleString(getIntlLocale(i18n.language))
                       })()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t('teams.detail.performance.venue')}:</span>
+                    <span className="text-sm text-muted-foreground">{t('detail.performance.venue')}:</span>
                     <span className="font-medium">{memberDetails.venue.name}</span>
                   </div>
                 </div>
@@ -321,16 +337,16 @@ export default function TeamMemberDetails() {
           {/* Organization Info */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('teams.detail.organization.title')}</CardTitle>
+              <CardTitle>{t('detail.organization.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t('teams.detail.organization.organization')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('detail.organization.organization')}:</span>
                   <span className="font-medium">{memberDetails.venue.organization.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">{t('teams.detail.organization.establishment')}:</span>
+                  <span className="text-sm text-muted-foreground">{t('detail.organization.establishment')}:</span>
                   <span className="font-medium">{memberDetails.venue.name}</span>
                 </div>
               </div>
@@ -352,9 +368,9 @@ export default function TeamMemberDetails() {
             }}
           >
             <DialogHeader>
-              <DialogTitle>{t('teams.dialogs.editMemberTitle')}</DialogTitle>
+              <DialogTitle>{t('dialogs.editMemberTitle')}</DialogTitle>
               <DialogDescription>
-                {t('teams.dialogs.editMemberDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
+                {t('dialogs.editMemberDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </DialogDescription>
             </DialogHeader>
             <EditTeamMemberForm venueId={venueId} teamMember={memberDetails} onSuccess={handleEditSuccess} />
@@ -367,19 +383,19 @@ export default function TeamMemberDetails() {
         <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('teams.dialogs.removeTitle')}</AlertDialogTitle>
+              <AlertDialogTitle>{t('dialogs.removeTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t('teams.dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
+                {t('dialogs.removeDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('teams.dialogs.removeCancel')}</AlertDialogCancel>
+              <AlertDialogCancel>{t('dialogs.removeCancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleRemoveConfirm}
                 disabled={removeTeamMemberMutation.isPending}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {removeTeamMemberMutation.isPending ? t('teams.dialogs.removing') : t('teams.dialogs.removeConfirm')}
+                {removeTeamMemberMutation.isPending ? t('dialogs.removing') : t('dialogs.removeConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -223,15 +223,15 @@ export default function Teams() {
     },
     {
       id: 'actions',
-      header: tCommon('common.actions'),
+      header: tCommon('actions'),
       cell: ({ row }) => (
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
             <Button variant="ghost" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={5} className="w-48">
+          <DropdownMenuContent align="end" sideOffset={5} className="w-48" onClick={e => e.stopPropagation()}>
             <PermissionGate permission="teams:update">
               <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -294,7 +294,7 @@ export default function Teams() {
     },
     {
       id: 'actions',
-      header: tCommon('common.actions'),
+      header: tCommon('actions'),
       cell: ({ row }) => {
         const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
 
@@ -401,7 +401,7 @@ export default function Teams() {
             tableId="team:members"
             rowCount={teamData?.meta.totalCount || 0}
             enableSearch={true}
-            searchPlaceholder={tCommon('common.search')}
+            searchPlaceholder={tCommon('search')}
             onSearch={handleMemberSearch}
             clickableRow={row => ({ to: row.id })}
           />
@@ -426,7 +426,7 @@ export default function Teams() {
                 tableId="team:invitations"
                 rowCount={invitationsData?.data.length || 0}
                 enableSearch={true}
-                searchPlaceholder={tCommon('common.search')}
+                searchPlaceholder={tCommon('search')}
                 onSearch={handleInvitationSearch}
               />
             </CardContent>

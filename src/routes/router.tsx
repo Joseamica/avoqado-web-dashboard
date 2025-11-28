@@ -32,6 +32,7 @@ import {
   CustomerGroups,
   Customers,
   Dashboard,
+  DiscountDetail,
   DiscountForm,
   Discounts,
   EmailVerification,
@@ -613,7 +614,7 @@ const router = createBrowserRouter(
                   children: [
                     { index: true, element: <Discounts /> },
                     { path: 'create', element: <DiscountForm /> },
-                    { path: ':discountId', element: <DiscountForm /> },
+                    { path: ':discountId', element: <DiscountDetail /> },
                   ],
                 },
 

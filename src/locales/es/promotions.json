@@ -33,6 +33,33 @@
       }
     },
     "detail": {
+      "title": "Detalles del Descuento",
+      "notFound": "Descuento no encontrado",
+      "tabs": {
+        "general": "General",
+        "scope": "Alcance",
+        "rules": "Reglas",
+        "config": "Configuración"
+      },
+      "sections": {
+        "basicInfo": "Información Básica",
+        "scope": "Alcance y Objetivos",
+        "usageLimits": "Límites de Uso",
+        "timeRestrictions": "Restricciones de Tiempo",
+        "advanced": "Opciones Avanzadas"
+      },
+      "fields": {
+        "targetProducts": "Productos Objetivo",
+        "targetCategories": "Categorías Objetivo",
+        "timeRange": "Rango Horario"
+      },
+      "empty": {
+        "targets": "Todos los artículos",
+        "noLimit": "Sin límite",
+        "always": "Siempre válido",
+        "allDays": "Todos los días",
+        "allDay": "Todo el día"
+      },
       "overview": "Resumen",
       "targets": "Objetivos",
       "rules": "Reglas",
@@ -207,6 +234,8 @@
     "wizard": {
       "title": "Crear Nuevo Descuento",
       "subtitle": "Sigue los pasos para crear tu descuento",
+      "editTitle": "Editar Descuento",
+      "editSubtitle": "Modifica la configuración del descuento",
       "progress": "Paso {{current}} de {{total}}",
       "create": "Crear Descuento",
       "step1": {

@@ -550,7 +550,7 @@ export default function Products() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('common.search')}
+        searchPlaceholder={t('common:search')}
         onSearch={handleSearch}
         tableId="menu:products"
         pagination={pagination}

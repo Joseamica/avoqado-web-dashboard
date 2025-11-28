@@ -36,7 +36,8 @@
       "viewerDesc": "Acceso de solo lectura a análisis y reportes"
     },
     "validation": {
-      "pinFormat": "El PIN debe tener exactamente 4 dígitos"
+      "pinFormat": "El PIN debe tener exactamente 4 dígitos",
+      "pinUnavailable": "PIN no disponible. Por favor, elige otro diferente."
     }
   },
   "invite": {
@@ -118,6 +119,8 @@
   "toasts": {
     "memberRemovedTitle": "Miembro eliminado",
     "memberRemovedDesc": "{{firstName}} {{lastName}} ha sido eliminado del equipo.",
+    "memberRemoveErrorTitle": "Error al eliminar",
+    "memberRemoveErrorDesc": "No se pudo eliminar al miembro del equipo.",
     "memberRemoveError": "Error al eliminar miembro",
     "invitationCancelled": "Invitación cancelada",
     "invitationCancelledDesc": "La invitación a {{email}} ha sido cancelada.",
@@ -125,5 +128,36 @@
     "invitationResent": "Invitación reenviada",
     "invitationResentDesc": "Se envió una nueva invitación a {{email}}.",
     "invitationResendError": "Error al reenviar invitación"
+  },
+  "detail": {
+    "subtitle": "Detalles del miembro del equipo",
+    "kpis": {
+      "totalSales": "Ventas Totales",
+      "totalOrders": "Órdenes Totales",
+      "avgRating": "Calificación Promedio"
+    },
+    "performance": {
+      "title": "Métricas de Rendimiento",
+      "desc": "Estadísticas detalladas del desempeño del miembro",
+      "totalTips": "Propinas Totales",
+      "avgPerOrder": "Promedio por Orden",
+      "activeDays": "Días Activos",
+      "venue": "Establecimiento"
+    },
+    "organization": {
+      "title": "Información de la Organización",
+      "organization": "Organización",
+      "establishment": "Establecimiento"
+    },
+    "labels": {
+      "pin": "PIN de Acceso"
+    },
+    "errors": {
+      "memberNotFoundTitle": "Miembro no encontrado",
+      "memberNotFoundDesc": "No se pudo encontrar el miembro del equipo solicitado.",
+      "backToTeam": "Volver al Equipo",
+      "accessDeniedTitle": "Acceso Denegado",
+      "accessDeniedDesc": "No tienes permisos para ver este miembro del equipo."
+    }
   }
 }

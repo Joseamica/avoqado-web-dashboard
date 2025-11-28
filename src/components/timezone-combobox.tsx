@@ -79,13 +79,13 @@ export function TimezoneCombobox({ value, onValueChange, disabled }: TimezoneCom
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder={t('common.search', { defaultValue: 'Buscar zona horaria...' })}
+            placeholder={t('search', { defaultValue: 'Buscar zona horaria...' })}
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
           <CommandList>
             <CommandEmpty>
-              {t('common.no_results', { defaultValue: 'No se encontraron zonas horarias' })}
+              {t('no_results', { defaultValue: 'No se encontraron zonas horarias' })}
             </CommandEmpty>
             {countryOrder.map(country => {
               const timezones = filteredByCountry[country]

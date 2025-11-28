@@ -312,7 +312,7 @@ export default function Shifts() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('common.search')}
+        searchPlaceholder={t('common:search')}
         onSearch={handleSearch}
         clickableRow={row => ({
           to: row.id,

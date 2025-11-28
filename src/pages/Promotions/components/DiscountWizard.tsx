@@ -9,7 +9,7 @@ import { Form } from '@/components/ui/form'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
-import type { CreateDiscountRequest, DiscountScope, DiscountType } from '@/types/discount'
+import type { CreateDiscountRequest, Discount, DiscountScope, DiscountType, UpdateDiscountRequest } from '@/types/discount'
 
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
@@ -23,6 +23,7 @@ interface DiscountWizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   venueId: string
+  editDiscount?: Discount // NEW: Pass existing discount for edit mode
   onSuccess?: (discountId: string) => void
 }
 
@@ -74,11 +75,14 @@ interface Step4FormData {
   active: boolean
 }
 
-export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: DiscountWizardProps) {
+export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSuccess }: DiscountWizardProps) {
   const { t } = useTranslation('promotions')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  // Determine if we're in edit mode
+  const isEditMode = !!editDiscount
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
 
@@ -142,19 +146,65 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
     },
   })
 
-  // Reset wizard when dialog opens
+  // Reset wizard when dialog opens or populate with edit data
   useEffect(() => {
     if (open) {
       setCurrentStep(1)
       setStep1Data(null)
       setStep2Data(null)
       setStep3Data(null)
-      step1Form.reset()
-      step2Form.reset()
-      step3Form.reset()
-      step4Form.reset()
+
+      if (editDiscount) {
+        // Populate forms with existing discount data for edit mode
+        step1Form.reset({
+          name: editDiscount.name,
+          description: editDiscount.description || '',
+          type: editDiscount.type,
+          value: editDiscount.value,
+        })
+
+        step2Form.reset({
+          scope: editDiscount.scope,
+          targetItemIds: editDiscount.targetItemIds || [],
+          targetCategoryIds: editDiscount.targetCategoryIds || [],
+          customerGroupId: editDiscount.customerGroupId || '',
+          buyQuantity: editDiscount.buyQuantity || 1,
+          getQuantity: editDiscount.getQuantity || 1,
+          getDiscountPercent: editDiscount.getDiscountPercent || 100,
+          buyItemIds: editDiscount.buyItemIds || [],
+          getItemIds: editDiscount.getItemIds || [],
+        })
+
+        step3Form.reset({
+          minPurchaseAmount: editDiscount.minPurchaseAmount,
+          maxDiscountAmount: editDiscount.maxDiscountAmount,
+          maxTotalUses: editDiscount.maxTotalUses,
+          maxUsesPerCustomer: editDiscount.maxUsesPerCustomer,
+          validFrom: editDiscount.validFrom || '',
+          validUntil: editDiscount.validUntil || '',
+          daysOfWeek: editDiscount.daysOfWeek?.map(d => d.toString()) || [],
+          timeFrom: editDiscount.timeFrom || '',
+          timeUntil: editDiscount.timeUntil || '',
+        })
+
+        step4Form.reset({
+          isAutomatic: editDiscount.isAutomatic,
+          priority: editDiscount.priority,
+          isStackable: editDiscount.isStackable,
+          applyBeforeTax: editDiscount.applyBeforeTax,
+          requiresApproval: editDiscount.requiresApproval || false,
+          compReason: editDiscount.compReason || '',
+          active: editDiscount.active,
+        })
+      } else {
+        // Reset to defaults for create mode
+        step1Form.reset()
+        step2Form.reset()
+        step3Form.reset()
+        step4Form.reset()
+      }
     }
-  }, [open])
+  }, [open, editDiscount])
 
   // Create discount mutation
   const createDiscountMutation = useMutation({
@@ -164,6 +214,28 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
         title: t('discounts.toasts.createSuccess'),
       })
       queryClient.invalidateQueries({ queryKey: ['discounts', venueId] })
+      onSuccess?.(data.id)
+      onOpenChange(false)
+    },
+    onError: (error: any) => {
+      toast({
+        title: tCommon('common.error'),
+        description: error.response?.data?.message || t('discounts.toasts.error'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Update discount mutation (for edit mode)
+  const updateDiscountMutation = useMutation({
+    mutationFn: (data: UpdateDiscountRequest & { active: boolean }) =>
+      discountService.updateDiscount(venueId, editDiscount!.id, data),
+    onSuccess: data => {
+      toast({
+        title: t('discounts.toasts.updateSuccess'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['discounts', venueId] })
+      queryClient.invalidateQueries({ queryKey: ['discount', venueId, editDiscount!.id] })
       onSuccess?.(data.id)
       onOpenChange(false)
     },
@@ -266,7 +338,12 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
       active: step4Values.active,
     }
 
-    createDiscountMutation.mutate(completeData)
+    // Use update or create mutation based on mode
+    if (isEditMode) {
+      updateDiscountMutation.mutate(completeData)
+    } else {
+      createDiscountMutation.mutate(completeData)
+    }
   }
 
   // Helper to clean multi-select values
@@ -281,7 +358,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
     return values.map((d: any) => (typeof d === 'object' ? parseInt(d.value) : parseInt(d)))
   }
 
-  const isLoading = createDiscountMutation.isPending
+  const isLoading = createDiscountMutation.isPending || updateDiscountMutation.isPending
 
   // Get step title
   const getStepTitle = () => {
@@ -303,8 +380,12 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('discounts.wizard.title')}</DialogTitle>
-          <DialogDescription>{t('discounts.wizard.subtitle')}</DialogDescription>
+          <DialogTitle>
+            {isEditMode ? t('discounts.wizard.editTitle') : t('discounts.wizard.title')}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditMode ? t('discounts.wizard.editSubtitle') : t('discounts.wizard.subtitle')}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Progress Bar */}
@@ -383,7 +464,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, onSuccess }: Disco
                 </>
               ) : (
                 <>
-                  {t('discounts.wizard.create')}
+                  {isEditMode ? tCommon('save') : t('discounts.wizard.create')}
                   <Check className="ml-2 h-4 w-4" />
                 </>
               )}

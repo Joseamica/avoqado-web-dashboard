@@ -463,7 +463,7 @@ export default function Pricing() {
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <Input
-              placeholder={t('common.search')}
+              placeholder={t('common:search')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="max-w-md"

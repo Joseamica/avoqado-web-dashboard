@@ -1,4 +1,5 @@
 {
+  "search": "Search...",
   "cancel": "Cancel",
   "close": "Close",
   "edit": "Edit",
@@ -28,6 +29,7 @@
   "selectAll": "Select all",
   "optional": "Optional",
   "none": "None",
+  "na": "N/A",
   "unknown": "Unknown",
   "no_results": "No results",
   "customize_columns": "Customize columns",

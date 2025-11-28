@@ -33,6 +33,33 @@
 			}
 		},
 		"detail": {
+			"title": "Détails de la Réduction",
+			"notFound": "Réduction non trouvée",
+			"tabs": {
+				"general": "Général",
+				"scope": "Portée",
+				"rules": "Règles",
+				"config": "Configuration"
+			},
+			"sections": {
+				"basicInfo": "Informations de Base",
+				"scope": "Portée et Cibles",
+				"usageLimits": "Limites d'Utilisation",
+				"timeRestrictions": "Restrictions Horaires",
+				"advanced": "Options Avancées"
+			},
+			"fields": {
+				"targetProducts": "Produits Cibles",
+				"targetCategories": "Catégories Cibles",
+				"timeRange": "Plage Horaire"
+			},
+			"empty": {
+				"targets": "Tous les articles",
+				"noLimit": "Aucune limite",
+				"always": "Toujours valide",
+				"allDays": "Tous les jours",
+				"allDay": "Toute la journée"
+			},
 			"overview": "Aperçu",
 			"targets": "Cibles",
 			"rules": "Règles",
@@ -207,6 +234,8 @@
 		"wizard": {
 			"title": "Créer une Nouvelle Réduction",
 			"subtitle": "Suivez les étapes pour créer votre réduction",
+			"editTitle": "Modifier la Réduction",
+			"editSubtitle": "Modifiez la configuration de la réduction",
 			"progress": "Étape {{current}} sur {{total}}",
 			"create": "Créer la Réduction",
 			"step1": {

@@ -23,7 +23,7 @@ export function SearchBar({
   ariaLabelKey,
 }: SearchBarProps) {
   const { t } = useTranslation()
-  const finalPlaceholder = placeholder ?? (placeholderKey ? t(placeholderKey) : t('common.search'))
+  const finalPlaceholder = placeholder ?? (placeholderKey ? t(placeholderKey) : t('search'))
   const ariaLabel = ariaLabelKey ? t(ariaLabelKey) : finalPlaceholder
 
   return (
