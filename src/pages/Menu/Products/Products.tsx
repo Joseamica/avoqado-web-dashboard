@@ -10,6 +10,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
+import { AddToAIButton } from '@/components/AddToAIButton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
@@ -234,6 +235,17 @@ export default function Products() {
   })
 
   const columns: ColumnDef<Product, unknown>[] = [
+    {
+      id: 'ai',
+      header: () => <span className="sr-only">AI</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AddToAIButton type="product" data={row.original} variant="icon" />
+        </div>
+      ),
+      size: 50,
+      enableSorting: false,
+    },
     {
       id: 'imageUrl',
       accessorKey: 'imageUrl',

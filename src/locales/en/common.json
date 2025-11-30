@@ -263,6 +263,24 @@
       "overageDesc": "You're currently in overage. This query will add to your current overage cost of ${{cost}} USD.",
       "continueQuestion": "Do you want to continue anyway?",
       "sendAnyway": "Send Anyway"
+    },
+    "references": {
+      "panelTitle": "AI References",
+      "clearAll": "Clear all",
+      "addToAI": "Add to AI assistant",
+      "removeFromAI": "Remove from AI assistant",
+      "added": "Added",
+      "addToAIButton": "Add to AI",
+      "unknownWaiter": "Unknown",
+      "contextHeader": "[SELECTED REFERENCES]\nThe user has selected the following items for their query:",
+      "contextFooter": "\nRespond to user questions considering these specific data.\n[END OF REFERENCES]",
+      "paymentDate": "Date",
+      "paymentAmount": "Amount",
+      "paymentTip": "Tip",
+      "paymentMethod": "Method",
+      "paymentCard": "Card",
+      "paymentWaiter": "Waiter",
+      "paymentTotal": "Total"
     }
   },
   "flags": {

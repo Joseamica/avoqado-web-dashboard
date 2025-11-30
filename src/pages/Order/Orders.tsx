@@ -9,6 +9,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue' // Hook actualizado
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import * as orderService from '@/services/order.service'
 import { Order as OrderType } from '@/types' // CAMBIO: Usar el tipo Order
+import { AddToAIButton } from '@/components/AddToAIButton'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
@@ -81,6 +82,17 @@ export default function Orders() {
 
   const columns = useMemo<ColumnDef<OrderType, unknown>[]>(
     () => [
+      {
+        id: 'ai',
+        header: () => <span className="sr-only">AI</span>,
+        cell: ({ row }) => (
+          <div className="flex justify-center">
+            <AddToAIButton type="order" data={row.original} variant="icon" />
+          </div>
+        ),
+        size: 50,
+        enableSorting: false,
+      },
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },

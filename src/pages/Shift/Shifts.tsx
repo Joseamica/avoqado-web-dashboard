@@ -2,7 +2,7 @@ import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
@@ -15,6 +15,8 @@ import { useLocation } from 'react-router-dom'
 import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
 import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 import { useToast } from '@/hooks/use-toast'
+import { AddToAIButton } from '@/components/AddToAIButton'
+import type { ShiftReference } from '@/types/chat-references'
 
 export default function Shifts() {
   const { t, i18n } = useTranslation('shifts')
@@ -86,7 +88,31 @@ export default function Shifts() {
 
   const totalShifts = data?.meta?.totalCount || 0
 
-  const columns: ColumnDef<any, unknown>[] = [
+  // Transform row data to ShiftReference for AI button
+  const toShiftReference = useCallback((row: any): ShiftReference => ({
+    id: row.id,
+    staffId: row.staff?.id || '',
+    staffName: row.staff ? `${row.staff.firstName} ${row.staff.lastName}` : 'Unknown',
+    startTime: row.startTime,
+    endTime: row.endTime,
+    status: row.endTime ? 'CLOSED' : 'ACTIVE',
+    totalSales: row.totalSales || 0,
+    totalTips: row.totalTips || 0,
+    totalOrders: row.orderCount || 0,
+  }), [])
+
+  const columns: ColumnDef<any, unknown>[] = useMemo(() => [
+    {
+      id: 'ai',
+      header: () => <span className="sr-only">AI</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />
+        </div>
+      ),
+      size: 50,
+      enableSorting: false,
+    },
     {
       accessorFn: row => {
         return row.endTime ? t('closed') : t('open')
@@ -276,7 +302,7 @@ export default function Shifts() {
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
     },
-  ]
+  ], [t, toShiftReference, formatTime, formatDate, venueTimezoneShort])
 
   // Search callback for DataTable
   const handleSearch = useCallback((searchTerm: string, shifts: any[]) => {

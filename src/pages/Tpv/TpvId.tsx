@@ -59,6 +59,8 @@ import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RemoteCommandPanel } from './components/RemoteCommandPanel'
+import { CommandHistoryTable } from './components/CommandHistoryTable'
 
 // Type for the form values
 type TpvFormValues = {
@@ -585,6 +587,12 @@ export default function TpvId() {
                 className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
               >
                 {t('common:information', 'Información')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="commands"
+                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+              >
+                {t('commands.remoteCommands')}
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
@@ -1146,6 +1154,21 @@ export default function TpvId() {
               </Card>
             </div>
           </div>
+            </TabsContent>
+
+            {/* Commands Tab */}
+            <TabsContent value="commands" className="space-y-6">
+              <PermissionGate permission="tpv:command">
+                <RemoteCommandPanel
+                  terminalId={tpvId!}
+                  terminalName={tpv?.name || t('detail.terminal')}
+                  isOnline={terminalOnline}
+                  isLocked={false}
+                  isInMaintenance={isInMaintenance}
+                  venueId={venueId!}
+                />
+                <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
+              </PermissionGate>
             </TabsContent>
 
             {/* Settings Tab */}

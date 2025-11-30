@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { AddToAIButton } from '@/components/AddToAIButton'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useSocketEvents } from '@/hooks/use-socket-events'
@@ -164,6 +165,19 @@ export default function Payments() {
   // ==================================================================
   const columns = useMemo<ColumnDef<PaymentType, unknown>[]>(
     () => [
+      {
+        id: 'ai',
+        meta: { label: t('columns.ai', { defaultValue: 'AI' }) },
+        header: () => <span className="sr-only">{t('columns.ai', { defaultValue: 'AI' })}</span>,
+        cell: ({ row }) => (
+          <div className="flex justify-center">
+            <AddToAIButton payment={row.original} variant="icon" />
+          </div>
+        ),
+        size: 50,
+        enableSorting: false,
+        enableHiding: false,
+      },
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },

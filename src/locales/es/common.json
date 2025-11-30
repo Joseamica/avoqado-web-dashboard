@@ -257,6 +257,24 @@
       "overageDesc": "Estás actualmente en excedente. Esta consulta se sumará a tu costo de excedente actual de ${{cost}} USD.",
       "continueQuestion": "¿Deseas continuar de todas formas?",
       "sendAnyway": "Enviar de Todas Formas"
+    },
+    "references": {
+      "panelTitle": "Referencias AI",
+      "clearAll": "Limpiar todas",
+      "addToAI": "Agregar al asistente AI",
+      "removeFromAI": "Quitar del asistente AI",
+      "added": "Agregado",
+      "addToAIButton": "Agregar a AI",
+      "unknownWaiter": "Desconocido",
+      "contextHeader": "[REFERENCIAS SELECCIONADAS POR EL USUARIO]\nEl usuario ha seleccionado los siguientes elementos para su consulta:",
+      "contextFooter": "\nResponde las preguntas del usuario considerando estos datos específicos.\n[FIN DE REFERENCIAS]",
+      "paymentDate": "Fecha",
+      "paymentAmount": "Monto",
+      "paymentTip": "Propina",
+      "paymentMethod": "Método",
+      "paymentCard": "Tarjeta",
+      "paymentWaiter": "Mesero",
+      "paymentTotal": "Total"
     }
   },
   "flags": {

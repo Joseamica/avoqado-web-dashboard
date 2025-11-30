@@ -383,6 +383,7 @@ interface SendChatMessageOptions {
   venueSlug?: string | null
   userId?: string | null
   includeVisualization?: boolean
+  referencesContext?: string // AI references context prompt
 }
 
 // Función principal para enviar mensajes usando API directamente
@@ -445,6 +446,9 @@ export const sendChatMessage = async (message: string, options?: SendChatMessage
     }
     if (options?.includeVisualization) {
       payload.includeVisualization = true
+    }
+    if (options?.referencesContext) {
+      payload.referencesContext = options.referencesContext
     }
 
     const response = await api.post('/api/v1/dashboard/assistant/text-to-sql', payload)

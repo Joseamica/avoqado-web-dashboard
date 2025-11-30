@@ -17,6 +17,7 @@ import NotificationBell from './components/notifications/NotificationBell'
 import LanguageSwitcher from './components/language-switcher'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
+import { ChatReferencesProvider } from './context/ChatReferencesContext'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
@@ -272,7 +273,9 @@ function DashboardContent() {
 export default function Dashboard() {
   return (
     <BreadcrumbProvider>
-      <DashboardContent />
+      <ChatReferencesProvider>
+        <DashboardContent />
+      </ChatReferencesProvider>
     </BreadcrumbProvider>
   )
 }
