@@ -70,10 +70,18 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   html,
   body,
   #root {
     @apply overflow-x-hidden;
+  }
+  /* Prevent Radix scroll-lock from adding padding compensation (scrollbar-gutter handles it) */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
   }
   body {
     @apply overscroll-none;

@@ -13,6 +13,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
+### Database Access (Local Development)
+
+When you need to verify data in the database (e.g., debugging issues with missing fields):
+
+```bash
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT * FROM \"Venue\" WHERE slug = 'avoqado-full';"
+```
+
+**Database Connection:**
+- URL: `postgresql://postgres:exitosoy777@localhost:5432/av-db-25`
+- Host: `localhost:5432`
+- User: `postgres`
+- Password: `exitosoy777`
+- Database: `av-db-25`
+
+**Common queries:**
+```bash
+# Check venue data
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT id, name, slug, address, city, state, \"zipCode\", country, email, phone FROM \"Venue\" WHERE slug = 'venue-slug';"
+
+# List all tables
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "\dt"
+
+# Describe table structure
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "\d \"Venue\""
+```
+
 ### Unused Code Detection
 
 - `npm run check:unused` - Detect unimported files (fast)
