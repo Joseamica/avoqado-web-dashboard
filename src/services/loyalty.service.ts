@@ -1,7 +1,6 @@
 import api from '@/api'
 import type {
 	LoyaltyConfig,
-	LoyaltyTransaction,
 	LoyaltyTransactionType,
 	PaginatedLoyaltyTransactionsResponse,
 	UpdateLoyaltyConfigRequest,

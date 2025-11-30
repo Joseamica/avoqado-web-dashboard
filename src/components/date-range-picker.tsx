@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { getToday, getYesterday, getLast7Days, getLast30Days, getPreviousPeriod } from '@/utils/datetime'
+import { getToday, getYesterday, getLast7Days, getLast30Days } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
 

@@ -3,7 +3,7 @@ import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/in
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'

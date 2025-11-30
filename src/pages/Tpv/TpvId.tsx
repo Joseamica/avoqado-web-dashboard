@@ -41,7 +41,6 @@ import {
   Settings,
   Shield,
   Terminal,
-  Trash2,
   Wifi,
   WifiOff,
   Wrench,

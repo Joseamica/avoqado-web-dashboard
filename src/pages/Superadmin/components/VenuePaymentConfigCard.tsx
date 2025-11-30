@@ -3,14 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CreditCard, Save, AlertCircle, CheckCircle, Wallet, Building2 } from 'lucide-react'
 import {
   paymentProviderAPI,
-  type VenuePaymentConfig,
   type MerchantAccount,
 } from '@/services/paymentProvider.service'
 import { useToast } from '@/hooks/use-toast'

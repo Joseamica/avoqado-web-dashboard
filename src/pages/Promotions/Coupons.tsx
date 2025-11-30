@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Download, Layers, MoreHorizontal, Pencil, Plus, Ticket, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Layers, MoreHorizontal, Pencil, Plus, Ticket, Trash2 } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'

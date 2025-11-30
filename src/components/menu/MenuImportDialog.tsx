@@ -18,7 +18,6 @@ import {
   importMenu,
   downloadTemplate,
   exportCurrentMenu,
-  type AdvancedCSVRow,
   type ParsedCategory,
 } from '@/services/menuImport.service'
 import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown } from 'lucide-react'
@@ -62,8 +61,6 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
   const [templateType, setTemplateType] = useState<'basic' | 'advanced'>('basic')
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge')
   const [file, setFile] = useState<File | null>(null)
-  const [csvData, setCsvData] = useState<AdvancedCSVRow[]>([])
-  const [isAdvanced, setIsAdvanced] = useState(false)
   const [parsedData, setParsedData] = useState<ParsedCategory[]>([])
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [isValidating, setIsValidating] = useState(false)
@@ -115,7 +112,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
           title: t(`export.success`),
           description: t(`export.${type}Desc`),
         })
-      } catch (error) {
+      } catch {
         toast({
           title: t('export.error'),
           variant: 'destructive',

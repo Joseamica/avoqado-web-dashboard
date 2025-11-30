@@ -75,7 +75,7 @@ export function ChatChart({ visualization }: ChatChartProps) {
             )}
             {config.yAxis && <YAxis tickLine={false} axisLine={false} tickMargin={8} />}
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            {config.dataKeys.map((dk, idx) => (
+            {config.dataKeys.map((dk) => (
               <Bar
                 key={dk.key}
                 dataKey={dk.key}

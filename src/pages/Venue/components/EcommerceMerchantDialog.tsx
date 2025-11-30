@@ -106,7 +106,7 @@ export const EcommerceMerchantDialog: React.FC<EcommerceMerchantDialogProps> = (
       try {
         parsedCredentials = JSON.parse(providerCredentials)
         setJsonError('')
-      } catch (error) {
+      } catch {
         setJsonError('Las credenciales deben ser un JSON válido')
         return
       }

@@ -45,7 +45,7 @@ export function ActivationCodeDialog({ open, onOpenChange, activationData }: Act
 
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to copy code to clipboard',

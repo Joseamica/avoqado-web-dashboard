@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Award, DollarSign, Gift, Clock, Users, TrendingUp } from 'lucide-react'
+import { Award, Gift, Clock, TrendingUp } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -79,9 +79,7 @@ export default function LoyaltySettings() {
 	}, [config, reset])
 
 	const watchedActive = watch('active')
-	const watchedPointsPerDollar = watch('pointsPerDollar')
 	const watchedRedemptionRate = watch('redemptionRate')
-	const watchedPointsExpireDays = watch('pointsExpireDays')
 
 	// Update mutation
 	const updateMutation = useMutation({

@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
-import { RoleConfig, RoleConfigInput, StaffRole, DEFAULT_ROLE_DISPLAY_NAMES } from '@/types'
+import { RoleConfigInput, StaffRole, DEFAULT_ROLE_DISPLAY_NAMES } from '@/types'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
 import { PermissionGate } from '@/components/PermissionGate'
 

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
-import type { CreateDiscountRequest, DiscountScope, DiscountType } from '@/types/discount'
+import type { CreateDiscountRequest } from '@/types/discount'
 
 import { DiscountFormFields } from './DiscountFormFields'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
 import { storage } from '@/firebase'
