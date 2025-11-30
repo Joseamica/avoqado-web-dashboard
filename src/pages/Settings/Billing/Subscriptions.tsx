@@ -241,13 +241,13 @@ export default function Subscriptions() {
 
   return (
     <>
-      <div className="px-8 pt-6 space-y-6">
+      <div className="p-8 space-y-6">
         {/* Subscriptions Grid - Active features first, then available */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Active subscriptions */}
           {featuresStatus?.activeFeatures.map(feature => (
-            <div key={feature.id} className="premium-border">
-              <Card className="relative overflow-hidden transition-shadow hover:shadow-md border-0">
+            <div key={feature.id} className="premium-border h-full">
+              <Card className="relative overflow-hidden transition-shadow hover:shadow-md border-0 h-full flex flex-col">
                 {/* Status badge */}
                 {getStatusBadge(feature) && (
                   <div className="absolute top-3 right-3">
@@ -258,7 +258,7 @@ export default function Subscriptions() {
                   <CardTitle className="text-base">{feature.feature.name}</CardTitle>
                   <CardDescription className="text-xs line-clamp-2">{feature.feature.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0 space-y-3">
+                <CardContent className="pt-0 space-y-3 flex-1 flex flex-col">
                   {/* Price */}
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-bold">{formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}</span>
@@ -268,12 +268,14 @@ export default function Subscriptions() {
                   <div className="text-xs text-muted-foreground">
                     {getBillingInfoCompact(feature)}
                   </div>
+                  {/* Spacer to push button to bottom */}
+                  <div className="flex-1" />
                   {/* Cancel button */}
                   {feature.active && (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full"
+                      className="w-full mt-auto"
                       onClick={() => setCancelingFeatureId(feature.featureId)}
                       disabled={cancelMutation.isPending}
                     >
@@ -287,21 +289,23 @@ export default function Subscriptions() {
 
           {/* Available features */}
           {featuresStatus?.availableFeatures.map(feature => (
-            <Card key={feature.id} className="relative overflow-hidden transition-shadow hover:shadow-md">
+            <Card key={feature.id} className="relative overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{feature.name}</CardTitle>
                 <CardDescription className="text-xs line-clamp-2">{feature.description}</CardDescription>
               </CardHeader>
-              <CardContent className="pt-0 space-y-3">
+              <CardContent className="pt-0 space-y-3 flex-1 flex flex-col">
                 {/* Price */}
                 <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-bold">{formatCurrency(Number(feature.monthlyPrice) * 100, 'MXN')}</span>
                   <span className="text-xs text-muted-foreground">{t('availableFeatures.perMonth')}</span>
                 </div>
+                {/* Spacer to push button to bottom */}
+                <div className="flex-1" />
                 {/* Subscribe button */}
                 <Button
                   size="sm"
-                  className="w-full"
+                  className="w-full mt-auto"
                   onClick={() => setSubscribingFeatureCode(feature.code)}
                   disabled={activateMutation.isPending}
                 >
