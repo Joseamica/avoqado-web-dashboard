@@ -70,7 +70,10 @@ export default function History() {
     enabled: !!venueId,
   })
 
-  const tokenPurchases = tokenHistory?.purchases?.records || []
+  const tokenPurchases = useMemo(
+    () => tokenHistory?.purchases?.records || [],
+    [tokenHistory?.purchases?.records]
+  )
 
   // Combine invoices and token purchases into unified billing items
   const allBillingItems = useMemo((): BillingItem[] => {

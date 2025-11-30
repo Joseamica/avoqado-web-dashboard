@@ -97,6 +97,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
       step3Form.reset()
       step4Form.reset()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only reset when dialog opens, forms are stable refs
   }, [open])
 
   // Pre-fill Step 2 when wizard opens (backup - main pre-fill happens in handleNext)

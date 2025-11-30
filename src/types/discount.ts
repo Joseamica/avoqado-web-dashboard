@@ -182,7 +182,7 @@ export interface CreateDiscountRequest {
 	active?: boolean
 }
 
-export interface UpdateDiscountRequest extends Partial<CreateDiscountRequest> {}
+export type UpdateDiscountRequest = Partial<CreateDiscountRequest>
 
 export interface CreateCouponRequest {
 	discountId: string
@@ -195,7 +195,7 @@ export interface CreateCouponRequest {
 	active?: boolean
 }
 
-export interface UpdateCouponRequest extends Partial<Omit<CreateCouponRequest, 'discountId'>> {}
+export type UpdateCouponRequest = Partial<Omit<CreateCouponRequest, 'discountId'>>
 
 export interface BulkGenerateCouponsRequest {
 	discountId: string

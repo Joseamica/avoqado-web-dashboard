@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle, Tags } from 'lucide-react'
@@ -48,7 +48,10 @@ export default function RolePermissions() {
   })
 
   // Get modifiable roles for current user
-  const modifiableRoles = staffInfo?.role ? getModifiableRoles(staffInfo.role) : []
+  const modifiableRoles = useMemo(
+    () => (staffInfo?.role ? getModifiableRoles(staffInfo.role) : []),
+    [staffInfo?.role]
+  )
 
   // Find the currently selected role's permissions
   const currentRolePermission = rolePermissionsData?.data.find(rp => rp.role === selectedRole)

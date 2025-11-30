@@ -204,6 +204,7 @@ export function DiscountWizard({ open, onOpenChange, venueId, editDiscount, onSu
         step4Form.reset()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- form refs are stable from useForm
   }, [open, editDiscount])
 
   // Create discount mutation

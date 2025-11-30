@@ -12,7 +12,7 @@ import {
   StaffRole,
   DEFAULT_ROLE_DISPLAY_NAMES,
 } from '@/types'
-import { useCallback, useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 
 /**
  * Query key for role configs
@@ -52,7 +52,7 @@ export function useRoleConfig() {
     gcTime: 30 * 60 * 1000, // 30 minutes cache
   })
 
-  const configs = configData?.configs ?? []
+  const configs = useMemo(() => configData?.configs ?? [], [configData?.configs])
 
   // Update configs mutation
   const updateMutation = useMutation({
