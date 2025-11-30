@@ -49,6 +49,14 @@ export function InventoryNav({ className, ...props }: React.HTMLAttributes<HTMLE
       >
         {t('nav.pricing')}
       </NavLink>
+      <NavLink
+        to="modifiers"
+        className={({ isActive }) =>
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
+        }
+      >
+        {t('nav.modifiers')}
+      </NavLink>
     </nav>
   )
 }

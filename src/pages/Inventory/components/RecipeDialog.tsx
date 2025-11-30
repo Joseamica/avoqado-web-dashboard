@@ -11,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { recipesApi, rawMaterialsApi, type Recipe, type CreateRecipeDto } from '@/services/inventory.service'
-import { Loader2, Plus, Trash2, Package, Info } from 'lucide-react'
+import { Loader2, Plus, Trash2, Package, Info, RefreshCw } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { AddIngredientDialog } from './AddIngredientDialog'
 
@@ -47,6 +47,9 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
       unit: string
       isOptional?: boolean
       substituteNotes?: string
+      isVariable?: boolean
+      linkedModifierGroupId?: string | null
+      linkedModifierGroupName?: string
     }>
   >([])
 
@@ -283,6 +286,8 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
             unit: line.unit,
             isOptional: line.isOptional,
             substituteNotes: line.substituteNotes || undefined,
+            isVariable: line.isVariable,
+            linkedModifierGroupId: line.linkedModifierGroupId,
           })) || [],
       }
       updateMutation.mutate(payload)
@@ -423,16 +428,45 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                 className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
                               >
                                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
-                                  <Package className="h-5 w-5 text-primary" />
+                                  {line.isVariable ? (
+                                    <RefreshCw className="h-5 w-5 text-amber-500" />
+                                  ) : (
+                                    <Package className="h-5 w-5 text-primary" />
+                                  )}
                                 </div>
 
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-foreground">
-                                    {ingredientName}
-                                    {line.isOptional && (
-                                      <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {ingredientName}
+                                      {line.isOptional && (
+                                        <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
+                                      )}
+                                    </p>
+                                    {line.isVariable && (
+                                      <TooltipProvider delayDuration={200}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                              <RefreshCw className="h-3 w-3" />
+                                              {t('recipes.ingredients.variableIngredient')}
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <p className="text-xs">
+                                              {t('recipes.ingredients.variableIngredientDesc')}
+                                              {line.linkedModifierGroupName && (
+                                                <>
+                                                  <br />
+                                                  <strong>{t('recipes.ingredients.linkedModifierGroup')}:</strong> {line.linkedModifierGroupName}
+                                                </>
+                                              )}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     )}
-                                  </p>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">
                                     {Number(line.quantity).toFixed(2)} {line.unit}
                                     {rawMaterial && (
@@ -463,16 +497,45 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
                                 className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
                               >
                                 <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 border border-border">
-                                  <Package className="h-5 w-5 text-primary" />
+                                  {line.isVariable ? (
+                                    <RefreshCw className="h-5 w-5 text-amber-500" />
+                                  ) : (
+                                    <Package className="h-5 w-5 text-primary" />
+                                  )}
                                 </div>
 
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-foreground">
-                                    {line.rawMaterial.name}
-                                    {line.isOptional && (
-                                      <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-foreground">
+                                      {line.rawMaterial.name}
+                                      {line.isOptional && (
+                                        <span className="ml-2 text-xs text-muted-foreground">({t('recipes.ingredients.optional')})</span>
+                                      )}
+                                    </p>
+                                    {line.isVariable && (
+                                      <TooltipProvider delayDuration={200}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                              <RefreshCw className="h-3 w-3" />
+                                              {t('recipes.ingredients.variableIngredient')}
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <p className="text-xs">
+                                              {t('recipes.ingredients.variableIngredientDesc')}
+                                              {line.linkedModifierGroup && (
+                                                <>
+                                                  <br />
+                                                  <strong>{t('recipes.ingredients.linkedModifierGroup')}:</strong> {line.linkedModifierGroup.name}
+                                                </>
+                                              )}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     )}
-                                  </p>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">
                                     {Number(line.quantity).toFixed(2)} {line.unit} × {Currency(Number(line.rawMaterial.costPerUnit))} ={' '}
                                     {Currency(lineCost)}

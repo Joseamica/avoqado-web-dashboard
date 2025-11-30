@@ -9,17 +9,30 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { recipesApi, rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
-import { Loader2, Search } from 'lucide-react'
+import { getModifierGroups } from '@/services/menu.service'
+import { Loader2, Search, RefreshCw } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface ProductWithRecipe {
   id: string
   name: string
+}
+
+interface ModifierGroup {
+  id: string
+  name: string
+  modifiers?: Array<{
+    id: string
+    name: string
+    rawMaterialId?: string | null
+    inventoryMode?: string | null
+  }>
 }
 
 interface AddIngredientDialogProps {
@@ -34,6 +47,9 @@ interface AddIngredientDialogProps {
     unit: string
     isOptional?: boolean
     substituteNotes?: string
+    isVariable?: boolean
+    linkedModifierGroupId?: string | null
+    linkedModifierGroupName?: string
   }) => void
 }
 
@@ -43,10 +59,13 @@ interface AddIngredientForm {
   unit: string
   isOptional: boolean
   substituteNotes?: string
+  isVariable: boolean
+  linkedModifierGroupId: string | null
 }
 
 export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTempIngredient }: AddIngredientDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tMenu } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -69,10 +88,14 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
       unit: '',
       isOptional: false,
       substituteNotes: '',
+      isVariable: false,
+      linkedModifierGroupId: null,
     },
   })
 
   const isOptional = watch('isOptional')
+  const isVariable = watch('isVariable')
+  const linkedModifierGroupId = watch('linkedModifierGroupId')
 
   // Debounce search term to reduce API calls
   useEffect(() => {
@@ -96,6 +119,21 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     enabled: !!venueId && open,
   })
 
+  // Fetch modifier groups for variable ingredient linking
+  const { data: modifierGroups, isLoading: modifierGroupsLoading } = useQuery({
+    queryKey: ['modifier-groups', venueId],
+    queryFn: async () => {
+      const response = await getModifierGroups(venueId)
+      return response.data as ModifierGroup[]
+    },
+    enabled: !!venueId && open && isVariable,
+  })
+
+  // Filter modifier groups that have at least one modifier with SUBSTITUTION inventory mode
+  const substitutionModifierGroups = modifierGroups?.filter(group =>
+    group.modifiers?.some(m => m.inventoryMode === 'SUBSTITUTION' && m.rawMaterialId)
+  ) || []
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
@@ -105,6 +143,8 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
         unit: '',
         isOptional: false,
         substituteNotes: '',
+        isVariable: false,
+        linkedModifierGroupId: null,
       })
       setSelectedRawMaterial(null)
       setSearchTerm('')
@@ -119,10 +159,20 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     }
   }, [selectedRawMaterial, setValue])
 
+  // Reset linkedModifierGroupId when isVariable is turned off
+  useEffect(() => {
+    if (!isVariable) {
+      setValue('linkedModifierGroupId', null)
+    }
+  }, [isVariable, setValue])
+
   // Add ingredient mutation
   const addIngredientMutation = useMutation({
     mutationFn: (data: Omit<AddIngredientForm, 'rawMaterialId'> & { rawMaterialId: string }) =>
-      recipesApi.addLine(venueId, product.id, data),
+      recipesApi.addLine(venueId, product.id, {
+        ...data,
+        linkedModifierGroupId: data.linkedModifierGroupId || null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products-with-recipes', venueId] })
       queryClient.invalidateQueries({ queryKey: ['recipe', venueId, product.id] })
@@ -155,12 +205,16 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
       return
     }
 
+    const selectedGroup = modifierGroups?.find(g => g.id === data.linkedModifierGroupId)
+
     const ingredientData = {
       rawMaterialId: selectedRawMaterial.id,
       quantity: data.quantity,
       unit: data.unit,
       isOptional: data.isOptional,
       substituteNotes: data.substituteNotes || undefined,
+      isVariable: data.isVariable,
+      linkedModifierGroupId: data.linkedModifierGroupId || null,
     }
 
     if (mode === 'create') {
@@ -168,6 +222,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
       onAddTempIngredient?.({
         ...ingredientData,
         rawMaterialName: selectedRawMaterial.name,
+        linkedModifierGroupName: selectedGroup?.name,
       })
       toast({
         title: t('recipes.messages.ingredientAdded'),
@@ -326,6 +381,66 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                 <Label htmlFor="isOptional" className="cursor-pointer">
                   {t('recipes.ingredients.optional')}
                 </Label>
+              </div>
+
+              {/* Variable Ingredient Section */}
+              <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="isVariable" className="text-sm font-medium flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      {t('recipes.ingredients.variableIngredient', 'Variable Ingredient')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('recipes.ingredients.variableIngredientDesc', 'Allow customers to substitute this ingredient via modifier selection')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="isVariable"
+                    checked={isVariable}
+                    onCheckedChange={checked => setValue('isVariable', checked as boolean)}
+                  />
+                </div>
+
+                {/* Modifier Group Selection - only show when isVariable is true */}
+                {isVariable && (
+                  <div className="space-y-2 pt-2">
+                    <Label>{t('recipes.ingredients.linkedModifierGroup', 'Linked Modifier Group')}</Label>
+                    <Select
+                      value={linkedModifierGroupId || ''}
+                      onValueChange={value => setValue('linkedModifierGroupId', value || null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('recipes.ingredients.selectModifierGroup', 'Select a modifier group...')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modifierGroupsLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : substitutionModifierGroups.length > 0 ? (
+                          substitutionModifierGroups.map(group => (
+                            <SelectItem key={group.id} value={group.id}>
+                              <div className="flex flex-col">
+                                <span>{group.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {group.modifiers?.filter(m => m.inventoryMode === 'SUBSTITUTION').length || 0} {tMenu('modifiers.inventory.modeSubstitution', 'substitution')} {t('recipes.ingredients.modifiers', 'modifiers')}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            {t('recipes.ingredients.noSubstitutionGroups', 'No modifier groups with substitution modifiers found. Create modifiers with SUBSTITUTION inventory mode first.')}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t('recipes.ingredients.linkedModifierGroupDesc', 'When a customer selects a modifier from this group, it will replace this ingredient')}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Substitute Notes */}
