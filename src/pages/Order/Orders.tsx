@@ -14,7 +14,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Download } from 'lucide-react'
+import { Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
@@ -29,6 +29,8 @@ export default function Orders() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [sortField, setSortField] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   const { data, isLoading, error, refetch } = useQuery({
     // CAMBIO: La query key ahora es 'orders'
@@ -49,17 +51,47 @@ export default function Orders() {
     refetch()
   })
 
+  // Handle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
+
+  // Render sortable header
+  const renderSortableHeader = (label: string | JSX.Element, field: string) => {
+    const isSorted = sortField === field
+    return (
+      <div
+        className="flex items-center gap-2 cursor-pointer select-none hover:text-foreground"
+        onClick={() => handleSort(field)}
+      >
+        {label}
+        <span className="flex items-center">
+          {isSorted && sortOrder === 'asc' && <ArrowUp className="h-4 w-4" />}
+          {isSorted && sortOrder === 'desc' && <ArrowDown className="h-4 w-4" />}
+          {!isSorted && <ArrowUpDown className="h-4 w-4 opacity-50" />}
+        </span>
+      </div>
+    )
+  }
+
   const columns = useMemo<ColumnDef<OrderType, unknown>[]>(
     () => [
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
-        header: () => (
-          <div className="flex flex-col">
-            <span>{t('columns.date')}</span>
-            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
-          </div>
-        ),
+        header: () =>
+          renderSortableHeader(
+            <div className="flex flex-col">
+              <span>{t('columns.date')}</span>
+              <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+            </div>,
+            'createdAt',
+          ),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
           // ✅ Uses venue timezone instead of browser timezone
@@ -128,21 +160,25 @@ export default function Orders() {
         },
       },
       {
+        // Mesa (Table)
+        accessorFn: row => row.table?.number || '-',
+        id: 'tableName',
+        meta: { label: t('columns.table') },
+        header: t('columns.table'),
+        cell: info => <>{info.getValue() as string}</>,
+      },
+      {
         // CAMBIO: `waiterName` ahora se obtiene del objeto anidado `createdBy`
         accessorFn: row => (row.createdBy ? `${row.createdBy.firstName}` : '-'),
         id: 'waiterName',
         meta: { label: t('columns.waiter') },
-        header: t('columns.waiter'),
+        header: () => renderSortableHeader(t('columns.waiter'), 'waiterName'),
       },
       {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
         accessorKey: 'status',
         meta: { label: t('columns.status') },
-        header: () => (
-          <div className="flex justify-center">
-            {t('columns.status')}
-          </div>
-        ),
+        header: () => renderSortableHeader(t('columns.status'), 'status'),
         cell: ({ cell }) => {
           const status = cell.getValue() as string
 
@@ -178,7 +214,7 @@ export default function Orders() {
       {
         accessorKey: 'tipAmount',
         meta: { label: t('columns.tip') },
-        header: t('columns.tip'),
+        header: () => renderSortableHeader(t('columns.tip'), 'tipAmount'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           return Currency(value)
@@ -188,7 +224,7 @@ export default function Orders() {
         // CAMBIO: El total es un campo numérico directo, no un string.
         accessorKey: 'total',
         meta: { label: t('columns.total') },
-        header: t('columns.total'),
+        header: () => renderSortableHeader(t('columns.total'), 'total'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
           // `Currency` probablemente espera centavos, y total es un valor decimal.
@@ -196,7 +232,7 @@ export default function Orders() {
         },
       },
     ],
-    [t, formatTime, formatDate, venueTimezoneShort],
+    [t, formatTime, formatDate, venueTimezoneShort, sortField, sortOrder],
   )
 
   // Search callback for DataTable
@@ -210,11 +246,53 @@ export default function Orders() {
       // const customerMatch = order.customerName?.toLowerCase().includes(lowerSearchTerm)
       const waiterName = order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : ''
       const waiterMatch = waiterName.toLowerCase().includes(lowerSearchTerm)
+      const tableName = order.table?.number || ''
+      const tableMatch = tableName.toLowerCase().includes(lowerSearchTerm)
       const totalMatch = order.total.toString().includes(lowerSearchTerm)
 
-      return folioMatch || waiterMatch || totalMatch
+      return folioMatch || waiterMatch || tableMatch || totalMatch
     })
   }, [])
+
+  // Sort data before displaying
+  const sortedData = useMemo(() => {
+    const orders = data?.data || []
+    if (!sortField) return orders
+
+    return [...orders].sort((a: any, b: any) => {
+      let aValue: any
+      let bValue: any
+
+      switch (sortField) {
+        case 'createdAt':
+          aValue = new Date(a.createdAt).getTime()
+          bValue = new Date(b.createdAt).getTime()
+          break
+        case 'waiterName':
+          aValue = a.createdBy ? a.createdBy.firstName.toLowerCase() : ''
+          bValue = b.createdBy ? b.createdBy.firstName.toLowerCase() : ''
+          break
+        case 'status':
+          aValue = a.status || ''
+          bValue = b.status || ''
+          break
+        case 'tipAmount':
+          aValue = a.tipAmount || 0
+          bValue = b.tipAmount || 0
+          break
+        case 'total':
+          aValue = a.total || 0
+          bValue = b.total || 0
+          break
+        default:
+          return 0
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [data?.data, sortField, sortOrder])
 
   // Export functionality
   const handleExport = useCallback(
@@ -233,12 +311,14 @@ export default function Orders() {
         // Transform orders to flat structure for export
         const exportData = orders.map(order => {
           const waiterName = order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : '-'
+          const tableName = order.table?.number || '-'
 
           return {
             [t('columns.date')]: formatDate(order.createdAt),
             [t('columns.orderNumber')]: order.orderNumber || '-',
             // [t('columns.customer')]: order.customerName || t('counter'),
             [t('columns.type')]: t(`types.${order.type}` as any),
+            [t('columns.table')]: tableName,
             [t('columns.waiter')]: waiterName,
             [t('columns.status')]: t(`statuses.${order.status}` as any),
             [t('columns.tip')]: formatCurrencyForExport(Number(order.tipAmount) || 0),
@@ -296,7 +376,7 @@ export default function Orders() {
       )}
 
       <DataTable
-        data={data?.data || []}
+        data={sortedData}
         rowCount={totalOrders}
         columns={columns}
         isLoading={isLoading}
