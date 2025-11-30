@@ -1,4 +1,12 @@
 {
+  "nav": {
+    "rawMaterials": "Matières Premières",
+    "productStock": "Stock de Produits",
+    "recipes": "Recettes",
+    "pricing": "Tarification",
+    "modifiers": "Modificateurs"
+  },
+
   "badge": {
     "status": {
       "inStock": "En Stock",
@@ -31,6 +39,7 @@
   },
 
   "recipes": {
+    "addIngredient": "Ajouter un Ingrédient",
     "fields": {
       "portionYield": "Rendement de Portions",
       "prepTime": "Temps de Préparation (min)",
@@ -43,6 +52,25 @@
       "example1": "Hamburger = 1 portion",
       "example2": "Grande Pizza = 8 portions (8 tranches)",
       "example3": "Marmite de Soupe = 10 portions"
+    },
+    "ingredients": {
+      "title": "Ingrédients",
+      "ingredient": "Ingrédient",
+      "quantity": "Quantité",
+      "unit": "Unité",
+      "cost": "Coût",
+      "optional": "Optionnel",
+      "substituteNotes": "Notes de Substitution",
+      "variableIngredient": "Ingrédient Variable",
+      "variableIngredientDesc": "Permettre aux clients de remplacer cet ingrédient via la sélection de modificateurs",
+      "linkedModifierGroup": "Groupe de Modificateurs Lié",
+      "linkedModifierGroupDesc": "Lorsqu'un client sélectionne un modificateur de ce groupe, il remplacera cet ingrédient",
+      "selectModifierGroup": "Sélectionner un groupe de modificateurs...",
+      "noSubstitutionGroups": "Aucun groupe de modificateurs avec des modificateurs de substitution trouvé. Créez d'abord des modificateurs avec le mode d'inventaire SUBSTITUTION.",
+      "modifiers": "modificateurs"
+    },
+    "messages": {
+      "ingredientAdded": "Ingrédient ajouté avec succès"
     }
   },
 
@@ -61,5 +89,28 @@
         "COUNT": "Comptage"
       }
     }
+  },
+
+  "modifierAnalytics": {
+    "title": "Analyse d'Inventaire des Modificateurs",
+    "description": "Suivez l'utilisation des modificateurs et leur impact sur l'inventaire",
+    "totalModifiers": "Modificateurs avec Inventaire",
+    "trackingInventory": "suivi de l'inventaire",
+    "lowStock": "Alertes de Stock Bas",
+    "needsRestock": "nécessite un réapprovisionnement",
+    "totalCostImpact": "Impact Total sur les Coûts",
+    "last7Days": "7 derniers jours",
+    "last30Days": "30 derniers jours",
+    "last90Days": "90 derniers jours",
+    "lowStockModifiers": "Modificateurs en Stock Bas",
+    "lowStockDescription": "Modificateurs avec des matières premières en dessous du point de réapprovisionnement",
+    "usesRemaining": "utilisations restantes",
+    "topCostModifiers": "Modificateurs à Coût Élevé",
+    "topCostDescription": "Modificateurs avec le plus grand impact sur les coûts d'inventaire",
+    "used": "utilisé",
+    "viewAllModifiers": "Voir tous les modificateurs",
+    "noModifiersTracked": "Aucun Modificateur avec Suivi d'Inventaire",
+    "noModifiersDescription": "Configurez le suivi d'inventaire pour les modificateurs pour voir les analyses d'utilisation et l'impact sur les coûts.",
+    "configureModifiers": "Configurer les Modificateurs"
   }
 }

@@ -9,6 +9,7 @@
     "offline": "Terminal desconectado",
     "exitMaintenance": "Salir Mantenimiento",
     "maintenanceMode": "Mantenimiento",
+    "activate": "Activar",
     "update": "Actualizar",
     "generateCode": "Generar Código de Activación",
     "delete": "Eliminar Terminal",
@@ -51,6 +52,7 @@
     "maintenance": "Mantenimiento",
     "retired": "Retirado",
     "unknown": "Desconocido",
+    "pendingActivation": "Pendiente de Activación",
     "lastSeen": "Visto por última vez",
     "activated": "Activado",
     "notActivated": "Sin Activar"
@@ -172,6 +174,26 @@
     "nextPage": "Ir a la página siguiente",
     "lastPage": "Ir a la última página"
   },
+  "tpvSettings": {
+    "title": "Configuración de Terminal",
+    "description": "Configura las pantallas y opciones que se muestran durante el proceso de pago",
+    "showTipScreen": "Mostrar pantalla de propinas",
+    "showTipScreenDesc": "Muestra opciones de propina al cliente antes de procesar el pago",
+    "showReviewScreen": "Mostrar pantalla de reseñas",
+    "showReviewScreenDesc": "Permite al cliente dejar una reseña después del pago",
+    "showReceiptScreen": "Mostrar opciones de recibo",
+    "showReceiptScreenDesc": "Muestra opciones para enviar o imprimir recibo después del pago",
+    "requirePinLogin": "Requerir PIN para login",
+    "requirePinLoginDesc": "Requiere que el personal ingrese un PIN para iniciar sesión en el terminal",
+    "defaultTipPercentage": "Propina pre-seleccionada",
+    "defaultTipPercentageDesc": "Porcentaje de propina seleccionado por defecto",
+    "noDefaultTip": "Ninguna",
+    "updateSuccess": "Configuración actualizada",
+    "updateError": "Error al actualizar configuración",
+    "loadError": "Error al cargar configuración del terminal",
+    "noUpdatePermission": "No tienes permiso para modificar esta configuración. Contacta a tu administrador.",
+    "infoAlert": "Estos ajustes son específicos para este terminal. Los cambios toman efecto inmediatamente cuando el terminal se sincroniza."
+  },
   "activation": {
     "title": "Código de Activación del Terminal",
     "description": "Comparte este código con el personal para activar el terminal en el dispositivo Android",
@@ -191,6 +213,174 @@
       "step2": "2. Ingresa el número de serie del dispositivo: {{serialNumber}}",
       "step3": "3. Ingresa este código de activación",
       "step4": "4. El terminal estará activado y listo para usar"
+    }
+  },
+  "activation": {
+    "title": "Activar Terminal",
+    "description": "Ingresa el número de serie físico del dispositivo PAX para activar este terminal.",
+    "serialNumber": "Número de Serie",
+    "serialNumberDesc": "Ingresa el número de serie impreso en la parte posterior del dispositivo PAX",
+    "serialNumberPlaceholder": "Ej: PAX-A910S-12345678",
+    "activate": "Activar",
+    "validation": {
+      "serialRequired": "El número de serie es requerido",
+      "serialMinLength": "El número de serie debe tener al menos 8 caracteres",
+      "serialMaxLength": "El número de serie no puede exceder 50 caracteres"
+    },
+    "success": {
+      "title": "Terminal Activado",
+      "description": "El terminal ha sido activado exitosamente"
+    },
+    "errors": {
+      "activationFailed": "No se pudo activar el terminal",
+      "duplicateSerial": "Este número de serie ya está registrado"
+    }
+  },
+  "purchaseWizard": {
+    "title": "Comprar Terminal",
+    "subtitle": "Configura y ordena tu terminal PAX A910S",
+    "step1": {
+      "title": "Configuración",
+      "description": "Configura tu orden de terminales",
+      "product": {
+        "name": "PAX A910S",
+        "description": "Potente TPV de bolsillo con pagos integrados",
+        "features": "Pantalla táctil 5\" • Escáner integrado • Cámara para QR • Conectividad 4G"
+      },
+      "quantity": "Cantidad de terminales",
+      "quantityDesc": "¿Cuántos terminales deseas ordenar?",
+      "namePrefix": "Prefijo de nombre del terminal",
+      "namePrefixDesc": "Los terminales se nombrarán: {{prefix}} 1, {{prefix}} 2, etc.",
+      "namePrefixPlaceholder": "Terminal",
+      "serialMode": "Modo de número de serie",
+      "autoGenerate": "Auto-generar",
+      "manual": "Ingresar manualmente",
+      "serialNumbers": "Números de serie",
+      "serialPlaceholder": "Ingresa número de serie",
+      "serialNote": "Nota: Los números de serie se asignarán cuando recibas y actives los dispositivos físicos. No necesitas ingresarlos ahora.",
+      "validation": {
+        "quantityRequired": "La cantidad es obligatoria",
+        "quantityMin": "Mínimo 1 terminal",
+        "quantityMax": "Máximo 10 terminales por orden",
+        "namePrefixRequired": "El prefijo de nombre es obligatorio",
+        "namePrefixMin": "El nombre debe tener al menos 3 caracteres",
+        "namePrefixMax": "El nombre no puede exceder 50 caracteres",
+        "serialRequired": "El número de serie es obligatorio",
+        "serialUnique": "Los números de serie deben ser únicos"
+      }
+    },
+    "step2": {
+      "title": "Información de Envío",
+      "description": "Confirma la dirección de entrega e información de contacto",
+      "contactInfo": "Información de Contacto",
+      "contactName": "Nombre completo",
+      "contactNamePlaceholder": "Juan Pérez",
+      "contactEmail": "Correo electrónico",
+      "contactEmailPlaceholder": "juan@ejemplo.com",
+      "contactPhone": "Número de teléfono",
+      "contactPhonePlaceholder": "+52 (55) 1234-5678",
+      "shippingAddress": "Dirección de Envío",
+      "address": "Dirección",
+      "addressPlaceholder": "Av. Reforma 123",
+      "addressLine2": "Línea 2 de dirección (opcional)",
+      "addressLine2Placeholder": "Depto, piso, edificio, etc.",
+      "city": "Ciudad",
+      "cityPlaceholder": "Ciudad de México",
+      "state": "Estado / Provincia",
+      "statePlaceholder": "CDMX",
+      "postalCode": "Código postal",
+      "postalCodePlaceholder": "06600",
+      "country": "País",
+      "countryPlaceholder": "México",
+      "shippingSpeed": "Velocidad de envío",
+      "shippingOptions": {
+        "standard": "Estándar (5-7 días hábiles) - Gratis",
+        "express": "Express (2-3 días hábiles) - $300.00",
+        "overnight": "Urgente (1 día hábil) - $700.00"
+      },
+      "validation": {
+        "contactNameRequired": "El nombre de contacto es obligatorio",
+        "contactEmailRequired": "El correo electrónico es obligatorio",
+        "contactEmailInvalid": "Formato de correo inválido",
+        "contactPhoneRequired": "El número de teléfono es obligatorio",
+        "addressRequired": "La dirección es obligatoria",
+        "cityRequired": "La ciudad es obligatoria",
+        "stateRequired": "El estado es obligatorio",
+        "postalCodeRequired": "El código postal es obligatorio",
+        "countryRequired": "El país es obligatorio"
+      },
+      "venueDataIncomplete": "El perfil de tu establecimiento no tiene información completa de dirección o contacto. Por favor, completa los detalles de envío manualmente."
+    },
+    "step3": {
+      "title": "Método de Pago",
+      "description": "Completa tu compra (Modo Demo)",
+      "demoWarning": "Esta es una demostración. No se procesará ningún cargo real.",
+      "selectMethod": "Selecciona método de pago",
+      "methods": {
+        "card": "Tarjeta de Crédito / Débito",
+        "bank": "Transferencia Bancaria",
+        "balance": "Saldo de Cuenta"
+      },
+      "cardNumber": "Número de tarjeta",
+      "cardNumberPlaceholder": "1234 5678 9012 3456",
+      "cardExpiry": "Vencimiento (MM/AA)",
+      "cardExpiryPlaceholder": "12/25",
+      "cardCVV": "CVV",
+      "cardCVVPlaceholder": "123",
+      "cardName": "Nombre del titular",
+      "cardNamePlaceholder": "Juan Pérez",
+      "validation": {
+        "methodRequired": "El método de pago es obligatorio",
+        "cardNumberRequired": "El número de tarjeta es obligatorio",
+        "cardNumberInvalid": "Número de tarjeta inválido (debe tener 16 dígitos)",
+        "cardExpiryRequired": "La fecha de vencimiento es obligatoria",
+        "cardExpiryInvalid": "Formato inválido (usa MM/AA)",
+        "cardCVVRequired": "El CVV es obligatorio",
+        "cardCVVInvalid": "CVV inválido (debe tener 3-4 dígitos)",
+        "cardNameRequired": "El nombre del titular es obligatorio"
+      }
+    },
+    "step4": {
+      "title": "Revisar y Confirmar",
+      "description": "Revisa tu orden antes de realizar el pedido",
+      "orderSummary": "Resumen del Pedido",
+      "terminalSelected": "Terminal",
+      "configuration": "Configuración",
+      "quantity": "Cantidad",
+      "terminals": "{{count}} terminal",
+      "terminals_other": "{{count}} terminales",
+      "naming": "Patrón de nombres",
+      "serialMode": "Números de serie",
+      "shipping": "Envío",
+      "deliveryAddress": "Dirección de entrega",
+      "shippingSpeed": "Velocidad de envío",
+      "payment": "Pago (Demo)",
+      "paymentMethod": "Método de pago",
+      "pricingBreakdown": "Desglose de Precios",
+      "unitPrice": "Precio unitario",
+      "subtotal": "Subtotal",
+      "shippingCost": "Envío",
+      "tax": "Impuestos (estimado)",
+      "total": "Total",
+      "termsAndConditions": "Términos y Condiciones",
+      "acceptTerms": "Acepto los términos y condiciones",
+      "placeOrder": "Realizar Pedido",
+      "edit": "Editar",
+      "validation": {
+        "termsRequired": "Debes aceptar los términos y condiciones"
+      }
+    },
+    "success": {
+      "title": "¡Pedido Completado!",
+      "message": "Tus terminales han sido creadas exitosamente y serán enviadas a tu dirección.",
+      "orderId": "ID de Pedido",
+      "viewTerminals": "Ver Mis Terminales"
+    },
+    "errors": {
+      "validationFailed": "Por favor completa todos los campos requeridos",
+      "createFailed": "Error al crear terminales. Por favor intenta de nuevo.",
+      "termsRequired": "Debes aceptar los términos y condiciones",
+      "partialSuccess": "{{success}} de {{total}} terminales creadas. {{failed}} fallaron."
     }
   }
 }

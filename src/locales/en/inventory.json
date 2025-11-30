@@ -47,7 +47,8 @@
     "rawMaterials": "Raw Materials",
     "productStock": "Product Stock",
     "recipes": "Recipes",
-    "pricing": "Pricing"
+    "pricing": "Pricing",
+    "modifiers": "Modifiers"
   },
 
   "rawMaterials": {
@@ -237,7 +238,14 @@
       "unit": "Unit",
       "cost": "Cost",
       "optional": "Optional",
-      "substituteNotes": "Substitute Notes"
+      "substituteNotes": "Substitute Notes",
+      "variableIngredient": "Variable Ingredient",
+      "variableIngredientDesc": "Allow customers to substitute this ingredient via modifier selection",
+      "linkedModifierGroup": "Linked Modifier Group",
+      "linkedModifierGroupDesc": "When a customer selects a modifier from this group, it will replace this ingredient",
+      "selectModifierGroup": "Select a modifier group...",
+      "noSubstitutionGroups": "No modifier groups with substitution modifiers found. Create modifiers with SUBSTITUTION inventory mode first.",
+      "modifiers": "modifiers"
     },
     "messages": {
       "created": "Recipe created successfully",
@@ -847,5 +855,28 @@
     "manualDescription": "Manually set product prices",
     "autoMarkupDescription": "Calculate price based on cost x markup percentage",
     "autoTargetMarginDescription": "Calculate price to achieve target food cost percentage"
+  },
+
+  "modifierAnalytics": {
+    "title": "Modifier Inventory Analytics",
+    "description": "Track modifier usage and inventory impact",
+    "totalModifiers": "Modifiers with Inventory",
+    "trackingInventory": "tracking inventory",
+    "lowStock": "Low Stock Alerts",
+    "needsRestock": "needs restock",
+    "totalCostImpact": "Total Cost Impact",
+    "last7Days": "last 7 days",
+    "last30Days": "last 30 days",
+    "last90Days": "last 90 days",
+    "lowStockModifiers": "Low Stock Modifiers",
+    "lowStockDescription": "Modifiers with raw materials below reorder point",
+    "usesRemaining": "uses remaining",
+    "topCostModifiers": "Top Cost Modifiers",
+    "topCostDescription": "Modifiers with highest inventory cost impact",
+    "used": "used",
+    "viewAllModifiers": "View all modifiers",
+    "noModifiersTracked": "No Modifiers with Inventory Tracking",
+    "noModifiersDescription": "Configure inventory tracking for modifiers to see usage analytics and cost impact.",
+    "configureModifiers": "Configure Modifiers"
   }
 }

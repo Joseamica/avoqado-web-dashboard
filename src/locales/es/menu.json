@@ -317,6 +317,21 @@
         "error": "Error al actualizar modificador",
         "errorDesc": "Hubo un problema al actualizar el modificador: {{message}}"
       }
+    },
+    "inventory": {
+      "title": "Seguimiento de Inventario",
+      "trackInventory": "Rastrear Inventario",
+      "trackInventoryDesc": "Descontar automáticamente materias primas cuando se use este modificador",
+      "mode": "Modo de Inventario",
+      "modeAddition": "Adición (Extra)",
+      "modeAdditionDesc": "Agrega ingredientes extra al pedido (ej: \"Extra Tocino\")",
+      "modeSubstitution": "Sustitución",
+      "modeSubstitutionDesc": "Reemplaza un ingrediente de la receta (ej: \"Leche de Almendra\" en vez de leche regular)",
+      "rawMaterial": "Materia Prima",
+      "quantityPerUnit": "Cantidad por modificador",
+      "quantityPerUnitDesc": "Cuánta materia prima se usa por cada modificador",
+      "unit": "Unidad",
+      "selectUnit": "Seleccionar unidad"
     }
   },
   "products": {

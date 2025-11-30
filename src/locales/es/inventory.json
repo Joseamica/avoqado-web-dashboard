@@ -47,7 +47,8 @@
     "rawMaterials": "Materias Primas",
     "productStock": "Stock de Productos",
     "recipes": "Recetas",
-    "pricing": "Precios"
+    "pricing": "Precios",
+    "modifiers": "Modificadores"
   },
 
   "rawMaterials": {
@@ -237,7 +238,14 @@
       "unit": "Unidad",
       "cost": "Costo",
       "optional": "Opcional",
-      "substituteNotes": "Notas de Sustitución"
+      "substituteNotes": "Notas de Sustitución",
+      "variableIngredient": "Ingrediente Variable",
+      "variableIngredientDesc": "Permite a los clientes sustituir este ingrediente mediante la selección de modificadores",
+      "linkedModifierGroup": "Grupo de Modificadores Vinculado",
+      "linkedModifierGroupDesc": "Cuando un cliente selecciona un modificador de este grupo, reemplazará este ingrediente",
+      "selectModifierGroup": "Seleccionar un grupo de modificadores...",
+      "noSubstitutionGroups": "No se encontraron grupos de modificadores con modificadores de sustitución. Primero crea modificadores con el modo de inventario SUSTITUCIÓN.",
+      "modifiers": "modificadores"
     },
     "messages": {
       "created": "Receta creada exitosamente",
@@ -847,5 +855,28 @@
     "manualDescription": "Establece manualmente los precios de los productos",
     "autoMarkupDescription": "Calcula el precio basado en costo x porcentaje de margen",
     "autoTargetMarginDescription": "Calcula el precio para lograr el porcentaje objetivo de costo de alimentos"
+  },
+
+  "modifierAnalytics": {
+    "title": "Análisis de Inventario de Modificadores",
+    "description": "Rastrea el uso de modificadores y su impacto en el inventario",
+    "totalModifiers": "Modificadores con Inventario",
+    "trackingInventory": "rastreando inventario",
+    "lowStock": "Alertas de Stock Bajo",
+    "needsRestock": "necesita reabastecimiento",
+    "totalCostImpact": "Impacto Total en Costos",
+    "last7Days": "últimos 7 días",
+    "last30Days": "últimos 30 días",
+    "last90Days": "últimos 90 días",
+    "lowStockModifiers": "Modificadores con Stock Bajo",
+    "lowStockDescription": "Modificadores con materias primas por debajo del punto de reorden",
+    "usesRemaining": "usos restantes",
+    "topCostModifiers": "Modificadores de Mayor Costo",
+    "topCostDescription": "Modificadores con mayor impacto en costos de inventario",
+    "used": "usado",
+    "viewAllModifiers": "Ver todos los modificadores",
+    "noModifiersTracked": "Sin Modificadores con Seguimiento de Inventario",
+    "noModifiersDescription": "Configura el seguimiento de inventario para modificadores para ver análisis de uso e impacto en costos.",
+    "configureModifiers": "Configurar Modificadores"
   }
 }

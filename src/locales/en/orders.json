@@ -1,6 +1,6 @@
 {
   "title": "Orders",
-  "searchPlaceholder": "Search by order number or waiter...",
+  "searchPlaceholder": "Search by order number, table or waiter...",
   "errorPrefix": "Failed to load orders",
   "counter": "Counter",
   "columns": {
@@ -8,6 +8,7 @@
     "orderNumber": "Order #",
     "customer": "Customer",
     "type": "Type",
+    "table": "Table",
     "waiter": "Waiter",
     "status": "Status",
     "tip": "Tip",

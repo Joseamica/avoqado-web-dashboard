@@ -2,6 +2,10 @@
   "rolePermissions": {
     "title": "Role Permissions",
     "description": "Customize permissions for each role in your venue",
+    "tabs": {
+      "permissions": "Permissions",
+      "displayNames": "Display Names"
+    },
     "noAccess": "No Access",
     "noAccessDesc": "You don't have permission to manage role permissions. Contact your administrator.",
     "infoAlert": "Changes to role permissions will affect all users with that role. Individual staff members can have custom permissions in Team Management.",
@@ -84,5 +88,33 @@
       "reservations": "Reservations",
       "settings": "Settings"
     }
+  },
+  "roleDisplayNames": {
+    "infoAlert": "Customize how role names appear in your venue. This only affects the display name, not the actual permissions.",
+    "unsavedChanges": "You have unsaved changes",
+    "noChanges": "No changes",
+    "noChangesDesc": "There are no changes to save.",
+    "saveSuccess": "Changes saved",
+    "saveSuccessDesc": "Role display names have been updated.",
+    "saveError": "Failed to save changes.",
+    "resetAll": "Reset All",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "resetSuccess": "Reset complete",
+    "resetSuccessDesc": "All role names have been reset to defaults.",
+    "resetError": "Failed to reset.",
+    "resetConfirmTitle": "Reset All Role Names?",
+    "resetConfirmMessage": "This will reset all role display names, descriptions, and colors to their defaults. This action cannot be undone.",
+    "resetConfirm": "Reset All",
+    "customized": "Customized",
+    "defaultName": "Default",
+    "displayName": "Display Name",
+    "description": "Description",
+    "descriptionPlaceholder": "Brief description of this role...",
+    "badgeColor": "Badge Color",
+    "defaultColor": "Default color",
+    "preview": "Preview",
+    "hideRole": "Hide this role from selectors",
+    "showRole": "Show this role in selectors"
   }
 }

@@ -9,6 +9,7 @@
     "offline": "Terminal disconnected",
     "exitMaintenance": "Exit Maintenance",
     "maintenanceMode": "Maintenance",
+    "activate": "Activate",
     "update": "Update",
     "generateCode": "Generate Activation Code",
     "delete": "Delete Terminal",
@@ -51,6 +52,7 @@
     "maintenance": "Maintenance",
     "retired": "Retired",
     "unknown": "Unknown",
+    "pendingActivation": "Pending Activation",
     "lastSeen": "Last seen",
     "activated": "Activated",
     "notActivated": "Not Activated"
@@ -172,6 +174,26 @@
     "nextPage": "Go to next page",
     "lastPage": "Go to last page"
   },
+  "tpvSettings": {
+    "title": "Terminal Configuration",
+    "description": "Configure the screens and options displayed during the payment process",
+    "showTipScreen": "Show tip screen",
+    "showTipScreenDesc": "Display tip options to customer before processing payment",
+    "showReviewScreen": "Show review screen",
+    "showReviewScreenDesc": "Allow customer to leave a review after payment",
+    "showReceiptScreen": "Show receipt options",
+    "showReceiptScreenDesc": "Display options to send or print receipt after payment",
+    "requirePinLogin": "Require PIN for login",
+    "requirePinLoginDesc": "Require staff to enter a PIN to log in to the terminal",
+    "defaultTipPercentage": "Pre-selected tip",
+    "defaultTipPercentageDesc": "Default selected tip percentage",
+    "noDefaultTip": "None",
+    "updateSuccess": "Configuration updated",
+    "updateError": "Failed to update configuration",
+    "loadError": "Failed to load terminal configuration",
+    "noUpdatePermission": "You don't have permission to modify this configuration. Contact your administrator.",
+    "infoAlert": "These settings are specific to this terminal. Changes take effect immediately when the terminal syncs."
+  },
   "activation": {
     "title": "Terminal Activation Code",
     "description": "Share this code with staff to activate the terminal on the Android device",
@@ -191,6 +213,174 @@
       "step2": "2. Enter the device serial number: {{serialNumber}}",
       "step3": "3. Enter this activation code",
       "step4": "4. The terminal will be activated and ready to use"
+    }
+  },
+  "activation": {
+    "title": "Activate Terminal",
+    "description": "Enter the physical serial number from the PAX device to activate this terminal.",
+    "serialNumber": "Serial Number",
+    "serialNumberDesc": "Enter the serial number printed on the back of the PAX device",
+    "serialNumberPlaceholder": "e.g. PAX-A910S-12345678",
+    "activate": "Activate",
+    "validation": {
+      "serialRequired": "Serial number is required",
+      "serialMinLength": "Serial number must be at least 8 characters",
+      "serialMaxLength": "Serial number cannot exceed 50 characters"
+    },
+    "success": {
+      "title": "Terminal Activated",
+      "description": "The terminal has been successfully activated"
+    },
+    "errors": {
+      "activationFailed": "Failed to activate terminal",
+      "duplicateSerial": "This serial number is already registered"
+    }
+  },
+  "purchaseWizard": {
+    "title": "Purchase Terminal",
+    "subtitle": "Configure and order your PAX A910S terminal",
+    "step1": {
+      "title": "Configuration",
+      "description": "Configure your terminal order",
+      "product": {
+        "name": "PAX A910S",
+        "description": "Powerful pocket-sized POS with integrated payments",
+        "features": "5\" touchscreen • Integrated scanner • QR camera • 4G connectivity"
+      },
+      "quantity": "Number of terminals",
+      "quantityDesc": "How many terminals would you like to order?",
+      "namePrefix": "Terminal name prefix",
+      "namePrefixDesc": "Terminals will be named: {{prefix}} 1, {{prefix}} 2, etc.",
+      "namePrefixPlaceholder": "Terminal",
+      "serialMode": "Serial number mode",
+      "autoGenerate": "Auto-generate",
+      "manual": "Enter manually",
+      "serialNumbers": "Serial numbers",
+      "serialPlaceholder": "Enter serial number",
+      "serialNote": "Note: Serial numbers will be assigned when you receive and activate the physical devices. You don't need to enter them now.",
+      "validation": {
+        "quantityRequired": "Quantity is required",
+        "quantityMin": "Minimum 1 terminal",
+        "quantityMax": "Maximum 10 terminals per order",
+        "namePrefixRequired": "Name prefix is required",
+        "namePrefixMin": "Name must be at least 3 characters",
+        "namePrefixMax": "Name cannot exceed 50 characters",
+        "serialRequired": "Serial number is required",
+        "serialUnique": "Serial numbers must be unique"
+      }
+    },
+    "step2": {
+      "title": "Shipping Information",
+      "description": "Confirm delivery address and contact information",
+      "contactInfo": "Contact Information",
+      "contactName": "Full name",
+      "contactNamePlaceholder": "John Doe",
+      "contactEmail": "Email address",
+      "contactEmailPlaceholder": "john@example.com",
+      "contactPhone": "Phone number",
+      "contactPhonePlaceholder": "+1 (555) 123-4567",
+      "shippingAddress": "Shipping Address",
+      "address": "Street address",
+      "addressPlaceholder": "123 Main Street",
+      "addressLine2": "Address line 2 (optional)",
+      "addressLine2Placeholder": "Apt, suite, unit, floor, etc.",
+      "city": "City",
+      "cityPlaceholder": "New York",
+      "state": "State / Province",
+      "statePlaceholder": "NY",
+      "postalCode": "Postal code",
+      "postalCodePlaceholder": "10001",
+      "country": "Country",
+      "countryPlaceholder": "United States",
+      "shippingSpeed": "Shipping speed",
+      "shippingOptions": {
+        "standard": "Standard (5-7 business days) - Free",
+        "express": "Express (2-3 business days) - $15.00",
+        "overnight": "Overnight (1 business day) - $35.00"
+      },
+      "validation": {
+        "contactNameRequired": "Contact name is required",
+        "contactEmailRequired": "Email is required",
+        "contactEmailInvalid": "Invalid email format",
+        "contactPhoneRequired": "Phone number is required",
+        "addressRequired": "Street address is required",
+        "cityRequired": "City is required",
+        "stateRequired": "State is required",
+        "postalCodeRequired": "Postal code is required",
+        "countryRequired": "Country is required"
+      },
+      "venueDataIncomplete": "Your venue profile doesn't have complete address or contact information. Please fill in the shipping details manually."
+    },
+    "step3": {
+      "title": "Payment Method",
+      "description": "Complete your purchase (Demo Mode)",
+      "demoWarning": "This is a demonstration. No actual charges will be processed.",
+      "selectMethod": "Select payment method",
+      "methods": {
+        "card": "Credit / Debit Card",
+        "bank": "Bank Transfer",
+        "balance": "Account Balance"
+      },
+      "cardNumber": "Card number",
+      "cardNumberPlaceholder": "1234 5678 9012 3456",
+      "cardExpiry": "Expiration (MM/YY)",
+      "cardExpiryPlaceholder": "12/25",
+      "cardCVV": "CVV",
+      "cardCVVPlaceholder": "123",
+      "cardName": "Cardholder name",
+      "cardNamePlaceholder": "John Doe",
+      "validation": {
+        "methodRequired": "Payment method is required",
+        "cardNumberRequired": "Card number is required",
+        "cardNumberInvalid": "Invalid card number (must be 16 digits)",
+        "cardExpiryRequired": "Expiration date is required",
+        "cardExpiryInvalid": "Invalid format (use MM/YY)",
+        "cardCVVRequired": "CVV is required",
+        "cardCVVInvalid": "Invalid CVV (must be 3-4 digits)",
+        "cardNameRequired": "Cardholder name is required"
+      }
+    },
+    "step4": {
+      "title": "Review & Confirm",
+      "description": "Review your order before placing",
+      "orderSummary": "Order Summary",
+      "terminalSelected": "Terminal",
+      "configuration": "Configuration",
+      "quantity": "Quantity",
+      "terminals": "{{count}} terminal",
+      "terminals_other": "{{count}} terminals",
+      "naming": "Naming pattern",
+      "serialMode": "Serial numbers",
+      "shipping": "Shipping",
+      "deliveryAddress": "Delivery address",
+      "shippingSpeed": "Shipping speed",
+      "payment": "Payment (Demo)",
+      "paymentMethod": "Payment method",
+      "pricingBreakdown": "Pricing Breakdown",
+      "unitPrice": "Unit price",
+      "subtotal": "Subtotal",
+      "shippingCost": "Shipping",
+      "tax": "Tax (estimated)",
+      "total": "Total",
+      "termsAndConditions": "Terms & Conditions",
+      "acceptTerms": "I accept the terms and conditions",
+      "placeOrder": "Place Order",
+      "edit": "Edit",
+      "validation": {
+        "termsRequired": "You must accept the terms and conditions"
+      }
+    },
+    "success": {
+      "title": "Order Completed!",
+      "message": "Your terminals have been created successfully and will be shipped to your address.",
+      "orderId": "Order ID",
+      "viewTerminals": "View My Terminals"
+    },
+    "errors": {
+      "validationFailed": "Please complete all required fields",
+      "createFailed": "Error creating terminals. Please try again.",
+      "termsRequired": "You must accept the terms and conditions",
+      "partialSuccess": "{{success}} of {{total}} terminals created. {{failed}} failed."
     }
   }
 }

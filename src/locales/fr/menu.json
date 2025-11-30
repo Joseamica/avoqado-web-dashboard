@@ -246,5 +246,72 @@
       "errorDeleting": "Erreur lors de la suppression du menu",
       "errorDeletingDesc": "Nous n'avons pas pu supprimer le menu. {{message}}"
     }
+  },
+  "modifiers": {
+    "title": "Groupes de modificateurs",
+    "newModifierGroup": "Nouveau groupe de modificateurs",
+    "searchPlaceholder": "Rechercher...",
+    "create": {
+      "cardTitle": "Informations du modificateur",
+      "nameRequired": "Le nom est obligatoire",
+      "namePlaceholder": "Ex: Sans sel, Fromage supplémentaire...",
+      "nameDescription": "Nom qui identifie ce modificateur",
+      "active": "Actif",
+      "activeDescription": "Indique si ce modificateur est actif dans le système",
+      "creating": "Création...",
+      "createButton": "Créer le modificateur",
+      "toasts": {
+        "created": "Modificateur créé",
+        "createdDesc": "Le modificateur a été créé avec succès et ajouté au groupe.",
+        "createError": "Erreur de création",
+        "createErrorDesc": "Un problème est survenu lors de la création du modificateur."
+      }
+    },
+    "editModifier": {
+      "title": "Modifier le modificateur",
+      "fields": {
+        "name": "Nom",
+        "namePlaceholder": "Nom du modificateur",
+        "price": "Prix",
+        "active": "Actif",
+        "activeDesc": "Lorsqu'il est actif, ce modificateur sera disponible à la sélection"
+      },
+      "validation": {
+        "nameRequired": "Le nom est obligatoire",
+        "priceRequired": "Le prix est obligatoire"
+      },
+      "buttons": {
+        "back": "Retour",
+        "cancel": "Annuler",
+        "save": "Enregistrer les modifications",
+        "saving": "Enregistrement..."
+      },
+      "toast": {
+        "updated": "Modificateur mis à jour",
+        "updatedDesc": "Le modificateur a été mis à jour avec succès.",
+        "error": "Erreur de mise à jour du modificateur",
+        "errorDesc": "Un problème est survenu lors de la mise à jour du modificateur: {{message}}"
+      }
+    },
+    "inventory": {
+      "title": "Suivi de l'inventaire",
+      "trackInventory": "Suivre l'inventaire",
+      "trackInventoryDesc": "Déduire automatiquement les matières premières lorsque ce modificateur est utilisé",
+      "mode": "Mode d'inventaire",
+      "modeAddition": "Addition (Extra)",
+      "modeAdditionDesc": "Ajoute des ingrédients supplémentaires à la commande (ex: \"Bacon supplémentaire\")",
+      "modeSubstitution": "Substitution",
+      "modeSubstitutionDesc": "Remplace un ingrédient de la recette (ex: \"Lait d'amande\" au lieu du lait ordinaire)",
+      "rawMaterial": "Matière première",
+      "quantityPerUnit": "Quantité par modificateur",
+      "quantityPerUnitDesc": "Quantité de matière première utilisée par modificateur",
+      "unit": "Unité",
+      "selectUnit": "Sélectionner l'unité"
+    }
+  },
+  "forms": {
+    "buttons": {
+      "cancel": "Annuler"
+    }
   }
 }
