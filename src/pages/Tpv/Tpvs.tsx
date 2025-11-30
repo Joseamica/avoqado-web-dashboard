@@ -1,9 +1,9 @@
 import { getTpvs, sendTpvCommand as sendTpvCommandApi } from '@/services/tpv.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Wrench, Archive, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { ArrowUpDown, Wrench, Archive, CheckCircle2, AlertTriangle, XCircle, Package, KeyRound } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 import DataTable from '@/components/data-table'
@@ -14,6 +14,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
+import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
+import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()
@@ -25,6 +27,9 @@ export default function Tpvs() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [activationModalOpen, setActivationModalOpen] = useState(false)
+  const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
 
   // Helper function to get terminal status styling
   const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
@@ -33,13 +38,20 @@ export default function Tpvs() {
     const isOnline = heartbeatTime && (now.getTime() - heartbeatTime.getTime()) < 5 * 60 * 1000 // 5 minutes
 
     switch (status) {
+      case 'PENDING_ACTIVATION':
+        return {
+          badge: 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100',
+          icon: Package,
+          label: t('tpv.status.pendingActivation', { defaultValue: 'Pendiente Activación' }),
+          color: 'text-blue-600'
+        }
       case 'ACTIVE':
         return {
-          badge: isOnline 
+          badge: isOnline
             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
             : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100',
           icon: isOnline ? CheckCircle2 : AlertTriangle,
-          label: isOnline 
+          label: isOnline
             ? t('tpv.status.online', { defaultValue: 'En línea' })
             : t('tpv.status.offline', { defaultValue: 'Sin conexión' }),
           color: isOnline ? 'text-emerald-600' : 'text-amber-600'
@@ -234,6 +246,25 @@ export default function Tpvs() {
 
         return (
           <div className="flex items-center space-x-2">
+            {/* Show Activate button if terminal is pending activation */}
+            {terminal.status === 'PENDING_ACTIVATION' && (
+              <PermissionGate permission="tpv:update">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedTerminalForActivation(terminal.id)
+                    setActivationModalOpen(true)
+                  }}
+                  className="h-8 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                >
+                  <KeyRound className="w-4 h-4 mr-1" />
+                  {t('tpv.actions.activate', { defaultValue: 'Activar' })}
+                </Button>
+              </PermissionGate>
+            )}
+
             {/* Only show command buttons if user has permission */}
             <PermissionGate permission="tpv:command">
               {isInMaintenance ? (
@@ -348,16 +379,8 @@ export default function Tpvs() {
         </div>
         {/* Only show "Create" button if user has permission */}
         <PermissionGate permission="tpv:create">
-          <Button asChild>
-            <Link
-              to={`create`}
-              state={{
-                from: location.pathname,
-              }}
-              className="flex items-center space-x-2"
-            >
-              <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
-            </Link>
+          <Button onClick={() => setWizardOpen(true)}>
+            <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
           </Button>
         </PermissionGate>
       </div>
@@ -377,6 +400,25 @@ export default function Tpvs() {
         tableId="tpv:list"
         pagination={pagination}
         setPagination={setPagination}
+      />
+
+      <TerminalPurchaseWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onSuccess={() => {
+          // Refresh the list
+          queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+        }}
+      />
+
+      <ActivateTerminalModal
+        open={activationModalOpen}
+        onOpenChange={setActivationModalOpen}
+        terminalId={selectedTerminalForActivation}
+        onSuccess={() => {
+          // Refresh the list
+          queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+        }}
       />
       </div>
     </TooltipProvider>
