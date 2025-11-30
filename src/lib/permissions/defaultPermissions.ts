@@ -175,6 +175,8 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'coupons:create',
     'coupons:update',
     'coupons:delete',
+    // TPV Settings (can view, but not modify by default)
+    'tpv-settings:read',
   ],
 
   /**
@@ -237,6 +239,10 @@ export const PERMISSION_CATEGORIES = {
     label: 'Analytics',
     permissions: ['analytics:read', 'analytics:export'],
   },
+  SETTLEMENTS: {
+    label: 'Settlements',
+    permissions: ['settlements:read', 'settlements:simulate'],
+  },
   MENU: {
     label: 'Menu Management',
     permissions: ['menu:read', 'menu:create', 'menu:update', 'menu:delete', 'menu:import'],
@@ -277,6 +283,10 @@ export const PERMISSION_CATEGORIES = {
     label: 'Reservations',
     permissions: ['reservations:read', 'reservations:create', 'reservations:update', 'reservations:cancel'],
   },
+  SETTINGS: {
+    label: 'Settings',
+    permissions: ['settings:read', 'settings:manage'],
+  },
   VENUES: {
     label: 'Venue Settings',
     permissions: ['venues:read', 'venues:update'],
@@ -291,7 +301,7 @@ export const PERMISSION_CATEGORIES = {
   },
   LOYALTY: {
     label: 'Loyalty Program',
-    permissions: ['loyalty:read', 'loyalty:update', 'loyalty:redeem', 'loyalty:adjust'],
+    permissions: ['loyalty:read', 'loyalty:create', 'loyalty:update', 'loyalty:delete', 'loyalty:redeem', 'loyalty:adjust'],
   },
   DISCOUNTS: {
     label: 'Discounts',
@@ -300,5 +310,9 @@ export const PERMISSION_CATEGORIES = {
   COUPONS: {
     label: 'Coupons',
     permissions: ['coupons:read', 'coupons:create', 'coupons:update', 'coupons:delete'],
+  },
+  TPV_SETTINGS: {
+    label: 'TPV Settings',
+    permissions: ['tpv-settings:read', 'tpv-settings:update'],
   },
 } as const
