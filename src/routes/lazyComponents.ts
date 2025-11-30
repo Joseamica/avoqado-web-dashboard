@@ -100,6 +100,7 @@ export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMateri
 export const ProductStock = React.lazy(() => import('@/pages/Inventory/ProductStock'))
 export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
+export const ModifierInventory = React.lazy(() => import('@/pages/Inventory/ModifierInventory'))
 
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
