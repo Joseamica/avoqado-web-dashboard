@@ -7,10 +7,11 @@ import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation } from '@/services/team.service'
-import { TeamMember } from '@/types'
-import { filterSuperadminFromTeam, getRoleBadgeColor, getRoleDisplayName } from '@/utils/role-permissions'
+import { TeamMember, StaffRole } from '@/types'
+import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
 
 import {
   AlertDialog,
@@ -47,6 +48,50 @@ export default function Teams() {
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
+
+  // Custom role display names from venue config
+  const { getDisplayName: getCustomRoleDisplayName, getColor: getCustomRoleColor } = useRoleConfig()
+
+  // Get role display name with superadmin visibility check
+  const getRoleDisplayName = useCallback(
+    (role: StaffRole, userRole?: StaffRole): string => {
+      // Hide superadmin role from non-superadmin users
+      if (role === StaffRole.SUPERADMIN && !canViewSuperadminInfo(userRole)) {
+        return 'Sistema'
+      }
+      return getCustomRoleDisplayName(role)
+    },
+    [getCustomRoleDisplayName]
+  )
+
+  // Get role badge color with custom color support
+  const getRoleBadgeColorWithCustom = useCallback(
+    (role: StaffRole, userRole?: StaffRole): string => {
+      const customColor = getCustomRoleColor(role)
+      if (customColor) {
+        // If there's a custom color, create a badge style with it
+        return `border border-current/20`
+      }
+      return getRoleBadgeColor(role, userRole)
+    },
+    [getCustomRoleColor]
+  )
+
+  // Get inline style for custom colors
+  const getRoleBadgeStyle = useCallback(
+    (role: StaffRole): React.CSSProperties | undefined => {
+      const customColor = getCustomRoleColor(role)
+      if (customColor) {
+        return {
+          backgroundColor: `${customColor}20`,
+          color: customColor,
+          borderColor: `${customColor}40`,
+        }
+      }
+      return undefined
+    },
+    [getCustomRoleColor]
+  )
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -188,7 +233,11 @@ export default function Teams() {
       accessorKey: 'role',
       header: t('columns.role'),
       cell: ({ row }) => (
-        <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+        <Badge
+          variant="soft"
+          className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
+          style={getRoleBadgeStyle(row.original.role)}
+        >
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
@@ -249,7 +298,7 @@ export default function Teams() {
         </DropdownMenu>
       ),
     },
-  ], [t, i18n.language, staffInfo?.role])
+  ], [t, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle])
 
   const invitationColumns: ColumnDef<Invitation>[] = useMemo(() => [
     {
@@ -266,7 +315,11 @@ export default function Teams() {
       accessorKey: 'role',
       header: t('columns.role'),
       cell: ({ row }) => (
-        <Badge variant="soft" className={getRoleBadgeColor(row.original.role, staffInfo?.role)}>
+        <Badge
+          variant="soft"
+          className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
+          style={getRoleBadgeStyle(row.original.role)}
+        >
           {getRoleDisplayName(row.original.role, staffInfo?.role)}
         </Badge>
       ),
