@@ -40,11 +40,14 @@ export function AddToAIButton({ type, data, variant = 'icon', className }: AddTo
     referenceCount,
   } = useChatReferences()
 
-  const isAdded = useMemo(() => hasReference(data.id), [hasReference, data.id])
+  // Safety check: use optional chaining for data.id
+  const dataId = data?.id
+  const isAdded = useMemo(() => dataId ? hasReference(dataId) : false, [hasReference, dataId])
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation() // Prevent row click when clicking the button
+      if (!data) return
       switch (type) {
         case 'payment':
           togglePayment(data as Payment)
@@ -65,6 +68,12 @@ export function AddToAIButton({ type, data, variant = 'icon', className }: AddTo
     },
     [type, data, togglePayment, toggleOrder, toggleShift, toggleProduct, toggleRawMaterial],
   )
+
+  // If data is invalid, return null (don't render anything)
+  // This must come AFTER all hooks to respect Rules of Hooks
+  if (!data || !dataId) {
+    return null
+  }
 
   const tooltipText = isAdded
     ? t('chat.references.removeFromAI', { defaultValue: 'Quitar del asistente AI' })

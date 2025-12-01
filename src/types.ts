@@ -445,6 +445,7 @@ export interface VenueSettings {
   autoReplyReviews: boolean
   notifyBadReviews: boolean
   badReviewThreshold: number
+  badReviewAlertRoles: StaffRole[]
 
   // Inventory
   trackInventory: boolean

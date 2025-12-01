@@ -128,5 +128,31 @@
     "description": "Reviews from your customers will appear here.",
     "noResults": "No reviews match your filters",
     "adjustFilters": "Try adjusting your filters to see more results."
+  },
+
+  "settings": {
+    "button": "Settings",
+    "badReviews": {
+      "title": "Bad Review Alerts",
+      "description": "Configure automatic notifications when you receive low-rated reviews.",
+      "enableNotifications": "Enable notifications",
+      "enableNotificationsDescription": "Receive alerts when a customer leaves a low-rated review.",
+      "thresholdLabel": "Rating threshold",
+      "thresholdDescription": "You will receive alerts for reviews rated at or below this value.",
+      "thresholdHint": "You'll be notified for reviews of {{threshold}} stars or less.",
+      "threshold": {
+        "1star": "1 star",
+        "2stars": "2 stars or less",
+        "3stars": "3 stars or less",
+        "4stars": "4 stars or less"
+      },
+      "rolesLabel": "Roles to notify",
+      "rolesDescription": "Select which team roles will receive the alerts.",
+      "saving": "Saving...",
+      "toasts": {
+        "updateSuccess": "Alert settings updated",
+        "updateError": "Error updating settings"
+      }
+    }
   }
 }

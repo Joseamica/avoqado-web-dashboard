@@ -26,6 +26,20 @@ export const getTpvById = async (venueId: string, tpvId: string) => {
   return response.data
 }
 
+export const updateTpv = async (venueId: string, tpvId: string, data: { name?: string; status?: string }) => {
+  const response = await api.patch(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`, data)
+  return response.data
+}
+
+/**
+ * Delete a terminal (only non-activated terminals can be deleted)
+ * Activated terminals should be RETIRED instead
+ */
+export const deleteTpv = async (venueId: string, tpvId: string) => {
+  const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/tpv/${tpvId}`)
+  return response.data
+}
+
 // ============================================
 // TPV Activation
 // ============================================

@@ -351,6 +351,58 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
   const handleSubmit = async () => {
     if (isSubmitting) return
+
+    // Defensive validation - ensure all required data is present
+    if (!entityType) {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: t('conversionWizard.entityType.required'),
+        variant: 'destructive',
+      })
+      setCurrentStep(1)
+      return
+    }
+
+    if (!formData.rfc || !formData.legalName || !formData.fiscalRegime) {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: t('conversionWizard.businessInfo.incomplete', { defaultValue: 'Información fiscal incompleta. Por favor complete todos los campos.' }),
+        variant: 'destructive',
+      })
+      setCurrentStep(2)
+      return
+    }
+
+    if (!idDocumentUrl || !rfcDocumentUrl) {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: t('conversionWizard.documents.step1Required'),
+        variant: 'destructive',
+      })
+      setCurrentStep(3)
+      return
+    }
+
+    if (!comprobanteDomicilioUrl || !caratulaBancariaUrl) {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: t('conversionWizard.documents.step2Required'),
+        variant: 'destructive',
+      })
+      setCurrentStep(4)
+      return
+    }
+
+    if (entityType === 'PERSONA_MORAL' && !actaDocumentUrl) {
+      toast({
+        title: t('conversionWizard.error.title'),
+        description: t('conversionWizard.documents.actaRequired'),
+        variant: 'destructive',
+      })
+      setCurrentStep(5)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -362,10 +414,10 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         })
         .filter(Boolean) as string[]
 
-      // Call API to convert venue from demo to real
-      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, {
+      // Build request payload - only include non-null values for optional fields
+      const payload: Record<string, unknown> = {
         entityType,
-        rfc: formData.rfc?.toUpperCase(),
+        rfc: formData.rfc.toUpperCase(),
         legalName: formData.legalName,
         fiscalRegime: formData.fiscalRegime,
         // Required documents for all
@@ -373,15 +425,26 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         rfcDocumentUrl,
         comprobanteDomicilioUrl,
         caratulaBancariaUrl,
-        // PERSONA_MORAL only documents
-        ...(entityType === 'PERSONA_MORAL' && {
-          actaDocumentUrl,
-          poderLegalUrl,
-        }),
-        // Optional: payment and features
-        ...(paymentMethodId && { paymentMethodId }),
-        selectedFeatures: featureCodes,
-      })
+      }
+
+      // Add PERSONA_MORAL documents if applicable
+      if (entityType === 'PERSONA_MORAL') {
+        payload.actaDocumentUrl = actaDocumentUrl
+        if (poderLegalUrl) {
+          payload.poderLegalUrl = poderLegalUrl
+        }
+      }
+
+      // Only include payment and features if they have values
+      if (paymentMethodId) {
+        payload.paymentMethodId = paymentMethodId
+      }
+      if (featureCodes.length > 0) {
+        payload.selectedFeatures = featureCodes
+      }
+
+      // Call API to convert venue from demo to real
+      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/convert-from-demo`, payload)
 
       if (response.data.success) {
         toast({

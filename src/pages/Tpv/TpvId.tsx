@@ -89,6 +89,10 @@ interface TpvData {
   version?: string
   ipAddress?: string
   activatedAt?: string | null // 🆕 Activation timestamp (null = not activated)
+  isLocked?: boolean // 🆕 Whether terminal is remotely locked
+  lockReason?: string | null // 🆕 Why terminal was locked
+  lockedAt?: string | null // 🆕 When terminal was locked
+  lockedBy?: string | null // 🆕 StaffId who locked
   systemInfo?: {
     platform?: string
     memory?: {
@@ -186,7 +190,11 @@ export default function TpvId() {
 
   const isOnline = (status?: string, lastHeartbeat?: string) => {
     const cutoff = new Date(Date.now() - 2 * 60 * 1000)
-    return status === 'ACTIVE' && lastHeartbeat && new Date(lastHeartbeat) > cutoff
+    // Terminal is "online" if it has a recent heartbeat AND status is ACTIVE or MAINTENANCE
+    // MAINTENANCE means the terminal IS connected (socket + heartbeat working), just in a special mode
+    // Only truly "offline" if no recent heartbeat OR status is INACTIVE/RETIRED
+    const isConnectedStatus = status === 'ACTIVE' || status === 'MAINTENANCE'
+    return isConnectedStatus && lastHeartbeat && new Date(lastHeartbeat) > cutoff
   }
 
   const formatUptime = (seconds?: number) => {
@@ -1163,7 +1171,7 @@ export default function TpvId() {
                   terminalId={tpvId!}
                   terminalName={tpv?.name || t('detail.terminal')}
                   isOnline={terminalOnline}
-                  isLocked={false}
+                  isLocked={tpv?.isLocked ?? false}
                   isInMaintenance={isInMaintenance}
                   venueId={venueId!}
                 />
