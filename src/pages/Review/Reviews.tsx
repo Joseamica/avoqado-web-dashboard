@@ -286,12 +286,12 @@ export default function ReviewSummary() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4">
               <p className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
+                {t('pagination.pageOf', { current: currentPage, total: totalPages })}
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                   <ArrowLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('pagination.previous')}
                 </Button>
                 <Button
                   variant="outline"
@@ -299,7 +299,7 @@ export default function ReviewSummary() {
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
-                  Next
+                  {t('pagination.next')}
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>

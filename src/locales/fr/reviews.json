@@ -130,6 +130,12 @@
     "adjustFilters": "Essayez d'ajuster vos filtres pour voir plus de résultats."
   },
 
+  "pagination": {
+    "pageOf": "Page {{current}} sur {{total}}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+
   "settings": {
     "button": "Paramètres",
     "badReviews": {

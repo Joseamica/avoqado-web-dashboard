@@ -281,6 +281,25 @@
     "spain": "Bandera de España",
     "uk": "Bandera del Reino Unido"
   },
+  "roles": {
+    "owner": "Propietario",
+    "admin": "Administrador",
+    "manager": "Gerente",
+    "cashier": "Cajero",
+    "waiter": "Mesero",
+    "host": "Hostess",
+    "kitchen": "Cocina",
+    "viewer": "Visualizador",
+    "superadmin": "Superadmin"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Agregar"
+  },
   "chooseColor": "Elegir color",
   "time": {
     "hour": "Hora",
