@@ -287,6 +287,25 @@
     "spain": "Flag of Spain",
     "uk": "Flag of the United Kingdom"
   },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "manager": "Manager",
+    "cashier": "Cashier",
+    "waiter": "Waiter",
+    "host": "Host",
+    "kitchen": "Kitchen",
+    "viewer": "Viewer",
+    "superadmin": "Superadmin"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add"
+  },
   "chooseColor": "Choose color",
   "time": {
     "hour": "Hour",

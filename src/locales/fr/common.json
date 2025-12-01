@@ -238,6 +238,25 @@
     "spain": "Drapeau de l'Espagne",
     "uk": "Drapeau du Royaume-Uni"
   },
+  "roles": {
+    "owner": "Propriétaire",
+    "admin": "Administrateur",
+    "manager": "Gérant",
+    "cashier": "Caissier",
+    "waiter": "Serveur",
+    "host": "Hôte",
+    "kitchen": "Cuisine",
+    "viewer": "Observateur",
+    "superadmin": "Superadmin"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "add": "Ajouter"
+  },
   "chooseColor": "Choisir la couleur",
   "time": {
     "hour": "Heure",
