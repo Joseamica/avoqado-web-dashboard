@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { TIMEZONES, getTimezonesByCountry, getCountryOrder, getTimezoneLabel } from '@/lib/timezones'
+import { TIMEZONES, getCountryOrder, getTimezoneLabel } from '@/lib/timezones'
 import { useTranslation } from 'react-i18next'
 
 interface TimezoneComboboxProps {
@@ -38,7 +38,6 @@ export function TimezoneCombobox({ value, onValueChange, disabled }: TimezoneCom
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const timezonesByCountry = getTimezonesByCountry()
   const countryOrder = getCountryOrder()
 
   // Filter timezones based on search query
@@ -79,13 +78,13 @@ export function TimezoneCombobox({ value, onValueChange, disabled }: TimezoneCom
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder={t('common.search', { defaultValue: 'Buscar zona horaria...' })}
+            placeholder={t('search', { defaultValue: 'Buscar zona horaria...' })}
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
           <CommandList>
             <CommandEmpty>
-              {t('common.no_results', { defaultValue: 'No se encontraron zonas horarias' })}
+              {t('no_results', { defaultValue: 'No se encontraron zonas horarias' })}
             </CommandEmpty>
             {countryOrder.map(country => {
               const timezones = filteredByCountry[country]

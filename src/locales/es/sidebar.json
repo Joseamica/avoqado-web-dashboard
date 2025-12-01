@@ -9,6 +9,17 @@
   "venues": "Sucursales",
   "revenue": "Ingresos",
   "customers": "Clientes",
+  "customersMenu": {
+    "title": "Clientes",
+    "all": "Todos los Clientes",
+    "groups": "Grupos de Clientes",
+    "loyalty": "Programa de Lealtad"
+  },
+  "promotionsMenu": {
+    "title": "Promociones",
+    "discounts": "Descuentos",
+    "coupons": "Códigos de Cupón"
+  },
   "growth": "Crecimiento",
   "paymentProviders": "Proveedores de pago",
   "merchantAccounts": "Cuentas de comercio",

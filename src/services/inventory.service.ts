@@ -120,6 +120,13 @@ export interface RecipeLine {
   displayOrder: number
   isOptional: boolean
   substituteNotes?: string
+  // Variable ingredient fields for modifier substitution
+  isVariable?: boolean
+  linkedModifierGroupId?: string | null
+  linkedModifierGroup?: {
+    id: string
+    name: string
+  } | null
 }
 
 export interface CreateRecipeDto {
@@ -133,6 +140,8 @@ export interface CreateRecipeDto {
     unit: string
     isOptional?: boolean
     substituteNotes?: string
+    isVariable?: boolean
+    linkedModifierGroupId?: string | null
   }>
 }
 
@@ -147,6 +156,8 @@ export interface UpdateRecipeDto {
     unit: string
     isOptional?: boolean
     substituteNotes?: string
+    isVariable?: boolean
+    linkedModifierGroupId?: string | null
   }>
 }
 
@@ -159,7 +170,7 @@ export const recipesApi = {
 
   delete: (venueId: string, productId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/recipe`),
 
-  addLine: (venueId: string, productId: string, data: { rawMaterialId: string; quantity: number; unit: string; isOptional?: boolean; substituteNotes?: string }) =>
+  addLine: (venueId: string, productId: string, data: { rawMaterialId: string; quantity: number; unit: string; isOptional?: boolean; substituteNotes?: string; isVariable?: boolean; linkedModifierGroupId?: string | null }) =>
     api.post(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/recipe/lines`, data),
 
   removeLine: (venueId: string, productId: string, recipeLineId: string) =>
@@ -656,4 +667,103 @@ export const costRecalculationApi = {
   // Get recipes with poor margins (high food cost %)
   getRecipeCostVariances: (venueId: string, minVariancePercentage?: number, sort?: 'highest' | 'lowest' | 'alphabetical') =>
     api.get(`/api/v1/dashboard/venues/${venueId}/inventory/recipe-cost-variances`, { params: { minVariancePercentage, sort } }),
+}
+
+// ===========================================
+// MODIFIER INVENTORY ANALYTICS API
+// ===========================================
+
+export interface ModifierUsageStats {
+  modifierId: string
+  modifierName: string
+  groupId: string
+  groupName: string
+  timesUsed: number
+  totalQuantityUsed: number
+  totalCostImpact: number
+  rawMaterial?: {
+    id: string
+    name: string
+    unit: string
+    currentStock: number
+    costPerUnit: number
+  }
+  inventoryMode: 'ADDITION' | 'SUBSTITUTION' | null
+  quantityPerUnit: number | null
+}
+
+export interface ModifierLowStockItem {
+  modifierId: string
+  modifierName: string
+  groupId: string
+  groupName: string
+  rawMaterialId: string
+  rawMaterialName: string
+  unit: string
+  currentStock: number
+  reorderPoint: number
+  quantityPerUnit: number
+  estimatedUsesRemaining: number
+  inventoryMode: 'ADDITION' | 'SUBSTITUTION'
+}
+
+export interface ModifierInventorySummary {
+  totalModifiersWithInventory: number
+  totalModifiersLowStock: number
+  totalCostImpactPeriod: number
+  topCostModifiers: ModifierUsageStats[]
+  lowStockModifiers: ModifierLowStockItem[]
+}
+
+export interface ModifierWithInventory {
+  id: string
+  name: string
+  groupId: string
+  groupName: string
+  rawMaterialId: string | null
+  rawMaterialName: string | null
+  quantityPerUnit: number | null
+  unit: string | null
+  inventoryMode: 'ADDITION' | 'SUBSTITUTION'
+  cost: number | null
+  currentStock: number | null
+  active: boolean
+}
+
+export const modifierInventoryApi = {
+  // Get modifier usage statistics
+  getUsageStats: (
+    venueId: string,
+    filters?: {
+      startDate?: string
+      endDate?: string
+      modifierGroupId?: string
+      limit?: number
+    },
+  ) => api.get<{ success: boolean; data: ModifierUsageStats[] }>(`/api/v1/dashboard/venues/${venueId}/modifiers/inventory/usage`, { params: filters }),
+
+  // Get modifiers with low stock raw materials
+  getLowStock: (venueId: string) =>
+    api.get<{ success: boolean; data: ModifierLowStockItem[]; count: number }>(`/api/v1/dashboard/venues/${venueId}/modifiers/inventory/low-stock`),
+
+  // Get comprehensive modifier inventory summary
+  getSummary: (
+    venueId: string,
+    filters?: {
+      startDate?: string
+      endDate?: string
+    },
+  ) => api.get<{ success: boolean; data: ModifierInventorySummary }>(`/api/v1/dashboard/venues/${venueId}/modifiers/inventory/summary`, { params: filters }),
+
+  // Get all modifiers with their inventory configuration
+  getModifiersWithInventory: (
+    venueId: string,
+    filters?: {
+      includeInactive?: boolean
+      groupId?: string
+    },
+  ) =>
+    api.get<{ success: boolean; data: ModifierWithInventory[]; count: number }>(`/api/v1/dashboard/venues/${venueId}/modifiers/inventory/list`, {
+      params: filters,
+    }),
 }

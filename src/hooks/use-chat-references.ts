@@ -1,0 +1,345 @@
+import { useContext, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ChatReferencesContext } from '@/context/ChatReferencesContext'
+import type {
+  ChatReference,
+  PaymentChatReference,
+  OrderChatReference,
+  ProductChatReference,
+  RawMaterialChatReference,
+  ShiftChatReference,
+  ShiftReference,
+} from '@/types/chat-references'
+import type { Payment, Order, Product } from '@/types'
+import type { RawMaterial } from '@/services/inventory.service'
+import { Currency } from '@/utils/currency'
+
+/**
+ * Hook to access and manage chat AI references
+ * Includes type-specific helpers for adding common entities
+ */
+export function useChatReferences() {
+  const context = useContext(ChatReferencesContext)
+  const { t } = useTranslation()
+
+  if (!context) {
+    throw new Error('useChatReferences must be used within a ChatReferencesProvider')
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PAYMENT HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const addPayment = useCallback(
+    (payment: Payment) => {
+      const date = new Date(payment.createdAt)
+      const timeStr = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      const dateStr = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+
+      const amount = Number(payment.amount) || 0
+      const tipAmount = Number(payment.tipAmount) || 0
+      const total = amount + tipAmount
+
+      const label = `${Currency(total)} - ${timeStr}`
+
+      const waiterName = payment.processedBy
+        ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`
+        : t('chat.references.unknown', { defaultValue: 'Desconocido' })
+
+      const methodLabel =
+        payment.method === 'CASH'
+          ? t('payment:methods.cash', { defaultValue: 'Efectivo' })
+          : payment.method === 'CREDIT_CARD'
+            ? t('payment:methods.credit_card', { defaultValue: 'Tarjeta de Crédito' })
+            : t('payment:methods.card', { defaultValue: 'Tarjeta' })
+
+      const tipPercent = amount > 0 ? ((tipAmount / amount) * 100).toFixed(1) : '0'
+
+      let cardInfo = ''
+      if (payment.cardBrand || payment.last4) {
+        cardInfo = `\n   - Tarjeta: ${payment.cardBrand || ''} ****${payment.last4 || ''}`
+      }
+
+      const summary = `PAGO #${payment.id.slice(-8)}
+   - Fecha: ${dateStr}, ${timeStr}
+   - Monto: ${Currency(amount)}
+   - Propina: ${Currency(tipAmount)} (${tipPercent}%)
+   - Método: ${methodLabel}${cardInfo}
+   - Mesero: ${waiterName}
+   - Total: ${Currency(total)}`
+
+      const reference: PaymentChatReference = {
+        id: payment.id,
+        type: 'payment',
+        label,
+        summary,
+        data: payment,
+        addedAt: new Date(),
+      }
+
+      context.addReference(reference)
+    },
+    [context, t],
+  )
+
+  const togglePayment = useCallback(
+    (payment: Payment) => {
+      if (context.hasReference(payment.id)) {
+        context.removeReference(payment.id)
+      } else {
+        addPayment(payment)
+      }
+    },
+    [context, addPayment],
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ORDER HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const addOrder = useCallback(
+    (order: Order) => {
+      const date = new Date(order.createdAt)
+      const timeStr = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      const dateStr = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+
+      const total = Number(order.total) || 0
+      const itemCount = order.orderItems?.length || 0
+
+      const label = `Orden ${Currency(total)} - ${timeStr}`
+
+      const waiterName = order.waiter
+        ? `${order.waiter.firstName} ${order.waiter.lastName}`
+        : t('chat.references.unknown', { defaultValue: 'Desconocido' })
+
+      const statusLabel = order.status || 'UNKNOWN'
+
+      // Build items list
+      let itemsList = ''
+      if (order.orderItems && order.orderItems.length > 0) {
+        const items = order.orderItems.slice(0, 5).map(item => `     • ${item.quantity}x ${item.product?.name || 'Producto'} - ${Currency(Number(item.subtotal) || 0)}`)
+        itemsList = `\n   - Productos:\n${items.join('\n')}`
+        if (order.orderItems.length > 5) {
+          itemsList += `\n     ... y ${order.orderItems.length - 5} productos más`
+        }
+      }
+
+      const summary = `ORDEN #${order.orderNumber || order.id.slice(-8)}
+   - Fecha: ${dateStr}, ${timeStr}
+   - Estado: ${statusLabel}
+   - Mesero: ${waiterName}
+   - Items: ${itemCount} productos${itemsList}
+   - Subtotal: ${Currency(Number(order.subtotal) || 0)}
+   - Propina: ${Currency(Number(order.tip) || 0)}
+   - Total: ${Currency(total)}`
+
+      const reference: OrderChatReference = {
+        id: order.id,
+        type: 'order',
+        label,
+        summary,
+        data: order,
+        addedAt: new Date(),
+      }
+
+      context.addReference(reference)
+    },
+    [context, t],
+  )
+
+  const toggleOrder = useCallback(
+    (order: Order) => {
+      if (context.hasReference(order.id)) {
+        context.removeReference(order.id)
+      } else {
+        addOrder(order)
+      }
+    },
+    [context, addOrder],
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SHIFT HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const addShift = useCallback(
+    (shift: ShiftReference) => {
+      const startDate = new Date(shift.startTime)
+      const timeStr = startDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      const dateStr = startDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+
+      const statusLabel = shift.status === 'ACTIVE' ? 'Activo' : 'Cerrado'
+      const label = `${shift.staffName} - ${dateStr}`
+
+      let endInfo = ''
+      if (shift.endTime) {
+        const endDate = new Date(shift.endTime)
+        endInfo = `\n   - Fin: ${endDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+      }
+
+      const summary = `TURNO de ${shift.staffName}
+   - Fecha: ${dateStr}
+   - Inicio: ${timeStr}${endInfo}
+   - Estado: ${statusLabel}
+   - Ventas totales: ${Currency(shift.totalSales || 0)}
+   - Propinas: ${Currency(shift.totalTips || 0)}
+   - Órdenes: ${shift.totalOrders || 0}`
+
+      const reference: ShiftChatReference = {
+        id: shift.id,
+        type: 'shift',
+        label,
+        summary,
+        data: shift,
+        addedAt: new Date(),
+      }
+
+      context.addReference(reference)
+    },
+    [context],
+  )
+
+  const toggleShift = useCallback(
+    (shift: ShiftReference) => {
+      if (context.hasReference(shift.id)) {
+        context.removeReference(shift.id)
+      } else {
+        addShift(shift)
+      }
+    },
+    [context, addShift],
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRODUCT HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const addProduct = useCallback(
+    (product: Product) => {
+      const price = Number(product.price) || 0
+      const label = `${product.name} - ${Currency(price)}`
+
+      const categoryName = product.category?.name || 'Sin categoría'
+      const available = product.available ? 'Disponible' : 'No disponible'
+
+      let inventoryInfo = ''
+      if (product.inventoryType && product.inventoryType !== 'NONE') {
+        inventoryInfo = `\n   - Tipo inventario: ${product.inventoryType}`
+        if (product.currentStock !== undefined && product.currentStock !== null) {
+          inventoryInfo += `\n   - Stock actual: ${product.currentStock}`
+        }
+      }
+
+      const summary = `PRODUCTO: ${product.name}
+   - Precio: ${Currency(price)}
+   - Categoría: ${categoryName}
+   - Disponibilidad: ${available}${inventoryInfo}
+   - Descripción: ${product.description || 'Sin descripción'}`
+
+      const reference: ProductChatReference = {
+        id: product.id,
+        type: 'product',
+        label,
+        summary,
+        data: product,
+        addedAt: new Date(),
+      }
+
+      context.addReference(reference)
+    },
+    [context],
+  )
+
+  const toggleProduct = useCallback(
+    (product: Product) => {
+      if (context.hasReference(product.id)) {
+        context.removeReference(product.id)
+      } else {
+        addProduct(product)
+      }
+    },
+    [context, addProduct],
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RAW MATERIAL (INVENTORY) HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const addRawMaterial = useCallback(
+    (material: RawMaterial) => {
+      const costPerUnit = Number(material.costPerUnit) || 0
+      const currentStock = Number(material.currentStock) || 0
+      const label = `${material.name} - ${currentStock} ${material.unit}`
+
+      const isLowStock = material.minimumStock && currentStock <= material.minimumStock
+
+      const summary = `INGREDIENTE: ${material.name}
+   - Categoría: ${material.category || 'Sin categoría'}
+   - Stock actual: ${currentStock} ${material.unit}
+   - Stock mínimo: ${material.minimumStock || 0} ${material.unit}
+   - Costo por unidad: ${Currency(costPerUnit)}/${material.unit}
+   - Estado: ${material.active ? 'Activo' : 'Inactivo'}${isLowStock ? '\n   - ⚠️ STOCK BAJO' : ''}`
+
+      const reference: RawMaterialChatReference = {
+        id: material.id,
+        type: 'rawMaterial',
+        label,
+        summary,
+        data: material,
+        addedAt: new Date(),
+      }
+
+      context.addReference(reference)
+    },
+    [context],
+  )
+
+  const toggleRawMaterial = useCallback(
+    (material: RawMaterial) => {
+      if (context.hasReference(material.id)) {
+        context.removeReference(material.id)
+      } else {
+        addRawMaterial(material)
+      }
+    },
+    [context, addRawMaterial],
+  )
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RETURN
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  return {
+    // Base context methods
+    references: context.references,
+    addReference: context.addReference,
+    removeReference: context.removeReference,
+    clearReferences: context.clearReferences,
+    hasReference: context.hasReference,
+    getContextPrompt: context.getContextPrompt,
+    referenceCount: context.referenceCount,
+
+    // Payment helpers
+    addPayment,
+    togglePayment,
+
+    // Order helpers
+    addOrder,
+    toggleOrder,
+
+    // Shift helpers
+    addShift,
+    toggleShift,
+
+    // Product helpers
+    addProduct,
+    toggleProduct,
+
+    // Raw Material (Inventory) helpers
+    addRawMaterial,
+    toggleRawMaterial,
+  }
+}
+
+// Re-export types for convenience
+export type { ChatReference } from '@/types/chat-references'

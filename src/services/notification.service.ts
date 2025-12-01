@@ -1,5 +1,4 @@
 import api from '@/api'
-import { TFunction } from 'i18next'
 
 // ===== TYPES =====
 

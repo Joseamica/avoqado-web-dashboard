@@ -2,6 +2,10 @@
   "rolePermissions": {
     "title": "Permisos de Roles",
     "description": "Personaliza los permisos para cada rol en tu establecimiento",
+    "tabs": {
+      "permissions": "Permisos",
+      "displayNames": "Nombres de Roles"
+    },
     "noAccess": "Sin Acceso",
     "noAccessDesc": "No tienes permiso para gestionar permisos de roles. Contacta a tu administrador.",
     "infoAlert": "Los cambios en los permisos de roles afectarán a todos los usuarios con ese rol. Los miembros del equipo pueden tener permisos personalizados en Gestión de Equipo.",
@@ -84,5 +88,33 @@
       "reservations": "Reservaciones",
       "settings": "Configuración"
     }
+  },
+  "roleDisplayNames": {
+    "infoAlert": "Personaliza cómo se muestran los nombres de los roles en tu establecimiento. Esto solo afecta el nombre mostrado, no los permisos reales.",
+    "unsavedChanges": "Tienes cambios sin guardar",
+    "noChanges": "Sin cambios",
+    "noChangesDesc": "No hay cambios para guardar.",
+    "saveSuccess": "Cambios guardados",
+    "saveSuccessDesc": "Los nombres de los roles se han actualizado correctamente.",
+    "saveError": "Error al guardar los cambios.",
+    "resetAll": "Restablecer Todo",
+    "saveChanges": "Guardar Cambios",
+    "saving": "Guardando...",
+    "resetSuccess": "Restablecido",
+    "resetSuccessDesc": "Todos los nombres de roles se han restablecido a los predeterminados.",
+    "resetError": "Error al restablecer.",
+    "resetConfirmTitle": "¿Restablecer todos los nombres de roles?",
+    "resetConfirmMessage": "Esto restablecerá todos los nombres de roles, descripciones y colores a sus valores predeterminados. Esta acción no se puede deshacer.",
+    "resetConfirm": "Restablecer Todo",
+    "customized": "Personalizado",
+    "defaultName": "Predeterminado",
+    "displayName": "Nombre a Mostrar",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Breve descripción de este rol...",
+    "badgeColor": "Color del Badge",
+    "defaultColor": "Color predeterminado",
+    "preview": "Vista Previa",
+    "hideRole": "Ocultar este rol de los selectores",
+    "showRole": "Mostrar este rol en los selectores"
   }
 }

@@ -511,8 +511,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // Mark that we've loaded the data once
       setHasLoadedExistingData(true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- step2Form, step3SimpleForm, step3RecipeForm are stable refs from useForm
   }, [open, mode, currentStep, existingProductData, existingRecipeData, isLoadingExistingData, hasLoadedExistingData])
-  // Note: step2Form, step3SimpleForm, step3RecipeForm removed from deps - they're stable refs from useForm
 
   // ✅ FIX: Separate effect to load recipe data when it becomes available
   // This handles the case where existingRecipeData loads AFTER existingProductData

@@ -25,8 +25,15 @@ import {
   CreateMenu,
   CreateModifierGroup,
   CreateProduct,
-  CreateTpv,
+  CouponForm,
+  Coupons,
+  CustomerDetail,
+  CustomerGroups,
+  Customers,
   Dashboard,
+  DiscountDetail,
+  DiscountForm,
+  Discounts,
   EmailVerification,
   ErrorPage,
   ForgotPassword,
@@ -38,6 +45,7 @@ import {
   InviteAccept,
   KYCReview,
   Login,
+  LoyaltySettings,
   MenuId,
   MenuMakerLayout,
   MenuOverview,
@@ -45,6 +53,7 @@ import {
   MerchantAccounts,
   ModifierGroupId,
   ModifierGroups,
+  ModifierInventory,
   NotificationPreferences,
   Notifications,
   OnboardingWizard,
@@ -554,7 +563,6 @@ const router = createBrowserRouter(
                       element: <KYCProtectedRoute />,
                       children: [
                         { path: 'tpv', element: <Tpv /> },
-                        { path: 'tpv/create', element: <CreateTpv /> },
                         { path: 'tpv/:tpvId', element: <TpvId /> },
                       ],
                     },
@@ -577,6 +585,46 @@ const router = createBrowserRouter(
                   children: [
                     { index: true, element: <Teams /> },
                     { path: ':memberId', element: <TeamMemberDetails /> },
+                  ],
+                },
+
+                // Customer Management (requires customers:read permission)
+                {
+                  path: 'customers',
+                  element: <PermissionProtectedRoute permission="customers:read" />,
+                  children: [
+                    { index: true, element: <Customers /> },
+                    { path: 'groups', element: <CustomerGroups /> },
+                    { path: ':customerId', element: <CustomerDetail /> },
+                  ],
+                },
+
+                // Loyalty Settings (requires loyalty:read permission)
+                {
+                  path: 'loyalty',
+                  element: <PermissionProtectedRoute permission="loyalty:read" />,
+                  children: [{ index: true, element: <LoyaltySettings /> }],
+                },
+
+                // Promotions - Discounts (requires discounts:read permission)
+                {
+                  path: 'promotions/discounts',
+                  element: <PermissionProtectedRoute permission="discounts:read" />,
+                  children: [
+                    { index: true, element: <Discounts /> },
+                    { path: 'create', element: <DiscountForm /> },
+                    { path: ':discountId', element: <DiscountDetail /> },
+                  ],
+                },
+
+                // Promotions - Coupons (requires coupons:read permission)
+                {
+                  path: 'promotions/coupons',
+                  element: <PermissionProtectedRoute permission="coupons:read" />,
+                  children: [
+                    { index: true, element: <Coupons /> },
+                    { path: 'create', element: <CouponForm /> },
+                    { path: ':couponId', element: <CouponForm /> },
                   ],
                 },
 
@@ -631,6 +679,7 @@ const router = createBrowserRouter(
                                 { path: 'product-stock', element: <ProductStock /> },
                                 { path: 'recipes', element: <Recipes /> },
                                 { path: 'pricing', element: <Pricing /> },
+                                { path: 'modifiers', element: <ModifierInventory /> },
                               ],
                             },
                           ],

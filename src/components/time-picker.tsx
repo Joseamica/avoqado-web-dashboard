@@ -91,13 +91,13 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className = ""
   const minuteOptions = ['00', '15', '30', '45']
 
   return (
-    <div className={`flex gap-2 ${className}`}>
+    <div className={`flex gap-1.5 ${className}`}>
       <Select
         value={internalState.hour}
         onValueChange={(value) => handleTimeChange('hour', value)}
       >
-        <SelectTrigger className="w-20">
-          <SelectValue placeholder={t('common.time.hour')} />
+        <SelectTrigger className="w-[4.5rem]">
+          <SelectValue placeholder={t('time.hour')} />
         </SelectTrigger>
         <SelectContent>
           {hourOptions.map((hour) => (
@@ -114,8 +114,8 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className = ""
         value={internalState.minute}
         onValueChange={(value) => handleTimeChange('minute', value)}
       >
-        <SelectTrigger className="w-20">
-          <SelectValue placeholder={t('common.time.min')} />
+        <SelectTrigger className="w-[4rem]">
+          <SelectValue placeholder={t('time.min')} />
         </SelectTrigger>
         <SelectContent>
           {minuteOptions.map((minute) => (
@@ -130,12 +130,12 @@ const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, className = ""
         value={internalState.period}
         onValueChange={(value) => handleTimeChange('period', value)}
       >
-        <SelectTrigger className="w-20">
-          <SelectValue placeholder={t('common.time.ampm')} />
+        <SelectTrigger className="w-[6rem]">
+          <SelectValue placeholder={t('time.ampm')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="AM">{t('common.time.am')}</SelectItem>
-          <SelectItem value="PM">{t('common.time.pm')}</SelectItem>
+          <SelectItem value="AM">{t('time.am')}</SelectItem>
+          <SelectItem value="PM">{t('time.pm')}</SelectItem>
         </SelectContent>
       </Select>
     </div>

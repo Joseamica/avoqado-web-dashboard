@@ -23,7 +23,7 @@ export function SearchBar({
   ariaLabelKey,
 }: SearchBarProps) {
   const { t } = useTranslation()
-  const finalPlaceholder = placeholder ?? (placeholderKey ? t(placeholderKey) : t('common.search'))
+  const finalPlaceholder = placeholder ?? (placeholderKey ? t(placeholderKey) : t('search'))
   const ariaLabel = ariaLabelKey ? t(ariaLabelKey) : finalPlaceholder
 
   return (
@@ -35,7 +35,7 @@ export function SearchBar({
         value={value}
         onChange={e => onChange(e.target.value)}
         aria-label={ariaLabel}
-        className={`pl-9 bg-background border-input w-full ${inputClassName ?? ''}`}
+        className={`pl-9 w-full ${inputClassName ?? ''}`}
       />
     </div>
   )

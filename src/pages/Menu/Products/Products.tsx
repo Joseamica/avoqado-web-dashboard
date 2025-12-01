@@ -3,13 +3,14 @@ import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/in
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
+import { AddToAIButton } from '@/components/AddToAIButton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
@@ -234,6 +235,17 @@ export default function Products() {
   })
 
   const columns: ColumnDef<Product, unknown>[] = [
+    {
+      id: 'ai',
+      header: () => <span className="sr-only">AI</span>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AddToAIButton type="product" data={row.original} variant="icon" />
+        </div>
+      ),
+      size: 50,
+      enableSorting: false,
+    },
     {
       id: 'imageUrl',
       accessorKey: 'imageUrl',
@@ -550,7 +562,7 @@ export default function Products() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
-        searchPlaceholder={t('common.search')}
+        searchPlaceholder={t('common:search')}
         onSearch={handleSearch}
         tableId="menu:products"
         pagination={pagination}

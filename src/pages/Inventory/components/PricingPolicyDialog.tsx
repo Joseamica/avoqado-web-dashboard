@@ -67,7 +67,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
   const minimumPrice = watch('minimumPrice')
 
   // Fetch existing pricing policy
-  const { data: existingPolicy, isLoading: policyLoading } = useQuery({
+  const { data: existingPolicy } = useQuery({
     queryKey: ['pricing-policy', venueId, product?.id],
     queryFn: async () => {
       if (!product) return null

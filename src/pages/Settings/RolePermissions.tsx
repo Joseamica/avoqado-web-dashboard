@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle } from 'lucide-react'
+import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -9,13 +9,14 @@ import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmD
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import rolePermissionService from '@/services/rolePermission.service'
 import PermissionGrid from './components/PermissionGrid'
+import RoleDisplayNames from './components/RoleDisplayNames'
 import { getModifiableRoles, getRoleDisplayName, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
 
@@ -46,7 +47,10 @@ export default function RolePermissions() {
   })
 
   // Get modifiable roles for current user
-  const modifiableRoles = staffInfo?.role ? getModifiableRoles(staffInfo.role) : []
+  const modifiableRoles = useMemo(
+    () => (staffInfo?.role ? getModifiableRoles(staffInfo.role) : []),
+    [staffInfo?.role]
+  )
 
   // Find the currently selected role's permissions
   const currentRolePermission = rolePermissionsData?.data.find(rp => rp.role === selectedRole)
@@ -62,9 +66,11 @@ export default function RolePermissions() {
   }
 
   // Initialize selected role to first modifiable role
-  if (!selectedRole && modifiableRoles.length > 0) {
-    setSelectedRole(modifiableRoles[0])
-  }
+  useEffect(() => {
+    if (!selectedRole && modifiableRoles.length > 0) {
+      setSelectedRole(modifiableRoles[0])
+    }
+  }, [selectedRole, modifiableRoles])
 
   // Update mutation
   const updateMutation = useMutation({
@@ -116,19 +122,29 @@ export default function RolePermissions() {
       return
     }
     setSelectedRole(role as StaffRole)
-    setModifiedPermissions([]) // ← LIMPIAR permisos al cambiar de rol
+    // Permissions will be set by useEffect
     setHasChanges(false)
   }
 
   const confirmRoleChange = () => {
     if (pendingRoleChange) {
       setSelectedRole(pendingRoleChange)
-      setModifiedPermissions([]) // ← LIMPIAR permisos al confirmar cambio de rol
+      // Permissions will be set by useEffect
       setHasChanges(false)
       setPendingRoleChange(null)
     }
     setShowUnsavedChangesDialog(false)
   }
+
+  // Initialize modifiedPermissions when selectedRole changes or API data loads
+  useEffect(() => {
+    if (selectedRole && rolePermissionsData?.data && !hasChanges) {
+      const roleData = rolePermissionsData.data.find(rp => rp.role === selectedRole)
+      if (roleData) {
+        setModifiedPermissions(roleData.permissions)
+      }
+    }
+  }, [selectedRole, rolePermissionsData?.data, hasChanges])
 
   const handlePermissionsChange = (permissions: string[]) => {
     setModifiedPermissions(permissions)
@@ -152,11 +168,6 @@ export default function RolePermissions() {
     if (!selectedRole) return
     revertMutation.mutate(selectedRole)
     setShowRevertDialog(false)
-  }
-
-  // Update modified permissions when role changes
-  if (selectedRole && currentRolePermission && modifiedPermissions.length === 0 && !hasChanges) {
-    setModifiedPermissions(currentRolePermission.permissions)
   }
 
   // Show loading state while auth is initializing
@@ -259,7 +270,76 @@ export default function RolePermissions() {
         )}
       </div>
 
-      <Separator />
+      {/* Tabs */}
+      <Tabs defaultValue="permissions" className="space-y-6">
+        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+          <TabsTrigger
+            value="permissions"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            <span>{t('rolePermissions.tabs.permissions', 'Permissions')}</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="display-names"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            <Tags className="h-4 w-4 mr-2" />
+            <span>{t('rolePermissions.tabs.displayNames', 'Display Names')}</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Permissions Tab */}
+        <TabsContent value="permissions" className="space-y-6">
+          {/* Save button and Legend */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
+              {selectedRole && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    <span>{t('rolePermissions.legendEnabled', 'Permission enabled')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <X className="h-4 w-4" />
+                    <span>{t('rolePermissions.legendDisabled', 'Permission disabled')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs px-1 py-0">
+                      +
+                    </Badge>
+                    <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs px-1 py-0">
+                      -
+                    </Badge>
+                    <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            {/* Save button */}
+            {selectedRole && (
+              <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default">
+                {updateMutation.isPending ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                    {t('rolePermissions.saving')}
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {t('rolePermissions.saveChanges')}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
 
       {/* Info Alert */}
       <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
@@ -370,35 +450,42 @@ export default function RolePermissions() {
               />
             </CardContent>
           </Card>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Unsaved Changes Dialog */}
-      <SimpleConfirmDialog
-        open={showUnsavedChangesDialog}
-        onOpenChange={setShowUnsavedChangesDialog}
-        title={t('rolePermissions.unsavedChanges')}
-        message={t('rolePermissions.unsavedChangesMessage')}
-        confirmLabel={t('rolePermissions.discard')}
-        cancelLabel={t('rolePermissions.cancel')}
-        onConfirm={confirmRoleChange}
-        variant="destructive"
-      />
-
-      {/* Revert to Defaults Dialog */}
-      {selectedRole && (
+        {/* Unsaved Changes Dialog */}
         <SimpleConfirmDialog
-          open={showRevertDialog}
-          onOpenChange={setShowRevertDialog}
-          title={t('rolePermissions.confirmRevert', { role: getRoleDisplayName(selectedRole) })}
-          message={t('rolePermissions.confirmRevertMessage')}
-          confirmLabel={t('rolePermissions.revertToDefaults')}
+          open={showUnsavedChangesDialog}
+          onOpenChange={setShowUnsavedChangesDialog}
+          title={t('rolePermissions.unsavedChanges')}
+          message={t('rolePermissions.unsavedChangesMessage')}
+          confirmLabel={t('rolePermissions.discard')}
           cancelLabel={t('rolePermissions.cancel')}
-          onConfirm={confirmRevert}
-          isLoading={revertMutation.isPending}
+          onConfirm={confirmRoleChange}
           variant="destructive"
         />
-      )}
+
+        {/* Revert to Defaults Dialog */}
+        {selectedRole && (
+          <SimpleConfirmDialog
+            open={showRevertDialog}
+            onOpenChange={setShowRevertDialog}
+            title={t('rolePermissions.confirmRevert', { role: getRoleDisplayName(selectedRole) })}
+            message={t('rolePermissions.confirmRevertMessage')}
+            confirmLabel={t('rolePermissions.revertToDefaults')}
+            cancelLabel={t('rolePermissions.cancel')}
+            onConfirm={confirmRevert}
+            isLoading={revertMutation.isPending}
+            variant="destructive"
+          />
+        )}
+        </TabsContent>
+
+        {/* Display Names Tab */}
+        <TabsContent value="display-names" className="space-y-6">
+          <RoleDisplayNames />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

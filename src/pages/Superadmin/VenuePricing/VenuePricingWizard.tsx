@@ -2,11 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, Building2, CheckCircle2, ArrowRight } from 'lucide-react'
+import { AlertCircle, Building2, CheckCircle2 } from 'lucide-react'
 import { StepIndicator } from './StepIndicator'
 import { PricingTabsView } from './PricingTabsView'
 import { PricingMetricsCard } from './PricingMetricsCard'
@@ -69,7 +68,7 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
   // Calculate metrics
   const metrics = useMemo(() => {
     const margins = pricingStructures
-      .filter(ps => calculateMargin)
+      .filter(() => calculateMargin)
       .map(ps => {
         const debit = calculateMargin!(ps, 'debit')
         const credit = calculateMargin!(ps, 'credit')

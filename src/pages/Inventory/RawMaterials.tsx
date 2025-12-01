@@ -13,6 +13,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
+import { AddToAIButton } from '@/components/AddToAIButton'
 import { Currency } from '@/utils/currency'
 import { RawMaterialDialog } from './components/RawMaterialDialog'
 import { getCategoryInfo, RAW_MATERIAL_CATEGORIES } from '@/lib/inventory-constants'
@@ -306,6 +307,17 @@ export default function RawMaterials() {
   // Column definitions
   const columns = useMemo<ColumnDef<RawMaterial, unknown>[]>(
     () => [
+      {
+        id: 'ai',
+        header: () => <span className="sr-only">AI</span>,
+        cell: ({ row }) => (
+          <div className="flex justify-center">
+            <AddToAIButton type="rawMaterial" data={row.original} variant="icon" />
+          </div>
+        ),
+        size: 50,
+        enableSorting: false,
+      },
       {
         accessorKey: 'name',
         meta: { label: t('rawMaterials.fields.name') },

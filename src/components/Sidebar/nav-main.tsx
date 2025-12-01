@@ -116,7 +116,16 @@ export function NavMain({
                                 isActive={isSubItemActive(subItem.url)}
                                 className={isSuperadminSubItem ? superadminSubButtonClass : undefined}
                               >
-                                <NavLink to={subItem.url}>
+                                <NavLink
+                                  to={subItem.url}
+                                  onClick={e => {
+                                    // For non-absolute paths, ensure navigation works
+                                    if (!subItem.url.startsWith('/') && !subItem.url.startsWith('#')) {
+                                      e.preventDefault()
+                                      navigate(subItem.url)
+                                    }
+                                  }}
+                                >
                                   <span className={isSuperadminSubItem ? superadminGradientTextClass : undefined}>{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>

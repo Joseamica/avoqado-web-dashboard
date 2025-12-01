@@ -1,19 +1,30 @@
-import { getTpvs, sendTpvCommand as sendTpvCommandApi } from '@/services/tpv.service'
+import { getTpvs, sendTpvCommand as sendTpvCommandApi, deleteTpv } from '@/services/tpv.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Wrench, Archive, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
+import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
+import { ActivateTerminalModal } from './components/ActivateTerminalModal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()
@@ -25,6 +36,11 @@ export default function Tpvs() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [activationModalOpen, setActivationModalOpen] = useState(false)
+  const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
 
   // Helper function to get terminal status styling
   const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
@@ -33,44 +49,43 @@ export default function Tpvs() {
     const isOnline = heartbeatTime && (now.getTime() - heartbeatTime.getTime()) < 5 * 60 * 1000 // 5 minutes
 
     switch (status) {
+      case 'PENDING_ACTIVATION':
+        return {
+          dotColor: 'bg-blue-500',
+          label: t('tpv.status.pendingActivation', { defaultValue: 'Pendiente' }),
+          isOnline: false
+        }
       case 'ACTIVE':
         return {
-          badge: isOnline 
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-            : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100',
-          icon: isOnline ? CheckCircle2 : AlertTriangle,
-          label: isOnline 
+          dotColor: isOnline ? 'bg-emerald-500' : 'bg-amber-500',
+          label: isOnline
             ? t('tpv.status.online', { defaultValue: 'En línea' })
             : t('tpv.status.offline', { defaultValue: 'Sin conexión' }),
-          color: isOnline ? 'text-emerald-600' : 'text-amber-600'
+          isOnline
         }
       case 'INACTIVE':
         return {
-          badge: 'bg-muted text-muted-foreground border border-border hover:bg-muted/80',
-          icon: XCircle,
+          dotColor: 'bg-muted-foreground/60',
           label: t('tpv.status.inactive', { defaultValue: 'Inactivo' }),
-          color: 'text-muted-foreground'
+          isOnline: false
         }
       case 'MAINTENANCE':
         return {
-          badge: 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100',
-          icon: Wrench,
+          dotColor: 'bg-orange-500',
           label: t('tpv.status.maintenance', { defaultValue: 'Mantenimiento' }),
-          color: 'text-orange-600'
+          isOnline: true // Maintenance mode means connected
         }
       case 'RETIRED':
         return {
-          badge: 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100',
-          icon: Archive,
+          dotColor: 'bg-red-500',
           label: t('tpv.status.retired', { defaultValue: 'Retirado' }),
-          color: 'text-red-600'
+          isOnline: false
         }
       default:
         return {
-          badge: 'bg-muted text-muted-foreground border border-border',
-          icon: XCircle,
+          dotColor: 'bg-muted-foreground/60',
           label: t('tpv.status.unknown', { defaultValue: 'Desconocido' }),
-          color: 'text-muted-foreground'
+          isOnline: false
         }
     }
   }
@@ -103,185 +118,182 @@ export default function Tpvs() {
   })
 
   const sendTpvCommand = useCallback((terminalId: string, command: string) => {
-    const payload = command === 'MAINTENANCE_MODE' 
+    const payload = command === 'MAINTENANCE_MODE'
       ? { message: t('tpv.commands.maintenancePayload', { defaultValue: 'Activado desde dashboard' }), duration: 0 }
       : undefined
 
     commandMutation.mutate({ terminalId, command, payload })
   }, [commandMutation, t])
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (terminalId: string) => deleteTpv(venueId, terminalId),
+    onSuccess: () => {
+      setDeleteDialogOpen(false)
+      setTerminalToDelete(null)
+      queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+      toast({
+        title: t('tpv.messages.deleted', { defaultValue: 'Terminal eliminada' }),
+        description: t('tpv.messages.deletedSuccess', { defaultValue: 'La terminal ha sido eliminada correctamente.' }),
+      })
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message
+      toast({
+        title: t('common.error', { defaultValue: 'Error' }),
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    },
+  })
+
   const totalTpvs = data?.meta?.total || 0
 
   const columns: ColumnDef<Terminal, unknown>[] = [
     {
-      id: 'name',
+      id: 'terminal',
       accessorKey: 'name',
-      sortDescFirst: true,
-      meta: { label: t('tpv.table.columns.name', { defaultValue: 'Nombre' }) },
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('tpv.table.columns.name', { defaultValue: 'Nombre' })}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
-      cell: ({ cell }) => <span className="font-medium">{cell.getValue() as string}</span>,
-    },
-    {
-      id: 'status',
-      accessorKey: 'status',
-      sortDescFirst: true,
-      meta: { label: t('tpv.table.columns.status', { defaultValue: 'Estado' }) },
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('tpv.table.columns.status', { defaultValue: 'Estado' })}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
+      meta: { label: t('tpv.table.columns.name', { defaultValue: 'Terminal' }) },
+      header: t('tpv.table.columns.name', { defaultValue: 'Terminal' }),
       cell: ({ row }) => {
         const terminal = row.original as any
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-        const StatusIcon = statusStyle.icon
-        const isActivated = terminal.activatedAt != null
 
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Status dot */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <Badge variant="outline" className={statusStyle.badge}>
-                    <StatusIcon className={`w-3 h-3 mr-1 ${statusStyle.color}`} />
-                    {statusStyle.label}
-                  </Badge>
-                </div>
+                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusStyle.dotColor}`} />
               </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-xs">
-                  <p className="font-medium">{statusStyle.label}</p>
-                  {terminal.lastHeartbeat && (
-                    <p className="text-muted-foreground">
-                      {t('tpv.status.lastSeen', { defaultValue: 'Visto por última vez' })}: {new Date(terminal.lastHeartbeat).toLocaleString()}
-                    </p>
-                  )}
-                </div>
+              <TooltipContent side="right">
+                <p className="text-xs">{statusStyle.label}</p>
+                {terminal.lastHeartbeat && (
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(terminal.lastHeartbeat).toLocaleString()}
+                  </p>
+                )}
               </TooltipContent>
             </Tooltip>
 
-            <Badge
-              variant="outline"
-              className={isActivated
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-xs'
-                : 'bg-amber-50 text-amber-700 border-amber-200 text-xs'
-              }
-            >
-              {isActivated
-                ? t('tpv.status.activated', { defaultValue: 'Activado' })
-                : t('tpv.status.notActivated', { defaultValue: 'Sin Activar' })
-              }
-            </Badge>
+            {/* Terminal info */}
+            <div className="flex flex-col min-w-0">
+              <span className="font-medium truncate">{terminal.name}</span>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {terminal.serialNumber && (
+                  <span className="font-mono truncate max-w-[140px]">
+                    {terminal.serialNumber.startsWith('AVQD-')
+                      ? terminal.serialNumber
+                      : terminal.serialNumber.slice(0, 8)}
+                  </span>
+                )}
+                {terminal.version && (
+                  <span className="text-muted-foreground/60">v{terminal.version}</span>
+                )}
+              </div>
+            </div>
           </div>
         )
       },
     },
     {
-      id: 'serialNumber',
-      accessorKey: 'serialNumber',
-      sortDescFirst: true,
-      meta: { label: t('tpv.table.columns.serial', { defaultValue: 'Número de serie' }) },
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('tpv.table.columns.serial', { defaultValue: 'Número de serie' })}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
-      cell: ({ cell }) => <span className="font-mono text-sm">{cell.getValue() as string}</span>,
-    },
-    {
-      id: 'version',
-      accessorKey: 'version',
-      sortDescFirst: true,
-      meta: { label: t('tpv.table.columns.version', { defaultValue: 'Versión' }) },
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('tpv.table.columns.version', { defaultValue: 'Versión' })}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
-      cell: ({ cell }) => {
-        const version = cell.getValue() as string
-        return version ? (
-          <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
-            v{version}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-sm">
-            {t('tpv.table.noVersion', { defaultValue: 'No especificada' })}
-          </span>
+      id: 'activation',
+      accessorKey: 'activatedAt',
+      meta: { label: t('tpv.table.columns.activation', { defaultValue: 'Activación' }) },
+      header: t('tpv.table.columns.status', { defaultValue: 'Estado' }),
+      cell: ({ row }) => {
+        const terminal = row.original as any
+        const isActivated = terminal.activatedAt != null
+
+        if (isActivated) {
+          return (
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="text-sm">{t('tpv.status.activated', { defaultValue: 'Activado' })}</span>
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Package className="w-4 h-4" />
+            <span className="text-sm">{t('tpv.status.notActivated', { defaultValue: 'Sin activar' })}</span>
+          </div>
         )
       },
     },
     {
       id: 'actions',
-      header: () => (
-        <span className="text-sm font-medium">
-          {t('tpv.table.columns.actions', { defaultValue: 'Acciones' })}
-        </span>
-      ),
+      header: '',
       cell: ({ row }) => {
         const terminal = row.original as any
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-        const isOnline = statusStyle.label === t('tpv.status.online', { defaultValue: 'En línea' })
         const isInMaintenance = terminal.status === 'MAINTENANCE'
+        const isOnline = statusStyle.isOnline
 
         return (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-end gap-1">
+            {/* Show Activate button if terminal is pending activation */}
+            {terminal.status === 'PENDING_ACTIVATION' && (
+              <PermissionGate permission="tpv:update">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedTerminalForActivation(terminal.id)
+                    setActivationModalOpen(true)
+                  }}
+                  className="h-7 px-2.5 text-xs"
+                >
+                  <KeyRound className="w-3.5 h-3.5 mr-1" />
+                  {t('tpv.actions.activate', { defaultValue: 'Activar' })}
+                </Button>
+              </PermissionGate>
+            )}
+
             {/* Only show command buttons if user has permission */}
             <PermissionGate permission="tpv:command">
               {isInMaintenance ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       onClick={(e) => {
                         e.stopPropagation()
                         sendTpvCommand(terminal.id, 'EXIT_MAINTENANCE')
                       }}
-                      className="h-8 px-3 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                      className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                      {t('tpv.actions.exitMaintenance', { defaultValue: 'Salir Mantenimiento' })}
+                      <CheckCircle2 className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>
-                      {t('tpv.actions.exit_maintenance', { defaultValue: 'Salir del modo mantenimiento' })}
-                    </p>
+                    {t('tpv.actions.exit_maintenance', { defaultValue: 'Salir mantenimiento' })}
                   </TooltipContent>
                 </Tooltip>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="icon"
                       disabled={!isOnline}
                       onClick={(e) => {
                         e.stopPropagation()
                         sendTpvCommand(terminal.id, 'MAINTENANCE_MODE')
                       }}
-                      className="h-8 px-3"
+                      className="h-7 w-7"
                     >
-                      <Wrench className="w-4 h-4 mr-1" />
-                      {t('tpv.actions.maintenanceMode', { defaultValue: 'Mantenimiento' })}
+                      <Wrench className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>
-                      {isOnline
-                        ? t('tpv.actions.maintenance', { defaultValue: 'Poner en modo mantenimiento' })
-                        : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
-                      }
-                    </p>
+                    {isOnline
+                      ? t('tpv.actions.maintenance', { defaultValue: 'Mantenimiento' })
+                      : t('tpv.actions.offline', { defaultValue: 'Desconectado' })
+                    }
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -289,29 +301,51 @@ export default function Tpvs() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     disabled={!isOnline}
                     onClick={(e) => {
                       e.stopPropagation()
                       sendTpvCommand(terminal.id, 'UPDATE_STATUS')
                     }}
-                    className="h-8 px-3"
+                    className="h-7 w-7"
                   >
-                    <AlertTriangle className="w-4 h-4 mr-1" />
-                    {t('tpv.actions.update', { defaultValue: 'Actualizar' })}
+                    <AlertTriangle className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>
-                    {isOnline
-                      ? t('tpv.actions.update_status', { defaultValue: 'Forzar actualización de estado' })
-                      : t('tpv.actions.offline', { defaultValue: 'Terminal desconectado' })
-                    }
-                  </p>
+                  {isOnline
+                    ? t('tpv.actions.update_status', { defaultValue: 'Actualizar' })
+                    : t('tpv.actions.offline', { defaultValue: 'Desconectado' })
+                  }
                 </TooltipContent>
               </Tooltip>
             </PermissionGate>
+
+            {/* Delete button - only for non-activated terminals */}
+            {!terminal.activatedAt && (
+              <PermissionGate permission="tpv:delete">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setTerminalToDelete({ id: terminal.id, name: terminal.name })
+                        setDeleteDialogOpen(true)
+                      }}
+                      className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t('tpv.actions.delete', { defaultValue: 'Eliminar terminal' })}
+                  </TooltipContent>
+                </Tooltip>
+              </PermissionGate>
+            )}
           </div>
         )
       },
@@ -348,16 +382,8 @@ export default function Tpvs() {
         </div>
         {/* Only show "Create" button if user has permission */}
         <PermissionGate permission="tpv:create">
-          <Button asChild>
-            <Link
-              to={`create`}
-              state={{
-                from: location.pathname,
-              }}
-              className="flex items-center space-x-2"
-            >
-              <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
-            </Link>
+          <Button onClick={() => setWizardOpen(true)}>
+            <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
           </Button>
         </PermissionGate>
       </div>
@@ -378,6 +404,57 @@ export default function Tpvs() {
         pagination={pagination}
         setPagination={setPagination}
       />
+
+      <TerminalPurchaseWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onSuccess={() => {
+          // Refresh the list
+          queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+        }}
+      />
+
+      <ActivateTerminalModal
+        open={activationModalOpen}
+        onOpenChange={setActivationModalOpen}
+        terminalId={selectedTerminalForActivation}
+        onSuccess={() => {
+          // Refresh the list
+          queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+        }}
+      />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('tpv.delete.title', { defaultValue: '¿Eliminar terminal?' })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('tpv.delete.description', {
+                name: terminalToDelete?.name,
+                defaultValue: `Esta acción eliminará permanentemente la terminal "${terminalToDelete?.name}". Esta acción no se puede deshacer.`
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t('common.cancel', { defaultValue: 'Cancelar' })}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => terminalToDelete && deleteMutation.mutate(terminalToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending
+                ? t('common.deleting', { defaultValue: 'Eliminando...' })
+                : t('common.delete', { defaultValue: 'Eliminar' })
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </TooltipProvider>
   )

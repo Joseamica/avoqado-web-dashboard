@@ -1,4 +1,5 @@
 {
+  "search": "Rechercher...",
   "cancel": "Annuler",
   "close": "Fermer",
   "edit": "Modifier",
@@ -13,6 +14,8 @@
   "back_to_home": "Retour à l'accueil",
   "copied": "Copié !",
   "goBack": "Retour",
+  "back": "Retour",
+  "next": "Suivant",
   "tryAgain": "Réessayer",
   "you": "Vous",
   "system": "Système",
@@ -26,6 +29,7 @@
   "selectAll": "Tout sélectionner",
   "optional": "Optionnel",
   "none": "Aucun",
+  "na": "N/A",
   "unknown": "Inconnu",
   "no_results": "Aucun résultat",
   "customize_columns": "Personnaliser les colonnes",
@@ -33,6 +37,7 @@
   "secondary": "Secondaire",
   "tertiary": "Tertiaire",
   "add": "Ajouter",
+  "create": "Créer",
   "subtract": "Soustraire",
   "there": "là",
   "getStarted": "Commencer",
@@ -46,6 +51,7 @@
   "compare": "Comparer",
   "apply": "Appliquer",
   "selectPlaceholder": "Sélectionnez une option",
+  "actions": "Actions",
   "dateRange": {
     "today": "Aujourd'hui",
     "yesterday": "Hier",
@@ -208,6 +214,24 @@
       "overageDesc": "Vous êtes actuellement en dépassement. Cette requête s'ajoutera à votre coût de dépassement actuel de {{cost}} $ USD.",
       "continueQuestion": "Voulez-vous continuer quand même ?",
       "sendAnyway": "Envoyer Quand Même"
+    },
+    "references": {
+      "panelTitle": "Références AI",
+      "clearAll": "Tout effacer",
+      "addToAI": "Ajouter à l'assistant AI",
+      "removeFromAI": "Retirer de l'assistant AI",
+      "added": "Ajouté",
+      "addToAIButton": "Ajouter à AI",
+      "unknownWaiter": "Inconnu",
+      "contextHeader": "[RÉFÉRENCES SÉLECTIONNÉES PAR L'UTILISATEUR]\nL'utilisateur a sélectionné les éléments suivants pour sa requête :",
+      "contextFooter": "\nRépondez aux questions de l'utilisateur en tenant compte de ces données spécifiques.\n[FIN DES RÉFÉRENCES]",
+      "paymentDate": "Date",
+      "paymentAmount": "Montant",
+      "paymentTip": "Pourboire",
+      "paymentMethod": "Méthode",
+      "paymentCard": "Carte",
+      "paymentWaiter": "Serveur",
+      "paymentTotal": "Total"
     }
   },
   "flags": {
@@ -215,6 +239,13 @@
     "uk": "Drapeau du Royaume-Uni"
   },
   "chooseColor": "Choisir la couleur",
+  "time": {
+    "hour": "Heure",
+    "min": "Min",
+    "ampm": "AM/PM",
+    "am": "AM",
+    "pm": "PM"
+  },
   "conversionWizard": {
     "title": "Convertir en établissement réel",
     "subtitle": "Complétez les étapes suivantes pour activer votre établissement.",

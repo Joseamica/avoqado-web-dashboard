@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Settings, DollarSign } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Settings } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -463,7 +463,7 @@ export default function Pricing() {
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <Input
-              placeholder={t('common.search')}
+              placeholder={t('common:search')}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="max-w-md"

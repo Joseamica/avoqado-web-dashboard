@@ -1,4 +1,5 @@
 {
+  "search": "Search...",
   "cancel": "Cancel",
   "close": "Close",
   "edit": "Edit",
@@ -13,6 +14,8 @@
   "back_to_home": "Back to Home",
   "copied": "Copied!",
   "goBack": "Go Back",
+  "back": "Back",
+  "next": "Next",
   "tryAgain": "Try Again",
   "you": "You",
   "system": "System",
@@ -26,6 +29,7 @@
   "selectAll": "Select all",
   "optional": "Optional",
   "none": "None",
+  "na": "N/A",
   "unknown": "Unknown",
   "no_results": "No results",
   "customize_columns": "Customize columns",
@@ -33,6 +37,7 @@
   "secondary": "Secondary",
   "tertiary": "Tertiary",
   "add": "Add",
+  "create": "Create",
   "subtract": "Subtract",
   "there": "there",
   "getStarted": "Get Started",
@@ -47,6 +52,13 @@
   "compare": "Compare",
   "apply": "Apply",
   "selectPlaceholder": "Select an option",
+  "descending": "Descending",
+  "ascending": "Ascending",
+  "actions": "Actions",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "daysAgo": "days ago",
+  "weeksAgo": "weeks ago",
   "errors": {
     "unauthorized": "Unauthorized",
     "noPermission": "You don't have permission to perform this action",
@@ -251,6 +263,24 @@
       "overageDesc": "You're currently in overage. This query will add to your current overage cost of ${{cost}} USD.",
       "continueQuestion": "Do you want to continue anyway?",
       "sendAnyway": "Send Anyway"
+    },
+    "references": {
+      "panelTitle": "AI References",
+      "clearAll": "Clear all",
+      "addToAI": "Add to AI assistant",
+      "removeFromAI": "Remove from AI assistant",
+      "added": "Added",
+      "addToAIButton": "Add to AI",
+      "unknownWaiter": "Unknown",
+      "contextHeader": "[SELECTED REFERENCES]\nThe user has selected the following items for their query:",
+      "contextFooter": "\nRespond to user questions considering these specific data.\n[END OF REFERENCES]",
+      "paymentDate": "Date",
+      "paymentAmount": "Amount",
+      "paymentTip": "Tip",
+      "paymentMethod": "Method",
+      "paymentCard": "Card",
+      "paymentWaiter": "Waiter",
+      "paymentTotal": "Total"
     }
   },
   "flags": {
@@ -258,6 +288,13 @@
     "uk": "Flag of the United Kingdom"
   },
   "chooseColor": "Choose color",
+  "time": {
+    "hour": "Hour",
+    "min": "Min",
+    "ampm": "AM/PM",
+    "am": "AM",
+    "pm": "PM"
+  },
   "conversionWizard": {
     "title": "Convert to Real Venue",
     "subtitle": "Complete the following steps to activate your venue and start accepting real payments.",
@@ -266,7 +303,17 @@
     "back": "Back",
     "next": "Next",
     "convert": "Convert Now",
-    "step1": {
+    "entityType": {
+      "title": "Entity Type",
+      "description": "Select the legal entity type of your business",
+      "fisica": "Individual",
+      "fisicaDescription": "Sole proprietors or freelancers with business activity",
+      "moral": "Legal Entity",
+      "moralDescription": "Companies, corporations, and other legal entities",
+      "required": "Please select an entity type",
+      "documentsNeeded": "Required documents:"
+    },
+    "businessInfo": {
       "title": "Tax Information",
       "description": "Enter your business tax information",
       "rfcLabel": "RFC",
@@ -275,56 +322,59 @@
       "fiscalRegimeLabel": "Tax Regime",
       "fiscalRegimePlaceholder": "e.g., General Law Regime"
     },
-    "step2": {
-      "title": "Tax Documents",
-      "description": "Upload your tax situation certificate and, if applicable, articles of incorporation",
-      "uploadLabel": "Click to upload or drag and drop",
-      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
-      "constanciaLabel": "Tax situation certificate (required)",
-      "actaLabel": "Articles of incorporation (optional)",
-      "actaHint": "PDF, JPG, PNG (MAX. 10MB)"
+    "documents": {
+      "title": "Uploaded documents",
+      "step1Title": "ID and Tax Certificate",
+      "step1Description": "Upload your official ID and tax situation certificate",
+      "step2Title": "Proof of Address and Bank Statement",
+      "step2Description": "Upload your proof of address and bank statement with CLABE",
+      "step3Title": "Corporate Documents",
+      "step3Description": "Upload your articles of incorporation and power of attorney (if applicable)",
+      "ine": "Official ID (INE/IFE)",
+      "ineHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "csf": "Tax Situation Certificate",
+      "csfHint": "PDF, JPG, PNG (MAX. 10MB)",
+      "comprobanteDomicilio": "Proof of Address",
+      "comprobanteDomicilioHint": "Utility bill or bank statement (max 3 months old)",
+      "caratulaBancaria": "Bank Statement (CLABE)",
+      "caratulaBancariaHint": "Bank statement or document with visible CLABE",
+      "actaConstitutiva": "Articles of Incorporation",
+      "actaHint": "PDF (MAX. 10MB)",
+      "poderLegal": "Power of Attorney",
+      "poderLegalHint": "PDF (MAX. 10MB) - Only if applicable",
+      "optional": "Optional",
+      "pending": "Pending",
+      "completed": "Done",
+      "step1Required": "Please upload your official ID and tax situation certificate",
+      "step2Required": "Please upload your proof of address and bank statement",
+      "actaRequired": "Articles of incorporation is required for Legal Entities"
     },
-    "step3": {
-      "title": "Identification",
-      "description": "Upload your official identification",
-      "uploadLabel": "Click to upload or drag and drop",
-      "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
-      "idLabel": "Official identification (required)"
-    },
-    "step4": {
+    "features": {
       "title": "Select Features",
-      "description": "Choose the features you want to activate",
+      "description": "Choose the premium features you want to activate",
       "loading": "Loading features...",
-      "noFeatures": "No features available at this time",
-      "helpText": "Select the features you want to enable for your venue."
+      "noFeatures": "No features available at this time"
     },
-    "step5": {
-      "title": "Review and Confirm",
-      "description": "Review your information before converting",
-      "summaryTitle": "Summary",
-      "venueName": "Venue Name",
-      "rfc": "RFC",
-      "legalName": "Legal Name",
-      "confirmationMessage": "By clicking you confirm that the information is correct."
+    "summary": {
+      "kycNotice": {
+        "title": "Verification in progress:",
+        "description": "Your documents will be reviewed by our team. You will receive a notification when your account is verified (1-2 business days)."
+      }
     },
     "success": {
       "title": "Conversion Successful!",
-      "description": "Your venue has been successfully converted."
+      "description": "Your venue has been converted. Your documents are being reviewed."
     },
     "shared": {
       "selectFile": "Select file",
+      "changeFile": "Change file",
       "uploading": "Uploading file..."
-    },
-    "documents": {
-      "title": "Uploaded documents",
-      "pending": "Pending",
-      "completed": "Done",
-      "optional": "Optional"
     },
     "error": {
       "title": "Error",
       "description": "There was an error. Please try again.",
-      "fetchFeatures": "Could not load features."
+      "fetchFeatures": "Could not load features.",
+      "uploadFailed": "Failed to upload file. Please try again."
     }
   }
 }

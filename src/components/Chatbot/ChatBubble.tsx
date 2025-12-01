@@ -1,7 +1,8 @@
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, BarChart3, History, Loader2, Maximize2, Minimize2, MoreVertical, PanelLeft, PanelLeftClose, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X, Zap } from 'lucide-react'
+import { AlertTriangle, BarChart3, ChevronDown, ChevronUp, History, Loader2, Maximize2, Minimize2, MoreVertical, PanelLeft, PanelLeftClose, Plus, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, X, Zap } from 'lucide-react'
 import { useTokenBudget, getTokenWarningLevel, formatTokenCount, tokenBudgetQueryKey, shouldWarnBeforeSending } from '@/hooks/use-token-budget'
+import { useChatReferences } from '@/hooks/use-chat-references'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -162,6 +163,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
   const [savedConversations, setSavedConversations] = useState(() => getSavedConversations(venueSlug))
   const [currentConversationId, setCurrentConversationId] = useState(() => getCurrentConversationId())
   const [isExpanded, setIsExpanded] = useState(true)
+  const [showReferencesPanel, setShowReferencesPanel] = useState(true)
+
+  // AI References
+  const { references, removeReference, clearReferences, getContextPrompt, referenceCount } = useChatReferences()
   // Initialize messages with conversation history
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -254,10 +259,10 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
   // Use TanStack Query mutation for chat messages
   const chatMutation = useMutation({
-    mutationFn: async ({ message, withVisualization }: { message: string; withVisualization: boolean }) => {
+    mutationFn: async ({ message, withVisualization, referencesContext }: { message: string; withVisualization: boolean; referencesContext?: string }) => {
       // Debug: verificar estado de autenticación antes de enviar
-      devLog('Enviando mensaje al asistente:', message, { venueSlug, includeVisualization: withVisualization })
-      return await sendChatMessage(message, { venueSlug, includeVisualization: withVisualization })
+      devLog('Enviando mensaje al asistente:', message, { venueSlug, includeVisualization: withVisualization, hasReferences: !!referencesContext })
+      return await sendChatMessage(message, { venueSlug, includeVisualization: withVisualization, referencesContext })
     },
     onError: (error: Error) => {
       console.error('Chat error:', error)
@@ -703,8 +708,11 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     setMessages(prev => [...prev, userMessage])
     addMessageToHistory('user', message, venueSlug)
 
+    // Get references context if there are any references
+    const referencesContext = referenceCount > 0 ? getContextPrompt() : undefined
+
     // Use TanStack Query mutation to send the message
-    chatMutation.mutate({ message, withVisualization: includeVisualization }, {
+    chatMutation.mutate({ message, withVisualization: includeVisualization, referencesContext }, {
       onSuccess: result => {
         const botMessage: ChatMessage = {
           id: `bot-${Date.now()}`,
@@ -744,7 +752,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
         devLog('✅ Message exchange completed and saved to history')
       },
     })
-  }, [chatMutation, includeVisualization, queryClient, toast, venueSlug])
+  }, [chatMutation, includeVisualization, queryClient, toast, venueSlug, referenceCount, getContextPrompt])
 
   // Handle confirmation to send despite token warning
   const handleConfirmSendWithWarning = useCallback(() => {
@@ -972,6 +980,56 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
 
         {/* Chat area */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* References Panel */}
+          {referenceCount > 0 && (
+            <div className="border-b border-border bg-muted/30 shrink-0">
+              <button
+                onClick={() => setShowReferencesPanel(!showReferencesPanel)}
+                className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>
+                    {t('chat.references.panelTitle', { defaultValue: 'Referencias AI' })} ({referenceCount})
+                  </span>
+                </div>
+                {showReferencesPanel ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              {showReferencesPanel && (
+                <div className="px-4 pb-3 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {references.map(ref => (
+                      <Badge
+                        key={ref.id}
+                        variant="secondary"
+                        className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 text-xs cursor-pointer hover:bg-destructive/10 transition-colors group"
+                        onClick={() => removeReference(ref.id)}
+                      >
+                        <span>{ref.label}</span>
+                        <X className="h-3 w-3 text-muted-foreground group-hover:text-destructive transition-colors" />
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearReferences}
+                      className="text-xs text-muted-foreground hover:text-destructive h-7"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      {t('chat.references.clearAll', { defaultValue: 'Limpiar todas' })}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Messages */}
           <div className={`flex-1 p-4 overflow-y-auto bg-background ${!isExpanded ? 'h-72' : ''}`}>
             <div className="space-y-4">
@@ -1309,6 +1367,7 @@ export function ChatBubble() {
   const [isOpen, setIsOpen] = useState(false)
   const { venueId } = useParams()
   const { t } = useTranslation()
+  const { referenceCount } = useChatReferences()
 
   // Track previous venue ID to detect changes
   const previousVenueIdRef = useRef<string | undefined>(venueId)
@@ -1340,10 +1399,15 @@ export function ChatBubble() {
       <Button
         onClick={toggleChat}
         size="icon"
-        className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
+        className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200 relative"
         aria-label={isOpen ? t('chat.a11y.close') : t('chat.a11y.open')}
       >
         <Sparkles className="h-5 w-5" />
+        {referenceCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-medium px-1">
+            {referenceCount}
+          </span>
+        )}
       </Button>
     </div>
   )

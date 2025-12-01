@@ -100,6 +100,7 @@ export const RawMaterials = React.lazy(() => import('@/pages/Inventory/RawMateri
 export const ProductStock = React.lazy(() => import('@/pages/Inventory/ProductStock'))
 export const Recipes = React.lazy(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = React.lazy(() => import('@/pages/Inventory/Pricing'))
+export const ModifierInventory = React.lazy(() => import('@/pages/Inventory/ModifierInventory'))
 
 // Settings
 export const RolePermissions = React.lazy(() => import('@/pages/Settings/RolePermissions'))
@@ -111,3 +112,18 @@ export const BillingSubscriptions = React.lazy(() => import('@/pages/Settings/Bi
 export const BillingHistory = React.lazy(() => import('@/pages/Settings/Billing/History'))
 export const BillingPaymentMethods = React.lazy(() => import('@/pages/Settings/Billing/PaymentMethods'))
 export const BillingTokens = React.lazy(() => import('@/pages/Settings/Billing/Tokens'))
+
+// Customers
+export const Customers = React.lazy(() => import('@/pages/Customers/Customers'))
+export const CustomerDetail = React.lazy(() => import('@/pages/Customers/CustomerDetail'))
+export const CustomerGroups = React.lazy(() => import('@/pages/Customers/CustomerGroups'))
+
+// Loyalty
+export const LoyaltySettings = React.lazy(() => import('@/pages/Loyalty/LoyaltySettings'))
+
+// Promotions
+export const Discounts = React.lazy(() => import('@/pages/Promotions/Discounts'))
+export const DiscountForm = React.lazy(() => import('@/pages/Promotions/DiscountForm'))
+export const DiscountDetail = React.lazy(() => import('@/pages/Promotions/Discounts/DiscountDetail'))
+export const Coupons = React.lazy(() => import('@/pages/Promotions/Coupons'))
+export const CouponForm = React.lazy(() => import('@/pages/Promotions/CouponForm'))

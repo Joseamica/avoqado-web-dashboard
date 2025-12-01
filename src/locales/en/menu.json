@@ -328,6 +328,21 @@
         "error": "Error updating modifier",
         "errorDesc": "There was a problem updating the modifier: {{message}}"
       }
+    },
+    "inventory": {
+      "title": "Inventory Tracking",
+      "trackInventory": "Track Inventory",
+      "trackInventoryDesc": "Automatically deduct raw materials when this modifier is used",
+      "mode": "Inventory Mode",
+      "modeAddition": "Addition (Extra)",
+      "modeAdditionDesc": "Adds extra ingredients to the order (e.g., \"Extra Bacon\")",
+      "modeSubstitution": "Substitution",
+      "modeSubstitutionDesc": "Replaces a recipe ingredient (e.g., \"Almond Milk\" instead of regular milk)",
+      "rawMaterial": "Raw Material",
+      "quantityPerUnit": "Quantity per modifier",
+      "quantityPerUnitDesc": "How much raw material is used per modifier",
+      "unit": "Unit",
+      "selectUnit": "Select unit"
     }
   },
   "products": {

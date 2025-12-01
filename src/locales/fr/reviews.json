@@ -128,5 +128,31 @@
     "description": "Les avis de vos clients apparaîtront ici.",
     "noResults": "Aucun avis ne correspond à vos filtres",
     "adjustFilters": "Essayez d'ajuster vos filtres pour voir plus de résultats."
+  },
+
+  "settings": {
+    "button": "Paramètres",
+    "badReviews": {
+      "title": "Alertes Avis Négatifs",
+      "description": "Configurez les notifications automatiques lorsque vous recevez des avis à faible note.",
+      "enableNotifications": "Activer les notifications",
+      "enableNotificationsDescription": "Recevez des alertes lorsqu'un client laisse un avis à faible note.",
+      "thresholdLabel": "Seuil de note",
+      "thresholdDescription": "Vous recevrez des alertes pour les avis notés à cette valeur ou en dessous.",
+      "thresholdHint": "Vous serez notifié pour les avis de {{threshold}} étoiles ou moins.",
+      "threshold": {
+        "1star": "1 étoile",
+        "2stars": "2 étoiles ou moins",
+        "3stars": "3 étoiles ou moins",
+        "4stars": "4 étoiles ou moins"
+      },
+      "rolesLabel": "Rôles à notifier",
+      "rolesDescription": "Sélectionnez quels rôles de l'équipe recevront les alertes.",
+      "saving": "Enregistrement...",
+      "toasts": {
+        "updateSuccess": "Paramètres d'alertes mis à jour",
+        "updateError": "Erreur lors de la mise à jour des paramètres"
+      }
+    }
   }
 }

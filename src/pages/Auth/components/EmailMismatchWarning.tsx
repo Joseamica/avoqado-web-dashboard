@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { AlertCircle, LogOut, X, User, Mail, ArrowRight } from 'lucide-react'
+import { AlertCircle, LogOut, X, User, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface EmailMismatchWarningProps {

@@ -36,7 +36,8 @@
       "viewerDesc": "View-only access to analytics and reports"
     },
     "validation": {
-      "pinFormat": "PIN must be exactly 4 digits"
+      "pinFormat": "PIN must be exactly 4 digits",
+      "pinUnavailable": "PIN unavailable. Please choose a different one."
     }
   },
   "invite": {
@@ -118,6 +119,8 @@
   "toasts": {
     "memberRemovedTitle": "Member removed",
     "memberRemovedDesc": "{{firstName}} {{lastName}} has been removed from the team.",
+    "memberRemoveErrorTitle": "Failed to remove",
+    "memberRemoveErrorDesc": "Could not remove the team member.",
     "memberRemoveError": "Failed to remove member",
     "invitationCancelled": "Invitation cancelled",
     "invitationCancelledDesc": "The invitation to {{email}} has been cancelled.",
@@ -125,5 +128,36 @@
     "invitationResent": "Invitation resent",
     "invitationResentDesc": "A new invitation was sent to {{email}}.",
     "invitationResendError": "Failed to resend invitation"
+  },
+  "detail": {
+    "subtitle": "Team member details",
+    "kpis": {
+      "totalSales": "Total Sales",
+      "totalOrders": "Total Orders",
+      "avgRating": "Average Rating"
+    },
+    "performance": {
+      "title": "Performance Metrics",
+      "desc": "Detailed statistics of the member's performance",
+      "totalTips": "Total Tips",
+      "avgPerOrder": "Average per Order",
+      "activeDays": "Active Days",
+      "venue": "Venue"
+    },
+    "organization": {
+      "title": "Organization Information",
+      "organization": "Organization",
+      "establishment": "Establishment"
+    },
+    "labels": {
+      "pin": "Access PIN"
+    },
+    "errors": {
+      "memberNotFoundTitle": "Member not found",
+      "memberNotFoundDesc": "The requested team member could not be found.",
+      "backToTeam": "Back to Team",
+      "accessDeniedTitle": "Access Denied",
+      "accessDeniedDesc": "You do not have permission to view this team member."
+    }
   }
 }

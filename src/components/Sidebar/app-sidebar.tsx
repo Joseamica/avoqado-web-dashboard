@@ -12,8 +12,10 @@
   Settings2,
   Smartphone,
   Star,
+  Tag,
   TrendingUp,
   Ungroup,
+  Users,
   Wallet,
   Zap,
 } from 'lucide-react'
@@ -103,6 +105,49 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Filter items based on permissions
     const filteredItems = allItems.filter(item => can(item.permission))
+
+    // Customers submenu - filter subitems based on permissions
+    const customersSubItems = [
+      { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read' },
+      { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read' },
+      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read' },
+    ].filter(item => !item.permission || can(item.permission))
+
+    // Only show Customers menu if user has at least one subitem
+    if (customersSubItems.length > 0) {
+      // Find index after Reviews to insert Customers menu
+      const reviewsIndex = filteredItems.findIndex(item => item.url === 'reviews')
+      const insertIndex = reviewsIndex !== -1 ? reviewsIndex + 1 : filteredItems.length
+      filteredItems.splice(insertIndex, 0, {
+        title: t('sidebar:customersMenu.title'),
+        url: '#customers',
+        icon: Users,
+        locked: false,
+        items: customersSubItems,
+        permission: null as any,
+      } as any)
+    }
+
+    // Promotions submenu - filter subitems based on permissions
+    const promotionsSubItems = [
+      { title: t('sidebar:promotionsMenu.discounts'), url: 'promotions/discounts', permission: 'discounts:read' },
+      { title: t('sidebar:promotionsMenu.coupons'), url: 'promotions/coupons', permission: 'coupons:read' },
+    ].filter(item => !item.permission || can(item.permission))
+
+    // Only show Promotions menu if user has at least one subitem
+    if (promotionsSubItems.length > 0) {
+      // Find index after Customers menu to insert Promotions menu
+      const customersIndex = filteredItems.findIndex(item => item.url === '#customers')
+      const insertIndex = customersIndex !== -1 ? customersIndex + 1 : filteredItems.length
+      filteredItems.splice(insertIndex, 0, {
+        title: t('sidebar:promotionsMenu.title'),
+        url: '#promotions',
+        icon: Tag,
+        locked: false,
+        items: promotionsSubItems,
+        permission: null as any,
+      } as any)
+    }
 
     // Settings submenu - filter subitems based on permissions
     const settingsSubItems = [

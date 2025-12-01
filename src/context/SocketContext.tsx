@@ -43,21 +43,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return
     }
 
+    // Get JWT token for socket authentication (in addition to cookies)
+    const authToken = localStorage.getItem('authToken')
+
     // Initialize socket connection
     const socketInstance = io(socketUrl, {
       transports: ['websocket'],
       withCredentials: true,
       autoConnect: true,
+      auth: authToken ? { token: authToken } : undefined,
     })
 
     // Set up event listeners
     socketInstance.on('connect', () => {
-      console.log('Socket connected')
       setIsConnected(true)
     })
 
     socketInstance.on('disconnect', () => {
-      console.log('Socket disconnected')
       setIsConnected(false)
     })
 
@@ -77,7 +79,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Join a venue-specific room
   const joinVenueRoom = (venueId: string) => {
     if (socket && venueId) {
-      console.log(`Joining venue room: venue_${venueId}`)
       socket.emit('joinVenueRoom', { venueId })
     }
   }
@@ -85,7 +86,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Leave a venue-specific room
   const leaveVenueRoom = (venueId: string) => {
     if (socket && venueId) {
-      console.log(`Leaving venue room: venue_${venueId}`)
       socket.emit('leaveVenueRoom', { venueId })
     }
   }

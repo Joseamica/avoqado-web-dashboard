@@ -212,8 +212,11 @@
     },
     "nav": {
       "general": "General",
+      "basicInfo": "Basic Information",
+      "contactImages": "Contact & Images",
       "documents": "Documentation",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "terminal": "Terminal"
     },
     "documents": {
       "title": "Fiscal Documentation",

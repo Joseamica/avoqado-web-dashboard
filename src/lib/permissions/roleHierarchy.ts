@@ -1,5 +1,9 @@
 import { StaffRole } from '@/types'
 
+// Re-export PERMISSION_CATEGORIES from single source of truth
+// This prevents duplicate definitions that can get out of sync
+export { PERMISSION_CATEGORIES } from './defaultPermissions'
+
 /**
  * Role hierarchy levels (higher number = more permissions)
  * Used for determining which roles can modify other roles
@@ -79,80 +83,6 @@ export const MODIFIABLE_ROLES_BY_LEVEL: Record<StaffRole, StaffRole[]> = {
  * `avoqado-server/src/lib/permissions.ts`
  */
 export const CRITICAL_PERMISSIONS = ['settings:manage', 'settings:read', 'teams:read', 'teams:update']
-
-/**
- * Permission categories for organizing the UI
- * Groups related permissions together in the permission grid
- */
-export const PERMISSION_CATEGORIES = {
-  HOME: {
-    label: 'Home Dashboard',
-    permissions: ['home:read'],
-  },
-  ANALYTICS: {
-    label: 'Analytics',
-    permissions: ['analytics:read', 'analytics:export'],
-  },
-  MENU: {
-    label: 'Menu Management',
-    permissions: ['menu:read', 'menu:create', 'menu:update', 'menu:delete'],
-  },
-  ORDERS: {
-    label: 'Orders',
-    permissions: ['orders:read', 'orders:create', 'orders:update', 'orders:cancel'],
-  },
-  PAYMENTS: {
-    label: 'Payments',
-    permissions: ['payments:read', 'payments:create', 'payments:refund'],
-  },
-  SHIFTS: {
-    label: 'Shifts',
-    permissions: ['shifts:read', 'shifts:create', 'shifts:update', 'shifts:delete', 'shifts:close'],
-  },
-  TPV: {
-    label: 'TPV Management',
-    permissions: ['tpv:read', 'tpv:create', 'tpv:update', 'tpv:delete', 'tpv:command'],
-  },
-  INVENTORY: {
-    label: 'Inventory',
-    permissions: ['inventory:read', 'inventory:create', 'inventory:update', 'inventory:delete', 'inventory:adjust'],
-  },
-  REVIEWS: {
-    label: 'Reviews',
-    permissions: ['reviews:read', 'reviews:respond'],
-  },
-  TEAMS: {
-    label: 'Team Management',
-    permissions: ['teams:read', 'teams:create', 'teams:update', 'teams:delete', 'teams:invite'],
-  },
-  TABLES: {
-    label: 'Table Management',
-    permissions: ['tables:read', 'tables:update'],
-  },
-  RESERVATIONS: {
-    label: 'Reservations',
-    permissions: ['reservations:read', 'reservations:create', 'reservations:update', 'reservations:cancel'],
-  },
-  SETTINGS: {
-    label: 'Settings',
-    permissions: ['settings:read', 'settings:manage'],
-  },
-  VENUES: {
-    label: 'Venue Settings',
-    permissions: ['venues:read', 'venues:update'],
-  },
-} as const
-
-/**
- * Get all unique permissions across all categories
- */
-export function getAllPermissions(): string[] {
-  const permissions = new Set<string>()
-  Object.values(PERMISSION_CATEGORIES).forEach(category => {
-    category.permissions.forEach(p => permissions.add(p))
-  })
-  return Array.from(permissions).sort()
-}
 
 /**
  * Check if a role can modify permissions for another role

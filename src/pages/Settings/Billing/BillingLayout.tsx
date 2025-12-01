@@ -17,7 +17,7 @@ export default function BillingLayout() {
       <BillingNav className="bg-card h-14" />
 
       {/* Content - Child routes render here */}
-      <div className="flex-1">
+      <div className="flex-1 pb-4">
         <Outlet />
       </div>
     </div>

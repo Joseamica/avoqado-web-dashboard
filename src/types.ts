@@ -223,6 +223,24 @@ export enum SyncStatus {
   NOT_REQUIRED = 'NOT_REQUIRED',
 }
 
+export enum ModifierInventoryMode {
+  ADDITION = 'ADDITION',
+  SUBSTITUTION = 'SUBSTITUTION',
+}
+
+export enum Unit {
+  UNIT = 'UNIT',
+  KILOGRAM = 'KILOGRAM',
+  GRAM = 'GRAM',
+  LITER = 'LITER',
+  MILLILITER = 'MILLILITER',
+  OUNCE = 'OUNCE',
+  POUND = 'POUND',
+  CUP = 'CUP',
+  TABLESPOON = 'TABLESPOON',
+  TEASPOON = 'TEASPOON',
+}
+
 export enum InvitationType {
   ORGANIZATION_ADMIN = 'ORGANIZATION_ADMIN',
   VENUE_STAFF = 'VENUE_STAFF',
@@ -427,6 +445,7 @@ export interface VenueSettings {
   autoReplyReviews: boolean
   notifyBadReviews: boolean
   badReviewThreshold: number
+  badReviewAlertRoles: StaffRole[]
 
   // Inventory
   trackInventory: boolean
@@ -950,6 +969,20 @@ export interface Modifier {
 
   active: boolean
 
+  // Inventory tracking fields (Toast/Square pattern)
+  rawMaterialId?: string | null
+  rawMaterial?: {
+    id: string
+    name: string
+    sku: string
+    unit: string
+    currentStock: number
+    costPerUnit: number
+  } | null
+  quantityPerUnit?: number | null // Amount of raw material per modifier unit
+  unit?: Unit | string | null // Unit of measurement
+  inventoryMode?: ModifierInventoryMode | null // ADDITION or SUBSTITUTION
+
   orderItems?: OrderItemModifier[]
 }
 
@@ -1411,3 +1444,59 @@ export interface UpdateMenuCategoryDto {
 
 // OBSOLETO: Reemplazado por `ModifierGroup` y el nuevo `Modifier`
 // export interface ModifierGroup { ... }
+
+// ==========================================
+// ROLE CONFIG TYPES (Custom Role Display Names)
+// ==========================================
+
+/**
+ * Role configuration for custom display names per venue.
+ * Allows venues to customize how roles are displayed in the UI
+ * without changing the underlying StaffRole enum.
+ */
+export interface RoleConfig {
+  role: StaffRole
+  displayName: string
+  description: string | null
+  icon: string | null
+  color: string | null
+  isActive: boolean
+  sortOrder: number
+}
+
+/**
+ * Input type for updating role configurations.
+ * Only role and displayName are required.
+ */
+export interface RoleConfigInput {
+  role: StaffRole
+  displayName: string
+  description?: string | null
+  icon?: string | null
+  color?: string | null
+  isActive?: boolean
+  sortOrder?: number
+}
+
+/**
+ * Response from the role-config API endpoints
+ */
+export interface RoleConfigResponse {
+  configs: RoleConfig[]
+}
+
+/**
+ * Default display names for roles (Spanish)
+ * Used as fallback when no custom config exists
+ */
+export const DEFAULT_ROLE_DISPLAY_NAMES: Record<StaffRole, string> = {
+  [StaffRole.SUPERADMIN]: 'Super Administrador',
+  [StaffRole.OWNER]: 'Propietario',
+  [StaffRole.ADMIN]: 'Administrador',
+  [StaffRole.MANAGER]: 'Gerente',
+  [StaffRole.CASHIER]: 'Cajero',
+  [StaffRole.WAITER]: 'Mesero',
+  [StaffRole.KITCHEN]: 'Cocina',
+  [StaffRole.HOST]: 'Host',
+  [StaffRole.VIEWER]: 'Observador',
+}

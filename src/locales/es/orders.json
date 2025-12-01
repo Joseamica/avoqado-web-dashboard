@@ -1,6 +1,6 @@
 {
   "title": "Ordenes",
-  "searchPlaceholder": "Buscar por folio o mesero...",
+  "searchPlaceholder": "Buscar por folio, mesa o mesero...",
   "errorPrefix": "Error al cargar órdenes",
   "counter": "Mostrador",
   "columns": {
@@ -8,6 +8,7 @@
     "orderNumber": "Folio",
     "customer": "Cliente",
     "type": "Tipo",
+    "table": "Mesa",
     "waiter": "Mesero",
     "status": "Estado",
     "tip": "Propina",

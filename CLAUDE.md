@@ -13,6 +13,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
+### Database Access (Local Development)
+
+When you need to verify data in the database (e.g., debugging issues with missing fields):
+
+```bash
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT * FROM \"Venue\" WHERE slug = 'avoqado-full';"
+```
+
+**Database Connection:**
+- URL: `postgresql://postgres:exitosoy777@localhost:5432/av-db-25`
+- Host: `localhost:5432`
+- User: `postgres`
+- Password: `exitosoy777`
+- Database: `av-db-25`
+
+**Common queries:**
+```bash
+# Check venue data
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT id, name, slug, address, city, state, \"zipCode\", country, email, phone FROM \"Venue\" WHERE slug = 'venue-slug';"
+
+# List all tables
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "\dt"
+
+# Describe table structure
+PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "\d \"Venue\""
+```
+
 ### Unused Code Detection
 
 - `npm run check:unused` - Detect unimported files (fast)
@@ -172,6 +199,34 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 ```
 
 **See:** [Theme guide](.claude/docs/features/theme.md)
+
+### 5. Pill-Style Tabs (MANDATORY)
+
+**ALWAYS use pill-style tabs. NEVER use default Radix tabs styling.**
+
+```typescript
+// ❌ WRONG - Default styling
+<TabsList>
+  <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+</TabsList>
+
+// ✅ CORRECT - Pill-style from Teams.tsx
+<TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+  <TabsTrigger
+    value="tab1"
+    className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+  >
+    <span>{t('tabs.tab1')}</span>
+    <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs text-foreground bg-foreground/10 group-hover:bg-foreground/20 group-data-[state=active]:bg-background/20 group-data-[state=active]:text-background">
+      {count}
+    </span>
+  </TabsTrigger>
+</TabsList>
+```
+
+**Reference:** `/src/pages/Team/Teams.tsx` (lines 372-392)
+
+**See:** [Complete UI Patterns guide](.claude/docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
 
 ## Tech Stack
 

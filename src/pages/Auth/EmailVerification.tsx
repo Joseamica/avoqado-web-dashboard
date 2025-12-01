@@ -17,7 +17,6 @@ export default function EmailVerification() {
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
-  const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const emailFromUrl = searchParams.get('email')
 

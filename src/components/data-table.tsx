@@ -153,7 +153,7 @@ function DataTable<TData>({
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Search Bar */}
         {enableSearch && (
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('common.search')} />
+          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />
         )}
 
         {/* Column Customizer */}

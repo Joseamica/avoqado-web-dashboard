@@ -97,6 +97,15 @@ import ecommerceFr from '@/locales/fr/ecommerce.json'
 import venuePricingEn from '@/locales/en/venuePricing.json'
 import venuePricingEs from '@/locales/es/venuePricing.json'
 import venuePricingFr from '@/locales/fr/venuePricing.json'
+import customersEn from '@/locales/en/customers.json'
+import customersEs from '@/locales/es/customers.json'
+import customersFr from '@/locales/fr/customers.json'
+import loyaltyEn from '@/locales/en/loyalty.json'
+import loyaltyEs from '@/locales/es/loyalty.json'
+import loyaltyFr from '@/locales/fr/loyalty.json'
+import promotionsEn from '@/locales/en/promotions.json'
+import promotionsEs from '@/locales/es/promotions.json'
+import promotionsFr from '@/locales/fr/promotions.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -445,6 +454,33 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'venuePricing', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', customersEn],
+    ['es', customersEs],
+    ['fr', customersFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'customers', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', loyaltyEn],
+    ['es', loyaltyEs],
+    ['fr', loyaltyFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'loyalty', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', promotionsEn],
+    ['es', promotionsEs],
+    ['fr', promotionsFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'promotions', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

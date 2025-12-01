@@ -32,6 +32,7 @@ import {
   Cpu,
   HardDrive,
   Home,
+  Info,
   Key,
   MemoryStick,
   PencilIcon,
@@ -40,7 +41,6 @@ import {
   Settings,
   Shield,
   Terminal,
-  Trash2,
   Wifi,
   WifiOff,
   Wrench,
@@ -57,6 +57,10 @@ import { generateActivationCode } from '@/services/tpv.service'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
+import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RemoteCommandPanel } from './components/RemoteCommandPanel'
+import { CommandHistoryTable } from './components/CommandHistoryTable'
 
 // Type for the form values
 type TpvFormValues = {
@@ -85,6 +89,10 @@ interface TpvData {
   version?: string
   ipAddress?: string
   activatedAt?: string | null // 🆕 Activation timestamp (null = not activated)
+  isLocked?: boolean // 🆕 Whether terminal is remotely locked
+  lockReason?: string | null // 🆕 Why terminal was locked
+  lockedAt?: string | null // 🆕 When terminal was locked
+  lockedBy?: string | null // 🆕 StaffId who locked
   systemInfo?: {
     platform?: string
     memory?: {
@@ -182,7 +190,11 @@ export default function TpvId() {
 
   const isOnline = (status?: string, lastHeartbeat?: string) => {
     const cutoff = new Date(Date.now() - 2 * 60 * 1000)
-    return status === 'ACTIVE' && lastHeartbeat && new Date(lastHeartbeat) > cutoff
+    // Terminal is "online" if it has a recent heartbeat AND status is ACTIVE or MAINTENANCE
+    // MAINTENANCE means the terminal IS connected (socket + heartbeat working), just in a special mode
+    // Only truly "offline" if no recent heartbeat OR status is INACTIVE/RETIRED
+    const isConnectedStatus = status === 'ACTIVE' || status === 'MAINTENANCE'
+    return isConnectedStatus && lastHeartbeat && new Date(lastHeartbeat) > cutoff
   }
 
   const formatUptime = (seconds?: number) => {
@@ -575,7 +587,32 @@ export default function TpvId() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <Tabs defaultValue="info" className="space-y-6">
+            {/* Pill-style Tabs */}
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+              <TabsTrigger
+                value="info"
+                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+              >
+                {t('common:information', 'Información')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="commands"
+                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+              >
+                {t('commands.remoteCommands')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+              >
+                {t('tpvSettings.title')}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Info Tab */}
+            <TabsContent value="info" className="space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Left Column - Main Info */}
             <div className="xl:col-span-2 space-y-6">
               {/* Status Overview Card */}
@@ -1125,6 +1162,36 @@ export default function TpvId() {
               </Card>
             </div>
           </div>
+            </TabsContent>
+
+            {/* Commands Tab */}
+            <TabsContent value="commands" className="space-y-6">
+              <PermissionGate permission="tpv:command">
+                <RemoteCommandPanel
+                  terminalId={tpvId!}
+                  terminalName={tpv?.name || t('detail.terminal')}
+                  isOnline={terminalOnline}
+                  isLocked={tpv?.isLocked ?? false}
+                  isInMaintenance={isInMaintenance}
+                  venueId={venueId!}
+                />
+                <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
+              </PermissionGate>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <PermissionGate permission="tpv-settings:read">
+                <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    {t('tpvSettings.infoAlert')}
+                  </AlertDescription>
+                </Alert>
+                <TpvSettingsForm tpvId={tpvId!} />
+              </PermissionGate>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 

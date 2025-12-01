@@ -1,5 +1,6 @@
 import api from '@/api'
 import { DateRangePicker } from '@/components/date-range-picker'
+import { BadReviewSettingsDialog } from '@/components/Review/BadReviewSettingsCard'
 import { ReviewCard } from '@/components/Review/ReviewCard'
 import { ReviewFilters, ReviewFiltersState } from '@/components/Review/ReviewFilters'
 import { ReviewResponseDialog } from '@/components/Review/ReviewResponseDialog'
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -62,6 +63,7 @@ export default function ReviewSummary() {
     responseStatus: 'all',
     searchQuery: '',
   })
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
 
   // Fetch reviews from API
   const {
@@ -210,19 +212,25 @@ export default function ReviewSummary() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
-        <DateRangePicker
-          showCompare={false}
-          onUpdate={({ range }) => {
-            if (range.from && range.to) {
-              setSelectedRange(range)
-              setCurrentPage(1)
-            }
-          }}
-          initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
-          initialDateTo={defaultRange.to.toISOString().split('T')[0]}
-          align="end"
-          locale="es-ES"
-        />
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => setSettingsDialogOpen(true)} className="gap-2">
+            <Settings className="h-4 w-4" />
+            {t('settings.button')}
+          </Button>
+          <DateRangePicker
+            showCompare={false}
+            onUpdate={({ range }) => {
+              if (range.from && range.to) {
+                setSelectedRange(range)
+                setCurrentPage(1)
+              }
+            }}
+            initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
+            initialDateTo={defaultRange.to.toISOString().split('T')[0]}
+            align="end"
+            locale="es-ES"
+          />
+        </div>
       </div>
 
       {/* Stats */}
@@ -302,6 +310,9 @@ export default function ReviewSummary() {
 
       {/* Response Dialog */}
       <ReviewResponseDialog review={selectedReview} open={responseDialogOpen} onOpenChange={setResponseDialogOpen} />
+
+      {/* Bad Review Settings Dialog */}
+      <BadReviewSettingsDialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen} />
     </div>
   )
 }

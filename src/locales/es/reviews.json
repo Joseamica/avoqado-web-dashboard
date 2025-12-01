@@ -128,5 +128,31 @@
     "description": "Las reseñas de tus clientes aparecerán aquí.",
     "noResults": "No hay reseñas que coincidan con tus filtros",
     "adjustFilters": "Intenta ajustar tus filtros para ver más resultados."
+  },
+
+  "settings": {
+    "button": "Configuración",
+    "badReviews": {
+      "title": "Alertas de Malas Reseñas",
+      "description": "Configura las notificaciones automáticas cuando recibas reseñas con baja calificación.",
+      "enableNotifications": "Habilitar notificaciones",
+      "enableNotificationsDescription": "Recibe alertas cuando un cliente deje una reseña con baja calificación.",
+      "thresholdLabel": "Umbral de calificación",
+      "thresholdDescription": "Recibirás alertas para reseñas con calificación igual o menor a este valor.",
+      "thresholdHint": "Se notificará para reseñas de {{threshold}} estrellas o menos.",
+      "threshold": {
+        "1star": "1 estrella",
+        "2stars": "2 estrellas o menos",
+        "3stars": "3 estrellas o menos",
+        "4stars": "4 estrellas o menos"
+      },
+      "rolesLabel": "Roles a notificar",
+      "rolesDescription": "Selecciona qué roles del equipo recibirán las alertas.",
+      "saving": "Guardando...",
+      "toasts": {
+        "updateSuccess": "Configuración de alertas actualizada",
+        "updateError": "Error al actualizar la configuración"
+      }
+    }
   }
 }
