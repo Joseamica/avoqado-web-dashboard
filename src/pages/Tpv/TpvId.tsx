@@ -17,6 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -34,6 +35,9 @@ import {
   Home,
   Info,
   Key,
+  Lock,
+  LockOpen,
+  Loader2,
   MemoryStick,
   PencilIcon,
   RefreshCw,
@@ -47,15 +51,20 @@ import {
   XIcon,
   Zap,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+
+// Valid tab values for URL hash
+const VALID_TABS = ['info', 'commands', 'settings'] as const
+type TabValue = (typeof VALID_TABS)[number]
 import * as z from 'zod'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
 import { generateActivationCode } from '@/services/tpv.service'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
 import { useAuth } from '@/context/AuthContext'
+import { useSocket } from '@/context/SocketContext'
 import { StaffRole } from '@/types'
 import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -113,8 +122,72 @@ export default function TpvId() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
+  const { socket, joinVenueRoom, leaveVenueRoom } = useSocket()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const [isEditing, setIsEditing] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabValue>('info')
+  const [pendingCommand, setPendingCommand] = useState<string | null>(null)
+
+  // Sync tab state with URL hash
+  useEffect(() => {
+    const syncTabFromHash = () => {
+      const hash = window.location.hash.replace('#', '')
+      if (VALID_TABS.includes(hash as TabValue)) {
+        setActiveTab(hash as TabValue)
+      }
+    }
+
+    // Set initial tab from hash on mount
+    syncTabFromHash()
+
+    // Listen for hash changes (browser back/forward)
+    window.addEventListener('hashchange', syncTabFromHash)
+    return () => window.removeEventListener('hashchange', syncTabFromHash)
+  }, [])
+
+  // Update URL hash when tab changes
+  const handleTabChange = useCallback((value: string) => {
+    const tab = value as TabValue
+    setActiveTab(tab)
+    window.history.replaceState(null, '', `#${tab}`)
+  }, [])
+
+  // Socket.IO listeners for real-time updates (Toast/Square pattern)
+  // Commands are delivered via HTTP polling, but status updates come via Socket.IO
+  useEffect(() => {
+    if (!socket || !venueId || !tpvId) return
+
+    // Join venue room for real-time updates
+    joinVenueRoom(venueId)
+
+    // Listen for command status changes
+    const handleCommandStatusChanged = (data: { commandId: string; terminalId: string; newStatus: string; resultStatus?: string }) => {
+      // Only invalidate if this event is for our terminal
+      if (data.terminalId === tpvId) {
+        // Invalidate command history query to refresh the table
+        queryClient.invalidateQueries({ queryKey: ['commandHistory', venueId, tpvId] })
+      }
+    }
+
+    // Listen for terminal status updates
+    const handleTerminalStatusUpdate = (data: { terminalId: string; status: string; lastHeartbeat?: string }) => {
+      // Only invalidate if this event is for our terminal
+      if (data.terminalId === tpvId) {
+        // Invalidate terminal data query to refresh status badge
+        queryClient.invalidateQueries({ queryKey: ['tpv', venueId, tpvId] })
+      }
+    }
+
+    socket.on('tpv_command_status_changed', handleCommandStatusChanged)
+    socket.on('tpv_status_update', handleTerminalStatusUpdate)
+
+    return () => {
+      socket.off('tpv_command_status_changed', handleCommandStatusChanged)
+      socket.off('tpv_status_update', handleTerminalStatusUpdate)
+      leaveVenueRoom(venueId)
+    }
+  }, [socket, venueId, tpvId, queryClient, joinVenueRoom, leaveVenueRoom])
+
   const [activationDialogOpen, setActivationDialogOpen] = useState(false)
   const [activationData, setActivationData] = useState<{
     activationCode: string
@@ -216,6 +289,7 @@ export default function TpvId() {
   const navigate = useNavigate()
 
   // Fetch the TPV data
+  // Toast/Square pattern: Socket.IO for real-time + polling fallback every 10s
   const {
     data: tpv,
     isLoading,
@@ -228,6 +302,7 @@ export default function TpvId() {
       return response.data
     },
     enabled: Boolean(venueId && tpvId),
+    refetchInterval: 10000, // Poll every 10 seconds as fallback for Socket.IO
     retry: (failureCount, error: any) => {
       // Don't retry if it's a 404 error
       if (error?.response?.status === 404) {
@@ -307,9 +382,17 @@ export default function TpvId() {
   })
 
   const sendTpvCommand = (command: string) => {
+    setPendingCommand(command)
     const payload = command === 'MAINTENANCE_MODE' ? { message: t('commands.maintenancePayload'), duration: 0 } : undefined
 
-    commandMutation.mutate({ command, payload })
+    commandMutation.mutate(
+      { command, payload },
+      {
+        onSettled: () => {
+          setPendingCommand(null)
+        },
+      },
+    )
   }
 
   // Mutation for generating activation code
@@ -320,7 +403,7 @@ export default function TpvId() {
       }
       return generateActivationCode(venueId, tpvId)
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       setActivationData({
         activationCode: data.activationCode,
         expiresAt: data.expiresAt,
@@ -507,23 +590,84 @@ export default function TpvId() {
 
                 {/* Action Buttons */}
                 {!isEditing && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-4">
                     {/* Maintenance Mode Toggle */}
-                    {isInMaintenance ? (
+                    <PermissionGate permission="tpv:command">
                       <Tooltip>
-                        <TooltipTrigger asChild></TooltipTrigger>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-2">
+                            {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE' ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
+                            ) : (
+                              <Wrench className={`w-4 h-4 ${isInMaintenance ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                            )}
+                            <Switch
+                              checked={isInMaintenance}
+                              onCheckedChange={checked => {
+                                if (checked) {
+                                  sendTpvCommand('MAINTENANCE_MODE')
+                                } else {
+                                  sendTpvCommand('EXIT_MAINTENANCE')
+                                }
+                              }}
+                              disabled={(!terminalOnline && !isInMaintenance) || commandMutation.isPending}
+                              className="data-[state=checked]:bg-orange-500"
+                            />
+                            <span className="text-xs text-muted-foreground hidden sm:inline">
+                              {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE'
+                                ? t('common:loading')
+                                : t('actions.maintenance')}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
                         <TooltipContent>
-                          <p>{t('detail.tooltips.reactivate')}</p>
+                          <p>
+                            {isInMaintenance
+                              ? t('detail.tooltips.reactivate')
+                              : terminalOnline
+                              ? t('detail.tooltips.maintenanceMode')
+                              : t('actions.offline')}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
-                    ) : (
+                    </PermissionGate>
+
+                    {/* Lock Toggle */}
+                    <PermissionGate permission="tpv:command">
                       <Tooltip>
-                        <TooltipTrigger asChild></TooltipTrigger>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-2">
+                            {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                            ) : tpv?.isLocked ? (
+                              <Lock className="w-4 h-4 text-red-500" />
+                            ) : (
+                              <LockOpen className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <Switch
+                              checked={tpv?.isLocked ?? false}
+                              onCheckedChange={checked => {
+                                if (checked) {
+                                  sendTpvCommand('LOCK')
+                                } else {
+                                  sendTpvCommand('UNLOCK')
+                                }
+                              }}
+                              disabled={!terminalOnline || commandMutation.isPending}
+                              className="data-[state=checked]:bg-red-500"
+                            />
+                            <span className="text-xs text-muted-foreground hidden sm:inline">
+                              {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? t('common:loading') : t('actions.lock')}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
                         <TooltipContent>
-                          <p>{terminalOnline ? t('detail.tooltips.maintenanceMode') : t('actions.offline')}</p>
+                          <p>{tpv?.isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock')}</p>
                         </TooltipContent>
                       </Tooltip>
-                    )}
+                    </PermissionGate>
+
+                    <div className="h-6 w-px bg-border" />
 
                     {/* Update Status Button */}
                     <PermissionGate permission="tpv:command">
@@ -587,7 +731,7 @@ export default function TpvId() {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Tabs defaultValue="info" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             {/* Pill-style Tabs */}
             <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
               <TabsTrigger
@@ -613,555 +757,618 @@ export default function TpvId() {
             {/* Info Tab */}
             <TabsContent value="info" className="space-y-6">
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* Left Column - Main Info */}
-            <div className="xl:col-span-2 space-y-6">
-              {/* Status Overview Card */}
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-linear-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
-                  <CardTitle className="flex items-center text-lg">
-                    <Activity className="w-5 h-5 mr-2 text-primary" />
-                    {t('detail.terminalStatus')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="text-center p-4 rounded-lg bg-muted">
-                      <div className="flex justify-center mb-2">
-                        {isInMaintenance ? (
-                          <Wrench className="w-8 h-8 text-orange-800 dark:text-orange-400" />
-                        ) : terminalOnline ? (
-                          <Wifi className="w-8 h-8 text-green-600" />
-                        ) : (
-                          <WifiOff className="w-8 h-8 text-destructive" />
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{t('detail.connection')}</p>
-                      <p
-                        className={`font-semibold ${
-                          isInMaintenance
-                            ? ' text-orange-800  dark:text-orange-400 border border-transparent'
-                            : terminalOnline
-                            ? 'text-green-600'
-                            : 'text-destructive'
-                        }`}
-                      >
-                        {isInMaintenance ? t('detail.inMaintenance') : terminalOnline ? t('detail.connected') : t('detail.disconnected')}
-                      </p>
-                    </div>
-
-                    <div className="text-center p-4 rounded-lg bg-muted">
-                      <div className="flex justify-center mb-2">
-                        {tpv?.activatedAt ? (
-                          <Key className="w-8 h-8 text-green-600" />
-                        ) : (
-                          <Key className="w-8 h-8 text-yellow-600 dark:text-yellow-500" />
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{t('detail.activationStatus')}</p>
-                      <p className={`font-semibold ${tpv?.activatedAt ? 'text-green-600' : 'text-yellow-600 dark:text-yellow-500'}`}>
-                        {tpv?.activatedAt ? t('detail.activated') : t('detail.notActivated')}
-                      </p>
-                    </div>
-
-                    <div className="text-center p-4 rounded-lg bg-muted">
-                      <div className="flex justify-center mb-2">
-                        <Clock className="w-8 h-8 text-blue-600" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">{t('detail.lastContact')}</p>
-                      <p className="font-semibold text-foreground">
-                        {tpv?.lastHeartbeat ? (
-                          <span className="text-xs">
-                            {new Date(tpv.lastHeartbeat).toLocaleString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        ) : (
-                          t('detail.never')
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="text-center p-4 rounded-lg bg-muted">
-                      <div className="flex justify-center mb-2">
-                        <Shield className="w-8 h-8 text-primary" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">{t('detail.version')}</p>
-                      <p className="font-semibold text-foreground">{tpv?.version || 'N/A'}</p>
-                    </div>
-                  </div>
-
-                  {/* System Info */}
-                  {tpv?.systemInfo && (
-                    <div className="mt-6 pt-6 border-t border-border">
-                      <h4 className="text-sm font-medium text-foreground mb-4">{t('detail.systemInfo')}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {tpv.systemInfo.platform && (
-                          <div className="flex items-center space-x-2">
-                            <Cpu className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('detail.platform')}:</span>
-                            <span className="text-sm font-mono text-foreground">{tpv.systemInfo.platform}</span>
+                {/* Left Column - Main Info */}
+                <div className="xl:col-span-2 space-y-6">
+                  {/* Status Overview Card */}
+                  <Card className="overflow-hidden">
+                    <CardHeader className="bg-linear-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
+                      <CardTitle className="flex items-center text-lg">
+                        <Activity className="w-5 h-5 mr-2 text-primary" />
+                        {t('detail.terminalStatus')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <div className="flex justify-center mb-2">
+                            {isInMaintenance ? (
+                              <Wrench className="w-8 h-8 text-orange-800 dark:text-orange-400" />
+                            ) : terminalOnline ? (
+                              <Wifi className="w-8 h-8 text-green-600" />
+                            ) : (
+                              <WifiOff className="w-8 h-8 text-destructive" />
+                            )}
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground">{t('detail.connection')}</p>
+                          <p
+                            className={`font-semibold ${
+                              isInMaintenance
+                                ? ' text-orange-800  dark:text-orange-400 border border-transparent'
+                                : terminalOnline
+                                ? 'text-green-600'
+                                : 'text-destructive'
+                            }`}
+                          >
+                            {isInMaintenance
+                              ? t('detail.inMaintenance')
+                              : terminalOnline
+                              ? t('detail.connected')
+                              : t('detail.disconnected')}
+                          </p>
+                        </div>
 
-                        {tpv.systemInfo.memory && (
-                          <div className="flex items-center space-x-2">
-                            <MemoryStick className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('detail.memory')}:</span>
-                            <span className="text-sm font-mono text-foreground">
-                              {formatBytes(tpv.systemInfo.memory.used)} / {formatBytes(tpv.systemInfo.memory.total)}
-                            </span>
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <div className="flex justify-center mb-2">
+                            {tpv?.activatedAt ? (
+                              <Key className="w-8 h-8 text-green-600" />
+                            ) : (
+                              <Key className="w-8 h-8 text-yellow-600 dark:text-yellow-500" />
+                            )}
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground">{t('detail.activationStatus')}</p>
+                          <p className={`font-semibold ${tpv?.activatedAt ? 'text-green-600' : 'text-yellow-600 dark:text-yellow-500'}`}>
+                            {tpv?.activatedAt ? t('detail.activated') : t('detail.notActivated')}
+                          </p>
+                        </div>
 
-                        {tpv.systemInfo.uptime && (
-                          <div className="flex items-center space-x-2">
-                            <Zap className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('detail.uptime')}:</span>
-                            <span className="text-sm font-mono text-foreground">{formatUptime(tpv.systemInfo.uptime)}</span>
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <div className="flex justify-center mb-2">
+                            <Clock className="w-8 h-8 text-blue-600" />
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground">{t('detail.lastContact')}</p>
+                          <p className="font-semibold text-foreground">
+                            {tpv?.lastHeartbeat ? (
+                              <span className="text-xs">
+                                {new Date(tpv.lastHeartbeat).toLocaleString('es-ES', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            ) : (
+                              t('detail.never')
+                            )}
+                          </p>
+                        </div>
 
-                        {tpv?.ipAddress && (
-                          <div className="flex items-center space-x-2">
-                            <Wifi className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{t('detail.ip')}:</span>
-                            <span className="text-sm font-mono text-foreground">{tpv.ipAddress}</span>
+                        <div className="text-center p-4 rounded-lg bg-muted">
+                          <div className="flex justify-center mb-2">
+                            <Shield className="w-8 h-8 text-primary" />
                           </div>
-                        )}
+                          <p className="text-sm text-muted-foreground">{t('detail.version')}</p>
+                          <p className="font-semibold text-foreground">{tpv?.version || 'N/A'}</p>
+                        </div>
                       </div>
 
-                      {/* Memory Usage Progress */}
-                      {tpv.systemInfo.memory && tpv.systemInfo.memory.total > 0 && (
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="text-muted-foreground">{t('detail.memoryUsage')}</span>
-                            <span className="text-foreground font-mono">
-                              {Math.round((tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100)}%
-                            </span>
+                      {/* System Info */}
+                      {tpv?.systemInfo && (
+                        <div className="mt-6 pt-6 border-t border-border">
+                          <h4 className="text-sm font-medium text-foreground mb-4">{t('detail.systemInfo')}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {tpv.systemInfo.platform && (
+                              <div className="flex items-center space-x-2">
+                                <Cpu className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{t('detail.platform')}:</span>
+                                <span className="text-sm font-mono text-foreground">{tpv.systemInfo.platform}</span>
+                              </div>
+                            )}
+
+                            {tpv.systemInfo.memory && (
+                              <div className="flex items-center space-x-2">
+                                <MemoryStick className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{t('detail.memory')}:</span>
+                                <span className="text-sm font-mono text-foreground">
+                                  {formatBytes(tpv.systemInfo.memory.used)} / {formatBytes(tpv.systemInfo.memory.total)}
+                                </span>
+                              </div>
+                            )}
+
+                            {tpv.systemInfo.uptime && (
+                              <div className="flex items-center space-x-2">
+                                <Zap className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{t('detail.uptime')}:</span>
+                                <span className="text-sm font-mono text-foreground">{formatUptime(tpv.systemInfo.uptime)}</span>
+                              </div>
+                            )}
+
+                            {tpv?.ipAddress && (
+                              <div className="flex items-center space-x-2">
+                                <Wifi className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{t('detail.ip')}:</span>
+                                <span className="text-sm font-mono text-foreground">{tpv.ipAddress}</span>
+                              </div>
+                            )}
                           </div>
-                          <Progress value={(tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100} className="h-2" />
+
+                          {/* Memory Usage Progress */}
+                          {tpv.systemInfo.memory && tpv.systemInfo.memory.total > 0 && (
+                            <div className="mt-4">
+                              <div className="flex items-center justify-between text-sm mb-2">
+                                <span className="text-muted-foreground">{t('detail.memoryUsage')}</span>
+                                <span className="text-foreground font-mono">
+                                  {Math.round((tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100)}%
+                                </span>
+                              </div>
+                              <Progress value={(tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100} className="h-2" />
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Terminal Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg">
-                    <Settings className="w-5 h-5 mr-2 text-primary" />
-                    {t('detail.terminalInfo')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      {/* Basic Information */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('detail.terminalName')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  disabled={!isEditing}
-                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="serialNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('detail.serialNumber')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  disabled={!isEditing}
-                                  className={isEditing ? 'border-primary/50 focus:border-primary font-mono' : 'bg-muted font-mono'}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="type"
-                          render={({ field }) => {
-                            // Map enum values to translations
-                            const typeTranslations: Record<string, string> = {
-                              TPV_ANDROID: t('detail.types.tpvAndroid'),
-                              TPV_IOS: t('detail.types.tpvIOS'),
-                              PRINTER_RECEIPT: t('detail.types.printerReceipt'),
-                              PRINTER_KITCHEN: t('detail.types.printerKitchen'),
-                              KDS: t('detail.types.kds'),
-                            }
-                            const displayValue = field.value ? typeTranslations[field.value] || field.value : t('detail.notSpecified')
-
-                            return (
-                              <FormItem>
-                                <FormLabel className="text-sm font-medium">{t('detail.terminalType')}</FormLabel>
-                                <FormControl>
-                                  {isEditing ? (
-                                    <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
-                                      <SelectTrigger className="border-primary/50 focus:border-primary">
-                                        <SelectValue placeholder={t('detail.selectType')} />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="TPV_ANDROID">{t('detail.types.tpvAndroid')}</SelectItem>
-                                        <SelectItem value="TPV_IOS">{t('detail.types.tpvIOS')}</SelectItem>
-                                        <SelectItem value="PRINTER_RECEIPT">{t('detail.types.printerReceipt')}</SelectItem>
-                                        <SelectItem value="PRINTER_KITCHEN">{t('detail.types.printerKitchen')}</SelectItem>
-                                        <SelectItem value="KDS">{t('detail.types.kds')}</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    <Input value={displayValue} disabled className="bg-muted" />
-                                  )}
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )
-                          }}
-                        />
-
-                        {/* Status Selector - SUPERADMIN Only */}
-                        {isSuperAdmin && (
-                          <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => {
-                              // Map enum values to translations
-                              const statusTranslations: Record<string, string> = {
-                                ACTIVE: t('detail.statusOptions.active'),
-                                INACTIVE: t('detail.statusOptions.inactive'),
-                                MAINTENANCE: t('detail.statusOptions.maintenance'),
-                                RETIRED: t('detail.statusOptions.retired'),
-                              }
-                              const displayValue = field.value ? statusTranslations[field.value] || field.value : t('detail.notSpecified')
-
-                              return (
+                  {/* Terminal Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-lg">
+                        <Settings className="w-5 h-5 mr-2 text-primary" />
+                        {t('detail.terminalInfo')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                          {/* Basic Information */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-sm font-medium">{t('detail.terminalStatus')}</FormLabel>
+                                  <FormLabel className="text-sm font-medium">{t('detail.terminalName')}</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      disabled={!isEditing}
+                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="serialNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">{t('detail.serialNumber')}</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      disabled={!isEditing}
+                                      className={isEditing ? 'border-primary/50 focus:border-primary font-mono' : 'bg-muted font-mono'}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="type"
+                              render={({ field }) => {
+                                // Map enum values to translations
+                                const typeTranslations: Record<string, string> = {
+                                  TPV_ANDROID: t('detail.types.tpvAndroid'),
+                                  TPV_IOS: t('detail.types.tpvIOS'),
+                                  PRINTER_RECEIPT: t('detail.types.printerReceipt'),
+                                  PRINTER_KITCHEN: t('detail.types.printerKitchen'),
+                                  KDS: t('detail.types.kds'),
+                                }
+                                const displayValue = field.value ? typeTranslations[field.value] || field.value : t('detail.notSpecified')
+
+                                return (
+                                  <FormItem>
+                                    <FormLabel className="text-sm font-medium">{t('detail.terminalType')}</FormLabel>
+                                    <FormControl>
+                                      {isEditing ? (
+                                        <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
+                                          <SelectTrigger className="border-primary/50 focus:border-primary">
+                                            <SelectValue placeholder={t('detail.selectType')} />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="TPV_ANDROID">{t('detail.types.tpvAndroid')}</SelectItem>
+                                            <SelectItem value="TPV_IOS">{t('detail.types.tpvIOS')}</SelectItem>
+                                            <SelectItem value="PRINTER_RECEIPT">{t('detail.types.printerReceipt')}</SelectItem>
+                                            <SelectItem value="PRINTER_KITCHEN">{t('detail.types.printerKitchen')}</SelectItem>
+                                            <SelectItem value="KDS">{t('detail.types.kds')}</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      ) : (
+                                        <Input value={displayValue} disabled className="bg-muted" />
+                                      )}
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )
+                              }}
+                            />
+
+                            {/* Status Selector - SUPERADMIN Only */}
+                            {isSuperAdmin && (
+                              <FormField
+                                control={form.control}
+                                name="status"
+                                render={({ field }) => {
+                                  // Map enum values to translations
+                                  const statusTranslations: Record<string, string> = {
+                                    ACTIVE: t('detail.statusOptions.active'),
+                                    INACTIVE: t('detail.statusOptions.inactive'),
+                                    MAINTENANCE: t('detail.statusOptions.maintenance'),
+                                    RETIRED: t('detail.statusOptions.retired'),
+                                  }
+                                  const displayValue = field.value
+                                    ? statusTranslations[field.value] || field.value
+                                    : t('detail.notSpecified')
+
+                                  return (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">{t('detail.terminalStatus')}</FormLabel>
+                                      <FormControl>
+                                        {isEditing ? (
+                                          <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || 'ACTIVE'}
+                                            defaultValue={field.value || 'ACTIVE'}
+                                          >
+                                            <SelectTrigger className="border-primary/50 focus:border-primary">
+                                              <SelectValue placeholder={t('detail.selectStatus')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="ACTIVE">{t('detail.statusOptions.active')}</SelectItem>
+                                              <SelectItem value="INACTIVE">{t('detail.statusOptions.inactive')}</SelectItem>
+                                              <SelectItem value="MAINTENANCE">{t('detail.statusOptions.maintenance')}</SelectItem>
+                                              <SelectItem value="RETIRED">{t('detail.statusOptions.retired')}</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Input value={displayValue} disabled className="bg-muted" />
+                                        )}
+                                      </FormControl>
+                                      <FormMessage />
+                                      {field.value === 'RETIRED' && (
+                                        <p className="text-xs text-muted-foreground mt-1">⚠️ {t('detail.retiredWarning')}</p>
+                                      )}
+                                    </FormItem>
+                                  )
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              control={form.control}
+                              name="brand"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">{t('detail.brand')}</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      disabled={!isEditing}
+                                      placeholder={t('detail.brandPlaceholder')}
+                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="model"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">{t('detail.model')}</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      disabled={!isEditing}
+                                      placeholder={t('detail.modelPlaceholder')}
+                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          {/* Configuration JSON */}
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-foreground flex items-center">
+                              <HardDrive className="w-4 h-4 mr-2 text-muted-foreground" />
+                              {t('detail.advancedConfig')}
+                            </h4>
+                            <FormField
+                              control={form.control}
+                              name="config"
+                              render={({ field }) => (
+                                <FormItem>
                                   <FormControl>
                                     {isEditing ? (
-                                      <Select onValueChange={field.onChange} value={field.value || 'ACTIVE'} defaultValue={field.value || 'ACTIVE'}>
-                                        <SelectTrigger className="border-primary/50 focus:border-primary">
-                                          <SelectValue placeholder={t('detail.selectStatus')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="ACTIVE">{t('detail.statusOptions.active')}</SelectItem>
-                                          <SelectItem value="INACTIVE">{t('detail.statusOptions.inactive')}</SelectItem>
-                                          <SelectItem value="MAINTENANCE">{t('detail.statusOptions.maintenance')}</SelectItem>
-                                          <SelectItem value="RETIRED">{t('detail.statusOptions.retired')}</SelectItem>
-                                        </SelectContent>
-                                      </Select>
+                                      <div className="relative">
+                                        <Textarea
+                                          {...field}
+                                          className="w-full h-32 p-4 text-sm font-mono resize-y border-primary/50 focus:border-primary bg-muted"
+                                          placeholder='{"configuracion": "valor", "ajuste": true}'
+                                        />
+                                        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
+                                          JSON
+                                        </div>
+                                      </div>
+                                    ) : tpv?.config ? (
+                                      <div className="relative p-4 border rounded-lg bg-muted overflow-x-auto">
+                                        <pre className="whitespace-pre-wrap text-xs font-mono text-foreground">
+                                          {JSON.stringify(tpv.config, null, 2)}
+                                        </pre>
+                                        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
+                                          JSON
+                                        </div>
+                                      </div>
                                     ) : (
-                                      <Input value={displayValue} disabled className="bg-muted" />
+                                      <div className="p-8 text-center border-2 border-dashed border-border rounded-lg">
+                                        <HardDrive className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                                        <p className="text-sm text-muted-foreground">{t('detail.noConfig')}</p>
+                                      </div>
                                     )}
                                   </FormControl>
                                   <FormMessage />
-                                  {field.value === 'RETIRED' && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      ⚠️ {t('detail.retiredWarning')}
-                                    </p>
-                                  )}
                                 </FormItem>
-                              )
+                              )}
+                            />
+                          </div>
+
+                          {isEditing && (
+                            <PermissionGate permission="tpv:update">
+                              <div className="flex justify-end space-x-3 pt-6 border-t border-border">
+                                <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
+                                  <XIcon className="w-4 h-4 mr-2" />
+                                  {t('common:cancel')}
+                                </Button>
+                                <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
+                                  <SaveIcon className="w-4 h-4 mr-2" />
+                                  {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
+                                </Button>
+                              </div>
+                            </PermissionGate>
+                          )}
+                        </form>
+                      </Form>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Column - Additional Info */}
+                <div className="space-y-6">
+                  {/* Quick Actions */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">{t('detail.quickActions')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      {/* Maintenance Mode Toggle */}
+                      <PermissionGate permission="tpv:command">
+                        <div
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            isInMaintenance ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-muted'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE' ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                            ) : (
+                              <Wrench
+                                className={`w-5 h-5 ${isInMaintenance ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}
+                              />
+                            )}
+                            <div>
+                              <p
+                                className={`text-sm font-medium ${
+                                  isInMaintenance ? 'text-orange-800 dark:text-orange-400' : 'text-foreground'
+                                }`}
+                              >
+                                {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE'
+                                  ? t('common:loading')
+                                  : t('actions.maintenance')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {isInMaintenance ? t('detail.alerts.inMaintenanceMode') : t('detail.tooltips.maintenanceMode')}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isInMaintenance}
+                            onCheckedChange={checked => {
+                              if (checked) {
+                                sendTpvCommand('MAINTENANCE_MODE')
+                              } else {
+                                sendTpvCommand('EXIT_MAINTENANCE')
+                              }
                             }}
+                            disabled={(!terminalOnline && !isInMaintenance) || commandMutation.isPending}
+                            className="data-[state=checked]:bg-orange-500"
                           />
-                        )}
-                      </div>
+                        </div>
+                      </PermissionGate>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="brand"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('detail.brand')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  disabled={!isEditing}
-                                  placeholder={t('detail.brandPlaceholder')}
-                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="model"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">{t('detail.model')}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  disabled={!isEditing}
-                                  placeholder={t('detail.modelPlaceholder')}
-                                  className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      {/* Configuration JSON */}
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-foreground flex items-center">
-                          <HardDrive className="w-4 h-4 mr-2 text-muted-foreground" />
-                          {t('detail.advancedConfig')}
-                        </h4>
-                        <FormField
-                          control={form.control}
-                          name="config"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                {isEditing ? (
-                                  <div className="relative">
-                                    <Textarea
-                                      {...field}
-                                      className="w-full h-32 p-4 text-sm font-mono resize-y border-primary/50 focus:border-primary bg-muted"
-                                      placeholder='{"configuracion": "valor", "ajuste": true}'
-                                    />
-                                    <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
-                                      JSON
-                                    </div>
-                                  </div>
-                                ) : tpv?.config ? (
-                                  <div className="relative p-4 border rounded-lg bg-muted overflow-x-auto">
-                                    <pre className="whitespace-pre-wrap text-xs font-mono text-foreground">
-                                      {JSON.stringify(tpv.config, null, 2)}
-                                    </pre>
-                                    <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
-                                      JSON
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="p-8 text-center border-2 border-dashed border-border rounded-lg">
-                                    <HardDrive className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                                    <p className="text-sm text-muted-foreground">{t('detail.noConfig')}</p>
-                                  </div>
-                                )}
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      {isEditing && (
-                        <PermissionGate permission="tpv:update">
-                          <div className="flex justify-end space-x-3 pt-6 border-t border-border">
-                            <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
-                              <XIcon className="w-4 h-4 mr-2" />
-                              {t('common:cancel')}
-                            </Button>
-                            <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
-                              <SaveIcon className="w-4 h-4 mr-2" />
-                              {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
-                            </Button>
+                      {/* Lock Toggle */}
+                      <PermissionGate permission="tpv:command">
+                        <div
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            tpv?.isLocked ? 'bg-red-100 dark:bg-red-900/30' : 'bg-muted'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                            ) : tpv?.isLocked ? (
+                              <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            ) : (
+                              <LockOpen className="w-5 h-5 text-muted-foreground" />
+                            )}
+                            <div>
+                              <p className={`text-sm font-medium ${tpv?.isLocked ? 'text-red-800 dark:text-red-400' : 'text-foreground'}`}>
+                                {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK'
+                                  ? t('common:loading')
+                                  : tpv?.isLocked
+                                  ? t('actions.locked')
+                                  : t('actions.unlocked')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {tpv?.isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock')}
+                              </p>
+                            </div>
                           </div>
-                        </PermissionGate>
-                      )}
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </div>
+                          <Switch
+                            checked={tpv?.isLocked ?? false}
+                            onCheckedChange={checked => {
+                              if (checked) {
+                                sendTpvCommand('LOCK')
+                              } else {
+                                sendTpvCommand('UNLOCK')
+                              }
+                            }}
+                            disabled={!terminalOnline || commandMutation.isPending}
+                            className="data-[state=checked]:bg-red-500"
+                          />
+                        </div>
+                      </PermissionGate>
 
-            {/* Right Column - Additional Info */}
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">{t('detail.quickActions')}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-3">
-                  {/* Status Actions */}
-                  <PermissionGate permission="tpv:command">
-                    {isInMaintenance ? (
-                      <Alert className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent">
-                        <Wrench className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">{t('detail.alerts.inMaintenanceMode')}</span>
-                            {/* TODO: Botón "Reactivar" comentado temporalmente - puede confundir al usuario
-                            <Button
-                              size="sm"
-                              onClick={() => sendTpvCommand('EXIT_MAINTENANCE')}
-                              disabled={commandMutation.isPending}
-                              className="ml-2 bg-green-600 hover:bg-green-700 text-background  h-7 px-3 "
-                            >
-                              {t('detail.alerts.reactivate')}
-                            </Button>
-                            */}
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    ) : isInactive ? (
-                      <Alert className="bg-muted text-muted-foreground border border-border">
-                        <XIcon className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="flex items-center justify-between">
+                      {/* Inactive Status Alert */}
+                      {isInactive && (
+                        <Alert className="bg-muted text-muted-foreground border border-border">
+                          <XIcon className="h-4 w-4" />
+                          <AlertDescription>
                             <span className="text-sm">{t('detail.alerts.terminalInactive')}</span>
-                            {/* TODO: Botón "Reactivar" comentado temporalmente - puede confundir al usuario
-                            <Button
-                              size="sm"
-                              onClick={() => sendTpvCommand('REACTIVATE')}
-                              disabled={commandMutation.isPending}
-                              className="ml-2 bg-green-600 hover:bg-green-700 text-background h-7 px-3"
-                            >
-                              {t('detail.alerts.reactivate')}
-                            </Button>
-                            */}
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-transparent"
-                        onClick={() => sendTpvCommand('MAINTENANCE_MODE')}
-                        disabled={!terminalOnline || commandMutation.isPending}
-                      >
-                        <Wrench className="w-4 h-4 mr-2" />
-                        {t('detail.activateMaintenance')}
-                      </Button>
-                    )}
-                  </PermissionGate>
+                          </AlertDescription>
+                        </Alert>
+                      )}
 
-                  <PermissionGate permission="tpv:command">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => sendTpvCommand('UPDATE_STATUS')}
-                      disabled={!terminalOnline || commandMutation.isPending}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      {t('detail.updateStatus')}
-                    </Button>
-                  </PermissionGate>
-
-                  <PermissionGate permission="tpv:update">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <div className="border-t border-border pt-4 space-y-3">
+                        <PermissionGate permission="tpv:command">
                           <Button
                             variant="outline"
                             className="w-full justify-start"
-                            onClick={() => generateActivationCodeMutation.mutate()}
-                            disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
+                            onClick={() => sendTpvCommand('UPDATE_STATUS')}
+                            disabled={!terminalOnline || commandMutation.isPending}
                           >
-                            <Key className="w-4 h-4 mr-2" />
-                            {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            {t('detail.updateStatus')}
                           </Button>
-                        </TooltipTrigger>
-                        {tpv?.activatedAt && (
-                          <TooltipContent>
-                            <p>{t('activation.alreadyActivatedTooltip')}</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  </PermissionGate>
+                        </PermissionGate>
+                      </div>
 
-                  {isSuperAdmin && tpv?.activatedAt && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
-                      onClick={() => setShowDeactivateDialog(true)}
-                      disabled={deactivateTpvMutation.isPending}
-                    >
-                      <Wrench className="w-4 h-4 mr-2" />
-                      {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+                      <PermissionGate permission="tpv:update">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start"
+                                onClick={() => generateActivationCodeMutation.mutate()}
+                                disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
+                              >
+                                <Key className="w-4 h-4 mr-2" />
+                                {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
+                              </Button>
+                            </TooltipTrigger>
+                            {tpv?.activatedAt && (
+                              <TooltipContent>
+                                <p>{t('activation.alreadyActivatedTooltip')}</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      </PermissionGate>
 
-              {/* System Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">{t('detail.systemDetails')}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="p-3 rounded-lg bg-muted">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.created')}</Label>
-                      <p className="text-sm text-foreground mt-1">
-                        {tpv?.createdAt
-                          ? new Date(tpv.createdAt).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : '-'}
-                      </p>
-                    </div>
+                      {isSuperAdmin && tpv?.activatedAt && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                          onClick={() => setShowDeactivateDialog(true)}
+                          disabled={deactivateTpvMutation.isPending}
+                        >
+                          <Wrench className="w-4 h-4 mr-2" />
+                          {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                    <div className="p-3 rounded-lg bg-muted">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.lastUpdate')}</Label>
-                      <p className="text-sm text-foreground mt-1">
-                        {tpv?.updatedAt
-                          ? new Date(tpv.updatedAt).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : '-'}
-                      </p>
-                    </div>
+                  {/* System Details */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">{t('detail.systemDetails')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="p-3 rounded-lg bg-muted">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.created')}</Label>
+                          <p className="text-sm text-foreground mt-1">
+                            {tpv?.createdAt
+                              ? new Date(tpv.createdAt).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '-'}
+                          </p>
+                        </div>
 
-                    <div className={`p-3 rounded-lg ${tpv?.activatedAt ? 'bg-green-50 dark:bg-green-950/30' : 'bg-yellow-50 dark:bg-yellow-950/30'}`}>
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <Key className="w-3 h-3" />
-                        {t('detail.activatedOn')}
-                      </Label>
-                      <p className={`text-sm font-medium mt-1 ${tpv?.activatedAt ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
-                        {tpv?.activatedAt
-                          ? new Date(tpv.activatedAt).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : t('detail.pendingActivation')}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                        <div className="p-3 rounded-lg bg-muted">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.lastUpdate')}</Label>
+                          <p className="text-sm text-foreground mt-1">
+                            {tpv?.updatedAt
+                              ? new Date(tpv.updatedAt).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '-'}
+                          </p>
+                        </div>
+
+                        <div
+                          className={`p-3 rounded-lg ${
+                            tpv?.activatedAt ? 'bg-green-50 dark:bg-green-950/30' : 'bg-yellow-50 dark:bg-yellow-950/30'
+                          }`}
+                        >
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <Key className="w-3 h-3" />
+                            {t('detail.activatedOn')}
+                          </Label>
+                          <p
+                            className={`text-sm font-medium mt-1 ${
+                              tpv?.activatedAt ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'
+                            }`}
+                          >
+                            {tpv?.activatedAt
+                              ? new Date(tpv.activatedAt).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : t('detail.pendingActivation')}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Commands Tab */}
@@ -1184,9 +1391,7 @@ export default function TpvId() {
               <PermissionGate permission="tpv-settings:read">
                 <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertDescription className="text-blue-800 dark:text-blue-200">
-                    {t('tpvSettings.infoAlert')}
-                  </AlertDescription>
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
                 </Alert>
                 <TpvSettingsForm tpvId={tpvId!} />
               </PermissionGate>
@@ -1196,11 +1401,7 @@ export default function TpvId() {
       </div>
 
       {/* Activation Code Dialog */}
-      <ActivationCodeDialog
-        open={activationDialogOpen}
-        onOpenChange={setActivationDialogOpen}
-        activationData={activationData}
-      />
+      <ActivationCodeDialog open={activationDialogOpen} onOpenChange={setActivationDialogOpen} activationData={activationData} />
 
       {/* Deactivate Confirmation Dialog */}
       <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>

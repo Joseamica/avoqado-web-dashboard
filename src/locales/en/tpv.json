@@ -3,7 +3,7 @@
   "subtitle": "Manage your restaurant's point-of-sale devices",
   "actions": {
     "createNew": "New Device",
-    "maintenance": "Put in maintenance mode",
+    "maintenance": "Maintenance",
     "exit_maintenance": "Exit maintenance mode",
     "update_status": "Force status update",
     "offline": "Terminal disconnected",
@@ -14,7 +14,10 @@
     "generateCode": "Generate Activation Code",
     "delete": "Delete Terminal",
     "deactivate": "Deactivate Terminal",
-    "deactivating": "Deactivating..."
+    "deactivating": "Deactivating...",
+    "lock": "Lock",
+    "locked": "Locked",
+    "unlocked": "Unlocked"
   },
   "create": {
     "title": "Create New Terminal",
@@ -229,7 +232,9 @@
     "tooltips": {
       "reactivate": "Reactivate terminal",
       "maintenanceMode": "Put terminal in maintenance mode",
-      "updateStatus": "Request terminal to send updated status"
+      "updateStatus": "Request terminal to send updated status",
+      "lock": "Lock terminal remotely",
+      "unlock": "Unlock terminal"
     },
     "selectStatus": "Select status",
     "statusOptions": {
