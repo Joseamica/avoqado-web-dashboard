@@ -1,14 +1,13 @@
 import { getTpvs, sendTpvCommand as sendTpvCommandApi, deleteTpv } from '@/services/tpv.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Wrench, Archive, CheckCircle2, AlertTriangle, XCircle, Package, KeyRound, Trash2 } from 'lucide-react'
+import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Terminal } from '@/types'
@@ -66,7 +65,7 @@ export default function Tpvs() {
         }
       case 'INACTIVE':
         return {
-          dotColor: 'bg-gray-400',
+          dotColor: 'bg-muted-foreground/60',
           label: t('tpv.status.inactive', { defaultValue: 'Inactivo' }),
           isOnline: false
         }
@@ -84,7 +83,7 @@ export default function Tpvs() {
         }
       default:
         return {
-          dotColor: 'bg-gray-400',
+          dotColor: 'bg-muted-foreground/60',
           label: t('tpv.status.unknown', { defaultValue: 'Desconocido' }),
           isOnline: false
         }
@@ -159,7 +158,6 @@ export default function Tpvs() {
       cell: ({ row }) => {
         const terminal = row.original as any
         const statusStyle = getTerminalStatusStyle(terminal.status, terminal.lastHeartbeat)
-        const isActivated = terminal.activatedAt != null
 
         return (
           <div className="flex items-center gap-3">
