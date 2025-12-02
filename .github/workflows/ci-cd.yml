@@ -123,7 +123,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Download pre-built artifacts instead of rebuilding!
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
@@ -182,7 +182,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Reuse build artifacts
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
@@ -232,7 +232,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Reuse build artifacts
       - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
