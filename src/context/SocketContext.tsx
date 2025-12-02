@@ -43,15 +43,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return
     }
 
-    // Get JWT token for socket authentication (in addition to cookies)
-    const authToken = localStorage.getItem('authToken')
+    // SECURITY: Socket.IO authenticates via HTTP-only cookies (withCredentials: true)
+    // We no longer read tokens from localStorage (XSS vulnerability)
+    // The backend validates the session cookie on socket connection
 
     // Initialize socket connection
     const socketInstance = io(socketUrl, {
       transports: ['websocket'],
-      withCredentials: true,
+      withCredentials: true, // Sends HTTP-only cookies for authentication
       autoConnect: true,
-      auth: authToken ? { token: authToken } : undefined,
     })
 
     // Set up event listeners

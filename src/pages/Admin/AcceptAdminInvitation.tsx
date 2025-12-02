@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, XCircle, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
@@ -37,6 +37,7 @@ export default function AcceptAdminInvitation() {
   const token = searchParams.get('token')
   const navigate = useNavigate()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const [isVerifying, setIsVerifying] = useState(true)
   const [tokenError, setTokenError] = useState<string | null>(null)
@@ -85,23 +86,11 @@ export default function AcceptAdminInvitation() {
       const response = await api.post('/v1/invitations/admin/accept', data)
       return response.data
     },
-    onSuccess: data => {
-      // Store auth tokens
-      if (data.data.authToken && data.data.refreshToken) {
-        localStorage.setItem('authToken', data.data.authToken)
-        localStorage.setItem('refreshToken', data.data.refreshToken)
-
-        // Store user info
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            id: data.data.id,
-            name: data.data.name,
-            email: data.data.email,
-            role: data.data.role,
-          }),
-        )
-      }
+    onSuccess: async () => {
+      // SECURITY: Backend sets HTTP-only cookies for authentication
+      // We no longer store tokens in localStorage (XSS vulnerability)
+      // Just refresh the auth status to pick up the session from cookies
+      await queryClient.refetchQueries({ queryKey: ['status'] })
 
       toast({
         title: t('adminInvitation.invitationAccepted'),

@@ -166,18 +166,11 @@ export default function InviteAccept() {
       // Set flag to prevent showing DirectAcceptInvitation during auto-login
       setIsProcessingAutoLogin(true)
 
-      // Check if backend returned auth tokens (auto-login)
-      if (responseData.authToken && responseData.refreshToken) {
-        // Store auth tokens in localStorage
-        localStorage.setItem('authToken', responseData.authToken)
-        localStorage.setItem('refreshToken', responseData.refreshToken)
-
-        // If user data is included, store it
-        if (responseData.user) {
-          localStorage.setItem('user', JSON.stringify(responseData.user))
-        }
-
-        // Refresh auth status to update AuthContext
+      // SECURITY: Backend sets HTTP-only cookies for authentication
+      // We no longer store tokens in localStorage (XSS vulnerability)
+      // Just refresh the auth status to pick up the session from cookies
+      if (responseData.authToken || responseData.success) {
+        // Refresh auth status to update AuthContext (reads from HTTP-only cookies)
         await queryClient.refetchQueries({ queryKey: ['status'] })
 
         toast({

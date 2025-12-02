@@ -251,7 +251,7 @@
       "loadError": "No se pudo cargar la información del local",
       "rfc": "RFC",
       "taxDocument": "Constancia de Situación Fiscal",
-      "taxDocumentDesc": "Documento oficial del SAT que contiene el RFC",
+      "taxDocumentDesc": "Documento oficial del SAT que contiene el RFC (debe ser menor a 3 meses)",
       "actaDocument": "Acta Constitutiva",
       "actaDocumentDesc": "Documento legal de constitución",
       "idDocument": "Identificación Oficial (INE/IFE)",

@@ -100,7 +100,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await liveDemoService.liveDemoAutoLogin()
 
         // Success! Refetch auth status and clear errors
-        queryClient.invalidateQueries({ queryKey: ['status'] })
+        // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
+        await queryClient.refetchQueries({ queryKey: ['status'] })
         setLiveDemoError(null)
         return
       } catch (error: any) {
@@ -337,6 +338,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logoutMutation = useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
+      // SECURITY: Clear any tokens that might exist in localStorage
+      // (from legacy code or invitation flows before the fix)
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+
       clearAllChatStorage()
       queryClient.clear()
       setActiveVenue(null)
@@ -353,20 +360,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return authService.switchVenue(targetVenue.id)
     },
-    onSuccess: (data, newVenueSlug) => {
-      // Forzar la recarga del estado de autenticación para obtener el nuevo token/sesión
-      queryClient.invalidateQueries({ queryKey: ['status'] }).then(() => {
-        const newVenue = getVenueBySlug(newVenueSlug)
-        if (newVenue) {
-          setActiveVenue(newVenue)
-          toast({ title: t('toast.switched_to_venue', { name: newVenue.name }) })
+    onSuccess: async (data, newVenueSlug) => {
+      // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
+      await queryClient.refetchQueries({ queryKey: ['status'] })
 
-          // Navegar a la página correspondiente del nuevo venue
-          const currentPath = location.pathname
-          const newPath = currentPath.replace(/venues\/[^/]+/, `venues/${newVenueSlug}`)
-          navigate(newPath, { replace: true })
-        }
-      })
+      const newVenue = getVenueBySlug(newVenueSlug)
+      if (newVenue) {
+        setActiveVenue(newVenue)
+        toast({ title: t('toast.switched_to_venue', { name: newVenue.name }) })
+
+        // Navegar a la página correspondiente del nuevo venue
+        const currentPath = location.pathname
+        const newPath = currentPath.replace(/venues\/[^/]+/, `venues/${newVenueSlug}`)
+        navigate(newPath, { replace: true })
+      }
     },
     onError: (error: any) => {
       toast({
@@ -400,8 +407,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await authService.googleOneTapLogin(credential)
 
-      // Refetch auth status to update user state
-      queryClient.invalidateQueries({ queryKey: ['status'] })
+      // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
+      await queryClient.refetchQueries({ queryKey: ['status'] })
 
       toast({
         title: t('toast.login_success_title'),

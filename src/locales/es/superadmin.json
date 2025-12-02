@@ -2555,7 +2555,7 @@
       "description": "Sube tu constancia de situación fiscal y, si aplica, tu acta constitutiva",
       "uploadLabel": "Haz clic para subir o arrastra y suelta",
       "uploadHint": "PDF, JPG, PNG (MÁX. 10MB)",
-      "constanciaLabel": "Constancia de situación fiscal (obligatoria)",
+      "constanciaLabel": "Constancia de situación fiscal (obligatoria) - Debe ser menor a 3 meses",
       "actaLabel": "Acta constitutiva (opcional)",
       "actaHint": "PDF, JPG, PNG (MÁX. 10MB)"
     },

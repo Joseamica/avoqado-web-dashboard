@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Download, ExternalLink, AlertCircle, Upload, Check } from 'lucide-react'
+import { FileText, Download, ExternalLink, AlertCircle, Upload, Check, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Link } from 'react-router-dom'
 import api from '@/api'
@@ -50,9 +50,8 @@ export default function VenueDocuments() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // Track selected files (stored in memory, not uploaded yet)
-  const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  // Track which documents are currently uploading
+  const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({})
   const [missingDocKeys, setMissingDocKeys] = useState<string[]>([])
 
   const { data: venue, isLoading } = useQuery<VenueDocuments>({
@@ -62,6 +61,79 @@ export default function VenueDocuments() {
       return response.data
     },
     enabled: !!venueId,
+  })
+
+  // Mutation for uploading a single document
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async ({ documentKey, file }: { documentKey: string; file: File }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/kyc/document/${documentKey}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return response.data
+    },
+    onMutate: ({ documentKey }) => {
+      setUploadingDocs(prev => ({ ...prev, [documentKey]: true }))
+    },
+    onSuccess: (data, { documentKey }) => {
+      toast({
+        title: t('edit.documents.documentSaved', { defaultValue: 'Documento guardado' }),
+        description: t('edit.documents.documentSavedDesc', { defaultValue: 'El documento se guardó automáticamente' }),
+      })
+      // Remove from missing docs if it was marked
+      if (missingDocKeys.includes(documentKey)) {
+        setMissingDocKeys(prev => prev.filter(key => key !== documentKey))
+      }
+      // Refresh venue data to get updated URLs
+      queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+    },
+    onError: (error: any, { documentKey }) => {
+      toast({
+        variant: 'destructive',
+        title: t('edit.documents.uploadError', { defaultValue: 'Error al subir documento' }),
+        description:
+          error.response?.data?.message ||
+          t('edit.documents.uploadErrorDesc', { defaultValue: 'No se pudo subir el documento. Intenta nuevamente.' }),
+      })
+    },
+    onSettled: (_, __, { documentKey }) => {
+      setUploadingDocs(prev => ({ ...prev, [documentKey]: false }))
+    },
+  })
+
+  // Mutation for submitting KYC for review
+  const submitKycMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post(`/api/v1/dashboard/venues/${venueId}/kyc/submit`)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({
+        title: t('edit.documents.kycSubmitted', { defaultValue: 'Documentación enviada' }),
+        description: t('edit.documents.kycSubmittedDesc', { defaultValue: 'Tu documentación ha sido enviada para revisión' }),
+      })
+      queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+    },
+    onError: (error: any) => {
+      // Check if error is about missing documents
+      if (error.response?.data?.message?.includes('Missing required documents')) {
+        const missingDocsMatch = error.response.data.message.match(/Missing required documents: (.+)/)
+        if (missingDocsMatch) {
+          const missingDocs = missingDocsMatch[1].split(', ')
+          setMissingDocKeys(missingDocs)
+        }
+      }
+      toast({
+        variant: 'destructive',
+        title: t('edit.documents.submitError', { defaultValue: 'Error al enviar' }),
+        description:
+          error.response?.data?.message ||
+          t('edit.documents.submitErrorDesc', {
+            defaultValue: 'No se pudo enviar la documentación. Verifica que todos los documentos requeridos estén subidos.',
+          }),
+      })
+    },
   })
 
   // Determine required documents based on entityType
@@ -77,118 +149,9 @@ export default function VenueDocuments() {
     return commonDocs
   }
 
-  // Submit all documents together (batch upload)
-  const handleSubmitDocuments = useCallback(async () => {
-    if (!venue) return
-
-    try {
-      setIsSubmitting(true)
-
-      // Check if there are any files to upload
-      if (Object.keys(selectedFiles).length === 0) {
-        toast({
-          title: t('edit.documents.noChanges', { defaultValue: 'Sin cambios' }),
-          description: t('edit.documents.noChangesDesc', { defaultValue: 'No hay archivos nuevos para subir' }),
-        })
-        setIsSubmitting(false)
-        return
-      }
-
-      // Get required documents based on entityType
-      const requiredDocs = getRequiredDocuments(venue.entityType)
-
-      // Check which required documents are missing (not uploaded AND not in selectedFiles)
-      const missingDocs = requiredDocs.filter(docKey => {
-        // Check if document already exists in venue
-        const fieldName = docKey === 'ineUrl' ? 'idDocumentUrl' : docKey
-        const existingDoc = venue[fieldName as keyof VenueDocuments]
-
-        // Document is missing if it doesn't exist AND user didn't select it
-        return !existingDoc && !selectedFiles[docKey]
-      })
-
-      if (missingDocs.length > 0) {
-        // Mark missing documents in UI
-        setMissingDocKeys(missingDocs)
-
-        // Map document keys to labels
-        const docLabels: Record<string, string> = {
-          ineUrl: t('edit.documents.idDocument', { defaultValue: 'INE del Representante Legal' }),
-          rfcDocumentUrl: t('edit.documents.taxDocument', { defaultValue: 'Constancia de Situación Fiscal' }),
-          comprobanteDomicilioUrl: t('edit.documents.comprobanteDomicilio', { defaultValue: 'Comprobante de Domicilio' }),
-          caratulaBancariaUrl: t('edit.documents.caratulaBancaria', { defaultValue: 'Carátula Bancaria' }),
-          actaDocumentUrl: t('edit.documents.actaDocument', { defaultValue: 'Acta Constitutiva' }),
-          poderLegalUrl: t('edit.documents.poderLegal', { defaultValue: 'Poder del Representante Legal' }),
-        }
-
-        const missingLabels = missingDocs.map(key => docLabels[key] || key)
-
-        toast({
-          variant: 'destructive',
-          title: t('edit.documents.missingDocuments', { defaultValue: 'Documentos faltantes' }),
-          description: t('edit.documents.missingDocumentsDesc', {
-            defaultValue: `Por favor sube los siguientes documentos: ${missingLabels.join(', ')}`,
-          }),
-        })
-
-        // Scroll to first missing document
-        setTimeout(() => {
-          const firstMissingElement = document.getElementById(`doc-card-${missingDocs[0]}`)
-          if (firstMissingElement) {
-            firstMissingElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          }
-        }, 100)
-
-        return
-      }
-
-      // Clear missing docs markers if validation passes
-      setMissingDocKeys([])
-
-      // Create FormData with all selected files
-      const formData = new FormData()
-      Object.entries(selectedFiles).forEach(([key, file]) => {
-        formData.append(key, file)
-      })
-
-      // Upload all documents together
-      await api.post(`/api/v1/dashboard/venues/${venueId}/kyc/resubmit`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      toast({
-        title: t('edit.documents.uploadSuccess', { defaultValue: 'Documentos subidos exitosamente' }),
-        description: t('edit.documents.uploadSuccessDesc', { defaultValue: 'Los documentos han sido enviados para revisión' }),
-      })
-
-      // Clear selected files and refresh venue data
-      setSelectedFiles({})
-      queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
-    } catch (error: any) {
-      console.error('Upload error:', error)
-      toast({
-        variant: 'destructive',
-        title: t('edit.documents.uploadError', { defaultValue: 'Error al subir documentos' }),
-        description: error.response?.data?.message || t('edit.documents.uploadErrorDesc', { defaultValue: 'No se pudieron subir los documentos. Intenta nuevamente.' }),
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [venue, selectedFiles, venueId, queryClient, toast, t])
-
-  // Handle file selection (store in memory)
+  // Handle file selection - uploads immediately (auto-save)
   const handleFileChange = (documentKey: string, file: File | null) => {
-    if (!file) {
-      // Remove file from selected
-      setSelectedFiles(prev => {
-        const newFiles = { ...prev }
-        delete newFiles[documentKey]
-        return newFiles
-      })
-      return
-    }
+    if (!file) return
 
     // Validate file type
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
@@ -212,46 +175,58 @@ export default function VenueDocuments() {
       return
     }
 
-    // Add file to selected files
-    setSelectedFiles(prev => ({ ...prev, [documentKey]: file }))
-
-    // Remove from missing docs if it was marked as missing
-    if (missingDocKeys.includes(documentKey)) {
-      setMissingDocKeys(prev => prev.filter(key => key !== documentKey))
-    }
+    // Upload immediately (auto-save)
+    uploadDocumentMutation.mutate({ documentKey, file })
   }
 
-  // Show save button ALWAYS (not only when files are selected)
-  // BUT hide if KYC is in PENDING_REVIEW (cannot modify during review)
-  useEffect(() => {
-    const fileCount = Object.keys(selectedFiles).length
-    const isPendingReview = venue?.kycStatus === 'PENDING_REVIEW'
+  // Handle submit for review
+  const handleSubmitForReview = useCallback(() => {
+    submitKycMutation.mutate()
+  }, [submitKycMutation])
 
-    // Don't show buttons if pending review
-    if (isPendingReview) {
+  // Check if all required documents are uploaded
+  const allRequiredDocsUploaded = useMemo(() => {
+    if (!venue) return false
+
+    const requiredDocKeys = getRequiredDocuments(venue.entityType)
+
+    // Map document keys to venue fields
+    const docKeyToField: Record<string, keyof VenueDocuments> = {
+      ineUrl: 'idDocumentUrl',
+      rfcDocumentUrl: 'rfcDocumentUrl',
+      comprobanteDomicilioUrl: 'comprobanteDomicilioUrl',
+      caratulaBancariaUrl: 'caratulaBancariaUrl',
+      actaDocumentUrl: 'actaDocumentUrl',
+      poderLegalUrl: 'poderLegalUrl',
+    }
+
+    return requiredDocKeys.every(key => {
+      const field = docKeyToField[key]
+      return field && venue[field]
+    })
+  }, [venue])
+
+  // Show "Submit for Review" button when KYC is NOT_SUBMITTED or REJECTED
+  // Disabled until all required documents are uploaded
+  useEffect(() => {
+    const isPendingReview = venue?.kycStatus === 'PENDING_REVIEW'
+    const isVerified = venue?.kycStatus === 'VERIFIED'
+
+    // Don't show buttons if pending review or verified
+    if (isPendingReview || isVerified) {
       setActions({})
       return
     }
 
-    const buttonLabel = fileCount > 0
-      ? t('edit.documents.saveChanges', { defaultValue: `Guardar Cambios (${fileCount})` })
-      : t('edit.documents.saveChanges', { defaultValue: 'Guardar Cambios' })
-
     setActions({
       primary: {
-        label: buttonLabel,
-        onClick: handleSubmitDocuments,
-        loading: isSubmitting,
+        label: t('edit.documents.submitForReview', { defaultValue: 'Enviar a Revisión' }),
+        onClick: handleSubmitForReview,
+        loading: submitKycMutation.isPending,
+        disabled: !allRequiredDocsUploaded,
       },
-      secondary: fileCount > 0 ? {
-        label: t('edit.documents.cancel', { defaultValue: 'Cancelar' }),
-        onClick: () => {
-          setSelectedFiles({})
-          setMissingDocKeys([])
-        },
-      } : undefined,
     })
-  }, [selectedFiles, isSubmitting, setActions, t, handleSubmitDocuments, venue?.kycStatus])
+  }, [setActions, t, handleSubmitForReview, venue?.kycStatus, submitKycMutation.isPending, allRequiredDocsUploaded])
 
   if (isLoading) {
     return (
@@ -353,9 +328,7 @@ export default function VenueDocuments() {
   return (
     <div className="max-w-3xl mx-auto pt-6 pb-20 px-4 md:px-6 lg:px-8 space-y-4">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">
-          {t('edit.documents.title', { defaultValue: 'Documentación Fiscal' })}
-        </h2>
+        <h2 className="text-2xl font-bold text-foreground">{t('edit.documents.title', { defaultValue: 'Documentación Fiscal' })}</h2>
         <p className="text-sm text-muted-foreground mt-1">
           {t('edit.documents.subtitle', { defaultValue: 'Documentos oficiales y fiscales del local' })}
         </p>
@@ -370,7 +343,11 @@ export default function VenueDocuments() {
             {t('edit.documents.kycRejected', { defaultValue: 'Documentación KYC Rechazada' })}
           </AlertTitle>
           <AlertDescription className="mt-2">
-            <p className="mb-3">{t('edit.documents.kycRejectedDesc', { defaultValue: 'Tu documentación fue rechazada. Por favor revisa la razón y vuelve a enviarla.' })}</p>
+            <p className="mb-3">
+              {t('edit.documents.kycRejectedDesc', {
+                defaultValue: 'Tu documentación fue rechazada. Por favor revisa la razón y vuelve a enviarla.',
+              })}
+            </p>
             <p className="mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20 text-sm">
               <strong>{t('edit.documents.rejectionReason', { defaultValue: 'Razón del rechazo:' })}</strong> {venue.kycRejectionReason}
             </p>
@@ -392,7 +369,12 @@ export default function VenueDocuments() {
             {t('edit.documents.kycPendingReview', { defaultValue: 'Documentación en Revisión' })}
           </AlertTitle>
           <AlertDescription className="mt-2 text-blue-700 dark:text-blue-300">
-            <p>{t('edit.documents.kycPendingReviewDesc', { defaultValue: 'Tu documentación está siendo revisada por nuestro equipo. No puedes realizar cambios mientras el proceso de revisión esté en curso.' })}</p>
+            <p>
+              {t('edit.documents.kycPendingReviewDesc', {
+                defaultValue:
+                  'Tu documentación está siendo revisada por nuestro equipo. No puedes realizar cambios mientras el proceso de revisión esté en curso.',
+              })}
+            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -402,7 +384,9 @@ export default function VenueDocuments() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{t('edit.documents.fiscalInfo', { defaultValue: 'Información Fiscal' })}</CardTitle>
-            <CardDescription className="text-xs">{t('edit.documents.fiscalInfoDesc', { defaultValue: 'Datos fiscales registrados' })}</CardDescription>
+            <CardDescription className="text-xs">
+              {t('edit.documents.fiscalInfoDesc', { defaultValue: 'Datos fiscales registrados' })}
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -435,16 +419,21 @@ export default function VenueDocuments() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {documents.map((doc, index) => {
           const hasExistingDoc = !!doc.url
-          const hasSelectedFile = !!selectedFiles[doc.key]
-          const isMissing = !hasExistingDoc && !hasSelectedFile
+          const isMissing = !hasExistingDoc
           const isRequired = doc.required
           const isMarkedAsMissing = missingDocKeys.includes(doc.key)
           const isPendingReview = venue.kycStatus === 'PENDING_REVIEW'
+          const isUploading = uploadingDocs[doc.key]
 
           // Check if this specific document was rejected (granular rejection)
           const isDocumentRejected = venue.kycStatus === 'REJECTED' && (venue.kycRejectedDocuments || []).includes(doc.key)
           // Check if document was approved (KYC rejected but this doc wasn't flagged)
-          const isDocumentApproved = venue.kycStatus === 'REJECTED' && venue.kycRejectedDocuments && venue.kycRejectedDocuments.length > 0 && !isDocumentRejected && hasExistingDoc
+          const isDocumentApproved =
+            venue.kycStatus === 'REJECTED' &&
+            venue.kycRejectedDocuments &&
+            venue.kycRejectedDocuments.length > 0 &&
+            !isDocumentRejected &&
+            hasExistingDoc
 
           return (
             <Card
@@ -453,11 +442,9 @@ export default function VenueDocuments() {
               className={
                 isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired)
                   ? 'border-2 border-destructive/50 bg-destructive/5 animate-pulse-slow'
-                  : isDocumentApproved
-                    ? 'border-2 border-green-500/50 bg-green-50/50 dark:bg-green-950/20'
-                    : hasSelectedFile
-                      ? 'border-2 border-green-500/50 bg-green-50/50 dark:bg-green-950/20'
-                      : ''
+                  : isDocumentApproved || hasExistingDoc
+                  ? 'border-2 border-green-500/50 bg-green-50/50 dark:bg-green-950/20'
+                  : ''
               }
             >
               <CardHeader className="pb-3">
@@ -467,14 +454,16 @@ export default function VenueDocuments() {
                       className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                         isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired)
                           ? 'bg-destructive/20'
-                          : isDocumentApproved || hasSelectedFile
-                            ? 'bg-green-500/20'
-                            : 'bg-primary/10'
+                          : isDocumentApproved || hasExistingDoc
+                          ? 'bg-green-500/20'
+                          : 'bg-primary/10'
                       }`}
                     >
-                      {isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired) ? (
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      ) : isDocumentRejected || isMarkedAsMissing || (isMissing && isRequired) ? (
                         <AlertCircle className="h-4 w-4 text-destructive" />
-                      ) : isDocumentApproved || hasSelectedFile ? (
+                      ) : isDocumentApproved || hasExistingDoc ? (
                         <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
                         <FileText className="h-4 w-4 text-primary" />
@@ -487,9 +476,7 @@ export default function VenueDocuments() {
                         >
                           {doc.label}
                         </CardTitle>
-                        {isRequired && (
-                          <span className="text-xs text-destructive font-semibold">*</span>
-                        )}
+                        {isRequired && <span className="text-xs text-destructive font-semibold">*</span>}
                       </div>
                       <CardDescription className="mt-0.5 text-xs">{doc.description}</CardDescription>
                     </div>
@@ -498,7 +485,7 @@ export default function VenueDocuments() {
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 {/* Show existing document actions */}
-                {hasExistingDoc && !hasSelectedFile && (
+                {hasExistingDoc && (
                   <div className="space-y-2">
                     <Button variant="outline" size="sm" asChild className="w-full">
                       <a href={doc.url!} target="_blank" rel="noopener noreferrer">
@@ -520,63 +507,46 @@ export default function VenueDocuments() {
                   type="file"
                   id={`file-input-${doc.key}`}
                   accept=".pdf,.png,.jpg,.jpeg"
-                  onChange={e => handleFileChange(doc.key, e.target.files?.[0] || null)}
+                  onChange={e => {
+                    handleFileChange(doc.key, e.target.files?.[0] || null)
+                    // Reset input value to allow selecting same file again
+                    e.target.value = ''
+                  }}
                   className="hidden"
                 />
 
                 {/* Upload/Change button - ALWAYS in same position */}
                 <Button
                   variant={
-                    isDocumentRejected
-                      ? 'destructive'
-                      : hasSelectedFile
-                        ? 'outline'
-                        : hasExistingDoc
-                          ? 'ghost'
-                          : isRequired && isMissing
-                            ? 'destructive'
-                            : 'outline'
+                    isDocumentRejected ? 'destructive' : hasExistingDoc ? 'ghost' : isRequired && isMissing ? 'destructive' : 'outline'
                   }
                   size="sm"
                   className="w-full"
                   onClick={() => document.getElementById(`file-input-${doc.key}`)?.click()}
-                  disabled={isSubmitting || isPendingReview || isDocumentApproved}
+                  disabled={isUploading || isPendingReview || isDocumentApproved}
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {isDocumentRejected
-                    ? t('edit.documents.resubmitDocument', { defaultValue: 'Resubir Documento' })
-                    : hasExistingDoc
-                      ? t('edit.documents.changeDocument', { defaultValue: 'Cambiar documento' })
-                      : hasSelectedFile
-                        ? t('edit.documents.changeFile', { defaultValue: 'Cambiar archivo' })
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {t('edit.documents.uploading', { defaultValue: 'Subiendo...' })}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      {isDocumentRejected
+                        ? t('edit.documents.resubmitDocument', { defaultValue: 'Resubir Documento' })
+                        : hasExistingDoc
+                        ? t('edit.documents.changeDocument', { defaultValue: 'Cambiar documento' })
                         : t('edit.documents.uploadDocument', { defaultValue: 'Subir Documentación' })}
+                    </>
+                  )}
                 </Button>
-
-                {/* Show selected file with green checkmark */}
-                {hasSelectedFile && (
-                  <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/30 rounded-md border border-green-200 dark:border-green-800">
-                    <p className="text-sm text-green-600 dark:text-green-400 flex items-center font-medium">
-                      <Check className="w-4 h-4 mr-1" />
-                      {selectedFiles[doc.key].name}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleFileChange(doc.key, null)}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                )}
 
                 {/* Show document-specific messages */}
                 {isDocumentApproved && (
                   <div className="flex items-center gap-2 text-green-600 dark:text-green-400 justify-center mt-2">
                     <Check className="h-4 w-4" />
-                    <p className="text-sm font-medium">
-                      {t('edit.documents.documentApproved', { defaultValue: 'Documento aprobado' })}
-                    </p>
+                    <p className="text-sm font-medium">{t('edit.documents.documentApproved', { defaultValue: 'Documento aprobado' })}</p>
                   </div>
                 )}
 

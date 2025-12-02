@@ -2965,7 +2965,7 @@
       "description": "Upload your tax situation certificate and, if available, your articles of incorporation",
       "uploadLabel": "Click to upload or drag and drop",
       "uploadHint": "PDF, JPG, PNG (MAX. 10MB)",
-      "constanciaLabel": "Tax situation certificate (required)",
+      "constanciaLabel": "Tax situation certificate (required) - Must be less than 3 months old",
       "actaLabel": "Articles of incorporation (optional)",
       "actaHint": "PDF, JPG, PNG (MAX. 10MB)"
     },

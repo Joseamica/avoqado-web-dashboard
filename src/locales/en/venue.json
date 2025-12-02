@@ -251,7 +251,7 @@
       "loadError": "Could not load venue information",
       "rfc": "RFC",
       "taxDocument": "Tax Status Certificate",
-      "taxDocumentDesc": "Official SAT document containing RFC",
+      "taxDocumentDesc": "Official SAT document containing RFC (must be less than 3 months old)",
       "actaDocument": "Articles of Incorporation",
       "actaDocumentDesc": "Legal incorporation document",
       "idDocument": "Official ID (INE/IFE)",

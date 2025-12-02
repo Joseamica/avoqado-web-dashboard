@@ -4,7 +4,7 @@
  * Displays a banner at the top of the Home page when a venue's KYC status
  * is not VERIFIED. Shows different variants based on status:
  *
- * - Missing: Prompt to start KYC verification (blue)
+ * - Missing: Prompt to start KYC verification (orange - highly visible)
  * - Pending: Awaiting review notification (yellow)
  * - Rejected: Prompt to resubmit documents (red/destructive)
  *
@@ -48,7 +48,8 @@ export function KYCStatusBanner() {
 /**
  * KYCMissingBanner - Shown when no KYC has been submitted
  *
- * Blue/info variant prompting user to start KYC verification.
+ * Orange/amber variant prompting user to start KYC verification.
+ * Uses bright orange to grab attention - critical action required.
  */
 function KYCMissingBanner() {
   const { activeVenue } = useAuth()
@@ -58,11 +59,15 @@ function KYCMissingBanner() {
   if (!activeVenue) return null
 
   return (
-    <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/50 dark:border-blue-800">
-      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-      <AlertDescription className="flex items-center justify-between gap-4 text-blue-900 dark:text-blue-100">
+    <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/50 dark:border-orange-700">
+      <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+      <AlertDescription className="flex items-center justify-between gap-4 text-orange-900 dark:text-orange-100">
         <p className="text-sm font-medium">{t('banner.missing.message')}</p>
-        <Button size="sm" className="shrink-0" onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}>
+        <Button
+          size="sm"
+          className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white"
+          onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}
+        >
           {t('banner.missing.action')}
         </Button>
       </AlertDescription>

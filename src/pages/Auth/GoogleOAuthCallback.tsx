@@ -39,8 +39,9 @@ const GoogleOAuthCallback: React.FC = () => {
       try {
         const result = await authService.googleOAuthCallback(code)
         
-        // Success! Invalidate queries to refresh user state
-        await queryClient.invalidateQueries({ queryKey: ['status'] })
+        // SECURITY: Use refetchQueries to wait for auth state before navigating
+        // invalidateQueries doesn't wait - causes race condition on slow networks
+        await queryClient.refetchQueries({ queryKey: ['status'] })
         
         const isNewUser = (result as any)?.isNewUser
         toast({
