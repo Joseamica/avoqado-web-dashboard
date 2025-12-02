@@ -56,6 +56,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   // Fetch command history
+  // Toast/Square pattern: Socket.IO invalidation + polling fallback every 10s
   const { data, isLoading, isError } = useQuery({
     queryKey: ['commandHistory', venueId, terminalId, page, pageSize, statusFilter],
     queryFn: () =>
@@ -65,6 +66,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
         status: statusFilter !== 'all' ? statusFilter : undefined,
       }),
     enabled: Boolean(terminalId) && Boolean(venueId),
+    refetchInterval: 10000, // Poll every 10 seconds as fallback for Socket.IO
   })
 
   const commands = useMemo(() => data?.commands || [], [data?.commands])

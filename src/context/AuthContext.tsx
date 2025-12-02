@@ -262,7 +262,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     mutationFn: (credentials: LoginData) => authService.login(credentials),
     onSuccess: () => {
       toast({ title: t('toast.login_success') })
-      queryClient.invalidateQueries({ queryKey: ['status'] })
+      // Use refetchQueries instead of invalidateQueries to force immediate data fetch
+      // This helps prevent race conditions on mobile where redirect fires before new auth state arrives
+      queryClient.refetchQueries({ queryKey: ['status'] })
       setLoginError(null) // Clear any previous login errors
     },
     onError: (error: any, variables) => {

@@ -33,10 +33,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
   const from = (location.state as any)?.from?.pathname || '/'
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Wait for both authentication AND loading to complete before redirecting
+    // This prevents race conditions on slower mobile devices where the redirect
+    // would fire before the status query returned the new auth state
+    if (isAuthenticated && !isLoading) {
       navigate(from, { replace: true })
     }
-  }, [isAuthenticated, navigate, from])
+  }, [isAuthenticated, isLoading, navigate, from])
 
   // Increment error count when login error occurs (triggers shake even for same error message)
   useEffect(() => {

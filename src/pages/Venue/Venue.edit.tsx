@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
-import { StaffRole } from '@/types'
+import { StaffRole, BusinessType } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, AlertCircle, FileText } from 'lucide-react'
@@ -38,20 +38,6 @@ import { storage } from '@/firebase'
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
 import { getCroppedImg } from '@/utils/cropImage'
 
-// Enums to match Prisma schema exactly
-enum VenueType {
-  RESTAURANT = 'RESTAURANT',
-  BAR = 'BAR',
-  CAFE = 'CAFE',
-  FAST_FOOD = 'FAST_FOOD',
-  FOOD_TRUCK = 'FOOD_TRUCK',
-  RETAIL_STORE = 'RETAIL_STORE',
-  HOTEL_RESTAURANT = 'HOTEL_RESTAURANT',
-  FITNESS_STUDIO = 'FITNESS_STUDIO',
-  SPA = 'SPA',
-  OTHER = 'OTHER',
-}
-
 const venueFormSchema = z.object({
   // Required fields from Prisma schema
   name: z.string().min(3, { message: 'El nombre debe tener al menos 3 caracteres.' }),
@@ -64,7 +50,7 @@ const venueFormSchema = z.object({
   email: z.string().email({ message: 'Debe ser un email válido.' }),
 
   // Optional fields from Prisma schema
-  type: z.nativeEnum(VenueType).default(VenueType.RESTAURANT),
+  type: z.nativeEnum(BusinessType).default(BusinessType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
   website: z.string().nullable().optional(),
@@ -198,7 +184,7 @@ export default function EditVenue() {
       zipCode: '',
       phone: '',
       email: '',
-      type: VenueType.RESTAURANT,
+      type: BusinessType.RESTAURANT,
       timezone: 'America/Mexico_City',
       currency: 'MXN',
       website: '',
@@ -222,7 +208,7 @@ export default function EditVenue() {
         zipCode: venue.zipCode || '',
         phone: venue.phone || '',
         email: venue.email || '',
-        type: (venue.type as VenueType) || VenueType.RESTAURANT,
+        type: (venue.type as BusinessType) || BusinessType.RESTAURANT,
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
         website: venue.website || '',
@@ -531,16 +517,11 @@ export default function EditVenue() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value={VenueType.RESTAURANT}>{t('edit.types.restaurant')}</SelectItem>
-                            <SelectItem value={VenueType.BAR}>{t('edit.types.bar')}</SelectItem>
-                            <SelectItem value={VenueType.CAFE}>{t('edit.types.cafe')}</SelectItem>
-                            <SelectItem value={VenueType.FAST_FOOD}>{t('edit.types.fastFood')}</SelectItem>
-                            <SelectItem value={VenueType.FOOD_TRUCK}>{t('edit.types.foodTruck')}</SelectItem>
-                            <SelectItem value={VenueType.RETAIL_STORE}>{t('edit.types.retailStore')}</SelectItem>
-                            <SelectItem value={VenueType.HOTEL_RESTAURANT}>{t('edit.types.hotelRestaurant')}</SelectItem>
-                            <SelectItem value={VenueType.FITNESS_STUDIO}>{t('edit.types.fitnessStudio')}</SelectItem>
-                            <SelectItem value={VenueType.SPA}>{t('edit.types.spa')}</SelectItem>
-                            <SelectItem value={VenueType.OTHER}>{t('edit.types.other')}</SelectItem>
+                            {Object.values(BusinessType).map(type => (
+                              <SelectItem key={type} value={type}>
+                                {t(`edit.types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />

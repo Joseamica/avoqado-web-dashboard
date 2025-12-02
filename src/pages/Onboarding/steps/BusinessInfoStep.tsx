@@ -8,12 +8,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
-import { VenueType } from '@/types'
+import { BusinessType } from '@/types'
 
 import { OnboardingStepProps } from '../OnboardingWizard'
 export interface BusinessInfoData {
   name: string
-  type: VenueType
+  type: BusinessType
   address: string
   city: string
   state: string
@@ -37,7 +37,7 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
   // Form validation schema
   const formSchema = z.object({
     name: z.string().min(1, t('businessInfo.validation.nameRequired')).min(2, t('businessInfo.validation.nameMin')),
-    type: z.nativeEnum(VenueType, {
+    type: z.nativeEnum(BusinessType, {
       errorMap: () => ({ message: t('businessInfo.validation.typeRequired') }),
     }),
     address: z.string().min(1, t('businessInfo.validation.addressRequired')),
@@ -55,7 +55,7 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
     resolver: zodResolver(formSchema),
     defaultValues: initialValue || {
       name: '',
-      type: VenueType.RESTAURANT,
+      type: BusinessType.RESTAURANT,
       address: '',
       city: '',
       state: '',
@@ -141,9 +141,9 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(VenueType).map(type => (
+                        {Object.values(BusinessType).map(type => (
                           <SelectItem key={type} value={type}>
-                            {t(`businessInfo.businessTypes.${type}`)}
+                            {t(`businessInfo.businessTypes.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
                           </SelectItem>
                         ))}
                       </SelectContent>

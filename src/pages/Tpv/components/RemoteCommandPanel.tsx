@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
@@ -142,18 +143,8 @@ export function RemoteCommandPanel({
     },
   })
 
-  // Command groups for organized display
+  // Command groups for organized display (excluding toggle commands)
   const commandGroups: CommandGroup[] = [
-    {
-      title: t('commands.groups.deviceState'),
-      description: t('commands.groups.deviceStateDesc'),
-      commands: [
-        TpvCommandType.LOCK,
-        TpvCommandType.UNLOCK,
-        TpvCommandType.MAINTENANCE_MODE,
-        TpvCommandType.EXIT_MAINTENANCE,
-      ],
-    },
     {
       title: t('commands.groups.appLifecycle'),
       description: t('commands.groups.appLifecycleDesc'),
@@ -173,6 +164,34 @@ export function RemoteCommandPanel({
       ],
     },
   ]
+
+  // Handle toggle for maintenance mode
+  const handleMaintenanceToggle = (checked: boolean) => {
+    if (checked) {
+      // Show dialog for entering maintenance with reason
+      setMaintenanceDialog({ open: true, reason: '' })
+    } else {
+      // Exit maintenance immediately
+      commandMutation.mutate({
+        command: TpvCommandType.EXIT_MAINTENANCE,
+        priority: TpvCommandPriority.NORMAL,
+      })
+    }
+  }
+
+  // Handle toggle for lock
+  const handleLockToggle = (checked: boolean) => {
+    if (checked) {
+      // Show dialog for locking with reason
+      setLockDialog({ open: true, reason: '', message: '' })
+    } else {
+      // Unlock immediately
+      commandMutation.mutate({
+        command: TpvCommandType.UNLOCK,
+        priority: TpvCommandPriority.HIGH,
+      })
+    }
+  }
 
   // Handle command execution
   const executeCommand = (command: TpvCommandType, payload?: TpvCommandPayload) => {
@@ -384,6 +403,88 @@ export function RemoteCommandPanel({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Toggle Controls Section */}
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-sm font-medium text-foreground">{t('commands.groups.deviceState')}</h4>
+              <p className="text-xs text-muted-foreground">{t('commands.groups.deviceStateDesc')}</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Lock Toggle */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      isLocked
+                        ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                        : 'bg-muted/50 border-border hover:bg-muted'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        {isLocked ? (
+                          <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        ) : (
+                          <Unlock className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className={`text-sm font-medium ${isLocked ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}>
+                            {isLocked ? t('actions.locked') : t('actions.unlocked')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t(`commands.descriptions.${isLocked ? 'UNLOCK' : 'LOCK'}`)}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={isLocked}
+                        onCheckedChange={handleLockToggle}
+                        disabled={!isOnline || commandMutation.isPending}
+                        className="data-[state=checked]:bg-red-500"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{!isOnline ? t('commands.requiresOnline') : (isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock'))}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Maintenance Toggle */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      isInMaintenance
+                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                        : 'bg-muted/50 border-border hover:bg-muted'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        <Wrench className={`w-5 h-5 ${isInMaintenance ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+                        <div>
+                          <p className={`text-sm font-medium ${isInMaintenance ? 'text-orange-700 dark:text-orange-400' : 'text-foreground'}`}>
+                            {t('actions.maintenance')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t(`commands.descriptions.${isInMaintenance ? 'EXIT_MAINTENANCE' : 'MAINTENANCE_MODE'}`)}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={isInMaintenance}
+                        onCheckedChange={handleMaintenanceToggle}
+                        disabled={(!isOnline && !isInMaintenance) || commandMutation.isPending}
+                        className="data-[state=checked]:bg-orange-500"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{(!isOnline && !isInMaintenance) ? t('commands.requiresOnline') : (isInMaintenance ? t('detail.tooltips.reactivate') : t('detail.tooltips.maintenanceMode'))}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+
+          {/* Other Command Groups */}
           {commandGroups.map((group) => (
             <div key={group.title} className="space-y-3">
               <div>

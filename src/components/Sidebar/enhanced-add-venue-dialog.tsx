@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
 import * as costManagementAPI from '@/services/cost-management.service'
 import { Building, CreditCard, DollarSign, Calculator, Info } from 'lucide-react'
+import { BusinessType } from '@/types'
 
 interface EnhancedAddVenueDialogProps {
   onClose: () => void
@@ -322,13 +323,11 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="RESTAURANT">{t('venueMgmt.types.RESTAURANT')}</SelectItem>
-                              <SelectItem value="BAR">{t('venueMgmt.types.BAR')}</SelectItem>
-                              <SelectItem value="CAFE">{t('venueMgmt.types.CAFE')}</SelectItem>
-                              <SelectItem value="FAST_FOOD">{t('venueMgmt.types.FAST_FOOD')}</SelectItem>
-                              <SelectItem value="FOOD_TRUCK">{t('venueMgmt.types.FOOD_TRUCK')}</SelectItem>
-                              <SelectItem value="RETAIL_STORE">{t('venueMgmt.types.RETAIL_STORE')}</SelectItem>
-                              <SelectItem value="OTHER">{t('venueMgmt.types.OTHER')}</SelectItem>
+                              {Object.values(BusinessType).map(type => (
+                                <SelectItem key={type} value={type}>
+                                  {t(`venueMgmt.types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />

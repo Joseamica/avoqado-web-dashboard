@@ -31,20 +31,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { useVenueEditActions } from '../VenueEditLayout'
-
-// Enums to match Prisma schema exactly
-enum VenueType {
-  RESTAURANT = 'RESTAURANT',
-  BAR = 'BAR',
-  CAFE = 'CAFE',
-  FAST_FOOD = 'FAST_FOOD',
-  FOOD_TRUCK = 'FOOD_TRUCK',
-  RETAIL_STORE = 'RETAIL_STORE',
-  HOTEL_RESTAURANT = 'HOTEL_RESTAURANT',
-  FITNESS_STUDIO = 'FITNESS_STUDIO',
-  SPA = 'SPA',
-  OTHER = 'OTHER',
-}
+import { BusinessType } from '@/types'
 
 const basicInfoFormSchema = z.object({
   // Required fields
@@ -56,7 +43,7 @@ const basicInfoFormSchema = z.object({
   zipCode: z.string().min(1, { message: 'El código postal es requerido.' }),
 
   // Optional fields
-  type: z.nativeEnum(VenueType).default(VenueType.RESTAURANT),
+  type: z.nativeEnum(BusinessType).default(BusinessType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
 })
@@ -122,7 +109,7 @@ export default function BasicInfo() {
       state: '',
       country: 'MX',
       zipCode: '',
-      type: VenueType.RESTAURANT,
+      type: BusinessType.RESTAURANT,
       timezone: 'America/Mexico_City',
       currency: 'MXN',
     },
@@ -137,7 +124,7 @@ export default function BasicInfo() {
         state: venue.state || '',
         country: venue.country || 'MX',
         zipCode: venue.zipCode || '',
-        type: (venue.type as VenueType) || VenueType.RESTAURANT,
+        type: (venue.type as BusinessType) || BusinessType.RESTAURANT,
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
       })
@@ -359,16 +346,11 @@ export default function BasicInfo() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value={VenueType.RESTAURANT}>{t('edit.types.restaurant')}</SelectItem>
-                          <SelectItem value={VenueType.BAR}>{t('edit.types.bar')}</SelectItem>
-                          <SelectItem value={VenueType.CAFE}>{t('edit.types.cafe')}</SelectItem>
-                          <SelectItem value={VenueType.FAST_FOOD}>{t('edit.types.fastFood')}</SelectItem>
-                          <SelectItem value={VenueType.FOOD_TRUCK}>{t('edit.types.foodTruck')}</SelectItem>
-                          <SelectItem value={VenueType.RETAIL_STORE}>{t('edit.types.retailStore')}</SelectItem>
-                          <SelectItem value={VenueType.HOTEL_RESTAURANT}>{t('edit.types.hotelRestaurant')}</SelectItem>
-                          <SelectItem value={VenueType.FITNESS_STUDIO}>{t('edit.types.fitnessStudio')}</SelectItem>
-                          <SelectItem value={VenueType.SPA}>{t('edit.types.spa')}</SelectItem>
-                          <SelectItem value={VenueType.OTHER}>{t('edit.types.other')}</SelectItem>
+                          {Object.values(BusinessType).map(type => (
+                            <SelectItem key={type} value={type}>
+                              {t(`edit.types.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

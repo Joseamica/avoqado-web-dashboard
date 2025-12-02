@@ -10,6 +10,7 @@
  * - Rejected: Show rejection reason and resubmit option
  */
 
+import { useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Clock, XCircle, ShieldAlert } from 'lucide-react'
@@ -22,9 +23,17 @@ export function KYCSetupRequired() {
   const navigate = useNavigate()
   const { t } = useTranslation('kyc')
 
-  if (!activeVenue) return null
+  const status = activeVenue?.kycStatus
 
-  const status = activeVenue.kycStatus
+  // Redirect verified users to home (e.g., if they reload this page after KYC approval)
+  useEffect(() => {
+    if (activeVenue && status === 'VERIFIED') {
+      navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
+    }
+  }, [status, activeVenue, navigate])
+
+  // Don't render anything if no venue or if already verified (redirect in progress)
+  if (!activeVenue || status === 'VERIFIED') return null
 
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-muted/30">

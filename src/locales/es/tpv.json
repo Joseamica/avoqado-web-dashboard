@@ -3,7 +3,7 @@
   "subtitle": "Gestiona los dispositivos TPV de tu restaurante",
   "actions": {
     "createNew": "Nuevo dispositivo",
-    "maintenance": "Poner en modo mantenimiento",
+    "maintenance": "Mantenimiento",
     "exit_maintenance": "Salir del modo mantenimiento",
     "update_status": "Forzar actualización de estado",
     "offline": "Terminal desconectado",
@@ -14,7 +14,10 @@
     "generateCode": "Generar Código de Activación",
     "delete": "Eliminar Terminal",
     "deactivate": "Desactivar Terminal",
-    "deactivating": "Desactivando..."
+    "deactivating": "Desactivando...",
+    "lock": "Bloqueo",
+    "locked": "Bloqueado",
+    "unlocked": "Desbloqueado"
   },
   "create": {
     "title": "Crear Nuevo Terminal",
@@ -228,7 +231,9 @@
     "tooltips": {
       "reactivate": "Reactivar terminal",
       "maintenanceMode": "Poner terminal en modo mantenimiento",
-      "updateStatus": "Solicitar al terminal que envíe estado actualizado"
+      "updateStatus": "Solicitar al terminal que envíe estado actualizado",
+      "lock": "Bloquear terminal remotamente",
+      "unlock": "Desbloquear terminal"
     },
     "selectStatus": "Seleccionar estado",
     "statusOptions": {
