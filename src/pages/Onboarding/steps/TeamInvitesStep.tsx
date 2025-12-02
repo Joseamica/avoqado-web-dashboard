@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { X, Plus, Mail } from 'lucide-react'
+import { X, Plus, Mail, Info } from 'lucide-react'
 import { OnboardingStepProps } from '../OnboardingWizard'
+import { NavigationButtons } from '../components/NavigationButtons'
 
 export interface TeamInvite {
   email: string
@@ -220,31 +221,26 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
       </Card>
 
       {/* Skip Info */}
-      <Card className="border-muted bg-muted/30">
+      <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
         <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">{t('teamInvites.actions.skip')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('teamInvites.actions.skipDescription')}</p>
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('teamInvites.actions.skip')}</p>
+              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">{t('teamInvites.actions.skipDescription')}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between pt-4">
-        {!isFirstStep && (
-          <Button type="button" variant="outline" onClick={onPrevious}>
-            {tCommon('previous')}
-          </Button>
-        )}
-        <div className={`flex gap-2 ${isFirstStep ? 'ml-auto' : ''}`}>
-          <Button type="button" variant="outline" onClick={handleSkip}>
-            {tCommon('skip')}
-          </Button>
-          <Button type="button" onClick={handleContinue}>
-            {tCommon('continue')}
-          </Button>
-        </div>
-      </div>
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onPrevious={onPrevious}
+        onSkip={handleSkip}
+        onContinue={handleContinue}
+        isFirstStep={isFirstStep}
+        showSkip={true}
+      />
     </div>
   )
 }

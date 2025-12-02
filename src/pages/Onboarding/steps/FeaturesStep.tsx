@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { StripePaymentMethod } from '@/components/StripePaymentMethod'
+import { NavigationButtons } from '../components/NavigationButtons'
+import { Info } from 'lucide-react'
 
 export interface FeaturesStepData {
   features: string[]
@@ -163,57 +164,27 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
 
       {/* Skip Info - Only show when no features selected */}
       {selectedFeatures.length === 0 && (
-        <Card className="border-muted bg-muted/30">
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm font-medium text-foreground">{t('features.actions.skip')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{t('features.actions.skipDescription')}</p>
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{t('features.actions.skip')}</p>
+                <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">{t('features.actions.skipDescription')}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Navigation buttons - Only show when no features selected */}
-      {selectedFeatures.length === 0 && (
-        <div className="flex justify-between pt-4">
-          {!isFirstStep && (
-            <Button type="button" variant="outline" onClick={onPrevious}>
-              {tCommon('previous')}
-            </Button>
-          )}
-          <div className={`flex gap-2 ${isFirstStep ? 'ml-auto' : ''}`}>
-            <Button type="button" variant="outline" onClick={handleSkip}>
-              {tCommon('skip')}
-            </Button>
-            <Button type="button" onClick={handleContinue}>
-              {tCommon('continue')}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Back and Cancel buttons when features are selected */}
-      {selectedFeatures.length > 0 && (
-        <div className="flex justify-between pt-4">
-          {!isFirstStep && (
-            <Button type="button" variant="outline" onClick={onPrevious}>
-              {tCommon('previous')}
-            </Button>
-          )}
-          <div className={`flex gap-2 ${isFirstStep ? 'ml-auto' : ''}`}>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSelectedFeatures([])}
-            >
-              {tCommon('cancel')}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleSkip}>
-              {tCommon('skip')}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onPrevious={onPrevious}
+        onSkip={handleSkip}
+        onContinue={selectedFeatures.length === 0 ? handleContinue : handleSkip}
+        isFirstStep={isFirstStep}
+        showSkip={true}
+      />
     </div>
   )
 }

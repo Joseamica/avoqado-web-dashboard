@@ -7,6 +7,7 @@
     "menuData": "Configuration du Menu",
     "teamInvites": "Invitations d'Équipe",
     "features": "Fonctionnalités",
+    "kycDocuments": "Documentation Fiscale",
     "payment": "Configuration des Paiements"
   },
   "welcome": {
@@ -296,27 +297,136 @@
       "skipDescription": "Vous pouvez activer les fonctionnalités plus tard depuis le tableau de bord"
     }
   },
+  "kycDocuments": {
+    "title": "Documentation Fiscale",
+    "subtitle": "Téléchargez les documents requis pour la vérification fiscale",
+    "description": "Ces documents sont nécessaires pour vérifier votre identité et activer les paiements sur votre compte.",
+    "requiredNotice": "Cette étape est obligatoire et ne peut pas être ignorée.",
+    "entityType": {
+      "title": "Type d'Entité",
+      "description": "Sélectionnez le type d'entité de votre entreprise",
+      "PERSONA_FISICA": "Personne Physique (Persona Física)",
+      "PERSONA_MORAL": "Personne Morale (Persona Moral)"
+    },
+    "documents": {
+      "title": "Documents Requis",
+      "description": "Téléchargez les documents suivants. Cliquez sur chaque champ pour sélectionner un fichier.",
+      "ine": {
+        "label": "Pièce d'Identité Officielle (INE/IFE)",
+        "description": "Pièce d'identité officielle délivrée par le gouvernement"
+      },
+      "rfc": {
+        "label": "Certificat RFC",
+        "description": "Certificat d'immatriculation fiscale (Constancia de Situación Fiscal)"
+      },
+      "comprobanteDomicilio": {
+        "label": "Justificatif de Domicile",
+        "description": "Facture de services ou relevé bancaire (datant de moins de 3 mois)"
+      },
+      "caratulaBancaria": {
+        "label": "Relevé de Compte Bancaire",
+        "description": "Document montrant votre CLABE et les détails du compte"
+      },
+      "actaConstitutiva": {
+        "label": "Acte Constitutif",
+        "description": "Document de constitution de l'entreprise (uniquement pour les sociétés)"
+      },
+      "poderLegal": {
+        "label": "Procuration",
+        "description": "Autorisation du représentant légal (facultatif pour les sociétés)"
+      }
+    },
+    "upload": {
+      "select": "Sélectionner un fichier",
+      "change": "Changer de fichier",
+      "uploading": "Téléchargement...",
+      "uploaded": "Téléchargé",
+      "dragDrop": "Glissez-déposez ou cliquez pour télécharger",
+      "maxSize": "Taille maximale du fichier: 10 Mo",
+      "formats": "Formats acceptés: PDF, JPG, PNG"
+    },
+    "validation": {
+      "entityTypeRequired": "Veuillez sélectionner un type d'entité",
+      "ineRequired": "La pièce d'identité officielle est requise",
+      "rfcRequired": "Le certificat RFC est requis",
+      "comprobanteDomicilioRequired": "Le justificatif de domicile est requis",
+      "caratulaBancariaRequired": "Le relevé de compte bancaire est requis",
+      "actaConstitutivaRequired": "L'acte constitutif est requis pour les sociétés",
+      "allDocumentsRequired": "Veuillez télécharger tous les documents requis"
+    }
+  },
   "payment": {
     "title": "Configuration des Paiements",
-    "subtitle": "Configurez votre CLABE pour recevoir des paiements, ou passez et faites-le plus tard",
+    "subtitle": "Configurez votre CLABE pour recevoir des paiements",
     "description": "Votre CLABE (Clave Bancaria Estandarizada) est nécessaire pour recevoir les paiements d'Avoqado directement sur votre compte bancaire.",
+    "requiredNotice": "Cette étape est obligatoire et ne peut pas être ignorée.",
     "form": {
       "clabe": "CLABE",
       "clabePlaceholder": "123456789012345678",
       "clabeHelp": "Numéro de compte bancaire à 18 chiffres",
       "bankName": "Nom de la Banque (Facultatif)",
       "bankNamePlaceholder": "ex: BBVA, Santander, HSBC",
-      "accountHolder": "Titulaire du Compte (Facultatif)",
+      "accountHolder": "Titulaire du Compte",
       "accountHolderPlaceholder": "Nom complet du titulaire du compte"
     },
     "validation": {
       "clabeRequired": "La CLABE est requise",
       "clabeInvalid": "La CLABE doit contenir exactement 18 chiffres",
-      "clabeNumeric": "La CLABE ne doit contenir que des chiffres"
-    },
-    "actions": {
-      "skip": "Passer Pour l'Instant",
-      "skipDescription": "Vous pouvez ajouter vos informations de paiement plus tard depuis le tableau de bord"
+      "clabeNumeric": "La CLABE ne doit contenir que des chiffres",
+      "accountHolderRequired": "Le nom du titulaire du compte est requis"
     }
+  },
+  "shared": {
+    "loadingProgress": "Chargement de votre progression...",
+    "rfcPlaceholder": "XAXX010101000",
+    "totalMonthlyAfterTrial": "Total mensuel après l'essai",
+    "perMonth": "par mois",
+    "paymentMethod": "Mode de paiement",
+    "allReady": "Tout est prêt !",
+    "reviewBeforeConfirm": "Vérifiez vos informations avant de confirmer",
+    "selectedPlan": "Plan sélectionné",
+    "trialPremium": "Essai Premium - 2 jours gratuits",
+    "featuresIncluded": "Fonctionnalités incluses :",
+    "freePlan": "Plan Gratuit",
+    "businessInfo": "Informations de l'entreprise",
+    "venueName": "Nom de l'établissement :",
+    "rfc": "RFC :",
+    "legalName": "Raison sociale :",
+    "important": "Important :",
+    "perfect": "Parfait !",
+    "twoDaysFree": "2 jours gratuits",
+    "featuresSelected_one": "{{count}} fonctionnalité sélectionnée",
+    "featuresSelected_other": "{{count}} fonctionnalités sélectionnées",
+    "freeAccountIncludes": "Votre compte inclura gratuitement :",
+    "freeFeatures": {
+      "menuManagement": "Gestion complète du menu et des produits",
+      "orderProcessing": "Traitement des commandes et des paiements",
+      "staffIncluded": "1 utilisateur du personnel inclus",
+      "basicReports": "Rapports de ventes de base"
+    },
+    "tip": "Conseil :",
+    "tipPremiumLater": "Vous pouvez ajouter des fonctionnalités premium à tout moment depuis les Paramètres",
+    "continueToPayment": "Continuer vers le paiement",
+    "continueWithoutPremium": "Continuer sans fonctionnalités premium",
+    "startFreeTrial": "Commencer l'essai gratuit de 2 jours",
+    "activateFreeAccount": "Activer le compte gratuit",
+    "confirmPaymentMethod": "Confirmez votre mode de paiement pour l'essai gratuit de 2 jours",
+    "selectPaymentMethod": "Sélectionnez ou ajoutez un mode de paiement pour commencer l'essai gratuit de 2 jours",
+    "continueToSummary": "Continuer vers le résumé",
+    "noChargeNotice": "Aucun frais ne sera facturé pendant la période d'essai de 2 jours. Votre abonnement commencera automatiquement après la période d'essai.",
+    "freeAccountReady": "Votre compte gratuit sera prêt en quelques secondes. Vous pouvez commencer à gérer votre entreprise immédiatement.",
+    "noMonthlyCharge": "Pas de frais mensuels",
+    "addPremiumAnytime": "Vous pouvez ajouter des fonctionnalités premium à tout moment",
+    "afterTrialCost": "Après l'essai : {{cost}} MXN/mois",
+    "addPaymentForTrial": "Ajoutez un mode de paiement pour commencer l'essai gratuit de 2 jours",
+    "startFreeTrial2Days": "Commencer l'essai gratuit",
+    "processingCsv": "Traitement du fichier CSV...",
+    "changeFile": "Changer de fichier",
+    "categories_one": "{{count}} catégorie",
+    "categories_other": "{{count}} catégories",
+    "products_one": "{{count}} produit",
+    "products_other": "{{count}} produits",
+    "csvProcessedSuccess": "CSV traité avec succès ! {{categories}} et {{products}} ajoutés.",
+    "logoAlt": "Avoqado"
   }
 }

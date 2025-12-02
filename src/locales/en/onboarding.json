@@ -7,6 +7,7 @@
     "menuData": "Menu Setup",
     "teamInvites": "Team Invitations",
     "features": "Features",
+    "kycDocuments": "Tax Documentation",
     "payment": "Payment Configuration"
   },
   "welcome": {
@@ -328,30 +329,87 @@
       "skipDescription": "You can enable features later from the dashboard"
     }
   },
+  "kycDocuments": {
+    "title": "Tax Documentation",
+    "subtitle": "Upload the required documents for tax verification",
+    "description": "These documents are required to verify your identity and enable payments to your account.",
+    "requiredNotice": "This step is required and cannot be skipped.",
+    "entityType": {
+      "title": "Entity Type",
+      "description": "Select the type of entity for your business",
+      "PERSONA_FISICA": "Individual (Persona Física)",
+      "PERSONA_MORAL": "Company (Persona Moral)"
+    },
+    "documents": {
+      "title": "Required Documents",
+      "description": "Upload the following documents. Click on each field to select a file.",
+      "ine": {
+        "label": "Official ID (INE/IFE)",
+        "description": "Valid government-issued ID"
+      },
+      "rfc": {
+        "label": "RFC Certificate",
+        "description": "Tax registration certificate (Constancia de Situación Fiscal)"
+      },
+      "comprobanteDomicilio": {
+        "label": "Proof of Address",
+        "description": "Utility bill or bank statement (less than 3 months old)"
+      },
+      "caratulaBancaria": {
+        "label": "Bank Account Statement",
+        "description": "Document showing your CLABE and account details"
+      },
+      "actaConstitutiva": {
+        "label": "Articles of Incorporation",
+        "description": "Company formation document (only for companies)"
+      },
+      "poderLegal": {
+        "label": "Power of Attorney",
+        "description": "Legal representative authorization (optional for companies)"
+      }
+    },
+    "upload": {
+      "select": "Select file",
+      "change": "Change file",
+      "uploading": "Uploading...",
+      "uploaded": "Uploaded",
+      "dragDrop": "Drag and drop or click to upload",
+      "maxSize": "Maximum file size: 10MB",
+      "formats": "Accepted formats: PDF, JPG, PNG"
+    },
+    "validation": {
+      "entityTypeRequired": "Please select an entity type",
+      "ineRequired": "Official ID is required",
+      "rfcRequired": "RFC Certificate is required",
+      "comprobanteDomicilioRequired": "Proof of Address is required",
+      "caratulaBancariaRequired": "Bank Account Statement is required",
+      "actaConstitutivaRequired": "Articles of Incorporation is required for companies",
+      "allDocumentsRequired": "Please upload all required documents"
+    }
+  },
   "payment": {
     "title": "Payment Configuration",
-    "subtitle": "Set up your CLABE for receiving payments, or skip and do it later",
+    "subtitle": "Set up your CLABE for receiving payments",
     "description": "Your CLABE (Clave Bancaria Estandarizada) is required to receive payments from Avoqado directly to your bank account.",
+    "requiredNotice": "This step is required and cannot be skipped.",
     "form": {
       "clabe": "CLABE",
       "clabePlaceholder": "123456789012345678",
       "clabeHelp": "18-digit bank account number",
       "bankName": "Bank Name (Optional)",
       "bankNamePlaceholder": "e.g., BBVA, Santander, HSBC",
-      "accountHolder": "Account Holder (Optional)",
+      "accountHolder": "Account Holder",
       "accountHolderPlaceholder": "Full name of account holder"
     },
     "validation": {
       "clabeRequired": "CLABE is required",
       "clabeInvalid": "CLABE must be exactly 18 digits",
-      "clabeNumeric": "CLABE must contain only numbers"
-    },
-    "actions": {
-      "skip": "Skip for Now",
-      "skipDescription": "You can add your payment information later from the dashboard"
+      "clabeNumeric": "CLABE must contain only numbers",
+      "accountHolderRequired": "Account holder name is required"
     }
   },
   "shared": {
+    "loadingProgress": "Loading your progress...",
     "rfcPlaceholder": "XAXX010101000",
     "totalMonthlyAfterTrial": "Total monthly after trial",
     "perMonth": "per month",

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowRight, ArrowLeft, Sparkles, Paintbrush } from 'lucide-react'
+import { Sparkles, Paintbrush } from 'lucide-react'
 import { OnboardingStepProps } from '../OnboardingWizard'
 import { cn } from '@/lib/utils'
+import { NavigationButtons } from '../components/NavigationButtons'
 
 export type OnboardingType = 'demo' | 'manual'
 
@@ -129,21 +129,17 @@ export function OnboardingTypeStep({ onNext, onPrevious, isFirstStep, onSelect, 
       </div>
 
       {/* Help text */}
-      <div className="bg-muted mb-8 rounded-lg p-4 text-center">
+      <div className="bg-muted rounded-lg p-4 text-center">
         <p className="text-muted-foreground text-sm">{t('onboardingType.helpText')}</p>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex justify-between gap-4">
-        <Button variant="outline" onClick={onPrevious} disabled={isFirstStep}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {tCommon('previous')}
-        </Button>
-        <Button onClick={handleContinue} disabled={!selectedType} className="min-w-[200px]">
-          {tCommon('continue')}
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onPrevious={onPrevious}
+        onContinue={handleContinue}
+        isFirstStep={isFirstStep}
+        continueDisabled={!selectedType}
+      />
     </div>
   )
 }

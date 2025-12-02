@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Check, ArrowRight } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { OnboardingStepProps } from '../OnboardingWizard'
 import { useAuth } from '@/context/AuthContext'
+import { NavigationButtons } from '../components/NavigationButtons'
 
 export function WelcomeStep({ onNext, isLastStep }: OnboardingStepProps) {
   const { t } = useTranslation('onboarding')
@@ -109,13 +109,12 @@ export function WelcomeStep({ onNext, isLastStep }: OnboardingStepProps) {
         <p className="text-muted-foreground text-xs sm:text-sm">{t('welcome.timeEstimate')}</p>
       </div>
 
-      {/* Action buttons - responsive width */}
-      <div className="flex justify-center gap-4">
-        <Button size="lg" onClick={onNext} className="w-full sm:w-auto sm:min-w-[200px]">
-          {isLastStep ? tCommon('finish') : tCommon('getStarted')}
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onContinue={onNext}
+        isFirstStep={true}
+        continueLabel={isLastStep ? tCommon('finish') : tCommon('getStarted')}
+      />
     </div>
   )
 }

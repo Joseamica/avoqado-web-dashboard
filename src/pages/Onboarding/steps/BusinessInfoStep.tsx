@@ -2,7 +2,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -11,6 +10,7 @@ import { TimezoneCombobox } from '@/components/timezone-combobox'
 import { BusinessType } from '@/types'
 
 import { OnboardingStepProps } from '../OnboardingWizard'
+import { NavigationButtons } from '../components/NavigationButtons'
 export interface BusinessInfoData {
   name: string
   type: BusinessType
@@ -110,7 +110,7 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
       <Card>
         <CardContent className="pt-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form id="business-info-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               {/* Business Name */}
               <FormField
                 control={form.control}
@@ -350,21 +350,17 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                 </CardContent>
               </Card>
 
-              {/* Navigation buttons */}
-              <div className="flex justify-between pt-4">
-                {!isFirstStep && (
-                  <Button type="button" variant="outline" onClick={onPrevious}>
-                    {tCommon('previous')}
-                  </Button>
-                )}
-                <Button type="submit" className={isFirstStep ? 'ml-auto' : ''}>
-                  {tCommon('continue')}
-                </Button>
-              </div>
             </form>
           </Form>
         </CardContent>
       </Card>
+
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onPrevious={onPrevious}
+        isFirstStep={isFirstStep}
+        formId="business-info-form"
+      />
     </div>
   )
 }

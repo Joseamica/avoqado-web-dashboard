@@ -7,6 +7,7 @@
     "menuData": "Configuración del Menú",
     "teamInvites": "Invitaciones de Equipo",
     "features": "Funciones",
+    "kycDocuments": "Documentación Fiscal",
     "payment": "Configuración de Pagos"
   },
   "welcome": {
@@ -328,30 +329,81 @@
       "skipDescription": "Puedes activar funciones más tarde desde el panel"
     }
   },
+  "kycDocuments": {
+    "title": "Documentación Fiscal",
+    "subtitle": "Sube los documentos requeridos para verificar tu negocio",
+    "requiredNotice": "Este paso es obligatorio y no se puede omitir.",
+    "entityType": {
+      "title": "Tipo de Persona",
+      "subtitle": "Selecciona el tipo de contribuyente",
+      "personaFisica": "Persona Física",
+      "personaFisicaDesc": "Individuo con actividad empresarial",
+      "personaMoral": "Persona Moral",
+      "personaMoralDesc": "Empresa o sociedad constituida"
+    },
+    "documentsTitle": "Documentos Requeridos",
+    "documents": {
+      "actaConstitutiva": "Acta Constitutiva",
+      "actaConstitutivaDesc": "Documento legal de constitución",
+      "ine": "Identificación Oficial (INE/IFE)",
+      "ineDesc": "Identificación del representante legal",
+      "rfc": "Constancia de Situación Fiscal",
+      "rfcDesc": "Documento oficial del SAT que contiene el RFC (debe ser menor a 3 meses)",
+      "comprobante": "Comprobante de Domicilio",
+      "comprobanteDesc": "Recibo de luz, agua o teléfono",
+      "caratula": "Carátula Bancaria",
+      "caratulaDesc": "Estado de cuenta con CLABE visible",
+      "poderLegal": "Poder Legal",
+      "poderLegalDesc": "Poder notarial del representante legal (opcional)"
+    },
+    "uploading": "Subiendo...",
+    "changeDocument": "Cambiar documento",
+    "uploadDocument": "Subir Documentación",
+    "required": "Esta documentación es requerida",
+    "notice": {
+      "title": "Verificación de documentos",
+      "description": "Tus documentos serán revisados por nuestro equipo. Este proceso puede tomar hasta 48 horas hábiles."
+    },
+    "errors": {
+      "invalidFileType": "Tipo de archivo inválido",
+      "invalidFileTypeDesc": "Solo se permiten archivos PDF, PNG, JPG",
+      "fileTooLarge": "Archivo muy grande",
+      "fileTooLargeDesc": "El archivo no debe superar los 10MB",
+      "uploadFailed": "Error al subir",
+      "uploadFailedDesc": "No se pudo subir el documento. Intenta nuevamente.",
+      "entityTypeRequired": "Selecciona el tipo de persona",
+      "entityTypeRequiredDesc": "Debes seleccionar si eres Persona Física o Moral",
+      "missingDocs": "Documentos faltantes",
+      "missingDocsDesc": "Debes subir todos los documentos requeridos"
+    },
+    "success": {
+      "uploaded": "Documento subido",
+      "uploadedDesc": "El documento se guardó correctamente"
+    }
+  },
   "payment": {
     "title": "Configuración de Pagos",
-    "subtitle": "Configura tu CLABE para recibir pagos, o salta y hazlo después",
+    "subtitle": "Configura tu CLABE para recibir pagos",
     "description": "Tu CLABE (Clave Bancaria Estandarizada) es necesaria para recibir pagos de Avoqado directamente en tu cuenta bancaria.",
+    "requiredNotice": "Este paso es obligatorio y no se puede omitir.",
     "form": {
       "clabe": "CLABE",
       "clabePlaceholder": "123456789012345678",
       "clabeHelp": "Número de cuenta bancaria de 18 dígitos",
       "bankName": "Nombre del Banco (Opcional)",
       "bankNamePlaceholder": "ej: BBVA, Santander, HSBC",
-      "accountHolder": "Titular de la Cuenta (Opcional)",
+      "accountHolder": "Titular de la Cuenta",
       "accountHolderPlaceholder": "Nombre completo del titular de la cuenta"
     },
     "validation": {
       "clabeRequired": "La CLABE es requerida",
       "clabeInvalid": "La CLABE debe tener exactamente 18 dígitos",
-      "clabeNumeric": "La CLABE debe contener solo números"
-    },
-    "actions": {
-      "skip": "Saltar por Ahora",
-      "skipDescription": "Puedes agregar tu información de pago más tarde desde el panel"
+      "clabeNumeric": "La CLABE debe contener solo números",
+      "accountHolderRequired": "El nombre del titular es requerido"
     }
   },
   "shared": {
+    "loadingProgress": "Cargando tu progreso...",
     "rfcPlaceholder": "XAXX010101000",
     "totalMonthlyAfterTrial": "Total mensual después del trial",
     "perMonth": "por mes",

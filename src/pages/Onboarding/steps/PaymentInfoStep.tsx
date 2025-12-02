@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { OnboardingStepProps } from '../OnboardingWizard'
+import { NavigationButtons } from '../components/NavigationButtons'
+import { AlertCircle } from 'lucide-react'
 
 export interface PaymentInfoData {
   clabe: string
   bankName?: string
-  accountHolder?: string
+  accountHolder: string
 }
 
 interface PaymentInfoStepProps extends OnboardingStepProps {
@@ -17,7 +18,7 @@ interface PaymentInfoStepProps extends OnboardingStepProps {
   initialValue?: PaymentInfoData
 }
 
-export function PaymentInfoStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, initialValue }: PaymentInfoStepProps) {
+export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initialValue }: PaymentInfoStepProps) {
   const { t } = useTranslation('onboarding')
   const { t: tCommon } = useTranslation('common')
 
@@ -30,6 +31,7 @@ export function PaymentInfoStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
   )
 
   const [clabeError, setClabeError] = useState('')
+  const [accountHolderError, setAccountHolderError] = useState('')
 
   const validateClabe = (clabe: string): boolean => {
     if (!clabe) return false
@@ -43,35 +45,39 @@ export function PaymentInfoStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
     setClabeError('')
   }
 
+  const handleAccountHolderChange = (value: string) => {
+    setFormData({ ...formData, accountHolder: value })
+    setAccountHolderError('')
+  }
+
   const handleContinue = () => {
     setClabeError('')
+    setAccountHolderError('')
 
+    let hasError = false
+
+    // Validate CLABE
     if (!formData.clabe.trim()) {
       setClabeError(t('payment.validation.clabeRequired'))
-      return
-    }
-
-    if (!/^\d+$/.test(formData.clabe)) {
+      hasError = true
+    } else if (!/^\d+$/.test(formData.clabe)) {
       setClabeError(t('payment.validation.clabeNumeric'))
-      return
+      hasError = true
+    } else if (formData.clabe.length !== 18) {
+      setClabeError(t('payment.validation.clabeInvalid'))
+      hasError = true
     }
 
-    if (formData.clabe.length !== 18) {
-      setClabeError(t('payment.validation.clabeInvalid'))
-      return
+    // Validate Account Holder
+    if (!formData.accountHolder.trim()) {
+      setAccountHolderError(t('payment.validation.accountHolderRequired'))
+      hasError = true
     }
+
+    if (hasError) return
 
     onSave(formData)
     onNext()
-  }
-
-  const handleSkip = () => {
-    onSave({ clabe: '' })
-    if (onSkip) {
-      onSkip()
-    } else {
-      onNext()
-    }
   }
 
   return (
@@ -90,7 +96,9 @@ export function PaymentInfoStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
           <div className="space-y-4">
             {/* CLABE */}
             <div>
-              <Label htmlFor="clabe">{t('payment.form.clabe')}</Label>
+              <Label htmlFor="clabe">
+                {t('payment.form.clabe')} <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="clabe"
                 type="text"
@@ -116,47 +124,43 @@ export function PaymentInfoStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
               />
             </div>
 
-            {/* Account Holder (Optional) */}
+            {/* Account Holder (Required) */}
             <div>
-              <Label htmlFor="accountHolder">{t('payment.form.accountHolder')}</Label>
+              <Label htmlFor="accountHolder">
+                {t('payment.form.accountHolder')} <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="accountHolder"
                 type="text"
                 placeholder={t('payment.form.accountHolderPlaceholder')}
                 value={formData.accountHolder}
-                onChange={e => setFormData({ ...formData, accountHolder: e.target.value })}
+                onChange={e => handleAccountHolderChange(e.target.value)}
+                className={accountHolderError ? 'border-destructive' : ''}
               />
+              {accountHolderError && <p className="mt-1 text-xs text-destructive">{accountHolderError}</p>}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Skip Info */}
-      <Card className="border-muted bg-muted/30">
+      {/* Required Notice */}
+      <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50">
         <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">{t('payment.actions.skip')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('payment.actions.skipDescription')}</p>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{t('payment.requiredNotice')}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between pt-4">
-        {!isFirstStep && (
-          <Button type="button" variant="outline" onClick={onPrevious}>
-            {tCommon('previous')}
-          </Button>
-        )}
-        <div className={`flex gap-2 ${isFirstStep ? 'ml-auto' : ''}`}>
-          <Button type="button" variant="outline" onClick={handleSkip}>
-            {tCommon('skip')}
-          </Button>
-          <Button type="button" onClick={handleContinue}>
-            {tCommon('continue')}
-          </Button>
-        </div>
-      </div>
+      {/* Fixed Navigation buttons */}
+      <NavigationButtons
+        onPrevious={onPrevious}
+        onContinue={handleContinue}
+        isFirstStep={isFirstStep}
+      />
     </div>
   )
 }

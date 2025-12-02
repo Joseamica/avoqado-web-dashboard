@@ -2,6 +2,50 @@ import api from '@/api'
 import { BusinessType } from '@/types'
 
 /**
+ * Get onboarding progress for an organization
+ */
+export interface OnboardingProgressResponse {
+  progress: {
+    id: string
+    organizationId: string
+    currentStep: number
+    completedSteps: number[]
+    startedAt: string
+    completedAt: string | null
+    step1_userInfo: any
+    step2_onboardingType: { onboardingType: 'DEMO' | 'REAL' } | null
+    step3_businessInfo: {
+      name: string
+      venueType: BusinessType
+      address: string
+      city: string
+      state: string
+      country: string
+      zipCode: string
+      phone: string
+      email: string
+      timezone: string
+      currency: string
+    } | null
+    step4_menuData: {
+      method: 'manual' | 'csv'
+      categories?: Array<{ name: string; slug: string }>
+      products?: Array<{ name: string; sku: string; price: number; categorySlug: string }>
+    } | null
+    step5_teamInvites: { teamInvites: Array<{ email: string; firstName: string; lastName: string; role: string }> } | null
+    step6_selectedFeatures: { selectedFeatures: string[] } | null
+    step7_kycDocuments: KYCDocumentsData | null
+    step8_paymentInfo: PaymentInfoData | null
+  }
+  completionPercentage: number
+}
+
+export const getOnboardingProgress = async (organizationId: string): Promise<OnboardingProgressResponse> => {
+  const response = await api.get(`/api/v1/onboarding/organizations/${organizationId}/progress`)
+  return response.data
+}
+
+/**
  * Start onboarding progress for an organization
  */
 export const startOnboarding = async (organizationId: string) => {
@@ -98,16 +142,36 @@ export const updateStep6 = async (organizationId: string, features: string[]) =>
 }
 
 /**
- * Update Step 7 - Payment Info
+ * Update Step 7 - KYC Documents
+ */
+export interface KYCDocumentsData {
+  entityType: 'PERSONA_FISICA' | 'PERSONA_MORAL'
+  documents: {
+    ineUrl?: string
+    rfcDocumentUrl?: string
+    comprobanteDomicilioUrl?: string
+    caratulaBancariaUrl?: string
+    actaDocumentUrl?: string
+    poderLegalUrl?: string
+  }
+}
+
+export const updateStep7 = async (organizationId: string, data: KYCDocumentsData) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/7`, data)
+  return response.data
+}
+
+/**
+ * Update Step 8 - Payment Info
  */
 export interface PaymentInfoData {
   clabe: string
   bankName?: string
-  accountHolder?: string
+  accountHolder: string
 }
 
-export const updateStep7 = async (organizationId: string, data: PaymentInfoData) => {
-  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/7`, data)
+export const updateStep8 = async (organizationId: string, data: PaymentInfoData) => {
+  const response = await api.put(`/api/v1/onboarding/organizations/${organizationId}/step/8`, data)
   return response.data
 }
 

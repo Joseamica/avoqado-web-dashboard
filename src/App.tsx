@@ -12,7 +12,7 @@ const App: React.FC = () => {
     <>
       {/* <EnvironmentIndicator /> */}
       <RouterProvider router={router} />
-      <ReactQueryDevtools initialIsOpen position="bottom" buttonPosition="relative" i18nIsDynamicList={true} styleNonce="nonce" />
+      <ReactQueryDevtools initialIsOpen position="bottom" buttonPosition="top-left" i18nIsDynamicList={true} styleNonce="nonce" />
     </>
   )
 }

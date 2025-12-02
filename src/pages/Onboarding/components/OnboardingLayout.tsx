@@ -49,7 +49,7 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
       </header>
 
       {/* Main content area - responsive spacing and max-width */}
-      <main className="flex flex-1 flex-col overflow-x-hidden">
+      <main className="flex flex-1 flex-col overflow-x-hidden pb-4">
         <div className="container mx-auto w-full max-w-5xl px-3 py-4 sm:px-4 sm:py-6 md:py-8">
           {/* Progress indicator - responsive spacing */}
           <div className="mb-4 sm:mb-6 md:mb-8">
@@ -66,18 +66,6 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
           <div className="flex-1 w-full">{children}</div>
         </div>
       </main>
-
-      {/* Footer - responsive padding */}
-      <footer className="border-t py-4 sm:py-6">
-        <div className="container mx-auto px-3 sm:px-4 text-center">
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            {t('footer.needHelp')}{' '}
-            <a href="mailto:hola@avoqado.com" className="text-primary hover:underline">
-              {t('footer.contactSupport')}
-            </a>
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }
