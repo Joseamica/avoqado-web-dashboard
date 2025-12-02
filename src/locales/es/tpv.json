@@ -293,8 +293,8 @@
     "infoAlert": "Estos ajustes son específicos para este terminal. Los cambios toman efecto inmediatamente cuando el terminal se sincroniza."
   },
   "activation": {
-    "title": "Código de Activación del Terminal",
-    "description": "Comparte este código con el personal para activar el terminal en el dispositivo Android",
+    "title": "Activar Terminal",
+    "description": "Ingresa el número de serie físico del dispositivo PAX para activar este terminal.",
     "code": "Código de Activación",
     "expiresIn": "Expira en {{days}} días",
     "expiresAt": "Expira el",
@@ -305,21 +305,17 @@
     "generateError": "Error al generar código de activación",
     "alreadyActivated": "El terminal ya está activado",
     "alreadyActivatedTooltip": "Este terminal ya ha sido activado. No se puede generar un nuevo código de activación.",
+    "serialNumber": "Número de Serie",
+    "serialNumberDesc": "Ingresa el número de serie impreso en la parte posterior del dispositivo PAX",
+    "serialNumberPlaceholder": "Ej: PAX-A910S-12345678",
+    "activate": "Activar",
     "instructions": {
       "title": "Instrucciones de Activación",
       "step1": "1. Abre la app Avoqado TPV en el dispositivo Android",
       "step2": "2. Ingresa el número de serie del dispositivo: {{serialNumber}}",
       "step3": "3. Ingresa este código de activación",
       "step4": "4. El terminal estará activado y listo para usar"
-    }
-  },
-  "activation": {
-    "title": "Activar Terminal",
-    "description": "Ingresa el número de serie físico del dispositivo PAX para activar este terminal.",
-    "serialNumber": "Número de Serie",
-    "serialNumberDesc": "Ingresa el número de serie impreso en la parte posterior del dispositivo PAX",
-    "serialNumberPlaceholder": "Ej: PAX-A910S-12345678",
-    "activate": "Activar",
+    },
     "validation": {
       "serialRequired": "El número de serie es requerido",
       "serialMinLength": "El número de serie debe tener al menos 8 caracteres",

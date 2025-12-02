@@ -233,12 +233,50 @@
     }
   },
   "pagination": {
-    "selectedRows": "{{selected}} of {{total}} row(s) selected.",
-    "rowsPerPage": "Rows per page",
-    "pageOf": "Page {{current}} of {{total}}",
-    "firstPage": "Go to first page",
-    "previousPage": "Go to previous page",
-    "nextPage": "Go to next page",
-    "lastPage": "Go to last page"
+    "selectedRows": "{{selected}} sur {{total}} ligne(s) sélectionnée(s).",
+    "rowsPerPage": "Lignes par page",
+    "pageOf": "Page {{current}} sur {{total}}",
+    "firstPage": "Aller à la première page",
+    "previousPage": "Aller à la page précédente",
+    "nextPage": "Aller à la page suivante",
+    "lastPage": "Aller à la dernière page"
+  },
+  "activation": {
+    "title": "Activer le Terminal",
+    "description": "Entrez le numéro de série physique de l'appareil PAX pour activer ce terminal.",
+    "code": "Code d'Activation",
+    "expiresIn": "Expire dans {{days}} jours",
+    "expiresAt": "Expire le",
+    "copyCode": "Copier le Code",
+    "copied": "Code copié dans le presse-papiers!",
+    "close": "Fermer",
+    "generateSuccess": "Code d'activation généré avec succès",
+    "generateError": "Échec de la génération du code d'activation",
+    "alreadyActivated": "Le terminal est déjà activé",
+    "alreadyActivatedTooltip": "Ce terminal a déjà été activé. Impossible de générer un nouveau code d'activation.",
+    "serialNumber": "Numéro de Série",
+    "serialNumberDesc": "Entrez le numéro de série imprimé à l'arrière de l'appareil PAX",
+    "serialNumberPlaceholder": "ex: PAX-A910S-12345678",
+    "activate": "Activer",
+    "instructions": {
+      "title": "Instructions d'Activation",
+      "step1": "1. Ouvrez l'application Avoqado TPV sur l'appareil Android",
+      "step2": "2. Entrez le numéro de série de l'appareil: {{serialNumber}}",
+      "step3": "3. Entrez ce code d'activation",
+      "step4": "4. Le terminal sera activé et prêt à l'emploi"
+    },
+    "validation": {
+      "serialRequired": "Le numéro de série est requis",
+      "serialMinLength": "Le numéro de série doit comporter au moins 8 caractères",
+      "serialMaxLength": "Le numéro de série ne peut pas dépasser 50 caractères"
+    },
+    "success": {
+      "title": "Terminal Activé",
+      "description": "Le terminal a été activé avec succès"
+    },
+    "errors": {
+      "activationFailed": "Échec de l'activation du terminal",
+      "duplicateSerial": "Ce numéro de série est déjà enregistré"
+    }
   }
 }

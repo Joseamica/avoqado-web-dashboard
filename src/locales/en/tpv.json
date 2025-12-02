@@ -294,8 +294,8 @@
     "infoAlert": "These settings are specific to this terminal. Changes take effect immediately when the terminal syncs."
   },
   "activation": {
-    "title": "Terminal Activation Code",
-    "description": "Share this code with staff to activate the terminal on the Android device",
+    "title": "Activate Terminal",
+    "description": "Enter the physical serial number from the PAX device to activate this terminal.",
     "code": "Activation Code",
     "expiresIn": "Expires in {{days}} days",
     "expiresAt": "Expires on",
@@ -306,21 +306,17 @@
     "generateError": "Failed to generate activation code",
     "alreadyActivated": "Terminal is already activated",
     "alreadyActivatedTooltip": "This terminal has already been activated. Cannot generate a new activation code.",
+    "serialNumber": "Serial Number",
+    "serialNumberDesc": "Enter the serial number printed on the back of the PAX device",
+    "serialNumberPlaceholder": "e.g. PAX-A910S-12345678",
+    "activate": "Activate",
     "instructions": {
       "title": "Activation Instructions",
       "step1": "1. Open the Avoqado TPV app on the Android device",
       "step2": "2. Enter the device serial number: {{serialNumber}}",
       "step3": "3. Enter this activation code",
       "step4": "4. The terminal will be activated and ready to use"
-    }
-  },
-  "activation": {
-    "title": "Activate Terminal",
-    "description": "Enter the physical serial number from the PAX device to activate this terminal.",
-    "serialNumber": "Serial Number",
-    "serialNumberDesc": "Enter the serial number printed on the back of the PAX device",
-    "serialNumberPlaceholder": "e.g. PAX-A910S-12345678",
-    "activate": "Activate",
+    },
     "validation": {
       "serialRequired": "Serial number is required",
       "serialMinLength": "Serial number must be at least 8 characters",

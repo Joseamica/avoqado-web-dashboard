@@ -66,7 +66,7 @@ const Login: React.FC = () => {
     }
   }, [searchParams, toast, t, navigate])
 
-  // Initialize Google One Tap
+  // Initialize Google One Tap - DISABLED: bubble was intrusive
   useGoogleOneTap({
     clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
     onSuccess: async (credential) => {
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
       // Silently fail - One Tap is a nice-to-have feature
       console.debug('Google One Tap not available:', error)
     },
-    disabled: isAuthenticated || isRedirecting,
+    disabled: true, // Disabled - use regular Google Sign-In button instead
   })
 
   // Show loading state during redirect
