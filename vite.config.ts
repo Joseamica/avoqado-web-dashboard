@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
@@ -12,6 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+  },
+  // Strip console.log/warn in production builds (P1 audit fix 2025-12-01)
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
   },
   build: {
     rollupOptions: {
@@ -30,4 +34,4 @@ export default defineConfig({
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
   },
-})
+}))

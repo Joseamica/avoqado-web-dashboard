@@ -3,24 +3,170 @@
 // ==========================================
 
 export enum BusinessType {
-  RESTAURANT = 'RESTAURANT',
-  RETAIL = 'RETAIL',
-  HOTEL = 'HOTEL',
-  FITNESS = 'FITNESS',
-  SPA = 'SPA',
-  OTHER = 'OTHER',
-}
-
-export enum VenueType {
+  // === FOOD_SERVICE ===
   RESTAURANT = 'RESTAURANT',
   BAR = 'BAR',
   CAFE = 'CAFE',
-  FAST_FOOD = 'FAST_FOOD',
+  BAKERY = 'BAKERY',
   FOOD_TRUCK = 'FOOD_TRUCK',
+  FAST_FOOD = 'FAST_FOOD',
+  CATERING = 'CATERING',
+  CLOUD_KITCHEN = 'CLOUD_KITCHEN',
+
+  // === RETAIL ===
   RETAIL_STORE = 'RETAIL_STORE',
+  JEWELRY = 'JEWELRY',
+  CLOTHING = 'CLOTHING',
+  ELECTRONICS = 'ELECTRONICS',
+  PHARMACY = 'PHARMACY',
+  CONVENIENCE_STORE = 'CONVENIENCE_STORE',
+  SUPERMARKET = 'SUPERMARKET',
+  LIQUOR_STORE = 'LIQUOR_STORE',
+  FURNITURE = 'FURNITURE',
+  HARDWARE = 'HARDWARE',
+  BOOKSTORE = 'BOOKSTORE',
+  PET_STORE = 'PET_STORE',
+
+  // === SERVICES ===
+  SALON = 'SALON',
+  SPA = 'SPA',
+  FITNESS = 'FITNESS',
+  CLINIC = 'CLINIC',
+  VETERINARY = 'VETERINARY',
+  AUTO_SERVICE = 'AUTO_SERVICE',
+  LAUNDRY = 'LAUNDRY',
+  REPAIR_SHOP = 'REPAIR_SHOP',
+
+  // === HOSPITALITY ===
+  HOTEL = 'HOTEL',
+  HOSTEL = 'HOSTEL',
+  RESORT = 'RESORT',
+
+  // === ENTERTAINMENT ===
+  CINEMA = 'CINEMA',
+  ARCADE = 'ARCADE',
+  EVENT_VENUE = 'EVENT_VENUE',
+  NIGHTCLUB = 'NIGHTCLUB',
+  BOWLING = 'BOWLING',
+
+  OTHER = 'OTHER',
+}
+
+// Business Category - derived from BusinessType for UI adaptation
+export type BusinessCategory = 'FOOD_SERVICE' | 'RETAIL' | 'SERVICES' | 'HOSPITALITY' | 'ENTERTAINMENT' | 'OTHER'
+
+const CATEGORY_MAPPING: Record<BusinessType, BusinessCategory> = {
+  [BusinessType.RESTAURANT]: 'FOOD_SERVICE',
+  [BusinessType.BAR]: 'FOOD_SERVICE',
+  [BusinessType.CAFE]: 'FOOD_SERVICE',
+  [BusinessType.BAKERY]: 'FOOD_SERVICE',
+  [BusinessType.FOOD_TRUCK]: 'FOOD_SERVICE',
+  [BusinessType.FAST_FOOD]: 'FOOD_SERVICE',
+  [BusinessType.CATERING]: 'FOOD_SERVICE',
+  [BusinessType.CLOUD_KITCHEN]: 'FOOD_SERVICE',
+  [BusinessType.RETAIL_STORE]: 'RETAIL',
+  [BusinessType.JEWELRY]: 'RETAIL',
+  [BusinessType.CLOTHING]: 'RETAIL',
+  [BusinessType.ELECTRONICS]: 'RETAIL',
+  [BusinessType.PHARMACY]: 'RETAIL',
+  [BusinessType.CONVENIENCE_STORE]: 'RETAIL',
+  [BusinessType.SUPERMARKET]: 'RETAIL',
+  [BusinessType.LIQUOR_STORE]: 'RETAIL',
+  [BusinessType.FURNITURE]: 'RETAIL',
+  [BusinessType.HARDWARE]: 'RETAIL',
+  [BusinessType.BOOKSTORE]: 'RETAIL',
+  [BusinessType.PET_STORE]: 'RETAIL',
+  [BusinessType.SALON]: 'SERVICES',
+  [BusinessType.SPA]: 'SERVICES',
+  [BusinessType.FITNESS]: 'SERVICES',
+  [BusinessType.CLINIC]: 'SERVICES',
+  [BusinessType.VETERINARY]: 'SERVICES',
+  [BusinessType.AUTO_SERVICE]: 'SERVICES',
+  [BusinessType.LAUNDRY]: 'SERVICES',
+  [BusinessType.REPAIR_SHOP]: 'SERVICES',
+  [BusinessType.HOTEL]: 'HOSPITALITY',
+  [BusinessType.HOSTEL]: 'HOSPITALITY',
+  [BusinessType.RESORT]: 'HOSPITALITY',
+  [BusinessType.CINEMA]: 'ENTERTAINMENT',
+  [BusinessType.ARCADE]: 'ENTERTAINMENT',
+  [BusinessType.EVENT_VENUE]: 'ENTERTAINMENT',
+  [BusinessType.NIGHTCLUB]: 'ENTERTAINMENT',
+  [BusinessType.BOWLING]: 'ENTERTAINMENT',
+  [BusinessType.OTHER]: 'OTHER',
+}
+
+export function getBusinessCategory(type: BusinessType): BusinessCategory {
+  return CATEGORY_MAPPING[type] || 'OTHER'
+}
+
+// UI Terminology by category
+export const CATEGORY_TERMINOLOGY: Record<
+  BusinessCategory,
+  { menu: string; item: string; order: string; table: string }
+> = {
+  FOOD_SERVICE: { menu: 'Menú', item: 'Platillo', order: 'Orden', table: 'Mesa' },
+  RETAIL: { menu: 'Catálogo', item: 'Producto', order: 'Venta', table: 'Caja' },
+  SERVICES: { menu: 'Servicios', item: 'Servicio', order: 'Cita', table: 'Estación' },
+  HOSPITALITY: { menu: 'Servicios', item: 'Servicio', order: 'Reservación', table: 'Habitación' },
+  ENTERTAINMENT: { menu: 'Eventos', item: 'Evento', order: 'Entrada', table: 'Sala' },
+  OTHER: { menu: 'Catálogo', item: 'Item', order: 'Orden', table: 'Ubicación' },
+}
+
+export function getTerminology(type: BusinessType) {
+  return CATEGORY_TERMINOLOGY[getBusinessCategory(type)]
+}
+
+export enum VenueType {
+  // === FOOD_SERVICE ===
+  RESTAURANT = 'RESTAURANT',
+  BAR = 'BAR',
+  CAFE = 'CAFE',
+  BAKERY = 'BAKERY',
+  FOOD_TRUCK = 'FOOD_TRUCK',
+  FAST_FOOD = 'FAST_FOOD',
+  CATERING = 'CATERING',
+  CLOUD_KITCHEN = 'CLOUD_KITCHEN',
+
+  // === RETAIL ===
+  RETAIL_STORE = 'RETAIL_STORE',
+  JEWELRY = 'JEWELRY',
+  CLOTHING = 'CLOTHING',
+  ELECTRONICS = 'ELECTRONICS',
+  PHARMACY = 'PHARMACY',
+  CONVENIENCE_STORE = 'CONVENIENCE_STORE',
+  SUPERMARKET = 'SUPERMARKET',
+  LIQUOR_STORE = 'LIQUOR_STORE',
+  FURNITURE = 'FURNITURE',
+  HARDWARE = 'HARDWARE',
+  BOOKSTORE = 'BOOKSTORE',
+  PET_STORE = 'PET_STORE',
+
+  // === SERVICES ===
+  SALON = 'SALON',
+  SPA = 'SPA',
+  FITNESS = 'FITNESS',
+  CLINIC = 'CLINIC',
+  VETERINARY = 'VETERINARY',
+  AUTO_SERVICE = 'AUTO_SERVICE',
+  LAUNDRY = 'LAUNDRY',
+  REPAIR_SHOP = 'REPAIR_SHOP',
+
+  // === HOSPITALITY ===
+  HOTEL = 'HOTEL',
+  HOSTEL = 'HOSTEL',
+  RESORT = 'RESORT',
+
+  // === ENTERTAINMENT ===
+  CINEMA = 'CINEMA',
+  ARCADE = 'ARCADE',
+  EVENT_VENUE = 'EVENT_VENUE',
+  NIGHTCLUB = 'NIGHTCLUB',
+  BOWLING = 'BOWLING',
+
+  // === LEGACY ===
   HOTEL_RESTAURANT = 'HOTEL_RESTAURANT',
   FITNESS_STUDIO = 'FITNESS_STUDIO',
-  SPA = 'SPA',
+
   OTHER = 'OTHER',
 }
 

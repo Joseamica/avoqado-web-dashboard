@@ -1,5 +1,5 @@
 import api from '@/api'
-import { VenueType } from '@/types'
+import { BusinessType } from '@/types'
 
 /**
  * Start onboarding progress for an organization
@@ -24,7 +24,7 @@ export const updateStep2 = async (organizationId: string, onboardingType: 'demo'
  */
 export interface BusinessInfoData {
   name: string
-  type: VenueType
+  type: BusinessType
   address: string
   city: string
   state: string

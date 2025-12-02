@@ -15,6 +15,7 @@ import { useAuth } from '@/context/AuthContext'
 import api from '@/api'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
+import { BusinessType } from '@/types'
 interface AddVenueDialogProps {
   onClose: () => void
   navigate: (path: string) => void
@@ -169,9 +170,11 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="RESTAURANT">{t('addDialog.fields.typeOptions.RESTAURANT')}</SelectItem>
-                        <SelectItem value="STUDIO">{t('addDialog.fields.typeOptions.STUDIO')}</SelectItem>
-                        <SelectItem value="HOTEL">{t('addDialog.fields.typeOptions.HOTEL')}</SelectItem>
+                        {Object.values(BusinessType).map(type => (
+                          <SelectItem key={type} value={type}>
+                            {t(`addDialog.fields.typeOptions.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
