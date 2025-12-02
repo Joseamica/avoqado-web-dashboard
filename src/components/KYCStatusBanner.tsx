@@ -65,7 +65,7 @@ function KYCMissingBanner() {
         <p className="text-sm font-medium">{t('banner.missing.message')}</p>
         <Button
           size="sm"
-          className="shrink-0 bg-orange-600 hover:bg-orange-700 text-white"
+          className="shrink-0 bg-orange-600 hover:bg-orange-700 text-orange-50"
           onClick={() => navigate(`/venues/${activeVenue.slug}/edit/documents`)}
         >
           {t('banner.missing.action')}
