@@ -7,6 +7,7 @@ import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
 import { pricingApi, type PricingPolicy } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
@@ -50,6 +51,7 @@ export default function Pricing() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [profitabilityFilter, setProfitabilityFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -57,7 +59,7 @@ export default function Pricing() {
 
   // Fetch products with pricing data
   const { data: products, isLoading } = useQuery({
-    queryKey: ['products-pricing', venueId, categoryFilter, profitabilityFilter, searchTerm],
+    queryKey: ['products-pricing', venueId, categoryFilter, profitabilityFilter, debouncedSearchTerm],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`, {
         params: {
@@ -94,8 +96,8 @@ export default function Pricing() {
       }
 
       // Apply search filter
-      if (searchTerm) {
-        const lowerSearch = searchTerm.toLowerCase()
+      if (debouncedSearchTerm) {
+        const lowerSearch = debouncedSearchTerm.toLowerCase()
         productsData = productsData.filter(
           p =>
             p.name.toLowerCase().includes(lowerSearch) ||
