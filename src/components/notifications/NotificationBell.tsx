@@ -14,7 +14,7 @@ interface NotificationBellProps {
 
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
-  const { notifications, markAsRead, loading } = useNotifications()
+  const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
   const { t } = useTranslation('notifications')
   const { venueSlug } = useCurrentVenue()
 
@@ -36,7 +36,13 @@ export function NotificationBell({ className }: NotificationBellProps) {
   }
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+    <DropdownMenu open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open)
+      // Mark all as read when opening the dropdown
+      if (open && hasUnread) {
+        markAllAsRead()
+      }
+    }} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"

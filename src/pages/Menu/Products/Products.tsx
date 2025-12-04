@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Product } from '@/types'
+import { useAuth } from '@/context/AuthContext'
 import { Currency } from '@/utils/currency'
 import { PermissionGate } from '@/components/PermissionGate'
 import { InventoryBadge } from '@/components/inventory/InventoryBadge'
@@ -45,6 +46,8 @@ import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 export default function Products() {
   const { t, i18n } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
+  const { checkFeatureAccess } = useAuth()
+  const hasChatbot = checkFeatureAccess('CHATBOT')
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -235,17 +238,22 @@ export default function Products() {
   })
 
   const columns: ColumnDef<Product, unknown>[] = [
-    {
-      id: 'ai',
-      header: () => <span className="sr-only">AI</span>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <AddToAIButton type="product" data={row.original} variant="icon" />
-        </div>
-      ),
-      size: 50,
-      enableSorting: false,
-    },
+    // AI column - only show if venue has chatbot feature
+    ...(hasChatbot
+      ? [
+          {
+            id: 'ai',
+            header: () => <span className="sr-only">AI</span>,
+            cell: ({ row }: { row: { original: Product } }) => (
+              <div className="flex justify-center">
+                <AddToAIButton type="product" data={row.original} variant="icon" />
+              </div>
+            ),
+            size: 50,
+            enableSorting: false,
+          } as ColumnDef<Product, unknown>,
+        ]
+      : []),
     {
       id: 'imageUrl',
       accessorKey: 'imageUrl',
@@ -426,7 +434,7 @@ export default function Products() {
     },
     {
       id: 'actions',
-      header: t('common.actions'),
+      header: t('common:actions'),
       enableColumnFilter: false,
       cell: ({ row }) => {
         const product = row.original
@@ -440,7 +448,7 @@ export default function Products() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48" sideOffset={5}>
-              <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('common:actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <PermissionGate permission="menu:update">
                 <DropdownMenuItem
