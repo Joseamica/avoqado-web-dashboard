@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { paymentProviderAPI, type VenuePricingStructure } from '@/services/paymentProvider.service'
 import { useTranslation } from 'react-i18next'
 import { VenuePricingStructureDialog } from './components/VenuePricingStructureDialog'
@@ -75,15 +75,6 @@ const VenuePricing: React.FC = () => {
     setDialogOpen(true)
   }
 
-  // Calculate profit margin (simplified for wizard)
-  const calculateMargin = (structure: VenuePricingStructure, rateType: string) => {
-    // This is a placeholder - the wizard will handle complex margin calculations
-    return {
-      marginPercent: 1.4,
-      status: 'good',
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -98,7 +89,6 @@ const VenuePricing: React.FC = () => {
       <VenuePricingWizard
         onAdd={handleAdd}
         onSave={handleInlineSave}
-        calculateMargin={calculateMargin}
       />
 
       {/* Pricing Dialog */}
