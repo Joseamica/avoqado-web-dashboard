@@ -36,6 +36,9 @@
     "error": "Failed to export orders",
     "noData": "No data to export"
   },
+  "editDialog": {
+    "description": "Edit order #{{id}}"
+  },
   "detail": {
     "title": "Order {{number}}",
     "loading": "Loading order...",

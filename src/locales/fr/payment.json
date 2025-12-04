@@ -37,6 +37,7 @@
     "tip": "Pourboire",
     "source": "Source",
     "method": "Méthode",
+    "status": "Statut",
     "subtotal": "Sous-total",
     "profit": "Profit Avoqado",
     "total": "Total"
@@ -45,8 +46,17 @@
     "cash": "Espèces",
     "card": "Carte",
     "credit_card": "Carte de crédit",
+    "creditCard": "Carte de Crédit",
+    "debitCard": "Carte de Débit",
     "digitalWallet": "Portefeuille numérique",
-    "bankTransfer": "Virement bancaire"
+    "bankTransfer": "Virement bancaire",
+    "other": "Autre"
+  },
+  "statuses": {
+    "pending": "En attente",
+    "partial": "Partiel",
+    "paid": "Payé",
+    "refunded": "Remboursé"
   },
   "sources": {
     "POS": "Point de vente",
@@ -144,6 +154,9 @@
       }
     },
     "unknownVenue": "Restaurant"
+  },
+  "editDialog": {
+    "description": "Modifier le paiement #{{id}}"
   },
   "export": {
     "button": "Exporter",
@@ -270,7 +283,11 @@
     "toast": {
       "receiptSentTitle": "Reçu envoyé",
       "receiptSentDesc": "Le reçu numérique a été envoyé avec succès.",
-      "receiptErrorDesc": "Échec de l'envoi du reçu. Veuillez réessayer."
+      "receiptErrorDesc": "Échec de l'envoi du reçu. Veuillez réessayer.",
+      "deletedDesc": "Le paiement a été supprimé avec succès",
+      "deleteErrorDesc": "Impossible de supprimer le paiement",
+      "updatedDesc": "Le paiement a été mis à jour avec succès",
+      "updateErrorDesc": "Impossible de mettre à jour le paiement"
     }
   },
   "paymentProviders": {

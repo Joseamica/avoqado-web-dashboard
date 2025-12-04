@@ -7,17 +7,37 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { AddToAIButton } from '@/components/AddToAIButton'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useAuth } from '@/context/AuthContext'
-import { Payment as PaymentType, StaffRole } from '@/types' // Asumiendo que actualizas este tipo
+import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   AppWindow,
@@ -26,29 +46,45 @@ import {
   Computer,
   Download,
   Globe,
+  Pencil,
   QrCode,
   Smartphone,
   TabletSmartphone,
   TestTube,
+  Trash2,
   X,
 } from 'lucide-react'
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Payments() {
   const { t } = useTranslation('payment')
+  const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
-  const { user } = useAuth()
+  const { user, checkFeatureAccess } = useAuth()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
+  const hasChatbot = checkFeatureAccess('CHATBOT')
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [paymentToDelete, setPaymentToDelete] = useState<PaymentType | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [paymentToEdit, setPaymentToEdit] = useState<PaymentType | null>(null)
+  const [editValues, setEditValues] = useState<{
+    amount: number
+    tipAmount: number
+    method: PaymentMethod
+    status: PaymentStatus
+  }>({ amount: 0, tipAmount: 0, method: PaymentMethod.CASH, status: PaymentStatus.PAID })
 
   // Filter states
   const [merchantAccountFilter, setMerchantAccountFilter] = useState<string>('all')
@@ -56,11 +92,12 @@ export default function Payments() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [waiterFilter, setWaiterFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
-  // Reset pagination when filters change
+  // Reset pagination when filters change (using debounced search to avoid flicker)
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, searchTerm])
+  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, debouncedSearchTerm])
 
   // --- SIN CAMBIOS EN useQuery ---
   // La lógica de fetching sigue siendo válida porque el nuevo backend
@@ -75,7 +112,7 @@ export default function Payments() {
       methodFilter,
       sourceFilter,
       waiterFilter,
-      searchTerm,
+      debouncedSearchTerm,
     ],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
@@ -86,7 +123,7 @@ export default function Payments() {
           ...(methodFilter !== 'all' && { method: methodFilter }),
           ...(sourceFilter !== 'all' && { source: sourceFilter }),
           ...(waiterFilter !== 'all' && { staffId: waiterFilter }),
-          ...(searchTerm && { search: searchTerm }),
+          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
         },
       })
       // La respuesta ya tiene el formato { data: Payment[], meta: {...} }
@@ -104,6 +141,88 @@ export default function Payments() {
     console.log('Received payment update via socket:', socketData)
     refetch()
   })
+
+  // Delete mutation (SUPERADMIN only)
+  const deletePaymentMutation = useMutation({
+    mutationFn: (paymentId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}`),
+    onSuccess: () => {
+      toast({
+        title: tCommon('superadmin.delete.success'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+      setDeleteDialogOpen(false)
+      setPaymentToDelete(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: tCommon('superadmin.delete.error'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Update mutation (SUPERADMIN only)
+  const updatePaymentMutation = useMutation({
+    mutationFn: (data: { paymentId: string; amount: number; tipAmount: number; method: PaymentMethod; status: PaymentStatus }) =>
+      api.put(`/api/v1/dashboard/venues/${venueId}/payments/${data.paymentId}`, {
+        amount: data.amount,
+        tipAmount: data.tipAmount,
+        method: data.method,
+        status: data.status,
+      }),
+    onSuccess: () => {
+      toast({
+        title: tCommon('superadmin.edit.success'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+      setEditDialogOpen(false)
+      setPaymentToEdit(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: tCommon('superadmin.edit.error'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleDeleteClick = (e: React.MouseEvent, payment: PaymentType) => {
+    e.stopPropagation()
+    setPaymentToDelete(payment)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (paymentToDelete) {
+      deletePaymentMutation.mutate(paymentToDelete.id)
+    }
+  }
+
+  const handleEditClick = (e: React.MouseEvent, payment: PaymentType) => {
+    e.stopPropagation()
+    setPaymentToEdit(payment)
+    setEditValues({
+      amount: Number(payment.amount) || 0,
+      tipAmount: Number(payment.tipAmount) || 0,
+      method: payment.method || PaymentMethod.CASH,
+      status: payment.status || PaymentStatus.PAID,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const confirmEdit = () => {
+    if (paymentToEdit) {
+      updatePaymentMutation.mutate({
+        paymentId: paymentToEdit.id,
+        amount: editValues.amount,
+        tipAmount: editValues.tipAmount,
+        method: editValues.method,
+        status: editValues.status,
+      })
+    }
+  }
 
   // Get payments data directly from server (already filtered)
   const payments = useMemo(() => data?.data || [], [data?.data])
@@ -165,19 +284,24 @@ export default function Payments() {
   // ==================================================================
   const columns = useMemo<ColumnDef<PaymentType, unknown>[]>(
     () => [
-      {
-        id: 'ai',
-        meta: { label: t('columns.ai', { defaultValue: 'AI' }) },
-        header: () => <span className="sr-only">{t('columns.ai', { defaultValue: 'AI' })}</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-center">
-            <AddToAIButton payment={row.original} variant="icon" />
-          </div>
-        ),
-        size: 50,
-        enableSorting: false,
-        enableHiding: false,
-      },
+      // AI column - only show if venue has chatbot feature
+      ...(hasChatbot
+        ? [
+            {
+              id: 'ai',
+              meta: { label: t('columns.ai', { defaultValue: 'AI' }) },
+              header: () => <span className="sr-only">{t('columns.ai', { defaultValue: 'AI' })}</span>,
+              cell: ({ row }: { row: { original: PaymentType } }) => (
+                <div className="flex justify-center">
+                  <AddToAIButton type="payment" data={row.original} variant="icon" />
+                </div>
+              ),
+              size: 50,
+              enableSorting: false,
+              enableHiding: false,
+            } as ColumnDef<PaymentType, unknown>,
+          ]
+        : []),
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
@@ -288,7 +412,7 @@ export default function Payments() {
           return (
             <div className="flex items-center gap-3">
               {item.icon}
-              <span className="text-sm font-medium text-foreground">{item.label}</span>
+              <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{item.label}</span>
             </div>
           )
         },
@@ -313,14 +437,14 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('methods.card')}</span>
+                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('methods.card')}</span>
                 </>
               ) : (
                 <>
                   <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                     <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-sm font-medium text-foreground">{methodDisplay}</span>
+                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{methodDisplay}</span>
                 </>
               )}
             </div>
@@ -466,8 +590,42 @@ export default function Payments() {
           return Currency(Number(value) || 0)
         },
       },
+      // Superadmin actions column
+      ...(isSuperAdmin
+        ? [
+            {
+              id: 'actions',
+              header: () => (
+                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                  Superadmin
+                </span>
+              ),
+              cell: ({ row }: { row: { original: PaymentType } }) => (
+                <div className="flex items-center justify-end">
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+                    <Button
+                      size="icon"
+                      className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
+                      onClick={e => handleEditClick(e, row.original)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      className="h-7 w-7 bg-background hover:bg-destructive/10 text-destructive border-0"
+                      onClick={e => handleDeleteClick(e, row.original)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ),
+              size: 120,
+            },
+          ]
+        : []),
     ],
-    [t, formatTime, formatDate, venueTimezoneShort, isSuperAdmin],
+    [t, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot],
   )
 
   // Export functionality
@@ -665,6 +823,134 @@ export default function Payments() {
         pagination={pagination}
         setPagination={setPagination}
       />
+
+      {/* Delete confirmation dialog (SUPERADMIN only) */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tCommon('superadmin.delete.description', { item: paymentToDelete?.id?.slice(-8) || '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletePaymentMutation.isPending}
+            >
+              {deletePaymentMutation.isPending ? tCommon('deleting') : tCommon('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit dialog (SUPERADMIN only) */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+                {tCommon('superadmin.edit.editMode')}
+              </Badge>
+              {tCommon('superadmin.edit.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('editDialog.description', { id: paymentToEdit?.id?.slice(-8) || '' })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Amount and Tip in a row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-amount">{t('columns.subtotal')}</Label>
+                <Input
+                  id="edit-amount"
+                  type="number"
+                  step="0.01"
+                  value={editValues.amount}
+                  onChange={e => setEditValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                  className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-tip">{t('columns.tip')}</Label>
+                <Input
+                  id="edit-tip"
+                  type="number"
+                  step="0.01"
+                  value={editValues.tipAmount}
+                  onChange={e => setEditValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                  className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+                />
+              </div>
+            </div>
+
+            {/* Method and Status in a row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-method">{t('columns.method')}</Label>
+                <Select
+                  value={editValues.method}
+                  onValueChange={(value: PaymentMethod) => setEditValues(prev => ({ ...prev, method: value }))}
+                >
+                  <SelectTrigger className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
+                    <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
+                    <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
+                    <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
+                    <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
+                    <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">{t('columns.status')}</Label>
+                <Select
+                  value={editValues.status}
+                  onValueChange={(value: PaymentStatus) => setEditValues(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
+                    <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
+                    <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
+                    <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Total preview */}
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-pink-500/10 rounded-lg border border-amber-400/30">
+              <span className="text-sm font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">{t('columns.total')}</span>
+              <span className="text-lg font-semibold">{Currency(editValues.amount + editValues.tipAmount)}</span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              onClick={confirmEdit}
+              disabled={updatePaymentMutation.isPending}
+              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+            >
+              {updatePaymentMutation.isPending ? tCommon('saving') : tCommon('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

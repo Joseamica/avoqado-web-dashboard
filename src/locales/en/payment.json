@@ -37,6 +37,7 @@
     "tip": "Tip",
     "source": "Source",
     "method": "Method",
+    "status": "Status",
     "subtotal": "Subtotal",
     "profit": "Avoqado Profit",
     "total": "Total"
@@ -45,8 +46,17 @@
     "cash": "Cash",
     "card": "Card",
     "credit_card": "Credit card",
+    "creditCard": "Credit Card",
+    "debitCard": "Debit Card",
     "digitalWallet": "Digital Wallet",
-    "bankTransfer": "Bank Transfer"
+    "bankTransfer": "Bank Transfer",
+    "other": "Other"
+  },
+  "statuses": {
+    "pending": "Pending",
+    "partial": "Partial",
+    "paid": "Paid",
+    "refunded": "Refunded"
   },
   "sources": {
     "POS": "POS",
@@ -144,6 +154,9 @@
       }
     },
     "unknownVenue": "Restaurant"
+  },
+  "editDialog": {
+    "description": "Edit payment #{{id}}"
   },
   "export": {
     "button": "Export",
@@ -285,7 +298,11 @@
     "toast": {
       "receiptSentTitle": "Receipt sent",
       "receiptSentDesc": "The digital receipt has been sent successfully.",
-      "receiptErrorDesc": "Failed to send the receipt. Please try again."
+      "receiptErrorDesc": "Failed to send the receipt. Please try again.",
+      "deletedDesc": "The payment has been successfully deleted",
+      "deleteErrorDesc": "Could not delete the payment",
+      "updatedDesc": "The payment has been successfully updated",
+      "updateErrorDesc": "Could not update the payment"
     }
   },
   "paymentProviders": {

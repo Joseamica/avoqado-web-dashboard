@@ -36,6 +36,9 @@
     "error": "Error al exportar órdenes",
     "noData": "No hay datos para exportar"
   },
+  "editDialog": {
+    "description": "Editar orden #{{id}}"
+  },
   "detail": {
     "title": "Orden {{number}}",
     "loading": "Cargando orden...",

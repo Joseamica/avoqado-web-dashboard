@@ -6,10 +6,22 @@ import { ReviewFilters, ReviewFiltersState } from '@/components/Review/ReviewFil
 import { ReviewResponseDialog } from '@/components/Review/ReviewResponseDialog'
 import { ReviewStats } from '@/components/Review/ReviewStats'
 import { getSentimentFromRating } from '@/components/Review/SentimentBadge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useQuery } from '@tanstack/react-query'
+import { StaffRole } from '@/types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -41,6 +53,10 @@ const REVIEWS_PER_PAGE = 20
 export default function ReviewSummary() {
   const { venueId } = useCurrentVenue()
   const { t } = useTranslation('reviews')
+  const { t: tCommon } = useTranslation('common')
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
 
   // Initialize with a default date range (last 365 days)
   const getDefaultRange = () => {
@@ -64,6 +80,35 @@ export default function ReviewSummary() {
     searchQuery: '',
   })
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [reviewToDelete, setReviewToDelete] = useState<Review | null>(null)
+
+  // Delete mutation
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (reviewId: string) => {
+      await api.delete(`/api/v1/dashboard/venues/${venueId}/reviews/${reviewId}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews', venueId] })
+      toast.success(tCommon('superadmin.delete.success'))
+      setDeleteDialogOpen(false)
+      setReviewToDelete(null)
+    },
+    onError: () => {
+      toast.error(tCommon('superadmin.delete.error'))
+    },
+  })
+
+  const handleDeleteClick = (review: Review) => {
+    setReviewToDelete(review)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (reviewToDelete) {
+      deleteReviewMutation.mutate(reviewToDelete.id)
+    }
+  }
 
   // Fetch reviews from API
   const {
@@ -277,7 +322,13 @@ export default function ReviewSummary() {
           ) : (
             <div className="space-y-4">
               {paginatedReviews.map(review => (
-                <ReviewCard key={review.id} review={review} onRespond={handleRespond} />
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  onRespond={handleRespond}
+                  onDelete={handleDeleteClick}
+                  isSuperAdmin={isSuperAdmin}
+                />
               ))}
             </div>
           )}
@@ -313,6 +364,30 @@ export default function ReviewSummary() {
 
       {/* Bad Review Settings Dialog */}
       <BadReviewSettingsDialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen} />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tCommon('superadmin.delete.description', {
+                item: reviewToDelete?.customerName || t('card.anonymousCustomer'),
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteReviewMutation.isPending}
+            >
+              {deleteReviewMutation.isPending ? tCommon('deleting') : tCommon('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
