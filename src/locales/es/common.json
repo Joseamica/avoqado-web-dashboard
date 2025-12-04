@@ -96,6 +96,20 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "superadmin": {
+    "delete": {
+      "title": "Confirmar Eliminación",
+      "description": "¿Estás seguro de que deseas eliminar permanentemente {{item}}? Esta acción no se puede deshacer.",
+      "success": "Eliminado exitosamente",
+      "error": "Error al eliminar"
+    },
+    "edit": {
+      "title": "Editar",
+      "success": "Actualizado exitosamente",
+      "error": "Error al actualizar",
+      "editMode": "Modo Edición"
+    }
+  },
   "venuesSwitcher": {
     "title": "Sucursales",
     "addVenue": "Agregar sucursal",
@@ -394,5 +408,22 @@
       "fetchFeatures": "No se pudieron cargar las funcionalidades.",
       "uploadFailed": "Error al subir el archivo. Por favor intenta de nuevo."
     }
+  },
+  "auth": {
+    "google": {
+      "error": "Error de autenticación",
+      "cancelled": "Se canceló la autenticación con Google",
+      "codeNotFound": "Código de autorización no encontrado",
+      "success": "Inicio de sesión exitoso",
+      "welcomeNewUser": "¡Bienvenido! Tu cuenta ha sido creada.",
+      "genericError": "Error al autenticar con Google",
+      "authenticating": "Autenticando con Google..."
+    }
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "description": "Ha ocurrido un error inesperado. Por favor, intenta de nuevo.",
+    "goHome": "Ir al inicio",
+    "retry": "Reintentar"
   }
 }

@@ -79,6 +79,20 @@
   "header": {
     "superadmin": "Superadministrateur"
   },
+  "superadmin": {
+    "delete": {
+      "title": "Confirmer la Suppression",
+      "description": "Êtes-vous sûr de vouloir supprimer définitivement {{item}} ? Cette action est irréversible.",
+      "success": "Supprimé avec succès",
+      "error": "Échec de la suppression"
+    },
+    "edit": {
+      "title": "Modifier",
+      "success": "Mis à jour avec succès",
+      "error": "Échec de la mise à jour",
+      "editMode": "Mode Édition"
+    }
+  },
   "venuesSwitcher": {
     "title": "Venues",
     "addVenue": "Add venue",
@@ -338,5 +352,22 @@
       "description": "Une erreur s'est produite. Veuillez réessayer.",
       "fetchFeatures": "Impossible de charger les fonctionnalités."
     }
+  },
+  "auth": {
+    "google": {
+      "error": "Erreur d'authentification",
+      "cancelled": "L'authentification Google a été annulée",
+      "codeNotFound": "Code d'autorisation non trouvé",
+      "success": "Connexion réussie",
+      "welcomeNewUser": "Bienvenue ! Votre compte a été créé.",
+      "genericError": "Erreur lors de l'authentification avec Google",
+      "authenticating": "Authentification avec Google..."
+    }
+  },
+  "errorBoundary": {
+    "title": "Une erreur s'est produite",
+    "description": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "goHome": "Retour à l'accueil",
+    "retry": "Réessayer"
   }
 }

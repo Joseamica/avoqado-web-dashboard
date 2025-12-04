@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import i18n from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -72,9 +73,9 @@ class ErrorBoundary extends Component<Props, State> {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
-              <CardTitle className="text-xl">Algo salió mal</CardTitle>
+              <CardTitle className="text-xl">{i18n.t('common:errorBoundary.title')}</CardTitle>
               <CardDescription>
-                Ha ocurrido un error inesperado. Por favor, intenta de nuevo.
+                {i18n.t('common:errorBoundary.description')}
               </CardDescription>
             </CardHeader>
 
@@ -88,11 +89,11 @@ class ErrorBoundary extends Component<Props, State> {
 
             <CardFooter className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={this.handleGoHome}>
-                Ir al inicio
+                {i18n.t('common:errorBoundary.goHome')}
               </Button>
               <Button className="flex-1" onClick={this.handleRetry}>
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Reintentar
+                {i18n.t('common:errorBoundary.retry')}
               </Button>
             </CardFooter>
           </Card>

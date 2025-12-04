@@ -102,6 +102,20 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "superadmin": {
+    "delete": {
+      "title": "Confirm Deletion",
+      "description": "Are you sure you want to permanently delete {{item}}? This action cannot be undone.",
+      "success": "Successfully deleted",
+      "error": "Failed to delete"
+    },
+    "edit": {
+      "title": "Edit",
+      "success": "Successfully updated",
+      "error": "Failed to update",
+      "editMode": "Edit Mode"
+    }
+  },
   "venuesSwitcher": {
     "title": "Venues",
     "addVenue": "Add venue",
@@ -400,5 +414,22 @@
       "fetchFeatures": "Could not load features.",
       "uploadFailed": "Failed to upload file. Please try again."
     }
+  },
+  "auth": {
+    "google": {
+      "error": "Authentication error",
+      "cancelled": "Google authentication was cancelled",
+      "codeNotFound": "Authorization code not found",
+      "success": "Login successful",
+      "welcomeNewUser": "Welcome! Your account has been created.",
+      "genericError": "Error authenticating with Google",
+      "authenticating": "Authenticating with Google..."
+    }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error has occurred. Please try again.",
+    "goHome": "Go to home",
+    "retry": "Retry"
   }
 }
