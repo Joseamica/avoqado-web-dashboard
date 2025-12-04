@@ -12,7 +12,7 @@ const Breadcrumb = React.forwardRef<
   }
 >(({ ...props }, ref) => {
   const { t } = useTranslation()
-  return <nav ref={ref} aria-label={t('common.breadcrumb')} {...props} />
+  return <nav ref={ref} aria-label={t('common:breadcrumb')} {...props} />
 })
 Breadcrumb.displayName = 'Breadcrumb'
 
@@ -61,7 +61,7 @@ const BreadcrumbEllipsis = ({ className, ...props }: React.ComponentProps<'span'
   return (
     <span role="presentation" aria-hidden="true" className={cn('flex h-9 w-9 items-center justify-center', className)} {...props}>
       <MoreHorizontal className="w-4 h-4" />
-      <span className="sr-only">{t('common.more')}</span>
+      <span className="sr-only">{t('common:more')}</span>
     </span>
   )
 }

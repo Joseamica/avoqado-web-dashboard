@@ -69,13 +69,13 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
         >
           {!hasExplicitTitle && !hasTitle && (
             <VisuallyHidden>
-              <DialogTitle>{t('common.dialog_title_default')}</DialogTitle>
+              <DialogTitle>{t('common:dialog_title_default')}</DialogTitle>
             </VisuallyHidden>
           )}
           {children}
           <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-accent-foreground">
             <X className="w-4 h-4" />
-            <span className="sr-only">{t('common.close')}</span>
+            <span className="sr-only">{t('common:close')}</span>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogPortal>

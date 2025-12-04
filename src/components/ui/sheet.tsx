@@ -66,12 +66,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
           {!hasExplicitTitle && !hasTitle && (
             <VisuallyHidden>
-              <SheetTitle>{t('common.sheet_title_default')}</SheetTitle>
+              <SheetTitle>{t('common:sheet_title_default')}</SheetTitle>
             </VisuallyHidden>
           )}
           <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent">
             <X className="w-4 h-4" />
-            <span className="sr-only">{t('common.close')}</span>
+            <span className="sr-only">{t('common:close')}</span>
           </SheetPrimitive.Close>
           {children}
         </SheetPrimitive.Content>
