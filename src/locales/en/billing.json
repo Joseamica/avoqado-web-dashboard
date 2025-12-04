@@ -256,6 +256,8 @@
     "activateSuccess": "Feature activated! Starting {{days}}-day free trial",
     "activateSuccessGeneric": "Feature activated successfully",
     "activateSuccessDescription": "Your subscription is now active. First-time subscriptions include a 2-day free trial.",
+    "subscriptionActivated": "Subscription activated!",
+    "subscriptionActivatedDescription": "Your payment was processed successfully. The feature is now active.",
     "activateProcessing": "Processing payment...",
     "activateProcessingDescription": "We're processing your payment. You'll be notified when the feature is active.",
     "activateError": "Failed to activate feature",
@@ -265,5 +267,72 @@
     "paymentSuccessDescription": "{{feature}} is now active. Your subscription has been confirmed.",
     "subscriptionDeactivated": "Subscription deactivated",
     "subscriptionDeactivatedDescription": "{{feature}} subscription has been canceled or payment failed."
+  },
+  "superadmin": {
+    "panel": {
+      "title": "Superadmin Feature Control",
+      "description": "Manage features for {{venue}} directly",
+      "badge": "Superadmin Mode"
+    },
+    "actions": {
+      "grantTrial": "Grant Trial",
+      "grantTrialDesc": "Give free trial period",
+      "enableFeature": "Enable Feature",
+      "enableFeatureDesc": "Activate without payment"
+    },
+    "stats": {
+      "activeFeatures": "Active",
+      "available": "available to add"
+    },
+    "activeFeatures": {
+      "title": "Active Features Control",
+      "trialUntil": "Trial until {{date}}",
+      "fullyActive": "Fully active"
+    },
+    "disclaimer": "Changes made here only affect this venue. For platform-wide feature management, use the Superadmin dashboard.",
+    "grantTrial": {
+      "title": "Grant Free Trial",
+      "description": "Grant a free trial period for a feature to {{venue}}. This bypasses normal payment requirements.",
+      "selectFeature": "Select Feature",
+      "selectPlaceholder": "Choose a feature...",
+      "duration": "Trial Duration (days)",
+      "preview": "✨ {{feature}} will be active for {{days}} days for free. After the trial, the venue will need to subscribe to continue.",
+      "confirm": "Grant Trial",
+      "noPaymentMethod": "This venue has no payment method configured",
+      "noPaymentMethodDesc": "Stripe trial requires a payment method. The venue must add one first, or you can enable the feature for free (indefinitely) instead.",
+      "noPaymentMethodInfo": "DB-only trial (no Stripe)",
+      "noPaymentMethodInfoDesc": "Since this venue has no payment method, the trial will be DB-only and will automatically expire after the trial period. The venue will need to add a payment method and subscribe to continue after the trial.",
+      "dbOnlyTrialInfo": "DB-only trial (bypasses Stripe)",
+      "dbOnlyTrialInfoDesc": "This trial is managed directly in the database and will automatically expire after the trial period. When the trial ends, the venue will need to subscribe through Stripe to continue.",
+      "enableFreeInstead": "Enable Free Instead"
+    },
+    "enableFeature": {
+      "title": "Enable Feature",
+      "description": "Enable a feature for {{venue}} without requiring payment. Use this for special arrangements or testing.",
+      "selectFeature": "Select Feature",
+      "selectPlaceholder": "Choose a feature to enable...",
+      "warning": "This will enable the feature indefinitely without creating a subscription. The venue will not be charged.",
+      "confirm": "Enable Feature"
+    },
+    "disableFeature": {
+      "title": "Disable Feature",
+      "description": "Are you sure you want to disable {{feature}} for {{venue}}? This action will immediately revoke access to this feature.",
+      "warning": "This action cannot be undone. The venue will lose access immediately.",
+      "confirm": "Disable Feature"
+    },
+    "noFeaturesAvailable": "No features available to add",
+    "loadingFeatures": "Loading features...",
+    "allFeaturesActive": "All features are already active for this venue",
+    "toast": {
+      "enableSuccess": "Feature enabled",
+      "enableSuccessDesc": "Feature has been enabled for this venue",
+      "enableError": "Failed to enable feature",
+      "disableSuccess": "Feature disabled",
+      "disableSuccessDesc": "Feature has been disabled for this venue",
+      "disableError": "Failed to disable feature",
+      "trialGranted": "Trial granted",
+      "trialGrantedDesc": "{{days}}-day trial has been granted",
+      "trialError": "Failed to grant trial"
+    }
   }
 }

@@ -1,0 +1,338 @@
+{
+  "loading": "Chargement...",
+  "pageTitle": "Facturation et Abonnements",
+  "pageSubtitle": "Gérez vos abonnements actifs, consultez l'historique de facturation et explorez les fonctionnalités disponibles",
+  "tabs": {
+    "subscriptions": "Abonnements",
+    "history": "Historique",
+    "paymentMethods": "Moyens de Paiement",
+    "tokens": "Tokens IA"
+  },
+  "activeSubscriptions": {
+    "title": "Abonnements Actifs",
+    "noSubscriptions": "Vous n'avez pas encore d'abonnements actifs",
+    "exploreFeatures": "Explorez nos fonctionnalités ci-dessous pour commencer",
+    "trial": "Essai",
+    "active": "Actif",
+    "canceled": "Annulé",
+    "trialEnds": "L'essai se termine le {{date}}",
+    "nextBilling": "Prochaine facturation: {{date}}",
+    "canceledOn": "Annulé le {{date}}",
+    "monthlyPrice": "{{price}}/mois",
+    "perMonth": "/mois",
+    "cancelButton": "Annuler l'Abonnement",
+    "activateButton": "Activer",
+    "managingButton": "Gestion en cours..."
+  },
+  "billingHistory": {
+    "title": "Historique de Facturation",
+    "tabs": {
+      "invoices": "Factures",
+      "tokenPurchases": "Achats de Tokens"
+    },
+    "noInvoices": "Aucune facture pour l'instant",
+    "description": "Votre historique de factures apparaîtra ici une fois que vous commencerez à être facturé",
+    "sort": {
+      "dateDesc": "Plus Récentes",
+      "dateAsc": "Plus Anciennes",
+      "amountDesc": "Montant le Plus Élevé",
+      "amountAsc": "Montant le Plus Bas"
+    },
+    "filters": {
+      "show": "Afficher les Filtres",
+      "hide": "Masquer les Filtres",
+      "search": "Rechercher",
+      "searchPlaceholder": "N° de facture ou description...",
+      "status": "Statut",
+      "statusPlaceholder": "Tous les statuts",
+      "fromDate": "Date de Début",
+      "toDate": "Date de Fin",
+      "allStatuses": "Tous les Statuts",
+      "showing": "Affichage de {{count}} sur {{total}} facture",
+      "showing_other": "Affichage de {{count}} sur {{total}} factures",
+      "clearFilters": "Effacer les Filtres",
+      "noResults": "Aucune facture ne correspond à vos filtres",
+      "noResultsHint": "Essayez d'ajuster vos critères de recherche ou de filtre"
+    },
+    "columns": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Montant",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "conceptType": {
+      "subscription": "Abonnement",
+      "tokens": "Tokens IA"
+    },
+    "status": {
+      "paid": "Payé",
+      "open": "Ouvert",
+      "draft": "Brouillon",
+      "uncollectible": "Irrécouvrable",
+      "void": "Annulé"
+    },
+    "downloadButton": "Télécharger la Facture",
+    "downloading": "Téléchargement...",
+    "viewReceiptButton": "Voir le Reçu",
+    "retryButton": "Réessayer le Paiement",
+    "retrying": "Nouvelle tentative...",
+    "retrySuccess": "Paiement réessayé avec succès",
+    "retryError": "Échec de la tentative de paiement"
+  },
+  "availableFeatures": {
+    "title": "Fonctionnalités Disponibles",
+    "subtitle": "Explorez des fonctionnalités supplémentaires pour améliorer la gestion de votre restaurant",
+    "noFeatures": "Toutes les fonctionnalités sont déjà actives!",
+    "description": "Vous utilisez toutes les fonctionnalités disponibles",
+    "startTrial": "Démarrer l'Essai Gratuit de {{days}} jours",
+    "subscribe": "S'abonner Maintenant",
+    "subscribing": "Activation...",
+    "perMonth": "/mois",
+    "features": "Fonctionnalités:",
+    "subscribeNoTrial": "S'abonner (Sans Essai)"
+  },
+  "confirmCancel": {
+    "title": "Annuler l'Abonnement?",
+    "description": "Êtes-vous sûr de vouloir annuler {{feature}}? Vous perdrez l'accès à cette fonctionnalité à la fin de votre période de facturation actuelle ({{date}}).",
+    "confirm": "Oui, Annuler l'Abonnement",
+    "cancel": "Garder l'Abonnement"
+  },
+  "confirmSubscribe": {
+    "title": "Confirmer l'Abonnement",
+    "description": "Vous êtes sur le point de vous abonner à {{feature}} pour {{price}}/mois. Ce prélèvement sera immédiat car vous avez déjà utilisé cette fonctionnalité.",
+    "descriptionWithTrial": "Vous êtes sur le point de commencer un essai gratuit de {{days}} jours pour {{feature}}. Après l'essai, vous serez facturé {{price}}/mois.",
+    "paymentMethod": "Moyen de Paiement",
+    "cardEnding": "Carte se terminant par {{last4}}",
+    "cardExpires": "Expire le {{month}}/{{year}}",
+    "noPaymentMethod": "Aucun moyen de paiement enregistré",
+    "addPaymentMethod": "Ajouter un Moyen de Paiement",
+    "immediateCharge": "⚠️ Votre carte sera débitée immédiatement",
+    "trialInfo": "💳 Votre carte sera débitée après la fin de l'essai",
+    "confirm": "Confirmer l'Abonnement",
+    "cancel": "Annuler"
+  },
+  "manageBilling": {
+    "button": "Gérer la Facturation",
+    "addButton": "Ajouter un Moyen de Paiement",
+    "redirecting": "Redirection..."
+  },
+  "paymentMethods": {
+    "title": "Moyens de Paiement",
+    "subtitle": "Gérez vos moyens de paiement enregistrés",
+    "noPaymentMethods": "Aucun moyen de paiement enregistré",
+    "addFirst": "Ajoutez votre premier moyen de paiement pour activer les abonnements",
+    "addButton": "Ajouter un Moyen de Paiement",
+    "removeButton": "Supprimer",
+    "setDefaultButton": "Définir par Défaut",
+    "defaultBadge": "Par Défaut",
+    "defaultDescription": "C'est votre moyen de paiement par défaut utilisé pour les abonnements",
+    "cardBrand": {
+      "visa": "Visa",
+      "mastercard": "Mastercard",
+      "amex": "American Express",
+      "discover": "Discover",
+      "diners": "Diners Club",
+      "jcb": "JCB",
+      "unionpay": "UnionPay",
+      "unknown": "Carte"
+    },
+    "cardEnding": "•••• {{last4}}",
+    "expiresOn": "Expire le {{month}}/{{year}}",
+    "warnings": {
+      "cardExpiring": {
+        "title_one": "Moyen de Paiement Expirant Bientôt",
+        "title_other": "Moyens de Paiement Expirant Bientôt",
+        "description": "{{brand}} se terminant par {{last4}} expire dans {{days}} jours ({{date}})",
+        "updateButton": "Mettre à Jour la Carte"
+      }
+    },
+    "dialog": {
+      "title": "Ajouter un Moyen de Paiement",
+      "description": "Ajoutez une carte de crédit ou de débit pour activer les abonnements et la facturation automatique"
+    },
+    "form": {
+      "cardLabel": "Carte de Crédit ou de Débit",
+      "securityNotice": "🔒 Vos informations de paiement sont traitées de manière sécurisée par Stripe. Nous ne stockons jamais les détails de votre carte.",
+      "submitButton": "Ajouter le Moyen de Paiement"
+    },
+    "confirmRemove": {
+      "title": "Supprimer le Moyen de Paiement?",
+      "description": "Êtes-vous sûr de vouloir supprimer ce moyen de paiement? Si c'est votre moyen de paiement par défaut, vous devrez en définir un autre.",
+      "confirm": "Oui, Supprimer",
+      "cancel": "Annuler"
+    },
+    "toasts": {
+      "addSuccess": "Moyen de paiement ajouté avec succès",
+      "removeSuccess": "Moyen de paiement supprimé avec succès",
+      "setDefaultSuccess": "Moyen de paiement par défaut mis à jour",
+      "removeError": "Échec de la suppression du moyen de paiement",
+      "setDefaultError": "Échec de la mise à jour du moyen de paiement par défaut"
+    },
+    "errors": {
+      "noVenue": "Aucun établissement sélectionné",
+      "incompleteCard": "Veuillez compléter les informations de la carte",
+      "confirmFailed": "Échec de la confirmation du moyen de paiement",
+      "setupFailed": "Échec de la configuration du moyen de paiement",
+      "addFailed": "Échec de l'ajout du moyen de paiement"
+    }
+  },
+  "tokenBudget": {
+    "title": "Budget Tokens IA",
+    "subtitle": "Gérez l'utilisation des tokens de votre assistant IA et vos achats",
+    "settings": "Paramètres",
+    "loadError": "Échec du chargement des informations de budget de tokens",
+    "currentUsage": "Utilisation du Mois en Cours",
+    "freeTokensIncluded": "{{amount}} tokens gratuits inclus mensuellement",
+    "used": "utilisé",
+    "freeRemaining": "Gratuits Restants",
+    "purchased": "Achetés",
+    "totalAvailable": "Total Disponible",
+    "overageWarning": "Vous avez utilisé {{tokens}} tokens au-delà de votre limite. Coût de dépassement actuel: {{cost}}",
+    "purchaseTitle": "Acheter des Tokens Supplémentaires",
+    "tokenAmount": "Quantité de Tokens",
+    "pricePerThousand": "{{price}} pour 1 000 tokens",
+    "total": "Total",
+    "buyNow": "Acheter Maintenant",
+    "purchaseSuccess": "Tokens achetés!",
+    "purchaseSuccessDesc": "{{amount}} tokens ont été ajoutés à votre compte",
+    "purchaseError": "Échec de l'achat",
+    "minimumRequired": "Minimum 1 000 tokens",
+    "minimumRequiredDesc": "Veuillez entrer au moins 1 000 tokens à acheter",
+    "autoRechargeTitle": "Paramètres de Recharge Automatique",
+    "autoRechargeDesc": "Acheter automatiquement des tokens lorsque votre solde est bas",
+    "enableAutoRecharge": "Activer la Recharge Automatique",
+    "enableAutoRechargeDesc": "Acheter automatiquement des tokens lorsque le solde tombe en dessous du seuil",
+    "threshold": "Seuil",
+    "thresholdDesc": "Acheter des tokens lorsque le solde tombe en dessous de ce montant",
+    "rechargeAmount": "Montant de Recharge",
+    "rechargeAmountDesc": "Montant à acheter ({{price}})",
+    "saveSettings": "Enregistrer les Paramètres",
+    "settingsUpdated": "Paramètres enregistrés",
+    "settingsUpdatedDesc": "Vos paramètres de recharge automatique ont été mis à jour",
+    "settingsError": "Échec de l'enregistrement des paramètres",
+    "noPaymentMethod": "Ajoutez un moyen de paiement ci-dessus pour acheter des tokens",
+    "addFundsButton": "Ajouter des fonds",
+    "addFunds": {
+      "title": "Ajouter des fonds",
+      "description": "Couvrez l'utilisation au-delà des limites de votre abonnement en ajoutant des fonds à votre portefeuille",
+      "balanceAfter": "Solde après achat",
+      "tokensToAdd": "Tokens à ajouter",
+      "pricePerToken": "Prix par token",
+      "totalToPay": "Total à payer",
+      "paymentMethod": "Moyen de paiement",
+      "customAmount": "Montant personnalisé...",
+      "disclaimer": "En cliquant sur Acheter, vous autorisez le prélèvement sur votre carte du montant indiqué ci-dessus.",
+      "buyButton": "Acheter des tokens"
+    }
+  },
+  "tokenPurchases": {
+    "title": "Historique des Achats de Tokens",
+    "noPurchases": "Aucun achat de tokens pour l'instant",
+    "description": "Votre historique d'achats de tokens apparaîtra ici une fois que vous aurez effectué votre premier achat",
+    "columns": {
+      "date": "Date",
+      "tokens": "Tokens",
+      "amount": "Montant",
+      "type": "Type",
+      "status": "Statut"
+    },
+    "type": {
+      "manual": "Manuel",
+      "autoRecharge": "Recharge automatique",
+      "promotional": "Promotionnel"
+    },
+    "status": {
+      "pending": "En attente",
+      "completed": "Terminé",
+      "failed": "Échoué",
+      "refunded": "Remboursé"
+    }
+  },
+  "toast": {
+    "cancelSuccess": "Abonnement annulé avec succès",
+    "cancelError": "Échec de l'annulation de l'abonnement",
+    "activateSuccess": "Fonctionnalité activée! Début de l'essai gratuit de {{days}} jours",
+    "activateSuccessGeneric": "Fonctionnalité activée avec succès",
+    "activateSuccessDescription": "Votre abonnement est maintenant actif. Les premiers abonnements incluent un essai gratuit de 2 jours.",
+    "subscriptionActivated": "Abonnement activé!",
+    "subscriptionActivatedDescription": "Votre paiement a été traité avec succès. La fonctionnalité est maintenant active.",
+    "activateProcessing": "Traitement du paiement...",
+    "activateProcessingDescription": "Nous traitons votre paiement. Vous serez notifié lorsque la fonctionnalité sera active.",
+    "activateError": "Échec de l'activation de la fonctionnalité",
+    "downloadError": "Échec du téléchargement de la facture",
+    "billingPortalError": "Échec de l'ouverture du portail de facturation. Veuillez réessayer.",
+    "paymentSuccess": "✅ Paiement réussi!",
+    "paymentSuccessDescription": "{{feature}} est maintenant active. Votre abonnement a été confirmé.",
+    "subscriptionDeactivated": "Abonnement désactivé",
+    "subscriptionDeactivatedDescription": "L'abonnement {{feature}} a été annulé ou le paiement a échoué."
+  },
+  "superadmin": {
+    "panel": {
+      "title": "Contrôle des Fonctionnalités Superadmin",
+      "description": "Gérer les fonctionnalités pour {{venue}} directement",
+      "badge": "Mode Superadmin"
+    },
+    "actions": {
+      "grantTrial": "Accorder un Essai",
+      "grantTrialDesc": "Donner une période d'essai gratuite",
+      "enableFeature": "Activer une Fonctionnalité",
+      "enableFeatureDesc": "Activer sans paiement"
+    },
+    "stats": {
+      "activeFeatures": "Actives",
+      "available": "disponibles à ajouter"
+    },
+    "activeFeatures": {
+      "title": "Contrôle des Fonctionnalités Actives",
+      "trialUntil": "Essai jusqu'au {{date}}",
+      "fullyActive": "Entièrement active"
+    },
+    "disclaimer": "Les modifications effectuées ici n'affectent que cet établissement. Pour la gestion des fonctionnalités à l'échelle de la plateforme, utilisez le tableau de bord Superadmin.",
+    "grantTrial": {
+      "title": "Accorder un Essai Gratuit",
+      "description": "Accordez une période d'essai gratuite pour une fonctionnalité à {{venue}}. Cela contourne les exigences de paiement normales.",
+      "selectFeature": "Sélectionner une Fonctionnalité",
+      "selectPlaceholder": "Choisir une fonctionnalité...",
+      "duration": "Durée de l'Essai (jours)",
+      "preview": "✨ {{feature}} sera active pendant {{days}} jours gratuitement. Après l'essai, l'établissement devra s'abonner pour continuer.",
+      "confirm": "Accorder l'Essai",
+      "noPaymentMethod": "Cet établissement n'a pas de méthode de paiement configurée",
+      "noPaymentMethodDesc": "L'essai Stripe nécessite une méthode de paiement. L'établissement doit d'abord en ajouter une, ou vous pouvez activer la fonctionnalité gratuitement (indéfiniment) à la place.",
+      "noPaymentMethodInfo": "Essai DB uniquement (sans Stripe)",
+      "noPaymentMethodInfoDesc": "Comme cet établissement n'a pas de méthode de paiement, l'essai sera uniquement en base de données et expirera automatiquement après la période d'essai. L'établissement devra ajouter une méthode de paiement et s'abonner pour continuer après l'essai.",
+      "dbOnlyTrialInfo": "Essai DB uniquement (contourne Stripe)",
+      "dbOnlyTrialInfoDesc": "Cet essai est géré directement dans la base de données et expirera automatiquement après la période d'essai. À la fin, l'établissement devra s'abonner via Stripe pour continuer.",
+      "enableFreeInstead": "Activer Gratuitement"
+    },
+    "enableFeature": {
+      "title": "Activer une Fonctionnalité",
+      "description": "Activez une fonctionnalité pour {{venue}} sans exiger de paiement. Utilisez ceci pour des arrangements spéciaux ou des tests.",
+      "selectFeature": "Sélectionner une Fonctionnalité",
+      "selectPlaceholder": "Choisir une fonctionnalité à activer...",
+      "warning": "Cela activera la fonctionnalité indéfiniment sans créer d'abonnement. L'établissement ne sera pas facturé.",
+      "confirm": "Activer la Fonctionnalité"
+    },
+    "disableFeature": {
+      "title": "Désactiver une Fonctionnalité",
+      "description": "Êtes-vous sûr de vouloir désactiver {{feature}} pour {{venue}}? Cette action révoquera immédiatement l'accès à cette fonctionnalité.",
+      "warning": "Cette action ne peut pas être annulée. L'établissement perdra l'accès immédiatement.",
+      "confirm": "Désactiver la Fonctionnalité"
+    },
+    "noFeaturesAvailable": "Aucune fonctionnalité disponible à ajouter",
+    "loadingFeatures": "Chargement des fonctionnalités...",
+    "allFeaturesActive": "Toutes les fonctionnalités sont déjà actives pour cet établissement",
+    "toast": {
+      "enableSuccess": "Fonctionnalité activée",
+      "enableSuccessDesc": "La fonctionnalité a été activée pour cet établissement",
+      "enableError": "Échec de l'activation de la fonctionnalité",
+      "disableSuccess": "Fonctionnalité désactivée",
+      "disableSuccessDesc": "La fonctionnalité a été désactivée pour cet établissement",
+      "disableError": "Échec de la désactivation de la fonctionnalité",
+      "trialGranted": "Essai accordé",
+      "trialGrantedDesc": "Un essai de {{days}} jours a été accordé",
+      "trialError": "Échec de l'accord de l'essai"
+    }
+  }
+}

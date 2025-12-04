@@ -32,6 +32,7 @@ import onboardingEs from '@/locales/es/onboarding.json'
 import onboardingFr from '@/locales/fr/onboarding.json'
 import billingEn from '@/locales/en/billing.json'
 import billingEs from '@/locales/es/billing.json'
+import billingFr from '@/locales/fr/billing.json'
 import authEn from '@/locales/en/auth.json'
 import authEs from '@/locales/es/auth.json'
 import authFr from '@/locales/fr/auth.json'
@@ -254,6 +255,7 @@ i18n
   [
     ['en', billingEn],
     ['es', billingEs],
+    ['fr', billingFr],
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'billing', bundle as Record<string, unknown>, true, true)
