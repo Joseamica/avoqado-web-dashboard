@@ -32,7 +32,8 @@ export interface CustomerGroup {
 	color: string
 	autoAssignRules: unknown | null
 	active: boolean
-	_count: {
+	customerCount?: number // Backend returns this instead of _count
+	_count?: {
 		customers: number
 	}
 	createdAt: string
