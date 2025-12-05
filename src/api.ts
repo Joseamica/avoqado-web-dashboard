@@ -1,8 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  // baseURL: 'https://api.avoqado.io',
+  baseURL: import.meta.env.VITE_API_URL || 'https://api.avoqado.io',
   withCredentials: true,
   //   headers: {
   //   'X-Client-Type': 'web'
