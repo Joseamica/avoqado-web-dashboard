@@ -2,6 +2,10 @@ name = "avoqado-web-dashboard"
 compatibility_date = "2024-08-28"
 pages_build_output_dir = "dist"
 
+# Environment variables are managed in Cloudflare Pages dashboard
+# This file only defines build configuration
+# To use dashboard variables, we need to NOT define [vars] here
+
 [env.production]
 name = "avoqado-web-dashboard"
 

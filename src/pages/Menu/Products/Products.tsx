@@ -45,6 +45,7 @@ import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 
 export default function Products() {
   const { t, i18n } = useTranslation('menu')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
@@ -243,7 +244,7 @@ export default function Products() {
       ? [
           {
             id: 'ai',
-            header: () => <span className="sr-only">AI</span>,
+            header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
             cell: ({ row }: { row: { original: Product } }) => (
               <div className="flex justify-center">
                 <AddToAIButton type="product" data={row.original} variant="icon" />

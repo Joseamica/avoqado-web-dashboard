@@ -22,7 +22,8 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
   onOpenChange,
   onSuccess
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('tpv')
+  const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { venueId, venue } = useCurrentVenue()
@@ -76,12 +77,12 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
                 onClick={() => {
                   navigator.clipboard.writeText(data.activationCode!.activationCode)
                   toast({
-                    title: t('common.copied', { defaultValue: 'Copiado' }),
+                    title: tCommon('copied'),
                     description: t('tpv.superadmin.codeCopied', { defaultValue: 'Código copiado al portapapeles' })
                   })
                 }}
               >
-                <Copy className="w-3 h-3 mr-1" /> {t('common.copy', { defaultValue: 'Copiar' })}
+                <Copy className="w-3 h-3 mr-1" /> {tCommon('copy')}
               </Button>
             </div>
           ),
@@ -98,9 +99,9 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
       onOpenChange(false)
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || error.message || t('common.error', { defaultValue: 'Error' })
+      const message = error.response?.data?.message || error.message || tCommon('error')
       toast({
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: message,
         variant: 'destructive'
       })
@@ -204,11 +205,11 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TPV_ANDROID">TPV Android</SelectItem>
-                    <SelectItem value="TPV_IOS">TPV iOS</SelectItem>
-                    <SelectItem value="PRINTER_RECEIPT">Impresora Recibos</SelectItem>
-                    <SelectItem value="PRINTER_KITCHEN">Impresora Cocina</SelectItem>
-                    <SelectItem value="KDS">KDS</SelectItem>
+                    <SelectItem value="TPV_ANDROID">{t('superadmin.terminalTypes.tpvAndroid')}</SelectItem>
+                    <SelectItem value="TPV_IOS">{t('superadmin.terminalTypes.tpvIOS')}</SelectItem>
+                    <SelectItem value="PRINTER_RECEIPT">{t('superadmin.terminalTypes.printerReceipt')}</SelectItem>
+                    <SelectItem value="PRINTER_KITCHEN">{t('superadmin.terminalTypes.printerKitchen')}</SelectItem>
+                    <SelectItem value="KDS">{t('superadmin.terminalTypes.kds')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

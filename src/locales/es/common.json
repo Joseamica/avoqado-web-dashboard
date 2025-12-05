@@ -18,6 +18,7 @@
   "error.notFound.goHome": "Ir al inicio",
   "error.retry": "Reintentar",
   "copied": "¡Copiado!",
+  "copy": "Copiar",
   "goBack": "Volver",
   "back": "Atrás",
   "next": "Siguiente",
@@ -320,6 +321,12 @@
     "add": "Agregar"
   },
   "chooseColor": "Elegir color",
+  "screenReaderOnly": {
+    "ai": "IA"
+  },
+  "currency": {
+    "mxn": "MXN"
+  },
   "time": {
     "hour": "Hora",
     "min": "Min",

@@ -15,7 +15,7 @@ interface WizardStep3RulesProps {
 
 export function WizardStep3Rules({ form, dayOptions }: WizardStep3RulesProps) {
   const { t } = useTranslation('promotions')
-  const { t: tCommon } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
 
   return (
     <div className="space-y-6">
@@ -76,7 +76,7 @@ export function WizardStep3Rules({ form, dayOptions }: WizardStep3RulesProps) {
                         value={field.value ?? ''}
                         onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">MXN</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{tCommon('currency.mxn')}</span>
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -101,7 +101,7 @@ export function WizardStep3Rules({ form, dayOptions }: WizardStep3RulesProps) {
                         value={field.value ?? ''}
                         onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">MXN</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{tCommon('currency.mxn')}</span>
                     </div>
                   </FormControl>
                   <FormMessage />

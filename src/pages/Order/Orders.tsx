@@ -280,7 +280,7 @@ export default function Orders() {
         ? [
             {
               id: 'ai',
-              header: () => <span className="sr-only">AI</span>,
+              header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
               cell: ({ row }: { row: { original: Order } }) => (
                 <div className="flex justify-center">
                   <AddToAIButton type="order" data={row.original} variant="icon" />

@@ -29,6 +29,7 @@ import { PermissionGate } from '@/components/PermissionGate'
 
 export default function RawMaterials() {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
@@ -317,7 +318,7 @@ export default function RawMaterials() {
         ? [
             {
               id: 'ai',
-              header: () => <span className="sr-only">AI</span>,
+              header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
               cell: ({ row }: { row: { original: RawMaterial } }) => (
                 <div className="flex justify-center">
                   <AddToAIButton type="rawMaterial" data={row.original} variant="icon" />

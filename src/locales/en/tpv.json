@@ -169,6 +169,15 @@
     },
     "pagination": "Showing {{start}} to {{end}} of {{total}} commands"
   },
+  "superadmin": {
+    "terminalTypes": {
+      "tpvAndroid": "TPV Android",
+      "tpvIOS": "TPV iOS",
+      "printerReceipt": "Receipt Printer",
+      "printerKitchen": "Kitchen Printer",
+      "kds": "KDS"
+    }
+  },
   "detail": {
     "terminal": "Terminal",
     "id": "ID",

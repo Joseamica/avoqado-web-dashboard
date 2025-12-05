@@ -222,7 +222,7 @@ export default function Shifts() {
       ? [
           {
             id: 'ai',
-            header: () => <span className="sr-only">AI</span>,
+            header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
             cell: ({ row }: { row: { original: any } }) => (
               <div className="flex justify-center">
                 <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />

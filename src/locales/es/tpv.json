@@ -168,6 +168,15 @@
     },
     "pagination": "Mostrando {{start}} - {{end}} de {{total}}"
   },
+  "superadmin": {
+    "terminalTypes": {
+      "tpvAndroid": "TPV Android",
+      "tpvIOS": "TPV iOS",
+      "printerReceipt": "Impresora Recibos",
+      "printerKitchen": "Impresora Cocina",
+      "kds": "KDS"
+    }
+  },
   "detail": {
     "terminal": "Terminal",
     "id": "ID",
