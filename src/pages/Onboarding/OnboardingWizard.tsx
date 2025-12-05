@@ -679,6 +679,7 @@ export function OnboardingWizard() {
               })
             }}
             initialValue={onboardingData.payment}
+            isLoading={isCreatingVenue}
           />
         )
 

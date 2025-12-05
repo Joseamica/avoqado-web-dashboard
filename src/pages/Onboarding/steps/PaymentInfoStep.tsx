@@ -16,9 +16,10 @@ export interface PaymentInfoData {
 interface PaymentInfoStepProps extends OnboardingStepProps {
   onSave: (data: PaymentInfoData) => void
   initialValue?: PaymentInfoData
+  isLoading?: boolean
 }
 
-export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initialValue }: PaymentInfoStepProps) {
+export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initialValue, isLoading }: PaymentInfoStepProps) {
   const { t } = useTranslation('onboarding')
   const { t: tCommon } = useTranslation('common')
 
@@ -160,6 +161,7 @@ export function PaymentInfoStep({ onNext, onPrevious, isFirstStep, onSave, initi
         onPrevious={onPrevious}
         onContinue={handleContinue}
         isFirstStep={isFirstStep}
+        isLoading={isLoading}
       />
     </div>
   )
