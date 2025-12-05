@@ -80,7 +80,8 @@ jobs:
       - name: 🏗️ Build application
         run: npm run build
         env:
-          VITE_API_URL: 'https://api-test.avoqado.io'
+          # Placeholder for CI build validation only - actual URL set in Cloudflare Pages
+          VITE_API_URL: 'https://avoqado-server.onrender.com'
 
       - name: 📊 Get package version
         id: package-version
