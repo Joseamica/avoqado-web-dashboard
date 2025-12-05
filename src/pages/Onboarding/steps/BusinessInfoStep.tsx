@@ -7,6 +7,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TimezoneCombobox } from '@/components/timezone-combobox'
+import { BusinessTypeCombobox } from '@/components/business-type-combobox'
 import { BusinessType } from '@/types'
 
 import { OnboardingStepProps } from '../OnboardingWizard'
@@ -134,20 +135,9 @@ export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, init
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('businessInfo.form.businessType')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('businessInfo.form.businessTypePlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(BusinessType).map(type => (
-                          <SelectItem key={type} value={type}>
-                            {t(`businessInfo.businessTypes.${type}`, { defaultValue: type.replace(/_/g, ' ') })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <BusinessTypeCombobox value={field.value} onValueChange={field.onChange} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
