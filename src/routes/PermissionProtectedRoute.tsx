@@ -53,7 +53,7 @@ export const PermissionProtectedRoute = ({
           </Alert>
           <div className="mt-6 flex justify-center">
             <Button variant="outline" onClick={() => window.history.back()}>
-              {t('common.goBack', 'Go Back')}
+              {t('common:goBack', 'Go Back')}
             </Button>
           </div>
         </div>

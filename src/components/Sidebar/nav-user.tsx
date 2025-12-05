@@ -42,7 +42,7 @@ export function NavUser({
       <SidebarMenuItem>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+            <SidebarMenuButton size="lg" className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               <Avatar className="w-8 h-8 rounded-lg">
                 <AvatarImage src={user.image} alt={user.name} />
                 <AvatarFallback className="rounded-lg">{user.email.charAt(0).toLocaleUpperCase()}</AvatarFallback>

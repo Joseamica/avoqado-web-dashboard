@@ -1,26 +1,108 @@
 {
   "title": "Shifts",
-  "open": "Open",
-  "closed": "Closed",
+  "open": "Ouvert",
+  "closed": "Ferme",
   "columns": {
-    "status": "Status",
-    "shiftId": "Shift ID",
-    "openTime": "Open time",
-    "closeTime": "Close time",
-    "totalTip": "Total tip",
+    "status": "Statut",
+    "shiftId": "ID Shift",
+    "openTime": "Heure d'ouverture",
+    "closeTime": "Heure de fermeture",
+    "totalTip": "Pourboire total",
     "totalSales": "Ventes Totales",
-    "subtotal": "Subtotal",
+    "subtotal": "Sous-total",
     "total": "Total"
   },
+  "editDialog": {
+    "description": "Modifier le shift #{{id}}"
+  },
+  "methods": {
+    "card": "Carte",
+    "cash": "Especes"
+  },
+  "common": {
+    "copied": "Copie!"
+  },
   "detail": {
-    "turnIdLabel": "Shift ID",
-    "systemIdLabel": "System ID",
-    "openTimeLabel": "Opening Time",
-    "closeTimeLabel": "Closing Time"
+    "loading": "Chargement des informations du shift...",
+    "notFound": "Shift non trouve",
+    "backToShifts": "Retour aux Shifts",
+    "statusClosed": "Ferme",
+    "statusOpen": "Ouvert",
+    "turnId": "Shift",
+    "copiedToClipboard": "{{label}} copie dans le presse-papiers",
+    "turnIdLabel": "ID du Shift",
+    "systemIdLabel": "ID Systeme",
+    "openTimeLabel": "Heure d'Ouverture",
+    "closeTimeLabel": "Heure de Fermeture",
+    "actions": {
+      "copyId": "Copier l'ID du Shift",
+      "export": "Exporter les donnees du shift",
+      "editHint": "Cliquez sur les valeurs pour les modifier"
+    },
+    "stats": {
+      "subtotal": "Sous-total",
+      "tips": "Pourboires",
+      "payments": "Paiements"
+    },
+    "timeline": {
+      "title": "Activite recente",
+      "shiftOpened": "Shift ouvert",
+      "shiftClosed": "Shift ferme",
+      "paymentReceived": "Paiement recu"
+    },
+    "sections": {
+      "payments": "Paiements",
+      "paymentsDesc": "{{count}} paiement(s) dans ce shift",
+      "financial": "Resume Financier",
+      "financialDesc": "Detail des ventes et pourboires",
+      "shiftInfo": "Informations du Shift",
+      "shiftInfoDesc": "Details et horodatages du shift"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Pourboire",
+      "view": "Voir",
+      "noPayments": "Aucun paiement enregistre pour ce shift."
+    },
+    "overview": {
+      "subtotal": "Sous-total",
+      "tips": "Pourboires",
+      "total": "Total",
+      "ofSubtotal": "du sous-total"
+    },
+    "fields": {
+      "turnId": "ID de Tour",
+      "systemId": "ID Systeme",
+      "startTime": "Heure de Debut",
+      "endTime": "Heure de Fin",
+      "venueId": "ID de l'etablissement",
+      "createdAt": "Cree",
+      "updatedAt": "Derniere mise a jour"
+    },
+    "sidebar": {
+      "status": "Statut",
+      "lastUpdate": "Derniere mise a jour",
+      "financialSummary": "Resume Financier",
+      "shiftInfo": "Info du Shift",
+      "turnId": "ID de Tour",
+      "payments": "Paiements",
+      "duration": "Duree",
+      "additionalInfo": "Info Supplementaire"
+    },
+    "footer": {
+      "shiftId": "ID du Shift: {{id}}",
+      "generated": "Genere: {{date}}"
+    },
+    "toast": {
+      "deletedDesc": "Le shift a ete supprime avec succes",
+      "deleteErrorDesc": "Impossible de supprimer le shift",
+      "updatedDesc": "Le shift a ete mis a jour avec succes",
+      "updateErrorDesc": "Impossible de mettre a jour le shift"
+    }
   },
   "notifications": {
     "shiftOpened": "Shift Ouvert",
-    "shiftClosed": "Shift Fermé",
-    "shiftClosedDescription": "Ventes totales: {{amount}}"
+    "shiftClosed": "Shift Ferme",
+    "shiftClosedDescription": "Ventes totales: {{totalSales}}"
   }
 }

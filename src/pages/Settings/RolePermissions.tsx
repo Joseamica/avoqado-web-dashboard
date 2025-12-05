@@ -238,36 +238,6 @@ export default function RolePermissions() {
             </Button>
           )}
         </div>
-
-        {/* Legend */}
-        {selectedRole && (
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-              <span>{t('rolePermissions.legendEnabled', 'Permission enabled')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <X className="h-4 w-4" />
-              <span>{t('rolePermissions.legendDisabled', 'Permission disabled')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs px-1 py-0">
-                +
-              </Badge>
-              <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs px-1 py-0">
-                -
-              </Badge>
-              <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
@@ -291,55 +261,35 @@ export default function RolePermissions() {
 
         {/* Permissions Tab */}
         <TabsContent value="permissions" className="space-y-6">
-          {/* Save button and Legend */}
-          <div className="flex items-center justify-between">
+          {/* Legend */}
+          {selectedRole && (
             <div className="flex items-center gap-6 text-sm text-muted-foreground flex-wrap">
-              {selectedRole && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-                    <span>{t('rolePermissions.legendEnabled', 'Permission enabled')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <X className="h-4 w-4" />
-                    <span>{t('rolePermissions.legendDisabled', 'Permission disabled')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                    <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs px-1 py-0">
-                      +
-                    </Badge>
-                    <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs px-1 py-0">
-                      -
-                    </Badge>
-                    <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
-                  </div>
-                </>
-              )}
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                <span>{t('rolePermissions.legendEnabled', 'Permission enabled')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <X className="h-4 w-4" />
+                <span>{t('rolePermissions.legendDisabled', 'Permission disabled')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <span>{t('rolePermissions.legendCritical', 'Critical permission')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs px-1 py-0">
+                  +
+                </Badge>
+                <span>{t('rolePermissions.legendAdded', 'Added to defaults')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs px-1 py-0">
+                  -
+                </Badge>
+                <span>{t('rolePermissions.legendRemoved', 'Removed from defaults')}</span>
+              </div>
             </div>
-            {/* Save button */}
-            {selectedRole && (
-              <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default">
-                {updateMutation.isPending ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                    {t('rolePermissions.saving')}
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    {t('rolePermissions.saveChanges')}
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
+          )}
 
       {/* Info Alert */}
       <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">

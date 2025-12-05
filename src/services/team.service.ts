@@ -4,6 +4,7 @@ import { StaffRole } from '@/types'
 // Team Member interfaces
 export interface TeamMember {
   id: string
+  staffId: string // The Staff table ID (for order references like servedById, createdById)
   firstName: string
   lastName: string
   email: string
@@ -19,7 +20,6 @@ export interface TeamMember {
 }
 
 export interface TeamMemberDetails extends TeamMember {
-  staffId: string
   venue: {
     id: string
     name: string

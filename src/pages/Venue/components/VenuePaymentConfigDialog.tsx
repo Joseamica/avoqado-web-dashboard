@@ -1,22 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { MerchantAccountDialog } from '@/pages/Superadmin/components/MerchantAccountDialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { paymentProviderAPI, type VenuePaymentConfig } from '@/services/paymentProvider.service'
 
@@ -88,124 +76,142 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
     }
   }
 
+  const [merchantDialogOpen, setMerchantDialogOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  // Create merchant account mutation
+  const createAccountMutation = useMutation({
+    mutationFn: paymentProviderAPI.createMerchantAccount,
+    onSuccess: newAccount => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-list'] })
+      // Auto-select the new account
+      if (!primaryAccountId) {
+        setPrimaryAccountId(newAccount.id)
+      } else if (secondaryAccountId === 'none') {
+        setSecondaryAccountId(newAccount.id)
+      } else if (tertiaryAccountId === 'none') {
+        setTertiaryAccountId(newAccount.id)
+      }
+      setMerchantDialogOpen(false)
+    },
+  })
+
+  const handleSaveAccount = async (data: any) => {
+    await createAccountMutation.mutateAsync(data)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {config ? t('venuePaymentConfig.editConfig') : t('venuePaymentConfig.createConfig')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('venuePaymentConfig.configDescription')}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{config ? t('venuePaymentConfig.editConfig') : t('venuePaymentConfig.createConfig')}</DialogTitle>
+            <DialogDescription>{t('venuePaymentConfig.configDescription')}</DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6 py-4">
-            {/* Primary Account */}
-            <div className="space-y-2">
-              <Label htmlFor="primaryAccount">
-                {t('venuePaymentConfig.primaryAccount')} <span className="text-destructive">*</span>
-              </Label>
-              <Select value={primaryAccountId} onValueChange={setPrimaryAccountId}>
-                <SelectTrigger id="primaryAccount">
-                  <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map(account => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.displayName || account.alias}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                {t('venuePaymentConfig.primaryAccountDesc')}
-              </p>
-            </div>
-
-            {/* Secondary Account */}
-            <div className="space-y-2">
-              <Label htmlFor="secondaryAccount">
-                {t('venuePaymentConfig.secondaryAccount')} ({t('common:optional')})
-              </Label>
-              <Select value={secondaryAccountId} onValueChange={setSecondaryAccountId}>
-                <SelectTrigger id="secondaryAccount">
-                  <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('common:none')}</SelectItem>
-                  {accounts
-                    .filter(a => a.id !== primaryAccountId)
-                    .map(account => (
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-6 py-4">
+              {/* Primary Account */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="primaryAccount">
+                    {t('venuePaymentConfig.primaryAccount')} <span className="text-destructive">*</span>
+                  </Label>
+                  <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={() => setMerchantDialogOpen(true)}>
+                    + {t('common:createNew')}
+                  </Button>
+                </div>
+                <Select value={primaryAccountId} onValueChange={setPrimaryAccountId}>
+                  <SelectTrigger id="primaryAccount">
+                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map(account => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.displayName || account.alias}
                       </SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                {t('venuePaymentConfig.secondaryAccountDesc')}
-              </p>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.primaryAccountDesc')}</p>
+              </div>
+
+              {/* Secondary Account */}
+              <div className="space-y-2">
+                <Label htmlFor="secondaryAccount">
+                  {t('venuePaymentConfig.secondaryAccount')} ({t('common:optional')})
+                </Label>
+                <Select value={secondaryAccountId} onValueChange={setSecondaryAccountId}>
+                  <SelectTrigger id="secondaryAccount">
+                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common:none')}</SelectItem>
+                    {accounts
+                      .filter(a => a.id !== primaryAccountId)
+                      .map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.displayName || account.alias}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.secondaryAccountDesc')}</p>
+              </div>
+
+              {/* Tertiary Account */}
+              <div className="space-y-2">
+                <Label htmlFor="tertiaryAccount">
+                  {t('venuePaymentConfig.tertiaryAccount')} ({t('common:optional')})
+                </Label>
+                <Select value={tertiaryAccountId} onValueChange={setTertiaryAccountId}>
+                  <SelectTrigger id="tertiaryAccount">
+                    <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('common:none')}</SelectItem>
+                    {accounts
+                      .filter(a => a.id !== primaryAccountId && (secondaryAccountId === 'none' || a.id !== secondaryAccountId))
+                      .map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.displayName || account.alias}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">{t('venuePaymentConfig.tertiaryAccountDesc')}</p>
+              </div>
+
+              {/* Preferred Processor */}
+              <div className="space-y-2">
+                <Label htmlFor="preferredProcessor">{t('venuePaymentConfig.preferredProcessor')}</Label>
+                <Select value={preferredProcessor} onValueChange={setPreferredProcessor}>
+                  <SelectTrigger id="preferredProcessor">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="AUTO">{t('venuePaymentConfig.processorAuto')}</SelectItem>
+                    <SelectItem value="LEGACY">{t('venuePaymentConfig.processorLegacy')}</SelectItem>
+                    <SelectItem value="MENTA">{t('venuePaymentConfig.processorMenta')}</SelectItem>
+                    <SelectItem value="CLIP">{t('venuePaymentConfig.processorClip')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Tertiary Account */}
-            <div className="space-y-2">
-              <Label htmlFor="tertiaryAccount">
-                {t('venuePaymentConfig.tertiaryAccount')} ({t('common:optional')})
-              </Label>
-              <Select value={tertiaryAccountId} onValueChange={setTertiaryAccountId}>
-                <SelectTrigger id="tertiaryAccount">
-                  <SelectValue placeholder={t('venuePaymentConfig.selectAccount')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('common:none')}</SelectItem>
-                  {accounts
-                    .filter(a =>
-                      a.id !== primaryAccountId &&
-                      (secondaryAccountId === 'none' || a.id !== secondaryAccountId)
-                    )
-                    .map(account => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.displayName || account.alias}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                {t('venuePaymentConfig.tertiaryAccountDesc')}
-              </p>
-            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {t('common:cancel')}
+              </Button>
+              <Button type="submit" disabled={!primaryAccountId || isSubmitting}>
+                {isSubmitting ? t('common:saving') : t('common:save')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-            {/* Preferred Processor */}
-            <div className="space-y-2">
-              <Label htmlFor="preferredProcessor">
-                {t('venuePaymentConfig.preferredProcessor')}
-              </Label>
-              <Select value={preferredProcessor} onValueChange={setPreferredProcessor}>
-                <SelectTrigger id="preferredProcessor">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AUTO">{t('venuePaymentConfig.processorAuto')}</SelectItem>
-                  <SelectItem value="LEGACY">{t('venuePaymentConfig.processorLegacy')}</SelectItem>
-                  <SelectItem value="MENTA">{t('venuePaymentConfig.processorMenta')}</SelectItem>
-                  <SelectItem value="CLIP">{t('venuePaymentConfig.processorClip')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('common:cancel')}
-            </Button>
-            <Button type="submit" disabled={!primaryAccountId || isSubmitting}>
-              {isSubmitting ? t('common:saving') : t('common:save')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <MerchantAccountDialog open={merchantDialogOpen} onOpenChange={setMerchantDialogOpen} onSave={handleSaveAccount} />
+    </>
   )
 }

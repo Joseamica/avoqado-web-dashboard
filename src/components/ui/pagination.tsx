@@ -10,7 +10,7 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => {
   return (
     <nav
       role="navigation"
-      aria-label={t('common.pagination')}
+      aria-label={t('common:pagination')}
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
     />
@@ -106,13 +106,13 @@ function PaginationLinkWrapper({ direction, className, ...props }: React.Compone
   const isPrev = direction === 'prev'
   return (
     <PaginationLink
-      aria-label={isPrev ? t('common.go_to_previous_page') : t('common.go_to_next_page')}
+      aria-label={isPrev ? t('common:go_to_previous_page') : t('common:go_to_next_page')}
       size="default"
       className={cn(isPrev ? 'gap-1 pl-2.5' : 'gap-1 pr-2.5', className)}
       {...props}
     >
       {isPrev ? <ChevronLeft className="h-4 w-4" /> : null}
-      <span>{isPrev ? t('common.previous') : t('common.next')}</span>
+      <span>{isPrev ? t('common:previous') : t('common:next')}</span>
       {!isPrev ? <ChevronRight className="h-4 w-4" /> : null}
     </PaginationLink>
   )
@@ -120,5 +120,5 @@ function PaginationLinkWrapper({ direction, className, ...props }: React.Compone
 
 function SrOnlyMorePages() {
   const { t } = useTranslation()
-  return <span className="sr-only">{t('common.more_pages')}</span>
+  return <span className="sr-only">{t('common:more_pages')}</span>
 }

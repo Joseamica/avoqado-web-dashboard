@@ -37,6 +37,7 @@
     "tip": "Propina",
     "source": "Origen",
     "method": "Método",
+    "status": "Estado",
     "subtotal": "Subtotal",
     "profit": "Ganancia Avoqado",
     "total": "Total"
@@ -45,8 +46,17 @@
     "cash": "Efectivo",
     "card": "Tarjeta",
     "credit_card": "Tarjeta de crédito",
+    "creditCard": "Tarjeta de Crédito",
+    "debitCard": "Tarjeta de Débito",
     "digitalWallet": "Monedero Digital",
-    "bankTransfer": "Transferencia Bancaria"
+    "bankTransfer": "Transferencia Bancaria",
+    "other": "Otro"
+  },
+  "statuses": {
+    "pending": "Pendiente",
+    "partial": "Parcial",
+    "paid": "Pagado",
+    "refunded": "Reembolsado"
   },
   "sources": {
     "POS": "Punto de venta",
@@ -144,6 +154,9 @@
       }
     },
     "unknownVenue": "Restaurante"
+  },
+  "editDialog": {
+    "description": "Editar pago #{{id}}"
   },
   "export": {
     "button": "Exportar",
@@ -285,7 +298,11 @@
     "toast": {
       "receiptSentTitle": "Recibo enviado",
       "receiptSentDesc": "El recibo digital ha sido enviado exitosamente.",
-      "receiptErrorDesc": "Error al enviar el recibo. Por favor intenta de nuevo."
+      "receiptErrorDesc": "Error al enviar el recibo. Por favor intenta de nuevo.",
+      "deletedDesc": "El pago ha sido eliminado exitosamente",
+      "deleteErrorDesc": "No se pudo eliminar el pago",
+      "updatedDesc": "El pago ha sido actualizado exitosamente",
+      "updateErrorDesc": "No se pudo actualizar el pago"
     }
   },
   "paymentProviders": {

@@ -256,6 +256,8 @@
     "activateSuccess": "¡Función activada! Iniciando prueba gratuita de {{days}} días",
     "activateSuccessGeneric": "Función activada exitosamente",
     "activateSuccessDescription": "Tu suscripción está activa. Las suscripciones por primera vez incluyen una prueba gratuita de 2 días.",
+    "subscriptionActivated": "¡Suscripción activada!",
+    "subscriptionActivatedDescription": "Tu pago fue procesado exitosamente. La función ya está activa.",
     "activateProcessing": "Procesando pago...",
     "activateProcessingDescription": "Estamos procesando tu pago. Te notificaremos cuando la función esté activa.",
     "activateError": "Error al activar función",
@@ -265,5 +267,72 @@
     "paymentSuccessDescription": "{{feature}} está activa. Tu suscripción ha sido confirmada.",
     "subscriptionDeactivated": "Suscripción desactivada",
     "subscriptionDeactivatedDescription": "La suscripción de {{feature}} ha sido cancelada o el pago falló."
+  },
+  "superadmin": {
+    "panel": {
+      "title": "Control de Funciones Superadmin",
+      "description": "Administra funciones para {{venue}} directamente",
+      "badge": "Modo Superadmin"
+    },
+    "actions": {
+      "grantTrial": "Otorgar Prueba",
+      "grantTrialDesc": "Dar período de prueba gratis",
+      "enableFeature": "Activar Función",
+      "enableFeatureDesc": "Activar sin pago"
+    },
+    "stats": {
+      "activeFeatures": "Activas",
+      "available": "disponibles para agregar"
+    },
+    "activeFeatures": {
+      "title": "Control de Funciones Activas",
+      "trialUntil": "Prueba hasta {{date}}",
+      "fullyActive": "Completamente activa"
+    },
+    "disclaimer": "Los cambios aquí solo afectan este venue. Para gestión de funciones a nivel plataforma, usa el dashboard de Superadmin.",
+    "grantTrial": {
+      "title": "Otorgar Prueba Gratuita",
+      "description": "Otorga un período de prueba gratuito para una función a {{venue}}. Esto omite los requisitos de pago normales.",
+      "selectFeature": "Seleccionar Función",
+      "selectPlaceholder": "Elige una función...",
+      "duration": "Duración de Prueba (días)",
+      "preview": "✨ {{feature}} estará activa por {{days}} días gratis. Después de la prueba, el venue deberá suscribirse para continuar.",
+      "confirm": "Otorgar Prueba",
+      "noPaymentMethod": "Este venue no tiene método de pago configurado",
+      "noPaymentMethodDesc": "El trial de Stripe requiere un método de pago. El venue debe agregar uno primero, o puedes activar la función gratis (indefinidamente) en su lugar.",
+      "noPaymentMethodInfo": "Prueba solo DB (sin Stripe)",
+      "noPaymentMethodInfoDesc": "Como este venue no tiene método de pago, la prueba será solo en base de datos y expirará automáticamente después del período de prueba. El venue deberá agregar un método de pago y suscribirse para continuar después de la prueba.",
+      "dbOnlyTrialInfo": "Prueba solo DB (sin Stripe)",
+      "dbOnlyTrialInfoDesc": "Esta prueba se gestiona directamente en la base de datos y expirará automáticamente después del período de prueba. Cuando termine, el venue deberá suscribirse a través de Stripe para continuar.",
+      "enableFreeInstead": "Activar Gratis"
+    },
+    "enableFeature": {
+      "title": "Activar Función",
+      "description": "Activa una función para {{venue}} sin requerir pago. Usa esto para acuerdos especiales o pruebas.",
+      "selectFeature": "Seleccionar Función",
+      "selectPlaceholder": "Elige una función a activar...",
+      "warning": "Esto activará la función indefinidamente sin crear una suscripción. El venue no será cobrado.",
+      "confirm": "Activar Función"
+    },
+    "disableFeature": {
+      "title": "Desactivar Función",
+      "description": "¿Estás seguro de que quieres desactivar {{feature}} para {{venue}}? Esta acción revocará el acceso a esta función inmediatamente.",
+      "warning": "Esta acción no se puede deshacer. El venue perderá acceso inmediatamente.",
+      "confirm": "Desactivar Función"
+    },
+    "noFeaturesAvailable": "No hay funciones disponibles para agregar",
+    "loadingFeatures": "Cargando funciones...",
+    "allFeaturesActive": "Todas las funciones ya están activas para este venue",
+    "toast": {
+      "enableSuccess": "Función activada",
+      "enableSuccessDesc": "La función ha sido activada para este venue",
+      "enableError": "Error al activar función",
+      "disableSuccess": "Función desactivada",
+      "disableSuccessDesc": "La función ha sido desactivada para este venue",
+      "disableError": "Error al desactivar función",
+      "trialGranted": "Prueba otorgada",
+      "trialGrantedDesc": "Prueba de {{days}} días ha sido otorgada",
+      "trialError": "Error al otorgar prueba"
+    }
   }
 }

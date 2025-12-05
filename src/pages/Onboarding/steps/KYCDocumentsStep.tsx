@@ -313,15 +313,15 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
               return (
                 <Card
                   key={doc.key}
-                  className={
+                  className={`flex flex-col ${
                     isMissing
                       ? 'border-2 border-destructive/50 bg-destructive/5'
                       : hasDoc
                         ? 'border-2 border-green-500/50 bg-green-50/50 dark:bg-green-950/20'
                         : ''
-                  }
+                  }`}
                 >
-                  <CardHeader className="pb-3">
+                  <CardHeader className="flex-1 pb-3">
                     <div className="flex items-start gap-2">
                       <div
                         className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
@@ -349,7 +349,7 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                           </CardTitle>
                           {doc.required && <span className="text-xs font-semibold text-destructive">*</span>}
                         </div>
-                        <CardDescription className="mt-0.5 text-xs">{doc.description}</CardDescription>
+                        <CardDescription className="mt-0.5 min-h-[2.5rem] text-xs">{doc.description}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -390,12 +390,10 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                       )}
                     </Button>
 
-                    {/* Required message */}
-                    {isMissing && (
-                      <p className="mt-2 text-center text-sm font-medium text-destructive">
-                        {t('kycDocuments.required', { defaultValue: 'Esta documentación es requerida' })}
-                      </p>
-                    )}
+                    {/* Required message - fixed height to maintain alignment */}
+                    <p className={`h-5 text-center text-sm font-medium ${isMissing ? 'text-destructive' : 'text-transparent'}`}>
+                      {t('kycDocuments.required', { defaultValue: 'Esta documentación es requerida' })}
+                    </p>
                   </CardContent>
                 </Card>
               )

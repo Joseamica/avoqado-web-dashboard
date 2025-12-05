@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { PermissionGate } from '@/components/PermissionGate'
-import { Calendar, MessageSquare, Star, User } from 'lucide-react'
+import { Calendar, MessageSquare, Star, Trash2, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SentimentBadge, getSentimentFromRating } from './SentimentBadge'
 import { SourceBadge } from './SourceBadge'
@@ -32,6 +32,8 @@ interface Review {
 interface ReviewCardProps {
   review: Review
   onRespond?: (review: Review) => void
+  onDelete?: (review: Review) => void
+  isSuperAdmin?: boolean
 }
 
 const dateLocales = {
@@ -40,7 +42,7 @@ const dateLocales = {
   fr: fr,
 }
 
-export function ReviewCard({ review, onRespond }: ReviewCardProps) {
+export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: ReviewCardProps) {
   const { t, i18n } = useTranslation('reviews')
   const sentiment = getSentimentFromRating(review.overallRating)
 
@@ -101,9 +103,21 @@ export function ReviewCard({ review, onRespond }: ReviewCardProps) {
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            {renderStars(review.overallRating, 18)}
-            <span className="text-2xl font-bold text-foreground">{review.overallRating.toFixed(1)}</span>
+          <div className="flex items-start gap-3">
+            <div className="flex flex-col items-end gap-1">
+              {renderStars(review.overallRating, 18)}
+              <span className="text-2xl font-bold text-foreground">{review.overallRating.toFixed(1)}</span>
+            </div>
+            {isSuperAdmin && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onDelete(review)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>

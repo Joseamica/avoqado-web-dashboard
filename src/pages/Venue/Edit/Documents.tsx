@@ -5,12 +5,19 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, Download, ExternalLink, AlertCircle, Upload, Check, Loader2 } from 'lucide-react'
+import { FileText, Download, ExternalLink, AlertCircle, Upload, Check, Loader2, Shield, CheckCircle, XCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Link } from 'react-router-dom'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import api from '@/api'
 import { useVenueEditActions } from '../VenueEditLayout'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
+import { superadminAPI } from '@/services/superadmin.service'
 
 interface VenueDocuments {
   id: string
@@ -49,10 +56,20 @@ export default function VenueDocuments() {
   const { setActions } = useVenueEditActions()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  // Check if current user is superadmin
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
 
   // Track which documents are currently uploading
   const [uploadingDocs, setUploadingDocs] = useState<Record<string, boolean>>({})
   const [missingDocKeys, setMissingDocKeys] = useState<string[]>([])
+
+  // Superadmin KYC approval/rejection state
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [selectedRejectedDocs, setSelectedRejectedDocs] = useState<string[]>([])
 
   const { data: venue, isLoading } = useQuery<VenueDocuments>({
     queryKey: ['venue-documents', venueId],
@@ -135,6 +152,75 @@ export default function VenueDocuments() {
       })
     },
   })
+
+  // Superadmin: Approve KYC mutation
+  const approveKycMutation = useMutation({
+    mutationFn: () => superadminAPI.approveKYC(venueId!),
+    onSuccess: () => {
+      toast({
+        title: t('edit.documents.superadmin.approveSuccess', { defaultValue: 'KYC Aprobado' }),
+        description: t('edit.documents.superadmin.approveSuccessDesc', {
+          defaultValue: 'La documentación KYC ha sido aprobada exitosamente.',
+        }),
+      })
+      setIsApproveDialogOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: t('edit.documents.superadmin.approveError', { defaultValue: 'Error al aprobar' }),
+        description: error.response?.data?.message || t('edit.documents.superadmin.approveErrorDesc', { defaultValue: 'No se pudo aprobar el KYC.' }),
+      })
+    },
+  })
+
+  // Superadmin: Reject KYC mutation
+  const rejectKycMutation = useMutation({
+    mutationFn: (data: { reason: string; rejectedDocs?: string[] }) => {
+      return superadminAPI.rejectKYC(venueId!, data.reason, data.rejectedDocs)
+    },
+    onSuccess: () => {
+      toast({
+        title: t('edit.documents.superadmin.rejectSuccess', { defaultValue: 'KYC Rechazado' }),
+        description: t('edit.documents.superadmin.rejectSuccessDesc', {
+          defaultValue: 'La documentación KYC ha sido rechazada.',
+        }),
+      })
+      setIsRejectDialogOpen(false)
+      setRejectionReason('')
+      setSelectedRejectedDocs([])
+      queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: t('edit.documents.superadmin.rejectError', { defaultValue: 'Error al rechazar' }),
+        description: error.response?.data?.message || t('edit.documents.superadmin.rejectErrorDesc', { defaultValue: 'No se pudo rechazar el KYC.' }),
+      })
+    },
+  })
+
+  // Handle KYC approval
+  const handleApproveKyc = useCallback(() => {
+    approveKycMutation.mutate()
+  }, [approveKycMutation])
+
+  // Handle KYC rejection
+  const handleRejectKyc = useCallback(() => {
+    if (!rejectionReason.trim()) {
+      toast({
+        variant: 'destructive',
+        title: t('edit.documents.superadmin.reasonRequired', { defaultValue: 'Razón requerida' }),
+        description: t('edit.documents.superadmin.reasonRequiredDesc', { defaultValue: 'Debes proporcionar una razón para el rechazo.' }),
+      })
+      return
+    }
+    rejectKycMutation.mutate({
+      reason: rejectionReason,
+      rejectedDocs: selectedRejectedDocs.length > 0 ? selectedRejectedDocs : undefined,
+    })
+  }, [rejectKycMutation, rejectionReason, selectedRejectedDocs, toast, t])
 
   // Determine required documents based on entityType
   const getRequiredDocuments = (entityType: 'PERSONA_FISICA' | 'PERSONA_MORAL' | null): string[] => {
@@ -379,6 +465,48 @@ export default function VenueDocuments() {
         </Alert>
       )}
 
+      {/* Superadmin KYC Actions - Only visible to superadmins when status is PENDING_REVIEW */}
+      {isSuperadmin && venue.kycStatus === 'PENDING_REVIEW' && (
+        <Card className="border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10 dark:from-amber-500/20 dark:to-pink-500/20">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-gradient-to-r from-amber-400 to-pink-500">
+                <Shield className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <CardTitle className="text-base bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-semibold">
+                {t('edit.documents.superadmin.title', { defaultValue: 'Acciones de Superadmin' })}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs text-muted-foreground">
+              {t('edit.documents.superadmin.description', {
+                defaultValue: 'Revisa la documentación y aprueba o rechaza el KYC de este venue.',
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => setIsApproveDialogOpen(true)}
+                className="flex-1 bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+                disabled={approveKycMutation.isPending || rejectKycMutation.isPending}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {t('edit.documents.superadmin.approve', { defaultValue: 'Aprobar KYC' })}
+              </Button>
+              <Button
+                onClick={() => setIsRejectDialogOpen(true)}
+                variant="outline"
+                className="flex-1 border-pink-500/50 text-pink-600 dark:text-pink-400 hover:bg-pink-500/10"
+                disabled={approveKycMutation.isPending || rejectKycMutation.isPending}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                {t('edit.documents.superadmin.reject', { defaultValue: 'Rechazar KYC' })}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Fiscal Information */}
       {venue.rfc && (
         <Card>
@@ -570,6 +698,123 @@ export default function VenueDocuments() {
           )
         })}
       </div>
+
+      {/* Superadmin Approve Dialog */}
+      <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              {t('edit.documents.superadmin.approveDialogTitle', { defaultValue: 'Confirmar Aprobación' })}
+            </DialogTitle>
+            <DialogDescription>
+              {t('edit.documents.superadmin.approveDialogDesc', {
+                defaultValue: '¿Estás seguro de que deseas aprobar la documentación KYC de este venue? El venue podrá comenzar a procesar pagos reales.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)} disabled={approveKycMutation.isPending}>
+              {t('cancel', { defaultValue: 'Cancelar' })}
+            </Button>
+            <Button onClick={handleApproveKyc} disabled={approveKycMutation.isPending} className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground">
+              {approveKycMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('edit.documents.superadmin.approving', { defaultValue: 'Aprobando...' })}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {t('edit.documents.superadmin.confirmApprove', { defaultValue: 'Sí, Aprobar KYC' })}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Superadmin Reject Dialog */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              {t('edit.documents.superadmin.rejectDialogTitle', { defaultValue: 'Rechazar KYC' })}
+            </DialogTitle>
+            <DialogDescription>
+              {t('edit.documents.superadmin.rejectDialogDesc', {
+                defaultValue: 'Proporciona una razón para el rechazo y selecciona los documentos específicos que necesitan corrección.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectionReason">
+                {t('edit.documents.superadmin.rejectionReasonLabel', { defaultValue: 'Razón del rechazo' })} *
+              </Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={e => setRejectionReason(e.target.value)}
+                placeholder={t('edit.documents.superadmin.rejectionReasonPlaceholder', {
+                  defaultValue: 'Ej: El documento INE está borroso y no se puede leer claramente...',
+                })}
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('edit.documents.superadmin.selectRejectedDocs', { defaultValue: 'Documentos a rechazar (opcional)' })}</Label>
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {documents.filter(d => d.url).map(doc => (
+                  <div key={doc.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`reject-${doc.key}`}
+                      checked={selectedRejectedDocs.includes(doc.key)}
+                      onCheckedChange={checked => {
+                        if (checked) {
+                          setSelectedRejectedDocs(prev => [...prev, doc.key])
+                        } else {
+                          setSelectedRejectedDocs(prev => prev.filter(k => k !== doc.key))
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`reject-${doc.key}`} className="text-sm font-normal cursor-pointer">
+                      {doc.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRejectDialogOpen(false)
+                setRejectionReason('')
+                setSelectedRejectedDocs([])
+              }}
+              disabled={rejectKycMutation.isPending}
+            >
+              {t('cancel', { defaultValue: 'Cancelar' })}
+            </Button>
+            <Button variant="destructive" onClick={handleRejectKyc} disabled={rejectKycMutation.isPending || !rejectionReason.trim()}>
+              {rejectKycMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('edit.documents.superadmin.rejecting', { defaultValue: 'Rechazando...' })}
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  {t('edit.documents.superadmin.confirmReject', { defaultValue: 'Rechazar KYC' })}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

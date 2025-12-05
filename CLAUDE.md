@@ -13,6 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
+**⚠️ NEVER kill or restart dev servers manually.** Both frontend (Vite) and backend (nodemon) automatically detect file changes and hot-reload. Do NOT use `pkill`, `kill`, or restart commands - just save the file and the servers will reload automatically.
+
 ### Database Access (Local Development)
 
 When you need to verify data in the database (e.g., debugging issues with missing fields):
@@ -227,6 +229,179 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 **Reference:** `/src/pages/Team/Teams.tsx` (lines 372-392)
 
 **See:** [Complete UI Patterns guide](.claude/docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
+
+### 6. SUPERADMIN Gradient (MANDATORY)
+
+**All SUPERADMIN-only UI elements in `/dashboard/` routes MUST use the amber-to-pink gradient.**
+
+This creates visual consistency and clearly identifies superadmin-exclusive functionality.
+
+```typescript
+// ✅ CORRECT - SUPERADMIN buttons/elements in regular dashboard
+<Button
+  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+>
+  <Shield className="w-4 h-4 mr-2" />
+  Crear Rápido
+</Button>
+
+// ✅ CORRECT - SUPERADMIN icon/avatar background
+<div className="p-2 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+  <Shield className="h-4 w-4 text-primary-foreground" />
+</div>
+
+// ❌ WRONG - Using regular button styles for SUPERADMIN features
+<Button variant="default">Crear Rápido</Button>
+```
+
+**When to use:**
+- ✅ SUPERADMIN-only buttons in `/venues/:slug/*` pages (e.g., quick terminal creation)
+- ✅ SUPERADMIN-only action elements visible to superadmins in normal dashboard
+- ❌ NOT in `/superadmin/*` routes (those have their own styling)
+
+**Reference:**
+- Example usage: `src/pages/Tpv/Tpvs.tsx` (quick create button)
+- Dialog example: `src/pages/Tpv/components/SuperadminTerminalDialog.tsx`
+
+### 7. Control Plane vs Application Plane (Architecture)
+
+**This is the industry-standard pattern for multi-tenant SaaS (AWS, Microsoft, Stripe).**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CONTROL PLANE (/superadmin/)                                    │
+│ NOT multi-tenant. Manages ALL venues globally.                  │
+├─────────────────────────────────────────────────────────────────┤
+│ • Platform revenue & analytics                                  │
+│ • Global feature catalog (create/edit feature definitions)      │
+│ • KYC queue for ALL venues                                      │
+│ • Venue list & onboarding                                       │
+│ • Platform-wide settings                                        │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ APPLICATION PLANE (/venues/:slug/)                              │
+│ Multi-tenant. The venue-specific experience.                    │
+├─────────────────────────────────────────────────────────────────┤
+│ • Venue dashboard, payments, orders                             │
+│ • Venue settings & billing                                      │
+│ • {isSuperadmin && <InlinePanel />} for THIS venue actions      │
+│   - Approve KYC for THIS venue                                  │
+│   - Enable feature for THIS venue                               │
+│   - Override pricing for THIS venue                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Decision Rule:**
+
+| Question | Answer | Where |
+|----------|--------|-------|
+| Does this affect ALL venues/platform? | Yes | `/superadmin/` |
+| Does this affect ONE specific venue? | Yes | Inline in `/venues/:slug/` with amber-pink gradient |
+
+**Examples:**
+
+```typescript
+// ✅ GLOBAL → /superadmin/features
+// Create new feature "Chatbot" with base price $50/month
+// This defines the feature for ALL venues
+
+// ✅ VENUE-SPECIFIC → Inline in /venues/:slug/settings/billing
+{isSuperadmin && (
+  <Card className="gradient-superadmin">
+    <Button>Activar Chatbot para ESTE venue</Button>
+    <Button>Extender trial para ESTE venue</Button>
+    <p className="text-xs">⚠️ Solo afecta a {venue.name}</p>
+  </Card>
+)}
+```
+
+**Why this pattern?**
+- [AWS SaaS Architecture](https://docs.aws.amazon.com/whitepapers/latest/saas-architecture-fundamentals/control-plane-vs.-application-plane.html): "The control plane is not multi-tenant. It manages the environment."
+- [Microsoft Azure](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes): "Control plane isolation reduces security vulnerabilities."
+- Reduces context switching for superadmins working on a specific venue
+
+### 8. Superadmin Lazy Loading (Performance)
+
+**NEVER load superadmin modules, services, or make API calls for non-superadmin users.**
+
+When adding superadmin functionality to shared components (Application Plane), use lazy loading to ensure:
+- Non-superadmin users don't download superadmin code
+- No superadmin API calls are made for regular users
+- Components remain lightweight for the majority of users
+
+```typescript
+// ✅ CORRECT - Lazy load superadmin service
+const loadSuperadminService = () => import('@/services/superadmin.service')
+
+// ✅ CORRECT - Only query when superadmin
+const { data: platformFeatures } = useQuery({
+  queryKey: ['superadmin', 'features'],
+  queryFn: async () => {
+    const service = await loadSuperadminService()
+    return service.getAllFeatures()
+  },
+  enabled: isSuperadmin, // ← Key: Only runs for superadmin
+})
+
+// ✅ CORRECT - Only render UI for superadmin
+{isSuperadmin && (
+  <SuperadminPanel features={platformFeatures} />
+)}
+
+// ❌ WRONG - Static import loads for ALL users
+import { getAllFeatures } from '@/services/superadmin.service'
+
+// ❌ WRONG - Query runs for all users (even if UI is hidden)
+const { data } = useQuery({
+  queryKey: ['features'],
+  queryFn: getAllFeatures,
+  // Missing enabled: isSuperadmin
+})
+```
+
+**Checklist for superadmin features in shared components:**
+- [ ] Use dynamic `import()` for superadmin services
+- [ ] Add `enabled: isSuperadmin` to all superadmin queries
+- [ ] Wrap superadmin UI with `{isSuperadmin && ...}`
+- [ ] Use `useMutation` with lazy-loaded service functions
+
+**Reference:** `src/pages/Settings/Billing/Subscriptions.tsx` (superadmin feature management)
+
+### 9. Search Input Debouncing (MANDATORY)
+
+**ALL search inputs that trigger API calls MUST use debouncing.**
+
+This prevents making a backend request on every keystroke, which would cause performance issues and unnecessary server load.
+
+```typescript
+// ❌ WRONG - Makes API call on every keystroke
+const [searchTerm, setSearchTerm] = useState('')
+
+const { data } = useQuery({
+  queryKey: ['items', searchTerm],  // Triggers on every keystroke!
+  queryFn: () => fetchItems(searchTerm),
+})
+
+// ✅ CORRECT - Uses debounced value for API calls
+import { useDebounce } from '@/hooks/useDebounce'
+
+const [searchTerm, setSearchTerm] = useState('')
+const debouncedSearchTerm = useDebounce(searchTerm, 300)
+
+const { data } = useQuery({
+  queryKey: ['items', debouncedSearchTerm],  // Only triggers after 300ms of inactivity
+  queryFn: () => fetchItems(debouncedSearchTerm),
+})
+```
+
+**Requirements:**
+- Use `useDebounce` hook from `@/hooks/useDebounce`
+- Default delay: 300ms (industry standard used by Stripe, Google, etc.)
+- Keep `searchTerm` for the input value (instant UI feedback)
+- Use `debouncedSearchTerm` in `queryKey` and `queryFn`
+
+**Reference:** `src/hooks/useDebounce.ts` | `src/pages/Payment/Payments.tsx`
 
 ## Tech Stack
 

@@ -59,7 +59,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         permission: 'settlements:read',
         locked: !hasKYCAccess,
       },
-      { title: t('sidebar:routes.menu'), isActive: true, url: 'menumaker/overview', icon: BookOpen, permission: 'menu:read', locked: false },
+      {
+        title: t('sidebar:routes.menu'),
+        isActive: true,
+        url: 'menumaker/overview',
+        icon: BookOpen,
+        permission: 'menu:read',
+        locked: false,
+      },
       {
         title: t('sidebar:routes.inventory'),
         isActive: true,
@@ -168,7 +175,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: null }]
         : []),
-      { title: t('sidebar:routes.limits'), url: '#limits', permission: null },
+      // { title: t('sidebar:routes.limits'), url: '#limits', permission: null },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Settings menu if user has at least one subitem

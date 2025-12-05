@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,19 +10,27 @@ import { StepIndicator } from './StepIndicator'
 import { PricingTabsView } from './PricingTabsView'
 import { PricingMetricsCard } from './PricingMetricsCard'
 import { VenuePaymentConfigCard } from '../components/VenuePaymentConfigCard'
-import { paymentProviderAPI, type VenuePricingStructure } from '@/services/paymentProvider.service'
+import {
+  paymentProviderAPI,
+  type VenuePricingStructure,
+  type ProviderCostStructure,
+} from '@/services/paymentProvider.service'
 import api from '@/api'
 
 interface VenuePricingWizardProps {
   onAdd: (accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY') => void
   onSave: (accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY', data: any) => Promise<void>
-  calculateMargin?: (structure: VenuePricingStructure, rateType: string) => any
+}
+
+type RateType = 'debit' | 'credit' | 'amex' | 'international'
+
+interface CostStructureWithAccountType extends ProviderCostStructure {
+  accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
 }
 
 export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
   onAdd,
   onSave,
-  calculateMargin,
 }) => {
   const { t } = useTranslation('venuePricing')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
@@ -53,6 +61,58 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
     enabled: !!selectedVenueId,
   })
 
+  // Fetch cost structures (provider rates) for selected venue
+  const { data: costStructures = [] } = useQuery({
+    queryKey: ['venue-cost-structures', selectedVenueId],
+    queryFn: () => selectedVenueId ? paymentProviderAPI.getVenueCostStructuresByVenueId(selectedVenueId) : [],
+    enabled: !!selectedVenueId,
+  })
+
+  // Calculate real margin: venue rate - provider rate
+  // Note: Rates are stored as decimals (0.025 = 2.5%), so we multiply by 100 for display
+  const calculateMargin = useCallback(
+    (venuePricing: VenuePricingStructure, rateType: RateType) => {
+      // Find the matching cost structure for this account type
+      const costStructure = costStructures.find(
+        (cs) => cs.accountType === venuePricing.accountType && cs.active
+      )
+
+      if (!costStructure) {
+        return { marginPercent: 0, status: 'unknown' as const }
+      }
+
+      // Get the rate fields based on card type
+      const rateFieldMap: Record<RateType, 'debitRate' | 'creditRate' | 'amexRate' | 'internationalRate'> = {
+        debit: 'debitRate',
+        credit: 'creditRate',
+        amex: 'amexRate',
+        international: 'internationalRate',
+      }
+      const rateField = rateFieldMap[rateType]
+
+      // Calculate margin: what we charge venue - what provider charges us
+      // Rates are stored as decimals (0.025 = 2.5%), so multiply by 100 for percentage
+      const venueRate = Number(venuePricing[rateField]) || 0
+      const providerRate = Number(costStructure[rateField]) || 0
+      const marginPercent = (venueRate - providerRate) * 100
+
+      // Determine status based on margin (now in percentage terms)
+      let status: 'critical' | 'low' | 'good' | 'excellent'
+      if (marginPercent < 0) {
+        status = 'critical'
+      } else if (marginPercent < 0.5) {
+        status = 'low'
+      } else if (marginPercent < 1.5) {
+        status = 'good'
+      } else {
+        status = 'excellent'
+      }
+
+      return { marginPercent, status }
+    },
+    [costStructures]
+  )
+
   // Calculate current step
   const currentStep = useMemo(() => {
     if (!selectedVenueId) return 1
@@ -68,11 +128,10 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
   // Calculate metrics
   const metrics = useMemo(() => {
     const margins = pricingStructures
-      .filter(() => calculateMargin)
       .map(ps => {
-        const debit = calculateMargin!(ps, 'debit')
-        const credit = calculateMargin!(ps, 'credit')
-        return ((debit?.marginPercent || 0) + (credit?.marginPercent || 0)) / 2
+        const debit = calculateMargin(ps, 'debit')
+        const credit = calculateMargin(ps, 'credit')
+        return ((debit.marginPercent || 0) + (credit.marginPercent || 0)) / 2
       })
       .filter(m => !isNaN(m))
 

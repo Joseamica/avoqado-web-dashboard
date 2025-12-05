@@ -234,6 +234,22 @@ export async function disableFeatureForVenue(venueId: string, featureCode: strin
 }
 
 /**
+ * Grant a DB-only trial for a venue (no Stripe subscription)
+ * The trial will automatically expire after the specified number of days
+ */
+export async function grantTrialForVenue(
+  venueId: string,
+  featureCode: string,
+  trialDays: number
+): Promise<{ endDate: string }> {
+  const response = await api.post(
+    `/api/v1/dashboard/superadmin/venues/${venueId}/features/${featureCode}/grant-trial`,
+    { trialDays }
+  )
+  return response.data.data
+}
+
+/**
  * Get revenue metrics
  */
 export async function getRevenueMetrics(params?: { startDate?: string; endDate?: string }): Promise<RevenueMetrics> {
@@ -312,6 +328,9 @@ export const superadminAPI = {
   },
   disableFeatureForVenue: async (venueId: string, featureCode: string): Promise<void> => {
     await disableFeatureForVenue(venueId, featureCode)
+  },
+  grantTrialForVenue: async (venueId: string, featureCode: string, trialDays: number): Promise<{ endDate: string }> => {
+    return await grantTrialForVenue(venueId, featureCode, trialDays)
   },
   getKYCReview: async (venueId: string): Promise<any> => {
     return await getKYCReview(venueId)

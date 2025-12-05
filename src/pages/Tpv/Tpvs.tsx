@@ -1,7 +1,7 @@
 import { getTpvs, sendTpvCommand as sendTpvCommandApi, deleteTpv } from '@/services/tpv.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2 } from 'lucide-react'
+import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2, Shield } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
@@ -10,11 +10,13 @@ import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
 import { Terminal } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
+import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +30,7 @@ import {
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()
+  const { user } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -37,10 +40,14 @@ export default function Tpvs() {
     pageSize: 10,
   })
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [superadminDialogOpen, setSuperadminDialogOpen] = useState(false)
   const [activationModalOpen, setActivationModalOpen] = useState(false)
   const [selectedTerminalForActivation, setSelectedTerminalForActivation] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
+
+  // Check if user is SUPERADMIN
+  const isSuperadmin = user?.role === 'SUPERADMIN'
 
   // Helper function to get terminal status styling
   const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
@@ -380,12 +387,32 @@ export default function Tpvs() {
             {t('tpv.subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
           </p>
         </div>
-        {/* Only show "Create" button if user has permission */}
-        <PermissionGate permission="tpv:create">
-          <Button onClick={() => setWizardOpen(true)}>
-            <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
-          </Button>
-        </PermissionGate>
+        <div className="flex items-center gap-2">
+          {/* SUPERADMIN: Direct terminal creation button */}
+          {isSuperadmin && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setSuperadminDialogOpen(true)}
+                  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  <span>{t('tpv.superadmin.quickCreate', { defaultValue: 'Crear Rápido' })}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t('tpv.superadmin.quickCreateTooltip', { defaultValue: 'Crear terminal directamente (solo Superadmin)' })}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Regular "Create" button - purchase wizard flow */}
+          <PermissionGate permission="tpv:create">
+            <Button variant={isSuperadmin ? 'outline' : 'default'} onClick={() => setWizardOpen(true)}>
+              <span>{t('tpv.actions.createNew', { defaultValue: 'Nuevo dispositivo' })}</span>
+            </Button>
+          </PermissionGate>
+        </div>
       </div>
 
       <DataTable
@@ -423,6 +450,17 @@ export default function Tpvs() {
           queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
         }}
       />
+
+      {/* SUPERADMIN: Direct terminal creation dialog */}
+      {isSuperadmin && (
+        <SuperadminTerminalDialog
+          open={superadminDialogOpen}
+          onOpenChange={setSuperadminDialogOpen}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['tpvs', venueId] })
+          }}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

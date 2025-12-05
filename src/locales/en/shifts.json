@@ -12,15 +12,97 @@
     "subtotal": "Subtotal",
     "total": "Total"
   },
+  "editDialog": {
+    "description": "Edit shift #{{id}}"
+  },
+  "methods": {
+    "card": "Card",
+    "cash": "Cash"
+  },
+  "common": {
+    "copied": "Copied!"
+  },
   "detail": {
+    "loading": "Loading shift information...",
+    "notFound": "Shift not found",
+    "backToShifts": "Back to Shifts",
+    "statusClosed": "Closed",
+    "statusOpen": "Open",
+    "turnId": "Shift",
+    "copiedToClipboard": "{{label}} copied to clipboard",
     "turnIdLabel": "Shift ID",
     "systemIdLabel": "System ID",
     "openTimeLabel": "Opening Time",
-    "closeTimeLabel": "Closing Time"
+    "closeTimeLabel": "Closing Time",
+    "actions": {
+      "copyId": "Copy Shift ID",
+      "export": "Export shift data",
+      "editHint": "Click on values to edit them"
+    },
+    "stats": {
+      "subtotal": "Subtotal",
+      "tips": "Tips",
+      "payments": "Payments"
+    },
+    "timeline": {
+      "title": "Recent activity",
+      "shiftOpened": "Shift opened",
+      "shiftClosed": "Shift closed",
+      "paymentReceived": "Payment received"
+    },
+    "sections": {
+      "payments": "Payments",
+      "paymentsDesc": "{{count}} payment(s) in this shift",
+      "financial": "Financial Summary",
+      "financialDesc": "Breakdown of sales and tips",
+      "shiftInfo": "Shift Information",
+      "shiftInfoDesc": "Shift details and timestamps"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Tip",
+      "view": "View",
+      "noPayments": "No payments recorded for this shift."
+    },
+    "overview": {
+      "subtotal": "Subtotal",
+      "tips": "Tips",
+      "total": "Total",
+      "ofSubtotal": "of subtotal"
+    },
+    "fields": {
+      "turnId": "Turn ID",
+      "systemId": "System ID",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "venueId": "Venue ID",
+      "createdAt": "Created",
+      "updatedAt": "Last Updated"
+    },
+    "sidebar": {
+      "status": "Status",
+      "lastUpdate": "Last update",
+      "financialSummary": "Financial Summary",
+      "shiftInfo": "Shift Info",
+      "turnId": "Turn ID",
+      "payments": "Payments",
+      "duration": "Duration",
+      "additionalInfo": "Additional Info"
+    },
+    "footer": {
+      "shiftId": "Shift ID: {{id}}",
+      "generated": "Generated: {{date}}"
+    },
+    "toast": {
+      "deletedDesc": "The shift has been successfully deleted",
+      "deleteErrorDesc": "Could not delete the shift",
+      "updatedDesc": "The shift has been successfully updated",
+      "updateErrorDesc": "Could not update the shift"
+    }
   },
   "notifications": {
     "shiftOpened": "Shift Opened",
     "shiftClosed": "Shift Closed",
-    "shiftClosedDescription": "Total sales: {{amount}}"
+    "shiftClosedDescription": "Total sales: {{totalSales}}"
   }
 }

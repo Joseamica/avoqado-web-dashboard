@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Currency } from '@/utils/currency'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
   ArrowLeft,
@@ -23,13 +23,15 @@ import {
   ExternalLink,
   FileText,
   Mail,
+  Pencil,
   Receipt,
   RefreshCw,
+  Trash2,
   User,
   Wallet,
   XCircle,
 } from 'lucide-react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
@@ -45,6 +47,20 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole, PaymentMethod, PaymentStatus } from '@/types'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 // ========== TYPES & INTERFACES ==========
 interface SectionState {
@@ -339,13 +355,23 @@ const CollapsibleSection = ({
 
 // ========== MAIN COMPONENT ==========
 export default function PaymentId() {
-  const { paymentId } = useParams<{ paymentId: string }>()
+  const { paymentId, slug } = useParams<{ paymentId: string; slug?: string }>()
   const location = useLocation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [recipientEmail, setRecipientEmail] = useState('')
   const [receiptDetailOpen, setReceiptDetailOpen] = useState(false)
   const [selectedReceiptForDetail, setSelectedReceiptForDetail] = useState<any>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedValues, setEditedValues] = useState<{
+    amount: number
+    tipAmount: number
+    method: PaymentMethod
+    status: PaymentStatus
+  }>({ amount: 0, tipAmount: 0, method: PaymentMethod.CASH, status: PaymentStatus.PAID })
   const [sectionsOpen, setSectionsOpen] = useState<SectionState>({
     transaction: true,
     merchant: false,
@@ -357,6 +383,8 @@ export default function PaymentId() {
   const { venueId } = useCurrentVenue()
   const { can } = usePermissions()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
+
+  const canEdit = user?.role === StaffRole.SUPERADMIN
 
   const { t, i18n } = useTranslation(['payment', 'common'])
   const {
@@ -421,6 +449,85 @@ export default function PaymentId() {
       })
     },
   })
+
+  // Delete payment mutation
+  const deletePaymentMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}`)
+    },
+    onSuccess: () => {
+      toast({
+        title: t('common:superadmin.delete.success'),
+        description: t('detail.toast.deletedDesc'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+      navigate(from)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common:superadmin.delete.error'),
+        description: error.response?.data?.message || t('detail.toast.deleteErrorDesc'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Update payment mutation
+  const updatePaymentMutation = useMutation({
+    mutationFn: async (data: Record<string, any>) => {
+      const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payments/${paymentId}`, data)
+      return response.data
+    },
+    onSuccess: () => {
+      toast({
+        title: t('common:superadmin.edit.success'),
+        description: t('detail.toast.updatedDesc'),
+      })
+      setIsEditing(false)
+      queryClient.invalidateQueries({ queryKey: ['payment', paymentId] })
+      queryClient.invalidateQueries({ queryKey: ['payments', venueId] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common:superadmin.edit.error'),
+        description: error.response?.data?.message || t('detail.toast.updateErrorDesc'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Initialize edit values when payment loads
+  useEffect(() => {
+    if (payment) {
+      setEditedValues({
+        amount: payment.amount || 0,
+        tipAmount: payment.tipAmount || 0,
+        method: payment.method || PaymentMethod.CASH,
+        status: payment.status || PaymentStatus.PAID,
+      })
+    }
+  }, [payment])
+
+  // Edit mode handlers
+  const startEditing = () => {
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    if (payment) {
+      setEditedValues({
+        amount: payment.amount || 0,
+        tipAmount: payment.tipAmount || 0,
+        method: payment.method || PaymentMethod.CASH,
+        status: payment.status || PaymentStatus.PAID,
+      })
+    }
+  }
+
+  const saveChanges = () => {
+    updatePaymentMutation.mutate(editedValues)
+  }
 
   // Set breadcrumb with order number
   useEffect(() => {
@@ -582,41 +689,166 @@ export default function PaymentId() {
                     {t('detail.actions.export')}
                   </Button>
                 )}
+                {canEdit && (
+                  <>
+                    {!isEditing ? (
+                      <Button
+                        size="sm"
+                        className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+                        onClick={() => startEditing()}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        {t('common:edit')}
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+                          onClick={saveChanges}
+                          disabled={updatePaymentMutation.isPending}
+                        >
+                          {updatePaymentMutation.isPending ? t('common:saving') : t('common:save')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={cancelEditing}
+                        >
+                          {t('common:cancel')}
+                        </Button>
+                      </div>
+                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          {t('common:delete')}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t('common:superadmin.delete.title')}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t('common:superadmin.delete.description', { item: `Payment ${payment?.id?.slice(0, 8)}...` })}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deletePaymentMutation.mutate()}
+                          >
+                            {t('common:delete')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Horizontal Stats Bar */}
-            <div className="grid grid-cols-4 gap-4 pt-6 border-t border-border">
+            <div className={`grid grid-cols-4 gap-4 pt-6 border-t ${isEditing ? 'border-amber-400/50 bg-gradient-to-r from-amber-500/5 to-pink-500/5 rounded-lg p-4 -mx-4' : 'border-border'}`}>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.base')}</div>
-                <div className="text-2xl font-semibold">{Currency(payment?.amount || 0)}</div>
+                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
+                  {t('detail.overview.base')}
+                </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
+                    value={editedValues.amount}
+                    onChange={(e) => setEditedValues((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                  />
+                ) : (
+                  <div className="text-2xl font-semibold">{Currency(payment?.amount || 0)}</div>
+                )}
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.tips')}</div>
-                <div className="text-2xl font-semibold">
-                  {Currency(payment?.tipAmount || 0)}
-                  <span className="text-sm text-muted-foreground ml-2">
-                    ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
-                  </span>
+                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
+                  {t('detail.overview.tips')}
                 </div>
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
+                    value={editedValues.tipAmount}
+                    onChange={(e) => setEditedValues((prev) => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                  />
+                ) : (
+                  <div className="text-2xl font-semibold">
+                    {Currency(payment?.tipAmount || 0)}
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
+                    </span>
+                  </div>
+                )}
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.method')}</div>
-                <div className="text-lg font-medium">
-                  {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                    ? payment?.maskedPan || t('methods.card')
-                    : payment?.method === 'CASH'
-                    ? t('methods.cash')
-                    : payment?.method === 'DIGITAL_WALLET'
-                    ? t('methods.digitalWallet')
-                    : payment?.method || 'N/A'}
+                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
+                  {t('detail.overview.method')}
                 </div>
+                {isEditing ? (
+                  <Select
+                    value={editedValues.method}
+                    onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
+                  >
+                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
+                      <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
+                      <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
+                      <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
+                      <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
+                      <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-lg font-medium">
+                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                      ? payment?.maskedPan || t('methods.card')
+                      : payment?.method === 'CASH'
+                      ? t('methods.cash')
+                      : payment?.method === 'DIGITAL_WALLET'
+                      ? t('methods.digitalWallet')
+                      : payment?.method || 'N/A'}
+                  </div>
+                )}
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">{t('detail.overview.waiter')}</div>
-                <div className="text-lg font-medium">
-                  {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
+                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
+                  {isEditing ? t('columns.status') : t('detail.overview.waiter')}
                 </div>
+                {isEditing ? (
+                  <Select
+                    value={editedValues.status}
+                    onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
+                      <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
+                      <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
+                      <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-lg font-medium">
+                    {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1010,46 +1242,83 @@ export default function PaymentId() {
               </Card>
 
               {/* Summary Card */}
-              <Card className="border-border">
+              <Card
+                id="summary-card"
+                className={isEditing ? "border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10" : "border-border"}
+              >
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <span>{t('detail.summary.title', { defaultValue: 'Resumen Financiero' })}</span>
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className={`flex items-center space-x-2 text-lg ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : ''}`}>
+                      <User className={`h-5 w-5 ${isEditing ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                      <span>{t('detail.summary.title', { defaultValue: 'Resumen Financiero' })}</span>
+                    </CardTitle>
+                    {isEditing && (
+                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+                        {t('common:superadmin.edit.editMode', { defaultValue: 'Modo Edición' })}
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                    {/* Subtotal */}
+                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
                       <span className="text-sm font-medium text-muted-foreground">
                         {t('detail.summary.subtotal', { defaultValue: 'Subtotal' })}
                       </span>
-                      <span className="text-lg font-bold">{Currency(payment?.amount || 0)}</span>
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
+                          value={editedValues.amount}
+                          onChange={(e) => setEditedValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                        />
+                      ) : (
+                        <span className="text-lg font-bold">{Currency(payment?.amount || 0)}</span>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+
+                    {/* Tips */}
+                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
                       <div>
                         <span className="text-sm font-medium text-muted-foreground">
                           {t('detail.overview.tips', { defaultValue: 'Propinas' })}
                         </span>
                         <p className="text-xs text-muted-foreground">
-                          {payment?.amount && payment.amount > 0
-                            ? t('detail.summary.tipsOfSubtotal', {
-                                defaultValue: '{{percent}}% del subtotal',
-                                percent: (((payment?.tipAmount || 0) / payment.amount) * 100).toFixed(1),
-                              })
-                            : t('detail.summary.tipsOfSubtotal', { defaultValue: '0.0% del subtotal', percent: '0.0' })}
+                          {(() => {
+                            const base = isEditing ? editedValues.amount : (payment?.amount || 0)
+                            const tip = isEditing ? editedValues.tipAmount : (payment?.tipAmount || 0)
+                            return base > 0
+                              ? t('detail.summary.tipsOfSubtotal', {
+                                  defaultValue: '{{percent}}% del subtotal',
+                                  percent: ((tip / base) * 100).toFixed(1),
+                                })
+                              : t('detail.summary.tipsOfSubtotal', { defaultValue: '0.0% del subtotal', percent: '0.0' })
+                          })()}
                         </p>
                       </div>
-                      <span className="text-lg font-bold">{Currency(payment?.tipAmount || 0)}</span>
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
+                          value={editedValues.tipAmount}
+                          onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                        />
+                      ) : (
+                        <span className="text-lg font-bold">{Currency(payment?.tipAmount || 0)}</span>
+                      )}
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg border border-border">
+                    <div className={`flex justify-between items-center p-3 rounded-lg border ${isEditing ? 'bg-gradient-to-r from-amber-500/10 to-pink-500/10 border-amber-400/50' : 'bg-muted border-border'}`}>
                       <span className="text-base font-bold text-foreground">
                         {t('detail.summary.total', { defaultValue: 'Total' })}
                       </span>
-                      <span className="text-xl font-bold text-foreground">
+                      <span className={`text-xl font-bold ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : 'text-foreground'}`}>
                         {(() => {
-                          const baseAmount = payment?.amount ? Number(payment.amount) : 0
-                          const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
+                          const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
+                          const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
                           const total = baseAmount + tipAmount
                           return total > 0 ? Currency(total) : Currency(0)
                         })()}

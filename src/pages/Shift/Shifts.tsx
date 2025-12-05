@@ -1,6 +1,6 @@
 import api from '@/api'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,28 +8,63 @@ import { useTranslation } from 'react-i18next'
 import DataTable from '@/components/data-table'
 // import { Shift } from '@/types'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useAuth } from '@/context/AuthContext'
+import { StaffRole } from '@/types'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
 import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 import { useToast } from '@/hooks/use-toast'
 import { AddToAIButton } from '@/components/AddToAIButton'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { ShiftReference } from '@/types/chat-references'
 
 export default function Shifts() {
   const { t, i18n } = useTranslation('shifts')
+  const { t: tCommon } = useTranslation('common')
   const localeCode = getIntlLocale(i18n.language)
   const { venueId } = useCurrentVenue()
   const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
   const location = useLocation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { user, checkFeatureAccess } = useAuth()
+  const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
+  const hasChatbot = checkFeatureAccess('CHATBOT')
+
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [shiftToDelete, setShiftToDelete] = useState<any>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [shiftToEdit, setShiftToEdit] = useState<any>(null)
+  const [editValues, setEditValues] = useState({ totalSales: 0, totalTips: 0 })
 
   const { data, isLoading } = useQuery({
     queryKey: ['shifts', venueId, pagination.pageIndex, pagination.pageSize],
@@ -86,6 +121,86 @@ export default function Shifts() {
     onPaymentCompleted: handlePaymentCompleted,
   })
 
+  // Delete mutation (SUPERADMIN only)
+  const deleteShiftMutation = useMutation({
+    mutationFn: (shiftId: string) => api.delete(`/api/v1/dashboard/venues/${venueId}/shifts/${shiftId}`),
+    onSuccess: () => {
+      toast({
+        title: tCommon('superadmin.delete.success'),
+      })
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+      setDeleteDialogOpen(false)
+      setShiftToDelete(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: tCommon('superadmin.delete.error'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Update mutation (SUPERADMIN only)
+  const updateShiftMutation = useMutation({
+    mutationFn: (data: { shiftId: string; totalSales: number; totalTips: number }) =>
+      api.put(`/api/v1/dashboard/venues/${venueId}/shifts/${data.shiftId}`, {
+        totalSales: data.totalSales,
+        totalTips: data.totalTips,
+      }),
+    onSuccess: () => {
+      toast({
+        title: tCommon('superadmin.edit.success'),
+      })
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
+      })
+      setEditDialogOpen(false)
+      setShiftToEdit(null)
+    },
+    onError: (error: Error) => {
+      toast({
+        title: tCommon('superadmin.edit.error'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleDeleteClick = (e: React.MouseEvent, shift: any) => {
+    e.stopPropagation()
+    setShiftToDelete(shift)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (shiftToDelete) {
+      deleteShiftMutation.mutate(shiftToDelete.id)
+    }
+  }
+
+  const handleEditClick = (e: React.MouseEvent, shift: any) => {
+    e.stopPropagation()
+    setShiftToEdit(shift)
+    setEditValues({
+      totalSales: Number(shift.totalSales) || 0,
+      totalTips: Number(shift.totalTips) || 0,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const confirmEdit = () => {
+    if (shiftToEdit) {
+      updateShiftMutation.mutate({
+        shiftId: shiftToEdit.id,
+        totalSales: editValues.totalSales,
+        totalTips: editValues.totalTips,
+      })
+    }
+  }
+
   const totalShifts = data?.meta?.totalCount || 0
 
   // Transform row data to ShiftReference for AI button
@@ -102,17 +217,22 @@ export default function Shifts() {
   }), [])
 
   const columns: ColumnDef<any, unknown>[] = useMemo(() => [
-    {
-      id: 'ai',
-      header: () => <span className="sr-only">AI</span>,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />
-        </div>
-      ),
-      size: 50,
-      enableSorting: false,
-    },
+    // AI column - only show if venue has chatbot feature
+    ...(hasChatbot
+      ? [
+          {
+            id: 'ai',
+            header: () => <span className="sr-only">AI</span>,
+            cell: ({ row }: { row: { original: any } }) => (
+              <div className="flex justify-center">
+                <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />
+              </div>
+            ),
+            size: 50,
+            enableSorting: false,
+          } as ColumnDef<any, unknown>,
+        ]
+      : []),
     {
       accessorFn: row => {
         return row.endTime ? t('closed') : t('open')
@@ -302,7 +422,41 @@ export default function Shifts() {
       footer: props => props.column.id,
       sortingFn: 'alphanumeric',
     },
-  ], [t, toShiftReference, formatTime, formatDate, venueTimezoneShort])
+    // Superadmin actions column
+    ...(isSuperAdmin
+      ? [
+          {
+            id: 'actions',
+            header: () => (
+              <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                Superadmin
+              </span>
+            ),
+            cell: ({ row }: { row: { original: any } }) => (
+              <div className="flex items-center justify-end">
+                <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+                  <Button
+                    size="icon"
+                    className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
+                    onClick={e => handleEditClick(e, row.original)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="h-7 w-7 bg-background hover:bg-destructive/10 text-destructive border-0"
+                    onClick={e => handleDeleteClick(e, row.original)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ),
+            size: 120,
+          },
+        ]
+      : []),
+  ], [t, toShiftReference, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot])
 
   // Search callback for DataTable
   const handleSearch = useCallback((searchTerm: string, shifts: any[]) => {
@@ -347,6 +501,92 @@ export default function Shifts() {
         pagination={pagination}
         setPagination={setPagination}
       />
+
+      {/* Delete confirmation dialog (SUPERADMIN only) */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tCommon('superadmin.delete.description', { item: shiftToDelete?.id?.slice(-8) || '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteShiftMutation.isPending}
+            >
+              {deleteShiftMutation.isPending ? tCommon('deleting') : tCommon('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit dialog (SUPERADMIN only) */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+                {tCommon('superadmin.edit.editMode')}
+              </Badge>
+              {tCommon('superadmin.edit.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('editDialog.description', { id: shiftToEdit?.id?.slice(-8) || '' })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Total Sales field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-totalSales">{t('columns.subtotal')}</Label>
+              <Input
+                id="edit-totalSales"
+                type="number"
+                step="0.01"
+                value={editValues.totalSales}
+                onChange={e => setEditValues(prev => ({ ...prev, totalSales: parseFloat(e.target.value) || 0 }))}
+                className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+              />
+            </div>
+
+            {/* Total Tips field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-totalTips">{t('columns.totalTip')}</Label>
+              <Input
+                id="edit-totalTips"
+                type="number"
+                step="0.01"
+                value={editValues.totalTips}
+                onChange={e => setEditValues(prev => ({ ...prev, totalTips: parseFloat(e.target.value) || 0 }))}
+                className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+              />
+            </div>
+
+            {/* Total preview */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <span className="text-sm font-medium text-muted-foreground">{t('columns.total')}</span>
+              <span className="text-lg font-semibold">{Currency(editValues.totalSales + editValues.totalTips)}</span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              onClick={confirmEdit}
+              disabled={updateShiftMutation.isPending}
+              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+            >
+              {updateShiftMutation.isPending ? tCommon('saving') : tCommon('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

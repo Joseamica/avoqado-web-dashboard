@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { LoadingScreen } from '@/components/spinner'
 import { useToast } from '@/hooks/use-toast'
 import * as authService from '@/services/auth.service'
 
 const GoogleOAuthCallback: React.FC = () => {
+  const { t } = useTranslation('common')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
@@ -18,9 +20,9 @@ const GoogleOAuthCallback: React.FC = () => {
 
       if (error) {
         toast({
-          title: 'Error de autenticación',
+          title: t('auth.google.error'),
           variant: 'destructive',
-          description: 'Se canceló la autenticación con Google',
+          description: t('auth.google.cancelled'),
         })
         navigate('/login', { replace: true })
         return
@@ -28,9 +30,9 @@ const GoogleOAuthCallback: React.FC = () => {
 
       if (!code) {
         toast({
-          title: 'Error de autenticación',
+          title: t('auth.google.error'),
           variant: 'destructive',
-          description: 'Código de autorización no encontrado',
+          description: t('auth.google.codeNotFound'),
         })
         navigate('/login', { replace: true })
         return
@@ -38,33 +40,33 @@ const GoogleOAuthCallback: React.FC = () => {
 
       try {
         const result = await authService.googleOAuthCallback(code)
-        
+
         // SECURITY: Use refetchQueries to wait for auth state before navigating
         // invalidateQueries doesn't wait - causes race condition on slow networks
         await queryClient.refetchQueries({ queryKey: ['status'] })
-        
+
         const isNewUser = (result as any)?.isNewUser
         toast({
-          title: (result as any)?.message || 'Inicio de sesión exitoso',
-          description: isNewUser ? 'Bienvenido! Tu cuenta ha sido creada.' : undefined,
+          title: (result as any)?.message || t('auth.google.success'),
+          description: isNewUser ? t('auth.google.welcomeNewUser') : undefined,
         })
 
         // Navigate to home - AuthContext will handle the redirect
         navigate('/', { replace: true })
       } catch (error: any) {
         toast({
-          title: 'Error de autenticación',
+          title: t('auth.google.error'),
           variant: 'destructive',
-          description: error.response?.data?.message || 'Error al autenticar con Google',
+          description: error.response?.data?.message || t('auth.google.genericError'),
         })
         navigate('/login', { replace: true })
       }
     }
 
     handleCallback()
-  }, [searchParams, navigate, queryClient, toast])
+  }, [searchParams, navigate, queryClient, toast, t])
 
-  return <LoadingScreen message="Autenticando con Google..." />
+  return <LoadingScreen message={t('auth.google.authenticating')} />
 }
 
 export default GoogleOAuthCallback

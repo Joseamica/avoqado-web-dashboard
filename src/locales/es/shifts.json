@@ -12,15 +12,97 @@
     "subtotal": "Subtotal",
     "total": "Total"
   },
+  "editDialog": {
+    "description": "Editar turno #{{id}}"
+  },
+  "methods": {
+    "card": "Tarjeta",
+    "cash": "Efectivo"
+  },
+  "common": {
+    "copied": "Copiado!"
+  },
   "detail": {
+    "loading": "Cargando informacion del turno...",
+    "notFound": "Turno no encontrado",
+    "backToShifts": "Volver a Turnos",
+    "statusClosed": "Cerrado",
+    "statusOpen": "Abierto",
+    "turnId": "Turno",
+    "copiedToClipboard": "{{label}} copiado al portapapeles",
     "turnIdLabel": "ID de Turno",
     "systemIdLabel": "ID del Sistema",
     "openTimeLabel": "Hora de Apertura",
-    "closeTimeLabel": "Hora de Cierre"
+    "closeTimeLabel": "Hora de Cierre",
+    "actions": {
+      "copyId": "Copiar ID del Turno",
+      "export": "Exportar datos del turno",
+      "editHint": "Haz clic en los valores para editarlos"
+    },
+    "stats": {
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "payments": "Pagos"
+    },
+    "timeline": {
+      "title": "Actividad reciente",
+      "shiftOpened": "Turno abierto",
+      "shiftClosed": "Turno cerrado",
+      "paymentReceived": "Pago recibido"
+    },
+    "sections": {
+      "payments": "Pagos",
+      "paymentsDesc": "{{count}} pago(s) en este turno",
+      "financial": "Resumen Financiero",
+      "financialDesc": "Desglose de ventas y propinas",
+      "shiftInfo": "Informacion del Turno",
+      "shiftInfoDesc": "Detalles y tiempos del turno"
+    },
+    "payments": {
+      "base": "Base",
+      "tip": "Propina",
+      "view": "Ver",
+      "noPayments": "No hay pagos registrados para este turno."
+    },
+    "overview": {
+      "subtotal": "Subtotal",
+      "tips": "Propinas",
+      "total": "Total",
+      "ofSubtotal": "del subtotal"
+    },
+    "fields": {
+      "turnId": "ID de Turno",
+      "systemId": "ID del Sistema",
+      "startTime": "Hora de Inicio",
+      "endTime": "Hora de Fin",
+      "venueId": "ID de Sucursal",
+      "createdAt": "Creado",
+      "updatedAt": "Ultima Actualizacion"
+    },
+    "sidebar": {
+      "status": "Estado",
+      "lastUpdate": "Ultima actualizacion",
+      "financialSummary": "Resumen Financiero",
+      "shiftInfo": "Info del Turno",
+      "turnId": "ID de Turno",
+      "payments": "Pagos",
+      "duration": "Duracion",
+      "additionalInfo": "Info Adicional"
+    },
+    "footer": {
+      "shiftId": "ID de Turno: {{id}}",
+      "generated": "Generado: {{date}}"
+    },
+    "toast": {
+      "deletedDesc": "El turno ha sido eliminado exitosamente",
+      "deleteErrorDesc": "No se pudo eliminar el turno",
+      "updatedDesc": "El turno ha sido actualizado exitosamente",
+      "updateErrorDesc": "No se pudo actualizar el turno"
+    }
   },
   "notifications": {
     "shiftOpened": "Turno Abierto",
     "shiftClosed": "Turno Cerrado",
-    "shiftClosedDescription": "Total de ventas: {{amount}}"
+    "shiftClosedDescription": "Total de ventas: {{totalSales}}"
   }
 }

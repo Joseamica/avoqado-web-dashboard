@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useDebounce } from '@/hooks/useDebounce'
+import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
@@ -28,6 +30,8 @@ import { PermissionGate } from '@/components/PermissionGate'
 export default function RawMaterials() {
   const { t } = useTranslation('inventory')
   const { venueId } = useCurrentVenue()
+  const { checkFeatureAccess } = useAuth()
+  const hasChatbot = checkFeatureAccess('CHATBOT')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatUnit, formatUnitWithQuantity } = useUnitTranslation()
@@ -48,6 +52,7 @@ export default function RawMaterials() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -55,14 +60,14 @@ export default function RawMaterials() {
 
   // Fetch raw materials with filters
   const { data: rawMaterials, isLoading } = useQuery({
-    queryKey: ['rawMaterials', venueId, categoryFilter, stockFilter, searchTerm],
+    queryKey: ['rawMaterials', venueId, categoryFilter, stockFilter, debouncedSearchTerm],
     queryFn: async () => {
       const filters = {
         ...(categoryFilter !== 'all' && { category: categoryFilter }),
         ...(stockFilter === 'lowStock' && { lowStock: true }),
         ...(stockFilter === 'active' && { active: true }),
         ...(stockFilter === 'inactive' && { active: false }),
-        ...(searchTerm && { search: searchTerm }),
+        ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
       }
       const response = await rawMaterialsApi.getAll(venueId, filters)
       return response.data.data as RawMaterial[]
@@ -307,17 +312,22 @@ export default function RawMaterials() {
   // Column definitions
   const columns = useMemo<ColumnDef<RawMaterial, unknown>[]>(
     () => [
-      {
-        id: 'ai',
-        header: () => <span className="sr-only">AI</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-center">
-            <AddToAIButton type="rawMaterial" data={row.original} variant="icon" />
-          </div>
-        ),
-        size: 50,
-        enableSorting: false,
-      },
+      // AI column - only show if venue has chatbot feature
+      ...(hasChatbot
+        ? [
+            {
+              id: 'ai',
+              header: () => <span className="sr-only">AI</span>,
+              cell: ({ row }: { row: { original: RawMaterial } }) => (
+                <div className="flex justify-center">
+                  <AddToAIButton type="rawMaterial" data={row.original} variant="icon" />
+                </div>
+              ),
+              size: 50,
+              enableSorting: false,
+            } as ColumnDef<RawMaterial, unknown>,
+          ]
+        : []),
       {
         accessorKey: 'name',
         meta: { label: t('rawMaterials.fields.name') },
@@ -586,7 +596,7 @@ export default function RawMaterials() {
         },
       },
     ],
-    [t, formatUnit, formatUnitWithQuantity, deleteMutation.isPending, toggleActiveMutation],
+    [t, formatUnit, formatUnitWithQuantity, deleteMutation.isPending, toggleActiveMutation, hasChatbot],
   )
 
   return (

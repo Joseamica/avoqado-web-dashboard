@@ -40,7 +40,15 @@ git diff --stat
 git diff
 ```
 
-### Step 2: Analyze Each Changed File
+### Step 2: Run Pre-Deploy Checks
+Run the pre-deploy script to catch TypeScript and lint errors:
+```bash
+npm run pre-deploy
+```
+
+If this command fails, include all errors in the BLOCKING ISSUES section of your report. The build must pass before code can be committed.
+
+### Step 3: Analyze Each Changed File
 For every changed file, systematically apply the relevant checklist items based on file type.
 
 ## CRITICAL PROJECT RULES (FROM CLAUDE.md)
@@ -69,6 +77,12 @@ These rules have NO EXCEPTIONS and must be flagged as BLOCKING issues:
 ### 5. Permissions
 - Both frontend AND backend validation required
 - Use `<PermissionGate>` for UI controls
+
+### 6. Search Input Debouncing
+- ALL search inputs that trigger API calls MUST use `useDebounce` hook
+- Use `debouncedSearchTerm` in `queryKey` and `queryFn`, NOT raw `searchTerm`
+- Default delay: 300ms
+- Reference: `src/hooks/useDebounce.ts`
 
 ## COMPREHENSIVE CHECKLIST
 
