@@ -27,7 +27,7 @@ interface AuthContextType {
   activeVenue: Venue | null
   isLoading: boolean
   login: (data: LoginData) => void
-  signup: (data: SignupData) => void
+  signup: (data: SignupData) => Promise<void>
   loginWithGoogle: () => Promise<void>
   loginWithOneTap: (credential: string) => Promise<void>
   logout: () => void
@@ -269,6 +269,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoginError(null) // Clear any previous login errors
     },
     onError: (error: any, variables) => {
+      // FAANG Pattern: Detect network errors first (server down, no internet)
+      const isNetworkError =
+        !error.response &&
+        (error.code === 'ERR_NETWORK' ||
+          error.code === 'ECONNREFUSED' ||
+          error.message?.includes('Network Error') ||
+          error.message?.includes('ERR_CONNECTION_REFUSED'))
+
+      if (isNetworkError) {
+        setLoginError(t('common:errors.serverUnavailable'))
+        return
+      }
+
       const errorMessage = error.response?.data?.message || ''
       const errorCode = error.response?.data?.code // World-Class: Stripe/GitHub pattern
       const statusCode = error.response?.status
@@ -301,6 +314,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
+      // Handle validation errors - clean up technical message format
+      // Backend returns: "Validation failed: body.email: Email inválido."
+      // We want to show: "Email inválido" (just the user-friendly part)
+      if (errorMessage.includes('Validation failed:')) {
+        // Extract the user-friendly message after the field path
+        // Format: "Validation failed: body.fieldName: User friendly message"
+        const cleanedMessage = errorMessage
+          .replace(/Validation failed:\s*/i, '') // Remove "Validation failed: "
+          .replace(/body\.\w+:\s*/g, '') // Remove "body.fieldName: "
+          .replace(/query\.\w+:\s*/g, '') // Remove "query.fieldName: "
+          .replace(/params\.\w+:\s*/g, '') // Remove "params.fieldName: "
+          .trim()
+        setLoginError(cleanedMessage || t('toast.login_error_desc'))
+        return
+      }
+
       // Generic authentication error (invalid credentials, etc.)
       // Use backend message if available, fallback to generic translated message
       setLoginError(errorMessage || t('toast.login_error_desc'))
@@ -317,6 +346,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // That page will fetch status when it mounts
     },
     onError: (error: any) => {
+      // FAANG Pattern: Detect network errors first (server down, no internet)
+      const isNetworkError =
+        !error.response &&
+        (error.code === 'ERR_NETWORK' ||
+          error.code === 'ECONNREFUSED' ||
+          error.message?.includes('Network Error') ||
+          error.message?.includes('ERR_CONNECTION_REFUSED'))
+
+      if (isNetworkError) {
+        toast({
+          title: t('toast.signup_error_title'),
+          variant: 'destructive',
+          description: t('common:errors.serverUnavailable'),
+        })
+        return
+      }
+
       const backendMessage = error.response?.data?.message || ''
 
       // Use frontend translation for "Email already registered" message
@@ -335,21 +381,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     },
   })
 
-  const logoutMutation = useMutation({
-    mutationFn: authService.logout,
-    onSuccess: () => {
-      // SECURITY: Clear any tokens that might exist in localStorage
-      // (from legacy code or invitation flows before the fix)
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('user')
+  // FAANG Pattern: Optimistic Logout
+  // Clean local state FIRST (always works), then notify server in background
+  // This ensures user can always logout even if server is down
+  const logout = useCallback(async () => {
+    // 1. Clear local state IMMEDIATELY (no server dependency)
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+    clearAllChatStorage()
+    queryClient.clear()
+    setActiveVenue(null)
 
-      clearAllChatStorage()
-      queryClient.clear()
-      setActiveVenue(null)
-      navigate('/login', { replace: true })
-    },
-  })
+    // 2. Navigate to login (user is already "logged out" locally)
+    navigate('/login', { replace: true })
+
+    // 3. Notify server in background (non-blocking)
+    try {
+      await authService.logout()
+    } catch (error) {
+      // Silently ignore - user is already logged out locally
+      console.warn('Server logout failed (user already logged out locally):', error)
+    }
+  }, [navigate, queryClient])
 
   const switchVenueMutation = useMutation({
     mutationFn: (newVenueSlug: string) => {
@@ -403,26 +457,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast, t])
 
   // Google One Tap login
-  const loginWithOneTap = useCallback(async (credential: string): Promise<void> => {
-    try {
-      await authService.googleOneTapLogin(credential)
+  const loginWithOneTap = useCallback(
+    async (credential: string): Promise<void> => {
+      try {
+        await authService.googleOneTapLogin(credential)
 
-      // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
-      await queryClient.refetchQueries({ queryKey: ['status'] })
+        // SECURITY: Use refetchQueries to ensure auth state is updated before navigation
+        await queryClient.refetchQueries({ queryKey: ['status'] })
 
-      toast({
-        title: t('toast.login_success_title'),
-        description: t('toast.login_success_desc'),
-      })
-    } catch (error: any) {
-      toast({
-        title: t('toast.auth_error_title'),
-        variant: 'destructive',
-        description: error.response?.data?.message || t('toast.google_login_error_desc'),
-      })
-      throw error
-    }
-  }, [toast, t, queryClient])
+        toast({
+          title: t('toast.login_success_title'),
+          description: t('toast.login_success_desc'),
+        })
+      } catch (error: any) {
+        toast({
+          title: t('toast.auth_error_title'),
+          variant: 'destructive',
+          description: error.response?.data?.message || t('toast.google_login_error_desc'),
+        })
+        throw error
+      }
+    },
+    [toast, t, queryClient],
+  )
 
   // --- FUNCIONES EXPUESTAS ---
 
@@ -525,13 +582,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLiveDemoInitializing ||
       loginMutation.isPending ||
       signupMutation.isPending ||
-      logoutMutation.isPending ||
       switchVenueMutation.isPending,
     login: loginMutation.mutate,
-    signup: signupMutation.mutate,
+    signup: async (data: SignupData) => {
+      await signupMutation.mutateAsync(data)
+    },
     loginWithGoogle,
     loginWithOneTap,
-    logout: logoutMutation.mutate,
+    logout,
     switchVenue,
     checkVenueAccess,
     authorizeVenue,

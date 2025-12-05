@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { useQuery } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +13,6 @@ import {
   CheckCircle2,
   Upload,
   FileText,
-  CreditCard,
   Sparkles,
   ArrowRight,
   ArrowLeft,
@@ -27,8 +24,10 @@ import { useToast } from '@/hooks/use-toast'
 import { Progress } from '@/components/ui/progress'
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector'
 import api from '@/api'
+import { getVenueFeatures } from '@/services/features.service'
 import { storage } from '@/firebase'
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { Venue } from '@/types'
 
 interface ConversionWizardProps {
   open: boolean
@@ -36,25 +35,11 @@ interface ConversionWizardProps {
   venueId: string
   venueSlug: string
   venueName: string
+  venue?: Venue | null
 }
 
 type EntityType = 'PERSONA_FISICA' | 'PERSONA_MORAL'
 
-// Zod schema for business info step
-const businessInfoSchema = z.object({
-  rfc: z
-    .string()
-    .min(12, 'RFC debe tener al menos 12 caracteres')
-    .max(13, 'RFC debe tener máximo 13 caracteres')
-    .transform(val => val.toUpperCase())
-    .refine(val => /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(val), {
-      message: 'Formato de RFC inválido',
-    }),
-  legalName: z.string().min(3, 'Razón social es requerida'),
-  fiscalRegime: z.string().min(1, 'Régimen fiscal es requerido'),
-})
-
-type BusinessInfoFormData = z.infer<typeof businessInfoSchema>
 
 // Document types for upload
 type DocumentType = 'ID' | 'CSF' | 'DOMICILIO' | 'CARATULA' | 'ACTA' | 'PODER'
@@ -69,17 +54,27 @@ const FEATURE_PRICING: Record<string, number> = {
   RESERVATIONS: 399,
 }
 
-export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName }: ConversionWizardProps) {
+export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue }: ConversionWizardProps) {
   const { t } = useTranslation()
   const { t: tOnboarding } = useTranslation('onboarding')
   const { toast } = useToast()
+
+  // Fetch full venue data when dialog opens (auth context venue doesn't include document URLs)
+  const { data: fullVenue } = useQuery({
+    queryKey: ['venue', 'full', venueId],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}`)
+      return response.data.data || response.data
+    },
+    enabled: open && !!venueId,
+    staleTime: 30_000,
+  })
 
   // Entity type state
   const [entityType, setEntityType] = useState<EntityType | null>(null)
 
   // Current step
   const [currentStep, setCurrentStep] = useState(1)
-  const [formData, setFormData] = useState<any>({})
 
   // Document files and URLs
   const [idDocumentFile, setIdDocumentFile] = useState<File | null>(null)
@@ -110,45 +105,29 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   // Features and payment
   const [availableFeatures, setAvailableFeatures] = useState<any[]>([])
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
+  const [activeFeatureCodes, setActiveFeatureCodes] = useState<string[]>([])
   const [loadingFeatures, setLoadingFeatures] = useState(false)
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Dynamic total steps based on entity type
-  // PERSONA_FISICA: 1-EntityType, 2-BusinessInfo, 3-Docs1(INE+CSF), 4-Docs2(Domicilio+Caratula), 5-Features, 6-Payment, 7-Summary = 7 steps
-  // PERSONA_MORAL: 1-EntityType, 2-BusinessInfo, 3-Docs1(INE+CSF), 4-Docs2(Domicilio+Caratula), 5-Docs3(Acta+Poder), 6-Features, 7-Payment, 8-Summary = 8 steps
-  const totalSteps = entityType === 'PERSONA_MORAL' ? 8 : 7
+  // PERSONA_FISICA: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Features, 5-Payment, 6-Summary = 6 steps
+  // PERSONA_MORAL: 1-EntityType, 2-Docs1(INE+CSF), 3-Docs2(Domicilio+Caratula), 4-Docs3(Acta+Poder), 5-Features, 6-Payment, 7-Summary = 7 steps
+  const totalSteps = entityType === 'PERSONA_MORAL' ? 7 : 6
   const progress = (currentStep / totalSteps) * 100
 
-  // Business info form
-  const businessInfoForm = useForm<BusinessInfoFormData>({
-    resolver: zodResolver(businessInfoSchema),
-    defaultValues: {
-      rfc: '',
-      legalName: '',
-      fiscalRegime: '',
-    },
-  })
-
-  // Reset all states when dialog opens
+  // Initialize states when dialog opens - reset basic states (not step)
+  // This runs only once when dialog opens
   useEffect(() => {
     if (open) {
-      setCurrentStep(1)
-      setEntityType(null)
-      setFormData({})
-      // Reset all document states
+      // Reset file states (these are for new uploads only)
       setIdDocumentFile(null)
-      setIdDocumentUrl(null)
       setRfcDocumentFile(null)
-      setRfcDocumentUrl(null)
       setComprobanteDomicilioFile(null)
-      setComprobanteDomicilioUrl(null)
       setCaratulaBancariaFile(null)
-      setCaratulaBancariaUrl(null)
       setActaDocumentFile(null)
-      setActaDocumentUrl(null)
       setPoderLegalFile(null)
-      setPoderLegalUrl(null)
+
       // Reset uploading states
       setUploadingIdDoc(false)
       setUploadingRfcDoc(false)
@@ -156,24 +135,76 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       setUploadingCaratula(false)
       setUploadingActaDoc(false)
       setUploadingPoderLegal(false)
+
       // Reset features and payment
       setSelectedFeatures([])
       setPaymentMethodId(null)
       setIsSubmitting(false)
-      businessInfoForm.reset()
     }
-  }, [open])
+  }, [open]) // Only depend on open
 
-  // Fetch available features when wizard opens
+  // Pre-fill data from venue when fullVenue loads AND calculate starting step
+  // This runs when fullVenue becomes available (separate from dialog open reset)
+  useEffect(() => {
+    if (open && fullVenue) {
+      // Pre-fill entity type from venue if exists
+      if (fullVenue.entityType) {
+        setEntityType(fullVenue.entityType as EntityType)
+      }
+
+      // Pre-fill document URLs from fullVenue (which has all fields from API)
+      setIdDocumentUrl(fullVenue.idDocumentUrl || null)
+      setRfcDocumentUrl(fullVenue.rfcDocumentUrl || null)
+      setComprobanteDomicilioUrl(fullVenue.comprobanteDomicilioUrl || null)
+      setCaratulaBancariaUrl(fullVenue.caratulaBancariaUrl || null)
+      setActaDocumentUrl(fullVenue.actaDocumentUrl || null)
+      setPoderLegalUrl(fullVenue.poderLegalUrl || null)
+
+      // Calculate starting step based on what's already filled
+      // Skip entity type step if already set during onboarding
+      let startingStep = 1
+
+      // If entity type is set, skip step 1 and go directly to documents
+      if (fullVenue.entityType) {
+        startingStep = 2 // Documents step 1 (INE + CSF)
+      }
+
+      setCurrentStep(startingStep)
+    } else if (open && !fullVenue) {
+      // While loading, start at step 1
+      setCurrentStep(1)
+    }
+  }, [open, fullVenue]) // Only run when fullVenue becomes available
+
+  // Fetch available features AND active venue features when wizard opens
   useEffect(() => {
     const fetchFeatures = async () => {
-      if (!open) return
+      if (!open || !venueId) return
 
       setLoadingFeatures(true)
       try {
-        const response = await api.get('/api/v1/dashboard/features')
-        if (response.data.success) {
-          setAvailableFeatures(response.data.data)
+        // Fetch available features and venue's active features in parallel
+        const [availableRes, venueFeatures] = await Promise.all([
+          api.get('/api/v1/dashboard/features'),
+          getVenueFeatures(venueId).catch(() => null), // Don't fail if this errors
+        ])
+
+        if (availableRes.data.success) {
+          setAvailableFeatures(availableRes.data.data)
+
+          // Extract codes of features that are already active on the venue
+          if (venueFeatures?.activeFeatures) {
+            const activeCodes = venueFeatures.activeFeatures
+              .filter((f: { active: boolean }) => f.active)
+              .map((f: { feature: { code: string } }) => f.feature.code)
+            setActiveFeatureCodes(activeCodes)
+
+            // Pre-select active features (so they appear checked)
+            const activeIds = availableRes.data.data
+              .filter((f: { code: string }) => activeCodes.includes(f.code))
+              .map((f: { id: string }) => f.id)
+            setSelectedFeatures(activeIds)
+          }
         }
       } catch (error) {
         console.error('Error fetching features:', error)
@@ -188,7 +219,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     }
 
     fetchFeatures()
-  }, [open, t, toast])
+  }, [open, venueId, t, toast])
 
   // Helper function to upload file to Firebase Storage
   const uploadFile = async (file: File, documentType: DocumentType): Promise<string | null> => {
@@ -253,10 +284,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
     }
   }
 
-  // Calculate step numbers based on entity type
-  const getStepForFeatures = () => (entityType === 'PERSONA_MORAL' ? 6 : 5)
-  const getStepForPayment = () => (entityType === 'PERSONA_MORAL' ? 7 : 6)
-  const getStepForSummary = () => (entityType === 'PERSONA_MORAL' ? 8 : 7)
+  // Calculate step numbers based on entity type (without Business Info step)
+  // PERSONA_FISICA: 1-EntityType, 2-Docs1, 3-Docs2, 4-Features, 5-Payment, 6-Summary
+  // PERSONA_MORAL: 1-EntityType, 2-Docs1, 3-Docs2, 4-Docs3, 5-Features, 6-Payment, 7-Summary
+  const getStepForFeatures = () => (entityType === 'PERSONA_MORAL' ? 5 : 4)
+  const getStepForPayment = () => (entityType === 'PERSONA_MORAL' ? 6 : 5)
+  const getStepForSummary = () => (entityType === 'PERSONA_MORAL' ? 7 : 6)
 
   // Check if all required documents are uploaded
   const areBaseDocumentsComplete = useMemo(() => {
@@ -269,6 +302,14 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
   }, [entityType, actaDocumentUrl])
 
   const areAllDocumentsComplete = areBaseDocumentsComplete && areMoralDocumentsComplete
+
+  // Calculate total monthly cost once (used in Features and Summary steps)
+  const totalMonthlyCost = useMemo(() => {
+    return selectedFeatures.reduce((sum, featureId) => {
+      const feature = availableFeatures.find(f => f.id === featureId)
+      return sum + (FEATURE_PRICING[feature?.code || ''] || 0)
+    }, 0)
+  }, [selectedFeatures, availableFeatures])
 
   const handleNext = async () => {
     let isValid = false
@@ -284,12 +325,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         })
       }
     } else if (currentStep === 2) {
-      // Business info
-      isValid = await businessInfoForm.trigger()
-      if (isValid) {
-        setFormData({ ...formData, ...businessInfoForm.getValues() })
-      }
-    } else if (currentStep === 3) {
       // Documents step 1: INE + CSF
       isValid = !!idDocumentUrl && !!rfcDocumentUrl
       if (!isValid) {
@@ -299,7 +334,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           variant: 'destructive',
         })
       }
-    } else if (currentStep === 4) {
+    } else if (currentStep === 3) {
       // Documents step 2: Comprobante domicilio + Carátula bancaria
       isValid = !!comprobanteDomicilioUrl && !!caratulaBancariaUrl
       if (!isValid) {
@@ -309,7 +344,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
           variant: 'destructive',
         })
       }
-    } else if (currentStep === 5 && entityType === 'PERSONA_MORAL') {
+    } else if (currentStep === 4 && entityType === 'PERSONA_MORAL') {
       // Documents step 3 (PERSONA_MORAL only): Acta + Poder Legal
       isValid = !!actaDocumentUrl
       if (!isValid) {
@@ -321,7 +356,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       }
     } else if (currentStep === getStepForFeatures()) {
       // Features selection
-      setFormData({ ...formData, selectedFeatures })
       isValid = true
 
       // If no features selected, skip payment step and go directly to summary
@@ -363,23 +397,13 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       return
     }
 
-    if (!formData.rfc || !formData.legalName || !formData.fiscalRegime) {
-      toast({
-        title: t('conversionWizard.error.title'),
-        description: t('conversionWizard.businessInfo.incomplete', { defaultValue: 'Información fiscal incompleta. Por favor complete todos los campos.' }),
-        variant: 'destructive',
-      })
-      setCurrentStep(2)
-      return
-    }
-
     if (!idDocumentUrl || !rfcDocumentUrl) {
       toast({
         title: t('conversionWizard.error.title'),
         description: t('conversionWizard.documents.step1Required'),
         variant: 'destructive',
       })
-      setCurrentStep(3)
+      setCurrentStep(2)
       return
     }
 
@@ -389,7 +413,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         description: t('conversionWizard.documents.step2Required'),
         variant: 'destructive',
       })
-      setCurrentStep(4)
+      setCurrentStep(3)
       return
     }
 
@@ -399,27 +423,24 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
         description: t('conversionWizard.documents.actaRequired'),
         variant: 'destructive',
       })
-      setCurrentStep(5)
+      setCurrentStep(4)
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // Convert feature IDs to feature codes
+      // Convert feature IDs to feature codes, excluding already-active features
       const featureCodes = selectedFeatures
         .map(featureId => {
           const feature = availableFeatures.find(f => f.id === featureId)
           return feature?.code
         })
-        .filter(Boolean) as string[]
+        .filter((code): code is string => !!code && !activeFeatureCodes.includes(code))
 
-      // Build request payload - only include non-null values for optional fields
+      // Build request payload - business info will be extracted from CSF document during KYC
       const payload: Record<string, unknown> = {
         entityType,
-        rfc: formData.rfc.toUpperCase(),
-        legalName: formData.legalName,
-        fiscalRegime: formData.fiscalRegime,
         // Required documents for all
         idDocumentUrl,
         rfcDocumentUrl,
@@ -558,6 +579,12 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <span className="text-green-600 truncate max-w-[200px]">{file.name}</span>
           </div>
         )}
+        {!file && !uploading && url && (
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <span className="text-green-600">{t('conversionWizard.documents.alreadyUploaded', { defaultValue: 'Documento ya cargado' })}</span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -636,62 +663,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       )
     }
 
-    // Step 2: Business Information
+    // Step 2: Documents Part 1 (INE + CSF)
     if (currentStep === 2) {
-      return (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <div>
-              <h4 className="font-semibold text-sm">{t('conversionWizard.businessInfo.title')}</h4>
-              <p className="text-xs text-muted-foreground">{t('conversionWizard.businessInfo.description')}</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="rfc">{t('conversionWizard.businessInfo.rfcLabel')}</Label>
-              <Input
-                id="rfc"
-                placeholder={tOnboarding('shared.rfcPlaceholder')}
-                className="uppercase"
-                {...businessInfoForm.register('rfc')}
-              />
-              {businessInfoForm.formState.errors.rfc && (
-                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.rfc.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="legalName">{t('conversionWizard.businessInfo.legalNameLabel')}</Label>
-              <Input
-                id="legalName"
-                placeholder={t('conversionWizard.businessInfo.legalNamePlaceholder')}
-                {...businessInfoForm.register('legalName')}
-              />
-              {businessInfoForm.formState.errors.legalName && (
-                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.legalName.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="fiscalRegime">{t('conversionWizard.businessInfo.fiscalRegimeLabel')}</Label>
-              <Input
-                id="fiscalRegime"
-                placeholder={t('conversionWizard.businessInfo.fiscalRegimePlaceholder')}
-                {...businessInfoForm.register('fiscalRegime')}
-              />
-              {businessInfoForm.formState.errors.fiscalRegime && (
-                <p className="text-sm text-destructive mt-1">{businessInfoForm.formState.errors.fiscalRegime.message}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    // Step 3: Documents Part 1 (INE + CSF)
-    if (currentStep === 3) {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
@@ -734,8 +707,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       )
     }
 
-    // Step 4: Documents Part 2 (Comprobante Domicilio + Carátula Bancaria)
-    if (currentStep === 4) {
+    // Step 3: Documents Part 2 (Comprobante Domicilio + Carátula Bancaria)
+    if (currentStep === 3) {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
@@ -778,8 +751,8 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
       )
     }
 
-    // Step 5 (PERSONA_MORAL only): Documents Part 3 (Acta + Poder Legal)
-    if (currentStep === 5 && entityType === 'PERSONA_MORAL') {
+    // Step 4 (PERSONA_MORAL only): Documents Part 3 (Acta + Poder Legal)
+    if (currentStep === 4 && entityType === 'PERSONA_MORAL') {
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
@@ -824,12 +797,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
     // Features step
     if (currentStep === getStepForFeatures()) {
-      const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
-        const feature = availableFeatures.find(f => f.id === featureId)
-        const featureCode = feature?.code
-        return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
-      }, 0)
-
       return (
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
@@ -852,19 +819,24 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
             <div className="space-y-3">
               {availableFeatures.map(feature => {
                 const price = FEATURE_PRICING[feature.code] || 0
+                const isAlreadyActive = activeFeatureCodes.includes(feature.code)
                 return (
                   <div
                     key={feature.id}
                     className={`flex items-start gap-3 p-4 border rounded-lg transition-colors ${
-                      selectedFeatures.includes(feature.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
+                      isAlreadyActive
+                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                        : selectedFeatures.includes(feature.id)
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
                     }`}
                   >
                     <Checkbox
                       id={`feature-${feature.id}`}
                       checked={selectedFeatures.includes(feature.id)}
+                      disabled={isAlreadyActive}
                       onCheckedChange={checked => {
+                        if (isAlreadyActive) return // Don't allow toggling active features
                         if (checked) {
                           setSelectedFeatures([...selectedFeatures, feature.id])
                         } else {
@@ -873,13 +845,19 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                       }}
                       className="mt-0.5"
                     />
-                    <label htmlFor={`feature-${feature.id}`} className="flex-1 cursor-pointer space-y-1">
+                    <label htmlFor={`feature-${feature.id}`} className={`flex-1 space-y-1 ${isAlreadyActive ? '' : 'cursor-pointer'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{feature.name}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {tOnboarding('shared.twoDaysFree')}
-                          </Badge>
+                          {isAlreadyActive ? (
+                            <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
+                              {t('conversionWizard.features.alreadyActive')}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              {tOnboarding('shared.twoDaysFree')}
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-sm font-semibold text-foreground">${price.toLocaleString()} MXN/mes</span>
                       </div>
@@ -985,12 +963,6 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
 
     // Summary step
     if (currentStep === getStepForSummary()) {
-      const totalMonthlyCost = selectedFeatures.reduce((sum, featureId) => {
-        const feature = availableFeatures.find(f => f.id === featureId)
-        const featureCode = feature?.code
-        return sum + (featureCode ? FEATURE_PRICING[featureCode] || 0 : 0)
-      }, 0)
-
       const allDocuments = [
         { label: t('conversionWizard.documents.ine'), completed: !!idDocumentUrl, required: true },
         { label: t('conversionWizard.documents.csf'), completed: !!rfcDocumentUrl, required: true },
@@ -1052,7 +1024,7 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                         {selectedFeatures.map(featureId => {
                           const feature = availableFeatures.find(f => f.id === featureId)
                           if (!feature) return null
-                          const price = feature.code ? FEATURE_PRICING[feature.code] : 0
+                          const price = feature.code ? (FEATURE_PRICING[feature.code] ?? 0) : 0
                           return (
                             <li key={featureId} className="flex items-center justify-between text-xs">
                               <span className="text-muted-foreground">{feature.name}</span>
@@ -1084,14 +1056,11 @@ export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venue
                     <span className="text-muted-foreground">{tOnboarding('shared.venueName')}</span>
                     <span className="font-medium">{venueName}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{tOnboarding('shared.rfc')}</span>
-                    <span className="font-medium">{formData.rfc || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{tOnboarding('shared.legalName')}</span>
-                    <span className="font-medium">{formData.legalName || 'N/A'}</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t('conversionWizard.summary.businessInfoNote', {
+                      defaultValue: 'La información fiscal (RFC, razón social) se extraerá de tu Constancia de Situación Fiscal durante el proceso de verificación.'
+                    })}
+                  </p>
                 </div>
               </div>
 

@@ -54,7 +54,8 @@ export function OnboardingLayout({ children, currentStep, totalSteps, stepTitle 
           {/* Progress indicator - responsive spacing */}
           <div className="mb-4 sm:mb-6 md:mb-8">
             <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
-            <div className="mt-3 sm:mt-4 text-center px-2">
+            {/* Step title - hidden on mobile to avoid duplication with step component titles */}
+            <div className="mt-3 sm:mt-4 text-center px-2 hidden sm:block">
               <p className="text-muted-foreground text-xs sm:text-sm">
                 {t('stepProgress', { current: currentStep, total: totalSteps })}
               </p>

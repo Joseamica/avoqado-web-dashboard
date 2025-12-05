@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -10,6 +11,10 @@ import {
 
 export function Toaster() {
   const { toasts } = useToast()
+  const location = useLocation()
+
+  // Show toast at top for onboarding pages
+  const isOnboarding = location.pathname.startsWith('/onboarding')
 
   return (
     <ToastProvider>
@@ -27,7 +32,12 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport />
+      <ToastViewport
+        className={isOnboarding
+          ? "sm:top-0 sm:bottom-auto"
+          : undefined
+        }
+      />
     </ToastProvider>
   )
 }

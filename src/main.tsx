@@ -7,12 +7,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './i18n'
 import './index.css'
 import './theme.css'
-const queryClient = new QueryClient({
-  // defaultOptions:{
-  //   queries:{
-  //   }
-  // }
-})
+
+const queryClient = new QueryClient()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Failed to find the root element')

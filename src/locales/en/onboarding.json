@@ -298,6 +298,14 @@
     "title": "Choose Your Features",
     "subtitle": "Select premium features to enhance your business, or skip and do it later",
     "description": "These features can be enabled or disabled at any time from your dashboard settings.",
+    "paymentDialog": {
+      "title": "Activate your features",
+      "subtitle": "Add a payment method to start your free 2-day trial",
+      "totalAfterTrial": "Total after trial",
+      "or": "or",
+      "continueWithout": "Continue without features",
+      "continueWithoutHint": "You can add them later in Settings"
+    },
     "available": {
       "CHATBOT": {
         "name": "AI Chatbot",

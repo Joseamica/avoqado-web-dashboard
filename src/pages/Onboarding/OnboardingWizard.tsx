@@ -561,7 +561,21 @@ export function OnboardingWizard() {
     return null // Will redirect via useEffect
   }
 
-  const currentStep = STEPS[currentStepIndex]
+  // Safeguard: Ensure currentStepIndex is always within bounds
+  // This handles edge cases like stale URL hashes (e.g., #step-9 when only 8 steps exist)
+  const safeStepIndex = Math.min(Math.max(0, currentStepIndex), STEPS.length - 1)
+  const currentStep = STEPS[safeStepIndex]
+
+  // If the index was out of bounds, fix it synchronously (no useEffect needed here)
+  // The next render will use the corrected value
+  if (currentStepIndex !== safeStepIndex) {
+    console.warn(`⚠️ Invalid step index ${currentStepIndex}, resetting to ${safeStepIndex}`)
+    // Schedule state update for next tick to avoid render-time setState
+    setTimeout(() => {
+      setCurrentStepIndex(safeStepIndex)
+      window.history.replaceState(null, '', getHashFromStepIndex(safeStepIndex))
+    }, 0)
+  }
 
   // Render the appropriate step with its specific props
   const renderStep = () => {
@@ -569,8 +583,8 @@ export function OnboardingWizard() {
       onNext: handleNext,
       onPrevious: handlePrevious,
       onSkip: handleSkip,
-      isFirstStep: currentStepIndex === 0,
-      isLastStep: currentStepIndex === STEPS.length - 1,
+      isFirstStep: safeStepIndex === 0,
+      isLastStep: safeStepIndex === STEPS.length - 1,
     }
 
     switch (currentStep.id) {
@@ -689,7 +703,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <OnboardingLayout currentStep={currentStepIndex + 1} totalSteps={STEPS.length} stepTitle={t(currentStep.title)}>
+    <OnboardingLayout currentStep={safeStepIndex + 1} totalSteps={STEPS.length} stepTitle={t(currentStep.title)}>
       {renderStep()}
     </OnboardingLayout>
   )

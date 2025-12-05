@@ -8,6 +8,7 @@ interface NavigationButtonsProps {
   onContinue?: () => void
   isFirstStep?: boolean
   showSkip?: boolean
+  showContinue?: boolean
   isLoading?: boolean
   continueDisabled?: boolean
   continueLabel?: string
@@ -20,6 +21,7 @@ export function NavigationButtons({
   onContinue,
   isFirstStep = false,
   showSkip = false,
+  showContinue = true,
   isLoading = false,
   continueDisabled = false,
   continueLabel,
@@ -64,22 +66,24 @@ export function NavigationButtons({
                   {t('skip')}
                 </Button>
               )}
-              <Button
-                type={formId ? 'submit' : 'button'}
-                form={formId}
-                onClick={formId ? undefined : onContinue}
-                disabled={isLoading || continueDisabled}
-                className="h-9 px-4 sm:h-10 sm:px-6"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('loading')}
-                  </>
-                ) : (
-                  continueLabel || t('continue')
-                )}
-              </Button>
+              {showContinue && (
+                <Button
+                  type={formId ? 'submit' : 'button'}
+                  form={formId}
+                  onClick={formId ? undefined : onContinue}
+                  disabled={isLoading || continueDisabled}
+                  className="h-9 px-4 sm:h-10 sm:px-6"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('loading')}
+                    </>
+                  ) : (
+                    continueLabel || t('continue')
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

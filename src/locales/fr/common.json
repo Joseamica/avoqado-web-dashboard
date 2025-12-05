@@ -94,10 +94,11 @@
     }
   },
   "venuesSwitcher": {
-    "title": "Venues",
-    "addVenue": "Add venue",
-    "selectVenue": "Select venue",
-    "current": "(current)"
+    "title": "Établissements",
+    "addVenue": "Ajouter un établissement",
+    "selectVenue": "Sélectionner un établissement",
+    "current": "(actuel)",
+    "inactive": "Inactifs"
   },
   "layout": {
     "noVenuesAssigned": "Aucune venue assignée",
@@ -333,6 +334,13 @@
       "legalName": "Raison sociale",
       "confirmationMessage": "En cliquant, vous confirmez que les informations sont correctes."
     },
+    "features": {
+      "title": "Sélectionner les fonctionnalités",
+      "description": "Choisissez les fonctionnalités premium à activer",
+      "loading": "Chargement des fonctionnalités...",
+      "noFeatures": "Aucune fonctionnalité disponible",
+      "alreadyActive": "Active"
+    },
     "success": {
       "title": "Conversion réussie !",
       "description": "Votre établissement a été converti avec succès."
@@ -368,6 +376,15 @@
     "title": "Une erreur s'est produite",
     "description": "Une erreur inattendue s'est produite. Veuillez réessayer.",
     "goHome": "Retour à l'accueil",
+    "retry": "Réessayer"
+  },
+  "errors": {
+    "unauthorized": "Non autorisé",
+    "noPermission": "Vous n'avez pas la permission d'effectuer cette action",
+    "offline": "Pas de connexion",
+    "offlineDescription": "Vérifiez votre connexion internet",
+    "serverUnavailable": "Serveur non disponible",
+    "serverUnavailableDescription": "Tentative de reconnexion...",
     "retry": "Réessayer"
   }
 }

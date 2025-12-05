@@ -179,3 +179,37 @@ export const resetPassword = async (token: string, newPassword: string): Promise
   const response = await api.post('/api/v1/dashboard/auth/reset-password', { token, newPassword })
   return response.data
 }
+
+// Email Verification
+export interface VerifyEmailDto {
+  email: string
+  verificationCode: string
+}
+
+export interface VerifyEmailResponse {
+  emailVerified: boolean
+  accessToken: string
+  refreshToken: string
+}
+
+export const verifyEmail = async (data: VerifyEmailDto): Promise<VerifyEmailResponse> => {
+  const response = await api.post('/api/v1/onboarding/verify-email', data)
+  return response.data
+}
+
+// Service object for convenience
+export const authService = {
+  login,
+  logout,
+  getAuthStatus,
+  switchVenue,
+  getGoogleAuthUrl,
+  googleOAuthCallback,
+  checkGoogleInvitation,
+  googleOneTapLogin,
+  signup,
+  requestPasswordReset,
+  validateResetToken,
+  resetPassword,
+  verifyEmail,
+}

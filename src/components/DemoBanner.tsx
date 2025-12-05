@@ -27,6 +27,7 @@ export function DemoBanner() {
         venueId={venue?.id || ''}
         venueSlug={venue?.slug || ''}
         venueName={venue?.name || ''}
+        venue={venue}
       />
 
       <div className="relative w-full animate-in slide-in-from-top duration-500">

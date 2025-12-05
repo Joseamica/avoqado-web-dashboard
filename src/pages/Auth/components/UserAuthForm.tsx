@@ -74,6 +74,9 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       }
     : {}
 
+  // Email validation regex (standard RFC 5322 compliant)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
   const {
     register,
     handleSubmit,
@@ -123,7 +126,13 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
         <div className="grid gap-3">
           <Label htmlFor="email">{t('login.emailLabel')}</Label>
           <Input
-            {...register('email', { required: t('login.emailRequired') })}
+            {...register('email', {
+              required: t('login.emailRequired'),
+              pattern: {
+                value: emailRegex,
+                message: t('login.emailInvalid'),
+              },
+            })}
             id="email"
             type="email"
             placeholder={t('login.emailPlaceholder')}

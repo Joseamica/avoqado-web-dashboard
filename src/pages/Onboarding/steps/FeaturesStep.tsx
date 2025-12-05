@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { StripePaymentMethod } from '@/components/StripePaymentMethod'
 import { NavigationButtons } from '../components/NavigationButtons'
+import { PaymentRequiredDialog } from '../components/PaymentRequiredDialog'
 import { Info } from 'lucide-react'
 
 export interface FeaturesStepData {
@@ -15,7 +15,6 @@ export interface FeaturesStepData {
 interface FeaturesStepProps {
   onNext: () => void
   onPrevious: () => void
-  onSkip?: () => void
   isFirstStep: boolean
   isLastStep: boolean
   onSave: (data: FeaturesStepData) => void
@@ -41,11 +40,11 @@ const FEATURE_PRICING: Record<string, number> = {
   RESERVATIONS: 399,
 }
 
-export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, initialValue }: FeaturesStepProps) {
+export function FeaturesStep({ onNext, onPrevious, isFirstStep, onSave, initialValue }: FeaturesStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
 
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(initialValue?.features || [])
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
 
   // Calculate total monthly cost
   const totalMonthlyCost = selectedFeatures.reduce((sum, feature) => sum + (FEATURE_PRICING[feature] || 0), 0)
@@ -64,18 +63,20 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
   }
 
   const handleContinue = () => {
-    // If no features selected, just continue
-    onSave({ features: selectedFeatures })
-    onNext()
-  }
-
-  const handleSkip = () => {
-    onSave({ features: [] })
-    if (onSkip) {
-      onSkip()
+    if (selectedFeatures.length > 0) {
+      // Features selected - show payment dialog
+      setShowPaymentDialog(true)
     } else {
+      // No features - just continue
+      onSave({ features: [] })
       onNext()
     }
+  }
+
+  const handleContinueWithoutFeatures = () => {
+    // User chose to continue without features
+    onSave({ features: [] })
+    onNext()
   }
 
   return (
@@ -148,21 +149,7 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
         </Card>
       )}
 
-      {/* Stripe Payment Method - Show when features are selected */}
-      {selectedFeatures.length > 0 && (
-        <div className="space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-foreground">{t('shared.paymentMethod')}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{t('shared.addPaymentForTrial')}</p>
-          </div>
-          <StripePaymentMethod
-            onPaymentMethodCreated={handlePaymentMethodCreated}
-            buttonText={t('shared.startFreeTrial2Days')}
-          />
-        </div>
-      )}
-
-      {/* Skip Info - Only show when no features selected */}
+      {/* Info card - Only show when no features selected */}
       {selectedFeatures.length === 0 && (
         <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
           <CardContent className="pt-6">
@@ -180,10 +167,18 @@ export function FeaturesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, 
       {/* Fixed Navigation buttons */}
       <NavigationButtons
         onPrevious={onPrevious}
-        onSkip={handleSkip}
-        onContinue={selectedFeatures.length === 0 ? handleContinue : handleSkip}
+        onContinue={handleContinue}
         isFirstStep={isFirstStep}
-        showSkip={true}
+      />
+
+      {/* Payment Required Dialog */}
+      <PaymentRequiredDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        selectedFeatures={selectedFeatures}
+        featurePricing={FEATURE_PRICING}
+        onPaymentComplete={handlePaymentMethodCreated}
+        onContinueWithout={handleContinueWithoutFeatures}
       />
     </div>
   )

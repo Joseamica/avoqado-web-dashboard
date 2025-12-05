@@ -109,8 +109,8 @@ export function PaymentMethodSelector({
           </Button>
         )}
 
-        {/* Stripe payment method form */}
-        <StripePaymentMethod onPaymentMethodCreated={handlePaymentMethodCreated} buttonText={buttonText} />
+        {/* Stripe payment method form with SetupIntent validation */}
+        <StripePaymentMethod venueId={venueId} onPaymentMethodCreated={handlePaymentMethodCreated} buttonText={buttonText} />
       </div>
     )
   }

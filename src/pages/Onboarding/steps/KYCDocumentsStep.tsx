@@ -231,63 +231,55 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-3 sm:space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground">
+        <h2 className="text-lg sm:text-2xl font-bold text-foreground">
           {t('kycDocuments.title', { defaultValue: 'Documentación Fiscal' })}
         </h2>
-        <p className="mt-2 text-muted-foreground">
+        <p className="mt-1 sm:mt-2 text-xs sm:text-base text-muted-foreground">
           {t('kycDocuments.subtitle', { defaultValue: 'Sube los documentos requeridos para verificar tu negocio' })}
         </p>
       </div>
 
-      {/* Entity Type Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {t('kycDocuments.entityType.title', { defaultValue: 'Tipo de Persona' })}
-          </CardTitle>
-          <CardDescription>
-            {t('kycDocuments.entityType.subtitle', { defaultValue: 'Selecciona el tipo de contribuyente' })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Entity Type Selection - Compact horizontal layout */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-2 sm:p-4">
           <RadioGroup
             value={entityType || ''}
             onValueChange={value => setEntityType(value as EntityType)}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            className="flex gap-2 sm:gap-3"
           >
-            <div>
+            <div className="flex-1">
               <RadioGroupItem value="PERSONA_FISICA" id="fisica" className="peer sr-only" />
               <Label
                 htmlFor="fisica"
-                className="flex cursor-pointer flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                className="flex cursor-pointer items-center gap-2 sm:gap-3 rounded-lg border-2 border-muted bg-popover px-2.5 py-2 sm:px-4 sm:py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary"
               >
-                <User className="mb-3 h-8 w-8" />
-                <div className="text-center">
-                  <p className="font-medium">
+                <User className="h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0" />
+                <div>
+                  <p className="text-[11px] sm:text-sm font-medium leading-tight">
                     {t('kycDocuments.entityType.personaFisica', { defaultValue: 'Persona Física' })}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[9px] sm:text-xs text-muted-foreground hidden sm:block leading-tight mt-0.5">
                     {t('kycDocuments.entityType.personaFisicaDesc', { defaultValue: 'Individuo con actividad empresarial' })}
                   </p>
                 </div>
               </Label>
             </div>
 
-            <div>
+            <div className="flex-1">
               <RadioGroupItem value="PERSONA_MORAL" id="moral" className="peer sr-only" />
               <Label
                 htmlFor="moral"
-                className="flex cursor-pointer flex-col items-center justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                className="flex cursor-pointer items-center gap-2 sm:gap-3 rounded-lg border-2 border-muted bg-popover px-2.5 py-2 sm:px-4 sm:py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary"
               >
-                <Building2 className="mb-3 h-8 w-8" />
-                <div className="text-center">
-                  <p className="font-medium">
+                <Building2 className="h-4 w-4 sm:h-6 sm:w-6 flex-shrink-0" />
+                <div>
+                  <p className="text-[11px] sm:text-sm font-medium leading-tight">
                     {t('kycDocuments.entityType.personaMoral', { defaultValue: 'Persona Moral' })}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[9px] sm:text-xs text-muted-foreground hidden sm:block leading-tight mt-0.5">
                     {t('kycDocuments.entityType.personaMoralDesc', { defaultValue: 'Empresa o sociedad constituida' })}
                   </p>
                 </div>
@@ -299,12 +291,12 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
 
       {/* Documents Grid */}
       {entityType && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">
+        <div className="space-y-2 sm:space-y-4">
+          <h3 className="text-base sm:text-lg font-semibold text-foreground">
             {t('kycDocuments.documentsTitle', { defaultValue: 'Documentos Requeridos' })}
           </h3>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2">
             {visibleDocuments.map(doc => {
               const hasDoc = !!documents[doc.key as keyof typeof documents]
               const isUploading = uploadingDocs[doc.key]
@@ -321,10 +313,10 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                         : ''
                   }`}
                 >
-                  <CardHeader className="flex-1 pb-3">
+                  <CardHeader className="flex-1 p-3 sm:p-4 pb-2 sm:pb-3">
                     <div className="flex items-start gap-2">
                       <div
-                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                        className={`flex h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0 items-center justify-center rounded-lg ${
                           isMissing
                             ? 'bg-destructive/20'
                             : hasDoc
@@ -333,27 +325,27 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                         }`}
                       >
                         {isUploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-primary" />
                         ) : isMissing ? (
-                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
                         ) : hasDoc ? (
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
                         ) : (
-                          <FileText className="h-4 w-4 text-primary" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                         )}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1">
-                          <CardTitle className={`text-sm ${isMissing ? 'text-destructive' : 'text-foreground'}`}>
+                          <CardTitle className={`text-xs sm:text-sm leading-tight ${isMissing ? 'text-destructive' : 'text-foreground'}`}>
                             {doc.label}
                           </CardTitle>
                           {doc.required && <span className="text-xs font-semibold text-destructive">*</span>}
                         </div>
-                        <CardDescription className="mt-0.5 min-h-[2.5rem] text-xs">{doc.description}</CardDescription>
+                        <CardDescription className="mt-0.5 text-[10px] sm:text-xs leading-tight line-clamp-2">{doc.description}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 pt-0">
+                  <CardContent className="space-y-1.5 sm:space-y-2 p-3 sm:p-4 pt-0">
                     {/* Hidden file input */}
                     <input
                       type="file"
@@ -371,18 +363,18 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                     <Button
                       variant={isMissing ? 'destructive' : hasDoc ? 'outline' : 'outline'}
                       size="sm"
-                      className="w-full"
+                      className="w-full h-8 sm:h-9 text-xs sm:text-sm"
                       onClick={() => document.getElementById(`file-input-${doc.key}`)?.click()}
                       disabled={isUploading}
                     >
                       {isUploading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                           {t('kycDocuments.uploading', { defaultValue: 'Subiendo...' })}
                         </>
                       ) : (
                         <>
-                          <Upload className="mr-2 h-4 w-4" />
+                          <Upload className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                           {hasDoc
                             ? t('kycDocuments.changeDocument', { defaultValue: 'Cambiar documento' })
                             : t('kycDocuments.uploadDocument', { defaultValue: 'Subir Documentación' })}
@@ -390,8 +382,8 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
                       )}
                     </Button>
 
-                    {/* Required message - fixed height to maintain alignment */}
-                    <p className={`h-5 text-center text-sm font-medium ${isMissing ? 'text-destructive' : 'text-transparent'}`}>
+                    {/* Required message - compact on mobile */}
+                    <p className={`h-4 sm:h-5 text-center text-[10px] sm:text-sm font-medium ${isMissing ? 'text-destructive' : 'text-transparent'}`}>
                       {t('kycDocuments.required', { defaultValue: 'Esta documentación es requerida' })}
                     </p>
                   </CardContent>
@@ -404,14 +396,14 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
 
       {/* Info notice */}
       <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
-        <CardContent className="pt-6">
-          <div className="flex gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+        <CardContent className="p-3 sm:pt-6 sm:p-6">
+          <div className="flex gap-2 sm:gap-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+            <div className="flex-1 space-y-0.5 sm:space-y-1">
+              <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100">
                 {t('kycDocuments.notice.title', { defaultValue: 'Verificación de documentos' })}
               </p>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="text-[10px] sm:text-sm text-blue-700 dark:text-blue-300">
                 {t('kycDocuments.notice.description', {
                   defaultValue: 'Tus documentos serán revisados por nuestro equipo. Este proceso puede tomar hasta 48 horas hábiles.',
                 })}
@@ -423,11 +415,11 @@ export function KYCDocumentsStep({ onNext, onPrevious, isFirstStep, onSave, init
 
       {/* Required Notice */}
       <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/50">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+        <CardContent className="p-3 sm:pt-6 sm:p-6">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{t('kycDocuments.requiredNotice')}</p>
+              <p className="text-xs sm:text-sm font-medium text-amber-900 dark:text-amber-100">{t('kycDocuments.requiredNotice')}</p>
             </div>
           </div>
         </CardContent>

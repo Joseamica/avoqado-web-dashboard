@@ -68,8 +68,21 @@
   "errors": {
     "unauthorized": "Unauthorized",
     "noPermission": "You don't have permission to perform this action",
-    "offline": "You're offline",
-    "offlineDescription": "Please check your internet connection and try again"
+    "offline": "No Internet Connection",
+    "offlineDescription": "Please check your internet connection and try again.",
+    "serverUnavailable": "Server Unavailable",
+    "serverUnavailableDescription": "We're having trouble connecting to the server. We'll retry automatically.",
+    "serverUnavailableHint": "We'll automatically retry the connection in a few seconds.",
+    "retryNow": "Retry Now",
+    "reconnecting": "Reconnecting...",
+    "reconnectingDescription": "Reconnection attempt {{attempt}}.",
+    "degraded": "Limited Service",
+    "degradedDescription": "Some services are unavailable: {{services}}",
+    "connected": "Connected",
+    "connectedDescription": "Everything is working correctly.",
+    "status": "Status",
+    "affected": "Affected",
+    "retry": "Retry"
   },
   "dateRange": {
     "today": "Today",
@@ -121,7 +134,8 @@
     "title": "Venues",
     "addVenue": "Add venue",
     "selectVenue": "Select venue",
-    "current": "(current)"
+    "current": "(current)",
+    "inactive": "Inactive"
   },
   "layout": {
     "noVenuesAssigned": "No venues assigned",
@@ -398,7 +412,8 @@
       "title": "Select Features",
       "description": "Choose the premium features you want to activate",
       "loading": "Loading features...",
-      "noFeatures": "No features available at this time"
+      "noFeatures": "No features available at this time",
+      "alreadyActive": "Active"
     },
     "summary": {
       "kycNotice": {

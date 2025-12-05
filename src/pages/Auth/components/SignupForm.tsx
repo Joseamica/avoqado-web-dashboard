@@ -2,6 +2,7 @@ import React from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { Icons } from '@/components/icons'
 import { Button } from '@/components/ui/button'
@@ -9,13 +10,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
-import { SignupDto } from '@/services/auth.service'
+import { authService, SignupDto } from '@/services/auth.service'
 
 type Inputs = SignupDto
 
 export function SignupForm({ className, ...props }: React.ComponentProps<'form'>) {
   const { t } = useTranslation('auth')
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { signup, isLoading } = useAuth()
 
   const {
@@ -28,6 +30,22 @@ export function SignupForm({ className, ...props }: React.ComponentProps<'form'>
     try {
       // Wait for signup to complete successfully
       await signup(formData)
+
+      // DEV: Skip email verification with bypass code
+      const skipVerification =
+        import.meta.env.DEV && import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true'
+
+      if (skipVerification) {
+        // Auto-verify with bypass code and go directly to onboarding
+        await authService.verifyEmail({
+          email: formData.email,
+          verificationCode: '000000',
+        })
+        // Refetch auth status to update context (same pattern as EmailVerificationForm)
+        await queryClient.refetchQueries({ queryKey: ['status'], type: 'active' })
+        navigate('/onboarding', { replace: true })
+        return
+      }
 
       // Navigate to dedicated verification page (FAANG UX pattern)
       // IMPORTANT: Pass state to indicate user comes from signup flow

@@ -266,6 +266,14 @@
     "title": "Choisissez Vos Fonctionnalités",
     "subtitle": "Sélectionnez des fonctionnalités premium pour améliorer votre entreprise, ou passez et faites-le plus tard",
     "description": "Ces fonctionnalités peuvent être activées ou désactivées à tout moment depuis les paramètres de votre tableau de bord.",
+    "paymentDialog": {
+      "title": "Activez vos fonctionnalités",
+      "subtitle": "Ajoutez un moyen de paiement pour démarrer votre essai gratuit de 2 jours",
+      "totalAfterTrial": "Total après l'essai",
+      "or": "ou",
+      "continueWithout": "Continuer sans fonctionnalités",
+      "continueWithoutHint": "Vous pouvez les ajouter plus tard dans Paramètres"
+    },
     "available": {
       "CHATBOT": {
         "name": "Chatbot IA",

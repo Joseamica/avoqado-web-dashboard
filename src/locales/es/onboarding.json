@@ -298,6 +298,14 @@
     "title": "Elige Tus Funciones",
     "subtitle": "Selecciona funciones premium para mejorar tu negocio, o salta y hazlo después",
     "description": "Estas funciones se pueden activar o desactivar en cualquier momento desde la configuración de tu panel.",
+    "paymentDialog": {
+      "title": "Activa tus funcionalidades",
+      "subtitle": "Agrega un método de pago para comenzar tu trial gratuito de 2 días",
+      "totalAfterTrial": "Total después del trial",
+      "or": "o",
+      "continueWithout": "Continuar sin funcionalidades",
+      "continueWithoutHint": "Puedes agregarlas después en Configuración"
+    },
     "available": {
       "CHATBOT": {
         "name": "Chatbot IA",

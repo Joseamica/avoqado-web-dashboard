@@ -4,16 +4,20 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { loadStripe } from '@stripe/stripe-js'
 import { Card, CardContent } from '@/components/ui/card'
 import { LoadingButton } from '@/components/ui/loading-button'
+import { Loader2 } from 'lucide-react'
+import api from '@/api'
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
 
 interface StripePaymentFormProps {
+  venueId?: string
+  clientSecret?: string
   onPaymentMethodCreated: (paymentMethodId: string) => void
   buttonText?: string
 }
 
-function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar trial gratuito' }: StripePaymentFormProps) {
+function StripePaymentForm({ venueId, clientSecret, onPaymentMethodCreated, buttonText = 'Comenzar trial gratuito' }: StripePaymentFormProps) {
   const { t } = useTranslation('payment')
   const stripe = useStripe()
   const elements = useElements()
@@ -85,7 +89,7 @@ function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar tria
 
     // Validate card is complete before submitting
     if (!cardComplete) {
-      setError('Por favor completa la información de tu tarjeta')
+      setError(t('stripe.completeCardInfo', 'Por favor completa la información de tu tarjeta'))
       return
     }
 
@@ -93,30 +97,59 @@ function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar tria
     setIsSubmitting(true)
 
     try {
-      // Create payment method
-      const { error: createError, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      })
+      // If we have a clientSecret (SetupIntent), use confirmCardSetup for real validation
+      // This validates the card can actually be charged (catches declined cards)
+      if (clientSecret) {
+        const { error: setupError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+          payment_method: {
+            card: cardElement,
+          },
+        })
 
-      if (createError) {
-        setError(createError.message || 'Error creating payment method')
-        setIsSubmitting(false)
-        return
+        if (setupError) {
+          // Show user-friendly error messages for common decline codes
+          const errorMessage = getStripeErrorMessage(setupError.code, setupError.message, t)
+          setError(errorMessage)
+          setIsSubmitting(false)
+          return
+        }
+
+        if (!setupIntent || !setupIntent.payment_method) {
+          setError(t('stripe.noPaymentMethod', 'No se pudo validar el método de pago'))
+          setIsSubmitting(false)
+          return
+        }
+
+        // Pass the validated payment method ID to parent
+        const paymentMethodId = typeof setupIntent.payment_method === 'string'
+          ? setupIntent.payment_method
+          : setupIntent.payment_method.id
+        onPaymentMethodCreated(paymentMethodId)
+      } else {
+        // Fallback: just create payment method (no real validation)
+        const { error: createError, paymentMethod } = await stripe.createPaymentMethod({
+          type: 'card',
+          card: cardElement,
+        })
+
+        if (createError) {
+          setError(createError.message || t('stripe.errorCreating', 'Error al crear método de pago'))
+          setIsSubmitting(false)
+          return
+        }
+
+        if (!paymentMethod) {
+          setError(t('stripe.noPaymentMethod', 'No se creó el método de pago'))
+          setIsSubmitting(false)
+          return
+        }
+
+        onPaymentMethodCreated(paymentMethod.id)
       }
-
-      if (!paymentMethod) {
-        setError('No payment method created')
-        setIsSubmitting(false)
-        return
-      }
-
-      // Pass payment method ID to parent
-      onPaymentMethodCreated(paymentMethod.id)
       // Keep isSubmitting true - parent will navigate away
     } catch (err: any) {
-      console.error('Error creating payment method:', err)
-      setError(err.message || 'Error processing payment method')
+      console.error('Error processing payment method:', err)
+      setError(err.message || t('stripe.errorProcessing', 'Error procesando el método de pago'))
       setIsSubmitting(false)
     }
   }
@@ -173,15 +206,95 @@ function StripePaymentForm({ onPaymentMethodCreated, buttonText = 'Comenzar tria
   )
 }
 
+/**
+ * Get user-friendly error messages for Stripe error codes
+ */
+function getStripeErrorMessage(code: string | undefined, defaultMessage: string | undefined, t: any): string {
+  const errorMessages: Record<string, string> = {
+    'card_declined': t('stripe.errors.cardDeclined', 'Tu tarjeta fue rechazada. Intenta con otra tarjeta.'),
+    'insufficient_funds': t('stripe.errors.insufficientFunds', 'Fondos insuficientes. Intenta con otra tarjeta.'),
+    'expired_card': t('stripe.errors.expiredCard', 'Tu tarjeta ha expirado. Intenta con otra tarjeta.'),
+    'incorrect_cvc': t('stripe.errors.incorrectCvc', 'El código de seguridad (CVC) es incorrecto.'),
+    'incorrect_number': t('stripe.errors.incorrectNumber', 'El número de tarjeta es incorrecto.'),
+    'processing_error': t('stripe.errors.processingError', 'Error al procesar la tarjeta. Intenta de nuevo.'),
+    'invalid_expiry_year': t('stripe.errors.invalidExpiry', 'La fecha de expiración es inválida.'),
+    'invalid_expiry_month': t('stripe.errors.invalidExpiry', 'La fecha de expiración es inválida.'),
+  }
+
+  return errorMessages[code || ''] || defaultMessage || t('stripe.errors.generic', 'Error al validar la tarjeta. Intenta con otra.')
+}
+
 interface StripePaymentMethodProps {
+  venueId?: string
+  useOnboardingIntent?: boolean
   onPaymentMethodCreated: (paymentMethodId: string) => void
   buttonText?: string
 }
 
-export function StripePaymentMethod({ onPaymentMethodCreated, buttonText }: StripePaymentMethodProps) {
+/**
+ * Stripe payment method component with SetupIntent validation
+ *
+ * - When `venueId` is provided: uses venue SetupIntent for real card validation
+ * - When `useOnboardingIntent` is true: uses onboarding SetupIntent (no customer yet)
+ * - When neither: falls back to createPaymentMethod (format validation only)
+ *
+ * (catches declined cards BEFORE user completes the flow)
+ */
+export function StripePaymentMethod({ venueId, useOnboardingIntent, onPaymentMethodCreated, buttonText }: StripePaymentMethodProps) {
+  const { t } = useTranslation('payment')
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [isLoadingIntent, setIsLoadingIntent] = useState(false)
+  const [intentError, setIntentError] = useState<string | null>(null)
+
+  // Fetch SetupIntent when venueId or useOnboardingIntent is provided
+  useEffect(() => {
+    if (!venueId && !useOnboardingIntent) return
+
+    const fetchSetupIntent = async () => {
+      setIsLoadingIntent(true)
+      setIntentError(null)
+      try {
+        let response
+        if (useOnboardingIntent) {
+          // Onboarding: create SetupIntent without customer
+          response = await api.post('/api/v1/onboarding/setup-intent')
+        } else {
+          // Venue: create SetupIntent with customer
+          response = await api.post(`/api/v1/dashboard/venues/${venueId}/setup-intent`)
+        }
+        setClientSecret(response.data.data.clientSecret)
+      } catch (err: any) {
+        console.error('Failed to create SetupIntent:', err)
+        // Don't block - fall back to createPaymentMethod
+        setIntentError(t('stripe.setupIntentError', 'No se pudo preparar la validación de tarjeta'))
+      } finally {
+        setIsLoadingIntent(false)
+      }
+    }
+
+    fetchSetupIntent()
+  }, [venueId, useOnboardingIntent, t])
+
+  // Show loading while fetching SetupIntent
+  if (isLoadingIntent) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">{t('stripe.preparingForm', 'Preparando formulario...')}</span>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Elements stripe={stripePromise}>
-      <StripePaymentForm onPaymentMethodCreated={onPaymentMethodCreated} buttonText={buttonText} />
+      <StripePaymentForm
+        venueId={venueId}
+        clientSecret={clientSecret || undefined}
+        onPaymentMethodCreated={onPaymentMethodCreated}
+        buttonText={buttonText}
+      />
     </Elements>
   )
 }
