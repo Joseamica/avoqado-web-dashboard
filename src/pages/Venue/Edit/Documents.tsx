@@ -131,6 +131,8 @@ export default function VenueDocuments() {
         description: t('edit.documents.kycSubmittedDesc', { defaultValue: 'Tu documentación ha sido enviada para revisión' }),
       })
       queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+      // Refresh auth status to update KYC banner immediately
+      queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: (error: any) => {
       // Check if error is about missing documents
@@ -165,6 +167,8 @@ export default function VenueDocuments() {
       })
       setIsApproveDialogOpen(false)
       queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+      // Refresh auth status to update venue status immediately
+      queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: (error: any) => {
       toast({
@@ -191,6 +195,8 @@ export default function VenueDocuments() {
       setRejectionReason('')
       setSelectedRejectedDocs([])
       queryClient.invalidateQueries({ queryKey: ['venue-documents', venueId] })
+      // Refresh auth status to update venue status immediately
+      queryClient.invalidateQueries({ queryKey: ['status'] })
     },
     onError: (error: any) => {
       toast({

@@ -7,6 +7,37 @@ import { ArrowLeft, Search } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { VenueStatus } from '@/types'
+
+/**
+ * Get badge variant and label for venue status
+ * Maps VenueStatus enum to UI representation
+ */
+function getVenueStatusBadge(status?: VenueStatus, active?: boolean): { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string } {
+  // Fallback to active boolean if status is not available (backwards compatibility)
+  if (!status) {
+    return active ? { variant: 'default', label: 'Activo' } : { variant: 'secondary', label: 'Inactivo' }
+  }
+
+  switch (status) {
+    case VenueStatus.ONBOARDING:
+      return { variant: 'outline', label: 'Configurando' }
+    case VenueStatus.TRIAL:
+      return { variant: 'outline', label: 'Demo' }
+    case VenueStatus.PENDING_ACTIVATION:
+      return { variant: 'outline', label: 'Pendiente KYC' }
+    case VenueStatus.ACTIVE:
+      return { variant: 'default', label: 'Activo' }
+    case VenueStatus.SUSPENDED:
+      return { variant: 'secondary', label: 'Suspendido' }
+    case VenueStatus.ADMIN_SUSPENDED:
+      return { variant: 'destructive', label: 'Suspendido (Admin)' }
+    case VenueStatus.CLOSED:
+      return { variant: 'secondary', label: 'Cerrado' }
+    default:
+      return { variant: 'secondary', label: 'Desconocido' }
+  }
+}
 
 const Venues = () => {
   const { t } = useTranslation('venues')
@@ -81,7 +112,10 @@ const Venues = () => {
                   <TableCell className="text-muted-foreground">{venue.id}</TableCell>
                   <TableCell>{venue.address || t('list.noAddress')}</TableCell>
                   <TableCell>
-                    <Badge variant={venue.active ? 'default' : 'secondary'}>{venue.active ? t('list.active') : t('list.inactive')}</Badge>
+                    {(() => {
+                      const { variant, label } = getVenueStatusBadge(venue.status, venue.active)
+                      return <Badge variant={variant}>{label}</Badge>
+                    })()}
                   </TableCell>
                   <TableCell>-</TableCell>
                 </TableRow>

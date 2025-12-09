@@ -107,6 +107,8 @@ const KYCReview: React.FC = () => {
       })
       queryClient.invalidateQueries({ queryKey: ['kyc-review', venueId] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      // Also invalidate auth status to refresh venue data in other tabs
+      queryClient.invalidateQueries({ queryKey: ['status'] })
       setIsApproveDialogOpen(false)
       navigate('/superadmin/venues')
     },
@@ -131,6 +133,8 @@ const KYCReview: React.FC = () => {
       })
       queryClient.invalidateQueries({ queryKey: ['kyc-review', venueId] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
+      // Also invalidate auth status to refresh venue data in other tabs
+      queryClient.invalidateQueries({ queryKey: ['status'] })
       setIsRejectDialogOpen(false)
       setRejectionReason('')
       setSelectedRejectedDocs([])

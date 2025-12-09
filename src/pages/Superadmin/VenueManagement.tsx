@@ -223,7 +223,7 @@ const VenueManagement: React.FC = () => {
                 Review KYC
               </DropdownMenuItem>
             )}
-            {row.original.status === VenueStatus.PENDING && (
+            {row.original.status === VenueStatus.PENDING_ACTIVATION && (
               <DropdownMenuItem onClick={() => handleApproveVenue(row.original)}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 {t('venueMgmt.dropdown.approve')}
@@ -259,7 +259,7 @@ const VenueManagement: React.FC = () => {
   const { totalRevenue, totalCommission, pendingApprovals, activeVenues } = useMemo(() => {
     const tr = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
     const tc = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate) / 100, 0)
-    const pa = venues.filter(v => v.status === VenueStatus.PENDING).length
+    const pa = venues.filter(v => v.status === VenueStatus.PENDING_ACTIVATION).length
     const av = venues.filter(v => v.status === VenueStatus.ACTIVE).length
     return { totalRevenue: tr, totalCommission: tc, pendingApprovals: pa, activeVenues: av }
   }, [venues])
@@ -350,9 +350,12 @@ const VenueManagement: React.FC = () => {
               <SelectContent>
                 <SelectItem value="all">{t('venueMgmt.allStatuses')}</SelectItem>
                 <SelectItem value={VenueStatus.ACTIVE}>{t('venueMgmt.statuses.ACTIVE')}</SelectItem>
-                <SelectItem value={VenueStatus.PENDING}>{t('venueMgmt.statuses.PENDING')}</SelectItem>
-                <SelectItem value={VenueStatus.SUSPENDED}>{t('venueMgmt.statuses.SUSPENDED')}</SelectItem>
+                <SelectItem value={VenueStatus.ONBOARDING}>{t('venueMgmt.statuses.ONBOARDING')}</SelectItem>
                 <SelectItem value={VenueStatus.TRIAL}>{t('venueMgmt.statuses.TRIAL')}</SelectItem>
+                <SelectItem value={VenueStatus.PENDING_ACTIVATION}>{t('venueMgmt.statuses.PENDING_ACTIVATION')}</SelectItem>
+                <SelectItem value={VenueStatus.SUSPENDED}>{t('venueMgmt.statuses.SUSPENDED')}</SelectItem>
+                <SelectItem value={VenueStatus.ADMIN_SUSPENDED}>{t('venueMgmt.statuses.ADMIN_SUSPENDED')}</SelectItem>
+                <SelectItem value={VenueStatus.CLOSED}>{t('venueMgmt.statuses.CLOSED')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
