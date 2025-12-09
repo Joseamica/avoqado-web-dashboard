@@ -71,10 +71,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const retryCountRef = useRef(0)
 
   // Get auth status first
+  // staleTime reduced from 5min to 1min to ensure KYC status changes reflect faster
   const { data: statusData, isLoading: isStatusLoading } = useQuery({
     queryKey: ['status'],
     queryFn: authService.getAuthStatus,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // 1 minute - faster sync for KYC/status changes
     retry: false,
   })
 
@@ -229,9 +230,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (!slug && activeVenue) {
         // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
         const currentPath = location.pathname
-        // Don't redirect if user is on superadmin or admin routes
+        // Don't redirect if user is on superadmin, admin, or organization routes
         const isOnAdminRoute = currentPath.startsWith('/superadmin') || currentPath.startsWith('/admin')
-        if (!currentPath.includes('/venues/') && !isOnAdminRoute) {
+        const isOnOrgRoute = currentPath.startsWith('/organizations')
+        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute) {
           navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
         }
       }
