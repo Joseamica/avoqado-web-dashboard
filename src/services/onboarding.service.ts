@@ -184,7 +184,8 @@ export interface CompleteOnboardingResponse {
     id: string
     slug: string
     name: string
-    isOnboardingDemo: boolean
+    // Venue operational status (single source of truth)
+    status?: string
   }
   summary: {
     categoriesCreated: number

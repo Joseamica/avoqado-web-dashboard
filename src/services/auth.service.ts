@@ -44,7 +44,8 @@ export interface AuthStatusResponse {
       slug: string
       logo: string | null
       role: StaffRole
-      isOnboardingDemo?: boolean
+      // Venue operational status (single source of truth)
+      status?: string
       features?: {
         active: boolean
         feature: {
