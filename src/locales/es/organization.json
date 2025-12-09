@@ -38,6 +38,7 @@
     "totalOrders": "Órdenes Totales",
     "totalPayments": "Pagos Totales",
     "totalStaff": "Personal Total",
+    "averageTicketSize": "Ticket Promedio",
     "venuePerformance": "Rendimiento por Sucursal",
     "venuePerformanceDesc": "Compara métricas entre todas tus sucursales",
     "viewAll": "Ver Todo",
@@ -45,7 +46,27 @@
     "orders": "Órdenes",
     "payments": "Pagos",
     "staff": "Personal",
-    "noVenues": "No se encontraron sucursales"
+    "noVenues": "No se encontraron sucursales",
+    "noData": "No hay datos disponibles para este período",
+    "noItems": "No hay productos vendidos en este período",
+    "vsLastPeriod": "vs período anterior",
+    "revenueTrends": "Tendencias de Ingresos",
+    "revenueTrendsDesc": "Ingresos y órdenes a lo largo del tiempo",
+    "ordersLabel": "órdenes",
+    "topPerformers": "Mejores Rendimientos",
+    "topPerformersDesc": "Sucursales con mejor rendimiento por ingresos",
+    "topItems": "Productos Más Vendidos",
+    "topItemsDesc": "Productos más vendidos en todas las sucursales",
+    "itemName": "Producto",
+    "category": "Categoría",
+    "quantitySold": "Cant. Vendida",
+    "totalRevenue": "Ingresos Totales",
+    "avgPrice": "Precio Prom.",
+    "trending": {
+      "up": "Creciendo",
+      "down": "Bajando",
+      "stable": "Estable"
+    }
   },
   "venues": {
     "title": "Sucursales",

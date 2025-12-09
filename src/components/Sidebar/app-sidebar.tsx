@@ -207,8 +207,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     [t],
   )
 
-  // Use all venues for SUPERADMIN, otherwise use user's assigned venues
-  const venuesToShow: Array<Venue | SessionVenue> = user.role === 'SUPERADMIN' && allVenues.length > 0 ? allVenues : user.venues
+  // Use all venues for SUPERADMIN and OWNER (consistent with AuthContext), otherwise use user's assigned venues
+  const venuesToShow: Array<Venue | SessionVenue> =
+    (user.role === 'SUPERADMIN' || user.role === 'OWNER') && allVenues.length > 0 ? allVenues : user.venues
   const defaultVenue: Venue | SessionVenue | null = venuesToShow.length > 0 ? venuesToShow[0] : null
 
   // Map app User -> NavUser expected shape

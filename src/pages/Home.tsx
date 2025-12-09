@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp } from 'lucide-react'
 import { Pie, PieChart, Label } from 'recharts'
-import { format } from 'date-fns'
-import { es as localeEs, fr as localeFr, enUS as localeEn } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -21,6 +19,7 @@ import {
 import { useProgressiveLoader } from '@/hooks/use-intersection-observer'
 import { DashboardProgressiveService, CHART_TYPES, METRIC_TYPES } from '@/services/dashboard.progressive.service'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 
 // Hooks
 import { useDashboardData } from '@/hooks/useDashboardData'
@@ -42,8 +41,8 @@ import {
 import { StaffEfficiencyMetrics, TableEfficiencyMetrics, ProductAnalyticsMetrics } from '@/components/home/metrics'
 
 const Home = () => {
-  const { t, i18n } = useTranslation('home')
-  const dateLocale = i18n.language?.startsWith('fr') ? localeFr : i18n.language?.startsWith('en') ? localeEn : localeEs
+  const { t } = useTranslation('home')
+  const { formatDate } = useVenueDateTime()
 
   // Use custom hook for data logic
   const dashboardData = useDashboardData()
@@ -111,9 +110,7 @@ const Home = () => {
                   <CardTitle>{t('sections.paymentMethods')}</CardTitle>
                   <CardDescription>
                     {selectedRange.from && selectedRange.to
-                      ? `${format(selectedRange.from, 'dd MMM yyyy', { locale: dateLocale })} - ${format(selectedRange.to, 'dd MMM yyyy', {
-                          locale: dateLocale,
-                        })}`
+                      ? `${formatDate(selectedRange.from)} - ${formatDate(selectedRange.to)}`
                       : t('currentPeriod')}
                   </CardDescription>
                 </CardHeader>

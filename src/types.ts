@@ -1436,6 +1436,9 @@ export interface SessionVenue {
   // KYC Verification (for payment processing access control)
   kycStatus?: 'NOT_SUBMITTED' | 'PENDING_REVIEW' | 'IN_REVIEW' | 'VERIFIED' | 'REJECTED' | null
   kycRejectionReason?: string | null
+  // Organization info (needed for VenuesSwitcher grouping)
+  organizationId?: string
+  organization?: { id: string; name: string } | null
   // Las features disponibles en este venue (estructura compatible con frontend actual)
   features: Array<{
     feature: {

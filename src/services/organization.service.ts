@@ -95,6 +95,115 @@ export interface DateRangeFilter {
   to?: string
 }
 
+// Enhanced Overview Types
+export interface TopVenue {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+  revenue: number
+  rank: number
+  trend: 'up' | 'down' | 'stable'
+}
+
+export interface PeriodComparison {
+  totalRevenue: number
+  totalOrders: number
+  totalPayments: number
+  averageTicketSize: number
+}
+
+export interface PercentageChanges {
+  revenueChange: number
+  ordersChange: number
+  paymentsChange: number
+  ticketSizeChange: number
+}
+
+export interface EnhancedOrganizationOverview extends OrganizationOverview {
+  averageTicketSize: number
+  previousPeriod: PeriodComparison
+  changes: PercentageChanges
+  topVenues: TopVenue[]
+}
+
+// Revenue Trends Types
+export interface TrendDataPoint {
+  date: string
+  revenue: number
+  orders: number
+}
+
+export interface RevenueTrendsResponse {
+  currentPeriod: {
+    from: string
+    to: string
+    dataPoints: TrendDataPoint[]
+    totals: {
+      revenue: number
+      orders: number
+    }
+  }
+  previousPeriod: {
+    from: string
+    to: string
+    dataPoints: TrendDataPoint[]
+    totals: {
+      revenue: number
+      orders: number
+    }
+  }
+  comparison: {
+    revenueChange: number
+    ordersChange: number
+  }
+}
+
+// Top Items Types
+export interface TopItem {
+  productId: string
+  productName: string
+  categoryName: string
+  quantitySold: number
+  totalRevenue: number
+  averagePrice: number
+  rank: number
+}
+
+// Venue Benchmarks Types
+export interface VenueBenchmark {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+  metrics: {
+    revenue: number
+    orders: number
+    averageTicketSize: number
+    payments: number
+  }
+  benchmarks: {
+    revenueVsAverage: number
+    ordersVsAverage: number
+    ticketSizeVsAverage: number
+  }
+  rank: {
+    byRevenue: number
+    byOrders: number
+    byTicketSize: number
+  }
+}
+
+export interface VenueBenchmarksResponse {
+  averages: {
+    revenue: number
+    orders: number
+    averageTicketSize: number
+    payments: number
+  }
+  venues: VenueBenchmark[]
+}
+
 /**
  * Get organization basic info
  */
@@ -172,5 +281,87 @@ export async function updateOrganization(
   }
 ): Promise<OrganizationInfo> {
   const response = await api.put(`/api/v1/organizations/${orgId}`, data)
+  return response.data
+}
+
+// =============================================================================
+// Analytics Endpoints
+// =============================================================================
+
+/**
+ * Get enhanced organization overview with comparisons and rankings
+ */
+export async function getEnhancedOverview(
+  orgId: string,
+  filter?: DateRangeFilter
+): Promise<EnhancedOrganizationOverview> {
+  const params = new URLSearchParams()
+  if (filter?.timeRange) params.append('timeRange', filter.timeRange)
+  if (filter?.from) params.append('from', filter.from)
+  if (filter?.to) params.append('to', filter.to)
+
+  const queryString = params.toString()
+  const url = `/api/v1/organizations/${orgId}/analytics/enhanced-overview${queryString ? `?${queryString}` : ''}`
+
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get revenue trends with time series data
+ */
+export async function getRevenueTrends(
+  orgId: string,
+  filter?: DateRangeFilter
+): Promise<RevenueTrendsResponse> {
+  const params = new URLSearchParams()
+  if (filter?.timeRange) params.append('timeRange', filter.timeRange)
+  if (filter?.from) params.append('from', filter.from)
+  if (filter?.to) params.append('to', filter.to)
+
+  const queryString = params.toString()
+  const url = `/api/v1/organizations/${orgId}/analytics/revenue-trends${queryString ? `?${queryString}` : ''}`
+
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get top selling items across organization
+ */
+export async function getTopItems(
+  orgId: string,
+  filter?: DateRangeFilter,
+  limit: number = 10
+): Promise<TopItem[]> {
+  const params = new URLSearchParams()
+  if (filter?.timeRange) params.append('timeRange', filter.timeRange)
+  if (filter?.from) params.append('from', filter.from)
+  if (filter?.to) params.append('to', filter.to)
+  params.append('limit', limit.toString())
+
+  const queryString = params.toString()
+  const url = `/api/v1/organizations/${orgId}/analytics/top-items${queryString ? `?${queryString}` : ''}`
+
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get venue benchmarks comparing against organization averages
+ */
+export async function getVenueBenchmarks(
+  orgId: string,
+  filter?: DateRangeFilter
+): Promise<VenueBenchmarksResponse> {
+  const params = new URLSearchParams()
+  if (filter?.timeRange) params.append('timeRange', filter.timeRange)
+  if (filter?.from) params.append('from', filter.from)
+  if (filter?.to) params.append('to', filter.to)
+
+  const queryString = params.toString()
+  const url = `/api/v1/organizations/${orgId}/analytics/venue-benchmarks${queryString ? `?${queryString}` : ''}`
+
+  const response = await api.get(url)
   return response.data
 }

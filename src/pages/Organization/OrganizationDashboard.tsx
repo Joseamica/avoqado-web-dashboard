@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  getOrganizationOverview,
+  getEnhancedOverview,
+  getRevenueTrends,
+  getTopItems,
   type TimeRange,
 } from '@/services/organization.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,14 +23,15 @@ import {
   DollarSign,
   ShoppingCart,
   CreditCard,
-  Users,
   Store,
-  TrendingUp,
   ArrowRight,
   Building2,
+  Receipt,
 } from 'lucide-react'
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { EnhancedKPICard } from './components/EnhancedKPICard'
+import { OrgRevenueTrendsChart } from './components/OrgRevenueTrendsChart'
+import { TopVenuesRanking } from './components/TopVenuesRanking'
+import { TopItemsTable } from './components/TopItemsTable'
 
 const OrganizationDashboard: React.FC = () => {
   const { t } = useTranslation('organization')
@@ -36,9 +39,24 @@ const OrganizationDashboard: React.FC = () => {
   const navigate = useNavigate()
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
 
-  const { data: overview, isLoading } = useQuery({
-    queryKey: ['organization', 'overview', orgId, timeRange],
-    queryFn: () => getOrganizationOverview(orgId!, { timeRange }),
+  // Enhanced overview with comparisons
+  const { data: overview, isLoading: isLoadingOverview } = useQuery({
+    queryKey: ['organization', 'enhanced-overview', orgId, timeRange],
+    queryFn: () => getEnhancedOverview(orgId!, { timeRange }),
+    enabled: !!orgId,
+  })
+
+  // Revenue trends for chart
+  const { data: trends, isLoading: isLoadingTrends } = useQuery({
+    queryKey: ['organization', 'revenue-trends', orgId, timeRange],
+    queryFn: () => getRevenueTrends(orgId!, { timeRange }),
+    enabled: !!orgId,
+  })
+
+  // Top items
+  const { data: topItems, isLoading: isLoadingTopItems } = useQuery({
+    queryKey: ['organization', 'top-items', orgId, timeRange],
+    queryFn: () => getTopItems(orgId!, { timeRange }, 10),
     enabled: !!orgId,
   })
 
@@ -48,6 +66,8 @@ const OrganizationDashboard: React.FC = () => {
       currency: 'MXN',
     }).format(amount)
   }
+
+  const isLoading = isLoadingOverview
 
   if (isLoading) {
     return (
@@ -61,6 +81,7 @@ const OrganizationDashboard: React.FC = () => {
     {
       title: t('dashboard.totalRevenue'),
       value: formatCurrency(overview?.totalRevenue || 0),
+      change: overview?.changes?.revenueChange || 0,
       icon: DollarSign,
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
@@ -68,23 +89,26 @@ const OrganizationDashboard: React.FC = () => {
     {
       title: t('dashboard.totalOrders'),
       value: (overview?.totalOrders || 0).toLocaleString(),
+      change: overview?.changes?.ordersChange || 0,
       icon: ShoppingCart,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
     },
     {
+      title: t('dashboard.averageTicketSize'),
+      value: formatCurrency(overview?.averageTicketSize || 0),
+      change: overview?.changes?.ticketSizeChange || 0,
+      icon: Receipt,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
+    },
+    {
       title: t('dashboard.totalPayments'),
       value: (overview?.totalPayments || 0).toLocaleString(),
+      change: overview?.changes?.paymentsChange || 0,
       icon: CreditCard,
       color: 'text-purple-500',
       bgColor: 'bg-purple-500/10',
-    },
-    {
-      title: t('dashboard.totalStaff'),
-      value: (overview?.totalStaff || 0).toLocaleString(),
-      icon: Users,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-500/10',
     },
   ]
 
@@ -115,24 +139,48 @@ const OrganizationDashboard: React.FC = () => {
         </Select>
       </div>
 
-      {/* KPI Cards */}
+      {/* Enhanced KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <div className={cn('p-2 rounded-lg', card.bgColor)}>
-                <card.icon className={cn('h-4 w-4', card.color)} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-            </CardContent>
-          </Card>
+          <EnhancedKPICard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            change={card.change}
+            icon={card.icon}
+            color={card.color}
+            bgColor={card.bgColor}
+          />
         ))}
       </div>
+
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Revenue Trends Chart - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <OrgRevenueTrendsChart
+            data={trends}
+            isLoading={isLoadingTrends}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+
+        {/* Top Venues Ranking */}
+        <div className="lg:col-span-1">
+          <TopVenuesRanking
+            venues={overview?.topVenues}
+            isLoading={isLoadingOverview}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+      </div>
+
+      {/* Top Items Table */}
+      <TopItemsTable
+        items={topItems}
+        isLoading={isLoadingTopItems}
+        formatCurrency={formatCurrency}
+      />
 
       {/* Venues Grid */}
       <Card>

@@ -38,6 +38,7 @@
     "totalOrders": "Total Orders",
     "totalPayments": "Total Payments",
     "totalStaff": "Total Staff",
+    "averageTicketSize": "Avg Ticket Size",
     "venuePerformance": "Venue Performance",
     "venuePerformanceDesc": "Compare metrics across all your venues",
     "viewAll": "View All",
@@ -45,7 +46,27 @@
     "orders": "Orders",
     "payments": "Payments",
     "staff": "Staff",
-    "noVenues": "No venues found"
+    "noVenues": "No venues found",
+    "noData": "No data available for this period",
+    "noItems": "No items sold in this period",
+    "vsLastPeriod": "vs last period",
+    "revenueTrends": "Revenue Trends",
+    "revenueTrendsDesc": "Revenue and orders over time",
+    "ordersLabel": "orders",
+    "topPerformers": "Top Performers",
+    "topPerformersDesc": "Best performing venues by revenue",
+    "topItems": "Top Selling Items",
+    "topItemsDesc": "Best selling products across all venues",
+    "itemName": "Product",
+    "category": "Category",
+    "quantitySold": "Qty Sold",
+    "totalRevenue": "Total Revenue",
+    "avgPrice": "Avg Price",
+    "trending": {
+      "up": "Growing",
+      "down": "Declining",
+      "stable": "Stable"
+    }
   },
   "venues": {
     "title": "Venues",
