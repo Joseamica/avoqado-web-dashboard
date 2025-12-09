@@ -36,11 +36,13 @@
     },
     "loadingVenues": "Cargando establecimientos...",
     "statuses": {
+      "ONBOARDING": "Configurando",
+      "TRIAL": "Demo",
+      "PENDING_ACTIVATION": "Pendiente KYC",
       "ACTIVE": "Activo",
-      "PENDING": "Pendiente",
       "SUSPENDED": "Suspendido",
-      "CANCELLED": "Cancelado",
-      "TRIAL": "Prueba"
+      "ADMIN_SUSPENDED": "Suspendido (Admin)",
+      "CLOSED": "Cerrado"
     },
     "paymentStatuses": {
       "PAID": "Pagado",

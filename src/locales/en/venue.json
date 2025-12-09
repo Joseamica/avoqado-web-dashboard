@@ -36,11 +36,13 @@
     },
     "loadingVenues": "Loading venues...",
     "statuses": {
+      "ONBOARDING": "Onboarding",
+      "TRIAL": "Demo",
+      "PENDING_ACTIVATION": "Pending KYC",
       "ACTIVE": "Active",
-      "PENDING": "Pending",
       "SUSPENDED": "Suspended",
-      "CANCELLED": "Cancelled",
-      "TRIAL": "Trial"
+      "ADMIN_SUSPENDED": "Suspended (Admin)",
+      "CLOSED": "Closed"
     },
     "paymentStatuses": {
       "PAID": "Paid",

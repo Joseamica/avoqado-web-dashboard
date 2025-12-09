@@ -36,11 +36,13 @@
     },
     "loadingVenues": "Chargement des lieux...",
     "statuses": {
+      "ONBOARDING": "Configuration",
+      "TRIAL": "Démo",
+      "PENDING_ACTIVATION": "En attente KYC",
       "ACTIVE": "Actif",
-      "PENDING": "En attente",
       "SUSPENDED": "Suspendu",
-      "CANCELLED": "Annulé",
-      "TRIAL": "Essai"
+      "ADMIN_SUSPENDED": "Suspendu (Admin)",
+      "CLOSED": "Fermé"
     },
     "paymentStatuses": {
       "PAID": "Payé",
