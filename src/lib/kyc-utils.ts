@@ -5,7 +5,7 @@
  * (Orders, Payments, TPV, Shifts, Analytics, Inventory) based on their KYC verification status.
  *
  * RULES:
- * - Demo venues: Always have full access (bypass KYC)
+ * - Demo venues (status: TRIAL or LIVE_DEMO): Always have full access (bypass KYC)
  * - Verified venues: Full access to all operational features
  * - NOT_SUBMITTED: Blocked - needs to upload KYC documents
  * - Pending/In Review: Blocked from operational features
@@ -13,6 +13,7 @@
  */
 
 import type { SessionVenue, Venue } from '@/types'
+import { isDemoVenueStatus } from '@/types/superadmin'
 
 /**
  * Check if a venue can access operational features based on KYC status
@@ -34,8 +35,8 @@ import type { SessionVenue, Venue } from '@/types'
 export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null): boolean {
   if (!venue) return false
 
-  // Demo venues bypass KYC checks (can use all features for testing)
-  if (venue.isOnboardingDemo) return true
+  // Demo venues (TRIAL or LIVE_DEMO) bypass KYC checks (can use all features for testing)
+  if (isDemoVenueStatus(venue.status)) return true
 
   // Verified venues have full access to operational features
   if (venue.kycStatus === 'VERIFIED') return true
@@ -65,7 +66,7 @@ export function canAccessOperationalFeatures(venue: SessionVenue | Venue | null)
 export function getKYCBlockReason(venue: SessionVenue | Venue | null): string | null {
   if (!venue) return 'No venue selected'
 
-  if (venue.isOnboardingDemo) return null // Demo venues not blocked
+  if (isDemoVenueStatus(venue.status)) return null // Demo venues not blocked
   if (venue.kycStatus === 'VERIFIED') return null // Verified venues not blocked
 
   switch (venue.kycStatus) {
@@ -95,7 +96,7 @@ export function getKYCBlockReason(venue: SessionVenue | Venue | null): string | 
  */
 export function shouldShowKYCBanner(venue: SessionVenue | Venue | null): boolean {
   if (!venue) return false
-  if (venue.isOnboardingDemo) return false // Don't show banner for demo venues
+  if (isDemoVenueStatus(venue.status)) return false // Don't show banner for demo venues
 
   // Show banner for all non-verified statuses
   return venue.kycStatus !== 'VERIFIED'
@@ -109,7 +110,7 @@ export function shouldShowKYCBanner(venue: SessionVenue | Venue | null): boolean
  */
 export function getKYCBannerVariant(venue: SessionVenue | Venue | null): 'missing' | 'pending' | 'rejected' | null {
   if (!venue) return null
-  if (venue.isOnboardingDemo) return null
+  if (isDemoVenueStatus(venue.status)) return null
   if (venue.kycStatus === 'VERIFIED') return null
 
   switch (venue.kycStatus) {

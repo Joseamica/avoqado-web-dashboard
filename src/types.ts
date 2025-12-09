@@ -1,3 +1,9 @@
+// Import VenueStatus from superadmin types (single source of truth)
+import { VenueStatus } from './types/superadmin'
+
+// Re-export for convenience
+export { VenueStatus }
+
 // ==========================================
 // ENUMS (Deben coincidir con tu schema Prisma)
 // ==========================================
@@ -536,10 +542,14 @@ export interface Venue {
 
   // Status
   active: boolean
+  status?: VenueStatus // Venue operational status (ONBOARDING, TRIAL, PENDING_ACTIVATION, ACTIVE, SUSPENDED, ADMIN_SUSPENDED, CLOSED)
+  statusChangedAt?: string | null // When status was last changed
+  statusChangedBy?: string | null // Who changed the status (staff ID)
+  suspensionReason?: string | null // Reason for suspension (if status is SUSPENDED or ADMIN_SUSPENDED)
   operationalSince: string | null
 
   // Demo mode
-  isOnboardingDemo?: boolean
+  // NOTE: Use status === 'TRIAL' to check if venue is in demo mode
   demoExpiresAt?: string | null
 
   // Tax Information (for converting from demo to real)
@@ -1418,8 +1428,9 @@ export interface SessionVenue {
   currency: string
   // El rol que el usuario logueado tiene EN ESTE venue específico
   role: StaffRole
-  // Whether this venue is in demo mode
-  isOnboardingDemo?: boolean
+  // Venue operational status (single source of truth)
+  // Use status === 'TRIAL' to check if venue is in demo mode
+  status?: VenueStatus
   // Custom permissions for this user in this venue (from StaffVenue.permissions)
   permissions?: string[] | null
   // KYC Verification (for payment processing access control)

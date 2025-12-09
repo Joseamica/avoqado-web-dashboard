@@ -48,8 +48,17 @@ export function StatusBadge({ variant, children, className }: StatusBadgeProps) 
 /**
  * Convenience component for venue status
  * Maps VenueStatus enum to StatusVariant
+ * Updated to match Prisma VenueStatus enum values
  */
-export type VenueStatusType = 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'CANCELLED' | 'TRIAL'
+export type VenueStatusType =
+  | 'LIVE_DEMO'
+  | 'TRIAL'
+  | 'ONBOARDING'
+  | 'PENDING_ACTIVATION'
+  | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'ADMIN_SUSPENDED'
+  | 'CLOSED'
 
 interface VenueStatusBadgeProps {
   status: VenueStatusType
@@ -58,11 +67,14 @@ interface VenueStatusBadgeProps {
 }
 
 const venueStatusMap: Record<VenueStatusType, StatusVariant> = {
-  ACTIVE: 'success',
-  PENDING: 'warning',
-  SUSPENDED: 'error',
-  CANCELLED: 'neutral',
+  LIVE_DEMO: 'info',
   TRIAL: 'info',
+  ONBOARDING: 'info',
+  PENDING_ACTIVATION: 'warning',
+  ACTIVE: 'success',
+  SUSPENDED: 'error',
+  ADMIN_SUSPENDED: 'error',
+  CLOSED: 'neutral',
 }
 
 export function VenueStatusBadge({ status, label, className }: VenueStatusBadgeProps) {

@@ -23,11 +23,36 @@ export enum PricingModel {
 }
 
 export enum VenueStatus {
-  PENDING = 'PENDING',       // Awaiting approval
-  ACTIVE = 'ACTIVE',         // Active subscription
-  SUSPENDED = 'SUSPENDED',   // Temporarily suspended
-  CANCELLED = 'CANCELLED',   // Cancelled subscription
-  TRIAL = 'TRIAL',          // Free trial period
+  LIVE_DEMO = 'LIVE_DEMO',             // Ephemeral live demo (TTL ~1hr)
+  TRIAL = 'TRIAL',                     // Demo/trial venue (30 days)
+  ONBOARDING = 'ONBOARDING',           // New venue being set up
+  PENDING_ACTIVATION = 'PENDING_ACTIVATION', // KYC submitted, awaiting review
+  ACTIVE = 'ACTIVE',                   // Fully operational
+  SUSPENDED = 'SUSPENDED',             // User-initiated suspension
+  ADMIN_SUSPENDED = 'ADMIN_SUSPENDED', // Admin-initiated suspension
+  CLOSED = 'CLOSED',                   // Permanently closed
+}
+
+/**
+ * Demo venue statuses - ephemeral venues that can be deleted
+ * LIVE_DEMO: Short-lived demo for website visitors (~1hr TTL)
+ * TRIAL: 30-day trial during onboarding
+ */
+export const DEMO_VENUE_STATUSES: VenueStatus[] = [VenueStatus.LIVE_DEMO, VenueStatus.TRIAL]
+
+/**
+ * Check if a venue status indicates it's a demo/trial venue
+ */
+export function isDemoVenueStatus(status: VenueStatus | string | undefined | null): boolean {
+  if (!status) return false
+  return status === VenueStatus.TRIAL || status === VenueStatus.LIVE_DEMO
+}
+
+/**
+ * Check if a venue status indicates it's a trial (onboarding demo)
+ */
+export function isTrialVenueStatus(status: VenueStatus | string | undefined | null): boolean {
+  return status === VenueStatus.TRIAL
 }
 
 export enum SubscriptionPlan {
