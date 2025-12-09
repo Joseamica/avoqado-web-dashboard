@@ -206,6 +206,7 @@ function DashboardContent() {
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="h-4 mr-2" />
+            {/* Breadcrumb: Shows venue name + path segments */}
             <Breadcrumb>
               <BreadcrumbList>
                 {pathSegments.map((segment, index) => {
@@ -246,11 +247,11 @@ function DashboardContent() {
           </div>
         </header>
 
-        {/* Onboarding Demo Banner - only show if venue is in onboarding demo mode */}
-        {venue?.isOnboardingDemo && <DemoBanner />}
+        {/* Onboarding Demo Banner - only show if venue is in TRIAL status */}
+        {venue?.status === 'TRIAL' && <DemoBanner />}
 
-        {/* Trial Status Banner - show if venue has active trials */}
-        {!venue?.isOnboardingDemo && <TrialStatusBanner />}
+        {/* Trial Status Banner - show for non-demo venues with active feature trials */}
+        {venue?.status !== 'TRIAL' && venue?.status !== 'LIVE_DEMO' && <TrialStatusBanner />}
 
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
