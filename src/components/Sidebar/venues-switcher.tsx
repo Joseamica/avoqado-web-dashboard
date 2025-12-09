@@ -14,11 +14,12 @@ import { useAuth } from '@/context/AuthContext'
 import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
-import { ChevronsUpDown, Plus } from 'lucide-react'
+import { Building2, ChevronsUpDown, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useCurrentOrganization } from '@/hooks/use-current-organization'
 import { useTranslation } from 'react-i18next'
 
 interface VenuesSwitcherProps {
@@ -32,6 +33,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const location = useLocation()
   const { checkVenueAccess, user, switchVenue, isLoading } = useAuth()
   const { venue: activeVenue } = useCurrentVenue()
+  const { organization, orgId, isOwner } = useCurrentOrganization()
   const { t } = useTranslation()
 
   const [isDialogOpen, setDialogOpen] = useState(false)
@@ -39,6 +41,9 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   const canAddVenue = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes(
     (user?.role as StaffRole) ?? (null as any),
   )
+
+  // Check if user can see organization link (OWNER or SUPERADMIN)
+  const canViewOrganization = isOwner && !!orgId
 
   // Usar el venue actual del contexto, url, o fallback al default
   const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
@@ -79,6 +84,12 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
     setDropdownOpen(false) // Cerrar dropdown cuando se abre el dialog
   }
 
+  const handleOrganizationClick = () => {
+    if (!canViewOrganization || !orgId) return
+    setDropdownOpen(false) // Cerrar primero
+    navigate(`/organizations/${orgId}`)
+  }
+
   const handleDialogClose = () => {
     setDialogOpen(false)
   }
@@ -111,6 +122,24 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
               side={isMobile ? 'bottom' : 'right'}
               sideOffset={5}
             >
+              {/* Organization Link - Only for OWNER/SUPERADMIN */}
+              {canViewOrganization && (
+                <>
+                  <DropdownMenuItem
+                    onClick={handleOrganizationClick}
+                    className="gap-2 p-2 cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
+                      <Building2 className="size-4 text-primary-foreground" />
+                    </div>
+                    <span className="flex-1 font-medium">
+                      {organization?.name || t('organization:myOrganization')}
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuLabel className="text-xs text-muted-foreground">{t('venuesSwitcher.title')}</DropdownMenuLabel>
               {venues.map((venue, index) => {
                 const isActive = venue.slug === currentVenue?.slug
