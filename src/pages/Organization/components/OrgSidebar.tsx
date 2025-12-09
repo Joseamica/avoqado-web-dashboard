@@ -40,7 +40,7 @@ import {
 import { NavUser } from '@/components/Sidebar/nav-user'
 import { cn } from '@/lib/utils'
 
-interface OrgSidebarProps extends React.ComponentProps<typeof Sidebar> {}
+type OrgSidebarProps = React.ComponentProps<typeof Sidebar>
 
 const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
   const { t } = useTranslation('organization')
@@ -104,7 +104,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
                 >
                   <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg aspect-square size-8">
-                    <Building2 className="size-4 text-white" />
+                    <Building2 className="size-4 text-primary-foreground" />
                   </div>
                   <div className="grid flex-1 text-sm leading-tight text-left">
                     <span className="font-semibold truncate">
@@ -126,7 +126,7 @@ const OrgSidebar: React.FC<OrgSidebarProps> = (props) => {
                 {/* Current Organization */}
                 <DropdownMenuItem className="gap-2 p-2 bg-accent cursor-default">
                   <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
-                    <Building2 className="size-4 text-white" />
+                    <Building2 className="size-4 text-primary-foreground" />
                   </div>
                   <span className="flex-1 font-medium">
                     {organization?.name || t('myOrganization')}
