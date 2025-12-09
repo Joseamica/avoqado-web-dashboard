@@ -127,3 +127,10 @@ export const DiscountForm = lazyWithRetry(() => import('@/pages/Promotions/Disco
 export const DiscountDetail = lazyWithRetry(() => import('@/pages/Promotions/Discounts/DiscountDetail'))
 export const Coupons = lazyWithRetry(() => import('@/pages/Promotions/Coupons'))
 export const CouponForm = lazyWithRetry(() => import('@/pages/Promotions/CouponForm'))
+
+// Organization (OWNER dashboard)
+export const OrganizationLayout = lazyWithRetry(() => import('@/pages/Organization/OrganizationLayout'))
+export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organization/OrganizationDashboard'))
+export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
+export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
+export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))

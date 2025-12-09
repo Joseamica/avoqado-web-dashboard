@@ -59,6 +59,11 @@ import {
   OnboardingWizard,
   OrderId,
   Orders,
+  OrganizationDashboard,
+  OrganizationLayout,
+  OrganizationSettings,
+  OrganizationTeam,
+  OrganizationVenues,
   PaymentAnalytics,
   PaymentId,
   PaymentProviders,
@@ -115,6 +120,7 @@ import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
+import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 
@@ -364,6 +370,25 @@ const router = createBrowserRouter(
                       path: 'webhooks',
                       element: <Webhooks />,
                     },
+                  ],
+                },
+              ],
+            },
+
+            // Organization routes (OWNER dashboard for multi-venue management)
+            {
+              path: '/organizations/:orgId',
+              element: <OwnerProtectedRoute />,
+              children: [
+                {
+                  element: <OrganizationLayout />,
+                  children: [
+                    { index: true, element: <OrganizationDashboard /> },
+                    { path: 'dashboard', element: <OrganizationDashboard /> },
+                    { path: 'venues', element: <OrganizationVenues /> },
+                    { path: 'team', element: <OrganizationTeam /> },
+                    { path: 'settings', element: <OrganizationSettings /> },
+                    { path: 'analytics', element: <ComingSoon feature="Organization Analytics" /> },
                   ],
                 },
               ],
