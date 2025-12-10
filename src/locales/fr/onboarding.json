@@ -307,60 +307,54 @@
   },
   "kycDocuments": {
     "title": "Documentation Fiscale",
-    "subtitle": "Téléchargez les documents requis pour la vérification fiscale",
-    "description": "Ces documents sont nécessaires pour vérifier votre identité et activer les paiements sur votre compte.",
+    "subtitle": "Téléchargez les documents requis pour vérifier votre entreprise",
     "requiredNotice": "Cette étape est obligatoire et ne peut pas être ignorée.",
     "entityType": {
       "title": "Type d'Entité",
-      "description": "Sélectionnez le type d'entité de votre entreprise",
-      "PERSONA_FISICA": "Personne Physique (Persona Física)",
-      "PERSONA_MORAL": "Personne Morale (Persona Moral)"
+      "subtitle": "Sélectionnez le type de contribuable",
+      "personaFisica": "Personne Physique (Persona Física)",
+      "personaFisicaDesc": "Individu avec activité commerciale",
+      "personaMoral": "Personne Morale (Persona Moral)",
+      "personaMoralDesc": "Entreprise ou société constituée"
     },
+    "documentsTitle": "Documents Requis",
     "documents": {
-      "title": "Documents Requis",
-      "description": "Téléchargez les documents suivants. Cliquez sur chaque champ pour sélectionner un fichier.",
-      "ine": {
-        "label": "Pièce d'Identité Officielle (INE/IFE)",
-        "description": "Pièce d'identité officielle délivrée par le gouvernement"
-      },
-      "rfc": {
-        "label": "Certificat RFC",
-        "description": "Certificat d'immatriculation fiscale (Constancia de Situación Fiscal)"
-      },
-      "comprobanteDomicilio": {
-        "label": "Justificatif de Domicile",
-        "description": "Facture de services ou relevé bancaire (datant de moins de 3 mois)"
-      },
-      "caratulaBancaria": {
-        "label": "Relevé de Compte Bancaire",
-        "description": "Document montrant votre CLABE et les détails du compte"
-      },
-      "actaConstitutiva": {
-        "label": "Acte Constitutif",
-        "description": "Document de constitution de l'entreprise (uniquement pour les sociétés)"
-      },
-      "poderLegal": {
-        "label": "Procuration",
-        "description": "Autorisation du représentant légal (facultatif pour les sociétés)"
-      }
+      "actaConstitutiva": "Acte Constitutif",
+      "actaConstitutivaDesc": "Document de constitution de l'entreprise",
+      "ine": "Pièce d'Identité Officielle (INE/IFE)",
+      "ineDesc": "Pièce d'identité du représentant légal",
+      "rfc": "Certificat d'Immatriculation Fiscale (CSF)",
+      "rfcDesc": "Document officiel du SAT contenant le RFC (doit dater de moins de 3 mois)",
+      "comprobante": "Justificatif de Domicile",
+      "comprobanteDesc": "Facture de services (électricité, eau ou téléphone)",
+      "caratula": "Relevé de Compte Bancaire",
+      "caratulaDesc": "Relevé montrant le CLABE visible",
+      "poderLegal": "Procuration",
+      "poderLegalDesc": "Autorisation notariée du représentant légal (facultatif)"
     },
-    "upload": {
-      "select": "Sélectionner un fichier",
-      "change": "Changer de fichier",
-      "uploading": "Téléchargement...",
-      "uploaded": "Téléchargé",
-      "dragDrop": "Glissez-déposez ou cliquez pour télécharger",
-      "maxSize": "Taille maximale du fichier: 10 Mo",
-      "formats": "Formats acceptés: PDF, JPG, PNG"
+    "uploading": "Téléchargement...",
+    "changeDocument": "Changer de document",
+    "uploadDocument": "Télécharger Document",
+    "required": "Ce document est requis",
+    "notice": {
+      "title": "Vérification des documents",
+      "description": "Vos documents seront examinés par notre équipe. Ce processus peut prendre jusqu'à 48 heures ouvrables."
     },
-    "validation": {
-      "entityTypeRequired": "Veuillez sélectionner un type d'entité",
-      "ineRequired": "La pièce d'identité officielle est requise",
-      "rfcRequired": "Le certificat RFC est requis",
-      "comprobanteDomicilioRequired": "Le justificatif de domicile est requis",
-      "caratulaBancariaRequired": "Le relevé de compte bancaire est requis",
-      "actaConstitutivaRequired": "L'acte constitutif est requis pour les sociétés",
-      "allDocumentsRequired": "Veuillez télécharger tous les documents requis"
+    "errors": {
+      "invalidFileType": "Type de fichier invalide",
+      "invalidFileTypeDesc": "Seuls les fichiers PDF, PNG, JPG sont autorisés",
+      "fileTooLarge": "Fichier trop volumineux",
+      "fileTooLargeDesc": "Le fichier ne doit pas dépasser 10 Mo",
+      "uploadFailed": "Échec du téléchargement",
+      "uploadFailedDesc": "Impossible de télécharger le document. Veuillez réessayer.",
+      "entityTypeRequired": "Sélectionnez le type d'entité",
+      "entityTypeRequiredDesc": "Vous devez sélectionner si vous êtes Personne Physique ou Morale",
+      "missingDocs": "Documents manquants",
+      "missingDocsDesc": "Vous devez télécharger tous les documents requis"
+    },
+    "success": {
+      "uploaded": "Document téléchargé",
+      "uploadedDesc": "Le document a été enregistré avec succès"
     }
   },
   "payment": {

@@ -104,6 +104,7 @@ import {
   VenueIntegrations,
   VenueManagement,
   VenuePaymentConfig,
+  VenueMerchantAccounts,
   EcommerceMerchants,
   VenuePricing,
   Venues,
@@ -576,6 +577,7 @@ const router = createBrowserRouter(
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [
                     { path: 'payment-config', element: <VenuePaymentConfig /> },
+                    { path: 'merchant-accounts', element: <VenueMerchantAccounts /> },
                     { path: 'ecommerce-merchants', element: <EcommerceMerchants /> },
                   ],
                 },

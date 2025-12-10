@@ -45,6 +45,7 @@ export const ContactImages = lazyWithRetry(() => import('@/pages/Venue/Edit/Cont
 export const VenueDocuments = lazyWithRetry(() => import('@/pages/Venue/Edit/Documents'))
 export const VenueIntegrations = lazyWithRetry(() => import('@/pages/Venue/Edit/Integrations'))
 export const VenuePaymentConfig = lazyWithRetry(() => import('@/pages/Venue/VenuePaymentConfig'))
+export const VenueMerchantAccounts = lazyWithRetry(() => import('@/pages/Venue/VenueMerchantAccounts'))
 export const EcommerceMerchants = lazyWithRetry(() => import('@/pages/Venue/EcommerceMerchants'))
 export const Shifts = lazyWithRetry(() => import('@/pages/Shift/Shifts'))
 // export const WaiterId = lazyWithRetry(() => import('@/pages/Waiter/waiterId'))

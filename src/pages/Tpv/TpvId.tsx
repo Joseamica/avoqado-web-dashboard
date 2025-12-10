@@ -70,6 +70,9 @@ import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 import { CommandHistoryTable } from './components/CommandHistoryTable'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
+import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
+import { CreditCard, Link2, Unlink } from 'lucide-react'
 
 // Type for the form values
 type TpvFormValues = {
@@ -118,7 +121,7 @@ export default function TpvId() {
   const { t } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -127,6 +130,9 @@ export default function TpvId() {
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<TabValue>('info')
   const [pendingCommand, setPendingCommand] = useState<string | null>(null)
+  const [merchantAccountToLink, setMerchantAccountToLink] = useState<string>('')
+  const [isLinkingMerchant, setIsLinkingMerchant] = useState(false)
+  const [isUnlinkingMerchant, setIsUnlinkingMerchant] = useState<string | null>(null)
 
   // Sync tab state with URL hash
   useEffect(() => {
@@ -312,6 +318,80 @@ export default function TpvId() {
       return failureCount < 3
     },
   })
+
+  // SUPERADMIN: Fetch terminal details with assignedMerchantIds
+  const { data: terminalDetails, refetch: refetchTerminalDetails } = useQuery({
+    queryKey: ['superadmin-terminal', tpvId],
+    queryFn: () => terminalAPI.getTerminalById(tpvId!),
+    enabled: isSuperAdmin && Boolean(tpvId),
+  })
+
+  // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
+  const { data: merchantAccounts = [] } = useQuery({
+    queryKey: ['merchant-accounts'],
+    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    enabled: isSuperAdmin,
+  })
+
+  // Get assigned merchant accounts (full objects)
+  const assignedMerchantIds = terminalDetails?.assignedMerchantIds || []
+  const assignedMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) =>
+    assignedMerchantIds.includes(m.id)
+  )
+  const availableMerchantAccounts = merchantAccounts.filter(
+    (m: MerchantAccount) => !assignedMerchantIds.includes(m.id)
+  )
+
+  // SUPERADMIN: Link merchant account to terminal
+  const handleLinkMerchantAccount = async () => {
+    if (!merchantAccountToLink || !tpvId) return
+    setIsLinkingMerchant(true)
+    try {
+      const newMerchantIds = [...assignedMerchantIds, merchantAccountToLink]
+      await terminalAPI.updateTerminal(tpvId, { assignedMerchantIds: newMerchantIds })
+      refetchTerminalDetails()
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venueId] })
+      toast({
+        title: 'Cuenta vinculada',
+        description: 'La cuenta de comercio se ha asignado a la terminal',
+      })
+      setMerchantAccountToLink('')
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo vincular la cuenta de comercio',
+      })
+    } finally {
+      setIsLinkingMerchant(false)
+    }
+  }
+
+  // SUPERADMIN: Unlink merchant account from terminal
+  const handleUnlinkMerchantAccount = async (merchantId: string) => {
+    if (!tpvId) return
+    setIsUnlinkingMerchant(merchantId)
+    try {
+      const newMerchantIds = assignedMerchantIds.filter((id: string) => id !== merchantId)
+      await terminalAPI.updateTerminal(tpvId, { assignedMerchantIds: newMerchantIds })
+      refetchTerminalDetails()
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venueId] })
+      toast({
+        title: 'Cuenta desvinculada',
+        description: 'La cuenta de comercio se ha removido de la terminal',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo desvincular la cuenta de comercio',
+      })
+    } finally {
+      setIsUnlinkingMerchant(null)
+    }
+  }
 
   useEffect(() => {
     if (tpv) {
@@ -1301,6 +1381,125 @@ export default function TpvId() {
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* SUPERADMIN: Merchant Accounts Card */}
+                  {isSuperAdmin && (
+                    <Card className="border-amber-200 dark:border-amber-800/50">
+                      <CardHeader className="bg-gradient-to-r from-amber-400/10 to-pink-500/10">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          Cuentas de Comercio
+                          <Badge variant="outline" className="ml-auto text-xs border-amber-400 text-amber-600 dark:text-amber-400">
+                            {assignedMerchantAccounts.length}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-4">
+                        {/* Assigned Merchant Accounts */}
+                        {assignedMerchantAccounts.length > 0 ? (
+                          <div className="space-y-2">
+                            {assignedMerchantAccounts.map((account: MerchantAccount) => (
+                              <div
+                                key={account.id}
+                                className="flex items-center justify-between p-3 rounded-lg bg-muted"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-400/20 to-pink-500/20">
+                                    <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">
+                                      {account.displayName || account.merchantIdProvider}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {account.provider?.name || 'Proveedor desconocido'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleUnlinkMerchantAccount(account.id)}
+                                  disabled={isUnlinkingMerchant === account.id}
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                >
+                                  {isUnlinkingMerchant === account.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Unlink className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-4 text-center border-2 border-dashed border-border rounded-lg">
+                            <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">
+                              No hay cuentas de comercio asignadas
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Add Merchant Account - Always show dropdown section */}
+                        <div className="pt-3 border-t border-border space-y-3">
+                          <Label className="text-sm font-medium">Vincular cuenta</Label>
+                          <Select
+                            value={merchantAccountToLink}
+                            onValueChange={setMerchantAccountToLink}
+                            disabled={availableMerchantAccounts.length === 0}
+                          >
+                            <SelectTrigger className={availableMerchantAccounts.length === 0 ? 'opacity-60' : ''}>
+                              <SelectValue placeholder={
+                                merchantAccounts.length === 0
+                                  ? "No hay cuentas en el venue"
+                                  : availableMerchantAccounts.length === 0
+                                  ? "Todas las cuentas ya están asignadas"
+                                  : "Seleccionar cuenta..."
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableMerchantAccounts.map((account: MerchantAccount) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.displayName || account.merchantIdProvider} ({account.provider?.name})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            className="w-full bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground disabled:opacity-50"
+                            onClick={handleLinkMerchantAccount}
+                            disabled={!merchantAccountToLink || isLinkingMerchant || availableMerchantAccounts.length === 0}
+                          >
+                            {isLinkingMerchant ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Vinculando...
+                              </>
+                            ) : (
+                              <>
+                                <Link2 className="w-4 h-4 mr-2" />
+                                Vincular Cuenta
+                              </>
+                            )}
+                          </Button>
+
+                          {/* Hint when no merchant accounts exist in venue */}
+                          {merchantAccounts.length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center">
+                              <Link
+                                to={`/venues/${venueSlug}/merchant-accounts`}
+                                className="text-amber-600 dark:text-amber-400 underline hover:text-amber-700"
+                              >
+                                Crear cuenta de comercio
+                              </Link>
+                              {' '}para poder vincularla
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* System Details */}
                   <Card>

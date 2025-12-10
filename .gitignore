@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .qodo
 .claude/settings.local.json
+
+# Test coverage
+coverage/

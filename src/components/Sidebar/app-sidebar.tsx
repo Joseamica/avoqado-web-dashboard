@@ -4,14 +4,17 @@
   BarChart3,
   BookOpen,
   Building,
+  CreditCard,
   DollarSign,
   FlaskConical,
   Frame,
   Home,
   Package,
   Settings2,
+  Shield,
   Smartphone,
   Star,
+  Store,
   Tag,
   TrendingUp,
   Ungroup,
@@ -157,6 +160,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     // Settings submenu - filter subitems based on permissions
+    // NOTE: Superadmin-specific items (payment-config, ecommerce-merchants) moved to separate Superadmin dropdown
     const settingsSubItems = [
       { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
       { title: t('sidebar:routes.teams'), url: 'teams', permission: 'teams:read' },
@@ -164,18 +168,10 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
         : []),
-      // Payment config only for SUPERADMIN
-      ...(user.role === 'SUPERADMIN'
-        ? [
-            { title: t('sidebar:paymentConfig'), url: 'payment-config', permission: null, superadminOnly: true },
-            { title: 'Canales E-commerce', url: 'ecommerce-merchants', permission: null, superadminOnly: true },
-          ]
-        : []),
       // Billing only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
         ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: null }]
         : []),
-      // { title: t('sidebar:routes.limits'), url: '#limits', permission: null },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Settings menu if user has at least one subitem
@@ -186,6 +182,26 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Settings2,
         locked: false,
         items: settingsSubItems,
+        permission: null as any,
+      } as any)
+    }
+
+    // Superadmin Venue Tools dropdown - only for SUPERADMIN
+    // These are venue-specific superadmin actions (not global /superadmin routes)
+    if (user.role === 'SUPERADMIN') {
+      const superadminVenueItems = [
+        { title: t('sidebar:paymentConfig'), url: 'payment-config', superadminOnly: true },
+        { title: t('sidebar:ecommerceChannels'), url: 'ecommerce-merchants', superadminOnly: true },
+        { title: t('sidebar:merchantAccounts'), url: 'merchant-accounts', superadminOnly: true },
+      ]
+
+      filteredItems.push({
+        title: t('sidebar:superadminTools'),
+        url: '#superadmin-venue',
+        icon: Shield,
+        locked: false,
+        items: superadminVenueItems,
+        superadminOnly: true,
         permission: null as any,
       } as any)
     }

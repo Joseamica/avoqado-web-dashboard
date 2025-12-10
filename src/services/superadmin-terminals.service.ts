@@ -107,16 +107,18 @@ export async function getTerminalById(terminalId: string): Promise<Terminal> {
  * Create new terminal
  *
  * @param data Terminal creation data
- * @returns Created terminal and optional activation code
+ * @returns Created terminal, optional activation code, and auto-attached merchants
  */
 export async function createTerminal(data: CreateTerminalRequest): Promise<{
   terminal: Terminal
   activationCode?: ActivationCodeResponse
+  autoAttachedMerchants?: Array<{ id: string; displayName: string | null }>
 }> {
   const response = await api.post('/api/v1/dashboard/superadmin/terminals', data)
   return {
     terminal: response.data.data,
     activationCode: response.data.activationCode,
+    autoAttachedMerchants: response.data.autoAttachedMerchants,
   }
 }
 

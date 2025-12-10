@@ -1,22 +1,26 @@
 import { getTpvs, sendTpvCommand as sendTpvCommandApi, deleteTpv } from '@/services/tpv.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2, Shield } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { Wrench, CheckCircle2, AlertTriangle, Package, KeyRound, Trash2, Shield, CreditCard, Loader2, Plus, X } from 'lucide-react'
+import { useCallback, useState, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
-import { Terminal } from '@/types'
+import { Terminal, StaffRole } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
 import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
 import { ActivateTerminalModal } from './components/ActivateTerminalModal'
 import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
+import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +51,7 @@ export default function Tpvs() {
   const [terminalToDelete, setTerminalToDelete] = useState<{ id: string; name: string } | null>(null)
 
   // Check if user is SUPERADMIN
-  const isSuperadmin = user?.role === 'SUPERADMIN'
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
 
   // Helper function to get terminal status styling
   const getTerminalStatusStyle = (status: string, lastHeartbeat?: string | null) => {
@@ -101,6 +105,84 @@ export default function Tpvs() {
     queryKey: ['tpvs', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: () => getTpvs(venueId, pagination),
   })
+
+  // SUPERADMIN: Fetch terminals with assignedMerchantIds
+  const { data: superadminTerminals = [], refetch: refetchSuperadminTerminals } = useQuery({
+    queryKey: ['superadmin-terminals', venueId],
+    queryFn: () => terminalAPI.getAllTerminals({ venueId: venueId! }),
+    enabled: isSuperadmin && Boolean(venueId),
+  })
+
+  // SUPERADMIN: Fetch all merchant accounts (they are global, not per-venue)
+  const { data: merchantAccounts = [] } = useQuery({
+    queryKey: ['merchant-accounts'],
+    queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
+    enabled: isSuperadmin,
+  })
+
+  // Create lookup map: terminalId -> assignedMerchantIds
+  const terminalMerchantMap = useMemo(() => {
+    const map = new Map<string, string[]>()
+    superadminTerminals.forEach((t: any) => {
+      map.set(t.id, t.assignedMerchantIds || [])
+    })
+    return map
+  }, [superadminTerminals])
+
+  // State for merchant account popover
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null)
+  const [linkingMerchant, setLinkingMerchant] = useState<{ terminalId: string; merchantId: string } | null>(null)
+  const [unlinkingMerchant, setUnlinkingMerchant] = useState<{ terminalId: string; merchantId: string } | null>(null)
+
+  // SUPERADMIN: Link merchant account to terminal
+  const handleLinkMerchant = async (terminalId: string, merchantId: string) => {
+    setLinkingMerchant({ terminalId, merchantId })
+    try {
+      const currentIds = terminalMerchantMap.get(terminalId) || []
+      const newIds = [...currentIds, merchantId]
+      await terminalAPI.updateTerminal(terminalId, { assignedMerchantIds: newIds })
+      refetchSuperadminTerminals()
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venueId] })
+      toast({
+        title: 'Cuenta vinculada',
+        description: 'La cuenta se ha asignado a la terminal',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo vincular la cuenta',
+      })
+    } finally {
+      setLinkingMerchant(null)
+    }
+  }
+
+  // SUPERADMIN: Unlink merchant account from terminal
+  const handleUnlinkMerchant = async (terminalId: string, merchantId: string) => {
+    setUnlinkingMerchant({ terminalId, merchantId })
+    try {
+      const currentIds = terminalMerchantMap.get(terminalId) || []
+      const newIds = currentIds.filter((id: string) => id !== merchantId)
+      await terminalAPI.updateTerminal(terminalId, { assignedMerchantIds: newIds })
+      refetchSuperadminTerminals()
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-readiness', venueId] })
+      toast({
+        title: 'Cuenta desvinculada',
+        description: 'La cuenta se ha removido de la terminal',
+      })
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo desvincular la cuenta',
+      })
+    } finally {
+      setUnlinkingMerchant(null)
+    }
+  }
 
   const commandMutation = useMutation({
     mutationFn: ({ terminalId, command, payload }: { terminalId: string; command: string; payload?: any }) =>
@@ -229,6 +311,137 @@ export default function Tpvs() {
         )
       },
     },
+    // SUPERADMIN: Merchant Accounts column
+    ...(isSuperadmin
+      ? [
+          {
+            id: 'merchantAccounts',
+            header: () => (
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <CreditCard className="w-4 h-4" />
+                <span>Cuentas</span>
+              </div>
+            ),
+            cell: ({ row }: { row: any }) => {
+              const terminal = row.original as any
+              const assignedIds = terminalMerchantMap.get(terminal.id) || []
+              const assignedAccounts = merchantAccounts.filter((m: MerchantAccount) =>
+                assignedIds.includes(m.id)
+              )
+              const availableAccounts = merchantAccounts.filter(
+                (m: MerchantAccount) => !assignedIds.includes(m.id)
+              )
+
+              // Check if venue has any merchant accounts at all
+              const hasNoMerchantAccounts = merchantAccounts.length === 0
+
+              return (
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  {/* Show assigned accounts as small badges */}
+                  {assignedAccounts.length > 0 ? (
+                    <div className="flex items-center gap-1 flex-wrap max-w-[180px]">
+                      {assignedAccounts.slice(0, 2).map((account: MerchantAccount) => (
+                        <Badge
+                          key={account.id}
+                          variant="outline"
+                          className="text-xs py-0 px-1.5 h-5 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 group cursor-default"
+                        >
+                          <span className="truncate max-w-[60px]">
+                            {account.displayName?.split(' ')[0] || account.provider?.name?.slice(0, 6)}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleUnlinkMerchant(terminal.id, account.id)
+                            }}
+                            disabled={unlinkingMerchant?.terminalId === terminal.id && unlinkingMerchant?.merchantId === account.id}
+                            className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                          >
+                            {unlinkingMerchant?.terminalId === terminal.id && unlinkingMerchant?.merchantId === account.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <X className="w-3 h-3" />
+                            )}
+                          </button>
+                        </Badge>
+                      ))}
+                      {assignedAccounts.length > 2 && (
+                        <Badge variant="outline" className="text-xs py-0 px-1.5 h-5">
+                          +{assignedAccounts.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : hasNoMerchantAccounts ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs text-muted-foreground/60 cursor-help">—</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">
+                        <p className="text-xs">No hay cuentas de comercio en este venue</p>
+                        <p className="text-xs text-muted-foreground">Primero crea una cuenta en Configuración</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Sin asignar</span>
+                  )}
+
+                  {/* Add button with popover */}
+                  {availableAccounts.length > 0 && (
+                    <Popover
+                      open={openPopoverId === terminal.id}
+                      onOpenChange={(open) => setOpenPopoverId(open ? terminal.id : null)}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Plus className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-2" align="end">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+                            Vincular cuenta
+                          </p>
+                          {availableAccounts.map((account: MerchantAccount) => (
+                            <button
+                              key={account.id}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleLinkMerchant(terminal.id, account.id)
+                                setOpenPopoverId(null)
+                              }}
+                              disabled={linkingMerchant?.terminalId === terminal.id}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                            >
+                              {linkingMerchant?.terminalId === terminal.id && linkingMerchant?.merchantId === account.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                              ) : (
+                                <CreditCard className="w-4 h-4 text-amber-500" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium">
+                                  {account.displayName || account.merchantIdProvider}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {account.provider?.name}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              )
+            },
+          },
+        ]
+      : []),
     {
       id: 'actions',
       header: '',

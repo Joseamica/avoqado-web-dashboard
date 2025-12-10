@@ -189,10 +189,10 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                           className="gap-2 p-2 cursor-pointer"
                           disabled={isLoading || group.orgId === 'unknown'}
                         >
-                          <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
-                            <Building2 className="size-4 text-primary-foreground" />
+                          <div className="flex justify-center items-center bg-muted rounded-lg size-6">
+                            <Building2 className="size-4 text-muted-foreground" />
                           </div>
-                          <span className="flex-1 font-medium truncate">
+                          <span className="font-medium truncate">
                             {group.orgName || t('organization:myOrganization')}
                           </span>
                         </DropdownMenuItem>
@@ -213,7 +213,7 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                         <DropdownMenuItem
                           key={venue.id}
                           onClick={() => handleVenueChange(venue)}
-                          className={`gap-2 p-2 ${hasMultipleOrgs ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
+                          className={`gap-2 p-2 ${(hasMultipleOrgs || canViewOrganization) ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
                             !hasAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           }`}
                           disabled={!hasAccess || isLoading}

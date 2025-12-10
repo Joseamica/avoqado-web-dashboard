@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react'
 import { ChatBubble } from './components/Chatbot'
 import { DemoBanner } from './components/DemoBanner'
 import { TrialStatusBanner } from './components/TrialStatusBanner'
+import { PaymentSetupAlert } from './components/PaymentSetupAlert'
 import { StaffRole } from './types'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
@@ -259,6 +260,9 @@ function DashboardContent() {
             <Outlet />
           </div>
         </div>
+
+        {/* Payment Setup Alert for SUPERADMIN - shows when venue needs payment configuration */}
+        {venue && <PaymentSetupAlert venueId={venue.id} className="bottom-20" />}
 
         {/* ChatBubble positioned at bottom-right edge */}
         {venue && checkFeatureAccess('CHATBOT') && (
