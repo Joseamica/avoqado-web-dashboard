@@ -365,6 +365,10 @@
       "deleteError": "Error al eliminar",
       "deleteErrorTitle": "Error al eliminar",
       "deleteErrorDesc": "No se pudo eliminar el local. Intenta nuevamente.",
+      "suspendSuccess": "Establecimiento suspendido",
+      "suspendSuccessDesc": "El establecimiento ha sido suspendido correctamente.",
+      "suspendError": "Error al suspender establecimiento",
+      "suspendErrorTitle": "Error de suspensión",
       "logoUploadedTitle": "Logo cargado",
       "logoUploadedDesc": "El logo se ha cargado exitosamente",
       "logoRemovedTitle": "Logo eliminado",
@@ -379,7 +383,18 @@
     "dangerZone": {
       "title": "Zona de Peligro",
       "description": "Las acciones en esta sección son irreversibles. Procede con precaución.",
-      "deleteButton": "Eliminar Local"
+      "deleteButton": "Eliminar Establecimiento",
+      "deleteDescription": "Esta acción eliminará permanentemente este establecimiento y todos sus datos asociados.",
+      "delete": "Eliminar",
+      "suspendButton": "Suspender Establecimiento",
+      "suspendDescription": "Suspender temporalmente. El personal no podrá iniciar sesión y no se procesarán pagos.",
+      "suspend": "Suspender"
+    },
+    "suspendDialog": {
+      "title": "Suspender Establecimiento",
+      "description": "¿Estás seguro de suspender {{venueName}}? El personal no podrá iniciar sesión y no se procesarán pagos hasta que reactives el establecimiento.",
+      "reasonPlaceholder": "Razón de la suspensión (mínimo 10 caracteres)",
+      "reasonLabel": "Motivo de la suspensión"
     },
     "addDialog": {
       "upload": {
@@ -387,5 +402,20 @@
         "confirm": "Confirmar"
       }
     }
+  },
+  "venueSuspended": {
+    "title": "Establecimiento Suspendido",
+    "adminTitle": "Suspendido por Administrador",
+    "closedTitle": "Establecimiento Cerrado",
+    "description": "Este establecimiento ha sido suspendido temporalmente.",
+    "adminDescription": "Este establecimiento ha sido suspendido por el administrador de la plataforma.",
+    "closedDescription": "Este establecimiento ha sido cerrado permanentemente.",
+    "reason": "Motivo:",
+    "contactSupport": "Contactar Soporte",
+    "reactivate": "Reactivar Establecimiento",
+    "reactivating": "Reactivando...",
+    "selectOther": "Seleccionar otro establecimiento",
+    "helpText": "¿Necesitas ayuda? Contáctanos a través de WhatsApp o email.",
+    "logout": "Cerrar sesión"
   }
 }

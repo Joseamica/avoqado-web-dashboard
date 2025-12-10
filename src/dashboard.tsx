@@ -10,6 +10,7 @@ import { ChatBubble } from './components/Chatbot'
 import { DemoBanner } from './components/DemoBanner'
 import { TrialStatusBanner } from './components/TrialStatusBanner'
 import { PaymentSetupAlert } from './components/PaymentSetupAlert'
+import { VenueSuspendedScreen } from './components/VenueSuspendedScreen'
 import { StaffRole } from './types'
 import { useCurrentVenue } from './hooks/use-current-venue'
 import { Button } from './components/ui/button'
@@ -19,6 +20,8 @@ import LanguageSwitcher from './components/language-switcher'
 import { useTranslation } from 'react-i18next'
 import { BreadcrumbProvider, useBreadcrumb } from './context/BreadcrumbContext'
 import { ChatReferencesProvider } from './context/ChatReferencesContext'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import api from './api'
 
 // Route segment -> i18n key mapping
 const routeKeyMap: Record<string, string> = {
@@ -42,6 +45,7 @@ function DashboardContent() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user, authorizeVenue, allVenues, checkFeatureAccess } = useAuth()
   const { venue, venueSlug, isLoading, hasVenueAccess } = useCurrentVenue()
   const { customSegments } = useBreadcrumb()
@@ -103,6 +107,17 @@ function DashboardContent() {
     }
   }, [venueSlug, setIsVenueSwitching])
 
+  // Mutation para reactivar venue suspendido
+  const reactivateVenueMutation = useMutation({
+    mutationFn: async () => {
+      await api.post(`/api/v1/dashboard/venues/${venue?.id}/reactivate`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+      window.location.reload()
+    },
+  })
+
   // Si está cargando el venue, mostrar estado de carga
   if (isLoading) {
     return (
@@ -112,6 +127,29 @@ function DashboardContent() {
           <p className="mt-4 text-muted-foreground">{t('dashboardShell.loadingVenue')}</p>
         </div>
       </div>
+    )
+  }
+
+  // Verificar si el venue está suspendido/cerrado (bloquear acceso completo)
+  // SUPERADMIN puede acceder a cualquier venue, incluso suspendido
+  const isVenueSuspended = venue?.status === 'SUSPENDED'
+  const isVenueAdminSuspended = venue?.status === 'ADMIN_SUSPENDED'
+  const isVenueClosed = venue?.status === 'CLOSED'
+  const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+
+  if (venue && (isVenueSuspended || isVenueAdminSuspended || isVenueClosed) && !isSuperadmin) {
+    const canReactivate = isVenueSuspended && [StaffRole.OWNER, StaffRole.ADMIN].includes(user?.role as StaffRole)
+
+    return (
+      <VenueSuspendedScreen
+        status={venue.status as 'SUSPENDED' | 'ADMIN_SUSPENDED' | 'CLOSED'}
+        venueName={venue.name}
+        suspensionReason={venue.suspensionReason}
+        canReactivate={canReactivate}
+        onReactivate={() => reactivateVenueMutation.mutate()}
+        isReactivating={reactivateVenueMutation.isPending}
+        otherVenuesAvailable={(user?.venues?.length || 0) > 1}
+      />
     )
   }
 
