@@ -13,11 +13,10 @@ import { formatTokenCount } from '@/hooks/use-token-budget'
 import { downloadInvoice, getVenueInvoices, type StripeInvoice } from '@/services/features.service'
 import { getTokenHistory, type TokenPurchaseRecord } from '@/services/chatService'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { AlertCircle, Download, ExternalLink, Filter, Search, X, Zap, CreditCard } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
 
 // Unified billing item type
 type BillingItem = {
@@ -38,6 +37,7 @@ export default function History() {
   const { t, i18n } = useTranslation('billing')
   const { venueId, venue } = useCurrentVenue()
   const { toast } = useToast()
+  const { formatDate } = useVenueDateTime()
 
   // Get venue currency (default to MXN for Mexican venues)
   const venueCurrency = venue?.currency || 'MXN'
@@ -211,12 +211,6 @@ export default function History() {
       style: 'currency',
       currency,
     }).format(amount / 100)
-  }
-
-  const formatDate = (date: string | Date) => {
-    return format(new Date(date), 'PPP', {
-      locale: i18n.language === 'es' ? es : undefined,
-    })
   }
 
   // Helper to get status badge variant for billing items

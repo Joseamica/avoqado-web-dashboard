@@ -47,6 +47,7 @@ export interface MerchantAccount {
   _count?: {
     costStructures: number
     venueConfigs: number
+    terminals: number
   }
 }
 

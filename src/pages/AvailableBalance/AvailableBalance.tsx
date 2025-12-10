@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
+import { DateTime } from 'luxon'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -52,8 +53,8 @@ import {
   TransactionCardType,
 } from '@/services/availableBalance.service'
 import { Wallet, TrendingUp, Clock, CreditCard, Calculator, ArrowUpRight, Calendar } from 'lucide-react'
-import { format } from 'date-fns'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PendingIncidentsAlert } from '@/components/SettlementIncident/PendingIncidentsAlert'
 import { useToast } from '@/hooks/use-toast'
@@ -62,6 +63,7 @@ export default function AvailableBalance() {
   const { t } = useTranslation('availableBalance')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
+  const { formatDate, formatDateISO, venueTimezoneShort } = useVenueDateTime()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -81,7 +83,7 @@ export default function AvailableBalance() {
     defaultValues: {
       amount: 0,
       cardType: TransactionCardType.DEBIT,
-      transactionDate: format(new Date(), 'yyyy-MM-dd'),
+      transactionDate: DateTime.now().toISODate() || '',
       transactionTime: '',
     },
   })
@@ -172,7 +174,7 @@ export default function AvailableBalance() {
     simulationForm.reset({
       amount: 0,
       cardType: TransactionCardType.DEBIT,
-      transactionDate: format(new Date(), 'yyyy-MM-dd'),
+      transactionDate: DateTime.now().toISODate() || '',
       transactionTime: '',
     })
   }
@@ -311,7 +313,7 @@ export default function AvailableBalance() {
             {summary.estimatedNextSettlement.date && (
               <p className="text-xs text-muted-foreground">
                 {t('kpi.nextSettlementDate', {
-                  date: format(new Date(summary.estimatedNextSettlement.date), 'MMM dd, yyyy')
+                  date: formatDate(summary.estimatedNextSettlement.date)
                 })}
               </p>
             )}
@@ -354,7 +356,7 @@ export default function AvailableBalance() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(entry.settlementDate), 'MMM dd, yyyy')}
+                        {formatDate(entry.settlementDate)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -497,7 +499,7 @@ export default function AvailableBalance() {
                 timeline.slice(0, 10).map((entry, idx) => (
                   <TableRow key={idx}>
                     <TableCell className="font-medium">
-                      {format(new Date(entry.date), 'MMM dd, yyyy')}
+                      {formatDate(entry.date)}
                     </TableCell>
                     <TableCell>{getStatusBadge(entry.settlementStatus)}</TableCell>
                     <TableCell className="text-right">{entry.transactionCount}</TableCell>
@@ -508,7 +510,7 @@ export default function AvailableBalance() {
                     <TableCell className="text-right font-bold">{Currency(entry.netAmount)}</TableCell>
                     <TableCell className="text-right">
                       {entry.estimatedSettlementDate
-                        ? format(new Date(entry.estimatedSettlementDate), 'MMM dd, yyyy')
+                        ? formatDate(entry.estimatedSettlementDate)
                         : '-'
                       }
                     </TableCell>
@@ -639,7 +641,7 @@ export default function AvailableBalance() {
                         <div>
                           <p className="text-sm text-muted-foreground">{t('simulate.result.settlementDate')}</p>
                           <p className="text-xl font-bold">
-                            {format(new Date(simulationResult.estimatedSettlementDate), 'MMM dd, yyyy')}
+                            {formatDate(simulationResult.estimatedSettlementDate)}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             ({simulationResult.settlementDays} {t('simulate.result.settlementDays')})

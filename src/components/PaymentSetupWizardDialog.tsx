@@ -84,8 +84,8 @@ const CHECKLIST_CONFIG: ChecklistItemConfig[] = [
     labelKey: 'paymentSetup.checklist.merchantAccountCreated',
     descriptionKey: 'paymentSetup.checklist.merchantAccountCreatedDesc',
     actionLabelKey: 'paymentSetup.actions.createMerchant',
-    // Merchant accounts are now at venue level
-    getActionPath: (venueSlug: string) => `/venues/${venueSlug}/merchant-accounts`,
+    // Merchant accounts are Control Plane resources - go to superadmin
+    getActionPath: () => `/superadmin/merchant-accounts`,
     isBlocking: true,
   },
   {

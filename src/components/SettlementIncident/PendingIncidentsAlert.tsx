@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +9,7 @@ import { AlertCircle, Clock, DollarSign } from 'lucide-react'
 import { getVenueIncidents, SettlementIncident } from '@/services/settlementIncident.service'
 import { ConfirmIncidentDialog } from './ConfirmIncidentDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface PendingIncidentsAlertProps {
   venueId: string
@@ -18,6 +17,7 @@ interface PendingIncidentsAlertProps {
 
 export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
   const { t } = useTranslation(['settlementIncidents', 'common'])
+  const { formatDate } = useVenueDateTime()
   const [selectedIncident, setSelectedIncident] = useState<SettlementIncident | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -84,8 +84,7 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           {pendingIncidents.map((incident) => {
-            const estimatedDate = new Date(incident.estimatedSettlementDate)
-            const formattedDate = format(estimatedDate, 'PPP', { locale: es })
+            const formattedDate = formatDate(incident.estimatedSettlementDate)
             const formattedAmount = new Intl.NumberFormat('es-MX', {
               style: 'currency',
               currency: 'MXN',

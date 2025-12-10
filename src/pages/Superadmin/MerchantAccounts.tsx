@@ -56,11 +56,7 @@ const MerchantAccounts: React.FC = () => {
   }, [venues])
 
   // Fetch ALL merchant accounts
-  const {
-    data: allAccounts = [],
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data: allAccounts = [], isLoading } = useQuery({
     queryKey: ['merchant-accounts-all'],
     queryFn: () => paymentProviderAPI.getAllMerchantAccounts(),
   })
@@ -120,12 +116,19 @@ const MerchantAccounts: React.FC = () => {
     return result
   }, [allAccounts, debouncedSearchTerm, statusFilter, selectedVenueId, allVenueConfigs])
 
+  // Split accounts into active/inactive for rendering with divider
+  const { activeAccounts, inactiveAccounts } = useMemo(() => {
+    const active = filteredAccounts.filter(a => a.active)
+    const inactive = filteredAccounts.filter(a => !a.active)
+    return { activeAccounts: active, inactiveAccounts: inactive }
+  }, [filteredAccounts])
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: paymentProviderAPI.createMerchantAccount,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
       toast({ title: 'Éxito', description: 'Cuenta de comercio creada exitosamente' })
     },
     onError: () => {
@@ -137,8 +140,8 @@ const MerchantAccounts: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => paymentProviderAPI.updateMerchantAccount(id, data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
       toast({ title: 'Éxito', description: 'Cuenta de comercio actualizada exitosamente' })
     },
     onError: () => {
@@ -150,8 +153,8 @@ const MerchantAccounts: React.FC = () => {
   const toggleMutation = useMutation({
     mutationFn: paymentProviderAPI.toggleMerchantAccountStatus,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
       toast({ title: 'Éxito', description: 'Estado de la cuenta actualizado' })
     },
     onError: () => {
@@ -163,8 +166,8 @@ const MerchantAccounts: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: paymentProviderAPI.deleteMerchantAccount,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
       toast({ title: 'Éxito', description: 'Cuenta de comercio eliminada' })
     },
     onError: (error: any) => {
@@ -180,8 +183,8 @@ const MerchantAccounts: React.FC = () => {
   const deleteCostStructureMutation = useMutation({
     mutationFn: paymentProviderAPI.deleteProviderCostStructure,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
       toast({ title: 'Éxito', description: 'Estructura de costos eliminada' })
     },
   })
@@ -190,8 +193,9 @@ const MerchantAccounts: React.FC = () => {
   const deleteVenueConfigMutation = useMutation({
     mutationFn: ({ venueId }: { venueId: string; configId: string }) => paymentProviderAPI.deleteVenuePaymentConfig(venueId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
       queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-      refetch()
+      queryClient.invalidateQueries({ queryKey: ['all-venue-configs'] })
       toast({ title: 'Éxito', description: 'Configuración de venue eliminada' })
     },
   })
@@ -240,9 +244,13 @@ const MerchantAccounts: React.FC = () => {
     setCostDialogOpen(true)
   }
 
+  const handleAssignToVenue = (account: MerchantAccount) => {
+    setSelectedAccount(account)
+    setAssignToVenueDialogOpen(true)
+  }
+
   // Calculate stats
   const activeCount = allAccounts.filter(a => a.active).length
-  const inactiveCount = allAccounts.length - activeCount
   const withCostsCount = allAccounts.filter(a => a._count?.costStructures && a._count.costStructures > 0).length
   const withoutCostsCount = allAccounts.length - withCostsCount
 
@@ -376,7 +384,7 @@ const MerchantAccounts: React.FC = () => {
                             venue.status === 'ONBOARDING' && 'bg-yellow-500',
                             venue.status === 'TRIAL' && 'bg-orange-500',
                             venue.status === 'PENDING_ACTIVATION' && 'bg-blue-500',
-                            !['ACTIVE', 'ONBOARDING', 'TRIAL', 'PENDING_ACTIVATION'].includes(venue.status || '') && 'bg-gray-400',
+                            !['ACTIVE', 'ONBOARDING', 'TRIAL', 'PENDING_ACTIVATION'].includes(venue.status || '') && 'bg-muted',
                           )}
                         />
                         <span className="truncate">{venue.name}</span>
@@ -434,19 +442,51 @@ const MerchantAccounts: React.FC = () => {
             </p>
             <Badge variant="outline">{filteredAccounts.length} resultados</Badge>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAccounts.map(account => (
-              <MerchantAccountCard
-                key={account.id}
-                account={account}
-                onEdit={handleEdit}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-                onManageTerminals={handleManageTerminals}
-                onManageCosts={handleManageCosts}
-              />
-            ))}
-          </div>
+
+          {/* Active Accounts */}
+          {activeAccounts.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeAccounts.map(account => (
+                <MerchantAccountCard
+                  key={account.id}
+                  account={account}
+                  onEdit={handleEdit}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onManageTerminals={handleManageTerminals}
+                  onManageCosts={handleManageCosts}
+                  onAssignToVenue={handleAssignToVenue}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Divider - only if both active and inactive exist */}
+          {activeAccounts.length > 0 && inactiveAccounts.length > 0 && (
+            <div className="flex items-center gap-4 my-2">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-sm text-muted-foreground">Cuentas Inactivas</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          )}
+
+          {/* Inactive Accounts */}
+          {inactiveAccounts.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {inactiveAccounts.map(account => (
+                <MerchantAccountCard
+                  key={account.id}
+                  account={account}
+                  onEdit={handleEdit}
+                  onToggle={handleToggle}
+                  onDelete={handleDelete}
+                  onManageTerminals={handleManageTerminals}
+                  onManageCosts={handleManageCosts}
+                  onAssignToVenue={handleAssignToVenue}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -457,8 +497,8 @@ const MerchantAccounts: React.FC = () => {
         open={blumonWizardOpen}
         onOpenChange={setBlumonWizardOpen}
         onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
-          refetch()
         }}
       />
 
@@ -479,6 +519,8 @@ const MerchantAccounts: React.FC = () => {
       />
 
       <CostStructureDialog open={costDialogOpen} onOpenChange={setCostDialogOpen} account={selectedAccount} />
+
+      <AssignAccountToVenueDialog open={assignToVenueDialogOpen} onOpenChange={setAssignToVenueDialogOpen} account={selectedAccount} />
     </div>
   )
 }

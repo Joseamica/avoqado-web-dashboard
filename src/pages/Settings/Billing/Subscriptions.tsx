@@ -47,8 +47,6 @@ import { StaffRole } from '@/types'
 // Lazy load superadmin service - only imported when needed
 const loadSuperadminService = () => import('@/services/superadmin.service')
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { format, type Locale } from 'date-fns'
-import { es, fr } from 'date-fns/locale'
 import {
   AlertCircle,
   Calendar,
@@ -64,6 +62,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
 import { PaymentMethodsSection } from '../components/PaymentMethodsSection'
 
 export default function Subscriptions() {
@@ -73,6 +72,7 @@ export default function Subscriptions() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
+  const { formatDate } = useVenueDateTime()
 
   // Check if user is superadmin
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
@@ -382,16 +382,6 @@ export default function Subscriptions() {
       style: 'currency',
       currency,
     }).format(amount / 100)
-  }
-
-  const formatDate = (date: string | Date) => {
-    const localeMap: Record<string, Locale | undefined> = {
-      es,
-      fr,
-    }
-    return format(new Date(date), 'PPP', {
-      locale: localeMap[i18n.language],
-    })
   }
 
   const getStatusBadge = (feature: VenueFeatureStatus['activeFeatures'][0]) => {

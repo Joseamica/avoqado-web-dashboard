@@ -511,6 +511,29 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 - Main content: `col-span-12 lg:col-span-8`
 - Side metrics: `col-span-12 lg:col-span-4`
 
+#### Icon Buttons & Cursor:
+**ALWAYS add `cursor-pointer` to icon buttons**, especially when wrapped in Tooltip components.
+
+Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cursor. Explicit `cursor-pointer` ensures consistent UX.
+
+```typescript
+// ❌ WRONG - Cursor may not show as pointer
+<TooltipTrigger asChild>
+  <Button variant="ghost" size="icon" className="h-7 w-7">
+    <Pencil className="w-3.5 h-3.5" />
+  </Button>
+</TooltipTrigger>
+
+// ✅ CORRECT - Explicit cursor-pointer
+<TooltipTrigger asChild>
+  <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer">
+    <Pencil className="w-3.5 h-3.5" />
+  </Button>
+</TooltipTrigger>
+```
+
+**Reference:** `src/pages/Superadmin/components/merchant-accounts/MerchantAccountCard.tsx`
+
 **Reference:** `src/pages/Venue/VenuePaymentConfig.tsx`
 
 ## Tech Stack
