@@ -25,11 +25,13 @@ import {
 import { Users, Search, Store } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/context/AuthContext'
+import { useVenueDateTime } from '@/utils/datetime'
 
 const OrganizationTeam: React.FC = () => {
   const { t } = useTranslation('organization')
   const { orgId } = useParams<{ orgId: string }>()
   const { allVenues } = useAuth()
+  const { formatDate } = useVenueDateTime()
   const [searchTerm, setSearchTerm] = useState('')
   const [venueFilter, setVenueFilter] = useState<string>('all')
   const debouncedSearch = useDebounce(searchTerm, 300)
@@ -197,7 +199,7 @@ const OrganizationTeam: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(member.createdAt).toLocaleDateString()}
+                      {formatDate(member.createdAt)}
                     </TableCell>
                   </TableRow>
                 ))}

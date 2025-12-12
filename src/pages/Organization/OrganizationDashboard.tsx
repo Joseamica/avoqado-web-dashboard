@@ -8,6 +8,7 @@ import {
   getTopItems,
   type TimeRange,
 } from '@/services/organization.service'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -34,7 +35,8 @@ import { TopVenuesRanking } from './components/TopVenuesRanking'
 import { TopItemsTable } from './components/TopItemsTable'
 
 const OrganizationDashboard: React.FC = () => {
-  const { t } = useTranslation('organization')
+  const { t, i18n } = useTranslation('organization')
+  const localeCode = getIntlLocale(i18n.language)
   const { orgId } = useParams<{ orgId: string }>()
   const navigate = useNavigate()
   const [timeRange, setTimeRange] = useState<TimeRange>('30d')
@@ -61,7 +63,7 @@ const OrganizationDashboard: React.FC = () => {
   })
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat(localeCode, {
       style: 'currency',
       currency: 'MXN',
     }).format(amount)
