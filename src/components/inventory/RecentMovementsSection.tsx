@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatDistanceToNow } from 'date-fns'
-import { enUS, es, fr } from 'date-fns/locale'
+import { DateTime } from 'luxon'
 import { ChevronDown, ChevronUp, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import type { InventoryMovement } from '@/services/inventory.service'
 
 interface RecentMovementsSectionProps {
@@ -17,15 +18,11 @@ interface RecentMovementsSectionProps {
   unit?: string
 }
 
-const DATE_FNS_LOCALES: Record<string, Locale> = {
-  en: enUS,
-  es,
-  fr,
-}
-
 export function RecentMovementsSection({ movements, isLoading, hasRecentMovements, unit = 'units' }: RecentMovementsSectionProps) {
   const { t, i18n } = useTranslation('inventory')
   const { staffInfo } = useAuth()
+  const { venueTimezone } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const [isOpen, setIsOpen] = useState(false)
 
   if (isLoading) {
@@ -49,8 +46,6 @@ export function RecentMovementsSection({ movements, isLoading, hasRecentMovement
       </div>
     )
   }
-
-  const locale = DATE_FNS_LOCALES[i18n.language] || enUS
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -110,10 +105,10 @@ export function RecentMovementsSection({ movements, isLoading, hasRecentMovement
                           <span>{displayName}</span>
                           <span>•</span>
                           <span>
-                            {formatDistanceToNow(new Date(movement.createdAt), {
-                              addSuffix: true,
-                              locale,
-                            })}
+                            {DateTime.fromISO(movement.createdAt, { zone: 'utc' })
+                              .setZone(venueTimezone)
+                              .setLocale(localeCode)
+                              .toRelative()}
                           </span>
                         </div>
                       </div>

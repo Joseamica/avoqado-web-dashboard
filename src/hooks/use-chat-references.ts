@@ -2,7 +2,6 @@ import { useContext, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChatReferencesContext } from '@/context/ChatReferencesContext'
 import type {
-  ChatReference,
   PaymentChatReference,
   OrderChatReference,
   ProductChatReference,
@@ -13,6 +12,7 @@ import type {
 import type { Payment, Order, Product } from '@/types'
 import type { RawMaterial } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
+import { useVenueDateTime } from '@/utils/datetime'
 
 /**
  * Hook to access and manage chat AI references
@@ -21,6 +21,7 @@ import { Currency } from '@/utils/currency'
 export function useChatReferences() {
   const context = useContext(ChatReferencesContext)
   const { t } = useTranslation()
+  const { formatTime, formatDate } = useVenueDateTime()
 
   if (!context) {
     throw new Error('useChatReferences must be used within a ChatReferencesProvider')
@@ -32,9 +33,8 @@ export function useChatReferences() {
 
   const addPayment = useCallback(
     (payment: Payment) => {
-      const date = new Date(payment.createdAt)
-      const timeStr = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
-      const dateStr = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+      const timeStr = formatTime(payment.createdAt)
+      const dateStr = formatDate(payment.createdAt)
 
       const amount = Number(payment.amount) || 0
       const tipAmount = Number(payment.tipAmount) || 0
@@ -79,7 +79,7 @@ export function useChatReferences() {
 
       context.addReference(reference)
     },
-    [context, t],
+    [context, t, formatTime, formatDate],
   )
 
   const togglePayment = useCallback(
@@ -99,9 +99,8 @@ export function useChatReferences() {
 
   const addOrder = useCallback(
     (order: Order) => {
-      const date = new Date(order.createdAt)
-      const timeStr = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
-      const dateStr = date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+      const timeStr = formatTime(order.createdAt)
+      const dateStr = formatDate(order.createdAt)
 
       const total = Number(order.total) || 0
       const itemCount = order.orderItems?.length || 0
@@ -144,7 +143,7 @@ export function useChatReferences() {
 
       context.addReference(reference)
     },
-    [context, t],
+    [context, t, formatTime, formatDate],
   )
 
   const toggleOrder = useCallback(
@@ -164,17 +163,15 @@ export function useChatReferences() {
 
   const addShift = useCallback(
     (shift: ShiftReference) => {
-      const startDate = new Date(shift.startTime)
-      const timeStr = startDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
-      const dateStr = startDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+      const timeStr = formatTime(shift.startTime)
+      const dateStr = formatDate(shift.startTime)
 
-      const statusLabel = shift.status === 'ACTIVE' ? 'Activo' : 'Cerrado'
+      const statusLabel = shift.status === 'ACTIVE' ? t('shifts.status.active', { defaultValue: 'Activo' }) : t('shifts.status.closed', { defaultValue: 'Cerrado' })
       const label = `${shift.staffName} - ${dateStr}`
 
       let endInfo = ''
       if (shift.endTime) {
-        const endDate = new Date(shift.endTime)
-        endInfo = `\n   - Fin: ${endDate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+        endInfo = `\n   - Fin: ${formatTime(shift.endTime)}`
       }
 
       const summary = `TURNO de ${shift.staffName}
@@ -196,7 +193,7 @@ export function useChatReferences() {
 
       context.addReference(reference)
     },
-    [context],
+    [context, t, formatTime, formatDate],
   )
 
   const toggleShift = useCallback(

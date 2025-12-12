@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { SettlementIncident, confirmIncident } from '@/services/settlementIncident.service'
 import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface ConfirmIncidentDialogProps {
   incident: SettlementIncident | null
@@ -22,8 +23,9 @@ interface ConfirmIncidentDialogProps {
 }
 
 export function ConfirmIncidentDialog({ incident, venueId, open, onOpenChange }: ConfirmIncidentDialogProps) {
-  const { t } = useTranslation(['settlementIncidents', 'common'])
+  const { t, i18n } = useTranslation(['settlementIncidents', 'common'])
   const { formatDate } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -77,7 +79,7 @@ export function ConfirmIncidentDialog({ incident, venueId, open, onOpenChange }:
   if (!incident) return null
 
   const formattedEstimatedDate = formatDate(incident.estimatedSettlementDate)
-  const formattedAmount = new Intl.NumberFormat('es-MX', {
+  const formattedAmount = new Intl.NumberFormat(localeCode, {
     style: 'currency',
     currency: 'MXN',
   }).format(Number(incident.amount))

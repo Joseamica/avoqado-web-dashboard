@@ -930,9 +930,34 @@ export interface Order {
   lastSyncAt: string | null
   items?: OrderItem[]
   payments?: Payment[]
+  orderCustomers?: OrderCustomer[]
   createdBy?: Staff | null
   createdAt: string
   updatedAt: string
+}
+
+// Junction table for many-to-many Order <-> Customer relationship
+export interface OrderCustomer {
+  id: string
+  orderId: string
+  customerId: string
+  isPrimary: boolean
+  addedAt: string
+  customer: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string | null
+    phone: string | null
+    loyaltyPoints: number
+    visitCount: number
+    totalSpent: number
+    customerGroup?: {
+      id: string
+      name: string
+      color: string | null
+    } | null
+  }
 }
 
 // Modelo Payment completo según el schema Prisma

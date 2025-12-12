@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format } from 'date-fns'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { DateTime } from 'luxon'
 import { Currency } from '@/utils/currency'
 import { ComparisonPeriod } from './useDashboardData'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface UseDashboardExportProps {
   venueId: string
@@ -47,7 +47,7 @@ export const useDashboardExport = ({
   tipAvgChangePercentage,
 }: UseDashboardExportProps) => {
   const { t, i18n } = useTranslation('home')
-  const localeCode = getIntlLocale(i18n.language)
+  const { formatDate } = useVenueDateTime()
   const [exportLoading, setExportLoading] = useState(false)
 
   // Helper function to convert data to CSV
@@ -79,7 +79,7 @@ export const useDashboardExport = ({
         source: payment.source || '',
         cardBrand: payment.cardBrand || '',
         maskedPan: payment.maskedPan || '',
-        createdAt: new Date(payment.createdAt).toLocaleDateString(localeCode),
+        createdAt: formatDate(payment.createdAt),
         tips: payment.tips?.reduce((sum: number, tip: any) => sum + Number(tip.amount), 0) || 0,
         status: payment.status,
       }))
@@ -89,7 +89,7 @@ export const useDashboardExport = ({
         id: review.id,
         stars: review.stars,
         comment: review.comment || '',
-        createdAt: new Date(review.createdAt).toLocaleDateString(localeCode),
+        createdAt: formatDate(review.createdAt),
         customerName: review.customerName || '',
       }))
 
@@ -140,7 +140,7 @@ export const useDashboardExport = ({
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)
-      link.setAttribute('download', `dashboard-data-${format(new Date(), 'yyyy-MM-dd')}.csv`)
+      link.setAttribute('download', `dashboard-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`)
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
       link.click()
@@ -150,7 +150,7 @@ export const useDashboardExport = ({
     } finally {
       setExportLoading(false)
     }
-  }, [basicData, filteredPayments, filteredReviews, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, localeCode])
+  }, [basicData, filteredPayments, filteredReviews, paymentMethodsData, totalAmount, fiveStarReviews, tipStats, t, formatDate])
 
   const exportToJSON = useCallback(async () => {
     if (!basicData) return
@@ -212,7 +212,7 @@ export const useDashboardExport = ({
       const link = document.createElement('a')
       const url = URL.createObjectURL(blob)
       link.setAttribute('href', url)
-      link.setAttribute('download', `dashboard-data-${format(new Date(), 'yyyy-MM-dd')}.json`)
+      link.setAttribute('download', `dashboard-data-${DateTime.now().toFormat('yyyy-MM-dd')}.json`)
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
       link.click()

@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
 
 // Mock data for super admins
 const mockSuperAdmins = [
@@ -153,6 +154,7 @@ export default function SuperAdminManagement() {
   const { t } = useTranslation()
   const { toast } = useToast()
   const { user } = useAuth()
+  const { formatDateTime } = useVenueDateTime()
   const [superAdmins, setSuperAdmins] = useState(mockSuperAdmins)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeTab, setActiveTab] = useState('admins')
@@ -214,9 +216,9 @@ export default function SuperAdminManagement() {
     })
   }
 
-  // Format date
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleString()
+  // Format date using venue timezone
+  const formatDate = (dateString: string) => {
+    return formatDateTime(dateString)
   }
 
   // Get permission label

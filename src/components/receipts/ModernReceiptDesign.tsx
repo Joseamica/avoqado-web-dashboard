@@ -30,6 +30,8 @@ import {
   ImageIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import type { UnifiedReceiptData, DigitalReceipt } from '@/types/receipt'
 import { useToast } from '@/hooks/use-toast'
@@ -169,18 +171,22 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
 
   const { payment, venue, order, processedBy, customer } = data
+  const venueTimezone = (venue as { timezone?: string })?.timezone || 'America/Mexico_City'
 
   // Format helpers
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const locale = getIntlLocale(i18n.language)
+    const dt = DateTime.fromISO(dateString, { zone: 'utc' })
+      .setZone(venueTimezone)
+      .setLocale(locale)
     return {
-      date: date.toLocaleDateString(i18n.language || 'en-US', {
+      date: dt.toLocaleString({
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }),
-      time: date.toLocaleTimeString(i18n.language || 'en-US', {
+      time: dt.toLocaleString({
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
@@ -192,7 +198,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
     if (value == null || Number.isNaN(Number(value))) return t('common.na')
     try {
       const currency = venue?.currency || 'MXN'
-      return new Intl.NumberFormat(i18n.language || 'es-MX', { style: 'currency', currency }).format(Number(value))
+      return new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency }).format(Number(value))
     } catch {
       return t('common.na')
     }

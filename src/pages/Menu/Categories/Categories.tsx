@@ -5,7 +5,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { Link, useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
@@ -16,8 +16,9 @@ import { MenuCategory } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
 
 export default function Categories() {
-  const { t, i18n } = useTranslation('menu')
+  const { t } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
+  const { formatDate } = useVenueDateTime()
   const location = useLocation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -89,10 +90,7 @@ export default function Categories() {
         const updatedAt = cell.getValue() as string
         return (
           <span>
-            {new Date(updatedAt).toLocaleDateString(getIntlLocale(i18n.language), {
-              day: 'numeric',
-              month: 'numeric',
-            })}
+            {formatDate(updatedAt)}
           </span>
         )
       },

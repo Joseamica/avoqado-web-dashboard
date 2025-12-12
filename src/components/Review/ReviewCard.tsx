@@ -7,8 +7,7 @@ import { Calendar, MessageSquare, Star, Trash2, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SentimentBadge, getSentimentFromRating } from './SentimentBadge'
 import { SourceBadge } from './SourceBadge'
-import { format } from 'date-fns'
-import { enUS, es, fr } from 'date-fns/locale'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface Review {
   id: string
@@ -36,14 +35,9 @@ interface ReviewCardProps {
   isSuperAdmin?: boolean
 }
 
-const dateLocales = {
-  en: enUS,
-  es: es,
-  fr: fr,
-}
-
 export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: ReviewCardProps) {
-  const { t, i18n } = useTranslation('reviews')
+  const { t } = useTranslation('reviews')
+  const { formatDateTime } = useVenueDateTime()
   const sentiment = getSentimentFromRating(review.overallRating)
 
   const getInitials = (name?: string) => {
@@ -56,9 +50,7 @@ export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: Review
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const locale = dateLocales[i18n.language as keyof typeof dateLocales] || enUS
-    return format(date, 'PPp', { locale })
+    return formatDateTime(dateString)
   }
 
   const renderStars = (rating: number, size: number = 16) => {

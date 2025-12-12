@@ -10,14 +10,16 @@ import { getVenueIncidents, SettlementIncident } from '@/services/settlementInci
 import { ConfirmIncidentDialog } from './ConfirmIncidentDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface PendingIncidentsAlertProps {
   venueId: string
 }
 
 export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
-  const { t } = useTranslation(['settlementIncidents', 'common'])
+  const { t, i18n } = useTranslation(['settlementIncidents', 'common'])
   const { formatDate } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const [selectedIncident, setSelectedIncident] = useState<SettlementIncident | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -57,7 +59,7 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
   }
 
   const totalPendingAmount = pendingIncidents.reduce((sum, incident) => sum + Number(incident.amount), 0)
-  const formattedTotalAmount = new Intl.NumberFormat('es-MX', {
+  const formattedTotalAmount = new Intl.NumberFormat(localeCode, {
     style: 'currency',
     currency: 'MXN',
   }).format(totalPendingAmount)
@@ -85,7 +87,7 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
         <CardContent className="space-y-3">
           {pendingIncidents.map((incident) => {
             const formattedDate = formatDate(incident.estimatedSettlementDate)
-            const formattedAmount = new Intl.NumberFormat('es-MX', {
+            const formattedAmount = new Intl.NumberFormat(localeCode, {
               style: 'currency',
               currency: 'MXN',
             }).format(Number(incident.amount))

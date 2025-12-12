@@ -1,4 +1,5 @@
 import api from '@/api'
+import { DateTime } from 'luxon'
 
 // Configuración del chat
 export const CHAT_CONFIG = {
@@ -812,7 +813,8 @@ const generateConversationTitleFallback = (history: ConversationEntry[]): string
     const title = firstUserMessage.content.substring(0, 50)
     return title.length < firstUserMessage.content.length ? title + '...' : title
   }
-  return `Conversación del ${new Date().toLocaleDateString()}`
+  // Use browser's default locale for conversation title since we don't have venue context here
+  return `Conversación del ${DateTime.now().toLocaleString(DateTime.DATE_MED)}`
 }
 
 // Keep original function for backward compatibility

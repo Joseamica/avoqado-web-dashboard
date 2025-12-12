@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { getToday, getYesterday, getLast7Days, getLast30Days } from '@/utils/datetime'
 import { useAuth } from '@/context/AuthContext'
 import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -34,12 +35,10 @@ export interface DateRangePickerProps {
   showCompare?: boolean
 }
 
-const formatDate = (date: Date, locale: string = 'en-us'): string => {
-  return date.toLocaleDateString(locale, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+const formatDate = (date: Date, locale: string = 'en-US'): string => {
+  return DateTime.fromJSDate(date)
+    .setLocale(getIntlLocale(locale))
+    .toLocaleString(DateTime.DATE_MED)
 }
 
 const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
