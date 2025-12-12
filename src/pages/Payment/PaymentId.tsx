@@ -803,88 +803,54 @@ export default function PaymentId() {
                 onToggle={() => toggleSection('transaction')}
                 icon={FileText}
               >
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1 min-h-[20px] mb-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{t('detail.fields.dateTime')}</span>
-                      </Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-sm">
-                          {payment?.createdAt
-                            ? formatDateLong(payment.createdAt, locale, venueTimezone)
-                            : '-'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.authNumber')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-sm">{payment?.authorizationNumber || t('detail.fields.notAvailable')}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.table')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="text-sm">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                        {t('detail.fields.referenceNumber')}
-                      </Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-xs break-all">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
-                      </div>
-                    </div>
-
-                    {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                          {t('detail.fields.entryMode')}
-                        </Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="text-sm">
-                            {payment.entryMode === 'CONTACTLESS'
-                              ? t('detail.entryModes.contactless')
-                              : payment.entryMode === 'CHIP'
-                              ? t('detail.entryModes.chip')
-                              : payment.entryMode === 'SWIPE'
-                              ? t('detail.entryModes.swipe')
-                              : payment.entryMode === 'MANUAL'
-                              ? t('detail.entryModes.manual')
-                              : payment.entryMode === 'ONLINE'
-                              ? t('detail.entryModes.online')
-                              : payment.entryMode}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.dateTime')}</Label>
+                    <p className="text-sm mt-1">
+                      {payment?.createdAt ? formatDateLong(payment.createdAt, locale, venueTimezone) : '-'}
+                    </p>
                   </div>
-
-                  {/* Bill Information */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 text-sm text-muted-foreground">{t('detail.sections.billInfo')}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.orderId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="font-mono text-sm">
-                            {payment?.order?.orderNumber || payment?.orderId || (payment as any)?.billId || t('detail.fields.notAvailable')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.shiftId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="font-mono text-sm">{getShiftInfo(payment) || t('detail.fields.notAvailable')}</p>
-                        </div>
-                      </div>
+                  {payment?.method !== 'CASH' && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
+                      <p className="text-sm font-mono mt-1">{payment?.authorizationNumber || t('detail.fields.notAvailable')}</p>
                     </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.table')}</Label>
+                    <p className="text-sm mt-1">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.referenceNumber')}</Label>
+                    <p className="text-sm font-mono mt-1">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
+                  </div>
+                  {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.entryMode')}</Label>
+                      <p className="text-sm mt-1">
+                        {payment.entryMode === 'CONTACTLESS'
+                          ? t('detail.entryModes.contactless')
+                          : payment.entryMode === 'CHIP'
+                          ? t('detail.entryModes.chip')
+                          : payment.entryMode === 'SWIPE'
+                          ? t('detail.entryModes.swipe')
+                          : payment.entryMode === 'MANUAL'
+                          ? t('detail.entryModes.manual')
+                          : payment.entryMode === 'ONLINE'
+                          ? t('detail.entryModes.online')
+                          : payment.entryMode}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderId')}</Label>
+                    <p className="text-sm font-mono mt-1">
+                      {payment?.order?.orderNumber || payment?.orderId || (payment as any)?.billId || t('detail.fields.notAvailable')}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.shiftId')}</Label>
+                    <p className="text-sm font-mono mt-1">{getShiftInfo(payment) || t('detail.fields.notAvailable')}</p>
                   </div>
                 </div>
               </CollapsibleSection>
@@ -898,71 +864,42 @@ export default function PaymentId() {
                   onToggle={() => toggleSection('merchant')}
                   icon={Building2}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col">
-                          <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                            {t('detail.fields.merchantName')}
-                          </Label>
-                          <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                            <p className="text-sm">{payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId}</p>
-                          </div>
-                        </div>
-
-                        {payment.merchantAccount.bankName && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.bankName')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.bankName}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.clabeNumber && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.clabeNumber')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="font-mono text-sm">{payment.merchantAccount.clabeNumber}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.accountHolder && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.accountHolder')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.accountHolder}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.blumonSerialNumber && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.blumonSerial')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="font-mono text-sm">{payment.merchantAccount.blumonSerialNumber}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.provider && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.provider')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.provider.name}</p>
-                            </div>
-                          </div>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.merchantName')}</Label>
+                      <p className="text-sm mt-1">{payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId}</p>
+                    </div>
+                    {payment.merchantAccount.bankName && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.bankName')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.bankName}</p>
                       </div>
+                    )}
+                    {payment.merchantAccount.clabeNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.clabeNumber')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.merchantAccount.clabeNumber}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.accountHolder && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.accountHolder')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.accountHolder}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.blumonSerialNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.blumonSerial')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.merchantAccount.blumonSerialNumber}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.provider && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.provider')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.provider.name}</p>
+                      </div>
+                    )}
+                  </div>
                 </CollapsibleSection>
               )}
 
