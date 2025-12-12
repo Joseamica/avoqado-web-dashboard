@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,8 +44,10 @@ import {
   Trash2,
   Utensils,
   User,
+  Users,
   Wallet,
   XCircle,
+  Star,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -145,10 +148,11 @@ const getOrderTypeConfig = (type: string) => {
   }
 }
 
-const formatDateLong = (dateString: string | undefined, locale: string) => {
+const formatDateLong = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(getIntlLocale(locale), {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(getIntlLocale(locale))
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -158,10 +162,11 @@ const formatDateLong = (dateString: string | undefined, locale: string) => {
   })
 }
 
-const formatDateShort = (dateString: string | undefined, locale: string) => {
+const formatDateShort = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(getIntlLocale(locale), {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(getIntlLocale(locale))
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -241,7 +246,7 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   )
 }
 
-const OrderTimeline = ({ order, locale }: { order: OrderType; locale: string }) => {
+const OrderTimeline = ({ order, locale, timezone }: { order: OrderType; locale: string; timezone: string }) => {
   const { t } = useTranslation('orders')
 
   const events: TimelineEvent[] = []
@@ -251,7 +256,7 @@ const OrderTimeline = ({ order, locale }: { order: OrderType; locale: string }) 
     order.payments.forEach(payment => {
       events.push({
         type: 'payment',
-        timestamp: formatDateShort(payment.createdAt, locale),
+        timestamp: formatDateShort(payment.createdAt, locale, timezone),
         description: `${t('detail.timeline.paymentReceived')}: ${Currency(Number(payment.amount) + Number(payment.tipAmount))} via ${
           payment.method
         }`,
@@ -265,7 +270,7 @@ const OrderTimeline = ({ order, locale }: { order: OrderType; locale: string }) 
   if (order.status) {
     events.push({
       type: 'status_change',
-      timestamp: formatDateShort(order.updatedAt, locale),
+      timestamp: formatDateShort(order.updatedAt, locale, timezone),
       description: `${t('detail.timeline.statusUpdated')}: ${t(`detail.statuses.${order.status}`)}`,
       icon: CheckCircle2,
       iconColor: 'text-primary border-primary/20',
@@ -275,7 +280,7 @@ const OrderTimeline = ({ order, locale }: { order: OrderType; locale: string }) 
   // Order created
   events.push({
     type: 'created',
-    timestamp: formatDateShort(order.createdAt, locale),
+    timestamp: formatDateShort(order.createdAt, locale, timezone),
     description: t('detail.timeline.orderCreated'),
     user: order.createdBy,
     icon: FileText,
@@ -348,7 +353,8 @@ export default function OrderId() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
   // State
@@ -594,7 +600,7 @@ export default function OrderId() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <OrderTimeline order={order} locale={i18n.language} />
+                  <OrderTimeline order={order} locale={i18n.language} timezone={venueTimezone} />
                 </CardContent>
               </Card>
 
@@ -670,7 +676,7 @@ export default function OrderId() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{t(`payment:methods.${String(payment.method).toLowerCase()}`)}</span>
-                              <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language)}</span>
+                              <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language, venueTimezone)}</span>
                             </div>
                             <div className="text-xs text-muted-foreground">
                               <span>
@@ -717,7 +723,7 @@ export default function OrderId() {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.dateTime')}</Label>
-                    <p className="text-sm mt-1">{formatDateLong(order.createdAt, i18n.language)}</p>
+                    <p className="text-sm mt-1">{formatDateLong(order.createdAt, i18n.language, venueTimezone)}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.customer')}</Label>
@@ -776,7 +782,7 @@ export default function OrderId() {
                     <div>
                       <p className="font-medium text-foreground">{t(`detail.statuses.${order.status}`)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(order.updatedAt, i18n.language)}
+                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(order.updatedAt, i18n.language, venueTimezone)}
                       </p>
                     </div>
                   </div>
@@ -805,27 +811,98 @@ export default function OrderId() {
                 </CardContent>
               </Card>
 
-              {/* Customer Info */}
+              {/* Customers Info */}
               <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    {t('detail.sidebar.customer', { defaultValue: 'Customer' })}
+                    {order.orderCustomers && order.orderCustomers.length > 1 ? (
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <User className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    {order.orderCustomers && order.orderCustomers.length > 1
+                      ? t('detail.sidebar.customers', { defaultValue: 'Customers' })
+                      : t('detail.sidebar.customer', { defaultValue: 'Customer' })}
+                    {order.orderCustomers && order.orderCustomers.length > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {order.orderCustomers.length}
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.name', { defaultValue: 'Name' })}</p>
-                    <p className="mt-1">{order.customerName || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.email', { defaultValue: 'Email' })}</p>
-                    <p className="mt-1">{order.customerEmail || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.phone', { defaultValue: 'Phone' })}</p>
-                    <p className="mt-1">{order.customerPhone || '-'}</p>
-                  </div>
+                  {order.orderCustomers && order.orderCustomers.length > 0 ? (
+                    <div className="space-y-4">
+                      {order.orderCustomers.map((oc) => (
+                        <div
+                          key={oc.id}
+                          className={`p-3 rounded-lg border ${oc.isPrimary ? 'border-primary/30 bg-primary/5' : 'border-border'}`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {oc.customer.firstName} {oc.customer.lastName}
+                                </span>
+                                {oc.isPrimary && (
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <Star className="h-3.5 w-3.5 text-primary fill-primary" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {t('detail.customer.primary', { defaultValue: 'Primary customer' })}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {oc.customer.customerGroup && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs"
+                                    style={{
+                                      borderColor: oc.customer.customerGroup.color || undefined,
+                                      color: oc.customer.customerGroup.color || undefined,
+                                    }}
+                                  >
+                                    {oc.customer.customerGroup.name}
+                                  </Badge>
+                                )}
+                              </div>
+                              {oc.customer.email && (
+                                <p className="text-xs text-muted-foreground mt-1">{oc.customer.email}</p>
+                              )}
+                              {oc.customer.phone && (
+                                <p className="text-xs text-muted-foreground">{oc.customer.phone}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground">
+                            <span>
+                              {t('detail.customer.visits', { defaultValue: 'Visits' })}: {oc.customer.visitCount}
+                            </span>
+                            <span>
+                              {t('detail.customer.points', { defaultValue: 'Points' })}: {oc.customer.loyaltyPoints}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    // Fallback to legacy customer fields if no orderCustomers
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('detail.fields.name', { defaultValue: 'Name' })}</p>
+                        <p className="mt-1">{order.customerName || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('detail.fields.email', { defaultValue: 'Email' })}</p>
+                        <p className="mt-1">{order.customerEmail || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('detail.fields.phone', { defaultValue: 'Phone' })}</p>
+                        <p className="mt-1">{order.customerPhone || '-'}</p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -867,7 +944,7 @@ export default function OrderId() {
           <div className="max-w-[1400px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{t('detail.footer.orderId', { id: order.id })}</span>
-              <span>{t('detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
+              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(getIntlLocale(i18n.language)).toLocaleString(DateTime.DATETIME_MED) })}</span>
             </div>
           </div>
         </div>

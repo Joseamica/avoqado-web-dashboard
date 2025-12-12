@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,10 +93,11 @@ const getShiftStatusConfig = (status: string) => {
   }
 }
 
-const formatDateLong = (dateString: string | undefined, locale: string) => {
+const formatDateLong = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(getIntlLocale(locale), {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(getIntlLocale(locale))
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -105,10 +107,11 @@ const formatDateLong = (dateString: string | undefined, locale: string) => {
   })
 }
 
-const formatDateShort = (dateString: string | undefined, locale: string) => {
+const formatDateShort = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(getIntlLocale(locale), {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(getIntlLocale(locale))
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -148,14 +151,14 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   )
 }
 
-const ShiftTimeline = ({ shift, locale, t }: { shift: any; locale: string; t: any }) => {
+const ShiftTimeline = ({ shift, locale, timezone, t }: { shift: any; locale: string; timezone: string; t: any }) => {
   const events: TimelineEvent[] = []
 
   // Shift closed event
   if (shift?.status === 'CLOSED' && shift?.endTime) {
     events.push({
       type: 'closed',
-      timestamp: formatDateShort(shift.endTime, locale),
+      timestamp: formatDateShort(shift.endTime, locale, timezone),
       description: t('detail.timeline.shiftClosed'),
       icon: CheckCircle2,
       iconColor: 'text-muted-foreground border-border',
@@ -167,7 +170,7 @@ const ShiftTimeline = ({ shift, locale, t }: { shift: any; locale: string; t: an
     shift.payments.slice(0, 5).forEach((payment: any) => {
       events.push({
         type: 'payment',
-        timestamp: formatDateShort(payment.createdAt, locale),
+        timestamp: formatDateShort(payment.createdAt, locale, timezone),
         description: `${t('detail.timeline.paymentReceived')}: ${Currency(
           Number(payment.amount) + payment.tips.reduce((acc: number, tip: any) => acc + parseFloat(tip.amount), 0)
         )}`,
@@ -180,7 +183,7 @@ const ShiftTimeline = ({ shift, locale, t }: { shift: any; locale: string; t: an
   // Shift opened event
   events.push({
     type: 'opened',
-    timestamp: formatDateShort(shift?.startTime, locale),
+    timestamp: formatDateShort(shift?.startTime, locale, timezone),
     description: t('detail.timeline.shiftOpened'),
     icon: Clock,
     iconColor: 'text-primary border-primary/20',
@@ -245,7 +248,8 @@ export default function ShiftId() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { t, i18n } = useTranslation('shifts')
   const { t: tCommon } = useTranslation('common')
   const { user } = useAuth()
@@ -597,7 +601,7 @@ export default function ShiftId() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ShiftTimeline shift={shift} locale={i18n.language} t={t} />
+                  <ShiftTimeline shift={shift} locale={i18n.language} timezone={venueTimezone} t={t} />
                 </CardContent>
               </Card>
 
@@ -631,7 +635,7 @@ export default function ShiftId() {
                                 <span className="text-sm font-medium">
                                   {payment.paymentType === 'CARD' ? t('methods.card') : t('methods.cash')}
                                 </span>
-                                <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language)}</span>
+                                <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language, venueTimezone)}</span>
                               </div>
                               <div className="text-xs text-muted-foreground">
                                 <span>
@@ -708,11 +712,11 @@ export default function ShiftId() {
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.startTime')}</Label>
-                    <p className="text-sm mt-1">{formatDateLong(shift.startTime, i18n.language)}</p>
+                    <p className="text-sm mt-1">{formatDateLong(shift.startTime, i18n.language, venueTimezone)}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.endTime')}</Label>
-                    <p className="text-sm mt-1">{shift.endTime ? formatDateLong(shift.endTime, i18n.language) : '-'}</p>
+                    <p className="text-sm mt-1">{shift.endTime ? formatDateLong(shift.endTime, i18n.language, venueTimezone) : '-'}</p>
                   </div>
                 </div>
               </CollapsibleSection>
@@ -735,7 +739,7 @@ export default function ShiftId() {
                         {shiftStatus === 'CLOSED' ? t('detail.statusClosed') : t('detail.statusOpen')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(shift.updatedAt, i18n.language)}
+                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(shift.updatedAt, i18n.language, venueTimezone)}
                       </p>
                     </div>
                   </div>
@@ -851,11 +855,11 @@ export default function ShiftId() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t('detail.fields.createdAt')}</p>
-                    <p className="mt-1">{formatDateShort(shift.createdAt, i18n.language)}</p>
+                    <p className="mt-1">{formatDateShort(shift.createdAt, i18n.language, venueTimezone)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t('detail.fields.updatedAt')}</p>
-                    <p className="mt-1">{formatDateShort(shift.updatedAt, i18n.language)}</p>
+                    <p className="mt-1">{formatDateShort(shift.updatedAt, i18n.language, venueTimezone)}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -868,7 +872,7 @@ export default function ShiftId() {
           <div className="max-w-[1400px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{t('detail.footer.shiftId', { id: shift.id })}</span>
-              <span>{t('detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
+              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(getIntlLocale(i18n.language)).toLocaleString(DateTime.DATETIME_MED) })}</span>
             </div>
           </div>
         </div>

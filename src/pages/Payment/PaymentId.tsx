@@ -1,4 +1,5 @@
 import api from '@/api'
+import { DateTime } from 'luxon'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -154,10 +155,11 @@ const getOrderTypeConfig = (type: string) => {
   }
 }
 
-const formatDateLong = (dateString: string | undefined, locale: string) => {
+const formatDateLong = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(locale, {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(locale)
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -167,10 +169,11 @@ const formatDateLong = (dateString: string | undefined, locale: string) => {
   })
 }
 
-const formatDateShort = (dateString: string | undefined, locale: string) => {
+const formatDateShort = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(locale, {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(locale)
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -246,7 +249,7 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   )
 }
 
-const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; receipts: any[]; locale: string; t: any }) => {
+const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: any; receipts: any[]; locale: string; timezone: string; t: any }) => {
   const events: TimelineEvent[] = []
 
   // Receipt events
@@ -256,7 +259,7 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
       if (receipt.viewedAt) {
         events.push({
           type: 'receipt',
-          timestamp: formatDateShort(receipt.viewedAt, locale),
+          timestamp: formatDateShort(receipt.viewedAt, locale, timezone),
           description: t('detail.timeline.receiptViewed'),
           email: receipt.recipientEmail,
           icon: Eye,
@@ -267,7 +270,7 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
       if (receipt.sentAt) {
         events.push({
           type: 'receipt',
-          timestamp: formatDateShort(receipt.sentAt, locale),
+          timestamp: formatDateShort(receipt.sentAt, locale, timezone),
           description: t('detail.timeline.receiptSent'),
           email: receipt.recipientEmail,
           icon: Mail,
@@ -281,7 +284,7 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
   if (payment.updatedAt && payment.updatedAt !== payment.createdAt) {
     events.push({
       type: 'status_change',
-      timestamp: formatDateShort(payment.updatedAt, locale),
+      timestamp: formatDateShort(payment.updatedAt, locale, timezone),
       description: `${t('detail.timeline.statusUpdated')}: ${payment.status}`,
       icon: CheckCircle2,
       iconColor: 'text-primary border-primary/20',
@@ -291,7 +294,7 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
   // Payment created
   events.push({
     type: 'created',
-    timestamp: formatDateShort(payment.createdAt, locale),
+    timestamp: formatDateShort(payment.createdAt, locale, timezone),
     description: t('detail.timeline.paymentProcessed'),
     icon: CreditCard,
     iconColor: 'text-muted-foreground border-border',
@@ -380,7 +383,8 @@ export default function PaymentId() {
     processorData: false,
   })
   const { toast } = useToast()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { can } = usePermissions()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
@@ -553,8 +557,9 @@ export default function PaymentId() {
   const StatusIcon = paymentStatusConfig?.icon || Clock
 
   const formatReceiptDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString(getIntlLocale(i18n.language), {
+    const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale)
+    if (!dt.isValid) return '-'
+    return dt.toLocaleString({
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -660,7 +665,7 @@ export default function PaymentId() {
                       : payment?.method || 'N/A'}
                   </span>
                   <span className="text-sm">•</span>
-                  <span className="text-sm">{formatDateLong(payment?.createdAt, locale)}</span>
+                  <span className="text-sm">{formatDateLong(payment?.createdAt, locale, venueTimezone)}</span>
                 </div>
               </div>
 
@@ -868,7 +873,7 @@ export default function PaymentId() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PaymentTimeline payment={payment} receipts={receipts} locale={locale} t={t} />
+                  <PaymentTimeline payment={payment} receipts={receipts} locale={locale} timezone={venueTimezone} t={t} />
                 </CardContent>
               </Card>
 
@@ -890,15 +895,7 @@ export default function PaymentId() {
                       <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
                         <p className="font-mono text-sm">
                           {payment?.createdAt
-                            ? new Date(payment.createdAt).toLocaleString(getIntlLocale(i18n.language), {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              })
+                            ? formatDateLong(payment.createdAt, locale, venueTimezone)
                             : '-'}
                         </p>
                       </div>
@@ -1222,7 +1219,7 @@ export default function PaymentId() {
                     <p className="text-xs text-muted-foreground mt-2">
                       {t('detail.status.lastUpdatePrefix', { defaultValue: 'Última actualización:' })}{' '}
                       {payment?.updatedAt
-                        ? new Date(payment.updatedAt).toLocaleString(getIntlLocale(i18n.language))
+                        ? formatDateLong(payment.updatedAt, locale, venueTimezone)
                         : t('detail.fields.notAvailable')}
                     </p>
                   </div>
@@ -1405,7 +1402,7 @@ export default function PaymentId() {
                 <span>{t('detail.footer.paymentId', { defaultValue: 'Pago ID: {{id}}', id: payment?.id })}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <span>{t('detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
+                <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED) })}</span>
               </div>
             </div>
           </div>

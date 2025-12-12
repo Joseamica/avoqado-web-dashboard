@@ -1,4 +1,5 @@
 import api from '@/api'
+import { DateTime } from 'luxon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -60,6 +61,7 @@ const VALID_TABS = ['info', 'commands', 'settings'] as const
 type TabValue = (typeof VALID_TABS)[number]
 import * as z from 'zod'
 import { useTranslation } from 'react-i18next'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { PermissionGate } from '@/components/PermissionGate'
 import { generateActivationCode } from '@/services/tpv.service'
 import { ActivationCodeDialog } from './ActivationCodeDialog'
@@ -118,10 +120,11 @@ interface TpvData {
 }
 
 export default function TpvId() {
-  const { t } = useTranslation(['tpv', 'common'])
+  const { t, i18n } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -899,12 +902,15 @@ export default function TpvId() {
                           <p className="font-semibold text-foreground">
                             {tpv?.lastHeartbeat ? (
                               <span className="text-xs">
-                                {new Date(tpv.lastHeartbeat).toLocaleString('es-ES', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {DateTime.fromISO(tpv.lastHeartbeat, { zone: 'utc' })
+                                  .setZone(venueTimezone)
+                                  .setLocale(getIntlLocale(i18n.language))
+                                  .toLocaleString({
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
                               </span>
                             ) : (
                               t('detail.never')
@@ -1512,13 +1518,16 @@ export default function TpvId() {
                           <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.created')}</Label>
                           <p className="text-sm text-foreground mt-1">
                             {tpv?.createdAt
-                              ? new Date(tpv.createdAt).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
+                              ? DateTime.fromISO(tpv.createdAt, { zone: 'utc' })
+                                  .setZone(venueTimezone)
+                                  .setLocale(getIntlLocale(i18n.language))
+                                  .toLocaleString({
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
                               : '-'}
                           </p>
                         </div>
@@ -1527,13 +1536,16 @@ export default function TpvId() {
                           <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.lastUpdate')}</Label>
                           <p className="text-sm text-foreground mt-1">
                             {tpv?.updatedAt
-                              ? new Date(tpv.updatedAt).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
+                              ? DateTime.fromISO(tpv.updatedAt, { zone: 'utc' })
+                                  .setZone(venueTimezone)
+                                  .setLocale(getIntlLocale(i18n.language))
+                                  .toLocaleString({
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
                               : '-'}
                           </p>
                         </div>
@@ -1553,13 +1565,16 @@ export default function TpvId() {
                             }`}
                           >
                             {tpv?.activatedAt
-                              ? new Date(tpv.activatedAt).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
+                              ? DateTime.fromISO(tpv.activatedAt, { zone: 'utc' })
+                                  .setZone(venueTimezone)
+                                  .setLocale(getIntlLocale(i18n.language))
+                                  .toLocaleString({
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
                               : t('detail.pendingActivation')}
                           </p>
                         </div>
