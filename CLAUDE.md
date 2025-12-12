@@ -536,6 +536,93 @@ Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cur
 
 **Reference:** `src/pages/Venue/VenuePaymentConfig.tsx`
 
+### 11. Timezone Handling (MANDATORY)
+
+**ALL date/time displays MUST use venue timezone, NOT browser timezone.**
+
+This follows the industry-standard pattern used by Stripe and Toast (NOT Square, which has documented problems with browser timezone).
+
+```typescript
+// ❌ WRONG - Uses browser timezone
+new Date(dateString).toLocaleDateString('es-ES', {...})
+format(date, 'PPp', { locale }) // date-fns
+new Date().toLocaleString() // no timezone
+
+// ✅ CORRECT - Uses useVenueDateTime hook
+import { useVenueDateTime } from '@/utils/datetime'
+
+const { formatDate, formatTime, formatDateTime, venueTimezone } = useVenueDateTime()
+<span>{formatDate(payment.createdAt)}</span>
+<span>{formatTime(order.updatedAt)}</span>
+```
+
+**For services/utilities (non-React):**
+```typescript
+// ❌ WRONG - No timezone parameter
+export function formatNotificationTime(dateString: string) {
+  return new Date(dateString).toLocaleString('es-ES')
+}
+
+// ✅ CORRECT - Accept timezone as parameter, use Luxon
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
+
+export function formatNotificationTime(
+  dateString: string,
+  locale: string = 'es',
+  timezone: string = 'America/Mexico_City'
+): string {
+  return DateTime.fromISO(dateString, { zone: 'utc' })
+    .setZone(timezone)
+    .setLocale(getIntlLocale(locale))
+    .toLocaleString(DateTime.DATETIME_MED)
+}
+```
+
+**For relative times:**
+```typescript
+// ❌ WRONG - date-fns formatDistanceToNow (no timezone)
+import { formatDistanceToNow } from 'date-fns'
+{formatDistanceToNow(new Date(date))}
+
+// ✅ CORRECT - Luxon toRelative with venue timezone
+DateTime.fromISO(date, { zone: 'utc' })
+  .setZone(venueTimezone)
+  .setLocale(localeCode)
+  .toRelative()
+```
+
+**For currency formatting:**
+```typescript
+// ❌ WRONG - Hardcoded locale
+new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+
+// ✅ CORRECT - Use getIntlLocale for user's language
+import { getIntlLocale } from '@/utils/i18n-locale'
+const localeCode = getIntlLocale(i18n.language)
+new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' })
+```
+
+**Architecture:**
+```
+BACKEND → UTC (ISO 8601 with Z suffix) → API Response
+                    ↓
+FRONTEND → useVenueDateTime() hook
+                    ↓
+           DateTime.fromISO(utc, { zone: 'utc' })
+             .setZone(venue.timezone)  // NOT browser timezone
+             .setLocale(i18n.language)
+                    ↓
+           Display: "20 oct 2025, 12:30 PM" (venue timezone)
+```
+
+**Why venue timezone (not browser)?**
+- All team members see consistent times regardless of physical location
+- Financial reports match the business's operating timezone
+- Compliance: Transactions must reflect where the business operates
+
+**Reference:** `src/utils/datetime.ts` | `src/utils/i18n-locale.ts`
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript + Vite

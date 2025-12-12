@@ -2,9 +2,9 @@
 
 ## 1. Short Description
 
-Avo-Dashboard is a comprehensive web application designed for venue owners and staff to streamline their daily operations. It provides a
-centralized platform to manage menus, track customer orders, handle payments, organize staff and shifts, and monitor customer feedback. The
-system is intended for hospitality businesses like restaurants, cafes, and bars looking to digitize and optimize their management processes.
+Avo-Dashboard is a comprehensive web application designed for venue owners and staff to streamline their daily operations across multiple industries. It provides a
+centralized platform to manage menus/catalogs, track customer orders, handle payments, organize staff and shifts, and monitor customer feedback. The
+system is intended for any venue business - restaurants, cafes, bars, hotels, gyms, spas, retail stores, and entertainment venues - looking to digitize and optimize their management processes.
 
 ## 2. Tech Stack
 
