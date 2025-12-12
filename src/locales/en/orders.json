@@ -97,7 +97,14 @@
       "items": "Order Items",
       "itemsDesc": "List of products in this order",
       "payments": "Payments",
-      "paymentsDesc": "Payment history for this order"
+      "paymentsDesc": "Payment history for this order",
+      "verification": "Sale Verification",
+      "verificationDesc": "{{count}} photos captured"
+    },
+    "verification": {
+      "paymentLabel": "Payment {{method}}",
+      "photoAlt": "Verification photo {{number}}",
+      "scannedProducts": "Scanned products"
     },
     "fields": {
       "orderId": "Order ID",

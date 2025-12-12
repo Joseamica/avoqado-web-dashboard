@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Monitor, Lightbulb, Receipt, Star, KeyRound, Percent, Info } from 'lucide-react'
+import { Monitor, Lightbulb, Receipt, Star, KeyRound, Percent, Info, Camera, Barcode, ShieldCheck } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -185,6 +185,44 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
         checked={settings.requirePinLogin}
         onCheckedChange={(checked) => handleToggle('requirePinLogin', checked)}
       />
+
+      {/* Step 4: Sale Verification Section (for retail/telecomunicaciones) */}
+      <div className="pt-2 mt-2 border-t">
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">
+          {t('tpvSettings.verificationSection')}
+        </p>
+      </div>
+
+      {/* Show Verification Screen */}
+      <SettingRow
+        icon={ShieldCheck}
+        label={t('tpvSettings.showVerificationScreen')}
+        description={t('tpvSettings.showVerificationScreenDesc')}
+        checked={settings.showVerificationScreen}
+        onCheckedChange={(checked) => handleToggle('showVerificationScreen', checked)}
+      />
+
+      {/* Require Verification Photo - Only show if verification screen is enabled */}
+      {settings.showVerificationScreen && (
+        <SettingRow
+          icon={Camera}
+          label={t('tpvSettings.requireVerificationPhoto')}
+          description={t('tpvSettings.requireVerificationPhotoDesc')}
+          checked={settings.requireVerificationPhoto}
+          onCheckedChange={(checked) => handleToggle('requireVerificationPhoto', checked)}
+        />
+      )}
+
+      {/* Require Verification Barcode - Only show if verification screen is enabled */}
+      {settings.showVerificationScreen && (
+        <SettingRow
+          icon={Barcode}
+          label={t('tpvSettings.requireVerificationBarcode')}
+          description={t('tpvSettings.requireVerificationBarcodeDesc')}
+          checked={settings.requireVerificationBarcode}
+          onCheckedChange={(checked) => handleToggle('requireVerificationBarcode', checked)}
+        />
+      )}
 
       {/* Default Tip Percentage - Only show if tip screen is enabled */}
       {settings.showTipScreen && (

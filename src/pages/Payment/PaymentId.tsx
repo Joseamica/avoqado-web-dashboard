@@ -9,7 +9,6 @@ import { Currency } from '@/utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
-  ArrowLeft,
   Banknote,
   Building2,
   Calendar,
@@ -28,11 +27,10 @@ import {
   Receipt,
   RefreshCw,
   Trash2,
-  User,
   Wallet,
   XCircle,
 } from 'lucide-react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
@@ -43,7 +41,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Progress } from '@/components/ui/progress'
+import { MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
@@ -358,7 +356,7 @@ const CollapsibleSection = ({
 
 // ========== MAIN COMPONENT ==========
 export default function PaymentId() {
-  const { paymentId, slug } = useParams<{ paymentId: string; slug?: string }>()
+  const { paymentId } = useParams<{ paymentId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -616,24 +614,14 @@ export default function PaymentId() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Stripe-Style Header */}
-        <div className="bg-background border-b border-border">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            {/* Back Button */}
-            <div className="mb-6">
-              <Button variant="ghost" size="sm" asChild className="hover:bg-muted">
-                <Link to={from}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {t('detail.backToList')}
-                </Link>
-              </Button>
-            </div>
-
-            {/* Main Header Content */}
-            <div className="flex items-start justify-between mb-6">
+        {/* Header - Matching OrderId style */}
+        <div className="border-b border-border bg-background">
+          <div className="max-w-[1400px] mx-auto px-6 py-4">
+            {/* Title + Actions */}
+            <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-4xl font-bold text-foreground">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold text-foreground">
                     {(() => {
                       const baseAmount = payment?.amount ? Number(payment.amount) : 0
                       const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
@@ -642,69 +630,83 @@ export default function PaymentId() {
                     })()}
                   </h1>
                   {paymentStatusConfig && (
-                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color}`}>
-                      <paymentStatusConfig.icon className="h-3 w-3 mr-1" />
-                      {payment?.status}
+                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color} ${paymentStatusConfig.border} border`}>
+                      <StatusIcon className="h-3 w-3 mr-1" />
+                      {t(`statuses.${payment?.status?.toLowerCase()}`)}
                     </Badge>
                   )}
                   {orderTypeConfig && (
-                    <Badge variant="outline" className={`${orderTypeConfig.bg} ${orderTypeConfig.color}`}>
+                    <Badge variant="outline" className={`${orderTypeConfig.bg} ${orderTypeConfig.color} border-transparent`}>
                       {orderTypeConfig.label}
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  {getPaymentIcon(payment)}
-                  <span className="text-sm">
-                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                      ? payment?.maskedPan || t('methods.card')
-                      : payment?.method === 'CASH'
-                      ? t('methods.cash')
-                      : payment?.method === 'DIGITAL_WALLET'
-                      ? t('methods.digitalWallet')
-                      : payment?.method || 'N/A'}
+                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    {getPaymentIcon(payment)}
+                    <span>
+                      {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                        ? payment?.maskedPan || t('methods.card')
+                        : payment?.method === 'CASH'
+                        ? t('methods.cash')
+                        : payment?.method === 'DIGITAL_WALLET'
+                        ? t('methods.digitalWallet')
+                        : payment?.method || 'N/A'}
+                    </span>
                   </span>
-                  <span className="text-sm">•</span>
-                  <span className="text-sm">{formatDateLong(payment?.createdAt, locale, venueTimezone)}</span>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  {t('detail.actions.copyId')}
-                </Button>
+              {/* Actions - Icon-only with tooltips like OrderId */}
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('detail.actions.copyId')}</TooltipContent>
+                </Tooltip>
+
                 {can('analytics:export') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const data = JSON.stringify(payment, null, 2)
-                      const blob = new Blob([data], { type: 'application/json' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `payment-${payment?.id}.json`
-                      a.click()
-                      URL.revokeObjectURL(url)
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('detail.actions.export')}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const data = JSON.stringify(payment, null, 2)
+                          const blob = new Blob([data], { type: 'application/json' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `payment-${payment?.id}.json`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('detail.actions.export')}</TooltipContent>
+                  </Tooltip>
                 )}
+
                 {canEdit && (
                   <>
                     {!isEditing ? (
-                      <Button
-                        size="sm"
-                        className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
-                        onClick={() => startEditing()}
-                      >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        {t('common:edit')}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+                            onClick={() => startEditing()}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common:edit')}</TooltipContent>
+                      </Tooltip>
                     ) : (
                       <div className="flex gap-2">
                         <Button
@@ -715,41 +717,25 @@ export default function PaymentId() {
                         >
                           {updatePaymentMutation.isPending ? t('common:saving') : t('common:save')}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelEditing}
-                        >
+                        <Button size="sm" variant="outline" onClick={cancelEditing}>
                           {t('common:cancel')}
                         </Button>
                       </div>
                     )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          {t('common:delete')}
+                        <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>{t('common:superadmin.delete.title')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('common:superadmin.delete.description', { item: `Payment ${payment?.id?.slice(0, 8)}...` })}
-                          </AlertDialogDescription>
+                          <AlertDialogTitle>{t('common:areYouSure')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('detail.deleteWarning')}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => deletePaymentMutation.mutate()}
-                          >
-                            {t('common:delete')}
-                          </AlertDialogAction>
+                          <AlertDialogAction onClick={() => deletePaymentMutation.mutate()}>{t('common:delete')}</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -758,110 +744,42 @@ export default function PaymentId() {
               </div>
             </div>
 
-            {/* Horizontal Stats Bar */}
-            <div className={`grid grid-cols-4 gap-4 pt-6 border-t ${isEditing ? 'border-amber-400/50 bg-gradient-to-r from-amber-500/5 to-pink-500/5 rounded-lg p-4 -mx-4' : 'border-border'}`}>
+            {/* Quick stats bar - Matching OrderId style */}
+            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm">
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.base')}
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                    value={editedValues.amount}
-                    onChange={(e) => setEditedValues((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                  />
-                ) : (
-                  <div className="text-2xl font-semibold">{Currency(payment?.amount || 0)}</div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.base', { defaultValue: 'Base' })}: </span>
+                <span className="font-medium">{Currency(payment?.amount || 0)}</span>
               </div>
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.tips')}
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                    value={editedValues.tipAmount}
-                    onChange={(e) => setEditedValues((prev) => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
-                  />
-                ) : (
-                  <div className="text-2xl font-semibold">
-                    {Currency(payment?.tipAmount || 0)}
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
-                    </span>
-                  </div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.tip', { defaultValue: 'Tip' })}: </span>
+                <span className="font-medium">{Currency(payment?.tipAmount || 0)}</span>
+                <span className="text-muted-foreground ml-1">({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)</span>
               </div>
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.method')}
-                </div>
-                {isEditing ? (
-                  <Select
-                    value={editedValues.method}
-                    onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
-                  >
-                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
-                      <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
-                      <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
-                      <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
-                      <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
-                      <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-lg font-medium">
-                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                      ? payment?.maskedPan || t('methods.card')
-                      : payment?.method === 'CASH'
-                      ? t('methods.cash')
-                      : payment?.method === 'DIGITAL_WALLET'
-                      ? t('methods.digitalWallet')
-                      : payment?.method || 'N/A'}
-                  </div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.method', { defaultValue: 'Method' })}: </span>
+                <span className="font-medium">
+                  {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                    ? t('methods.card')
+                    : payment?.method === 'CASH'
+                    ? t('methods.cash')
+                    : payment?.method === 'DIGITAL_WALLET'
+                    ? t('methods.digitalWallet')
+                    : payment?.method || 'N/A'}
+                </span>
               </div>
-              <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {isEditing ? t('columns.status') : t('detail.overview.waiter')}
+              {getTableInfo(payment) && (
+                <div>
+                  <span className="text-muted-foreground">{t('detail.stats.table', { defaultValue: 'Table' })}: </span>
+                  <span className="font-medium">{getTableInfo(payment)}</span>
                 </div>
-                {isEditing ? (
-                  <Select
-                    value={editedValues.status}
-                    onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
-                      <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
-                      <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
-                      <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-lg font-medium">
-                    {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Main Content - 65/35 Stripe Layout */}
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="max-w-[1400px] mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column (65%) */}
             <div className="lg:col-span-2 space-y-6">
               {/* Timeline */}
@@ -1188,222 +1106,173 @@ export default function PaymentId() {
               )}
             </div>
 
-            {/* Sidebar (sticky) */}
-            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-              {/* Payment Status Card */}
+            {/* Sidebar (35% - sticky) */}
+            <div className="lg:sticky lg:top-6 lg:self-start space-y-6">
+              {/* Status */}
               <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                    <span>{t('detail.status.title', { defaultValue: 'Estado del Pago' })}</span>
-                  </CardTitle>
+                  <CardTitle className="text-lg font-medium">{t('detail.sidebar.status', { defaultValue: 'Status' })}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center py-4">
-                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-3">
-                      <StatusIcon className={`h-8 w-8 ${paymentStatusConfig?.color || 'text-muted-foreground'}`} />
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${paymentStatusConfig?.bg}`}>
+                      <StatusIcon className={`h-5 w-5 ${paymentStatusConfig?.color}`} />
                     </div>
-                    <Badge variant="outline" className={`${paymentStatusConfig?.bg} ${paymentStatusConfig?.color} text-sm px-3 py-1`}>
-                      {payment?.status === 'COMPLETED'
-                        ? t('detail.status.completed', { defaultValue: 'Pago Completado' })
-                        : payment?.status === 'PENDING'
-                        ? t('detail.status.pending', { defaultValue: 'Pendiente' })
-                        : payment?.status === 'PROCESSING'
-                        ? t('detail.status.processing', { defaultValue: 'Procesando' })
-                        : payment?.status === 'FAILED'
-                        ? t('detail.status.failed', { defaultValue: 'Fallido' })
-                        : payment?.status === 'REFUNDED'
-                        ? t('detail.status.refunded', { defaultValue: 'Reembolsado' })
-                        : payment?.status || t('detail.status.unknown', { defaultValue: 'Estado Desconocido' })}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {t('detail.status.lastUpdatePrefix', { defaultValue: 'Última actualización:' })}{' '}
-                      {payment?.updatedAt
-                        ? formatDateLong(payment.updatedAt, locale, venueTimezone)
-                        : t('detail.fields.notAvailable')}
-                    </p>
+                    <div>
+                      <p className="font-medium text-foreground">{t(`statuses.${payment?.status?.toLowerCase()}`)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(payment?.updatedAt, locale, venueTimezone)}
+                      </p>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {payment?.status === 'COMPLETED' && (
-                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
-                      <div className="flex items-start space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t('detail.status.successTitle')}</p>
-                          <p className="text-xs text-muted-foreground">{t('detail.status.successDesc')}</p>
-                        </div>
-                      </div>
+              {/* Financial Summary */}
+              <Card className={isEditing ? 'border-2 border-amber-400/50' : 'border-border'}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-medium">{t('detail.sidebar.financialSummary')}</CardTitle>
+                    {isEditing && (
+                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0 text-xs">
+                        {t('common:superadmin.edit.editMode', { defaultValue: 'Edit' })}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('detail.overview.base')}</span>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="w-28 h-7 text-right text-sm font-medium border-amber-400/50"
+                        value={editedValues.amount}
+                        onChange={(e) => setEditedValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                      />
+                    ) : (
+                      <span className="font-medium">{Currency(payment?.amount || 0)}</span>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('detail.overview.tips')}</span>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="w-28 h-7 text-right text-sm font-medium border-amber-400/50"
+                        value={editedValues.tipAmount}
+                        onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                      />
+                    ) : (
+                      <span className="font-medium">{Currency(payment?.tipAmount || 0)}</span>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between pt-3">
+                    <span className="font-medium text-foreground">{t('detail.overview.total')}</span>
+                    <span className="font-bold text-lg text-foreground">
+                      {(() => {
+                        const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
+                        const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
+                        return Currency(baseAmount + tipAmount)
+                      })()}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Info Card */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    {t('detail.sidebar.info', { defaultValue: 'Info' })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  {getTableInfo(payment) && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
+                      <span>{getTableInfo(payment)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('detail.sidebar.waiter')}:</span>
+                    <span>{payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('detail.sidebar.receipts')}:</span>
+                    <span>{receipts?.length || 0}</span>
+                  </div>
+                  {payment?.order?.orderNumber && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.order')}:</span>
+                      <span className="font-mono text-xs">{payment.order.orderNumber}</span>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Summary Card */}
-              <Card
-                id="summary-card"
-                className={isEditing ? "border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10" : "border-border"}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className={`flex items-center space-x-2 text-lg ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : ''}`}>
-                      <User className={`h-5 w-5 ${isEditing ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                      <span>{t('detail.summary.title', { defaultValue: 'Resumen Financiero' })}</span>
+              {/* Edit Controls (when editing) */}
+              {isEditing && (
+                <Card className="border-amber-400/50 bg-gradient-to-r from-amber-500/5 to-pink-500/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
+                      {t('detail.sidebar.editMode', { defaultValue: 'Edit Mode' })}
                     </CardTitle>
-                    {isEditing && (
-                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
-                        {t('common:superadmin.edit.editMode', { defaultValue: 'Modo Edición' })}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    {/* Subtotal */}
-                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {t('detail.summary.subtotal', { defaultValue: 'Subtotal' })}
-                      </span>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                          value={editedValues.amount}
-                          onChange={(e) => setEditedValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold">{Currency(payment?.amount || 0)}</span>
-                      )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t('detail.overview.method')}</Label>
+                      <Select
+                        value={editedValues.method}
+                        onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
+                      >
+                        <SelectTrigger className="h-9 border-amber-400/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
+                          <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
+                          <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
+                          <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
+                          <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
+                          <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-
-                    {/* Tips */}
-                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {t('detail.overview.tips', { defaultValue: 'Propinas' })}
-                        </span>
-                        <p className="text-xs text-muted-foreground">
-                          {(() => {
-                            const base = isEditing ? editedValues.amount : (payment?.amount || 0)
-                            const tip = isEditing ? editedValues.tipAmount : (payment?.tipAmount || 0)
-                            return base > 0
-                              ? t('detail.summary.tipsOfSubtotal', {
-                                  defaultValue: '{{percent}}% del subtotal',
-                                  percent: ((tip / base) * 100).toFixed(1),
-                                })
-                              : t('detail.summary.tipsOfSubtotal', { defaultValue: '0.0% del subtotal', percent: '0.0' })
-                          })()}
-                        </p>
-                      </div>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                          value={editedValues.tipAmount}
-                          onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold">{Currency(payment?.tipAmount || 0)}</span>
-                      )}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t('columns.status')}</Label>
+                      <Select
+                        value={editedValues.status}
+                        onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
+                      >
+                        <SelectTrigger className="h-9 border-amber-400/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
+                          <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
+                          <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
+                          <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Separator />
-                    <div className={`flex justify-between items-center p-3 rounded-lg border ${isEditing ? 'bg-gradient-to-r from-amber-500/10 to-pink-500/10 border-amber-400/50' : 'bg-muted border-border'}`}>
-                      <span className="text-base font-bold text-foreground">
-                        {t('detail.summary.total', { defaultValue: 'Total' })}
-                      </span>
-                      <span className={`text-xl font-bold ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : 'text-foreground'}`}>
-                        {(() => {
-                          const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
-                          const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
-                          const total = baseAmount + tipAmount
-                          return total > 0 ? Currency(total) : Currency(0)
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{t('detail.summary.progressBase', { defaultValue: 'Base' })}</span>
-                      <span>{t('detail.overview.tips', { defaultValue: 'Propinas' })}</span>
-                    </div>
-                    <Progress
-                      value={
-                        payment?.amount && payment.amount + (payment?.tipAmount || 0) > 0
-                          ? (payment.amount / (payment.amount + (payment?.tipAmount || 0))) * 100
-                          : 0
-                      }
-                      className="h-2"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Info Card */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span>{t('detail.sidebar.quickInfo')}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
-                      <span className="font-medium">{getTableInfo(payment) || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.processedBy')}:</span>
-                      <span className="font-medium">
-                        {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.shift')}:</span>
-                      <span className="font-mono text-xs">{getShiftInfo(payment) || 'N/A'}</span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.overview.method', { defaultValue: 'Método' })}:</span>
-                      <div className="flex items-center space-x-1">
-                        {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.cardBrand && (
-                          <span className="text-sm">{getIcon(payment.cardBrand)}</span>
-                        )}
-                        <span className="text-sm font-medium">
-                          {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                            ? payment?.maskedPan || '****0000'
-                            : payment?.method === 'CASH'
-                            ? t('methods.cash', { defaultValue: 'Efectivo' })
-                            : payment?.method === 'DIGITAL_WALLET'
-                            ? t('methods.digitalWallet', { defaultValue: 'Monedero Digital' })
-                            : payment?.method === 'BANK_TRANSFER'
-                            ? t('methods.bankTransfer', { defaultValue: 'Transferencia Bancaria' })
-                            : payment?.method || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-muted mt-8">
-          <div className="max-w-7xl mx-auto p-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center space-x-4">
-                <span>{t('detail.footer.copyright')}</span>
-                <Separator orientation="vertical" className="h-4" />
-                <span>{t('detail.footer.paymentId', { defaultValue: 'Pago ID: {{id}}', id: payment?.id })}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED) })}</span>
-              </div>
+        <div className="border-t border-border mt-12">
+          <div className="max-w-[1400px] mx-auto px-6 py-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{t('detail.footer.paymentId', { id: payment?.id })}</span>
+              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED) })}</span>
             </div>
           </div>
         </div>

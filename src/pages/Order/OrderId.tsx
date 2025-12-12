@@ -30,6 +30,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Banknote,
+  Camera,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -48,6 +49,7 @@ import {
   Wallet,
   XCircle,
   Star,
+  ExternalLink,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,6 +60,7 @@ interface SectionState {
   items: boolean
   payments: boolean
   details: boolean
+  verification: boolean
 }
 
 interface TimelineEvent {
@@ -362,6 +365,7 @@ export default function OrderId() {
     items: true,
     payments: false,
     details: false,
+    verification: false,
   })
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<Record<string, any>>({})
@@ -765,6 +769,81 @@ export default function OrderId() {
                   </div>
                 </div>
               </CollapsibleSection>
+
+              {/* 📸 Verification Photos Section - Only show if any payment has verification */}
+              {order.payments?.some(p => p.saleVerification?.photos && p.saleVerification.photos.length > 0) && (
+                <CollapsibleSection
+                  title={t('detail.sections.verification', { defaultValue: 'Verificación de Venta' })}
+                  subtitle={t('detail.sections.verificationDesc', {
+                    defaultValue: 'Fotos y evidencia capturada',
+                    count: order.payments?.reduce((acc, p) => acc + (p.saleVerification?.photos?.length || 0), 0) || 0,
+                  })}
+                  isOpen={sectionsOpen.verification}
+                  onToggle={() => toggleSection('verification')}
+                  icon={Camera}
+                >
+                  <div className="space-y-4">
+                    {order.payments
+                      ?.filter(p => p.saleVerification?.photos && p.saleVerification.photos.length > 0)
+                      .map(payment => (
+                        <div key={payment.id} className="space-y-2">
+                          {order.payments && order.payments.filter(p => p.saleVerification?.photos?.length).length > 1 && (
+                            <p className="text-xs text-muted-foreground font-medium">
+                              {t('detail.verification.paymentLabel', {
+                                defaultValue: 'Pago {{method}}',
+                                method: payment.method,
+                              })}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {payment.saleVerification?.photos.map((photoUrl, index) => (
+                              <a
+                                key={index}
+                                href={photoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={t('detail.verification.photoAlt', {
+                                    defaultValue: 'Foto de verificación {{number}}',
+                                    number: index + 1,
+                                  })}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <ExternalLink className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                          {/* Scanned products info if any */}
+                          {payment.saleVerification?.scannedProducts &&
+                            Array.isArray(payment.saleVerification.scannedProducts) &&
+                            payment.saleVerification.scannedProducts.length > 0 && (
+                              <div className="mt-3 p-3 rounded-lg bg-muted/50">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">
+                                  {t('detail.verification.scannedProducts', {
+                                    defaultValue: 'Productos escaneados',
+                                  })}
+                                </p>
+                                <div className="space-y-1">
+                                  {(payment.saleVerification.scannedProducts as Array<{ barcode: string; productName?: string }>).map(
+                                    (product, idx) => (
+                                      <p key={idx} className="text-xs font-mono text-foreground">
+                                        {product.productName || product.barcode}
+                                      </p>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      ))}
+                  </div>
+                </CollapsibleSection>
+              )}
             </div>
 
             {/* Sidebar (35% - sticky) */}
@@ -804,7 +883,7 @@ export default function OrderId() {
                     <span className="font-medium">{Currency(order.tipAmount || 0)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
+                  <div className="flex justify-between pt-3">
                     <span className="font-medium text-foreground">{t('detail.overview.total')}</span>
                     <span className="font-bold text-lg text-foreground">{Currency(order.total || 0)}</span>
                   </div>

@@ -56,6 +56,7 @@
     "pending": "Pendiente",
     "partial": "Parcial",
     "paid": "Pagado",
+    "completed": "Completado",
     "refunded": "Reembolsado"
   },
   "sources": {
@@ -172,6 +173,7 @@
     "backToList": "Volver a pagos",
     "loading": "Cargando detalles del pago...",
     "copiedToClipboard": "Se copió {{label}} al portapapeles",
+    "deleteWarning": "Esta acción eliminará permanentemente este pago. Esta acción no se puede deshacer.",
     "actions": {
       "title": "Acciones del Pago",
       "sendReceipt": "Enviar Recibo Digital",
@@ -183,6 +185,7 @@
     "overview": {
       "base": "Monto Base",
       "tips": "Propinas",
+      "total": "Total",
       "method": "Método",
       "waiter": "Mesero",
       "waiterUnknown": "N/A",
@@ -278,11 +281,19 @@
       "beneficiary": "Beneficiario"
     },
     "sidebar": {
+      "status": "Estado",
+      "lastUpdate": "Actualizado",
+      "financialSummary": "Resumen Financiero",
       "quickInfo": "Información Rápida",
+      "info": "Info",
       "table": "Mesa",
+      "waiter": "Mesero",
+      "receipts": "Recibos",
+      "order": "Orden",
       "processedBy": "Procesado por",
       "shift": "Turno",
-      "noBeneficiary": "Sin beneficiario"
+      "noBeneficiary": "Sin beneficiario",
+      "editMode": "Modo Edición"
     },
     "footer": {
       "copyright": "© 2025 Avoqado. Todos los derechos reservados.",

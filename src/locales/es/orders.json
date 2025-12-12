@@ -97,7 +97,14 @@
       "items": "Artículos de la Orden",
       "itemsDesc": "Lista de productos en esta orden",
       "payments": "Pagos",
-      "paymentsDesc": "Historial de pagos de esta orden"
+      "paymentsDesc": "Historial de pagos de esta orden",
+      "verification": "Verificación de Venta",
+      "verificationDesc": "{{count}} fotos capturadas"
+    },
+    "verification": {
+      "paymentLabel": "Pago {{method}}",
+      "photoAlt": "Foto de verificación {{number}}",
+      "scannedProducts": "Productos escaneados"
     },
     "fields": {
       "orderId": "ID de orden",

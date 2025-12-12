@@ -1,12 +1,13 @@
 rules_version = '2';
 
 // Firebase Storage Security Rules para Avoqado
-// Estructura: venues/{venueSlug}/[productos|logo|staff]/...
+// Estructura: venues/{venueSlug}/[productos|logo|staff|verifications]/...
 
 service firebase.storage {
   match /b/{bucket}/o {
 
     // Estructura principal por venue (usando slug en lugar de ID)
+    // Cubre: productos, logo, staff, verifications (TPV photos)
     match /venues/{venueSlug}/{allPaths=**} {
       // Lectura pública para mostrar imágenes en web/apps
       allow read: if true;
@@ -33,6 +34,20 @@ service firebase.storage {
     match /venues/{venueSlug}/staff/{fileName} {
       allow read: if true;
       allow write: if true; // TEMPORAL
+    }
+
+    // 📸 PRE-PAYMENT VERIFICATION PHOTOS (TPV Android App)
+    // Path: venues/{venueSlug}/verifications/{date}/{orderRef}_{index}.jpg
+    // Example: venues/avoqado-full/verifications/2025-12-12/ORDER-12345_1.jpg
+    // Uploaded from: VerificationUploadManager.kt (avoqado-tpv)
+    // Purpose: Capture evidence photos before payment processing (retail/telecomunicaciones)
+    match /venues/{venueSlug}/verifications/{date}/{fileName} {
+      // Public read for dashboard viewing and email attachments
+      allow read: if true;
+
+      // TEMPORAL: Allow all writes for testing
+      // TODO: Change to request.auth != null after implementing Firebase Auth in TPV
+      allow write: if true;
     }
   }
 }

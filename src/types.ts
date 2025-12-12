@@ -1046,6 +1046,32 @@ export interface Payment {
   processedBy?: Staff | null
   cardBrand?: string
   last4?: string
+
+  // 📸 PRE-payment verification (retail/telecommunications)
+  saleVerification?: SaleVerification | null
+}
+
+// 📸 Sale verification evidence (photos + barcodes)
+// Used by retail/telecommunications venues to capture evidence before payment
+export interface SaleVerification {
+  id: string
+  venueId: string
+  paymentId: string
+  staffId: string
+  photos: string[] // Array of Firebase Storage URLs
+  scannedProducts: Array<{
+    barcode: string
+    format: string
+    productId?: string
+    productName?: string
+    inventoryDeducted?: boolean
+  }>
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+  inventoryDeducted: boolean
+  deviceId?: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
 }
 
 // Versión simplificada de Terminal para compatibilidad

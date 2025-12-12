@@ -300,7 +300,14 @@
     "updateError": "Failed to update configuration",
     "loadError": "Failed to load terminal configuration",
     "noUpdatePermission": "You don't have permission to modify this configuration. Contact your administrator.",
-    "infoAlert": "These settings are specific to this terminal. Changes take effect immediately when the terminal syncs."
+    "infoAlert": "These settings are specific to this terminal. Changes take effect immediately when the terminal syncs.",
+    "verificationSection": "Sale Verification",
+    "showVerificationScreen": "Show verification screen",
+    "showVerificationScreenDesc": "Display verification screen after successful payment (photo and/or barcode)",
+    "requireVerificationPhoto": "Require photo",
+    "requireVerificationPhotoDesc": "Require at least one photo to complete verification",
+    "requireVerificationBarcode": "Require barcode",
+    "requireVerificationBarcodeDesc": "Require at least one barcode scan to complete verification"
   },
   "activation": {
     "title": "Activate Terminal",
