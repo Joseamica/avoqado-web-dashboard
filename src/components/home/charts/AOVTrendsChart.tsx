@@ -5,10 +5,13 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Line, LineChart, CartesianGrid, XAxis } from 'recharts'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
+import { DateTime } from 'luxon'
 
 export const AOVTrendsChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
+  const { venueTimezone } = useVenueDateTime()
   const aovData = useMemo(() => data?.aov ?? [], [data?.aov])
 
   const [activeMetric, setActiveMetric] = useState<'aov' | 'orderCount'>('aov')
@@ -85,11 +88,10 @@ export const AOVTrendsChart = ({ data }: { data: any }) => {
                   if (typeof value === 'string' && value.includes(' ')) {
                     return value
                   }
-                  const date = new Date(value)
-                  return date.toLocaleDateString(localeCode, {
-                    month: 'short',
-                    day: 'numeric',
-                  })
+                  return DateTime.fromISO(value, { zone: 'utc' })
+                    .setZone(venueTimezone)
+                    .setLocale(localeCode)
+                    .toLocaleString({ month: 'short', day: 'numeric' })
                 }}
               />
               <ChartTooltip
@@ -100,12 +102,10 @@ export const AOVTrendsChart = ({ data }: { data: any }) => {
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
-                      const date = new Date(value)
-                      return date.toLocaleDateString(localeCode, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                      return DateTime.fromISO(value, { zone: 'utc' })
+                        .setZone(venueTimezone)
+                        .setLocale(localeCode)
+                        .toLocaleString({ month: 'short', day: 'numeric', year: 'numeric' })
                     }}
                     formatter={(value: any) =>
                       activeMetric === 'aov' ? Currency(Number(value), false) : `${value} ${t('charts.ordersLabel')}`
