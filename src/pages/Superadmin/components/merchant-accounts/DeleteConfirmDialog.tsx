@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AlertCircle, AlertTriangle, Loader2, Trash2, Terminal, X } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { cn } from '@/lib/utils'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface DeleteConfirmDialogProps {
   open: boolean
@@ -30,6 +31,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   const [deletingConfig, setDeletingConfig] = useState<string | null>(null)
   const [removingTerminal, setRemovingTerminal] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const { formatDate } = useVenueDateTime()
 
   // Fetch cost structures for this merchant account
   const {
@@ -176,7 +178,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                           <p className="font-medium">
                             Crédito: {(Number(cost.creditRate) * 100).toFixed(2)}% | Débito: {(Number(cost.debitRate) * 100).toFixed(2)}%
                           </p>
-                          <p className="text-xs text-muted-foreground">Desde: {new Date(cost.effectiveFrom).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground">Desde: {formatDate(cost.effectiveFrom)}</p>
                         </div>
                         <TooltipProvider>
                           <Tooltip>

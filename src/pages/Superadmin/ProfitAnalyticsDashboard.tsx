@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress'
 import * as costManagementAPI from '@/services/cost-management.service'
 import { useQuery } from '@tanstack/react-query'
-import { endOfMonth, format, startOfMonth, subDays } from 'date-fns'
+import { endOfMonth, startOfMonth, subDays } from 'date-fns'
+import { DateTime } from 'luxon'
 import { 
   Calendar, Download, PieChart, 
   TrendingDown, TrendingUp, Calculator, Target,
@@ -23,8 +24,8 @@ import { useTranslation } from 'react-i18next'
 const ProfitAnalyticsDashboard: React.FC = () => {
   const { t, i18n } = useTranslation('superadmin')
   const [dateRange, setDateRange] = useState({
-    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    startDate: DateTime.fromJSDate(startOfMonth(new Date())).toFormat('yyyy-MM-dd'),
+    endDate: DateTime.fromJSDate(endOfMonth(new Date())).toFormat('yyyy-MM-dd'),
   })
   const [selectedVenue, setSelectedVenue] = useState<string>('all')
   const [selectedProvider, setSelectedProvider] = useState<string>('all')
@@ -98,8 +99,8 @@ const ProfitAnalyticsDashboard: React.FC = () => {
     const end = new Date()
     const start = subDays(end, days)
     setDateRange({
-      startDate: format(start, 'yyyy-MM-dd'),
-      endDate: format(end, 'yyyy-MM-dd'),
+      startDate: DateTime.fromJSDate(start).toFormat('yyyy-MM-dd'),
+      endDate: DateTime.fromJSDate(end).toFormat('yyyy-MM-dd'),
     })
   }
 

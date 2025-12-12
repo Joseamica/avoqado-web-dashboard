@@ -28,6 +28,7 @@ import {
 } from '@/services/paymentProvider.service'
 import { cn } from '@/lib/utils'
 import { GlassCard } from './shared-components'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface CostStructureDialogProps {
   open: boolean
@@ -44,6 +45,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
 }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { formatDate } = useVenueDateTime()
   const [mode, setMode] = useState<'view' | 'create' | 'edit'>('view')
   const [isDetecting, setIsDetecting] = useState(false)
   const [mccResult, setMccResult] = useState<MccLookupResult | null>(null)
@@ -289,7 +291,7 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
                   <div className="text-sm text-green-700 dark:text-green-300">
                     <p className="font-medium">Estructura activa</p>
                     <p className="text-xs mt-1">
-                      Desde: {new Date(activeCostStructure.effectiveFrom).toLocaleDateString()}
+                      Desde: {formatDate(activeCostStructure.effectiveFrom)}
                     </p>
                   </div>
                 </div>
@@ -411,9 +413,9 @@ export const CostStructureDialog: React.FC<CostStructureDialogProps> = ({
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Desde: {new Date(structure.effectiveFrom).toLocaleDateString()}
+                              Desde: {formatDate(structure.effectiveFrom)}
                               {structure.effectiveTo &&
-                                ` • Hasta: ${new Date(structure.effectiveTo).toLocaleDateString()}`}
+                                ` • Hasta: ${formatDate(structure.effectiveTo)}`}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Crédito: {(Number(structure.creditRate) * 100).toFixed(2)}% | Débito:{' '}
