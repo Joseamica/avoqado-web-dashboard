@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
 
 import { Button } from '@/components/ui/button'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
@@ -25,6 +26,7 @@ export default function RolePermissions() {
   const { activeVenue, staffInfo, user } = useAuth()
   const { t } = useTranslation('settings')
   const { toast } = useToast()
+  const { formatDate } = useVenueDateTime()
   const queryClient = useQueryClient()
 
   // Get venueId from activeVenue or find it from user's venues using slug
@@ -383,7 +385,7 @@ export default function RolePermissions() {
                   </span>{' '}
                   {currentRolePermission.modifiedAt && (
                     <span>
-                      {t('common.on')} {new Date(currentRolePermission.modifiedAt).toLocaleDateString()}
+                      {t('common.on')} {formatDate(currentRolePermission.modifiedAt)}
                     </span>
                   )}
                 </div>

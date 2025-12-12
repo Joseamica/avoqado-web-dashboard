@@ -10,6 +10,7 @@ import { ArrowRight, CheckCircle2, ExternalLink, Loader2, RefreshCw, XCircle } f
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface GoogleIntegrationStatus {
   connected: boolean
@@ -24,6 +25,7 @@ export default function GoogleIntegration() {
   const { t } = useTranslation('googleIntegration')
   const { toast } = useToast()
   const { venueId } = useCurrentVenue()
+  const { formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
@@ -134,8 +136,7 @@ export default function GoogleIntegration() {
 
   const formatLastSync = (dateString?: string) => {
     if (!dateString) return t('connectedInfo.never')
-    const date = new Date(dateString)
-    return date.toLocaleString()
+    return formatDateTime(dateString)
   }
 
   if (isLoading) {
