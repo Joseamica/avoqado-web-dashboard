@@ -258,13 +258,15 @@ export function PaymentSetupWizardDialog({ open, onOpenChange, venueId, readines
   )
 }
 
+import type { TFunction } from 'i18next'
+
 interface ChecklistRowProps {
   config: ChecklistItemConfig
   status: string
   details?: string
   isBlocking: boolean
   onAction: () => void
-  t: (key: string, fallback?: string) => string
+  t: TFunction
 }
 
 function ChecklistRow({ config, status, details, isBlocking, onAction, t }: ChecklistRowProps) {

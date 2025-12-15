@@ -65,7 +65,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
   // Fetch all venues for dropdown (only for superadmin context)
   const { data: venues = [] } = useQuery({
     queryKey: ['superadmin-venues'],
-    queryFn: getAllVenues,
+    queryFn: () => getAllVenues(),
     enabled: open && !initialVenueId,
   })
 
@@ -226,11 +226,6 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
                     <div className="flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-muted-foreground" />
                       <span>{venue.name}</span>
-                      {venue.type && (
-                        <Badge variant="outline" className="text-xs">
-                          {venue.type}
-                        </Badge>
-                      )}
                     </div>
                   </SelectItem>
                 ))}

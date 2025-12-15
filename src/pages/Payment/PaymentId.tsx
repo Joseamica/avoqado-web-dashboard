@@ -29,6 +29,14 @@ import {
   Trash2,
   Wallet,
   XCircle,
+  Star,
+  Users,
+  QrCode,
+  TestTube2,
+  Split,
+  ShoppingBag,
+  TrendingUp,
+  ArrowRight,
 } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
@@ -68,15 +76,20 @@ interface SectionState {
   receipts: boolean
   posData: boolean
   processorData: boolean
+  cardDetails: boolean
+  orderItems: boolean
+  venueInfo: boolean
 }
 
 interface TimelineEvent {
-  type: 'created' | 'status_change' | 'receipt' | 'refund'
+  type: 'created' | 'status_change' | 'receipt' | 'refund' | 'order_created' | 'order_completed' | 'review' | 'settlement'
   timestamp: string
+  rawTimestamp?: string // For sorting
   description: string
   email?: string
   icon: React.ComponentType<{ className?: string }>
   iconColor: string
+  isPending?: boolean
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -233,13 +246,13 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background`}>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background ${event.isPending ? 'opacity-50' : ''}`}>
           <Icon className="h-4 w-4" />
         </div>
         {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
       </div>
       <div className="flex-1 pb-6">
-        <p className="text-sm font-medium text-foreground">{event.description}</p>
+        <p className={`text-sm font-medium ${event.isPending ? 'text-muted-foreground' : 'text-foreground'}`}>{event.description}</p>
         <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
         {event.email && <p className="text-xs text-muted-foreground">to {event.email}</p>}
       </div>
@@ -250,6 +263,47 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
 const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: any; receipts: any[]; locale: string; timezone: string; t: any }) => {
   const events: TimelineEvent[] = []
 
+  // Settlement event (pending or completed)
+  if (payment?.transactions?.[0]) {
+    const transaction = payment.transactions[0]
+    if (transaction.status === 'SETTLED' && transaction.settledAt) {
+      events.push({
+        type: 'settlement',
+        timestamp: formatDateShort(transaction.settledAt, locale, timezone),
+        rawTimestamp: transaction.settledAt,
+        description: t('detail.settlement.settled'),
+        icon: TrendingUp,
+        iconColor: 'text-green-600 border-green-200',
+      })
+    } else {
+      // Show estimated settlement
+      const estimatedDate = transaction.estimatedSettlementDate
+      events.push({
+        type: 'settlement',
+        timestamp: estimatedDate
+          ? `${formatDateShort(estimatedDate, locale, timezone)} (${t('detail.timeline.settlementEstimated')})`
+          : t('detail.settlement.pending'),
+        rawTimestamp: estimatedDate || new Date().toISOString(),
+        description: t('detail.timeline.settlementPending'),
+        icon: Clock,
+        iconColor: 'text-muted-foreground border-border',
+        isPending: true,
+      })
+    }
+  }
+
+  // Review event
+  if (payment?.review?.createdAt) {
+    events.push({
+      type: 'review',
+      timestamp: formatDateShort(payment.review.createdAt, locale, timezone),
+      rawTimestamp: payment.review.createdAt,
+      description: `${t('detail.timeline.reviewReceived')} ⭐ ${payment.review.overallRating}`,
+      icon: Star,
+      iconColor: 'text-yellow-600 border-yellow-200',
+    })
+  }
+
   // Receipt events
   if (receipts && receipts.length > 0) {
     receipts.forEach(receipt => {
@@ -258,6 +312,7 @@ const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: 
         events.push({
           type: 'receipt',
           timestamp: formatDateShort(receipt.viewedAt, locale, timezone),
+          rawTimestamp: receipt.viewedAt,
           description: t('detail.timeline.receiptViewed'),
           email: receipt.recipientEmail,
           icon: Eye,
@@ -269,6 +324,7 @@ const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: 
         events.push({
           type: 'receipt',
           timestamp: formatDateShort(receipt.sentAt, locale, timezone),
+          rawTimestamp: receipt.sentAt,
           description: t('detail.timeline.receiptSent'),
           email: receipt.recipientEmail,
           icon: Mail,
@@ -278,33 +334,53 @@ const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: 
     })
   }
 
-  // Status change
-  if (payment.updatedAt && payment.updatedAt !== payment.createdAt) {
+  // Order completed
+  if (payment?.order?.completedAt) {
     events.push({
-      type: 'status_change',
-      timestamp: formatDateShort(payment.updatedAt, locale, timezone),
-      description: `${t('detail.timeline.statusUpdated')}: ${payment.status}`,
+      type: 'order_completed',
+      timestamp: formatDateShort(payment.order.completedAt, locale, timezone),
+      rawTimestamp: payment.order.completedAt,
+      description: t('detail.timeline.orderCompleted'),
       icon: CheckCircle2,
-      iconColor: 'text-primary border-primary/20',
+      iconColor: 'text-green-600 border-green-200',
     })
   }
 
-  // Payment created
+  // Payment processed
   events.push({
     type: 'created',
     timestamp: formatDateShort(payment.createdAt, locale, timezone),
+    rawTimestamp: payment.createdAt,
     description: t('detail.timeline.paymentProcessed'),
     icon: CreditCard,
-    iconColor: 'text-muted-foreground border-border',
+    iconColor: 'text-primary border-primary/20',
   })
 
-  // Sort by timestamp (most recent first)
-  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  // Order created
+  if (payment?.order?.createdAt) {
+    events.push({
+      type: 'order_created',
+      timestamp: formatDateShort(payment.order.createdAt, locale, timezone),
+      rawTimestamp: payment.order.createdAt,
+      description: t('detail.timeline.orderCreated'),
+      icon: ShoppingBag,
+      iconColor: 'text-muted-foreground border-border',
+    })
+  }
+
+  // Sort by raw timestamp (most recent first), pending events go at the top
+  events.sort((a, b) => {
+    if (a.isPending && !b.isPending) return -1
+    if (!a.isPending && b.isPending) return 1
+    const dateA = a.rawTimestamp ? new Date(a.rawTimestamp).getTime() : 0
+    const dateB = b.rawTimestamp ? new Date(b.rawTimestamp).getTime() : 0
+    return dateB - dateA
+  })
 
   return (
     <div className="space-y-2">
-      {events.slice(0, 5).map((event, index) => (
-        <TimelineEventComponent key={index} event={event} isLast={index === events.length - 1} />
+      {events.slice(0, 7).map((event, index) => (
+        <TimelineEventComponent key={index} event={event} isLast={index === Math.min(events.length, 7) - 1} />
       ))}
     </div>
   )
@@ -379,6 +455,9 @@ export default function PaymentId() {
     receipts: true,
     posData: false,
     processorData: false,
+    cardDetails: false,
+    orderItems: false,
+    venueInfo: false,
   })
   const { toast } = useToast()
   const { venueId, venue } = useCurrentVenue()
@@ -620,7 +699,7 @@ export default function PaymentId() {
             {/* Title + Actions */}
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-3xl font-semibold text-foreground">
                     {(() => {
                       const baseAmount = payment?.amount ? Number(payment.amount) : 0
@@ -640,9 +719,29 @@ export default function PaymentId() {
                       {orderTypeConfig.label}
                     </Badge>
                   )}
-                </div>
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-2">
+                  {/* Source Badge */}
+                  {payment?.source && (
+                    <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border">
+                      {payment.source === 'QR' && <QrCode className="h-3 w-3 mr-1" />}
+                      {t(`sources.${payment.source}`, { defaultValue: payment.source })}
+                    </Badge>
+                  )}
+                  {/* Test Payment Badge */}
+                  {(payment?.source === 'DASHBOARD_TEST' || payment?.posRawData?.paymentType === 'TEST') && (
+                    <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <TestTube2 className="h-3 w-3 mr-1" />
+                      {t('detail.badges.testPayment')}
+                    </Badge>
+                  )}
+                  {/* Split Payment Badge */}
+                  {payment?.posRawData?.splitType && payment.posRawData.splitType !== 'FULLPAYMENT' && (
+                    <Badge variant="outline" className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800">
+                      <Split className="h-3 w-3 mr-1" />
+                      {t('detail.badges.splitPayment')}
+                    </Badge>
+                  )}
+                  {/* Payment Method - Inline */}
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
                     {getPaymentIcon(payment)}
                     <span>
                       {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
@@ -745,18 +844,18 @@ export default function PaymentId() {
             </div>
 
             {/* Quick stats bar - Matching OrderId style */}
-            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm">
+            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm flex-wrap">
               <div>
-                <span className="text-muted-foreground">{t('detail.stats.base', { defaultValue: 'Base' })}: </span>
+                <span className="text-muted-foreground">{t('detail.stats.base')}: </span>
                 <span className="font-medium">{Currency(payment?.amount || 0)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">{t('detail.stats.tip', { defaultValue: 'Tip' })}: </span>
+                <span className="text-muted-foreground">{t('detail.stats.tip')}: </span>
                 <span className="font-medium">{Currency(payment?.tipAmount || 0)}</span>
                 <span className="text-muted-foreground ml-1">({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)</span>
               </div>
               <div>
-                <span className="text-muted-foreground">{t('detail.stats.method', { defaultValue: 'Method' })}: </span>
+                <span className="text-muted-foreground">{t('detail.stats.method')}: </span>
                 <span className="font-medium">
                   {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
                     ? t('methods.card')
@@ -769,8 +868,14 @@ export default function PaymentId() {
               </div>
               {getTableInfo(payment) && (
                 <div>
-                  <span className="text-muted-foreground">{t('detail.stats.table', { defaultValue: 'Table' })}: </span>
+                  <span className="text-muted-foreground">{t('detail.stats.table')}: </span>
                   <span className="font-medium">{getTableInfo(payment)}</span>
+                </div>
+              )}
+              {payment?.source && (
+                <div>
+                  <span className="text-muted-foreground">{t('detail.stats.source')}: </span>
+                  <span className="font-medium">{t(`sources.${payment.source}`, { defaultValue: payment.source })}</span>
                 </div>
               )}
             </div>
@@ -810,12 +915,12 @@ export default function PaymentId() {
                       {payment?.createdAt ? formatDateLong(payment.createdAt, locale, venueTimezone) : '-'}
                     </p>
                   </div>
-                  {payment?.method !== 'CASH' && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
-                      <p className="text-sm font-mono mt-1">{payment?.authorizationNumber || t('detail.fields.notAvailable')}</p>
-                    </div>
-                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderId')}</Label>
+                    <p className="text-sm font-mono mt-1">
+                      {payment?.order?.orderNumber || t('detail.fields.notAvailable')}
+                    </p>
+                  </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.table')}</Label>
                     <p className="text-sm mt-1">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
@@ -824,36 +929,111 @@ export default function PaymentId() {
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.referenceNumber')}</Label>
                     <p className="text-sm font-mono mt-1">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
                   </div>
-                  {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
+                  {payment?.method !== 'CASH' && payment?.authorizationNumber && (
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.entryMode')}</Label>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
+                      <p className="text-sm font-mono mt-1">{payment.authorizationNumber}</p>
+                    </div>
+                  )}
+                  {payment?.posRawData?.splitType && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.splitType')}</Label>
                       <p className="text-sm mt-1">
-                        {payment.entryMode === 'CONTACTLESS'
-                          ? t('detail.entryModes.contactless')
-                          : payment.entryMode === 'CHIP'
-                          ? t('detail.entryModes.chip')
-                          : payment.entryMode === 'SWIPE'
-                          ? t('detail.entryModes.swipe')
-                          : payment.entryMode === 'MANUAL'
-                          ? t('detail.entryModes.manual')
-                          : payment.entryMode === 'ONLINE'
-                          ? t('detail.entryModes.online')
-                          : payment.entryMode}
+                        {t(`detail.splitTypes.${payment.posRawData.splitType}`, { defaultValue: payment.posRawData.splitType })}
                       </p>
                     </div>
                   )}
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderId')}</Label>
-                    <p className="text-sm font-mono mt-1">
-                      {payment?.order?.orderNumber || payment?.orderId || (payment as any)?.billId || t('detail.fields.notAvailable')}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.shiftId')}</Label>
-                    <p className="text-sm font-mono mt-1">{getShiftInfo(payment) || t('detail.fields.notAvailable')}</p>
-                  </div>
+                  {payment?.order?.status && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderStatus')}</Label>
+                      <p className="text-sm mt-1">
+                        {t(`detail.orderStatuses.${payment.order.status}`, { defaultValue: payment.order.status })}
+                      </p>
+                    </div>
+                  )}
+                  {payment?.order?.kitchenStatus && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.kitchenStatus')}</Label>
+                      <p className="text-sm mt-1">
+                        {t(`detail.kitchenStatuses.${payment.order.kitchenStatus}`, { defaultValue: payment.order.kitchenStatus })}
+                      </p>
+                    </div>
+                  )}
+                  {payment?.order?.createdAt && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCreated')}</Label>
+                      <p className="text-sm mt-1">{formatDateShort(payment.order.createdAt, locale, venueTimezone)}</p>
+                    </div>
+                  )}
+                  {payment?.order?.completedAt && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCompleted')}</Label>
+                      <p className="text-sm mt-1">{formatDateShort(payment.order.completedAt, locale, venueTimezone)}</p>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
+
+              {/* Card Payment Details - Only for card payments */}
+              {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && (
+                <CollapsibleSection
+                  title={t('detail.sections.cardDetails')}
+                  subtitle={t('detail.sections.cardDetailsDesc')}
+                  isOpen={sectionsOpen.cardDetails}
+                  onToggle={() => toggleSection('cardDetails')}
+                  icon={CreditCard}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    {(payment?.cardBrand || payment?.maskedPan) && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.card')}</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          {payment?.cardBrand && getIcon(payment.cardBrand)}
+                          <span className="text-sm font-mono">
+                            {payment?.cardBrand || ''} {payment?.maskedPan ? `•••• ${payment.maskedPan.slice(-4)}` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {payment?.authorizationNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.authorizationNumber}</p>
+                      </div>
+                    )}
+                    {payment?.entryMode && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.entryMode')}</Label>
+                        <p className="text-sm mt-1">
+                          {payment.entryMode === 'CONTACTLESS'
+                            ? t('detail.entryModes.contactless')
+                            : payment.entryMode === 'CHIP'
+                            ? t('detail.entryModes.chip')
+                            : payment.entryMode === 'SWIPE'
+                            ? t('detail.entryModes.swipe')
+                            : payment.entryMode === 'MANUAL'
+                            ? t('detail.entryModes.manual')
+                            : payment.entryMode === 'ONLINE'
+                            ? t('detail.entryModes.online')
+                            : payment.entryMode}
+                        </p>
+                      </div>
+                    )}
+                    {payment?.processorName && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.processor')}</Label>
+                        <p className="text-sm mt-1">{payment.processorName}</p>
+                      </div>
+                    )}
+                    {payment?.processorData?.bank && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.bankName')}</Label>
+                        <p className="text-sm mt-1">{payment.processorData.bank}</p>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+              )}
 
               {/* Merchant Account - Collapsible */}
               {payment?.merchantAccount && (
@@ -903,10 +1083,104 @@ export default function PaymentId() {
                 </CollapsibleSection>
               )}
 
+              {/* Order Items - Collapsible */}
+              {payment?.order?.items && payment.order.items.length > 0 && (
+                <CollapsibleSection
+                  title={t('detail.sections.orderItems')}
+                  subtitle={t('detail.sections.orderItemsDesc')}
+                  isOpen={sectionsOpen.orderItems}
+                  onToggle={() => toggleSection('orderItems')}
+                  icon={ShoppingBag}
+                >
+                  <div className="space-y-2">
+                    {payment.order.items.map((item: any, index: number) => (
+                      <div
+                        key={item.id || index}
+                        className="flex justify-between items-center py-2 border-b border-border last:border-0"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {item.quantity}x {item.product?.name || item.name || 'Item'}
+                          </p>
+                          {item.notes && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
+                          )}
+                          {item.modifiers && item.modifiers.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {item.modifiers.map((mod: any, modIndex: number) => (
+                                <p key={modIndex} className="text-xs text-muted-foreground">
+                                  + {mod.modifier?.name || mod.name} {mod.price > 0 && Currency(mod.price)}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-sm font-medium text-foreground">
+                          {Currency(item.total || item.unitPrice * item.quantity)}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-border">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {payment.order.items.length} {payment.order.items.length === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              )}
+
+              {/* Venue Information - Collapsible */}
+              {venue && (
+                <CollapsibleSection
+                  title={t('detail.sections.venueInfo')}
+                  subtitle={t('detail.sections.venueInfoDesc')}
+                  isOpen={sectionsOpen.venueInfo}
+                  onToggle={() => toggleSection('venueInfo')}
+                  icon={Building2}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.venue.name')}</Label>
+                      <p className="text-sm mt-1">{venue.name}</p>
+                    </div>
+                    {venue.address && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.address')}</Label>
+                        <p className="text-sm mt-1">{venue.address}</p>
+                      </div>
+                    )}
+                    {(venue.city || venue.state) && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.city')}</Label>
+                        <p className="text-sm mt-1">{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
+                      </div>
+                    )}
+                    {venue.country && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.country')}</Label>
+                        <p className="text-sm mt-1">{venue.country}</p>
+                      </div>
+                    )}
+                    {venue.phone && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.phone')}</Label>
+                        <p className="text-sm mt-1">{venue.phone}</p>
+                      </div>
+                    )}
+                    {venue.email && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.email')}</Label>
+                        <p className="text-sm mt-1">{venue.email}</p>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+              )}
+
               {/* Digital Receipts - Collapsible */}
               <CollapsibleSection
-                title={t('detail.receipts.title', { defaultValue: 'Recibos Digitales' })}
-                subtitle={t('detail.receipts.description', { defaultValue: 'Historial completo de recibos enviados para esta transacción' })}
+                title={t('detail.receipts.title')}
+                subtitle={t('detail.receipts.description')}
                 isOpen={sectionsOpen.receipts}
                 onToggle={() => toggleSection('receipts')}
                 icon={Receipt}
@@ -940,7 +1214,7 @@ export default function PaymentId() {
                               </span>
                               <span className="flex items-center space-x-1">
                                 <FileText className="h-3 w-3" />
-                                <span>ID: {receipt.id.slice(0, 8)}...</span>
+                                <span>#{receipt.accessKey?.slice(-4).toUpperCase() || 'N/A'}</span>
                               </span>
                             </div>
                           </div>
@@ -1048,7 +1322,7 @@ export default function PaymentId() {
               {/* Status */}
               <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="text-lg font-medium">{t('detail.sidebar.status', { defaultValue: 'Status' })}</CardTitle>
+                  <CardTitle className="text-lg font-medium">{t('detail.sidebar.status')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
@@ -1065,7 +1339,119 @@ export default function PaymentId() {
                 </CardContent>
               </Card>
 
-              {/* Financial Summary */}
+              {/* Customer Review - Only show if review exists */}
+              {payment?.review && (
+                <Card className="border-border bg-gradient-to-br from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/10 dark:to-amber-900/10">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                      {t('detail.review.title')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Overall Rating */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-5 w-5 ${
+                              star <= (payment.review.overallRating || 0)
+                                ? 'text-yellow-500 fill-yellow-500'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-lg font-bold">{payment.review.overallRating?.toFixed(1)}</span>
+                    </div>
+
+                    {/* Individual Ratings */}
+                    {(payment.review.foodRating || payment.review.serviceRating || payment.review.ambienceRating) && (
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {payment.review.foodRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.food')}</p>
+                            <p className="font-medium">{payment.review.foodRating}</p>
+                          </div>
+                        )}
+                        {payment.review.serviceRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.service')}</p>
+                            <p className="font-medium">{payment.review.serviceRating}</p>
+                          </div>
+                        )}
+                        {payment.review.ambienceRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.ambience')}</p>
+                            <p className="font-medium">{payment.review.ambienceRating}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Comment */}
+                    {payment.review.comment && (
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-sm italic text-muted-foreground">"{payment.review.comment}"</p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateShort(payment.review.createdAt, locale, venueTimezone)}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Settlement Status */}
+              {payment?.transactions?.[0] && (
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                      {t('detail.settlement.title')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.settlement.status')}:</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          payment.transactions[0].status === 'SETTLED'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-transparent'
+                            : payment.transactions[0].status === 'PENDING'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-transparent'
+                            : 'bg-muted text-muted-foreground border-transparent'
+                        }
+                      >
+                        {t(`detail.settlement.${payment.transactions[0].status?.toLowerCase()}`, { defaultValue: payment.transactions[0].status })}
+                      </Badge>
+                    </div>
+                    {payment.transactions[0].estimatedSettlementDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.estimatedDate')}:</span>
+                        <span>{formatDateShort(payment.transactions[0].estimatedSettlementDate, locale, venueTimezone)}</span>
+                      </div>
+                    )}
+                    {payment.transactions[0].settledAt && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.actualDate')}:</span>
+                        <span>{formatDateShort(payment.transactions[0].settledAt, locale, venueTimezone)}</span>
+                      </div>
+                    )}
+                    {payment.transactions[0].settlementId && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.settlementId')}:</span>
+                        <span className="font-mono text-xs">{payment.transactions[0].settlementId.slice(0, 8)}...</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Financial Summary - Complete breakdown */}
               <Card className={isEditing ? 'border-2 border-amber-400/50' : 'border-border'}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1077,23 +1463,24 @@ export default function PaymentId() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
+                  {/* Subtotal from order */}
+                  {payment?.order?.subtotal !== undefined && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t('detail.summary.subtotal')}</span>
+                      <span className="font-medium">{Currency(payment.order.subtotal)}</span>
+                    </div>
+                  )}
+                  {/* Taxes from order */}
+                  {payment?.order?.taxAmount !== undefined && payment.order.taxAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t('detail.summary.taxes')}</span>
+                      <span className="font-medium">{Currency(payment.order.taxAmount)}</span>
+                    </div>
+                  )}
+                  {/* Tip */}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t('detail.overview.base')}</span>
-                    {isEditing ? (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="w-28 h-7 text-right text-sm font-medium border-amber-400/50"
-                        value={editedValues.amount}
-                        onChange={(e) => setEditedValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                      />
-                    ) : (
-                      <span className="font-medium">{Currency(payment?.amount || 0)}</span>
-                    )}
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t('detail.overview.tips')}</span>
+                    <span className="text-muted-foreground">{t('detail.summary.tip')}</span>
                     {isEditing ? (
                       <Input
                         type="number"
@@ -1103,12 +1490,20 @@ export default function PaymentId() {
                         onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
                       />
                     ) : (
-                      <span className="font-medium">{Currency(payment?.tipAmount || 0)}</span>
+                      <span className="font-medium">
+                        {Currency(payment?.tipAmount || 0)}
+                        {payment?.amount > 0 && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
+                          </span>
+                        )}
+                      </span>
                     )}
                   </div>
                   <Separator />
-                  <div className="flex justify-between pt-3">
-                    <span className="font-medium text-foreground">{t('detail.overview.total')}</span>
+                  {/* Total Charged */}
+                  <div className="flex justify-between pt-2">
+                    <span className="font-medium text-foreground">{t('detail.summary.totalCharged')}</span>
                     <span className="font-bold text-lg text-foreground">
                       {(() => {
                         const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
@@ -1117,15 +1512,31 @@ export default function PaymentId() {
                       })()}
                     </span>
                   </div>
+                  {/* Transaction Fee - if available */}
+                  {payment?.transactions?.[0]?.feeAmount !== undefined && payment.transactions[0].feeAmount > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{t('detail.summary.transactionFee')}</span>
+                        <span>-{Currency(payment.transactions[0].feeAmount)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between pt-2">
+                        <span className="font-medium text-green-600 dark:text-green-400">{t('detail.summary.netAmount')}</span>
+                        <span className="font-bold text-green-600 dark:text-green-400">
+                          {Currency(payment.transactions[0].netAmount || 0)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Info Card */}
+              {/* Info Card - Enhanced */}
               <Card className="border-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-medium flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
-                    {t('detail.sidebar.info', { defaultValue: 'Info' })}
+                    {t('detail.sidebar.info')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -1135,10 +1546,35 @@ export default function PaymentId() {
                       <span>{getTableInfo(payment)}</span>
                     </div>
                   )}
+                  {/* Covers / Customer count */}
+                  {payment?.order?.customerCount && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.covers')}:</span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {payment.order.customerCount} {t('detail.sidebar.people')}
+                      </span>
+                    </div>
+                  )}
+                  {/* Processed By */}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.sidebar.waiter')}:</span>
                     <span>{payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : 'N/A'}</span>
                   </div>
+                  {/* Served By - if different from processedBy */}
+                  {payment?.order?.servedBy && payment.order.servedBy.id !== payment?.processedBy?.id && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.servedBy')}:</span>
+                      <span>{`${payment.order.servedBy.firstName} ${payment.order.servedBy.lastName}`}</span>
+                    </div>
+                  )}
+                  {/* Source */}
+                  {payment?.source && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.source')}:</span>
+                      <span>{t(`sources.${payment.source}`, { defaultValue: payment.source })}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.sidebar.receipts')}:</span>
                     <span>{receipts?.length || 0}</span>
@@ -1228,8 +1664,8 @@ export default function PaymentId() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.receiptId')}</Label>
-                  <p className="font-mono text-sm p-2 bg-muted rounded">{selectedReceiptForDetail.id}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.receiptNumber')}</Label>
+                  <p className="font-mono text-sm p-2 bg-muted rounded">#{selectedReceiptForDetail.accessKey?.slice(-4).toUpperCase() || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.status')}</Label>

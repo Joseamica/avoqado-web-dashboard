@@ -1415,7 +1415,7 @@ export default function TpvId() {
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-sm font-medium truncate">
-                                      {account.displayName || account.merchantIdProvider}
+                                      {account.displayName || account.externalMerchantId}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                       {account.provider?.name || 'Proveedor desconocido'}
@@ -1467,7 +1467,7 @@ export default function TpvId() {
                             <SelectContent>
                               {availableMerchantAccounts.map((account: MerchantAccount) => (
                                 <SelectItem key={account.id} value={account.id}>
-                                  {account.displayName || account.merchantIdProvider} ({account.provider?.name})
+                                  {account.displayName || account.externalMerchantId} ({account.provider?.name})
                                 </SelectItem>
                               ))}
                             </SelectContent>

@@ -16,7 +16,7 @@ import { notifyVenueChange } from '@/services/chatService'
 import { Venue, StaffRole, SessionVenue } from '@/types'
 import { VenueStatus } from '@/types/superadmin'
 import { Building2, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -113,12 +113,28 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   // Check if we have multiple organizations (for UI decisions)
   const hasMultipleOrgs = venueGroups.length > 1
 
-  // Usar el venue actual del contexto, url, o fallback al default
+  // Usar el venue actual del contexto, url, localStorage, o fallback al default
   const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
-  
-  // Buscar el venue primero en los venues disponibles por slug, luego por activeVenue, y por último por defaultVenue
+
+  // Buscar el venue en este orden de prioridad:
+  // 1. Desde la URL actual (si estamos en /venues/[slug]/...)
+  // 2. Desde el contexto activeVenue
+  // 3. Desde localStorage (persistido del último venue usado)
+  // 4. Fallback al defaultVenue (primer venue de la lista)
   const venueFromSlug = currentVenueSlug ? venues.find(v => v.slug === currentVenueSlug) : null
-  const currentVenue = (venueFromSlug || activeVenue || defaultVenue) as Venue | SessionVenue
+
+  // Intentar recuperar el último venue usado de localStorage
+  const savedVenueSlug = typeof window !== 'undefined' ? localStorage.getItem('avoqado_current_venue_slug') : null
+  const venueFromStorage = savedVenueSlug ? venues.find(v => v.slug === savedVenueSlug) : null
+
+  const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
+
+  // Persistir el venue actual en localStorage cuando cambie (para recuperarlo después de login/logout/refresh)
+  useEffect(() => {
+    if (currentVenue?.slug) {
+      localStorage.setItem('avoqado_current_venue_slug', currentVenue.slug)
+    }
+  }, [currentVenue?.slug])
 
   const handleVenueChange = async (venue: Venue | SessionVenue) => {
     if (venue.slug === currentVenue.slug) return // Evitar cambio innecesario

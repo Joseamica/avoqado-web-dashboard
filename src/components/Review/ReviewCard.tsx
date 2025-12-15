@@ -8,25 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { SentimentBadge, getSentimentFromRating } from './SentimentBadge'
 import { SourceBadge } from './SourceBadge'
 import { useVenueDateTime } from '@/utils/datetime'
-
-interface Review {
-  id: string
-  venueId: string
-  overallRating: number
-  foodRating?: number
-  serviceRating?: number
-  ambienceRating?: number
-  comment?: string
-  customerName?: string
-  customerEmail?: string
-  source: 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP'
-  externalId?: string
-  createdAt: string
-  updatedAt: string
-  responseText?: string
-  respondedAt?: string
-  responseAutomated?: boolean
-}
+import type { Review } from '@/types'
 
 interface ReviewCardProps {
   review: Review

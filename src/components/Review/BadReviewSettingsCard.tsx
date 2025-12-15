@@ -15,11 +15,11 @@ import { useToast } from '@/hooks/use-toast'
 import { StaffRole, VenueSettings } from '@/types'
 
 const AVAILABLE_ROLES: { value: StaffRole; labelKey: string }[] = [
-  { value: 'OWNER', labelKey: 'roles.owner' },
-  { value: 'ADMIN', labelKey: 'roles.admin' },
-  { value: 'MANAGER', labelKey: 'roles.manager' },
-  { value: 'CASHIER', labelKey: 'roles.cashier' },
-  { value: 'WAITER', labelKey: 'roles.waiter' },
+  { value: StaffRole.OWNER, labelKey: 'roles.owner' },
+  { value: StaffRole.ADMIN, labelKey: 'roles.admin' },
+  { value: StaffRole.MANAGER, labelKey: 'roles.manager' },
+  { value: StaffRole.CASHIER, labelKey: 'roles.cashier' },
+  { value: StaffRole.WAITER, labelKey: 'roles.waiter' },
 ]
 
 const THRESHOLD_OPTIONS = [
@@ -50,7 +50,7 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
   const [settings, setSettings] = useState<BadReviewSettings>({
     notifyBadReviews: true,
     badReviewThreshold: 3,
-    badReviewAlertRoles: ['OWNER', 'ADMIN', 'MANAGER'],
+    badReviewAlertRoles: [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER],
   })
   const [isDirty, setIsDirty] = useState(false)
 
@@ -70,7 +70,7 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
       setSettings({
         notifyBadReviews: venueSettings.notifyBadReviews ?? true,
         badReviewThreshold: venueSettings.badReviewThreshold ?? 3,
-        badReviewAlertRoles: venueSettings.badReviewAlertRoles ?? ['OWNER', 'ADMIN', 'MANAGER'],
+        badReviewAlertRoles: venueSettings.badReviewAlertRoles ?? [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.MANAGER],
       })
       setIsDirty(false)
     }

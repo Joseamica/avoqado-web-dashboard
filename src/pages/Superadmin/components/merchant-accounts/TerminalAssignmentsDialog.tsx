@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
-import { Building2, Check, Info, Loader2, Plus, Smartphone, Terminal as TerminalIcon, X } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
-import { terminalAPI, type Terminal } from '@/services/superadmin-terminals.service'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
 import { getAllVenues } from '@/services/superadmin.service'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Building2, Check, Info, Loader2, Plus, Smartphone, Terminal as TerminalIcon, X } from 'lucide-react'
+import React, { useState } from 'react'
 
 interface TerminalAssignmentsDialogProps {
   open: boolean
@@ -62,9 +62,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
   })
 
   // Filter out terminals that already have this merchant account assigned
-  const availableTerminals = allTerminals.filter(
-    terminal => !assignedTerminals.some((assigned: any) => assigned.id === terminal.id)
-  )
+  const availableTerminals = allTerminals.filter(terminal => !assignedTerminals.some((assigned: any) => assigned.id === terminal.id))
 
   if (!account) return null
 
@@ -136,9 +134,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
             </div>
             <div>
               <DialogTitle>Terminales Asignadas</DialogTitle>
-              <DialogDescription>
-                {account.displayName || account.alias || account.externalMerchantId}
-              </DialogDescription>
+              <DialogDescription>{account.displayName || account.alias || account.externalMerchantId}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -154,23 +150,19 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
               <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
                 <TerminalIcon className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground">
-                Esta cuenta no está asignada a ninguna terminal
-              </p>
+              <p className="text-sm text-muted-foreground">Esta cuenta no está asignada a ninguna terminal</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Las terminales se vinculan automáticamente cuando se crean con Blumon Auto-Fetch
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                O puedes vincular manualmente usando el botón de abajo.
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">O puedes vincular manualmente usando el botón de abajo.</p>
             </div>
           ) : (
             <>
               <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                 <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Desvincular una cuenta de una terminal no la elimina, solo remueve la referencia. La terminal seguirá
-                  funcionando pero necesitará otra cuenta de procesamiento.
+                  Desvincular una cuenta de una terminal no la elimina, solo remueve la referencia. La terminal seguirá funcionando pero
+                  necesitará otra cuenta de procesamiento.
                 </p>
               </div>
 
@@ -181,10 +173,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                 </h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {assignedTerminals.map((terminal: any) => (
-                    <div
-                      key={terminal.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50"
-                    >
+                    <div key={terminal.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
                       <div className="text-sm flex-1">
                         <p className="font-medium flex items-center gap-2">
                           <Smartphone className="w-4 h-4 text-muted-foreground" />
@@ -193,9 +182,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                         <p className="text-xs text-muted-foreground mt-1">
                           Serial: <span className="font-mono">{terminal.serialNumber}</span>
                         </p>
-                        {terminal.venue && (
-                          <p className="text-xs text-muted-foreground">Venue: {terminal.venue.name}</p>
-                        )}
+                        {terminal.venue && <p className="text-xs text-muted-foreground">Venue: {terminal.venue.name}</p>}
                       </div>
                       <TooltipProvider>
                         <Tooltip>
@@ -207,11 +194,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                               disabled={removingTerminal === terminal.id}
                               className="text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
                             >
-                              {removingTerminal === terminal.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <X className="w-4 h-4" />
-                              )}
+                              {removingTerminal === terminal.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -240,10 +223,13 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                     <Building2 className="w-3.5 h-3.5" />
                     1. Selecciona el Venue
                   </Label>
-                  <Select value={selectedVenueForLink} onValueChange={(value) => {
-                    setSelectedVenueForLink(value)
-                    setSelectedTerminalId('') // Reset terminal when venue changes
-                  }}>
+                  <Select
+                    value={selectedVenueForLink}
+                    onValueChange={value => {
+                      setSelectedVenueForLink(value)
+                      setSelectedTerminalId('') // Reset terminal when venue changes
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un venue..." />
                     </SelectTrigger>
@@ -273,9 +259,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                         Cargando terminales...
                       </div>
                     ) : availableTerminals.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2">
-                        No hay terminales disponibles en este venue para vincular.
-                      </p>
+                      <p className="text-sm text-muted-foreground py-2">No hay terminales disponibles en este venue para vincular.</p>
                     ) : (
                       <Select value={selectedTerminalId} onValueChange={setSelectedTerminalId}>
                         <SelectTrigger>
@@ -287,9 +271,7 @@ export const TerminalAssignmentsDialog: React.FC<TerminalAssignmentsDialogProps>
                               <div className="flex items-center gap-2">
                                 <Smartphone className="w-4 h-4 text-muted-foreground" />
                                 <span>{terminal.name || 'Sin nombre'}</span>
-                                <span className="text-xs text-muted-foreground font-mono">
-                                  ({terminal.serialNumber})
-                                </span>
+                                <span className="text-xs text-muted-foreground font-mono">({terminal.serialNumber})</span>
                               </div>
                             </SelectItem>
                           ))}

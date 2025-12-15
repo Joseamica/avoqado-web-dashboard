@@ -425,7 +425,7 @@ export default function RawMaterials() {
         meta: { label: t('rawMaterials.fields.costPerUnit') },
         header: () => (
           <div className="flex items-center justify-center">
-            <DollarSign className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.costPerUnit')} />
+            <DollarSign className="h-4 w-4 2xl:hidden" />
             <span className="hidden 2xl:inline">{t('rawMaterials.fields.costPerUnit')}</span>
           </div>
         ),
@@ -447,13 +447,12 @@ export default function RawMaterials() {
       {
         accessorKey: 'perishable',
         meta: { label: t('rawMaterials.fields.perishable') },
-        header: () => (
-          <div className="flex items-center justify-center">
-            <Clock className="h-4 w-4 2xl:hidden" title={t('rawMaterials.fields.perishable')} />
-            <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
-          </div>
-        ),
-        cell: ({ row }) => {
+              header: () => (
+                <div className="flex items-center justify-center">
+                  <Clock className="h-4 w-4 2xl:hidden" />
+                  <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
+                </div>
+              ),        cell: ({ row }) => {
           const material = row.original
           if (!material.perishable) {
             return (

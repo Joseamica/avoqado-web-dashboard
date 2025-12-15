@@ -391,6 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
+    localStorage.removeItem('avoqado_current_venue_slug') // Clear saved venue to prevent cross-session bleed
     clearAllChatStorage()
     queryClient.clear()
     setActiveVenue(null)

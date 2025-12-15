@@ -66,7 +66,7 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
 
   return (
     <>
-      <Alert variant="warning" className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
         <AlertCircle className="h-5 w-5 text-orange-600" />
         <AlertTitle className="text-orange-900 dark:text-orange-100">
           {t('pendingAlert.title', { count: pendingIncidents.length })}

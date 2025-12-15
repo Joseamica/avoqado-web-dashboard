@@ -299,8 +299,8 @@ export default function ProductId() {
       inventoryMethod: method,
       unit: data.unit || '',
       currentStock: data.inventory?.currentStock?.toString() || '',
-      costPerUnit: data.inventory?.costPerUnit?.toString() || '',
-      reorderPoint: data.inventory?.reorderPoint?.toString() || '10',
+      costPerUnit: data.cost?.toString() || '',
+      reorderPoint: data.inventory?.minimumStock?.toString() || '10',
     })
   }, [data, categories, modifierGroups, form, productId, setCustomSegment])
 

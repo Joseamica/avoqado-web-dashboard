@@ -124,7 +124,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
     queryKey: ['modifier-groups', venueId],
     queryFn: async () => {
       const response = await getModifierGroups(venueId)
-      return response.data as ModifierGroup[]
+      return response as ModifierGroup[]
     },
     enabled: !!venueId && open && isVariable,
   })

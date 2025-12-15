@@ -32,7 +32,7 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
   const [formData, setFormData] = useState({
     serialNumber: '',
     name: '',
-    type: 'TPV_ANDROID' as TerminalType,
+    type: TerminalType.TPV_ANDROID,
     brand: 'PAX',
     model: 'A910S',
     generateActivationCode: true,
@@ -44,7 +44,7 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
       setFormData({
         serialNumber: '',
         name: '',
-        type: 'TPV_ANDROID',
+        type: TerminalType.TPV_ANDROID,
         brand: 'PAX',
         model: 'A910S',
         generateActivationCode: true,

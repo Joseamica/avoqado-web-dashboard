@@ -103,23 +103,23 @@ export function useChatReferences() {
       const dateStr = formatDate(order.createdAt)
 
       const total = Number(order.total) || 0
-      const itemCount = order.orderItems?.length || 0
+      const itemCount = order.items?.length || 0
 
       const label = `Orden ${Currency(total)} - ${timeStr}`
 
-      const waiterName = order.waiter
-        ? `${order.waiter.firstName} ${order.waiter.lastName}`
+      const waiterName = order.servedBy
+        ? `${order.servedBy.firstName} ${order.servedBy.lastName}`
         : t('chat.references.unknown', { defaultValue: 'Desconocido' })
 
       const statusLabel = order.status || 'UNKNOWN'
 
       // Build items list
       let itemsList = ''
-      if (order.orderItems && order.orderItems.length > 0) {
-        const items = order.orderItems.slice(0, 5).map(item => `     • ${item.quantity}x ${item.product?.name || 'Producto'} - ${Currency(Number(item.subtotal) || 0)}`)
+      if (order.items && order.items.length > 0) {
+        const items = order.items.slice(0, 5).map(item => `     • ${item.quantity}x ${item.product?.name || 'Producto'} - ${Currency(Number(item.total) || 0)}`)
         itemsList = `\n   - Productos:\n${items.join('\n')}`
-        if (order.orderItems.length > 5) {
-          itemsList += `\n     ... y ${order.orderItems.length - 5} productos más`
+        if (order.items.length > 5) {
+          itemsList += `\n     ... y ${order.items.length - 5} productos más`
         }
       }
 
@@ -129,7 +129,7 @@ export function useChatReferences() {
    - Mesero: ${waiterName}
    - Items: ${itemCount} productos${itemsList}
    - Subtotal: ${Currency(Number(order.subtotal) || 0)}
-   - Propina: ${Currency(Number(order.tip) || 0)}
+   - Propina: ${Currency(Number(order.tipAmount) || 0)}
    - Total: ${Currency(total)}`
 
       const reference: OrderChatReference = {
@@ -217,13 +217,13 @@ export function useChatReferences() {
       const label = `${product.name} - ${Currency(price)}`
 
       const categoryName = product.category?.name || 'Sin categoría'
-      const available = product.available ? 'Disponible' : 'No disponible'
+      const available = product.active ? 'Disponible' : 'No disponible'
 
       let inventoryInfo = ''
-      if (product.inventoryType && product.inventoryType !== 'NONE') {
-        inventoryInfo = `\n   - Tipo inventario: ${product.inventoryType}`
-        if (product.currentStock !== undefined && product.currentStock !== null) {
-          inventoryInfo += `\n   - Stock actual: ${product.currentStock}`
+      if (product.inventoryMethod) {
+        inventoryInfo = `\n   - Tipo inventario: ${product.inventoryMethod}`
+        if (product.inventory?.currentStock !== undefined && product.inventory?.currentStock !== null) {
+          inventoryInfo += `\n   - Stock actual: ${product.inventory.currentStock}`
         }
       }
 

@@ -61,7 +61,7 @@ interface InvitationDetails {
 }
 
 export default function InviteAccept() {
-  const { t } = useTranslation(['inviteAccept', 'common'])
+  const { t, i18n } = useTranslation(['inviteAccept', 'common'])
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()

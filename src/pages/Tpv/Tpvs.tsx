@@ -424,7 +424,7 @@ export default function Tpvs() {
                               )}
                               <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium">
-                                  {account.displayName || account.merchantIdProvider}
+                                  {account.displayName || account.externalMerchantId}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   {account.provider?.name}

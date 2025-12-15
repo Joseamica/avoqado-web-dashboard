@@ -33,7 +33,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { venue, venueId, slug } = useCurrentVenue()
+  const { venue, venueId, venueSlug } = useCurrentVenue()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null)
@@ -189,7 +189,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
       onOpenChange(false)
 
       // Navigate to TPV list
-      navigate(`/venues/${slug}/tpv`)
+      navigate(`/venues/${venueSlug}/tpv`)
     },
     onError: (error: any) => {
       toast({

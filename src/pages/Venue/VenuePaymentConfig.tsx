@@ -1,44 +1,39 @@
-import React, { useState, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  CreditCard,
-  Settings,
-  Loader2,
-  Trash2,
-  Plus,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Zap,
-  Shield,
-  ArrowUpRight,
-  Sparkles,
-  CircleDollarSign,
-  Wallet,
-  Info,
-  Calculator,
-  DollarSign,
-  Percent,
-  ArrowRight,
-  Play,
-} from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
+import type { ProviderCostStructure, VenuePricingStructure } from '@/services/paymentProvider.service'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'
+import { Currency } from '@/utils/currency'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  AlertCircle,
+  ArrowRight,
+  ArrowUpRight,
+  Calculator,
+  CheckCircle2,
+  ChevronRight,
+  CircleDollarSign,
+  CreditCard,
+  DollarSign,
+  Plus,
+  Settings,
+  Shield,
+  Sparkles,
+  Trash2,
+  TrendingUp,
+  Wallet,
+  Zap,
+} from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useParams } from 'react-router-dom'
 import { VenuePaymentConfigDialog } from './components/VenuePaymentConfigDialog'
 import { VenuePricingDialog } from './components/VenuePricingDialog'
-import { useToast } from '@/hooks/use-toast'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import { Currency } from '@/utils/currency'
-import type { VenuePricingStructure, ProviderCostStructure } from '@/services/paymentProvider.service'
 
 /**
  * VenuePaymentConfig - Modern 2025/2026 Design
@@ -71,7 +66,7 @@ const GlassCard: React.FC<{
       'shadow-sm transition-all duration-300',
       hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
       onClick && 'cursor-pointer',
-      className
+      className,
     )}
   >
     {children}
@@ -89,9 +84,7 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 
   return (
     <span className="relative flex h-3 w-3">
-      <span
-        className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])}
-      />
+      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])} />
       <span className={cn('relative inline-flex rounded-full h-3 w-3', colors[status])} />
     </span>
   )
@@ -117,33 +110,22 @@ const MetricCard: React.FC<{
   const content = (
     <GlassCard className="p-4 h-full" hover>
       <div className="flex items-start justify-between">
-        <div
-          className={cn(
-            'p-2 rounded-xl bg-gradient-to-br',
-            accentColors[accent]
-          )}
-        >
-          {icon}
-        </div>
+        <div className={cn('p-2 rounded-xl bg-gradient-to-br', accentColors[accent])}>{icon}</div>
         {trend && (
           <div
             className={cn(
               'flex items-center gap-0.5 text-xs font-medium',
               trend === 'up' && 'text-green-600',
-              trend === 'down' && 'text-red-600'
+              trend === 'down' && 'text-red-600',
             )}
           >
-            <ArrowUpRight
-              className={cn('w-3 h-3', trend === 'down' && 'rotate-90')}
-            />
+            <ArrowUpRight className={cn('w-3 h-3', trend === 'down' && 'rotate-90')} />
           </div>
         )}
       </div>
       <div className="mt-3">
         <p className="text-2xl font-bold tracking-tight">{value}</p>
-        {subValue && (
-          <p className="text-xs text-muted-foreground mt-0.5">{subValue}</p>
-        )}
+        {subValue && <p className="text-xs text-muted-foreground mt-0.5">{subValue}</p>}
         <p className="text-sm text-muted-foreground mt-1">{label}</p>
       </div>
     </GlassCard>
@@ -192,7 +174,7 @@ const RateRow: React.FC<{
         <span
           className={cn(
             'text-sm font-bold min-w-[70px] text-right',
-            isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
           )}
         >
           {isPositive ? '+' : ''}
@@ -204,7 +186,7 @@ const RateRow: React.FC<{
         <div
           className={cn(
             'h-full rounded-full transition-all duration-500',
-            isPositive ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-orange-400'
+            isPositive ? 'bg-gradient-to-r from-green-500 to-emerald-400' : 'bg-gradient-to-r from-red-500 to-orange-400',
           )}
           style={{ width: `${Math.abs(marginPercent)}%` }}
         />
@@ -234,20 +216,20 @@ const ProfitSimulator: React.FC<{
     ? cardType === 'debit'
       ? toNumber(cost.debitRate)
       : cardType === 'credit'
-        ? toNumber(cost.creditRate)
-        : cardType === 'amex'
-          ? toNumber(cost.amexRate)
-          : toNumber(cost.internationalRate)
+      ? toNumber(cost.creditRate)
+      : cardType === 'amex'
+      ? toNumber(cost.amexRate)
+      : toNumber(cost.internationalRate)
     : 0
 
   const venueRate = pricing
     ? cardType === 'debit'
       ? toNumber(pricing.debitRate)
       : cardType === 'credit'
-        ? toNumber(pricing.creditRate)
-        : cardType === 'amex'
-          ? toNumber(pricing.amexRate)
-          : toNumber(pricing.internationalRate)
+      ? toNumber(pricing.creditRate)
+      : cardType === 'amex'
+      ? toNumber(pricing.amexRate)
+      : toNumber(pricing.internationalRate)
     : 0
 
   // Calculate fees
@@ -290,9 +272,7 @@ const ProfitSimulator: React.FC<{
                 <p className="text-xs text-muted-foreground">Calcula tu ganancia por transacción</p>
               </div>
             </div>
-            <ChevronRight
-              className={cn('w-4 h-4 text-muted-foreground transition-transform', isOpen && 'rotate-90')}
-            />
+            <ChevronRight className={cn('w-4 h-4 text-muted-foreground transition-transform', isOpen && 'rotate-90')} />
           </div>
         </CollapsibleTrigger>
 
@@ -326,7 +306,7 @@ const ProfitSimulator: React.FC<{
                           'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                           amount === preset.toString()
                             ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'
+                            : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground',
                         )}
                       >
                         ${preset.toLocaleString()}
@@ -347,15 +327,10 @@ const ProfitSimulator: React.FC<{
                           'flex items-center gap-2 p-3 rounded-xl border transition-all text-left',
                           cardType === card.value
                             ? 'border-primary bg-primary/5 text-foreground'
-                            : 'border-border/50 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                            : 'border-border/50 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground',
                         )}
                       >
-                        <div
-                          className={cn(
-                            'p-1.5 rounded-lg',
-                            cardType === card.value ? `bg-${card.color}-500/20` : 'bg-muted'
-                          )}
-                        >
+                        <div className={cn('p-1.5 rounded-lg', cardType === card.value ? `bg-${card.color}-500/20` : 'bg-muted')}>
                           {card.icon}
                         </div>
                         <span className="text-sm font-medium">{card.label}</span>
@@ -377,19 +352,29 @@ const ProfitSimulator: React.FC<{
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Cobras</p>
                     <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{Currency(totalVenueCharge)}</p>
-                    <p className="text-xs text-muted-foreground">{(venueRate * 100).toFixed(2)}%{venueFixedFee > 0 ? ` + ${Currency(venueFixedFee)}` : ''}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(venueRate * 100).toFixed(2)}%{venueFixedFee > 0 ? ` + ${Currency(venueFixedFee)}` : ''}
+                    </p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Te cobran</p>
                     <p className="text-lg font-bold text-red-600 dark:text-red-400">-{Currency(totalProviderCost)}</p>
-                    <p className="text-xs text-muted-foreground">{(providerRate * 100).toFixed(2)}%{providerFixedFee > 0 ? ` + ${Currency(providerFixedFee)}` : ''}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(providerRate * 100).toFixed(2)}%{providerFixedFee > 0 ? ` + ${Currency(providerFixedFee)}` : ''}
+                    </p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   <div className="text-center flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Ganancia</p>
-                    <p className={cn('text-lg font-bold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                      {isPositive ? '+' : ''}{Currency(profit)}
+                    <p
+                      className={cn(
+                        'text-lg font-bold',
+                        isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+                      )}
+                    >
+                      {isPositive ? '+' : ''}
+                      {Currency(profit)}
                     </p>
                     <p className="text-xs text-muted-foreground">{profitMargin.toFixed(1)}% margen</p>
                   </div>
@@ -420,8 +405,14 @@ const ProfitSimulator: React.FC<{
                   <div className="h-px bg-border/50 my-2" />
                   <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5">
                     <span className="text-sm font-medium">Tu ganancia neta</span>
-                    <span className={cn('text-lg font-bold', isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
-                      {isPositive ? '+' : ''}{Currency(profit)}
+                    <span
+                      className={cn(
+                        'text-lg font-bold',
+                        isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+                      )}
+                    >
+                      {isPositive ? '+' : ''}
+                      {Currency(profit)}
                     </span>
                   </div>
                 </div>
@@ -477,10 +468,7 @@ const VenuePaymentConfig: React.FC = () => {
   // === COMPUTED VALUES ===
 
   const primaryCost = useMemo(() => costStructures.find(c => c.accountType === 'PRIMARY'), [costStructures])
-  const primaryPricing = useMemo(
-    () => pricingStructures.find(p => p.accountType === 'PRIMARY' && p.active),
-    [pricingStructures]
-  )
+  const primaryPricing = useMemo(() => pricingStructures.find(p => p.accountType === 'PRIMARY' && p.active), [pricingStructures])
 
   const margins = useMemo(() => {
     if (!primaryCost || !primaryPricing) return null
@@ -492,9 +480,7 @@ const VenuePaymentConfig: React.FC = () => {
     }
   }, [primaryCost, primaryPricing])
 
-  const averageMargin = margins
-    ? ((margins.debit + margins.credit + margins.amex + margins.international) / 4) * 100
-    : 0
+  const averageMargin = margins ? ((margins.debit + margins.credit + margins.amex + margins.international) / 4) * 100 : 0
 
   const marginsHealthy = margins && margins.debit >= 0 && margins.credit >= 0
 
@@ -671,9 +657,7 @@ const VenuePaymentConfig: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Configuración de Pagos</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Gestiona el procesamiento de pagos para este venue
-            </p>
+            <p className="text-muted-foreground text-sm mt-1">Gestiona el procesamiento de pagos para este venue</p>
           </div>
           <div className="flex items-center gap-2">
             <StatusPulse status={marginsHealthy ? 'success' : marginsHealthy === false ? 'error' : 'neutral'} />
@@ -699,18 +683,13 @@ const VenuePaymentConfig: React.FC = () => {
                       {primaryAccount?.provider?.name}
                     </Badge>
                     {primaryAccount?.blumonEnvironment && (
-                      <Badge
-                        variant={primaryAccount.blumonEnvironment === 'PRODUCTION' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
+                      <Badge variant={primaryAccount.blumonEnvironment === 'PRODUCTION' ? 'default' : 'secondary'} className="text-xs">
                         {primaryAccount.blumonEnvironment}
                       </Badge>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Cuenta principal de procesamiento</p>
-                  <p className="text-xs text-muted-foreground font-mono mt-2">
-                    ID: {primaryAccount?.externalMerchantId}
-                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-2">ID: {primaryAccount?.externalMerchantId}</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -723,9 +702,7 @@ const VenuePaymentConfig: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
-                  <span className="text-muted-foreground">
-                    {paymentConfig.secondaryAccount ? '1 cuenta de respaldo' : 'Sin respaldo'}
-                  </span>
+                  <span className="text-muted-foreground">{paymentConfig.secondaryAccount ? '1 cuenta de respaldo' : 'Sin respaldo'}</span>
                 </div>
                 {paymentConfig.tertiaryAccount && (
                   <div className="flex items-center gap-2">
@@ -849,9 +826,7 @@ const VenuePaymentConfig: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Cuentas de respaldo y opciones adicionales</p>
                   </div>
                 </div>
-                <ChevronRight
-                  className={cn('w-4 h-4 text-muted-foreground transition-transform', advancedOpen && 'rotate-90')}
-                />
+                <ChevronRight className={cn('w-4 h-4 text-muted-foreground transition-transform', advancedOpen && 'rotate-90')} />
               </div>
             </CollapsibleTrigger>
 
@@ -864,20 +839,20 @@ const VenuePaymentConfig: React.FC = () => {
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Cuenta Secundaria</span>
-                      <Badge variant="secondary" className="text-xs">Fallback #1</Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        Fallback #1
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {paymentConfig.secondaryAccount?.displayName || 'No configurada'}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{paymentConfig.secondaryAccount?.displayName || 'No configurada'}</p>
                   </div>
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Cuenta Terciaria</span>
-                      <Badge variant="outline" className="text-xs">Fallback #2</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Fallback #2
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {paymentConfig.tertiaryAccount?.displayName || 'No configurada'}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{paymentConfig.tertiaryAccount?.displayName || 'No configurada'}</p>
                   </div>
                 </div>
 
@@ -892,16 +867,9 @@ const VenuePaymentConfig: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Eliminar Configuración</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Esta acción no se puede deshacer
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDeleteConfig}
-                        disabled={deleteConfigMutation.isPending}
-                      >
+                      <Button variant="destructive" size="sm" onClick={handleDeleteConfig} disabled={deleteConfigMutation.isPending}>
                         <Trash2 className="w-4 h-4 mr-1" />
                         {deleteConfigMutation.isPending ? 'Eliminando...' : 'Eliminar'}
                       </Button>

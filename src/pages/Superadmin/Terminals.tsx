@@ -28,7 +28,7 @@ const Terminals: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null)
 
-  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: getAllVenues })
+  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
 
   const { data: terminals = [], isLoading } = useQuery({
     queryKey: ['terminals', selectedVenueId],

@@ -42,7 +42,9 @@ export interface OnboardingStepProps {
   isFirstStep: boolean
   isLastStep: boolean
   onSelect?: (type: OnboardingType) => void
-  onSave?: (data: BusinessInfoData) => void
+  onSave?: (data: any) => void
+  initialValue?: any
+  isLoading?: boolean
 }
 
 // Onboarding data interface

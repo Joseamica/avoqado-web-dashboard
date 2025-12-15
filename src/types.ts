@@ -1378,6 +1378,23 @@ export interface Review {
   responseAutomated: boolean
 
   createdAt: string
+  updatedAt: string
+}
+
+export enum DiscountType {
+  PERCENTAGE = 'PERCENTAGE',
+  FIXED_AMOUNT = 'FIXED_AMOUNT',
+  COMP = 'COMP',
+}
+
+export enum DiscountScope {
+  ORDER = 'ORDER',
+  ITEM = 'ITEM',
+  CATEGORY = 'CATEGORY',
+  MODIFIER = 'MODIFIER',
+  MODIFIER_GROUP = 'MODIFIER_GROUP',
+  CUSTOMER_GROUP = 'CUSTOMER_GROUP',
+  QUANTITY = 'QUANTITY',
 }
 
 // Terminal completo según schema Prisma
@@ -1507,6 +1524,7 @@ export interface SessionVenue {
 
 export interface TeamMember {
   id: string
+  staffId: string
   firstName: string
   lastName: string
   email: string

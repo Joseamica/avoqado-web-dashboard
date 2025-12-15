@@ -17,7 +17,7 @@ type SupportedEntity =
   | { type: 'product'; data: Product }
   | { type: 'rawMaterial'; data: RawMaterial }
 
-interface AddToAIButtonProps extends SupportedEntity {
+type AddToAIButtonProps = SupportedEntity & {
   /** Button variant: 'icon' for tables, 'button' for detail views */
   variant?: 'icon' | 'button'
   /** Additional class names */

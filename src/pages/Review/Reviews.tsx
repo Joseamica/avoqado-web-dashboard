@@ -20,31 +20,13 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { StaffRole } from '@/types'
+import { useToast } from '@/hooks/use-toast'
+import { StaffRole, Review } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Settings } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-
-// Review interface based on backend structure
-interface Review {
-  id: string
-  venueId: string
-  overallRating: number
-  foodRating?: number
-  serviceRating?: number
-  ambienceRating?: number
-  comment?: string
-  customerName?: string
-  customerEmail?: string
-  source: 'AVOQADO' | 'GOOGLE' | 'TRIPADVISOR' | 'FACEBOOK' | 'YELP' | 'TPV'
-  externalId?: string
-  createdAt: string
-  updatedAt: string
-  responseText?: string
-  respondedAt?: string
-  responseAutomated?: boolean
-}
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 type SortOption = 'newest' | 'oldest' | 'highestRated' | 'lowestRated' | 'unresponded'
 
@@ -52,7 +34,8 @@ const REVIEWS_PER_PAGE = 20
 
 export default function ReviewSummary() {
   const { venueId } = useCurrentVenue()
-  const { t } = useTranslation('reviews')
+  const { toast } = useToast()
+  const { t, i18n } = useTranslation('reviews')
   const { t: tCommon } = useTranslation('common')
   const { user } = useAuth()
   const queryClient = useQueryClient()
@@ -90,12 +73,12 @@ export default function ReviewSummary() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', venueId] })
-      toast.success(tCommon('superadmin.delete.success'))
+      toast({ title: tCommon('superadmin.delete.success') })
       setDeleteDialogOpen(false)
       setReviewToDelete(null)
     },
     onError: () => {
-      toast.error(tCommon('superadmin.delete.error'))
+      toast({ title: tCommon('superadmin.delete.error'), variant: 'destructive' })
     },
   })
 
@@ -273,7 +256,7 @@ export default function ReviewSummary() {
             initialDateFrom={defaultRange.from.toISOString().split('T')[0]}
             initialDateTo={defaultRange.to.toISOString().split('T')[0]}
             align="end"
-            locale="es-ES"
+            locale={getIntlLocale(i18n.language)}
           />
         </div>
       </div>

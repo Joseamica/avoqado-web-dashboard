@@ -28,7 +28,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
     queryFn: async () => {
       if (!product) return []
       const response = await productInventoryApi.getMovements(venueId, product.id)
-      return response.data.data as InventoryMovement[]
+      return response.data as InventoryMovement[]
     },
     enabled: !!venueId && !!product && open,
   })

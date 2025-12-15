@@ -83,7 +83,7 @@ export default function Products() {
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
   useMenuSocketEvents(venueId, {
-    onMenuItemAvailabilityChanged: () => {
+    onAvailabilityChanged: () => {
       // Invalidate products query when inventory changes
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     },
@@ -105,7 +105,7 @@ export default function Products() {
       if (product.inventoryMethod === 'QUANTITY') {
         const currentStock = Number(product.inventory?.currentStock ?? 0)
         // Use custom threshold if set, otherwise fall back to reorderPoint
-        const threshold = product.lowStockThreshold ?? Number(product.inventory?.reorderPoint ?? 10)
+        const threshold = product.lowStockThreshold ?? Number(product.inventory?.minimumStock ?? 10)
         return currentStock <= threshold
       }
 

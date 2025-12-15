@@ -208,10 +208,10 @@ interface AddPaymentMethodDialogProps {
 
 export function AddPaymentMethodDialog({ open, onOpenChange, onSuccess, venueId }: AddPaymentMethodDialogProps) {
   const { t } = useTranslation('billing')
-  const { selectedVenue } = useAuth()
+  const { activeVenue } = useAuth()
 
-  // Use venueId prop or fall back to selectedVenue
-  const activeVenueId = venueId || selectedVenue?.id
+  // Use venueId prop or fall back to activeVenue
+  const activeVenueId = venueId || activeVenue?.id
 
   const handleSuccess = () => {
     onSuccess()

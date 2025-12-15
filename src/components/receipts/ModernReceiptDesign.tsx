@@ -176,9 +176,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   // Format helpers
   const formatDate = (dateString: string) => {
     const locale = getIntlLocale(i18n.language)
-    const dt = DateTime.fromISO(dateString, { zone: 'utc' })
-      .setZone(venueTimezone)
-      .setLocale(locale)
+    const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale)
     return {
       date: dt.toLocaleString({
         weekday: 'long',
@@ -195,12 +193,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   }
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (value == null || Number.isNaN(Number(value))) return t('common.na')
+    if (value == null || Number.isNaN(Number(value))) return 'N/A'
     try {
       const currency = venue?.currency || 'MXN'
       return new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency }).format(Number(value))
     } catch {
-      return t('common.na')
+      return 'N/A'
     }
   }
 
@@ -344,84 +342,82 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
             <CardContent className="p-6 space-y-6">
               {/* Receipt Metadata */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-xl">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ReceiptIcon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.receipt')}</p>
-                      <p className="font-mono text-sm font-medium">#{receipt?.id?.slice(0, 8) || t('common.na')}</p>
-                    </div>
+                {/* Receipt # */}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <ReceiptIcon className="w-4 h-4 text-primary" />
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <Building2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.order')}</p>
-                      <p className="font-mono text-sm font-medium">#{order?.number ?? t('common.na')}</p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.receipt')}</p>
+                    <p className="font-mono text-sm font-medium">#{receiptAccessKey?.slice(-4).toUpperCase() || 'N/A'}</p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-green-600" />
+                {/* Date */}
+                <div className="flex items-start gap-3 sm:col-start-2">
+                  <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
+                    <p className="text-sm font-medium capitalize">{datetime?.date ?? 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Served By */}
+                {processedBy && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
-                      <p className="text-sm font-medium capitalize">{datetime?.date ?? t('common.na')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.servedBy')}</p>
+                      <p className="text-sm font-medium">
+                        {processedBy.name ||
+                          ((processedBy as any).firstName && (processedBy as any).lastName
+                            ? `${(processedBy as any).firstName} ${(processedBy as any).lastName}`
+                            : (processedBy as any).firstName || (processedBy as any).lastName || 'N/A')}
+                      </p>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.time')}</p>
-                      <p className="text-sm font-medium">{datetime?.time ?? t('common.na')}</p>
-                    </div>
+                {/* Time */}
+                <div className="flex items-start gap-3 sm:col-start-2">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.time')}</p>
+                    <p className="text-sm font-medium">{datetime?.time ?? 'N/A'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Staff & Customer Info */}
-              {(processedBy || customer) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {processedBy && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                      <User className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('receipt.labels.servedBy')}</p>
-                        <p className="font-medium text-sm">{processedBy.name}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {customer && (
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                      <Star className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
-                        <p className="font-medium text-sm">{customer.name}</p>
-                      </div>
-                    </div>
-                  )}
+              {/* Customer Info */}
+              {customer && (
+                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <Star className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
+                    <p className="font-medium text-sm">
+                      {customer.name ||
+                        ((customer as any).firstName && (customer as any).lastName
+                          ? `${(customer as any).firstName} ${(customer as any).lastName}`
+                          : (customer as any).firstName || (customer as any).lastName || customer.email || 'N/A')}
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {/* Order Items */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  {t('receipt.labels.itemsTitle')}
-                </h2>
+              {/* Order Items - Only show if there are items */}
+              {(order?.items?.length ?? 0) > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    {t('receipt.labels.itemsTitle')}
+                  </h2>
 
-                {(order?.items?.length ?? 0) > 0 ? (
                   <div className="space-y-3">
                     {order!.items!.map((item, index) => (
                       <div key={index} className="bg-background border border-border/50 rounded-xl p-4 hover:shadow-sm transition-shadow">
@@ -458,16 +454,8 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-12 bg-muted/30 rounded-xl">
-                    <ReceiptIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-muted-foreground">{t('receipt.labels.noItems')}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('receipt.labels.orderTotal')}: {formatCurrency(order?.total)}
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <Separator className="my-6" />
 
@@ -483,14 +471,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   <span className="font-medium">{formatCurrency(order?.taxAmount)}</span>
                 </div>
 
-                {(payment?.tipAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-base">
-                    <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
-                    <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-base">
+                  <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
+                </div>
 
-                <Separator />
+                {/* <Separator /> */}
 
                 <div className="flex justify-between items-center text-xl font-bold bg-linear-to-r from-primary/10 to-primary/5 p-4 rounded-xl">
                   <span>{t('receipt.labels.totalPaid')}</span>
@@ -592,7 +578,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
 
                 <div className="pt-3 space-y-1 text-xs text-muted-foreground">
                   <p>{t('receipt.footer.generatedBy')}</p>
-                  <p>{datetime ? `${datetime.date} • ${datetime.time}` : t('common.na')}</p>
+                  <p>{datetime ? `${datetime.date} • ${datetime.time}` : 'N/A'}</p>
                   {customer?.email && <p>{t('receipt.footer.sentTo', { email: customer.email })}</p>}
                 </div>
               </div>

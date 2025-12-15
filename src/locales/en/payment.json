@@ -200,14 +200,25 @@
       "receiptViewed": "Receipt viewed",
       "receiptSent": "Receipt sent",
       "paymentProcessed": "Payment processed",
-      "statusUpdated": "Status updated"
+      "statusUpdated": "Status updated",
+      "orderCreated": "Order created",
+      "orderCompleted": "Order completed",
+      "reviewReceived": "Review received",
+      "settlementPending": "Settlement pending",
+      "settlementEstimated": "estimated"
     },
     "sections": {
       "transactionInfo": "Transaction Information",
       "transactionInfoDesc": "Complete transaction details and metadata",
       "billInfo": "Bill Information",
       "merchantAccountInfo": "Merchant Account Information",
-      "merchantAccountDesc": "Merchant account information"
+      "merchantAccountDesc": "Merchant account information",
+      "cardDetails": "Card Payment Details",
+      "cardDetailsDesc": "Card information and processing details",
+      "orderItems": "Order Items",
+      "orderItemsDesc": "Items included in this order",
+      "venueInfo": "Venue Information",
+      "venueInfoDesc": "Details about the venue where payment was made"
     },
     "fields": {
       "dateTime": "Date & Time",
@@ -216,7 +227,7 @@
       "table": "Table",
       "noTable": "No table",
       "referenceNumber": "Reference Number",
-      "orderId": "Order ID",
+      "orderId": "Order Number",
       "shiftId": "Shift ID",
       "entryMode": "Entry Mode",
       "merchantName": "Merchant Name",
@@ -224,7 +235,16 @@
       "clabeNumber": "CLABE Number",
       "accountHolder": "Account Holder",
       "blumonSerial": "Blumon Serial Number",
-      "provider": "Payment Provider"
+      "provider": "Payment Provider",
+      "paymentType": "Payment Type",
+      "splitType": "Split Type",
+      "kitchenStatus": "Kitchen Status",
+      "orderStatus": "Order Status",
+      "orderCreated": "Order Created",
+      "orderCompleted": "Order Completed",
+      "paymentProcessed": "Payment Processed",
+      "card": "Card",
+      "processor": "Processor"
     },
     "entryModes": {
       "contactless": "Contactless",
@@ -250,7 +270,66 @@
       "subtotal": "Subtotal",
       "total": "Total",
       "tipsOfSubtotal": "{{percent}}% of subtotal",
-      "progressBase": "Base"
+      "progressBase": "Base",
+      "taxes": "Taxes",
+      "tip": "Tip",
+      "totalCharged": "Total Charged",
+      "transactionFee": "Transaction Fee",
+      "netAmount": "Net Amount",
+      "feeAmount": "Fee Amount"
+    },
+    "settlement": {
+      "title": "Settlement Status",
+      "status": "Status",
+      "estimatedDate": "Estimated Date",
+      "actualDate": "Actual Date",
+      "settlementId": "Settlement ID",
+      "variance": "Variance",
+      "days": "days",
+      "pending": "Pending",
+      "processing": "Processing",
+      "settled": "Settled",
+      "failed": "Failed"
+    },
+    "review": {
+      "title": "Customer Review",
+      "noReview": "No review",
+      "overallRating": "Overall Rating",
+      "food": "Food",
+      "service": "Service",
+      "ambience": "Ambience",
+      "comment": "Comment"
+    },
+    "badges": {
+      "testPayment": "Test Payment",
+      "splitPayment": "Split Payment",
+      "qrPayment": "QR Payment"
+    },
+    "paymentTypes": {
+      "REGULAR": "Regular",
+      "FAST": "Fast",
+      "TEST": "Test"
+    },
+    "splitTypes": {
+      "FULLPAYMENT": "Full Payment",
+      "EQUALPARTS": "Equal Parts",
+      "BYAMOUNT": "By Amount",
+      "BYITEM": "By Item"
+    },
+    "kitchenStatuses": {
+      "PENDING": "Pending",
+      "RECEIVED": "Received",
+      "PREPARING": "Preparing",
+      "READY": "Ready",
+      "SERVED": "Served"
+    },
+    "orderStatuses": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PREPARING": "Preparing",
+      "READY": "Ready",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
     },
     "receipts": {
       "title": "Digital Receipts",
@@ -267,6 +346,7 @@
     "receiptsDialog": {
       "title": "Receipt Details",
       "receiptId": "Receipt ID",
+      "receiptNumber": "Receipt Number",
       "status": "Status",
       "recipient": "Recipient",
       "createdDate": "Created Date",
@@ -293,7 +373,19 @@
       "processedBy": "Processed by",
       "shift": "Shift",
       "noBeneficiary": "No beneficiary",
-      "editMode": "Edit Mode"
+      "editMode": "Edit Mode",
+      "covers": "Covers",
+      "source": "Source",
+      "servedBy": "Served by",
+      "people": "people"
+    },
+    "venue": {
+      "name": "Venue",
+      "address": "Address",
+      "city": "City",
+      "country": "Country",
+      "phone": "Phone",
+      "email": "Email"
     },
     "footer": {
       "copyright": "© 2025 Avoqado. All rights reserved.",
@@ -314,6 +406,13 @@
       "deleteErrorDesc": "Could not delete the payment",
       "updatedDesc": "The payment has been successfully updated",
       "updateErrorDesc": "Could not update the payment"
+    },
+    "stats": {
+      "base": "Base",
+      "tip": "Tip",
+      "method": "Method",
+      "table": "Table",
+      "source": "Source"
     }
   },
   "paymentProviders": {

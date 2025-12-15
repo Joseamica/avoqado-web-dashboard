@@ -20,8 +20,8 @@ export function useRecentMovements({ venueId, productId, enabled = true, limit =
         return data
       }
       // If response.data is wrapped in a data property
-      if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-        return data.data
+      if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
+        return (data as any).data
       }
       // Fallback to empty array
       return []

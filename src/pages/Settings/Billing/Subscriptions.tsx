@@ -234,7 +234,7 @@ export default function Subscriptions() {
 
       // Check if the feature was immediately activated (payment succeeded)
       // Response format: { success, data: VenueFeature[], summary: { active, pending } }
-      const featuresArray = Array.isArray(response) ? response : response?.data
+      const featuresArray = Array.isArray(response) ? response : (response as any)?.data
       const isImmediatelyActive = Array.isArray(featuresArray) && featuresArray.some(vf => vf.active === true)
 
       if (isTrial) {
