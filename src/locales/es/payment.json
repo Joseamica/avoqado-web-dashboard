@@ -40,7 +40,16 @@
     "status": "Estado",
     "subtotal": "Subtotal",
     "profit": "Ganancia Avoqado",
-    "total": "Total"
+    "total": "Total",
+    "type": "Tipo",
+    "ai": "IA"
+  },
+  "types": {
+    "regular": "Regular",
+    "fast": "Rápido",
+    "test": "Prueba",
+    "refund": "Reembolso",
+    "adjustment": "Ajuste"
   },
   "methods": {
     "cash": "Efectivo",
@@ -101,6 +110,7 @@
       "taxes": "Impuestos",
       "tips": "Propina",
       "totalPaid": "Total pagado",
+      "totalRefunded": "Total reembolsado",
       "shareThisReceipt": "Compartir este recibo"
     },
     "actions": {
@@ -114,10 +124,13 @@
       "thanks": "¡Gracias por tu preferencia!",
       "seeYou": "Esperamos verte pronto en {{venue}}",
       "generatedBy": "Recibo digital generado por Avoqado",
-      "sentTo": "Enviado a: {{email}}"
+      "sentTo": "Enviado a: {{email}}",
+      "refundProcessed": "Reembolso Procesado",
+      "refundMessage": "Tu reembolso ha sido procesado exitosamente. El monto será acreditado a tu método de pago original."
     },
     "paymentStatus": {
       "COMPLETED": "Pago completado",
+      "REFUND_COMPLETED": "Reembolso completado",
       "UNKNOWN": "Estado desconocido"
     },
     "errors": {

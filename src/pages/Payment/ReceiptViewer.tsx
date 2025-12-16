@@ -5,7 +5,7 @@
 
 import api from '@/api'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import { ReceiptUrls } from '@/constants/receipt'
 import { ModernReceiptDesign } from '@/components/receipts/ModernReceiptDesign'
@@ -16,9 +16,13 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 export default function ReceiptViewer() {
   const { receiptId, accessKey } = useParams<{ receiptId?: string; accessKey?: string }>()
+  const [searchParams] = useSearchParams()
   const { toast } = useToast()
   const { t } = useTranslation('payment')
   const { venueId } = useCurrentVenue()
+
+  // Check if this is a refund receipt (indicated by ?refund=true query param)
+  const isRefund = searchParams.get('refund') === 'true'
 
   // Determine if we're in public view or dashboard view
   const isPublicView = ReceiptUrls.isPublicView()
@@ -140,6 +144,7 @@ export default function ReceiptViewer() {
       accessKey={receiptAccessKey}
       variant={isPublicView ? 'full' : 'embedded'}
       showActions={true}
+      isRefund={isRefund}
       onShare={handleShare}
       onCopy={handleCopy}
       onPrint={handlePrint}

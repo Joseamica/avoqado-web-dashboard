@@ -292,6 +292,15 @@ export enum PaymentMethod {
   OTHER = 'OTHER',
 }
 
+// Type of payment record (distinguishes regular payments from refunds, adjustments, etc.)
+export enum PaymentRecordType {
+  REGULAR = 'REGULAR', // Normal order-based payment
+  FAST = 'FAST', // Quick payment without order items
+  TEST = 'TEST', // Test payments from superadmin dashboard
+  REFUND = 'REFUND', // Refund payment (negative amount)
+  ADJUSTMENT = 'ADJUSTMENT', // Manual adjustment
+}
+
 export enum TransactionStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
@@ -998,6 +1007,7 @@ export interface Payment {
   // Payment details
   method: PaymentMethod
   status: PaymentStatus
+  type: PaymentRecordType | null // REGULAR, FAST, TEST, REFUND, ADJUSTMENT
   source: string // De dónde se procesó el pago: AVOQADO_TPV, DASHBOARD_TEST, QR, WEB, APP, POS
   processorName: string | null
   processorPaymentId: string | null

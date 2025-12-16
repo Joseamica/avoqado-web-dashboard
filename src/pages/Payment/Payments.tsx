@@ -32,7 +32,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useAuth } from '@/context/AuthContext'
-import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus } from '@/types'
+import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
+import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
@@ -48,6 +49,7 @@ import {
   Globe,
   Pencil,
   QrCode,
+  RotateCcw,
   Smartphone,
   TabletSmartphone,
   TestTube,
@@ -459,7 +461,7 @@ export default function Payments() {
         cell: ({ cell }) => {
           const value = cell.getValue()
           // Convert to number, Currency function handles null/undefined
-          return Currency(Number(value) || 0)
+          return Currency(Math.abs(Number(value) || 0))
         },
       },
       {
@@ -523,6 +525,8 @@ export default function Payments() {
               ),
               cell: ({ row }: any) => {
                 const payment = row.original
+                const isRefund = payment.type === PaymentRecordType.REFUND
+
                 if (!payment.transactionCost) {
                   return (
                     <div className="flex justify-center">
@@ -536,7 +540,24 @@ export default function Payments() {
                 const providerCost = Number(payment.transactionCost.providerCostAmount) || 0
                 const venueCharge = Number(payment.transactionCost.venueChargeAmount) || 0
 
-                // Color based on profit margin
+                // For refunds, always use red styling (negative profit)
+                if (isRefund) {
+                  return (
+                    <div
+                      className="flex flex-col space-y-1 items-center"
+                      title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(Math.abs(venueCharge))}`}
+                    >
+                      <span className="text-xs font-semibold text-red-500 dark:text-red-400">
+                        −{(Math.abs(margin) * 100).toFixed(2)}%
+                      </span>
+                      <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800">
+                        −{Currency(Math.abs(profit))}
+                      </Badge>
+                    </div>
+                  )
+                }
+
+                // Color based on profit margin for regular payments
                 let profitClasses = {
                   bg: 'bg-emerald-100 dark:bg-emerald-900/30',
                   text: 'text-emerald-800 dark:text-emerald-400',
@@ -584,10 +605,23 @@ export default function Payments() {
         id: 'totalAmount',
         meta: { label: t('columns.total') },
         header: t('columns.total'),
-        cell: ({ cell }) => {
+        cell: ({ cell, row }) => {
           const value = cell.getValue()
+          const isRefund = row.original.type === PaymentRecordType.REFUND
           // Convert to number, Currency function handles null/undefined
-          return Currency(Number(value) || 0)
+          return (
+            <div className="flex flex-col">
+              <span className={cn(isRefund && 'text-red-600 dark:text-red-400 font-semibold')}>
+                {isRefund && '−'}{Currency(Math.abs(Number(value) || 0))}
+              </span>
+              {isRefund && (
+                <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                  <RotateCcw className="h-3 w-3" />
+                  {t('types.refund')}
+                </span>
+              )}
+            </div>
+          )
         },
       },
       // Superadmin actions column
@@ -662,15 +696,24 @@ export default function Payments() {
             row['Card'] = cardInfo
           }
 
+          const isRefund = payment.type === PaymentRecordType.REFUND
           row[t('columns.subtotal')] = formatCurrencyForExport(Number(payment.amount) || 0)
           row[t('columns.tip')] = formatCurrencyForExport(Number(payment.tipAmount) || 0)
 
-          // Add profit column if superadmin
+          // Add profit column if superadmin - show negative for refunds
           if (isSuperAdmin && payment.transactionCost) {
-            row[t('columns.profit')] = formatCurrencyForExport(Number(payment.transactionCost.grossProfit) || 0)
+            const profit = Number(payment.transactionCost.grossProfit) || 0
+            row[t('columns.profit')] = isRefund
+              ? `-${formatCurrencyForExport(Math.abs(profit))}`
+              : formatCurrencyForExport(profit)
           }
 
           row[t('columns.total')] = formatCurrencyForExport((Number(payment.amount) || 0) + (Number(payment.tipAmount) || 0))
+
+          // Add refund indicator
+          if (isRefund) {
+            row[t('columns.type')] = t('types.refund')
+          }
 
           return row
         })
@@ -822,6 +865,11 @@ export default function Payments() {
         })}
         pagination={pagination}
         setPagination={setPagination}
+        getRowClassName={row =>
+          row.type === PaymentRecordType.REFUND
+            ? '!bg-red-50/50 dark:!bg-red-950/20 hover:!bg-red-100/50 dark:hover:!bg-red-950/30'
+            : undefined
+        }
       />
 
       {/* Delete confirmation dialog (SUPERADMIN only) */}

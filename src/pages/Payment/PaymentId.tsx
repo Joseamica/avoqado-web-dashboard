@@ -26,6 +26,7 @@ import {
   Pencil,
   Receipt,
   RefreshCw,
+  RotateCcw,
   Trash2,
   Wallet,
   XCircle,
@@ -55,7 +56,7 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAuth } from '@/context/AuthContext'
-import { StaffRole, PaymentMethod, PaymentStatus } from '@/types'
+import { StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
@@ -700,14 +701,23 @@ export default function PaymentId() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-semibold text-foreground">
+                  <h1 className={`text-3xl font-semibold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
                     {(() => {
                       const baseAmount = payment?.amount ? Number(payment.amount) : 0
                       const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
                       const total = baseAmount + tipAmount
-                      return total > 0 ? Currency(total) : 'N/A'
+                      const isRefund = payment?.type === PaymentRecordType.REFUND
+                      if (total === 0 && !isRefund) return 'N/A'
+                      return `${isRefund ? '−' : ''}${Currency(Math.abs(total))}`
                     })()}
                   </h1>
+                  {/* Refund Badge */}
+                  {payment?.type === PaymentRecordType.REFUND && (
+                    <Badge variant="outline" className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      {t('types.refund')}
+                    </Badge>
+                  )}
                   {paymentStatusConfig && (
                     <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color} ${paymentStatusConfig.border} border`}>
                       <StatusIcon className="h-3 w-3 mr-1" />
@@ -847,12 +857,16 @@ export default function PaymentId() {
             <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm flex-wrap">
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.base')}: </span>
-                <span className="font-medium">{Currency(payment?.amount || 0)}</span>
+                <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.amount || 0))}
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.tip')}: </span>
-                <span className="font-medium">{Currency(payment?.tipAmount || 0)}</span>
-                <span className="text-muted-foreground ml-1">({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)</span>
+                <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.tipAmount || 0))}
+                </span>
+                <span className="text-muted-foreground ml-1">({calculateTipPercentage(Math.abs(payment?.tipAmount || 0), Math.abs(payment?.amount || 0))}%)</span>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.method')}: </span>
@@ -1503,12 +1517,22 @@ export default function PaymentId() {
                   <Separator />
                   {/* Total Charged */}
                   <div className="flex justify-between pt-2">
-                    <span className="font-medium text-foreground">{t('detail.summary.totalCharged')}</span>
-                    <span className="font-bold text-lg text-foreground">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">{t('detail.summary.totalCharged')}</span>
+                      {payment?.type === PaymentRecordType.REFUND && (
+                        <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                          <RotateCcw className="h-3 w-3" />
+                          {t('types.refund')}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`font-bold text-lg ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
                       {(() => {
                         const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
                         const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
-                        return Currency(baseAmount + tipAmount)
+                        const total = baseAmount + tipAmount
+                        const isRefund = payment?.type === PaymentRecordType.REFUND
+                        return `${isRefund ? '−' : ''}${Currency(Math.abs(total))}`
                       })()}
                     </span>
                   </div>
@@ -1517,13 +1541,15 @@ export default function PaymentId() {
                     <>
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>{t('detail.summary.transactionFee')}</span>
-                        <span>-{Currency(payment.transactions[0].feeAmount)}</span>
+                        <span>-{Currency(Math.abs(payment.transactions[0].feeAmount))}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between pt-2">
-                        <span className="font-medium text-green-600 dark:text-green-400">{t('detail.summary.netAmount')}</span>
-                        <span className="font-bold text-green-600 dark:text-green-400">
-                          {Currency(payment.transactions[0].netAmount || 0)}
+                        <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {t('detail.summary.netAmount')}
+                        </span>
+                        <span className={`font-bold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment.transactions[0].netAmount || 0))}
                         </span>
                       </div>
                     </>
