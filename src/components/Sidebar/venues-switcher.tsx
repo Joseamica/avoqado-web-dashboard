@@ -14,8 +14,9 @@ import { useAuth } from '@/context/AuthContext'
 import { notifyVenueChange } from '@/services/chatService'
 
 import { Venue, StaffRole, SessionVenue } from '@/types'
-import { Building2, ChevronsUpDown, Plus } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { VenueStatus } from '@/types/superadmin'
+import { Building2, ChevronsUpDown, Plus, AlertTriangle, Ban, XCircle } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AddVenueDialog } from './add-venue-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -52,6 +53,21 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   // Check if user can see organization link (OWNER or SUPERADMIN)
   const canViewOrganization = isOwner && !!orgId
   const isSuperadmin = user?.role === StaffRole.SUPERADMIN
+
+  // Helper to get suspension status info for a venue
+  const getSuspensionInfo = (venue: Venue | SessionVenue) => {
+    const status = (venue as Venue).status as VenueStatus
+    switch (status) {
+      case VenueStatus.SUSPENDED:
+        return { isSuspended: true, label: t('venuesSwitcher.suspended'), icon: AlertTriangle, textColor: 'text-amber-600' }
+      case VenueStatus.ADMIN_SUSPENDED:
+        return { isSuspended: true, label: t('venuesSwitcher.adminSuspended'), icon: Ban, textColor: 'text-red-600' }
+      case VenueStatus.CLOSED:
+        return { isSuspended: true, label: t('venuesSwitcher.closed'), icon: XCircle, textColor: 'text-slate-500' }
+      default:
+        return { isSuspended: false, label: '', icon: null, textColor: '' }
+    }
+  }
 
   // Group venues by organization for SUPERADMIN/OWNER users
   const venueGroups = useMemo((): VenueGroup[] => {
@@ -97,12 +113,28 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
   // Check if we have multiple organizations (for UI decisions)
   const hasMultipleOrgs = venueGroups.length > 1
 
-  // Usar el venue actual del contexto, url, o fallback al default
+  // Usar el venue actual del contexto, url, localStorage, o fallback al default
   const currentVenueSlug = location.pathname.split('/')[2] || '' // Obtener slug de la URL actual
-  
-  // Buscar el venue primero en los venues disponibles por slug, luego por activeVenue, y por último por defaultVenue
+
+  // Buscar el venue en este orden de prioridad:
+  // 1. Desde la URL actual (si estamos en /venues/[slug]/...)
+  // 2. Desde el contexto activeVenue
+  // 3. Desde localStorage (persistido del último venue usado)
+  // 4. Fallback al defaultVenue (primer venue de la lista)
   const venueFromSlug = currentVenueSlug ? venues.find(v => v.slug === currentVenueSlug) : null
-  const currentVenue = (venueFromSlug || activeVenue || defaultVenue) as Venue | SessionVenue
+
+  // Intentar recuperar el último venue usado de localStorage
+  const savedVenueSlug = typeof window !== 'undefined' ? localStorage.getItem('avoqado_current_venue_slug') : null
+  const venueFromStorage = savedVenueSlug ? venues.find(v => v.slug === savedVenueSlug) : null
+
+  const currentVenue = (venueFromSlug || activeVenue || venueFromStorage || defaultVenue) as Venue | SessionVenue
+
+  // Persistir el venue actual en localStorage cuando cambie (para recuperarlo después de login/logout/refresh)
+  useEffect(() => {
+    if (currentVenue?.slug) {
+      localStorage.setItem('avoqado_current_venue_slug', currentVenue.slug)
+    }
+  }, [currentVenue?.slug])
 
   const handleVenueChange = async (venue: Venue | SessionVenue) => {
     if (venue.slug === currentVenue.slug) return // Evitar cambio innecesario
@@ -189,10 +221,10 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                           className="gap-2 p-2 cursor-pointer"
                           disabled={isLoading || group.orgId === 'unknown'}
                         >
-                          <div className="flex justify-center items-center bg-gradient-to-r from-amber-400 to-pink-500 rounded-lg size-6">
-                            <Building2 className="size-4 text-primary-foreground" />
+                          <div className="flex justify-center items-center bg-muted rounded-lg size-6">
+                            <Building2 className="size-4 text-muted-foreground" />
                           </div>
-                          <span className="flex-1 font-medium truncate">
+                          <span className="font-medium truncate">
                             {group.orgName || t('organization:myOrganization')}
                           </span>
                         </DropdownMenuItem>
@@ -208,12 +240,14 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                     {group.venues.map((venue) => {
                       const isActive = venue.slug === currentVenue?.slug
                       const hasAccess = user?.role === StaffRole.OWNER || user?.role === StaffRole.SUPERADMIN || checkVenueAccess(venue.slug)
+                      const suspensionInfo = getSuspensionInfo(venue)
+                      const SuspensionIcon = suspensionInfo.icon
 
                       return (
                         <DropdownMenuItem
                           key={venue.id}
                           onClick={() => handleVenueChange(venue)}
-                          className={`gap-2 p-2 ${hasMultipleOrgs ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
+                          className={`gap-2 p-2 ${(hasMultipleOrgs || canViewOrganization) ? 'pl-4' : ''} ${isActive ? 'bg-accent' : ''} ${
                             !hasAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                           }`}
                           disabled={!hasAccess || isLoading}
@@ -222,10 +256,20 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                             <AvatarImage src={venue?.logo} alt={`${venue?.name} Logo`} />
                             <AvatarFallback>{venue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
                           </Avatar>
-                          <span className="flex-1 truncate">
-                            {venue?.name}
-                            {isActive && <span className="ml-2 text-xs text-muted-foreground">{t('venuesSwitcher.current')}</span>}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate">
+                                {venue?.name}
+                              </span>
+                              {isActive && <span className="text-xs text-muted-foreground shrink-0">{t('venuesSwitcher.current')}</span>}
+                            </div>
+                            {suspensionInfo.isSuspended && (
+                              <div className={`flex items-center gap-1 mt-0.5 ${suspensionInfo.textColor}`}>
+                                {SuspensionIcon && <SuspensionIcon className="h-3 w-3" />}
+                                <span className="text-xs">{suspensionInfo.label}</span>
+                              </div>
+                            )}
+                          </div>
                         </DropdownMenuItem>
                       )
                     })}

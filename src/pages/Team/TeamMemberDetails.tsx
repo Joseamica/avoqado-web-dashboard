@@ -26,6 +26,7 @@ import teamService from '@/services/team.service'
 import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 
@@ -39,6 +40,7 @@ export default function TeamMemberDetails() {
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
+  const { formatDate } = useVenueDateTime()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
@@ -207,10 +209,7 @@ export default function TeamMemberDetails() {
                   <div className="text-sm">{tCommon('account:accountInfo.memberSince')}</div>
                   <div className="text-xs text-muted-foreground">
                     {memberDetails.startDate
-                      ? (() => {
-                          const d = new Date(memberDetails.startDate)
-                          return isNaN(d.getTime()) ? tCommon('common.na') : d.toLocaleDateString(getIntlLocale(i18n.language))
-                        })()
+                      ? formatDate(memberDetails.startDate) || tCommon('common.na')
                       : tCommon('common.na')}
                   </div>
                 </div>

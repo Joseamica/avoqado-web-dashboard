@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
-import { pricingApi, type PricingPolicy } from '@/services/inventory.service'
+import { pricingApi, type PricingPolicy, type Recipe } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { PricingPolicyDialog } from './components/PricingPolicyDialog'
 import { RecipeDialog } from './components/RecipeDialog'
@@ -28,11 +28,7 @@ interface ProductPricingAnalysis {
     id: string
     name: string
   }
-  recipe?: {
-    id: string
-    totalCost: number
-    portionYield: number
-  }
+  recipe?: Recipe
   pricingPolicy?: PricingPolicy
 }
 

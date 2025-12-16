@@ -16,9 +16,11 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
+import { isDemoVenueStatus } from '@/types/superadmin'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, AlertCircle, FileText } from 'lucide-react'
@@ -90,6 +92,8 @@ export default function BasicInfo() {
   const queryClient = useQueryClient()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false)
+  const [suspendReason, setSuspendReason] = useState('')
 
   const { data: venue, isLoading } = useQuery({
     queryKey: ['get-venue-data', venueId],
@@ -195,6 +199,37 @@ export default function BasicInfo() {
     },
   })
 
+  const suspendVenue = useMutation({
+    mutationFn: async (reason: string) => {
+      await api.post(`/api/v1/dashboard/venues/${venueId}/suspend`, { reason })
+    },
+    onSuccess: () => {
+      toast({
+        title: t('edit.toast.suspendSuccess'),
+        description: t('edit.toast.suspendSuccessDesc'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data'] })
+      navigate('/venues')
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || t('edit.toast.suspendError')
+      toast({
+        title: t('edit.toast.suspendErrorTitle'),
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      console.error('Error suspending venue:', error)
+    },
+  })
+
+  const handleSuspendDialogChange = (open: boolean) => {
+    setShowSuspendDialog(open)
+    if (!open) {
+      setSuspendReason('')
+    }
+  }
+
   // Use refs to avoid infinite loops
   const formRef = useRef(form)
   const saveVenueRef = useRef(saveVenue)
@@ -266,6 +301,45 @@ export default function BasicInfo() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteVenue.isPending ? t('common:deleting') : t('common:delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Suspend Dialog */}
+      <AlertDialog open={showSuspendDialog} onOpenChange={handleSuspendDialogChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('edit.suspendDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('edit.suspendDialog.description', { venueName: venue.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-4">
+            <label className="text-sm font-medium text-foreground">
+              {t('edit.suspendDialog.reasonLabel')}
+            </label>
+            <Textarea
+              value={suspendReason}
+              onChange={e => setSuspendReason(e.target.value)}
+              placeholder={t('edit.suspendDialog.reasonPlaceholder')}
+              rows={3}
+              className="mt-2"
+            />
+            {suspendReason.length > 0 && suspendReason.length < 10 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {10 - suspendReason.length} caracteres más requeridos
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => suspendVenue.mutate(suspendReason)}
+              disabled={suspendReason.length < 10}
+              className="bg-amber-600 text-primary-foreground hover:bg-amber-700"
+            >
+              {suspendVenue.isPending ? t('common:suspending', { defaultValue: 'Suspendiendo...' }) : t('edit.dangerZone.suspend')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -487,33 +561,62 @@ export default function BasicInfo() {
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold text-destructive">
-                      {t('edit.dangerZone.title', { defaultValue: 'Zona de Peligro' })}
+                      {t('edit.dangerZone.title')}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {t('edit.dangerZone.description', { defaultValue: 'Las acciones en esta sección son irreversibles. Procede con precaución.' })}
+                      {t('edit.dangerZone.description')}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm">
-                          {t('edit.dangerZone.deleteButton', { defaultValue: 'Eliminar Local' })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Esta acción eliminará permanentemente este local y todos sus datos asociados.
-                        </p>
+
+                  {/* Show Delete for demo venues (TRIAL, LIVE_DEMO), Suspend for production venues */}
+                  {isDemoVenueStatus(venue?.status) ? (
+                    // DELETE option for demo venues
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">
+                            {t('edit.dangerZone.deleteButton')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('edit.dangerZone.deleteDescription')}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowDeleteDialog(true)}
+                          disabled={!canEdit}
+                        >
+                          {t('edit.dangerZone.delete')}
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setShowDeleteDialog(true)}
-                        disabled={!canEdit}
-                      >
-                        Eliminar
-                      </Button>
                     </div>
-                  </div>
+                  ) : (
+                    // SUSPEND option for production venues
+                    <div className="rounded-lg border border-amber-500/50 bg-amber-500/5 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">
+                            {t('edit.dangerZone.suspendButton')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('edit.dangerZone.suspendDescription')}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                          onClick={() => setShowSuspendDialog(true)}
+                          disabled={!canEdit}
+                        >
+                          {t('edit.dangerZone.suspend')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </fieldset>

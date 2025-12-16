@@ -5,10 +5,13 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { Line, LineChart, CartesianGrid, XAxis } from 'recharts'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
+import { DateTime } from 'luxon'
 
 export const TipsOverTimeChart = ({ data }: { data: any }) => {
   const { t, i18n } = useTranslation('home')
   const localeCode = getIntlLocale(i18n.language)
+  const { venueTimezone } = useVenueDateTime()
 
   const [activeMetric, setActiveMetric] = useState<'tips' | 'tipPercentage'>('tips')
 
@@ -49,11 +52,14 @@ export const TipsOverTimeChart = ({ data }: { data: any }) => {
           date,
           tips,
           tipPercentage: Number(tipPercentage.toFixed(2)),
-          formattedDate: new Date(date).toLocaleDateString(localeCode, { month: 'short', day: 'numeric' }),
+          formattedDate: DateTime.fromISO(date, { zone: 'utc' })
+            .setZone(venueTimezone)
+            .setLocale(localeCode)
+            .toLocaleString({ month: 'short', day: 'numeric' }),
         }
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  }, [data?.payments, localeCode])
+  }, [data?.payments, localeCode, venueTimezone])
 
   // Calculate totals
   const stats = useMemo(() => {
@@ -125,12 +131,10 @@ export const TipsOverTimeChart = ({ data }: { data: any }) => {
                     labelFormatter={value => {
                       const matchingData = tipsOverTime.find(d => d.formattedDate === value)
                       if (matchingData) {
-                        const date = new Date(matchingData.date)
-                        return date.toLocaleDateString(localeCode, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })
+                        return DateTime.fromISO(matchingData.date, { zone: 'utc' })
+                          .setZone(venueTimezone)
+                          .setLocale(localeCode)
+                          .toLocaleString({ month: 'short', day: 'numeric', year: 'numeric' })
                       }
                       return value
                     }}

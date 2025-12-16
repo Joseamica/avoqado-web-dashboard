@@ -42,6 +42,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
     model: 'A910S',
     displayName: '',
     environment: 'SANDBOX' as 'SANDBOX' | 'PRODUCTION',
+    businessCategory: '', // FALLBACK: Manual giro for MCC lookup (venue.type is auto-detected from terminal)
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,6 +56,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
         model: formData.model,
         displayName: formData.displayName || undefined,
         environment: formData.environment,
+        businessCategory: formData.businessCategory || undefined,
       })
 
       toast({
@@ -78,6 +80,27 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
                 ℹ️ DUKPT keys se inicializarán en el primer pago
               </p>
             )}
+            {result.autoAttached?.count > 0 && (
+              <p className="text-green-600 dark:text-green-400 mt-2">
+                🔗 Auto-attached a {result.autoAttached.count} terminal(es)
+              </p>
+            )}
+            {result.mccLookup?.found && result.costStructure && (
+              <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/50 rounded text-blue-700 dark:text-blue-300">
+                <p className="font-medium">💰 Cost Structure Auto-Created</p>
+                <p className="text-xs">
+                  Familia: {result.mccLookup.familia} (MCC {result.mccLookup.mcc})
+                </p>
+                <p className="text-xs">
+                  Confianza: {result.mccLookup.confidence}%
+                </p>
+                {result.mccLookup.rates && (
+                  <p className="text-xs mt-1">
+                    Tasas: Crédito {result.mccLookup.rates.credito}% | Débito {result.mccLookup.rates.debito}%
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ),
       })
@@ -92,6 +115,7 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
         model: 'A910S',
         displayName: '',
         environment: 'SANDBOX',
+        businessCategory: '',
       })
     } catch (error: any) {
       console.error('Auto-fetch error:', error)
@@ -194,6 +218,25 @@ export const BlumonAutoFetchDialog: React.FC<BlumonAutoFetchDialogProps> = ({
                 className="bg-background border-input"
               />
               <p className="text-xs text-muted-foreground">{t('blumonDialog.displayNameHint')}</p>
+            </div>
+
+            {/* Business Category / Giro (Optional fallback for MCC lookup) */}
+            <div className="grid gap-2">
+              <Label htmlFor="businessCategory">
+                Giro del Negocio{' '}
+                <span className="text-xs text-muted-foreground">(opcional - fallback para tasas)</span>
+              </Label>
+              <Input
+                id="businessCategory"
+                value={formData.businessCategory}
+                onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })}
+                placeholder="Ej: Restaurante, Gimnasio, Tienda de ropa"
+                className="bg-background border-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                <strong>Prioridad:</strong> El sistema primero usa el <strong>tipo de venue</strong> (del onboarding).
+                Solo usa este campo si el venue no tiene tipo o quieres sobrescribirlo.
+              </p>
             </div>
 
             {/* Environment */}

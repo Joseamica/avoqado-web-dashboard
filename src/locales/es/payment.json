@@ -40,7 +40,16 @@
     "status": "Estado",
     "subtotal": "Subtotal",
     "profit": "Ganancia Avoqado",
-    "total": "Total"
+    "total": "Total",
+    "type": "Tipo",
+    "ai": "IA"
+  },
+  "types": {
+    "regular": "Regular",
+    "fast": "Rápido",
+    "test": "Prueba",
+    "refund": "Reembolso",
+    "adjustment": "Ajuste"
   },
   "methods": {
     "cash": "Efectivo",
@@ -56,6 +65,7 @@
     "pending": "Pendiente",
     "partial": "Parcial",
     "paid": "Pagado",
+    "completed": "Completado",
     "refunded": "Reembolsado"
   },
   "sources": {
@@ -100,6 +110,7 @@
       "taxes": "Impuestos",
       "tips": "Propina",
       "totalPaid": "Total pagado",
+      "totalRefunded": "Total reembolsado",
       "shareThisReceipt": "Compartir este recibo"
     },
     "actions": {
@@ -113,10 +124,13 @@
       "thanks": "¡Gracias por tu preferencia!",
       "seeYou": "Esperamos verte pronto en {{venue}}",
       "generatedBy": "Recibo digital generado por Avoqado",
-      "sentTo": "Enviado a: {{email}}"
+      "sentTo": "Enviado a: {{email}}",
+      "refundProcessed": "Reembolso Procesado",
+      "refundMessage": "Tu reembolso ha sido procesado exitosamente. El monto será acreditado a tu método de pago original."
     },
     "paymentStatus": {
       "COMPLETED": "Pago completado",
+      "REFUND_COMPLETED": "Reembolso completado",
       "UNKNOWN": "Estado desconocido"
     },
     "errors": {
@@ -172,6 +186,7 @@
     "backToList": "Volver a pagos",
     "loading": "Cargando detalles del pago...",
     "copiedToClipboard": "Se copió {{label}} al portapapeles",
+    "deleteWarning": "Esta acción eliminará permanentemente este pago. Esta acción no se puede deshacer.",
     "actions": {
       "title": "Acciones del Pago",
       "sendReceipt": "Enviar Recibo Digital",
@@ -183,6 +198,7 @@
     "overview": {
       "base": "Monto Base",
       "tips": "Propinas",
+      "total": "Total",
       "method": "Método",
       "waiter": "Mesero",
       "waiterUnknown": "N/A",
@@ -197,14 +213,25 @@
       "receiptViewed": "Recibo visto",
       "receiptSent": "Recibo enviado",
       "paymentProcessed": "Pago procesado",
-      "statusUpdated": "Estado actualizado"
+      "statusUpdated": "Estado actualizado",
+      "orderCreated": "Orden creada",
+      "orderCompleted": "Orden completada",
+      "reviewReceived": "Reseña recibida",
+      "settlementPending": "Liquidación pendiente",
+      "settlementEstimated": "estimado"
     },
     "sections": {
       "transactionInfo": "Información de la Transacción",
       "transactionInfoDesc": "Detalles completos de la transacción y metadatos",
       "billInfo": "Información de la Cuenta",
       "merchantAccountInfo": "Información de la Cuenta Comercial",
-      "merchantAccountDesc": "Información de la cuenta comercial"
+      "merchantAccountDesc": "Información de la cuenta comercial",
+      "cardDetails": "Detalles del Pago con Tarjeta",
+      "cardDetailsDesc": "Información de la tarjeta y procesamiento",
+      "orderItems": "Productos de la Orden",
+      "orderItemsDesc": "Detalle de los productos en esta orden",
+      "venueInfo": "Información del Establecimiento",
+      "venueInfoDesc": "Datos del establecimiento donde se realizó el pago"
     },
     "fields": {
       "dateTime": "Fecha y Hora",
@@ -213,7 +240,7 @@
       "table": "Mesa",
       "noTable": "Sin mesa",
       "referenceNumber": "Número de Referencia",
-      "orderId": "ID de Orden",
+      "orderId": "Número de Orden",
       "shiftId": "ID de Turno",
       "entryMode": "Modo de Entrada",
       "merchantName": "Nombre del Comercio",
@@ -221,7 +248,16 @@
       "clabeNumber": "Número CLABE",
       "accountHolder": "Titular de la Cuenta",
       "blumonSerial": "Número de Serie Blumon",
-      "provider": "Proveedor de Pagos"
+      "provider": "Proveedor de Pagos",
+      "paymentType": "Tipo de Pago",
+      "splitType": "Tipo de División",
+      "kitchenStatus": "Estado de Cocina",
+      "orderStatus": "Estado de Orden",
+      "orderCreated": "Orden Creada",
+      "orderCompleted": "Orden Completada",
+      "paymentProcessed": "Pago Procesado",
+      "card": "Tarjeta",
+      "processor": "Procesador"
     },
     "entryModes": {
       "contactless": "Sin contacto",
@@ -247,7 +283,66 @@
       "subtotal": "Subtotal",
       "total": "Total",
       "tipsOfSubtotal": "{{percent}}% del subtotal",
-      "progressBase": "Base"
+      "progressBase": "Base",
+      "taxes": "Impuestos",
+      "tip": "Propina",
+      "totalCharged": "Total Cobrado",
+      "transactionFee": "Costo de Transacción",
+      "netAmount": "Monto Neto",
+      "feeAmount": "Comisión"
+    },
+    "settlement": {
+      "title": "Estado de Liquidación",
+      "status": "Estado",
+      "estimatedDate": "Fecha Estimada",
+      "actualDate": "Fecha Real",
+      "settlementId": "ID de Liquidación",
+      "variance": "Variación",
+      "days": "días",
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "settled": "Liquidado",
+      "failed": "Fallido"
+    },
+    "review": {
+      "title": "Reseña del Cliente",
+      "noReview": "Sin reseña",
+      "overallRating": "Calificación General",
+      "food": "Comida",
+      "service": "Servicio",
+      "ambience": "Ambiente",
+      "comment": "Comentario"
+    },
+    "badges": {
+      "testPayment": "Pago de Prueba",
+      "splitPayment": "Pago Dividido",
+      "qrPayment": "Pago QR"
+    },
+    "paymentTypes": {
+      "REGULAR": "Regular",
+      "FAST": "Rápido",
+      "TEST": "Prueba"
+    },
+    "splitTypes": {
+      "FULLPAYMENT": "Pago Completo",
+      "EQUALPARTS": "Partes Iguales",
+      "BYAMOUNT": "Por Monto",
+      "BYITEM": "Por Producto"
+    },
+    "kitchenStatuses": {
+      "PENDING": "Pendiente",
+      "RECEIVED": "Recibido",
+      "PREPARING": "Preparando",
+      "READY": "Listo",
+      "SERVED": "Servido"
+    },
+    "orderStatuses": {
+      "PENDING": "Pendiente",
+      "CONFIRMED": "Confirmado",
+      "PREPARING": "Preparando",
+      "READY": "Listo",
+      "COMPLETED": "Completado",
+      "CANCELLED": "Cancelado"
     },
     "receipts": {
       "title": "Recibos Digitales",
@@ -264,6 +359,7 @@
     "receiptsDialog": {
       "title": "Detalles del Recibo",
       "receiptId": "ID del Recibo",
+      "receiptNumber": "Número de Recibo",
       "status": "Estado",
       "recipient": "Destinatario",
       "createdDate": "Fecha de Creación",
@@ -278,11 +374,31 @@
       "beneficiary": "Beneficiario"
     },
     "sidebar": {
+      "status": "Estado",
+      "lastUpdate": "Actualizado",
+      "financialSummary": "Resumen Financiero",
       "quickInfo": "Información Rápida",
+      "info": "Info",
       "table": "Mesa",
+      "waiter": "Mesero",
+      "receipts": "Recibos",
+      "order": "Orden",
       "processedBy": "Procesado por",
       "shift": "Turno",
-      "noBeneficiary": "Sin beneficiario"
+      "noBeneficiary": "Sin beneficiario",
+      "editMode": "Modo Edición",
+      "covers": "Comensales",
+      "source": "Fuente",
+      "servedBy": "Atendido por",
+      "people": "personas"
+    },
+    "venue": {
+      "name": "Establecimiento",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "country": "País",
+      "phone": "Teléfono",
+      "email": "Email"
     },
     "footer": {
       "copyright": "© 2025 Avoqado. Todos los derechos reservados.",
@@ -303,6 +419,13 @@
       "deleteErrorDesc": "No se pudo eliminar el pago",
       "updatedDesc": "El pago ha sido actualizado exitosamente",
       "updateErrorDesc": "No se pudo actualizar el pago"
+    },
+    "stats": {
+      "base": "Base",
+      "tip": "Propina",
+      "method": "Método",
+      "table": "Mesa",
+      "source": "Fuente"
     }
   },
   "paymentProviders": {

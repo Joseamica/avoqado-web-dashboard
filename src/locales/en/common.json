@@ -135,7 +135,8 @@
     "addVenue": "Add venue",
     "selectVenue": "Select venue",
     "current": "(current)",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "corporation": "Corporation"
   },
   "layout": {
     "noVenuesAssigned": "No venues assigned",

@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 export interface Step1Data {
   quantity: number
   namePrefix: string
+  autoGenerate?: boolean
+  serialNumbers?: string[]
 }
 
 interface Step1ConfigurationProps {

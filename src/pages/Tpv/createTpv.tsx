@@ -5,7 +5,6 @@ import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPur
 
 export default function CreateTpv() {
   const { t } = useTranslation('tpv')
-  const location = useLocation()
 
   const [wizardOpen, setWizardOpen] = useState(false)
 

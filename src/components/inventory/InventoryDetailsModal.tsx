@@ -48,7 +48,10 @@ export function InventoryDetailsModal({ product, open, onOpenChange }: Inventory
   // Fetch detailed inventory status
   const { data: inventoryStatus, isLoading } = useQuery({
     queryKey: ['inventory-status', venueId, product?.id],
-    queryFn: () => productInventoryApi.getStatus(venueId, product!.id),
+    queryFn: async () => {
+      const response = await productInventoryApi.getStatus(venueId, product!.id)
+      return response.data
+    },
     enabled: open && !!product && !!venueId,
   })
 

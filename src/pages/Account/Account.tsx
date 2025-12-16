@@ -14,13 +14,13 @@ import { useForm } from 'react-hook-form'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { User, Mail, Shield, Calendar } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 
 export default function Account() {
-  const { t, i18n } = useTranslation(['account', 'common'])
+  const { t } = useTranslation(['account', 'common'])
   const { venueId } = useCurrentVenue()
-  const localeCode = getIntlLocale(i18n.language)
   const { user } = useAuth()
+  const { formatDate, formatDateTime } = useVenueDateTime()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -125,11 +125,7 @@ export default function Account() {
                 <div>
                   <p className="text-sm font-medium">{t('accountInfo.memberSince')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(localeCode, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    }) : 'N/A'}
+                    {user?.createdAt ? formatDate(user.createdAt) : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -140,13 +136,7 @@ export default function Account() {
                   <div>
                     <p className="text-sm font-medium">{t('accountInfo.lastLogin')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(user.lastLogin).toLocaleString(localeCode, {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {formatDateTime(user.lastLogin)}
                     </p>
                   </div>
                 </div>

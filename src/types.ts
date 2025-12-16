@@ -292,6 +292,15 @@ export enum PaymentMethod {
   OTHER = 'OTHER',
 }
 
+// Type of payment record (distinguishes regular payments from refunds, adjustments, etc.)
+export enum PaymentRecordType {
+  REGULAR = 'REGULAR', // Normal order-based payment
+  FAST = 'FAST', // Quick payment without order items
+  TEST = 'TEST', // Test payments from superadmin dashboard
+  REFUND = 'REFUND', // Refund payment (negative amount)
+  ADJUSTMENT = 'ADJUSTMENT', // Manual adjustment
+}
+
 export enum TransactionStatus {
   PENDING = 'PENDING',
   PROCESSING = 'PROCESSING',
@@ -930,9 +939,34 @@ export interface Order {
   lastSyncAt: string | null
   items?: OrderItem[]
   payments?: Payment[]
+  orderCustomers?: OrderCustomer[]
   createdBy?: Staff | null
   createdAt: string
   updatedAt: string
+}
+
+// Junction table for many-to-many Order <-> Customer relationship
+export interface OrderCustomer {
+  id: string
+  orderId: string
+  customerId: string
+  isPrimary: boolean
+  addedAt: string
+  customer: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string | null
+    phone: string | null
+    loyaltyPoints: number
+    visitCount: number
+    totalSpent: number
+    customerGroup?: {
+      id: string
+      name: string
+      color: string | null
+    } | null
+  }
 }
 
 // Modelo Payment completo según el schema Prisma
@@ -973,6 +1007,7 @@ export interface Payment {
   // Payment details
   method: PaymentMethod
   status: PaymentStatus
+  type: PaymentRecordType | null // REGULAR, FAST, TEST, REFUND, ADJUSTMENT
   source: string // De dónde se procesó el pago: AVOQADO_TPV, DASHBOARD_TEST, QR, WEB, APP, POS
   processorName: string | null
   processorPaymentId: string | null
@@ -1021,6 +1056,32 @@ export interface Payment {
   processedBy?: Staff | null
   cardBrand?: string
   last4?: string
+
+  // 📸 PRE-payment verification (retail/telecommunications)
+  saleVerification?: SaleVerification | null
+}
+
+// 📸 Sale verification evidence (photos + barcodes)
+// Used by retail/telecommunications venues to capture evidence before payment
+export interface SaleVerification {
+  id: string
+  venueId: string
+  paymentId: string
+  staffId: string
+  photos: string[] // Array of Firebase Storage URLs
+  scannedProducts: Array<{
+    barcode: string
+    format: string
+    productId?: string
+    productName?: string
+    inventoryDeducted?: boolean
+  }>
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+  inventoryDeducted: boolean
+  deviceId?: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
 }
 
 // Versión simplificada de Terminal para compatibilidad
@@ -1327,6 +1388,23 @@ export interface Review {
   responseAutomated: boolean
 
   createdAt: string
+  updatedAt: string
+}
+
+export enum DiscountType {
+  PERCENTAGE = 'PERCENTAGE',
+  FIXED_AMOUNT = 'FIXED_AMOUNT',
+  COMP = 'COMP',
+}
+
+export enum DiscountScope {
+  ORDER = 'ORDER',
+  ITEM = 'ITEM',
+  CATEGORY = 'CATEGORY',
+  MODIFIER = 'MODIFIER',
+  MODIFIER_GROUP = 'MODIFIER_GROUP',
+  CUSTOMER_GROUP = 'CUSTOMER_GROUP',
+  QUANTITY = 'QUANTITY',
 }
 
 // Terminal completo según schema Prisma
@@ -1456,6 +1534,7 @@ export interface SessionVenue {
 
 export interface TeamMember {
   id: string
+  staffId: string
   firstName: string
   lastName: string
   email: string

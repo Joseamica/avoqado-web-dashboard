@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,18 +13,22 @@ import { terminalAPI, Terminal, isTerminalOnline } from '@/services/superadmin-t
 import { getAllVenues } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
 import { TerminalDialog } from './components/TerminalDialog'
-import { formatDistanceToNow } from 'date-fns'
+import { DateTime } from 'luxon'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 const Terminals: React.FC = () => {
-  const { t } = useTranslation('terminals')
+  const { t, i18n } = useTranslation('terminals')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { venueTimezone, formatDate } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedVenueId, setSelectedVenueId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null)
 
-  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: getAllVenues })
+  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
 
   const { data: terminals = [], isLoading } = useQuery({
     queryKey: ['terminals', selectedVenueId],
@@ -108,7 +112,7 @@ const Terminals: React.FC = () => {
         description: (
           <div className="space-y-2">
             <p className="font-mono text-lg">{data.activationCode}</p>
-            <p className="text-xs">{t('activationCode.expires')}: {new Date(data.expiresAt).toLocaleDateString()}</p>
+            <p className="text-xs">{t('activationCode.expires')}: {formatDate(data.expiresAt)}</p>
             <Button
               size="sm"
               variant="outline"
@@ -138,25 +142,25 @@ const Terminals: React.FC = () => {
     }
   }
 
-  const handleEdit = (terminal: Terminal) => {
+  const handleEdit = useCallback((terminal: Terminal) => {
     setSelectedTerminal(terminal)
     setDialogOpen(true)
-  }
+  }, [])
 
-  const handleAdd = () => {
+  const handleAdd = useCallback(() => {
     setSelectedTerminal(null)
     setDialogOpen(true)
-  }
+  }, [])
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (confirm(t('confirm.delete'))) {
       await deleteMutation.mutateAsync(id)
     }
-  }
+  }, [t, deleteMutation])
 
-  const handleGenerateCode = async (terminal: Terminal) => {
+  const handleGenerateCode = useCallback(async (terminal: Terminal) => {
     await generateCodeMutation.mutateAsync(terminal.id)
-  }
+  }, [generateCodeMutation])
 
   const filteredTerminals = useMemo(() => terminals.filter(terminal =>
     (terminal.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
@@ -217,7 +221,7 @@ const Terminals: React.FC = () => {
       accessorKey: 'lastHeartbeat',
       header: t('columns.lastSeen'),
       cell: ({ row }) => row.original.lastHeartbeat
-        ? <span className="text-sm">{formatDistanceToNow(new Date(row.original.lastHeartbeat))} {t('ago')}</span>
+        ? <span className="text-sm">{DateTime.fromISO(row.original.lastHeartbeat, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toRelative()}</span>
         : <span className="text-sm text-muted-foreground">{t('never')}</span>,
     },
     {
@@ -237,7 +241,7 @@ const Terminals: React.FC = () => {
         </div>
       ),
     },
-  ], [t])
+  ], [t, venueTimezone, localeCode, handleEdit, handleDelete, handleGenerateCode])
 
   const onlineCount = terminals.filter(t => isTerminalOnline(t.lastHeartbeat)).length
 

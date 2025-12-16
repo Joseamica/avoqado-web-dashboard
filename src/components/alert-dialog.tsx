@@ -18,13 +18,14 @@ import {
 } from './ui/alert-dialog'
 
 interface AlertDialogWrapperProps {
-  triggerTitle: string
+  triggerTitle: React.ReactNode
   title: string
   description?: string
   message?: string
   rightButtonLabel?: string
   rightButtonVariant?: 'default' | 'outline' | 'destructive'
   onRightButtonClick?: () => void
+  triggerVariant?: 'default' | 'outline' | 'destructive' | 'ghost' | 'link'
 }
 
 const AlertDialogWrapper: React.FC<AlertDialogWrapperProps> = ({

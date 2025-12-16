@@ -299,7 +299,14 @@
     "updateError": "Error al actualizar configuración",
     "loadError": "Error al cargar configuración del terminal",
     "noUpdatePermission": "No tienes permiso para modificar esta configuración. Contacta a tu administrador.",
-    "infoAlert": "Estos ajustes son específicos para este terminal. Los cambios toman efecto inmediatamente cuando el terminal se sincroniza."
+    "infoAlert": "Estos ajustes son específicos para este terminal. Los cambios toman efecto inmediatamente cuando el terminal se sincroniza.",
+    "verificationSection": "Verificación de Venta",
+    "showVerificationScreen": "Mostrar pantalla de verificación",
+    "showVerificationScreenDesc": "Muestra pantalla de verificación después de un pago exitoso (foto y/o código de barras)",
+    "requireVerificationPhoto": "Requerir foto",
+    "requireVerificationPhotoDesc": "Requiere al menos una foto para completar la verificación",
+    "requireVerificationBarcode": "Requerir código de barras",
+    "requireVerificationBarcodeDesc": "Requiere al menos un escaneo de código de barras para completar la verificación"
   },
   "activation": {
     "title": "Activar Terminal",

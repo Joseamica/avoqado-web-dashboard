@@ -36,6 +36,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import InviteTeamMemberForm from './components/InviteTeamMemberForm'
@@ -48,6 +49,7 @@ export default function Teams() {
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
+  const { formatDate } = useVenueDateTime()
 
   // Custom role display names from venue config
   const { getDisplayName: getCustomRoleDisplayName, getColor: getCustomRoleColor } = useRoleConfig()
@@ -298,7 +300,7 @@ export default function Teams() {
         </DropdownMenu>
       ),
     },
-  ], [t, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle])
+  ], [t, tCommon, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle])
 
   const invitationColumns: ColumnDef<Invitation>[] = useMemo(() => [
     {
@@ -328,7 +330,7 @@ export default function Teams() {
       accessorKey: 'createdAt',
       header: t('columns.sent'),
       cell: ({ row }) => (
-        <div className="text-sm">{new Date(row.original.createdAt).toLocaleDateString(getIntlLocale(i18n.language))}</div>
+        <div className="text-sm">{formatDate(row.original.createdAt)}</div>
       ),
     },
     {
@@ -339,7 +341,7 @@ export default function Teams() {
         return (
           <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
             <Clock className="h-4 w-4 inline mr-1" />
-            {new Date(row.original.expiresAt).toLocaleDateString(getIntlLocale(i18n.language))}
+            {formatDate(row.original.expiresAt)}
             {isExpired && <span className="ml-1 text-xs">{t('status.expired')}</span>}
           </div>
         )
@@ -376,7 +378,7 @@ export default function Teams() {
         )
       },
     },
-  ], [t, tCommon, i18n.language, staffInfo?.role])
+  ], [t, tCommon, staffInfo?.role, formatDate, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle, resendInvitationMutation, cancelInvitationMutation])
 
   return (
     <div className={`p-4 bg-background text-foreground`}>

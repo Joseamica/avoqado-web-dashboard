@@ -16,15 +16,19 @@ import {
   type WebhookMetrics,
 } from '@/services/webhook.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
+import { DateTime } from 'luxon'
 import { Activity, AlertTriangle, CheckCircle2, Clock, Eye, Filter, RefreshCw, TrendingUp, X, XCircle, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 function Webhooks() {
-  const { t } = useTranslation('webhooks')
+  const { t, i18n } = useTranslation('webhooks')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { venueTimezone } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
 
   // Filter states
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
@@ -306,7 +310,7 @@ function Webhooks() {
                 <TableBody>
                   {webhookData.events.map(event => (
                     <TableRow key={event.id}>
-                      <TableCell className="font-mono text-xs">{format(new Date(event.createdAt), 'MMM dd, HH:mm:ss')}</TableCell>
+                      <TableCell className="font-mono text-xs">{DateTime.fromISO(event.createdAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toLocaleString({ month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</TableCell>
                       <TableCell>
                         <code className="text-xs bg-muted px-2 py-1 rounded">{event.eventType}</code>
                       </TableCell>
@@ -409,7 +413,7 @@ function Webhooks() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">{t('detail.createdLabel')}</span>
-                      <span className="ml-2 font-mono">{format(new Date(selectedEvent.createdAt), 'MMM dd, yyyy HH:mm:ss')}</span>
+                      <span className="ml-2 font-mono">{DateTime.fromISO(selectedEvent.createdAt, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toLocaleString({ month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">{t('detail.processingTimeLabel')}</span>

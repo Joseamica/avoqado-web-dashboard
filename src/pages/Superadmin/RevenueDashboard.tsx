@@ -6,16 +6,21 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import * as superadminAPI from '@/services/superadmin.service'
 import { useQuery } from '@tanstack/react-query'
-import { endOfMonth, format, startOfMonth, subDays } from 'date-fns'
+import { endOfMonth, startOfMonth, subDays } from 'date-fns'
+import { DateTime } from 'luxon'
 import { BarChart3, Building, Calendar, CreditCard, DollarSign, Download, PieChart, TrendingDown, TrendingUp } from 'lucide-react'
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 const RevenueDashboard: React.FC = () => {
   const { t, i18n } = useTranslation('superadmin')
+  const { venueTimezone } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const [dateRange, setDateRange] = useState({
-    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    startDate: DateTime.fromJSDate(startOfMonth(new Date())).toFormat('yyyy-MM-dd'),
+    endDate: DateTime.fromJSDate(endOfMonth(new Date())).toFormat('yyyy-MM-dd'),
   })
 
   // Fetch revenue metrics
@@ -58,8 +63,8 @@ const RevenueDashboard: React.FC = () => {
     const end = new Date()
     const start = subDays(end, days)
     setDateRange({
-      startDate: format(start, 'yyyy-MM-dd'),
-      endDate: format(end, 'yyyy-MM-dd'),
+      startDate: DateTime.fromJSDate(start).toFormat('yyyy-MM-dd'),
+      endDate: DateTime.fromJSDate(end).toFormat('yyyy-MM-dd'),
     })
   }
 
@@ -300,7 +305,7 @@ const RevenueDashboard: React.FC = () => {
                 {breakdown?.byPeriod?.map(period => (
                   <div key={period.date} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded">
                     <div>
-                      <p className="font-medium">{format(new Date(period.date), 'MMM dd, yyyy')}</p>
+                      <p className="font-medium">{DateTime.fromISO(period.date, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toLocaleString({ month: 'short', day: '2-digit', year: 'numeric' })}</p>
                       <p className="text-sm text-muted-foreground">
                         {period.transactionCount} {t('revenue.timeline.transactions')}
                       </p>

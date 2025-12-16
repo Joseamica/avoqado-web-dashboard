@@ -1,4 +1,5 @@
 import api from '@/api'
+import { DateTime } from 'luxon'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -8,7 +9,6 @@ import { Currency } from '@/utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
-  ArrowLeft,
   Banknote,
   Building2,
   Calendar,
@@ -26,12 +26,20 @@ import {
   Pencil,
   Receipt,
   RefreshCw,
+  RotateCcw,
   Trash2,
-  User,
   Wallet,
   XCircle,
+  Star,
+  Users,
+  QrCode,
+  TestTube2,
+  Split,
+  ShoppingBag,
+  TrendingUp,
+  ArrowRight,
 } from 'lucide-react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
@@ -42,13 +50,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Progress } from '@/components/ui/progress'
+import { MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAuth } from '@/context/AuthContext'
-import { StaffRole, PaymentMethod, PaymentStatus } from '@/types'
+import { StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
@@ -69,15 +77,20 @@ interface SectionState {
   receipts: boolean
   posData: boolean
   processorData: boolean
+  cardDetails: boolean
+  orderItems: boolean
+  venueInfo: boolean
 }
 
 interface TimelineEvent {
-  type: 'created' | 'status_change' | 'receipt' | 'refund'
+  type: 'created' | 'status_change' | 'receipt' | 'refund' | 'order_created' | 'order_completed' | 'review' | 'settlement'
   timestamp: string
+  rawTimestamp?: string // For sorting
   description: string
   email?: string
   icon: React.ComponentType<{ className?: string }>
   iconColor: string
+  isPending?: boolean
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -154,10 +167,11 @@ const getOrderTypeConfig = (type: string) => {
   }
 }
 
-const formatDateLong = (dateString: string | undefined, locale: string) => {
+const formatDateLong = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(locale, {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(locale)
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -167,10 +181,11 @@ const formatDateLong = (dateString: string | undefined, locale: string) => {
   })
 }
 
-const formatDateShort = (dateString: string | undefined, locale: string) => {
+const formatDateShort = (dateString: string | undefined, locale: string, timezone: string = 'America/Mexico_City') => {
   if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString(locale, {
+  const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone).setLocale(locale)
+  if (!dt.isValid) return '-'
+  return dt.toLocaleString({
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -232,13 +247,13 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background`}>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background ${event.isPending ? 'opacity-50' : ''}`}>
           <Icon className="h-4 w-4" />
         </div>
         {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
       </div>
       <div className="flex-1 pb-6">
-        <p className="text-sm font-medium text-foreground">{event.description}</p>
+        <p className={`text-sm font-medium ${event.isPending ? 'text-muted-foreground' : 'text-foreground'}`}>{event.description}</p>
         <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
         {event.email && <p className="text-xs text-muted-foreground">to {event.email}</p>}
       </div>
@@ -246,8 +261,49 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   )
 }
 
-const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; receipts: any[]; locale: string; t: any }) => {
+const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: any; receipts: any[]; locale: string; timezone: string; t: any }) => {
   const events: TimelineEvent[] = []
+
+  // Settlement event (pending or completed)
+  if (payment?.transactions?.[0]) {
+    const transaction = payment.transactions[0]
+    if (transaction.status === 'SETTLED' && transaction.settledAt) {
+      events.push({
+        type: 'settlement',
+        timestamp: formatDateShort(transaction.settledAt, locale, timezone),
+        rawTimestamp: transaction.settledAt,
+        description: t('detail.settlement.settled'),
+        icon: TrendingUp,
+        iconColor: 'text-green-600 border-green-200',
+      })
+    } else {
+      // Show estimated settlement
+      const estimatedDate = transaction.estimatedSettlementDate
+      events.push({
+        type: 'settlement',
+        timestamp: estimatedDate
+          ? `${formatDateShort(estimatedDate, locale, timezone)} (${t('detail.timeline.settlementEstimated')})`
+          : t('detail.settlement.pending'),
+        rawTimestamp: estimatedDate || new Date().toISOString(),
+        description: t('detail.timeline.settlementPending'),
+        icon: Clock,
+        iconColor: 'text-muted-foreground border-border',
+        isPending: true,
+      })
+    }
+  }
+
+  // Review event
+  if (payment?.review?.createdAt) {
+    events.push({
+      type: 'review',
+      timestamp: formatDateShort(payment.review.createdAt, locale, timezone),
+      rawTimestamp: payment.review.createdAt,
+      description: `${t('detail.timeline.reviewReceived')} ⭐ ${payment.review.overallRating}`,
+      icon: Star,
+      iconColor: 'text-yellow-600 border-yellow-200',
+    })
+  }
 
   // Receipt events
   if (receipts && receipts.length > 0) {
@@ -256,7 +312,8 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
       if (receipt.viewedAt) {
         events.push({
           type: 'receipt',
-          timestamp: formatDateShort(receipt.viewedAt, locale),
+          timestamp: formatDateShort(receipt.viewedAt, locale, timezone),
+          rawTimestamp: receipt.viewedAt,
           description: t('detail.timeline.receiptViewed'),
           email: receipt.recipientEmail,
           icon: Eye,
@@ -267,7 +324,8 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
       if (receipt.sentAt) {
         events.push({
           type: 'receipt',
-          timestamp: formatDateShort(receipt.sentAt, locale),
+          timestamp: formatDateShort(receipt.sentAt, locale, timezone),
+          rawTimestamp: receipt.sentAt,
           description: t('detail.timeline.receiptSent'),
           email: receipt.recipientEmail,
           icon: Mail,
@@ -277,33 +335,53 @@ const PaymentTimeline = ({ payment, receipts, locale, t }: { payment: any; recei
     })
   }
 
-  // Status change
-  if (payment.updatedAt && payment.updatedAt !== payment.createdAt) {
+  // Order completed
+  if (payment?.order?.completedAt) {
     events.push({
-      type: 'status_change',
-      timestamp: formatDateShort(payment.updatedAt, locale),
-      description: `${t('detail.timeline.statusUpdated')}: ${payment.status}`,
+      type: 'order_completed',
+      timestamp: formatDateShort(payment.order.completedAt, locale, timezone),
+      rawTimestamp: payment.order.completedAt,
+      description: t('detail.timeline.orderCompleted'),
       icon: CheckCircle2,
-      iconColor: 'text-primary border-primary/20',
+      iconColor: 'text-green-600 border-green-200',
     })
   }
 
-  // Payment created
+  // Payment processed
   events.push({
     type: 'created',
-    timestamp: formatDateShort(payment.createdAt, locale),
+    timestamp: formatDateShort(payment.createdAt, locale, timezone),
+    rawTimestamp: payment.createdAt,
     description: t('detail.timeline.paymentProcessed'),
     icon: CreditCard,
-    iconColor: 'text-muted-foreground border-border',
+    iconColor: 'text-primary border-primary/20',
   })
 
-  // Sort by timestamp (most recent first)
-  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  // Order created
+  if (payment?.order?.createdAt) {
+    events.push({
+      type: 'order_created',
+      timestamp: formatDateShort(payment.order.createdAt, locale, timezone),
+      rawTimestamp: payment.order.createdAt,
+      description: t('detail.timeline.orderCreated'),
+      icon: ShoppingBag,
+      iconColor: 'text-muted-foreground border-border',
+    })
+  }
+
+  // Sort by raw timestamp (most recent first), pending events go at the top
+  events.sort((a, b) => {
+    if (a.isPending && !b.isPending) return -1
+    if (!a.isPending && b.isPending) return 1
+    const dateA = a.rawTimestamp ? new Date(a.rawTimestamp).getTime() : 0
+    const dateB = b.rawTimestamp ? new Date(b.rawTimestamp).getTime() : 0
+    return dateB - dateA
+  })
 
   return (
     <div className="space-y-2">
-      {events.slice(0, 5).map((event, index) => (
-        <TimelineEventComponent key={index} event={event} isLast={index === events.length - 1} />
+      {events.slice(0, 7).map((event, index) => (
+        <TimelineEventComponent key={index} event={event} isLast={index === Math.min(events.length, 7) - 1} />
       ))}
     </div>
   )
@@ -355,7 +433,7 @@ const CollapsibleSection = ({
 
 // ========== MAIN COMPONENT ==========
 export default function PaymentId() {
-  const { paymentId, slug } = useParams<{ paymentId: string; slug?: string }>()
+  const { paymentId } = useParams<{ paymentId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -378,9 +456,13 @@ export default function PaymentId() {
     receipts: true,
     posData: false,
     processorData: false,
+    cardDetails: false,
+    orderItems: false,
+    venueInfo: false,
   })
   const { toast } = useToast()
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { can } = usePermissions()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
@@ -553,8 +635,9 @@ export default function PaymentId() {
   const StatusIcon = paymentStatusConfig?.icon || Clock
 
   const formatReceiptDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString(getIntlLocale(i18n.language), {
+    const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale)
+    if (!dt.isValid) return '-'
+    return dt.toLocaleString({
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -611,95 +694,128 @@ export default function PaymentId() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Stripe-Style Header */}
-        <div className="bg-background border-b border-border">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            {/* Back Button */}
-            <div className="mb-6">
-              <Button variant="ghost" size="sm" asChild className="hover:bg-muted">
-                <Link to={from}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  {t('detail.backToList')}
-                </Link>
-              </Button>
-            </div>
-
-            {/* Main Header Content */}
-            <div className="flex items-start justify-between mb-6">
+        {/* Header - Matching OrderId style */}
+        <div className="border-b border-border bg-background">
+          <div className="max-w-[1400px] mx-auto px-6 py-4">
+            {/* Title + Actions */}
+            <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-4xl font-bold text-foreground">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className={`text-3xl font-semibold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
                     {(() => {
                       const baseAmount = payment?.amount ? Number(payment.amount) : 0
                       const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
                       const total = baseAmount + tipAmount
-                      return total > 0 ? Currency(total) : 'N/A'
+                      const isRefund = payment?.type === PaymentRecordType.REFUND
+                      if (total === 0 && !isRefund) return 'N/A'
+                      return `${isRefund ? '−' : ''}${Currency(Math.abs(total))}`
                     })()}
                   </h1>
+                  {/* Refund Badge */}
+                  {payment?.type === PaymentRecordType.REFUND && (
+                    <Badge variant="outline" className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      {t('types.refund')}
+                    </Badge>
+                  )}
                   {paymentStatusConfig && (
-                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color}`}>
-                      <paymentStatusConfig.icon className="h-3 w-3 mr-1" />
-                      {payment?.status}
+                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color} ${paymentStatusConfig.border} border`}>
+                      <StatusIcon className="h-3 w-3 mr-1" />
+                      {t(`statuses.${payment?.status?.toLowerCase()}`)}
                     </Badge>
                   )}
                   {orderTypeConfig && (
-                    <Badge variant="outline" className={`${orderTypeConfig.bg} ${orderTypeConfig.color}`}>
+                    <Badge variant="outline" className={`${orderTypeConfig.bg} ${orderTypeConfig.color} border-transparent`}>
                       {orderTypeConfig.label}
                     </Badge>
                   )}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  {getPaymentIcon(payment)}
-                  <span className="text-sm">
-                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                      ? payment?.maskedPan || t('methods.card')
-                      : payment?.method === 'CASH'
-                      ? t('methods.cash')
-                      : payment?.method === 'DIGITAL_WALLET'
-                      ? t('methods.digitalWallet')
-                      : payment?.method || 'N/A'}
+                  {/* Source Badge */}
+                  {payment?.source && (
+                    <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-border">
+                      {payment.source === 'QR' && <QrCode className="h-3 w-3 mr-1" />}
+                      {t(`sources.${payment.source}`, { defaultValue: payment.source })}
+                    </Badge>
+                  )}
+                  {/* Test Payment Badge */}
+                  {(payment?.source === 'DASHBOARD_TEST' || payment?.posRawData?.paymentType === 'TEST') && (
+                    <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <TestTube2 className="h-3 w-3 mr-1" />
+                      {t('detail.badges.testPayment')}
+                    </Badge>
+                  )}
+                  {/* Split Payment Badge */}
+                  {payment?.posRawData?.splitType && payment.posRawData.splitType !== 'FULLPAYMENT' && (
+                    <Badge variant="outline" className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800">
+                      <Split className="h-3 w-3 mr-1" />
+                      {t('detail.badges.splitPayment')}
+                    </Badge>
+                  )}
+                  {/* Payment Method - Inline */}
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {getPaymentIcon(payment)}
+                    <span>
+                      {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                        ? payment?.maskedPan || t('methods.card')
+                        : payment?.method === 'CASH'
+                        ? t('methods.cash')
+                        : payment?.method === 'DIGITAL_WALLET'
+                        ? t('methods.digitalWallet')
+                        : payment?.method || 'N/A'}
+                    </span>
                   </span>
-                  <span className="text-sm">•</span>
-                  <span className="text-sm">{formatDateLong(payment?.createdAt, locale)}</span>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  {t('detail.actions.copyId')}
-                </Button>
+              {/* Actions - Icon-only with tooltips like OrderId */}
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('detail.actions.copyId')}</TooltipContent>
+                </Tooltip>
+
                 {can('analytics:export') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const data = JSON.stringify(payment, null, 2)
-                      const blob = new Blob([data], { type: 'application/json' })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `payment-${payment?.id}.json`
-                      a.click()
-                      URL.revokeObjectURL(url)
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('detail.actions.export')}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const data = JSON.stringify(payment, null, 2)
+                          const blob = new Blob([data], { type: 'application/json' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `payment-${payment?.id}.json`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('detail.actions.export')}</TooltipContent>
+                  </Tooltip>
                 )}
+
                 {canEdit && (
                   <>
                     {!isEditing ? (
-                      <Button
-                        size="sm"
-                        className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
-                        onClick={() => startEditing()}
-                      >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        {t('common:edit')}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+                            onClick={() => startEditing()}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common:edit')}</TooltipContent>
+                      </Tooltip>
                     ) : (
                       <div className="flex gap-2">
                         <Button
@@ -710,41 +826,25 @@ export default function PaymentId() {
                         >
                           {updatePaymentMutation.isPending ? t('common:saving') : t('common:save')}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={cancelEditing}
-                        >
+                        <Button size="sm" variant="outline" onClick={cancelEditing}>
                           {t('common:cancel')}
                         </Button>
                       </div>
                     )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          {t('common:delete')}
+                        <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>{t('common:superadmin.delete.title')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('common:superadmin.delete.description', { item: `Payment ${payment?.id?.slice(0, 8)}...` })}
-                          </AlertDialogDescription>
+                          <AlertDialogTitle>{t('common:areYouSure')}</AlertDialogTitle>
+                          <AlertDialogDescription>{t('detail.deleteWarning')}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => deletePaymentMutation.mutate()}
-                          >
-                            {t('common:delete')}
-                          </AlertDialogAction>
+                          <AlertDialogAction onClick={() => deletePaymentMutation.mutate()}>{t('common:delete')}</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -753,110 +853,52 @@ export default function PaymentId() {
               </div>
             </div>
 
-            {/* Horizontal Stats Bar */}
-            <div className={`grid grid-cols-4 gap-4 pt-6 border-t ${isEditing ? 'border-amber-400/50 bg-gradient-to-r from-amber-500/5 to-pink-500/5 rounded-lg p-4 -mx-4' : 'border-border'}`}>
+            {/* Quick stats bar - Matching OrderId style */}
+            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm flex-wrap">
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.base')}
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                    value={editedValues.amount}
-                    onChange={(e) => setEditedValues((prev) => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                  />
-                ) : (
-                  <div className="text-2xl font-semibold">{Currency(payment?.amount || 0)}</div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.base')}: </span>
+                <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.amount || 0))}
+                </span>
               </div>
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.tips')}
-                </div>
-                {isEditing ? (
-                  <Input
-                    type="number"
-                    step="0.01"
-                    className="text-xl font-semibold h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                    value={editedValues.tipAmount}
-                    onChange={(e) => setEditedValues((prev) => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
-                  />
-                ) : (
-                  <div className="text-2xl font-semibold">
-                    {Currency(payment?.tipAmount || 0)}
-                    <span className="text-sm text-muted-foreground ml-2">
-                      ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
-                    </span>
-                  </div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.tip')}: </span>
+                <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.tipAmount || 0))}
+                </span>
+                <span className="text-muted-foreground ml-1">({calculateTipPercentage(Math.abs(payment?.tipAmount || 0), Math.abs(payment?.amount || 0))}%)</span>
               </div>
               <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {t('detail.overview.method')}
-                </div>
-                {isEditing ? (
-                  <Select
-                    value={editedValues.method}
-                    onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
-                  >
-                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
-                      <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
-                      <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
-                      <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
-                      <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
-                      <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-lg font-medium">
-                    {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                      ? payment?.maskedPan || t('methods.card')
-                      : payment?.method === 'CASH'
-                      ? t('methods.cash')
-                      : payment?.method === 'DIGITAL_WALLET'
-                      ? t('methods.digitalWallet')
-                      : payment?.method || 'N/A'}
-                  </div>
-                )}
+                <span className="text-muted-foreground">{t('detail.stats.method')}: </span>
+                <span className="font-medium">
+                  {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
+                    ? t('methods.card')
+                    : payment?.method === 'CASH'
+                    ? t('methods.cash')
+                    : payment?.method === 'DIGITAL_WALLET'
+                    ? t('methods.digitalWallet')
+                    : payment?.method || 'N/A'}
+                </span>
               </div>
-              <div>
-                <div className={`text-sm mb-1 ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent font-medium' : 'text-muted-foreground'}`}>
-                  {isEditing ? t('columns.status') : t('detail.overview.waiter')}
+              {getTableInfo(payment) && (
+                <div>
+                  <span className="text-muted-foreground">{t('detail.stats.table')}: </span>
+                  <span className="font-medium">{getTableInfo(payment)}</span>
                 </div>
-                {isEditing ? (
-                  <Select
-                    value={editedValues.status}
-                    onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger className="h-12 border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
-                      <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
-                      <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
-                      <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="text-lg font-medium">
-                    {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
-                  </div>
-                )}
-              </div>
+              )}
+              {payment?.source && (
+                <div>
+                  <span className="text-muted-foreground">{t('detail.stats.source')}: </span>
+                  <span className="font-medium">{t(`sources.${payment.source}`, { defaultValue: payment.source })}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Main Content - 65/35 Stripe Layout */}
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="max-w-[1400px] mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column (65%) */}
             <div className="lg:col-span-2 space-y-6">
               {/* Timeline */}
@@ -868,7 +910,7 @@ export default function PaymentId() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PaymentTimeline payment={payment} receipts={receipts} locale={locale} t={t} />
+                  <PaymentTimeline payment={payment} receipts={receipts} locale={locale} timezone={venueTimezone} t={t} />
                 </CardContent>
               </Card>
 
@@ -880,99 +922,132 @@ export default function PaymentId() {
                 onToggle={() => toggleSection('transaction')}
                 icon={FileText}
               >
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-1 min-h-[20px] mb-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>{t('detail.fields.dateTime')}</span>
-                      </Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-sm">
-                          {payment?.createdAt
-                            ? new Date(payment.createdAt).toLocaleString(getIntlLocale(i18n.language), {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              })
-                            : '-'}
-                        </p>
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.dateTime')}</Label>
+                    <p className="text-sm mt-1">
+                      {payment?.createdAt ? formatDateLong(payment.createdAt, locale, venueTimezone) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderId')}</Label>
+                    <p className="text-sm font-mono mt-1">
+                      {payment?.order?.orderNumber || t('detail.fields.notAvailable')}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.table')}</Label>
+                    <p className="text-sm mt-1">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.referenceNumber')}</Label>
+                    <p className="text-sm font-mono mt-1">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
+                  </div>
+                  {payment?.method !== 'CASH' && payment?.authorizationNumber && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
+                      <p className="text-sm font-mono mt-1">{payment.authorizationNumber}</p>
                     </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.authNumber')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-sm">{payment?.authorizationNumber || t('detail.fields.notAvailable')}</p>
-                      </div>
+                  )}
+                  {payment?.posRawData?.splitType && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.splitType')}</Label>
+                      <p className="text-sm mt-1">
+                        {t(`detail.splitTypes.${payment.posRawData.splitType}`, { defaultValue: payment.posRawData.splitType })}
+                      </p>
                     </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.table')}</Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="text-sm">{getTableInfo(payment) || t('detail.fields.noTable')}</p>
-                      </div>
+                  )}
+                  {payment?.order?.status && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderStatus')}</Label>
+                      <p className="text-sm mt-1">
+                        {t(`detail.orderStatuses.${payment.order.status}`, { defaultValue: payment.order.status })}
+                      </p>
                     </div>
-
-                    <div className="flex flex-col">
-                      <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                        {t('detail.fields.referenceNumber')}
-                      </Label>
-                      <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                        <p className="font-mono text-xs break-all">{payment?.referenceNumber || t('detail.fields.notAvailable')}</p>
-                      </div>
+                  )}
+                  {payment?.order?.kitchenStatus && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.kitchenStatus')}</Label>
+                      <p className="text-sm mt-1">
+                        {t(`detail.kitchenStatuses.${payment.order.kitchenStatus}`, { defaultValue: payment.order.kitchenStatus })}
+                      </p>
                     </div>
+                  )}
+                  {payment?.order?.createdAt && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCreated')}</Label>
+                      <p className="text-sm mt-1">{formatDateShort(payment.order.createdAt, locale, venueTimezone)}</p>
+                    </div>
+                  )}
+                  {payment?.order?.completedAt && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCompleted')}</Label>
+                      <p className="text-sm mt-1">{formatDateShort(payment.order.completedAt, locale, venueTimezone)}</p>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleSection>
 
-                    {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.entryMode && (
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                          {t('detail.fields.entryMode')}
-                        </Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="text-sm">
-                            {payment.entryMode === 'CONTACTLESS'
-                              ? t('detail.entryModes.contactless')
-                              : payment.entryMode === 'CHIP'
-                              ? t('detail.entryModes.chip')
-                              : payment.entryMode === 'SWIPE'
-                              ? t('detail.entryModes.swipe')
-                              : payment.entryMode === 'MANUAL'
-                              ? t('detail.entryModes.manual')
-                              : payment.entryMode === 'ONLINE'
-                              ? t('detail.entryModes.online')
-                              : payment.entryMode}
-                          </p>
+              {/* Card Payment Details - Only for card payments */}
+              {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && (
+                <CollapsibleSection
+                  title={t('detail.sections.cardDetails')}
+                  subtitle={t('detail.sections.cardDetailsDesc')}
+                  isOpen={sectionsOpen.cardDetails}
+                  onToggle={() => toggleSection('cardDetails')}
+                  icon={CreditCard}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    {(payment?.cardBrand || payment?.maskedPan) && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.card')}</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          {payment?.cardBrand && getIcon(payment.cardBrand)}
+                          <span className="text-sm font-mono">
+                            {payment?.cardBrand || ''} {payment?.maskedPan ? `•••• ${payment.maskedPan.slice(-4)}` : ''}
+                          </span>
                         </div>
                       </div>
                     )}
-                  </div>
-
-                  {/* Bill Information */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3 text-sm text-muted-foreground">{t('detail.sections.billInfo')}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.orderId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="font-mono text-sm">
-                            {payment?.order?.orderNumber || payment?.orderId || (payment as any)?.billId || t('detail.fields.notAvailable')}
-                          </p>
-                        </div>
+                    {payment?.authorizationNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.authNumber')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.authorizationNumber}</p>
                       </div>
-                      <div className="flex flex-col">
-                        <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">{t('detail.fields.shiftId')}</Label>
-                        <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                          <p className="font-mono text-sm">{getShiftInfo(payment) || t('detail.fields.notAvailable')}</p>
-                        </div>
+                    )}
+                    {payment?.entryMode && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.entryMode')}</Label>
+                        <p className="text-sm mt-1">
+                          {payment.entryMode === 'CONTACTLESS'
+                            ? t('detail.entryModes.contactless')
+                            : payment.entryMode === 'CHIP'
+                            ? t('detail.entryModes.chip')
+                            : payment.entryMode === 'SWIPE'
+                            ? t('detail.entryModes.swipe')
+                            : payment.entryMode === 'MANUAL'
+                            ? t('detail.entryModes.manual')
+                            : payment.entryMode === 'ONLINE'
+                            ? t('detail.entryModes.online')
+                            : payment.entryMode}
+                        </p>
                       </div>
-                    </div>
+                    )}
+                    {payment?.processorName && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.processor')}</Label>
+                        <p className="text-sm mt-1">{payment.processorName}</p>
+                      </div>
+                    )}
+                    {payment?.processorData?.bank && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.bankName')}</Label>
+                        <p className="text-sm mt-1">{payment.processorData.bank}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </CollapsibleSection>
+                </CollapsibleSection>
+              )}
 
               {/* Merchant Account - Collapsible */}
               {payment?.merchantAccount && (
@@ -983,78 +1058,143 @@ export default function PaymentId() {
                   onToggle={() => toggleSection('merchant')}
                   icon={Building2}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col">
-                          <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                            {t('detail.fields.merchantName')}
-                          </Label>
-                          <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                            <p className="text-sm">{payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId}</p>
-                          </div>
-                        </div>
-
-                        {payment.merchantAccount.bankName && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.bankName')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.bankName}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.clabeNumber && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.clabeNumber')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="font-mono text-sm">{payment.merchantAccount.clabeNumber}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.accountHolder && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.accountHolder')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.accountHolder}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.blumonSerialNumber && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.blumonSerial')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="font-mono text-sm">{payment.merchantAccount.blumonSerialNumber}</p>
-                            </div>
-                          </div>
-                        )}
-
-                        {payment.merchantAccount.provider && (
-                          <div className="flex flex-col">
-                            <Label className="text-sm font-medium text-muted-foreground min-h-[20px] mb-2">
-                              {t('detail.fields.provider')}
-                            </Label>
-                            <div className="p-3 bg-muted rounded-md border border-border flex-1 flex items-center">
-                              <p className="text-sm">{payment.merchantAccount.provider.name}</p>
-                            </div>
-                          </div>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.merchantName')}</Label>
+                      <p className="text-sm mt-1">{payment.merchantAccount.displayName || payment.merchantAccount.externalMerchantId}</p>
+                    </div>
+                    {payment.merchantAccount.bankName && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.bankName')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.bankName}</p>
                       </div>
+                    )}
+                    {payment.merchantAccount.clabeNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.clabeNumber')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.merchantAccount.clabeNumber}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.accountHolder && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.accountHolder')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.accountHolder}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.blumonSerialNumber && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.blumonSerial')}</Label>
+                        <p className="text-sm font-mono mt-1">{payment.merchantAccount.blumonSerialNumber}</p>
+                      </div>
+                    )}
+                    {payment.merchantAccount.provider && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.fields.provider')}</Label>
+                        <p className="text-sm mt-1">{payment.merchantAccount.provider.name}</p>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+              )}
+
+              {/* Order Items - Collapsible */}
+              {payment?.order?.items && payment.order.items.length > 0 && (
+                <CollapsibleSection
+                  title={t('detail.sections.orderItems')}
+                  subtitle={t('detail.sections.orderItemsDesc')}
+                  isOpen={sectionsOpen.orderItems}
+                  onToggle={() => toggleSection('orderItems')}
+                  icon={ShoppingBag}
+                >
+                  <div className="space-y-2">
+                    {payment.order.items.map((item: any, index: number) => (
+                      <div
+                        key={item.id || index}
+                        className="flex justify-between items-center py-2 border-b border-border last:border-0"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {item.quantity}x {item.product?.name || item.name || 'Item'}
+                          </p>
+                          {item.notes && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
+                          )}
+                          {item.modifiers && item.modifiers.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {item.modifiers.map((mod: any, modIndex: number) => (
+                                <p key={modIndex} className="text-xs text-muted-foreground">
+                                  + {mod.modifier?.name || mod.name} {mod.price > 0 && Currency(mod.price)}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-sm font-medium text-foreground">
+                          {Currency(item.total || item.unitPrice * item.quantity)}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-border">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {payment.order.items.length} {payment.order.items.length === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              )}
+
+              {/* Venue Information - Collapsible */}
+              {venue && (
+                <CollapsibleSection
+                  title={t('detail.sections.venueInfo')}
+                  subtitle={t('detail.sections.venueInfoDesc')}
+                  isOpen={sectionsOpen.venueInfo}
+                  onToggle={() => toggleSection('venueInfo')}
+                  icon={Building2}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.venue.name')}</Label>
+                      <p className="text-sm mt-1">{venue.name}</p>
+                    </div>
+                    {venue.address && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.address')}</Label>
+                        <p className="text-sm mt-1">{venue.address}</p>
+                      </div>
+                    )}
+                    {(venue.city || venue.state) && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.city')}</Label>
+                        <p className="text-sm mt-1">{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
+                      </div>
+                    )}
+                    {venue.country && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.country')}</Label>
+                        <p className="text-sm mt-1">{venue.country}</p>
+                      </div>
+                    )}
+                    {venue.phone && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.phone')}</Label>
+                        <p className="text-sm mt-1">{venue.phone}</p>
+                      </div>
+                    )}
+                    {venue.email && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{t('detail.venue.email')}</Label>
+                        <p className="text-sm mt-1">{venue.email}</p>
+                      </div>
+                    )}
+                  </div>
                 </CollapsibleSection>
               )}
 
               {/* Digital Receipts - Collapsible */}
               <CollapsibleSection
-                title={t('detail.receipts.title', { defaultValue: 'Recibos Digitales' })}
-                subtitle={t('detail.receipts.description', { defaultValue: 'Historial completo de recibos enviados para esta transacción' })}
+                title={t('detail.receipts.title')}
+                subtitle={t('detail.receipts.description')}
                 isOpen={sectionsOpen.receipts}
                 onToggle={() => toggleSection('receipts')}
                 icon={Receipt}
@@ -1088,7 +1228,7 @@ export default function PaymentId() {
                               </span>
                               <span className="flex items-center space-x-1">
                                 <FileText className="h-3 w-3" />
-                                <span>ID: {receipt.id.slice(0, 8)}...</span>
+                                <span>#{receipt.accessKey?.slice(-4).toUpperCase() || 'N/A'}</span>
                               </span>
                             </div>
                           </div>
@@ -1191,222 +1331,347 @@ export default function PaymentId() {
               )}
             </div>
 
-            {/* Sidebar (sticky) */}
-            <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-              {/* Payment Status Card */}
+            {/* Sidebar (35% - sticky) */}
+            <div className="lg:sticky lg:top-6 lg:self-start space-y-6">
+              {/* Status */}
               <Card className="border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                    <span>{t('detail.status.title', { defaultValue: 'Estado del Pago' })}</span>
-                  </CardTitle>
+                  <CardTitle className="text-lg font-medium">{t('detail.sidebar.status')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center py-4">
-                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-3">
-                      <StatusIcon className={`h-8 w-8 ${paymentStatusConfig?.color || 'text-muted-foreground'}`} />
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${paymentStatusConfig?.bg}`}>
+                      <StatusIcon className={`h-5 w-5 ${paymentStatusConfig?.color}`} />
                     </div>
-                    <Badge variant="outline" className={`${paymentStatusConfig?.bg} ${paymentStatusConfig?.color} text-sm px-3 py-1`}>
-                      {payment?.status === 'COMPLETED'
-                        ? t('detail.status.completed', { defaultValue: 'Pago Completado' })
-                        : payment?.status === 'PENDING'
-                        ? t('detail.status.pending', { defaultValue: 'Pendiente' })
-                        : payment?.status === 'PROCESSING'
-                        ? t('detail.status.processing', { defaultValue: 'Procesando' })
-                        : payment?.status === 'FAILED'
-                        ? t('detail.status.failed', { defaultValue: 'Fallido' })
-                        : payment?.status === 'REFUNDED'
-                        ? t('detail.status.refunded', { defaultValue: 'Reembolsado' })
-                        : payment?.status || t('detail.status.unknown', { defaultValue: 'Estado Desconocido' })}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {t('detail.status.lastUpdatePrefix', { defaultValue: 'Última actualización:' })}{' '}
-                      {payment?.updatedAt
-                        ? new Date(payment.updatedAt).toLocaleString(getIntlLocale(i18n.language))
-                        : t('detail.fields.notAvailable')}
-                    </p>
+                    <div>
+                      <p className="font-medium text-foreground">{t(`statuses.${payment?.status?.toLowerCase()}`)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('detail.sidebar.lastUpdate')}: {formatDateShort(payment?.updatedAt, locale, venueTimezone)}
+                      </p>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {payment?.status === 'COMPLETED' && (
-                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
-                      <div className="flex items-start space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t('detail.status.successTitle')}</p>
-                          <p className="text-xs text-muted-foreground">{t('detail.status.successDesc')}</p>
-                        </div>
+              {/* Customer Review - Only show if review exists */}
+              {payment?.review && (
+                <Card className="border-border bg-gradient-to-br from-yellow-50/50 to-amber-50/50 dark:from-yellow-900/10 dark:to-amber-900/10">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                      {t('detail.review.title')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Overall Rating */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-5 w-5 ${
+                              star <= (payment.review.overallRating || 0)
+                                ? 'text-yellow-500 fill-yellow-500'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        ))}
                       </div>
+                      <span className="text-lg font-bold">{payment.review.overallRating?.toFixed(1)}</span>
+                    </div>
+
+                    {/* Individual Ratings */}
+                    {(payment.review.foodRating || payment.review.serviceRating || payment.review.ambienceRating) && (
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {payment.review.foodRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.food')}</p>
+                            <p className="font-medium">{payment.review.foodRating}</p>
+                          </div>
+                        )}
+                        {payment.review.serviceRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.service')}</p>
+                            <p className="font-medium">{payment.review.serviceRating}</p>
+                          </div>
+                        )}
+                        {payment.review.ambienceRating && (
+                          <div className="text-center">
+                            <p className="text-muted-foreground">{t('detail.review.ambience')}</p>
+                            <p className="font-medium">{payment.review.ambienceRating}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Comment */}
+                    {payment.review.comment && (
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-sm italic text-muted-foreground">"{payment.review.comment}"</p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateShort(payment.review.createdAt, locale, venueTimezone)}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Settlement Status */}
+              {payment?.transactions?.[0] && (
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                      {t('detail.settlement.title')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.settlement.status')}:</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          payment.transactions[0].status === 'SETTLED'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-transparent'
+                            : payment.transactions[0].status === 'PENDING'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-transparent'
+                            : 'bg-muted text-muted-foreground border-transparent'
+                        }
+                      >
+                        {t(`detail.settlement.${payment.transactions[0].status?.toLowerCase()}`, { defaultValue: payment.transactions[0].status })}
+                      </Badge>
+                    </div>
+                    {payment.transactions[0].estimatedSettlementDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.estimatedDate')}:</span>
+                        <span>{formatDateShort(payment.transactions[0].estimatedSettlementDate, locale, venueTimezone)}</span>
+                      </div>
+                    )}
+                    {payment.transactions[0].settledAt && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.actualDate')}:</span>
+                        <span>{formatDateShort(payment.transactions[0].settledAt, locale, venueTimezone)}</span>
+                      </div>
+                    )}
+                    {payment.transactions[0].settlementId && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('detail.settlement.settlementId')}:</span>
+                        <span className="font-mono text-xs">{payment.transactions[0].settlementId.slice(0, 8)}...</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Financial Summary - Complete breakdown */}
+              <Card className={isEditing ? 'border-2 border-amber-400/50' : 'border-border'}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-medium">{t('detail.sidebar.financialSummary')}</CardTitle>
+                    {isEditing && (
+                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0 text-xs">
+                        {t('common:superadmin.edit.editMode', { defaultValue: 'Edit' })}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {/* Subtotal from order */}
+                  {payment?.order?.subtotal !== undefined && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t('detail.summary.subtotal')}</span>
+                      <span className="font-medium">{Currency(payment.order.subtotal)}</span>
+                    </div>
+                  )}
+                  {/* Taxes from order */}
+                  {payment?.order?.taxAmount !== undefined && payment.order.taxAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{t('detail.summary.taxes')}</span>
+                      <span className="font-medium">{Currency(payment.order.taxAmount)}</span>
+                    </div>
+                  )}
+                  {/* Tip */}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{t('detail.summary.tip')}</span>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="w-28 h-7 text-right text-sm font-medium border-amber-400/50"
+                        value={editedValues.tipAmount}
+                        onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                      />
+                    ) : (
+                      <span className="font-medium">
+                        {Currency(payment?.tipAmount || 0)}
+                        {payment?.amount > 0 && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({calculateTipPercentage(payment?.tipAmount || 0, payment?.amount || 0)}%)
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <Separator />
+                  {/* Total Charged */}
+                  <div className="flex justify-between pt-2">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">{t('detail.summary.totalCharged')}</span>
+                      {payment?.type === PaymentRecordType.REFUND && (
+                        <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                          <RotateCcw className="h-3 w-3" />
+                          {t('types.refund')}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`font-bold text-lg ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+                      {(() => {
+                        const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
+                        const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
+                        const total = baseAmount + tipAmount
+                        const isRefund = payment?.type === PaymentRecordType.REFUND
+                        return `${isRefund ? '−' : ''}${Currency(Math.abs(total))}`
+                      })()}
+                    </span>
+                  </div>
+                  {/* Transaction Fee - if available */}
+                  {payment?.transactions?.[0]?.feeAmount !== undefined && payment.transactions[0].feeAmount > 0 && (
+                    <>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>{t('detail.summary.transactionFee')}</span>
+                        <span>-{Currency(Math.abs(payment.transactions[0].feeAmount))}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between pt-2">
+                        <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {t('detail.summary.netAmount')}
+                        </span>
+                        <span className={`font-bold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                          {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment.transactions[0].netAmount || 0))}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Info Card - Enhanced */}
+              <Card className="border-border">
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    {t('detail.sidebar.info')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  {getTableInfo(payment) && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
+                      <span>{getTableInfo(payment)}</span>
+                    </div>
+                  )}
+                  {/* Covers / Customer count */}
+                  {payment?.order?.customerCount && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.covers')}:</span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {payment.order.customerCount} {t('detail.sidebar.people')}
+                      </span>
+                    </div>
+                  )}
+                  {/* Processed By */}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('detail.sidebar.waiter')}:</span>
+                    <span>{payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : 'N/A'}</span>
+                  </div>
+                  {/* Served By - if different from processedBy */}
+                  {payment?.order?.servedBy && payment.order.servedBy.id !== payment?.processedBy?.id && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.servedBy')}:</span>
+                      <span>{`${payment.order.servedBy.firstName} ${payment.order.servedBy.lastName}`}</span>
+                    </div>
+                  )}
+                  {/* Source */}
+                  {payment?.source && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.source')}:</span>
+                      <span>{t(`sources.${payment.source}`, { defaultValue: payment.source })}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{t('detail.sidebar.receipts')}:</span>
+                    <span>{receipts?.length || 0}</span>
+                  </div>
+                  {payment?.order?.orderNumber && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{t('detail.sidebar.order')}:</span>
+                      <span className="font-mono text-xs">{payment.order.orderNumber}</span>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Summary Card */}
-              <Card
-                id="summary-card"
-                className={isEditing ? "border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10" : "border-border"}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className={`flex items-center space-x-2 text-lg ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : ''}`}>
-                      <User className={`h-5 w-5 ${isEditing ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                      <span>{t('detail.summary.title', { defaultValue: 'Resumen Financiero' })}</span>
+              {/* Edit Controls (when editing) */}
+              {isEditing && (
+                <Card className="border-amber-400/50 bg-gradient-to-r from-amber-500/5 to-pink-500/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
+                      {t('detail.sidebar.editMode', { defaultValue: 'Edit Mode' })}
                     </CardTitle>
-                    {isEditing && (
-                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
-                        {t('common:superadmin.edit.editMode', { defaultValue: 'Modo Edición' })}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    {/* Subtotal */}
-                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {t('detail.summary.subtotal', { defaultValue: 'Subtotal' })}
-                      </span>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                          value={editedValues.amount}
-                          onChange={(e) => setEditedValues(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold">{Currency(payment?.amount || 0)}</span>
-                      )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t('detail.overview.method')}</Label>
+                      <Select
+                        value={editedValues.method}
+                        onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
+                      >
+                        <SelectTrigger className="h-9 border-amber-400/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PaymentMethod.CASH}>{t('methods.cash')}</SelectItem>
+                          <SelectItem value={PaymentMethod.CREDIT_CARD}>{t('methods.creditCard')}</SelectItem>
+                          <SelectItem value={PaymentMethod.DEBIT_CARD}>{t('methods.debitCard')}</SelectItem>
+                          <SelectItem value={PaymentMethod.DIGITAL_WALLET}>{t('methods.digitalWallet')}</SelectItem>
+                          <SelectItem value={PaymentMethod.BANK_TRANSFER}>{t('methods.bankTransfer')}</SelectItem>
+                          <SelectItem value={PaymentMethod.OTHER}>{t('methods.other')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-
-                    {/* Tips */}
-                    <div className={`flex justify-between items-center p-3 rounded-lg ${isEditing ? 'bg-gradient-to-r from-amber-500/5 to-pink-500/5 border border-amber-400/30' : 'bg-muted'}`}>
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {t('detail.overview.tips', { defaultValue: 'Propinas' })}
-                        </span>
-                        <p className="text-xs text-muted-foreground">
-                          {(() => {
-                            const base = isEditing ? editedValues.amount : (payment?.amount || 0)
-                            const tip = isEditing ? editedValues.tipAmount : (payment?.tipAmount || 0)
-                            return base > 0
-                              ? t('detail.summary.tipsOfSubtotal', {
-                                  defaultValue: '{{percent}}% del subtotal',
-                                  percent: ((tip / base) * 100).toFixed(1),
-                                })
-                              : t('detail.summary.tipsOfSubtotal', { defaultValue: '0.0% del subtotal', percent: '0.0' })
-                          })()}
-                        </p>
-                      </div>
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="w-32 h-9 text-right font-bold text-lg border-amber-400/50 focus:border-amber-500 focus:ring-amber-500/20"
-                          value={editedValues.tipAmount}
-                          onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
-                        />
-                      ) : (
-                        <span className="text-lg font-bold">{Currency(payment?.tipAmount || 0)}</span>
-                      )}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">{t('columns.status')}</Label>
+                      <Select
+                        value={editedValues.status}
+                        onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
+                      >
+                        <SelectTrigger className="h-9 border-amber-400/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PaymentStatus.PENDING}>{t('statuses.pending')}</SelectItem>
+                          <SelectItem value={PaymentStatus.PARTIAL}>{t('statuses.partial')}</SelectItem>
+                          <SelectItem value={PaymentStatus.PAID}>{t('statuses.paid')}</SelectItem>
+                          <SelectItem value={PaymentStatus.REFUNDED}>{t('statuses.refunded')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Separator />
-                    <div className={`flex justify-between items-center p-3 rounded-lg border ${isEditing ? 'bg-gradient-to-r from-amber-500/10 to-pink-500/10 border-amber-400/50' : 'bg-muted border-border'}`}>
-                      <span className="text-base font-bold text-foreground">
-                        {t('detail.summary.total', { defaultValue: 'Total' })}
-                      </span>
-                      <span className={`text-xl font-bold ${isEditing ? 'bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent' : 'text-foreground'}`}>
-                        {(() => {
-                          const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
-                          const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
-                          const total = baseAmount + tipAmount
-                          return total > 0 ? Currency(total) : Currency(0)
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{t('detail.summary.progressBase', { defaultValue: 'Base' })}</span>
-                      <span>{t('detail.overview.tips', { defaultValue: 'Propinas' })}</span>
-                    </div>
-                    <Progress
-                      value={
-                        payment?.amount && payment.amount + (payment?.tipAmount || 0) > 0
-                          ? (payment.amount / (payment.amount + (payment?.tipAmount || 0))) * 100
-                          : 0
-                      }
-                      className="h-2"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Info Card */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span>{t('detail.sidebar.quickInfo')}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
-                      <span className="font-medium">{getTableInfo(payment) || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.processedBy')}:</span>
-                      <span className="font-medium">
-                        {payment?.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}`.trim() : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.shift')}:</span>
-                      <span className="font-mono text-xs">{getShiftInfo(payment) || 'N/A'}</span>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.overview.method', { defaultValue: 'Método' })}:</span>
-                      <div className="flex items-center space-x-1">
-                        {(payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD') && payment?.cardBrand && (
-                          <span className="text-sm">{getIcon(payment.cardBrand)}</span>
-                        )}
-                        <span className="text-sm font-medium">
-                          {payment?.method === 'CREDIT_CARD' || payment?.method === 'DEBIT_CARD'
-                            ? payment?.maskedPan || '****0000'
-                            : payment?.method === 'CASH'
-                            ? t('methods.cash', { defaultValue: 'Efectivo' })
-                            : payment?.method === 'DIGITAL_WALLET'
-                            ? t('methods.digitalWallet', { defaultValue: 'Monedero Digital' })
-                            : payment?.method === 'BANK_TRANSFER'
-                            ? t('methods.bankTransfer', { defaultValue: 'Transferencia Bancaria' })
-                            : payment?.method || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t bg-muted mt-8">
-          <div className="max-w-7xl mx-auto p-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center space-x-4">
-                <span>{t('detail.footer.copyright')}</span>
-                <Separator orientation="vertical" className="h-4" />
-                <span>{t('detail.footer.paymentId', { defaultValue: 'Pago ID: {{id}}', id: payment?.id })}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span>{t('detail.footer.generated', { date: new Date().toLocaleString(getIntlLocale(i18n.language)) })}</span>
-              </div>
+        <div className="border-t border-border mt-12">
+          <div className="max-w-[1400px] mx-auto px-6 py-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{t('detail.footer.paymentId', { id: payment?.id })}</span>
+              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED) })}</span>
             </div>
           </div>
         </div>
@@ -1425,8 +1690,8 @@ export default function PaymentId() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.receiptId')}</Label>
-                  <p className="font-mono text-sm p-2 bg-muted rounded">{selectedReceiptForDetail.id}</p>
+                  <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.receiptNumber')}</Label>
+                  <p className="font-mono text-sm p-2 bg-muted rounded">#{selectedReceiptForDetail.accessKey?.slice(-4).toUpperCase() || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.status')}</Label>

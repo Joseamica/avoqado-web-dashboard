@@ -36,6 +36,8 @@ type DataTableProps<TData> = {
   enableSearch?: boolean
   searchPlaceholder?: string
   onSearch?: (searchTerm: string, data: TData[]) => TData[]
+  // Row styling
+  getRowClassName?: (row: TData) => string | undefined
 }
 
 function DataTable<TData>({
@@ -52,6 +54,7 @@ function DataTable<TData>({
   enableSearch = false,
   searchPlaceholder,
   onSearch,
+  getRowClassName,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -206,6 +209,7 @@ function DataTable<TData>({
         <TableBody>
           {hasRows ? (
             table.getRowModel().rows.map(row => {
+              const customRowClass = getRowClassName?.(row.original) || ''
               if (clickableRow) {
                 const { to, state } = clickableRow(row.original)
                 return (
@@ -214,7 +218,7 @@ function DataTable<TData>({
                     data-state={row.getIsSelected() && 'selected'}
                     to={to}
                     state={state}
-                    className="bg-background border-border hover:bg-background data-[state=selected]:bg-background"
+                    className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${customRowClass}`}
                   >
                     {row.getVisibleCells().map(cell => (
                       <TableCell key={cell.id} className="px-4 py-3">
@@ -229,7 +233,7 @@ function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${onRowClick ? 'cursor-pointer' : ''}`}
+                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${onRowClick ? 'cursor-pointer' : ''} ${customRowClass}`}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map(cell => (

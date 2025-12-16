@@ -11,6 +11,7 @@ import { Form } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
 import type { CreateDiscountRequest } from '@/types/discount'
+import { DiscountType, DiscountScope } from '@/types'
 
 import { DiscountFormFields } from './DiscountFormFields'
 import { useDiscountFormData } from '../hooks/useDiscountFormData'

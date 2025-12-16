@@ -1,4 +1,6 @@
 import api from '@/api'
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 // ===== TYPES =====
 
@@ -339,60 +341,130 @@ export function getNotificationPriorityIcon(priority: NotificationPriority): str
 }
 
 /**
- * Format notification time
+ * Translations interface for notification time formatting
+ * Pass these from the component using t() from useTranslation
  */
-export function formatNotificationTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
+export interface NotificationTimeTranslations {
+  justNow: string
+  minutesAgo: (minutes: number) => string
+  hoursAgo: (hours: number) => string
+  daysAgo: (days: number) => string
+}
+
+/**
+ * Default translations (fallback)
+ */
+const getDefaultTimeTranslations = (locale: string): NotificationTimeTranslations => ({
+  justNow: locale === 'es' ? 'Justo ahora' : locale === 'fr' ? 'À l\'instant' : 'Just now',
+  minutesAgo: (minutes: number) =>
+    locale === 'es' ? `hace ${minutes} min` : locale === 'fr' ? `il y a ${minutes} min` : `${minutes} min ago`,
+  hoursAgo: (hours: number) =>
+    locale === 'es' ? `hace ${hours} h` : locale === 'fr' ? `il y a ${hours} h` : `${hours} h ago`,
+  daysAgo: (days: number) =>
+    locale === 'es'
+      ? `hace ${days} ${days === 1 ? 'día' : 'días'}`
+      : locale === 'fr'
+        ? `il y a ${days} ${days === 1 ? 'jour' : 'jours'}`
+        : `${days} ${days === 1 ? 'day' : 'days'} ago`,
+})
+
+/**
+ * Format notification time
+ * @param dateString - ISO date string
+ * @param locale - Language code (e.g., 'es', 'en')
+ * @param timezone - IANA timezone (e.g., 'America/Mexico_City')
+ * @param translations - Optional translations object from i18n (use t() from useTranslation)
+ */
+export function formatNotificationTime(
+  dateString: string,
+  locale: string = 'es',
+  timezone: string = 'America/Mexico_City',
+  translations?: NotificationTimeTranslations
+): string {
+  const date = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(timezone)
+  const now = DateTime.now().setZone(timezone)
+  const diff = now.diff(date, 'milliseconds').milliseconds
+
+  const localeCode = getIntlLocale(locale)
+  const t = translations || getDefaultTimeTranslations(locale)
 
   // Less than 1 minute
   if (diff < 60000) {
-    return 'Justo ahora'
+    return t.justNow
   }
 
   // Less than 1 hour
   if (diff < 3600000) {
     const minutes = Math.floor(diff / 60000)
-    return `hace ${minutes} min`
+    return t.minutesAgo(minutes)
   }
 
   // Less than 24 hours
   if (diff < 86400000) {
     const hours = Math.floor(diff / 3600000)
-    return `hace ${hours} h`
+    return t.hoursAgo(hours)
   }
 
   // Less than 7 days
   if (diff < 604800000) {
     const days = Math.floor(diff / 86400000)
-    return `hace ${days} ${days === 1 ? 'día' : 'días'}`
+    return t.daysAgo(days)
   }
 
   // More than 7 days - show date
-  return date.toLocaleDateString()
+  return date.setLocale(localeCode).toLocaleString(DateTime.DATE_MED)
 }
 
 /**
- * Group notifications by date
+ * Translations interface for notification date grouping
+ * Pass these from the component using t() from useTranslation
  */
-export function groupNotificationsByDate(notifications: Notification[]): Record<string, Notification[]> {
+export interface NotificationDateTranslations {
+  today: string
+  yesterday: string
+}
+
+/**
+ * Default date translations (fallback)
+ */
+const getDefaultDateTranslations = (locale: string): NotificationDateTranslations => ({
+  today: locale === 'es' ? 'Hoy' : locale === 'fr' ? 'Aujourd\'hui' : 'Today',
+  yesterday: locale === 'es' ? 'Ayer' : locale === 'fr' ? 'Hier' : 'Yesterday',
+})
+
+/**
+ * Group notifications by date
+ * @param notifications - Array of notifications
+ * @param locale - Language code (e.g., 'es', 'en')
+ * @param timezone - IANA timezone (e.g., 'America/Mexico_City')
+ * @param translations - Optional translations object from i18n (use t() from useTranslation)
+ */
+export function groupNotificationsByDate(
+  notifications: Notification[],
+  locale: string = 'es',
+  timezone: string = 'America/Mexico_City',
+  translations?: NotificationDateTranslations
+): Record<string, Notification[]> {
   const groups: Record<string, Notification[]> = {}
+  const localeCode = getIntlLocale(locale)
+  const t = translations || getDefaultDateTranslations(locale)
+
+  const today = DateTime.now().setZone(timezone).startOf('day')
+  const yesterday = today.minus({ days: 1 })
 
   notifications.forEach(notification => {
-    const date = new Date(notification.createdAt)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const date = DateTime.fromISO(notification.createdAt, { zone: 'utc' })
+      .setZone(timezone)
+      .startOf('day')
 
     let groupKey: string
 
-    if (date.toDateString() === today.toDateString()) {
-      groupKey = 'Hoy'
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      groupKey = 'Ayer'
+    if (date.hasSame(today, 'day')) {
+      groupKey = t.today
+    } else if (date.hasSame(yesterday, 'day')) {
+      groupKey = t.yesterday
     } else {
-      groupKey = date.toLocaleDateString()
+      groupKey = date.setLocale(localeCode).toLocaleString(DateTime.DATE_MED)
     }
 
     if (!groups[groupKey]) {

@@ -19,6 +19,7 @@ import LanguageSwitcher from '@/components/language-switcher'
 import { useQuery } from '@tanstack/react-query'
 import { superadminAPI } from '@/services/superadmin.service'
 import { Badge } from '@/components/ui/badge'
+import { VenueStatus } from '@/types'
 
 // Helper function to format notification timestamps (i18n-aware)
 const formatNotificationTime = (t: (key: string, opts?: any) => string, timestamp: string) => {
@@ -227,9 +228,9 @@ const SuperadminHeader: React.FC = () => {
                             </div>
                             <Badge
                               className={`ml-2 ${
-                                venue.status === 'ACTIVE'
+                                venue.status === VenueStatus.ACTIVE
                                   ? 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200'
-                                  : venue.status === 'PENDING'
+                                  : venue.status === VenueStatus.PENDING_ACTIVATION
                                   ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-200'
                                   : 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
                               }`}

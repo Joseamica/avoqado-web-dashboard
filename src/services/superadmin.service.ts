@@ -112,6 +112,17 @@ export interface SystemAlert {
   isRead: boolean
 }
 
+// VenueStatus enum values from backend
+export type VenueStatus =
+  | 'ACTIVE'
+  | 'ONBOARDING'
+  | 'TRIAL'
+  | 'PENDING_ACTIVATION'
+  | 'SUSPENDED'
+  | 'ADMIN_SUSPENDED'
+  | 'CLOSED'
+  | 'LIVE_DEMO'
+
 export interface SuperadminVenue {
   id: string
   name: string
@@ -125,7 +136,7 @@ export interface SuperadminVenue {
   revenue: number
   commission: number
   transactionCount: number
-  status: 'approved' | 'pending' | 'suspended'
+  status: VenueStatus
   suspensionReason?: string
   recentPayment?: {
     amount: number
@@ -165,9 +176,12 @@ export async function getDashboardData(): Promise<SuperadminDashboardData> {
 
 /**
  * Get all venues for superadmin management
+ * @param includeDemos - Include TRIAL and LIVE_DEMO venues (default: false)
  */
-export async function getAllVenues(): Promise<SuperadminVenue[]> {
-  const response = await api.get('/api/v1/dashboard/superadmin/venues')
+export async function getAllVenues(includeDemos = false): Promise<SuperadminVenue[]> {
+  const response = await api.get('/api/v1/dashboard/superadmin/venues', {
+    params: includeDemos ? { includeDemos: 'true' } : undefined,
+  })
   return response.data.data
 }
 

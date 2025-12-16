@@ -28,8 +28,11 @@ import {
   AlertCircle,
   UploadCloud,
   ImageIcon,
+  RotateCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import type { UnifiedReceiptData, DigitalReceipt } from '@/types/receipt'
 import { useToast } from '@/hooks/use-toast'
@@ -44,6 +47,7 @@ interface ModernReceiptDesignProps {
   error?: string | null
   variant?: 'full' | 'embedded' | 'mobile'
   showActions?: boolean
+  isRefund?: boolean // Indicates this is a refund receipt
   onShare?: (url: string) => void
   onCopy?: (url: string) => void
   onPrint?: () => void
@@ -143,6 +147,7 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   error,
   variant: _variant = 'full',
   showActions = true,
+  isRefund = false,
   onShare,
   onCopy,
   onPrint,
@@ -169,18 +174,20 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   if (error || !data) return <ReceiptError error={error || t('receipt.errors.load')} />
 
   const { payment, venue, order, processedBy, customer } = data
+  const venueTimezone = (venue as { timezone?: string })?.timezone || 'America/Mexico_City'
 
   // Format helpers
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const locale = getIntlLocale(i18n.language)
+    const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(venueTimezone).setLocale(locale)
     return {
-      date: date.toLocaleDateString(i18n.language || 'en-US', {
+      date: dt.toLocaleString({
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }),
-      time: date.toLocaleTimeString(i18n.language || 'en-US', {
+      time: dt.toLocaleString({
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
@@ -189,12 +196,12 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
   }
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (value == null || Number.isNaN(Number(value))) return t('common.na')
+    if (value == null || Number.isNaN(Number(value))) return 'N/A'
     try {
       const currency = venue?.currency || 'MXN'
-      return new Intl.NumberFormat(i18n.language || 'es-MX', { style: 'currency', currency }).format(Number(value))
+      return new Intl.NumberFormat(getIntlLocale(i18n.language), { style: 'currency', currency }).format(Number(value))
     } catch {
-      return t('common.na')
+      return 'N/A'
     }
   }
 
@@ -277,14 +284,24 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
       <div className="receipt-container container mx-auto p-3 sm:p-6 max-w-2xl">
         <div ref={receiptRef} className="space-y-4">
           {/* Header Card */}
-          <Card className="overflow-hidden border-0 shadow-lg bg-linear-to-br from-card to-card/50">
+          <Card className={`overflow-hidden border-0 shadow-lg ${isRefund ? 'bg-linear-to-br from-red-50 dark:from-red-950/30 to-card/50 border-red-200 dark:border-red-800' : 'bg-linear-to-br from-card to-card/50'}`}>
             <div className="relative">
               {/* Decorative background pattern */}
-              <div className="absolute inset-0 opacity-5">
+              <div className={`absolute inset-0 ${isRefund ? 'opacity-10' : 'opacity-5'}`}>
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,currentColor_1px,transparent_1px)] bg-size-[16px_16px]" />
               </div>
 
               <CardContent className="p-6 sm:p-8 text-center relative">
+                {/* Refund Badge - Top Left */}
+                {isRefund && (
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 font-semibold">
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      {t('types.refund')}
+                    </Badge>
+                  </div>
+                )}
+
                 {/* Status Badge */}
                 {receiptStatus && (
                   <div className="absolute top-4 right-4">
@@ -338,84 +355,82 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
             <CardContent className="p-6 space-y-6">
               {/* Receipt Metadata */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-xl">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ReceiptIcon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.receipt')}</p>
-                      <p className="font-mono text-sm font-medium">#{receipt?.id?.slice(0, 8) || t('common.na')}</p>
-                    </div>
+                {/* Receipt # */}
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <ReceiptIcon className="w-4 h-4 text-primary" />
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <Building2 className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.order')}</p>
-                      <p className="font-mono text-sm font-medium">#{order?.number ?? t('common.na')}</p>
-                    </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.receipt')}</p>
+                    <p className="font-mono text-sm font-medium">#{receiptAccessKey?.slice(-4).toUpperCase() || 'N/A'}</p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-green-600" />
+                {/* Date */}
+                <div className="flex items-start gap-3 sm:col-start-2">
+                  <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
+                    <p className="text-sm font-medium capitalize">{datetime?.date ?? 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Served By */}
+                {processedBy && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.date')}</p>
-                      <p className="text-sm font-medium capitalize">{datetime?.date ?? t('common.na')}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.servedBy')}</p>
+                      <p className="text-sm font-medium">
+                        {processedBy.name ||
+                          ((processedBy as any).firstName && (processedBy as any).lastName
+                            ? `${(processedBy as any).firstName} ${(processedBy as any).lastName}`
+                            : (processedBy as any).firstName || (processedBy as any).lastName || 'N/A')}
+                      </p>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.time')}</p>
-                      <p className="text-sm font-medium">{datetime?.time ?? t('common.na')}</p>
-                    </div>
+                {/* Time */}
+                <div className="flex items-start gap-3 sm:col-start-2">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('receipt.labels.time')}</p>
+                    <p className="text-sm font-medium">{datetime?.time ?? 'N/A'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Staff & Customer Info */}
-              {(processedBy || customer) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {processedBy && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                      <User className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('receipt.labels.servedBy')}</p>
-                        <p className="font-medium text-sm">{processedBy.name}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {customer && (
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                      <Star className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
-                        <p className="font-medium text-sm">{customer.name}</p>
-                      </div>
-                    </div>
-                  )}
+              {/* Customer Info */}
+              {customer && (
+                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <Star className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t('receipt.labels.customer')}</p>
+                    <p className="font-medium text-sm">
+                      {customer.name ||
+                        ((customer as any).firstName && (customer as any).lastName
+                          ? `${(customer as any).firstName} ${(customer as any).lastName}`
+                          : (customer as any).firstName || (customer as any).lastName || customer.email || 'N/A')}
+                    </p>
+                  </div>
                 </div>
               )}
 
-              {/* Order Items */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  {t('receipt.labels.itemsTitle')}
-                </h2>
+              {/* Order Items - Only show if there are items */}
+              {(order?.items?.length ?? 0) > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    {t('receipt.labels.itemsTitle')}
+                  </h2>
 
-                {(order?.items?.length ?? 0) > 0 ? (
                   <div className="space-y-3">
                     {order!.items!.map((item, index) => (
                       <div key={index} className="bg-background border border-border/50 rounded-xl p-4 hover:shadow-sm transition-shadow">
@@ -452,16 +467,8 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-12 bg-muted/30 rounded-xl">
-                    <ReceiptIcon className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-muted-foreground">{t('receipt.labels.noItems')}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('receipt.labels.orderTotal')}: {formatCurrency(order?.total)}
-                    </p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <Separator className="my-6" />
 
@@ -477,35 +484,53 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   <span className="font-medium">{formatCurrency(order?.taxAmount)}</span>
                 </div>
 
-                {(payment?.tipAmount ?? 0) > 0 && (
-                  <div className="flex justify-between text-base">
-                    <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
-                    <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
+                <div className="flex justify-between text-base">
+                  <span className="text-muted-foreground">{t('receipt.labels.tips')}</span>
+                  <span className="font-medium text-green-600">{formatCurrency(payment?.tipAmount)}</span>
+                </div>
+
+                {/* <Separator /> */}
+
+                <div className={`flex justify-between items-center text-xl font-bold p-4 rounded-xl ${
+                  isRefund
+                    ? 'bg-linear-to-r from-red-100 dark:from-red-950/50 to-red-50 dark:to-red-950/30'
+                    : 'bg-linear-to-r from-primary/10 to-primary/5'
+                }`}>
+                  <div className="flex flex-col items-start">
+                    <span>{isRefund ? t('receipt.labels.totalRefunded', { defaultValue: t('receipt.labels.totalPaid') }) : t('receipt.labels.totalPaid')}</span>
+                    {isRefund && (
+                      <span className="text-xs font-normal text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
+                        <RotateCcw className="w-3 h-3" />
+                        {t('types.refund')}
+                      </span>
+                    )}
                   </div>
-                )}
-
-                <Separator />
-
-                <div className="flex justify-between items-center text-xl font-bold bg-linear-to-r from-primary/10 to-primary/5 p-4 rounded-xl">
-                  <span>{t('receipt.labels.totalPaid')}</span>
-                  <span className="text-primary">{Currency(payment?.amount + (payment?.tipAmount ?? 0))}</span>
+                  <span className={isRefund ? 'text-red-600 dark:text-red-400' : 'text-primary'}>
+                    {isRefund ? '−' : ''}{Currency(Math.abs((payment?.amount ?? 0) + (payment?.tipAmount ?? 0)))}
+                  </span>
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="bg-linear-to-r from-muted/50 to-muted/30 p-4 rounded-xl">
+              <div className={`p-4 rounded-xl ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/30 to-red-50/50 dark:to-red-950/20' : 'bg-linear-to-r from-muted/50 to-muted/30'}`}>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-background shadow-sm flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-primary" />
+                  <div className={`w-12 h-12 rounded-full shadow-sm flex items-center justify-center ${isRefund ? 'bg-red-100 dark:bg-red-900/50' : 'bg-background'}`}>
+                    {isRefund ? (
+                      <RotateCcw className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    ) : (
+                      <CreditCard className="w-6 h-6 text-primary" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-lg">
                       {formatPaymentMethod(payment?.method || '', payment?.cardBrand, payment?.maskedPan)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className={`w-2 h-2 rounded-full ${payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />
-                      <span className="text-sm text-muted-foreground">
-                        {payment?.status === 'COMPLETED'
+                      <div className={`w-2 h-2 rounded-full ${isRefund ? 'bg-red-500' : payment?.status === 'COMPLETED' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                      <span className={`text-sm ${isRefund ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                        {isRefund
+                          ? t('receipt.paymentStatus.REFUND_COMPLETED', { defaultValue: 'Refund completed' })
+                          : payment?.status === 'COMPLETED'
                           ? t('receipt.paymentStatus.COMPLETED')
                           : t(`payments.receipt.paymentStatus.${payment?.status}`, {
                               defaultValue: t('receipt.paymentStatus.UNKNOWN'),
@@ -573,20 +598,33 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
           </Card>
 
           {/* Footer */}
-          <Card className="border-0 shadow-lg bg-linear-to-r from-primary/5 to-transparent">
+          <Card className={`border-0 shadow-lg ${isRefund ? 'bg-linear-to-r from-red-50 dark:from-red-950/20 to-transparent' : 'bg-linear-to-r from-primary/5 to-transparent'}`}>
             <CardContent className="p-6 text-center">
               <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 text-primary">
-                  <Sparkles className="w-5 h-5" />
-                  <span className="font-semibold text-lg">{t('receipt.footer.thanks')}</span>
-                  <Sparkles className="w-5 h-5" />
-                </div>
-
-                <p className="text-muted-foreground">{t('receipt.footer.seeYou', { venue: venue?.name || t('receipt.unknownVenue') })}</p>
+                {isRefund ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400">
+                      <RotateCcw className="w-5 h-5" />
+                      <span className="font-semibold text-lg">{t('receipt.footer.refundProcessed', { defaultValue: 'Refund Processed' })}</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      {t('receipt.footer.refundMessage', { defaultValue: 'Your refund has been processed successfully. The amount will be credited to your original payment method.' })}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                      <Sparkles className="w-5 h-5" />
+                      <span className="font-semibold text-lg">{t('receipt.footer.thanks')}</span>
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <p className="text-muted-foreground">{t('receipt.footer.seeYou', { venue: venue?.name || t('receipt.unknownVenue') })}</p>
+                  </>
+                )}
 
                 <div className="pt-3 space-y-1 text-xs text-muted-foreground">
                   <p>{t('receipt.footer.generatedBy')}</p>
-                  <p>{datetime ? `${datetime.date} • ${datetime.time}` : t('common.na')}</p>
+                  <p>{datetime ? `${datetime.date} • ${datetime.time}` : 'N/A'}</p>
                   {customer?.email && <p>{t('receipt.footer.sentTo', { email: customer.email })}</p>}
                 </div>
               </div>

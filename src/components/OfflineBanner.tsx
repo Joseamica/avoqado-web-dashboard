@@ -20,7 +20,7 @@ export function OfflineBanner() {
     const unsubscribe = subscribeToConnection(() => {
       setStatus(getConnectionStatus())
     })
-    return unsubscribe
+    return () => { unsubscribe() }
   }, [])
 
   // Don't show if connected

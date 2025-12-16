@@ -403,6 +403,226 @@ const { data } = useQuery({
 
 **Reference:** `src/hooks/useDebounce.ts` | `src/pages/Payment/Payments.tsx`
 
+### 10. Modern Dashboard Design System (2025/2026)
+
+**Use this design system for configuration pages, settings, and data visualization.**
+
+Inspired by: Stripe Dashboard, Linear, Vercel. Reference implementation: `src/pages/Venue/VenuePaymentConfig.tsx`
+
+#### Components:
+
+**1. GlassCard - Glassmorphism wrapper**
+```typescript
+const GlassCard: React.FC<{
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  onClick?: () => void
+}> = ({ children, className, hover = false, onClick }) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
+      'shadow-sm transition-all duration-300',
+      hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
+      onClick && 'cursor-pointer',
+      className
+    )}
+  >
+    {children}
+  </div>
+)
+```
+
+**2. StatusPulse - Animated status indicator**
+```typescript
+const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral' }> = ({ status }) => {
+  const colors = {
+    success: 'bg-green-500',
+    warning: 'bg-yellow-500',
+    error: 'bg-red-500',
+    neutral: 'bg-gray-400',
+  }
+  return (
+    <span className="relative flex h-3 w-3">
+      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])} />
+      <span className={cn('relative inline-flex rounded-full h-3 w-3', colors[status])} />
+    </span>
+  )
+}
+```
+
+**3. MetricCard - Bento grid metric display**
+```typescript
+// Icon with gradient background + large value + label
+<div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+</div>
+<p className="text-2xl font-bold tracking-tight">{value}</p>
+<p className="text-sm text-muted-foreground">{label}</p>
+```
+
+**4. Collapsible sections for progressive disclosure**
+```typescript
+<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+  <GlassCard>
+    <CollapsibleTrigger asChild>
+      <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+            <Calculator className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <h3 className="font-medium text-sm">Section Title</h3>
+            <p className="text-xs text-muted-foreground">Description</p>
+          </div>
+        </div>
+        <ChevronRight className={cn('w-4 h-4 text-muted-foreground transition-transform', isOpen && 'rotate-90')} />
+      </div>
+    </CollapsibleTrigger>
+    <CollapsibleContent>
+      <div className="px-4 pb-4 space-y-4">
+        <div className="h-px bg-border/50" />
+        {/* Content */}
+      </div>
+    </CollapsibleContent>
+  </GlassCard>
+</Collapsible>
+```
+
+**5. Aligned grid rows (for tables/comparisons)**
+```typescript
+// Header and rows MUST use same grid template
+<div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-2">
+  <div>Column 1</div>
+  <div className="text-right min-w-[120px]">Column 2</div>
+  <div className="text-right min-w-[70px]">Column 3</div>
+</div>
+```
+
+#### Color Accents:
+- **Green**: Success, positive margins, profit → `from-green-500/20 to-green-500/5 text-green-600`
+- **Blue**: Info, primary data → `from-blue-500/20 to-blue-500/5 text-blue-600`
+- **Purple**: Features, tools → `from-purple-500/20 to-purple-500/5 text-purple-600`
+- **Orange**: Warnings, international → `from-orange-500/20 to-orange-500/5 text-orange-600`
+
+#### Layout:
+- Use **12-column Bento Grid**: `grid grid-cols-12 gap-4`
+- Main content: `col-span-12 lg:col-span-8`
+- Side metrics: `col-span-12 lg:col-span-4`
+
+#### Icon Buttons & Cursor:
+**ALWAYS add `cursor-pointer` to icon buttons**, especially when wrapped in Tooltip components.
+
+Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cursor. Explicit `cursor-pointer` ensures consistent UX.
+
+```typescript
+// ❌ WRONG - Cursor may not show as pointer
+<TooltipTrigger asChild>
+  <Button variant="ghost" size="icon" className="h-7 w-7">
+    <Pencil className="w-3.5 h-3.5" />
+  </Button>
+</TooltipTrigger>
+
+// ✅ CORRECT - Explicit cursor-pointer
+<TooltipTrigger asChild>
+  <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer">
+    <Pencil className="w-3.5 h-3.5" />
+  </Button>
+</TooltipTrigger>
+```
+
+**Reference:** `src/pages/Superadmin/components/merchant-accounts/MerchantAccountCard.tsx`
+
+**Reference:** `src/pages/Venue/VenuePaymentConfig.tsx`
+
+### 11. Timezone Handling (MANDATORY)
+
+**ALL date/time displays MUST use venue timezone, NOT browser timezone.**
+
+This follows the industry-standard pattern used by Stripe and Toast (NOT Square, which has documented problems with browser timezone).
+
+```typescript
+// ❌ WRONG - Uses browser timezone
+new Date(dateString).toLocaleDateString('es-ES', {...})
+format(date, 'PPp', { locale }) // date-fns
+new Date().toLocaleString() // no timezone
+
+// ✅ CORRECT - Uses useVenueDateTime hook
+import { useVenueDateTime } from '@/utils/datetime'
+
+const { formatDate, formatTime, formatDateTime, venueTimezone } = useVenueDateTime()
+<span>{formatDate(payment.createdAt)}</span>
+<span>{formatTime(order.updatedAt)}</span>
+```
+
+**For services/utilities (non-React):**
+```typescript
+// ❌ WRONG - No timezone parameter
+export function formatNotificationTime(dateString: string) {
+  return new Date(dateString).toLocaleString('es-ES')
+}
+
+// ✅ CORRECT - Accept timezone as parameter, use Luxon
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
+
+export function formatNotificationTime(
+  dateString: string,
+  locale: string = 'es',
+  timezone: string = 'America/Mexico_City'
+): string {
+  return DateTime.fromISO(dateString, { zone: 'utc' })
+    .setZone(timezone)
+    .setLocale(getIntlLocale(locale))
+    .toLocaleString(DateTime.DATETIME_MED)
+}
+```
+
+**For relative times:**
+```typescript
+// ❌ WRONG - date-fns formatDistanceToNow (no timezone)
+import { formatDistanceToNow } from 'date-fns'
+{formatDistanceToNow(new Date(date))}
+
+// ✅ CORRECT - Luxon toRelative with venue timezone
+DateTime.fromISO(date, { zone: 'utc' })
+  .setZone(venueTimezone)
+  .setLocale(localeCode)
+  .toRelative()
+```
+
+**For currency formatting:**
+```typescript
+// ❌ WRONG - Hardcoded locale
+new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+
+// ✅ CORRECT - Use getIntlLocale for user's language
+import { getIntlLocale } from '@/utils/i18n-locale'
+const localeCode = getIntlLocale(i18n.language)
+new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' })
+```
+
+**Architecture:**
+```
+BACKEND → UTC (ISO 8601 with Z suffix) → API Response
+                    ↓
+FRONTEND → useVenueDateTime() hook
+                    ↓
+           DateTime.fromISO(utc, { zone: 'utc' })
+             .setZone(venue.timezone)  // NOT browser timezone
+             .setLocale(i18n.language)
+                    ↓
+           Display: "20 oct 2025, 12:30 PM" (venue timezone)
+```
+
+**Why venue timezone (not browser)?**
+- All team members see consistent times regardless of physical location
+- Financial reports match the business's operating timezone
+- Compliance: Transactions must reflect where the business operates
+
+**Reference:** `src/utils/datetime.ts` | `src/utils/i18n-locale.ts`
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript + Vite

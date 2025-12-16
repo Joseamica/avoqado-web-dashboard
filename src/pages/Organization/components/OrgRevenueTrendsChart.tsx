@@ -6,6 +6,7 @@ import { Line, LineChart, CartesianGrid, XAxis } from 'recharts'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DateTime } from 'luxon'
 import type { RevenueTrendsResponse } from '@/services/organization.service'
 
 interface OrgRevenueTrendsChartProps {
@@ -25,10 +26,9 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
 
     return data.currentPeriod.dataPoints.map((point) => ({
       date: point.date,
-      formattedDate: new Date(point.date).toLocaleDateString(localeCode, {
-        month: 'short',
-        day: 'numeric',
-      }),
+      formattedDate: DateTime.fromISO(point.date, { zone: 'utc' })
+        .setLocale(localeCode)
+        .toLocaleString({ month: 'short', day: 'numeric' }),
       revenue: point.revenue,
       orders: point.orders,
     }))
@@ -148,12 +148,9 @@ export function OrgRevenueTrendsChart({ data, isLoading, formatCurrency }: OrgRe
                       if (typeof value === 'string' && value.includes(' ')) {
                         return value
                       }
-                      const date = new Date(value)
-                      return date.toLocaleDateString(localeCode, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                      return DateTime.fromISO(value as string, { zone: 'utc' })
+                        .setLocale(localeCode)
+                        .toLocaleString({ month: 'short', day: 'numeric', year: 'numeric' })
                     }}
                     formatter={(value: any) =>
                       activeMetric === 'revenue'

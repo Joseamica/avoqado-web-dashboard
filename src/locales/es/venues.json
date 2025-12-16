@@ -188,11 +188,31 @@
       "deleteSuccess": "Establecimiento eliminado",
       "deleteSuccessDesc": "El establecimiento se ha eliminado correctamente.",
       "deleteError": "Error al eliminar establecimiento",
-      "deleteErrorTitle": "Error de eliminación"
+      "deleteErrorTitle": "Error de eliminación",
+      "suspendSuccess": "Establecimiento suspendido",
+      "suspendSuccessDesc": "El establecimiento ha sido suspendido correctamente.",
+      "suspendError": "Error al suspender establecimiento",
+      "suspendErrorTitle": "Error de suspensión"
+    },
+    "dangerZone": {
+      "title": "Zona de Peligro",
+      "description": "Las acciones en esta sección son irreversibles. Procede con precaución.",
+      "deleteButton": "Eliminar Establecimiento",
+      "deleteDescription": "Esta acción eliminará permanentemente este establecimiento y todos sus datos asociados.",
+      "delete": "Eliminar",
+      "suspendButton": "Suspender Establecimiento",
+      "suspendDescription": "Suspender temporalmente. El personal no podrá iniciar sesión y no se procesarán pagos.",
+      "suspend": "Suspender"
     },
     "deleteDialog": {
       "title": "Eliminar Establecimiento",
       "description": "¿Estás seguro de que deseas eliminar {{venueName}}? Escribe \"delete {{venueName}}\" para confirmar. Esta acción no se puede deshacer."
+    },
+    "suspendDialog": {
+      "title": "Suspender Establecimiento",
+      "description": "¿Estás seguro de suspender {{venueName}}? El personal no podrá iniciar sesión y no se procesarán pagos hasta que reactives el establecimiento.",
+      "reasonPlaceholder": "Razón de la suspensión (mínimo 10 caracteres)",
+      "reasonLabel": "Motivo de la suspensión"
     },
     "kycRejected": {
       "title": "Documentación KYC Rechazada",
@@ -203,5 +223,19 @@
     "notFound": "Establecimiento no encontrado",
     "notFoundDesc": "El establecimiento que buscas no existe o ha sido eliminado.",
     "noLogo": "Sin logo"
+  },
+  "venueSuspended": {
+    "title": "Establecimiento Suspendido",
+    "adminTitle": "Suspendido por Administrador",
+    "closedTitle": "Establecimiento Cerrado",
+    "description": "Este establecimiento ha sido suspendido temporalmente.",
+    "adminDescription": "Este establecimiento ha sido suspendido por el administrador de la plataforma.",
+    "closedDescription": "Este establecimiento ha sido cerrado permanentemente.",
+    "reason": "Motivo:",
+    "contactSupport": "Contactar Soporte",
+    "reactivate": "Reactivar Establecimiento",
+    "reactivating": "Reactivando...",
+    "selectOther": "Seleccionar otro establecimiento",
+    "helpText": "¿Necesitas ayuda? Contáctanos a través de WhatsApp o email."
   }
 }

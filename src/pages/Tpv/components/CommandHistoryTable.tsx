@@ -11,8 +11,9 @@ import {
   Send,
   XCircle,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { es, enUS } from 'date-fns/locale'
+import { DateTime } from 'luxon'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,8 @@ interface CommandHistoryTableProps {
 
 export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTableProps) {
   const { t, i18n } = useTranslation(['tpv', 'common'])
-  const locale = i18n.language === 'es' ? es : enUS
+  const { venueTimezone, formatDateTime } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
 
   // Pagination state
   const [page, setPage] = useState(1)
@@ -189,7 +191,10 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   // Format time ago
   const formatTimeAgo = (date: string) => {
     try {
-      return formatDistanceToNow(new Date(date), { addSuffix: true, locale })
+      return DateTime.fromISO(date, { zone: 'utc' })
+        .setZone(venueTimezone)
+        .setLocale(localeCode)
+        .toRelative()
     } catch {
       return '-'
     }
@@ -231,7 +236,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
               {formatTimeAgo(command.createdAt)}
             </TooltipTrigger>
             <TooltipContent>
-              <p>{new Date(command.createdAt).toLocaleString()}</p>
+              <p>{formatDateTime(command.createdAt)}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

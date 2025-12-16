@@ -27,14 +27,14 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
     venueId: '',
     serialNumber: '',
     name: '',
-    type: 'TPV_ANDROID' as TerminalType,
+    type: TerminalType.TPV_ANDROID,
     brand: 'PAX',
     model: 'A910S',
     assignedMerchantIds: [] as string[],
     generateActivationCode: true,
   })
 
-  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: getAllVenues })
+  const { data: venues = [] } = useQuery({ queryKey: ['venues'], queryFn: () => getAllVenues() })
 
   // Superadmin can assign ANY merchant account to ANY terminal (cross-venue)
   const { data: merchantAccounts = [] } = useQuery({
@@ -59,7 +59,7 @@ export const TerminalDialog: React.FC<TerminalDialogProps> = ({ open, onOpenChan
         venueId: '',
         serialNumber: '',
         name: '',
-        type: 'TPV_ANDROID',
+        type: TerminalType.TPV_ANDROID,
         brand: 'PAX',
         model: 'A910S',
         assignedMerchantIds: [],

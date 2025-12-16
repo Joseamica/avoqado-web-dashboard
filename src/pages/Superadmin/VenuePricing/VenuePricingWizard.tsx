@@ -152,19 +152,19 @@ export const VenuePricingWizard: React.FC<VenuePricingWizardProps> = ({
       number: 1,
       title: 'Select Venue',
       description: 'Choose venue to configure',
-      status: currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming',
+      status: (currentStep > 1 ? 'completed' : currentStep === 1 ? 'current' : 'upcoming') as 'completed' | 'current' | 'upcoming',
     },
     {
       number: 2,
       title: 'Configure Merchants',
       description: 'Assign payment processors',
-      status: currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'upcoming',
+      status: (currentStep > 2 ? 'completed' : currentStep === 2 ? 'current' : 'upcoming') as 'completed' | 'current' | 'upcoming',
     },
     {
       number: 3,
       title: 'Set Pricing',
       description: 'Configure rates',
-      status: currentStep >= 3 ? 'current' : 'upcoming',
+      status: (currentStep >= 3 ? 'current' : 'upcoming') as 'completed' | 'current' | 'upcoming',
     },
   ]
 

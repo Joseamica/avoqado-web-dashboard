@@ -47,6 +47,7 @@ export interface MerchantAccount {
   _count?: {
     costStructures: number
     venueConfigs: number
+    terminals: number
   }
 }
 
@@ -56,6 +57,23 @@ export interface MerchantAccountCredentials {
   customerId?: string
   terminalId?: string
   [key: string]: any
+}
+
+// Simplified type for dropdown lists
+export interface MerchantAccountListItem {
+  id: string
+  externalMerchantId: string
+  displayName: string | null
+  alias: string | null
+  providerId: string
+  providerName: string
+  active: boolean
+  environment: 'SANDBOX' | 'PRODUCTION' | null // Blumon environment
+  hasCredentials?: boolean
+  _count?: {
+    costStructures: number
+    venueConfigs: number
+  }
 }
 
 export interface ProviderCostStructure {
@@ -212,10 +230,7 @@ export interface ProviderComparison {
 /**
  * Get all payment providers
  */
-export async function getAllPaymentProviders(filters?: {
-  type?: string
-  active?: boolean
-}): Promise<PaymentProvider[]> {
+export async function getAllPaymentProviders(filters?: { type?: string; active?: boolean }): Promise<PaymentProvider[]> {
   const response = await api.get('/api/v1/dashboard/superadmin/payment-providers', { params: filters })
   return response.data.data
 }
@@ -248,7 +263,7 @@ export async function createPaymentProvider(data: {
  */
 export async function updatePaymentProvider(
   id: string,
-  data: Partial<Omit<PaymentProvider, 'id' | 'createdAt' | 'updatedAt'>>
+  data: Partial<Omit<PaymentProvider, 'id' | 'createdAt' | 'updatedAt'>>,
 ): Promise<PaymentProvider> {
   const response = await api.put(`/api/v1/dashboard/superadmin/payment-providers/${id}`, data)
   return response.data.data
@@ -274,21 +289,19 @@ export async function deletePaymentProvider(id: string): Promise<void> {
 /**
  * Get all merchant accounts
  */
-export async function getAllMerchantAccounts(filters?: {
-  providerId?: string
-  active?: boolean
-}): Promise<MerchantAccount[]> {
+export async function getAllMerchantAccounts(filters?: { providerId?: string; active?: boolean }): Promise<MerchantAccount[]> {
   const response = await api.get('/api/v1/dashboard/superadmin/merchant-accounts', { params: filters })
   return response.data.data
 }
 
 /**
  * Get merchant accounts list (simplified for dropdowns)
+ * Includes providerName and environment for better UX
  */
 export async function getMerchantAccountsList(filters?: {
   providerId?: string
   active?: boolean
-}): Promise<Pick<MerchantAccount, 'id' | 'displayName' | 'alias'>[]> {
+}): Promise<MerchantAccountListItem[]> {
   const response = await api.get('/api/v1/dashboard/superadmin/merchant-accounts/list', { params: filters })
   return response.data.data
 }
@@ -334,6 +347,10 @@ export async function createMerchantAccount(data: {
  * - Backend automatically fetches: OAuth tokens, RSA keys, DUKPT keys
  * - Credentials are encrypted before storage
  *
+ * MCC Lookup Priority for auto-creating ProviderCostStructure:
+ * 1. PRIORITY: venue.type (automatically fetched from terminal's venue)
+ * 2. FALLBACK: businessCategory (manual giro input)
+ *
  * @param data Blumon device information
  * @returns Created merchant account with auto-fetched credentials
  */
@@ -343,6 +360,8 @@ export async function autoFetchBlumonCredentials(data: {
   model: string
   displayName?: string
   environment?: 'SANDBOX' | 'PRODUCTION'
+  businessCategory?: string // FALLBACK: Manual giro for MCC lookup (venue.type is auto-detected)
+  skipCostStructure?: boolean // If true, skip automatic cost structure creation (user will configure later)
 }): Promise<{
   id: string
   serialNumber: string
@@ -350,6 +369,31 @@ export async function autoFetchBlumonCredentials(data: {
   displayName: string
   blumonEnvironment: string
   dukptKeysAvailable: boolean
+  alreadyExists?: boolean // True if account already existed
+  autoAttached?: {
+    terminalIds: string[]
+    terminals: Array<{ id: string; name: string | null }>
+    count: number
+  }
+  costStructure?: {
+    id: string
+    debitRate: string
+    creditRate: string
+    amexRate: string
+    internationalRate: string
+  } | null
+  mccLookup?: {
+    found: boolean
+    mcc: string | null
+    familia: string | null
+    rates: {
+      credito: number
+      debito: number
+      internacional: number
+      amex: number
+    } | null
+    confidence: number
+  } | null
 }> {
   const response = await api.post('/api/v1/superadmin/merchant-accounts/blumon/auto-fetch', data)
   return response.data.data
@@ -368,7 +412,7 @@ export async function updateMerchantAccount(
     displayOrder?: number
     credentials?: Partial<MerchantAccountCredentials>
     providerConfig?: any
-  }
+  },
 ): Promise<MerchantAccount> {
   const response = await api.put(`/api/v1/dashboard/superadmin/merchant-accounts/${id}`, data)
   return response.data.data
@@ -389,6 +433,32 @@ export async function deleteMerchantAccount(id: string): Promise<void> {
   await api.delete(`/api/v1/dashboard/superadmin/merchant-accounts/${id}`)
 }
 
+/**
+ * Get terminals that have a merchant account assigned
+ */
+export interface TerminalWithVenue {
+  id: string
+  name: string
+  serialNumber: string
+  venue: {
+    id: string
+    name: string
+    slug: string
+  }
+}
+
+export async function getTerminalsByMerchantAccount(merchantAccountId: string): Promise<TerminalWithVenue[]> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/merchant-accounts/${merchantAccountId}/terminals`)
+  return response.data.data
+}
+
+/**
+ * Remove merchant account from a terminal
+ */
+export async function removeMerchantFromTerminal(merchantAccountId: string, terminalId: string): Promise<void> {
+  await api.delete(`/api/v1/dashboard/superadmin/merchant-accounts/${merchantAccountId}/terminals/${terminalId}`)
+}
+
 // ===== PROVIDER COST STRUCTURE API FUNCTIONS =====
 
 /**
@@ -400,6 +470,16 @@ export async function getProviderCostStructures(filters?: {
 }): Promise<ProviderCostStructure[]> {
   const response = await api.get('/api/v1/dashboard/superadmin/provider-cost-structures', { params: filters })
   return response.data.data
+}
+
+/**
+ * Get provider cost structures by merchant account ID
+ * Convenience wrapper for getProviderCostStructures with merchantAccountId filter
+ */
+export async function getProviderCostStructuresByMerchantAccount(
+  merchantAccountId: string,
+): Promise<ProviderCostStructure[]> {
+  return getProviderCostStructures({ merchantAccountId })
 }
 
 /**
@@ -442,7 +522,7 @@ export async function createProviderCostStructure(data: {
  */
 export async function updateProviderCostStructure(
   id: string,
-  data: Partial<Omit<ProviderCostStructure, 'id' | 'createdAt' | 'updatedAt' | 'merchantAccount'>>
+  data: Partial<Omit<ProviderCostStructure, 'id' | 'createdAt' | 'updatedAt' | 'merchantAccount'>>,
 ): Promise<ProviderCostStructure> {
   const response = await api.put(`/api/v1/dashboard/superadmin/provider-cost-structures/${id}`, data)
   return response.data.data
@@ -512,7 +592,7 @@ export async function updateVenuePaymentConfig(
     tertiaryAccountId?: string | null
     routingRules?: any
     preferredProcessor?: string
-  }
+  },
 ): Promise<VenuePaymentConfig> {
   const response = await api.put(`/api/v1/dashboard/superadmin/venue-pricing/config/${venueId}`, data)
   return response.data.data
@@ -529,15 +609,34 @@ export async function deleteVenuePaymentConfig(venueId: string): Promise<void> {
  * Legacy function - kept for compatibility
  * Use getVenuePaymentConfig(venueId) instead
  */
-export async function getVenuePaymentConfigs(filters?: {
-  venueId?: string
-}): Promise<VenuePaymentConfig[]> {
+export async function getVenuePaymentConfigs(filters?: { venueId?: string }): Promise<VenuePaymentConfig[]> {
   if (filters?.venueId) {
     const config = await getVenuePaymentConfig(filters.venueId)
     return config ? [config] : []
   }
   // Backend doesn't support listing all configs, return empty array
   return []
+}
+
+/**
+ * Get all venue payment configs that reference a specific merchant account
+ * This is useful for dependency checking before deleting a merchant account
+ * Note: This requires a backend endpoint that supports this query
+ */
+export async function getVenueConfigsByMerchantAccount(
+  merchantAccountId: string,
+): Promise<(VenuePaymentConfig & { accountType: string })[]> {
+  try {
+    const response = await api.get(`/api/v1/dashboard/superadmin/venue-pricing/configs-by-merchant/${merchantAccountId}`)
+    return response.data.data
+  } catch (error: any) {
+    // If endpoint doesn't exist yet, return empty array
+    if (error.response?.status === 404) {
+      console.warn('getVenueConfigsByMerchantAccount endpoint not implemented yet')
+      return []
+    }
+    throw error
+  }
 }
 
 /**
@@ -565,7 +664,7 @@ export async function getVenuePricingStructure(id: string): Promise<VenuePricing
  */
 export async function getActivePricingStructure(
   venueId: string,
-  accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
+  accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY',
 ): Promise<VenuePricingStructure | null> {
   try {
     const response = await api.get(`/api/v1/dashboard/superadmin/venue-pricing/structures/active/${venueId}/${accountType}`)
@@ -603,7 +702,7 @@ export async function createVenuePricingStructure(data: {
  */
 export async function updateVenuePricingStructure(
   id: string,
-  data: Partial<Omit<VenuePricingStructure, 'id' | 'venueId' | 'createdAt' | 'updatedAt'>>
+  data: Partial<Omit<VenuePricingStructure, 'id' | 'venueId' | 'createdAt' | 'updatedAt'>>,
 ): Promise<VenuePricingStructure> {
   const response = await api.put(`/api/v1/dashboard/superadmin/venue-pricing/structures/${id}`, data)
   return response.data.data
@@ -653,7 +752,7 @@ export async function createVenuePaymentConfigByVenueId(
     tertiaryAccountId?: string
     routingRules?: any
     preferredProcessor?: string
-  }
+  },
 ): Promise<VenuePaymentConfig> {
   const response = await api.post(`/api/v1/dashboard/venues/${venueId}/payment-config`, data)
   return response.data.data
@@ -671,7 +770,7 @@ export async function updateVenuePaymentConfigByVenueId(
     tertiaryAccountId?: string
     routingRules?: any
     preferredProcessor?: string
-  }
+  },
 ): Promise<VenuePaymentConfig> {
   const response = await api.put(`/api/v1/dashboard/venues/${venueId}/payment-config/${configId}`, data)
   return response.data.data
@@ -688,7 +787,7 @@ export async function deleteVenuePaymentConfigByVenueId(venueId: string, configI
  * Get merchant accounts for a specific venue (venue-scoped)
  */
 export async function getVenueMerchantAccountsByVenueId(
-  venueId: string
+  venueId: string,
 ): Promise<(MerchantAccount & { accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY' })[]> {
   const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-config/merchant-accounts`)
   return response.data.data
@@ -705,9 +804,7 @@ export async function getVenuePricingStructuresByVenueId(venueId: string): Promi
 /**
  * Get cost structures for a specific venue's merchant accounts (venue-scoped)
  */
-export async function getVenueCostStructuresByVenueId(
-  venueId: string
-): Promise<
+export async function getVenueCostStructuresByVenueId(venueId: string): Promise<
   (ProviderCostStructure & {
     accountType: 'PRIMARY' | 'SECONDARY' | 'TERTIARY'
     merchantAccount: {
@@ -721,15 +818,44 @@ export async function getVenueCostStructuresByVenueId(
   return response.data.data
 }
 
+// ===== MCC LOOKUP API FUNCTIONS =====
+
+export interface MccLookupResult {
+  found: boolean
+  mcc: string | null
+  familia: string | null
+  rates: {
+    credito: number
+    debito: number
+    internacional: number
+    amex: number
+  } | null
+  confidence: number
+  matchType?: string
+  matchedTerm?: string
+  nota?: string
+}
+
+/**
+ * Get MCC rate suggestion for a business name
+ * Uses Blumon MCC lookup service to find rates based on business category
+ *
+ * @param businessName - Business name or category (e.g., "Restaurante", "Gimnasio")
+ * @returns MCC lookup result with rates
+ */
+export async function getMccRateSuggestion(businessName: string): Promise<MccLookupResult> {
+  const response = await api.get('/api/v1/superadmin/merchant-accounts/mcc-lookup', {
+    params: { businessName },
+  })
+  return response.data.data
+}
+
 // ===== PAYMENT ANALYTICS API FUNCTIONS =====
 
 /**
  * Get profit metrics
  */
-export async function getProfitMetrics(params?: {
-  startDate?: string
-  endDate?: string
-}): Promise<ProfitMetrics> {
+export async function getProfitMetrics(params?: { startDate?: string; endDate?: string }): Promise<ProfitMetrics> {
   const response = await api.get('/api/v1/dashboard/superadmin/payment-analytics/profit-metrics', { params })
   return response.data.data
 }
@@ -742,7 +868,7 @@ export async function getVenueProfitMetrics(
   params?: {
     startDate?: string
     endDate?: string
-  }
+  },
 ): Promise<VenueProfitMetrics> {
   const response = await api.get(`/api/v1/dashboard/superadmin/payment-analytics/venue/${venueId}`, { params })
   return response.data.data
@@ -763,10 +889,7 @@ export async function getProfitTimeSeries(params?: {
 /**
  * Get provider comparison
  */
-export async function getProviderComparison(params?: {
-  startDate?: string
-  endDate?: string
-}): Promise<ProviderComparison> {
+export async function getProviderComparison(params?: { startDate?: string; endDate?: string }): Promise<ProviderComparison> {
   const response = await api.get('/api/v1/dashboard/superadmin/payment-analytics/provider-comparison', { params })
   return response.data.data
 }
@@ -774,12 +897,86 @@ export async function getProviderComparison(params?: {
 /**
  * Export profit data
  */
-export async function exportProfitData(params?: {
-  startDate?: string
-  endDate?: string
-  format?: 'json' | 'csv'
-}): Promise<any> {
+export async function exportProfitData(params?: { startDate?: string; endDate?: string; format?: 'json' | 'csv' }): Promise<any> {
   const response = await api.get('/api/v1/dashboard/superadmin/payment-analytics/export', { params })
+  return response.data.data
+}
+
+// ===== PAYMENT READINESS TYPES & API =====
+
+export interface PaymentReadinessChecklistItem {
+  status: 'ok' | 'pending' | 'missing' | 'default'
+  details?: string
+}
+
+export interface TerminalInfo {
+  id: string
+  serialNumber: string | null
+  name: string
+  brand: string | null
+  model: string | null
+  assignedMerchantIds: string[]
+}
+
+export interface MerchantAccountInfo {
+  id: string
+  displayName: string | null
+  providerId: string
+  blumonSerialNumber: string | null
+  clabeNumber: string | null
+}
+
+export interface PaymentReadinessResponse {
+  ready: boolean
+  venueId: string
+  venueSlug: string
+  venueName: string
+  venueType: string
+
+  checklist: {
+    kycApproved: PaymentReadinessChecklistItem
+    terminalRegistered: PaymentReadinessChecklistItem & { terminals?: TerminalInfo[] }
+    merchantAccountCreated: PaymentReadinessChecklistItem & { account?: MerchantAccountInfo }
+    terminalMerchantLinked: PaymentReadinessChecklistItem
+    venuePaymentConfigured: PaymentReadinessChecklistItem
+    pricingStructureSet: PaymentReadinessChecklistItem & { isDefault?: boolean }
+    providerCostStructureSet: PaymentReadinessChecklistItem
+    clabeProvided: PaymentReadinessChecklistItem & { masked?: string }
+  }
+
+  blockingItems: string[]
+  nextAction: string
+  canProcessPayments: boolean
+}
+
+export interface MultipleVenuesPaymentReadinessResponse {
+  ready: PaymentReadinessResponse[]
+  pending: PaymentReadinessResponse[]
+  summary: {
+    total: number
+    ready: number
+    pending: number
+  }
+}
+
+/**
+ * Get payment readiness status for a specific venue
+ * Backend endpoint: GET /api/v1/dashboard/venues/:venueId/payment-config/readiness
+ */
+export async function getVenuePaymentReadiness(venueId: string): Promise<PaymentReadinessResponse> {
+  const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payment-config/readiness`)
+  return response.data.data
+}
+
+/**
+ * Get payment readiness status for multiple venues (superadmin)
+ * Backend endpoint: GET /api/v1/dashboard/superadmin/payment-readiness
+ */
+export async function getMultipleVenuesPaymentReadiness(
+  venueIds?: string[],
+): Promise<MultipleVenuesPaymentReadinessResponse> {
+  const params = venueIds ? { venueIds: venueIds.join(',') } : undefined
+  const response = await api.get('/api/v1/dashboard/superadmin/payment-readiness', { params })
   return response.data.data
 }
 
@@ -803,9 +1000,12 @@ export const paymentProviderAPI = {
   updateMerchantAccount,
   toggleMerchantAccountStatus,
   deleteMerchantAccount,
+  getTerminalsByMerchantAccount,
+  removeMerchantFromTerminal,
 
   // Provider Cost Structures
   getProviderCostStructures,
+  getProviderCostStructuresByMerchantAccount,
   getProviderCostStructure,
   getActiveCostStructure,
   createProviderCostStructure,
@@ -816,6 +1016,7 @@ export const paymentProviderAPI = {
   // Venue Pricing (Superadmin Global)
   getVenuePaymentConfigs,
   getVenuePaymentConfig,
+  getVenueConfigsByMerchantAccount,
   createVenuePaymentConfig,
   updateVenuePaymentConfig,
   deleteVenuePaymentConfig,
@@ -842,4 +1043,11 @@ export const paymentProviderAPI = {
   getProfitTimeSeries,
   getProviderComparison,
   exportProfitData,
+
+  // Payment Readiness
+  getVenuePaymentReadiness,
+  getMultipleVenuesPaymentReadiness,
+
+  // MCC Lookup
+  getMccRateSuggestion,
 }

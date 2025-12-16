@@ -19,7 +19,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
 import { createModifierGroup as createModifierGroupService, getProducts, assignModifierGroupToProduct } from '@/services/menu.service'
-import DnDMultipleSelector from '@/components/draggable-multi-select'
+import DnDMultipleSelector, { Option } from '@/components/draggable-multi-select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useQuery } from '@tanstack/react-query'
 
@@ -582,7 +582,7 @@ export default function CreateModifierGroup() {
                               }))
                             : []
                         }
-                        value={field.value || []}
+                        value={(field.value || []) as Option[]}
                         onChange={field.onChange}
                       />
                     </FormControl>

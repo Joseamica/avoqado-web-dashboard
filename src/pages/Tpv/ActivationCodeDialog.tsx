@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format } from 'date-fns'
+import { useVenueDateTime } from '@/utils/datetime'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ interface ActivationCodeDialogProps {
 export function ActivationCodeDialog({ open, onOpenChange, activationData }: ActivationCodeDialogProps) {
   const { t } = useTranslation('tpv')
   const { toast } = useToast()
+  const { formatDate } = useVenueDateTime()
   const [copied, setCopied] = useState(false)
 
   const handleCopyCode = async () => {
@@ -56,7 +57,6 @@ export function ActivationCodeDialog({ open, onOpenChange, activationData }: Act
 
   if (!activationData) return null
 
-  const expiryDate = new Date(activationData.expiresAt)
   const daysUntilExpiry = Math.ceil(activationData.expiresIn / (24 * 60 * 60))
 
   return (
@@ -93,7 +93,7 @@ export function ActivationCodeDialog({ open, onOpenChange, activationData }: Act
               <div className="mt-4 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t('activation.expiresAt')}:</span>
-                  <span className="text-sm font-medium">{format(expiryDate, 'PPP')}</span>
+                  <span className="text-sm font-medium">{formatDate(activationData.expiresAt)}</span>
                 </div>
                 <Badge variant="outline" className="w-full justify-center">
                   {t('activation.expiresIn', { days: daysUntilExpiry })}

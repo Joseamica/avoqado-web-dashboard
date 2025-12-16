@@ -21,6 +21,7 @@ import { TimezoneCombobox } from '@/components/timezone-combobox'
 import * as costManagementAPI from '@/services/cost-management.service'
 import { Building, CreditCard, DollarSign, Calculator, Info } from 'lucide-react'
 import { BusinessType } from '@/types'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface EnhancedAddVenueDialogProps {
   onClose: () => void
@@ -67,7 +68,8 @@ interface VenueFormData {
 }
 
 export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDialogProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const localeCode = getIntlLocale(i18n.language)
   const form = useForm<VenueFormData>({
     defaultValues: {
       name: '',
@@ -254,7 +256,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat(localeCode, {
       style: 'currency',
       currency: 'MXN',
     }).format(amount)

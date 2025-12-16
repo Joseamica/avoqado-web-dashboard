@@ -242,7 +242,7 @@ export default function Overview() {
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
   useMenuSocketEvents(venueId, {
-    onMenuItemAvailabilityChanged: () => {
+    onAvailabilityChanged: () => {
       // Invalidate products query when inventory changes
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     },

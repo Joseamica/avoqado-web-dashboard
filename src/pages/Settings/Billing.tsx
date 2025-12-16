@@ -30,8 +30,7 @@ import {
   type VenueFeatureStatus,
 } from '@/services/features.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { AlertCircle, Calendar, CheckCircle2, CreditCard, Download, Filter, Search, Sparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,6 +42,7 @@ export default function Billing() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { socket } = useSocket()
+  const { formatDate: formatDateVenue } = useVenueDateTime()
   const [cancelingFeatureId, setCancelingFeatureId] = useState<string | null>(null)
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null)
   const [subscribingFeatureCode, setSubscribingFeatureCode] = useState<string | null>(null)
@@ -326,11 +326,10 @@ export default function Billing() {
     }).format(amount / 100) // Stripe amounts are in cents
   }
 
-  // Format date
+  // Format date using venue timezone
   const formatDate = (date: string | Date) => {
-    return format(new Date(date), 'PPP', {
-      locale: i18n.language === 'es' ? es : undefined,
-    })
+    const dateStr = typeof date === 'string' ? date : date.toISOString()
+    return formatDateVenue(dateStr)
   }
 
   // Get badge variant for subscription status

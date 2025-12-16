@@ -11,11 +11,13 @@ import { paymentProviderAPI, type ProviderCostStructure } from '@/services/payme
 import { useTranslation } from 'react-i18next'
 import { ProviderCostStructureDialog } from './components/ProviderCostStructureDialog'
 import { useToast } from '@/hooks/use-toast'
+import { useVenueDateTime } from '@/utils/datetime'
 
 const CostStructures: React.FC = () => {
   const { t } = useTranslation('superadmin')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatDate } = useVenueDateTime()
   const { data: costStructures = [], isLoading } = useQuery({
     queryKey: ['provider-cost-structures'],
     queryFn: () => paymentProviderAPI.getProviderCostStructures(),
@@ -128,7 +130,7 @@ const CostStructures: React.FC = () => {
     {
       accessorKey: 'effectiveFrom',
       header: t('costStructures.columns.effectiveFrom'),
-      cell: ({ row }) => new Date(row.original.effectiveFrom).toLocaleDateString(),
+      cell: ({ row }) => formatDate(row.original.effectiveFrom),
     },
     {
       accessorKey: 'debitRate',

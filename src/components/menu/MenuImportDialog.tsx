@@ -142,8 +142,6 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
     try {
       // Parse CSV
       const { data, isAdvanced: isAdvancedTemplate } = await parseCSV(selectedFile)
-      setCsvData(data)
-      setIsAdvanced(isAdvancedTemplate)
 
       // Validate CSV structure
       const validation = validateCSV(data)

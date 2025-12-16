@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Currency } from '@/utils/currency'
 import { VenuePricingStructure } from '@/services/paymentProvider.service'
-import { format } from 'date-fns'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface PricingStructuresDisplayProps {
   pricingStructures: VenuePricingStructure[]
@@ -25,6 +25,7 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
   showActions = true,
 }) => {
   const { t } = useTranslation(['payment', 'common'])
+  const { formatDate } = useVenueDateTime()
 
   // Group by account type
   const groupedPricing = {
@@ -95,8 +96,8 @@ export const PricingStructuresDisplay: React.FC<PricingStructuresDisplayProps> =
 
               {/* Effective dates */}
               <div className="text-xs text-muted-foreground">
-                {t('venuePaymentConfig.effectiveFrom')}: {format(new Date(pricing.effectiveFrom), 'MMM d, yyyy')}
-                {pricing.effectiveTo && ` - ${format(new Date(pricing.effectiveTo), 'MMM d, yyyy')}`}
+                {t('venuePaymentConfig.effectiveFrom')}: {formatDate(pricing.effectiveFrom)}
+                {pricing.effectiveTo && ` - ${formatDate(pricing.effectiveTo)}`}
               </div>
             </div>
           ) : (

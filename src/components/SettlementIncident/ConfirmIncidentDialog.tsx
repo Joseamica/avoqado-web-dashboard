@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -14,6 +12,8 @@ import { CalendarIcon, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { SettlementIncident, confirmIncident } from '@/services/settlementIncident.service'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface ConfirmIncidentDialogProps {
   incident: SettlementIncident | null
@@ -23,7 +23,9 @@ interface ConfirmIncidentDialogProps {
 }
 
 export function ConfirmIncidentDialog({ incident, venueId, open, onOpenChange }: ConfirmIncidentDialogProps) {
-  const { t } = useTranslation(['settlementIncidents', 'common'])
+  const { t, i18n } = useTranslation(['settlementIncidents', 'common'])
+  const { formatDate } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -76,9 +78,8 @@ export function ConfirmIncidentDialog({ incident, venueId, open, onOpenChange }:
 
   if (!incident) return null
 
-  const estimatedDate = new Date(incident.estimatedSettlementDate)
-  const formattedEstimatedDate = format(estimatedDate, 'PPP', { locale: es })
-  const formattedAmount = new Intl.NumberFormat('es-MX', {
+  const formattedEstimatedDate = formatDate(incident.estimatedSettlementDate)
+  const formattedAmount = new Intl.NumberFormat(localeCode, {
     style: 'currency',
     currency: 'MXN',
   }).format(Number(incident.amount))
@@ -149,7 +150,7 @@ export function ConfirmIncidentDialog({ incident, venueId, open, onOpenChange }:
                     className={cn('w-full justify-start text-left font-normal', !actualDate && 'text-muted-foreground')}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {actualDate ? format(actualDate, 'PPP', { locale: es }) : t('confirmDialog.selectDate')}
+                    {actualDate ? formatDate(actualDate) : t('confirmDialog.selectDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">

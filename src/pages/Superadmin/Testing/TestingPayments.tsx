@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { DateTime } from 'luxon'
 import { useAuth } from '@/context/AuthContext'
 import api from '@/api'
 import { Button } from '@/components/ui/button'
@@ -15,9 +16,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { LucideIcon } from 'lucide-react'
 import { FlaskConical, Receipt, Trash2, CheckCircle, AlertCircle, ExternalLink, Loader2, Banknote, CreditCard } from 'lucide-react'
-import { format } from 'date-fns'
 import { PaymentMethod } from '@/types'
 import { useToast } from '@/hooks/use-toast'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface TestPayment {
   id: string
@@ -60,7 +61,8 @@ const PAYMENT_METHODS: PaymentMethodOption[] = [
 ]
 
 export default function TestingPayments() {
-  const { t } = useTranslation('testing')
+  const { t, i18n } = useTranslation('testing')
+  const localeCode = getIntlLocale(i18n.language)
   const { allVenues } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -155,7 +157,7 @@ export default function TestingPayments() {
 
   const formatCurrency = (cents: string | number) => {
     const amount = typeof cents === 'string' ? parseFloat(cents) : cents
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat(localeCode, {
       style: 'currency',
       currency: 'MXN',
     }).format(amount)
@@ -399,7 +401,9 @@ export default function TestingPayments() {
                           </TableCell>
                           <TableCell>{getStatusBadge(payment.status)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
-                            {format(new Date(payment.createdAt), 'MMM dd, HH:mm')}
+                            {DateTime.fromISO(payment.createdAt, { zone: 'utc' })
+                              .setLocale(localeCode)
+                              .toLocaleString({ month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">

@@ -32,7 +32,7 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
   const [formData, setFormData] = useState({
     serialNumber: '',
     name: '',
-    type: 'TPV_ANDROID' as TerminalType,
+    type: TerminalType.TPV_ANDROID,
     brand: 'PAX',
     model: 'A910S',
     generateActivationCode: true,
@@ -44,7 +44,7 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
       setFormData({
         serialNumber: '',
         name: '',
-        type: 'TPV_ANDROID',
+        type: TerminalType.TPV_ANDROID,
         brand: 'PAX',
         model: 'A910S',
         generateActivationCode: true,
@@ -71,6 +71,11 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
               <p className="text-xs text-muted-foreground">
                 {t('tpv.superadmin.expiresIn7Days', { defaultValue: 'Expira en 7 días' })}
               </p>
+              {data.autoAttachedMerchants && data.autoAttachedMerchants.length > 0 && (
+                <p className="text-green-600 dark:text-green-400 text-sm">
+                  🔗 Auto-attached {data.autoAttachedMerchants.length} merchant(s)
+                </p>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -89,9 +94,12 @@ export const SuperadminTerminalDialog: React.FC<SuperadminTerminalDialogProps> =
           duration: 15000,
         })
       } else {
+        const autoAttachMsg = data.autoAttachedMerchants && data.autoAttachedMerchants.length > 0
+          ? ` 🔗 Auto-attached ${data.autoAttachedMerchants.length} merchant(s).`
+          : ''
         toast({
           title: t('tpv.superadmin.created', { defaultValue: '✅ Terminal creada' }),
-          description: t('tpv.superadmin.createdDesc', { defaultValue: 'La terminal se creó correctamente' })
+          description: t('tpv.superadmin.createdDesc', { defaultValue: 'La terminal se creó correctamente' }) + autoAttachMsg
         })
       }
 

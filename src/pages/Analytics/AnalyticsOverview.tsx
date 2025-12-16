@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { DateTime } from 'luxon'
 import { useSearchParams } from 'react-router-dom'
 import { fetchAnalyticsOverview, AnalyticsOverviewResponse } from '@/services/analytics.service'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +18,8 @@ export default function Overview() {
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const { t, i18n } = useTranslation('analytics')
-  const { venueId } = useCurrentVenue()
+  const { venueId, venue } = useCurrentVenue()
+  const venueTimezone = venue?.timezone || 'America/Mexico_City'
 
   const query = useMemo(() => {
     const timeRange = (sp.get('timeRange') as any) || undefined
@@ -107,7 +109,10 @@ export default function Overview() {
               </Badge>
               <span>
                 {t('refreshed', {
-                  date: new Date(data.meta.refreshedAt).toLocaleString(),
+                  date: DateTime.fromISO(data.meta.refreshedAt, { zone: 'utc' })
+                    .setZone(venueTimezone)
+                    .setLocale(getIntlLocale(i18n.language))
+                    .toLocaleString(DateTime.DATETIME_MED),
                 })}
               </span>
             </div>

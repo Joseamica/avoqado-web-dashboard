@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 
 import CustomerForm from './components/CustomerForm'
 
@@ -47,6 +48,7 @@ export default function Customers() {
 	const queryClient = useQueryClient()
 	const { t, i18n } = useTranslation('customers')
 	const { t: tCommon } = useTranslation()
+	const { formatDate } = useVenueDateTime()
 
 	// State
 	const [pagination, setPagination] = useState({
@@ -140,9 +142,9 @@ export default function Customers() {
 			if (diffDays === 1) return t('list.columns.lastVisit') + ': ' + tCommon('common.yesterday')
 			if (diffDays < 7) return `${diffDays} ${tCommon('common.daysAgo')}`
 			if (diffDays < 30) return `${Math.floor(diffDays / 7)} ${tCommon('common.weeksAgo')}`
-			return date.toLocaleDateString(getIntlLocale(i18n.language))
+			return formatDate(dateStr)
 		},
-		[i18n.language, t, tCommon]
+		[formatDate, t, tCommon]
 	)
 
 	// Column definitions

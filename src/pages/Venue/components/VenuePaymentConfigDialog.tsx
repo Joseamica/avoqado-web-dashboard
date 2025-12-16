@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { MerchantAccountDialog } from '@/pages/Superadmin/components/MerchantAccountDialog'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
-import { paymentProviderAPI, type VenuePaymentConfig } from '@/services/paymentProvider.service'
+import { paymentProviderAPI, type VenuePaymentConfig, type MerchantAccountListItem } from '@/services/paymentProvider.service'
+
+/**
+ * Format merchant account display name for dropdown
+ * Shows: "Display Name (Provider - Environment)" or "Display Name (Provider)"
+ */
+function formatAccountLabel(account: MerchantAccountListItem): string {
+  const name = account.displayName || account.alias || account.externalMerchantId
+  const env = account.environment ? ` - ${account.environment}` : ''
+  return `${name} (${account.providerName}${env})`
+}
 
 interface VenuePaymentConfigDialogProps {
   open: boolean
@@ -29,6 +39,8 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
   onSave,
 }) => {
   const { t } = useTranslation(['payment', 'common'])
+  const navigate = useNavigate()
+  const { slug } = useParams<{ slug: string }>()
   const [primaryAccountId, setPrimaryAccountId] = useState('')
   const [secondaryAccountId, setSecondaryAccountId] = useState('')
   const [tertiaryAccountId, setTertiaryAccountId] = useState('')
@@ -76,28 +88,9 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
     }
   }
 
-  const [merchantDialogOpen, setMerchantDialogOpen] = useState(false)
-  const queryClient = useQueryClient()
-
-  // Create merchant account mutation
-  const createAccountMutation = useMutation({
-    mutationFn: paymentProviderAPI.createMerchantAccount,
-    onSuccess: newAccount => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-accounts-list'] })
-      // Auto-select the new account
-      if (!primaryAccountId) {
-        setPrimaryAccountId(newAccount.id)
-      } else if (secondaryAccountId === 'none') {
-        setSecondaryAccountId(newAccount.id)
-      } else if (tertiaryAccountId === 'none') {
-        setTertiaryAccountId(newAccount.id)
-      }
-      setMerchantDialogOpen(false)
-    },
-  })
-
-  const handleSaveAccount = async (data: any) => {
-    await createAccountMutation.mutateAsync(data)
+  const handleCreateNew = () => {
+    onOpenChange(false)
+    navigate(`/venues/${slug}/merchant-accounts`)
   }
 
   return (
@@ -117,7 +110,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
                   <Label htmlFor="primaryAccount">
                     {t('venuePaymentConfig.primaryAccount')} <span className="text-destructive">*</span>
                   </Label>
-                  <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={() => setMerchantDialogOpen(true)}>
+                  <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={handleCreateNew}>
                     + {t('common:createNew')}
                   </Button>
                 </div>
@@ -128,7 +121,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
                   <SelectContent>
                     {accounts.map(account => (
                       <SelectItem key={account.id} value={account.id}>
-                        {account.displayName || account.alias}
+                        {formatAccountLabel(account)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -151,7 +144,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
                       .filter(a => a.id !== primaryAccountId)
                       .map(account => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.displayName || account.alias}
+                          {formatAccountLabel(account)}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -174,7 +167,7 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
                       .filter(a => a.id !== primaryAccountId && (secondaryAccountId === 'none' || a.id !== secondaryAccountId))
                       .map(account => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.displayName || account.alias}
+                          {formatAccountLabel(account)}
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -210,8 +203,6 @@ export const VenuePaymentConfigDialog: React.FC<VenuePaymentConfigDialogProps> =
           </form>
         </DialogContent>
       </Dialog>
-
-      <MerchantAccountDialog open={merchantDialogOpen} onOpenChange={setMerchantDialogOpen} onSave={handleSaveAccount} />
     </>
   )
 }

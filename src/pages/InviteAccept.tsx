@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { DateTime } from 'luxon'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,7 +61,7 @@ interface InvitationDetails {
 }
 
 export default function InviteAccept() {
-  const { t } = useTranslation(['inviteAccept', 'common'])
+  const { t, i18n } = useTranslation(['inviteAccept', 'common'])
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -370,7 +372,9 @@ export default function InviteAccept() {
             <CardTitle>{t('expiredTitle')}</CardTitle>
             <CardDescription>
               {t('expiredDescription', {
-                date: new Date(invitationDetails.expiresAt).toLocaleDateString(),
+                date: DateTime.fromISO(invitationDetails.expiresAt)
+                  .setLocale(getIntlLocale(i18n.language))
+                  .toLocaleString(DateTime.DATE_MED),
               })}
             </CardDescription>
           </CardHeader>

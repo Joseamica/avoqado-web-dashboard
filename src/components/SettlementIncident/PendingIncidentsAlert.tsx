@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,13 +9,17 @@ import { AlertCircle, Clock, DollarSign } from 'lucide-react'
 import { getVenueIncidents, SettlementIncident } from '@/services/settlementIncident.service'
 import { ConfirmIncidentDialog } from './ConfirmIncidentDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useVenueDateTime } from '@/utils/datetime'
+import { getIntlLocale } from '@/utils/i18n-locale'
 
 interface PendingIncidentsAlertProps {
   venueId: string
 }
 
 export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
-  const { t } = useTranslation(['settlementIncidents', 'common'])
+  const { t, i18n } = useTranslation(['settlementIncidents', 'common'])
+  const { formatDate } = useVenueDateTime()
+  const localeCode = getIntlLocale(i18n.language)
   const [selectedIncident, setSelectedIncident] = useState<SettlementIncident | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -57,14 +59,14 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
   }
 
   const totalPendingAmount = pendingIncidents.reduce((sum, incident) => sum + Number(incident.amount), 0)
-  const formattedTotalAmount = new Intl.NumberFormat('es-MX', {
+  const formattedTotalAmount = new Intl.NumberFormat(localeCode, {
     style: 'currency',
     currency: 'MXN',
   }).format(totalPendingAmount)
 
   return (
     <>
-      <Alert variant="warning" className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
         <AlertCircle className="h-5 w-5 text-orange-600" />
         <AlertTitle className="text-orange-900 dark:text-orange-100">
           {t('pendingAlert.title', { count: pendingIncidents.length })}
@@ -84,9 +86,8 @@ export function PendingIncidentsAlert({ venueId }: PendingIncidentsAlertProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           {pendingIncidents.map((incident) => {
-            const estimatedDate = new Date(incident.estimatedSettlementDate)
-            const formattedDate = format(estimatedDate, 'PPP', { locale: es })
-            const formattedAmount = new Intl.NumberFormat('es-MX', {
+            const formattedDate = formatDate(incident.estimatedSettlementDate)
+            const formattedAmount = new Intl.NumberFormat(localeCode, {
               style: 'currency',
               currency: 'MXN',
             }).format(Number(incident.amount))

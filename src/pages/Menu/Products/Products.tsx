@@ -6,7 +6,7 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
+import { useVenueDateTime } from '@/utils/datetime'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
@@ -44,9 +44,10 @@ import { AdjustStockDialog } from '@/components/AdjustStockDialog'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 
 export default function Products() {
-  const { t, i18n } = useTranslation('menu')
+  const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
+  const { formatDate } = useVenueDateTime()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
@@ -82,7 +83,7 @@ export default function Products() {
 
   // ✅ REAL-TIME: Listen to menu/inventory socket events for automatic badge updates
   useMenuSocketEvents(venueId, {
-    onMenuItemAvailabilityChanged: () => {
+    onAvailabilityChanged: () => {
       // Invalidate products query when inventory changes
       queryClient.invalidateQueries({ queryKey: ['products', venueId] })
     },
@@ -104,7 +105,7 @@ export default function Products() {
       if (product.inventoryMethod === 'QUANTITY') {
         const currentStock = Number(product.inventory?.currentStock ?? 0)
         // Use custom threshold if set, otherwise fall back to reorderPoint
-        const threshold = product.lowStockThreshold ?? Number(product.inventory?.reorderPoint ?? 10)
+        const threshold = product.lowStockThreshold ?? Number(product.inventory?.minimumStock ?? 10)
         return currentStock <= threshold
       }
 
@@ -397,10 +398,7 @@ export default function Products() {
         const updatedAt = cell.getValue() as string
         return (
           <span>
-            {new Date(updatedAt).toLocaleDateString(getIntlLocale(i18n.language), {
-              day: 'numeric',
-              month: 'numeric',
-            })}
+            {formatDate(updatedAt)}
           </span>
         )
       },

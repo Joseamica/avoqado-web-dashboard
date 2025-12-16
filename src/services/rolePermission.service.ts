@@ -21,7 +21,6 @@ export interface RoleHierarchyInfo {
   criticalPermissions: string[]
   defaultPermissions: Record<StaffRole, string[]>
   userRole: StaffRole
-  modifiableRoles: StaffRole[]
 }
 
 export interface UpdateRolePermissionsRequest {

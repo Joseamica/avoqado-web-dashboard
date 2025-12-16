@@ -1,0 +1,429 @@
+import { http, HttpResponse } from 'msw'
+
+const BASE_URL = 'http://localhost:3000'
+
+// ============================================================================
+// MOCK DATA FACTORIES
+// ============================================================================
+
+let merchantAccountIdCounter = 1
+let terminalIdCounter = 1
+let costStructureIdCounter = 1
+let venueConfigIdCounter = 1
+
+// In-memory stores for stateful testing
+export const mockStore = {
+  merchantAccounts: new Map<string, any>(),
+  terminals: new Map<string, any>(),
+  costStructures: new Map<string, any>(),
+  venueConfigs: new Map<string, any>(),
+  providers: new Map<string, any>(),
+
+  // Reset all stores
+  reset() {
+    this.merchantAccounts.clear()
+    this.terminals.clear()
+    this.costStructures.clear()
+    this.venueConfigs.clear()
+    merchantAccountIdCounter = 1
+    terminalIdCounter = 1
+    costStructureIdCounter = 1
+    venueConfigIdCounter = 1
+
+    // Initialize default provider
+    this.providers.set('blumon-provider-id', {
+      id: 'blumon-provider-id',
+      code: 'BLUMON',
+      name: 'Blumon PAX Payment Solutions',
+      type: 'PAYMENT_PROCESSOR',
+      countryCode: ['MX'],
+      active: true,
+      configSchema: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+  },
+}
+
+// Initialize with default provider
+mockStore.reset()
+
+export function createMockMerchantAccount(overrides: Partial<any> = {}) {
+  const id = `merchant-account-${merchantAccountIdCounter++}`
+  const account = {
+    id,
+    providerId: 'blumon-provider-id',
+    externalMerchantId: `blumon_${Date.now()}`,
+    alias: `test-account-${id}`,
+    displayName: `Cuenta Test ${merchantAccountIdCounter - 1}`,
+    active: true,
+    displayOrder: 1,
+    providerConfig: {},
+    hasCredentials: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    provider: {
+      id: 'blumon-provider-id',
+      code: 'BLUMON',
+      name: 'Blumon PAX Payment Solutions',
+      type: 'PAYMENT_PROCESSOR',
+    },
+    blumonSerialNumber: null,
+    blumonPosId: null,
+    blumonEnvironment: 'SANDBOX',
+    blumonMerchantId: null,
+    clabeNumber: null,
+    bankName: null,
+    accountHolder: null,
+    _count: {
+      costStructures: 0,
+      venueConfigs: 0,
+    },
+    ...overrides,
+  }
+  mockStore.merchantAccounts.set(id, account)
+  return account
+}
+
+export function createMockTerminal(venueId: string, overrides: Partial<any> = {}) {
+  const id = `terminal-${terminalIdCounter++}`
+  const terminal = {
+    id,
+    name: `Terminal ${terminalIdCounter - 1}`,
+    serialNumber: `SN${Date.now()}`,
+    type: 'PAX',
+    brand: 'PAX',
+    model: 'A920',
+    status: 'ACTIVE',
+    lastHeartbeat: new Date().toISOString(),
+    venueId,
+    assignedMerchantIds: [],
+    config: {},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  }
+  mockStore.terminals.set(id, terminal)
+  return terminal
+}
+
+export function createMockCostStructure(merchantAccountId: string, overrides: Partial<any> = {}) {
+  const id = `cost-structure-${costStructureIdCounter++}`
+  const structure = {
+    id,
+    providerId: 'blumon-provider-id',
+    merchantAccountId,
+    effectiveFrom: new Date().toISOString(),
+    effectiveTo: null,
+    debitRate: 1.68,
+    creditRate: 2.30,
+    amexRate: 3.00,
+    internationalRate: 3.30,
+    fixedCostPerTransaction: null,
+    monthlyFee: null,
+    active: true,
+    proposalReference: null,
+    notes: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    merchantAccount: mockStore.merchantAccounts.get(merchantAccountId) || null,
+    ...overrides,
+  }
+  mockStore.costStructures.set(id, structure)
+
+  // Update merchant account _count
+  const account = mockStore.merchantAccounts.get(merchantAccountId)
+  if (account) {
+    account._count = account._count || { costStructures: 0, venueConfigs: 0 }
+    account._count.costStructures++
+  }
+
+  return structure
+}
+
+export function createMockVenueConfig(merchantAccountId: string, venueId: string, overrides: Partial<any> = {}) {
+  const id = `venue-config-${venueConfigIdCounter++}`
+  const config = {
+    id,
+    merchantAccountId,
+    venueId,
+    paymentTypes: ['CARD_PRESENT', 'CARD_NOT_PRESENT'],
+    defaultForTypes: ['CARD_PRESENT'],
+    active: true,
+    priority: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    merchantAccount: mockStore.merchantAccounts.get(merchantAccountId) || null,
+    ...overrides,
+  }
+  mockStore.venueConfigs.set(id, config)
+
+  // Update merchant account _count
+  const account = mockStore.merchantAccounts.get(merchantAccountId)
+  if (account) {
+    account._count = account._count || { costStructures: 0, venueConfigs: 0 }
+    account._count.venueConfigs++
+  }
+
+  return config
+}
+
+// ============================================================================
+// API HANDLERS
+// ============================================================================
+
+export const handlers = [
+  // --------------------------------------------------------------------------
+  // Payment Providers
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/payment-providers`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: Array.from(mockStore.providers.values()),
+    })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/payment-providers/:id`, ({ params }) => {
+    const provider = mockStore.providers.get(params.id as string)
+    if (!provider) {
+      return HttpResponse.json({ success: false, error: 'Provider not found' }, { status: 404 })
+    }
+    return HttpResponse.json({ success: true, data: provider })
+  }),
+
+  // --------------------------------------------------------------------------
+  // Merchant Accounts
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: Array.from(mockStore.merchantAccounts.values()),
+    })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/list`, () => {
+    const accounts = Array.from(mockStore.merchantAccounts.values()).map(a => ({
+      id: a.id,
+      externalMerchantId: a.externalMerchantId,
+      displayName: a.displayName,
+      alias: a.alias,
+      providerId: a.providerId,
+      providerName: a.provider?.name,
+      active: a.active,
+      environment: a.blumonEnvironment,
+      hasCredentials: a.hasCredentials,
+      _count: a._count,
+    }))
+    return HttpResponse.json({ success: true, data: accounts })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/:id`, ({ params }) => {
+    const account = mockStore.merchantAccounts.get(params.id as string)
+    if (!account) {
+      return HttpResponse.json({ success: false, error: 'Merchant account not found' }, { status: 404 })
+    }
+    return HttpResponse.json({ success: true, data: account })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts`, async ({ request }) => {
+    const body = await request.json() as any
+    const account = createMockMerchantAccount(body)
+    return HttpResponse.json({ success: true, data: account }, { status: 201 })
+  }),
+
+  http.patch(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/:id`, async ({ params, request }) => {
+    const account = mockStore.merchantAccounts.get(params.id as string)
+    if (!account) {
+      return HttpResponse.json({ success: false, error: 'Merchant account not found' }, { status: 404 })
+    }
+    const body = await request.json() as any
+    Object.assign(account, body, { updatedAt: new Date().toISOString() })
+    return HttpResponse.json({ success: true, data: account })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/:id/toggle-status`, ({ params }) => {
+    const account = mockStore.merchantAccounts.get(params.id as string)
+    if (!account) {
+      return HttpResponse.json({ success: false, error: 'Merchant account not found' }, { status: 404 })
+    }
+    account.active = !account.active
+    account.updatedAt = new Date().toISOString()
+    return HttpResponse.json({ success: true, data: account })
+  }),
+
+  http.delete(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/:id`, ({ params }) => {
+    const account = mockStore.merchantAccounts.get(params.id as string)
+    if (!account) {
+      return HttpResponse.json({ success: false, error: 'Merchant account not found' }, { status: 404 })
+    }
+    mockStore.merchantAccounts.delete(params.id as string)
+    return HttpResponse.json({ success: true, data: { message: 'Merchant account deleted' } })
+  }),
+
+  // Blumon Auto-Fetch
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/merchant-accounts/blumon-autofetch`, async ({ request }) => {
+    const body = await request.json() as any
+    const account = createMockMerchantAccount({
+      blumonSerialNumber: body.serialNumber,
+      blumonEnvironment: body.environment || 'SANDBOX',
+      displayName: `Blumon ${body.serialNumber}`,
+      externalMerchantId: `blumon_${body.serialNumber}`,
+      hasCredentials: true,
+    })
+    return HttpResponse.json({ success: true, data: account }, { status: 201 })
+  }),
+
+  // --------------------------------------------------------------------------
+  // Terminals
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/terminals`, ({ request }) => {
+    const url = new URL(request.url)
+    const venueId = url.searchParams.get('venueId')
+
+    let terminals = Array.from(mockStore.terminals.values())
+    if (venueId) {
+      terminals = terminals.filter(t => t.venueId === venueId)
+    }
+    return HttpResponse.json({ success: true, data: terminals })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/terminals/:id`, ({ params }) => {
+    const terminal = mockStore.terminals.get(params.id as string)
+    if (!terminal) {
+      return HttpResponse.json({ success: false, error: 'Terminal not found' }, { status: 404 })
+    }
+    return HttpResponse.json({ success: true, data: terminal })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/terminals`, async ({ request }) => {
+    const body = await request.json() as any
+    const terminal = createMockTerminal(body.venueId, body)
+    return HttpResponse.json({ success: true, data: terminal }, { status: 201 })
+  }),
+
+  http.patch(`${BASE_URL}/api/v1/dashboard/superadmin/terminals/:id`, async ({ params, request }) => {
+    const terminal = mockStore.terminals.get(params.id as string)
+    if (!terminal) {
+      return HttpResponse.json({ success: false, error: 'Terminal not found' }, { status: 404 })
+    }
+    const body = await request.json() as any
+    Object.assign(terminal, body, { updatedAt: new Date().toISOString() })
+    return HttpResponse.json({ success: true, data: terminal })
+  }),
+
+  http.delete(`${BASE_URL}/api/v1/dashboard/superadmin/terminals/:id`, ({ params }) => {
+    const terminal = mockStore.terminals.get(params.id as string)
+    if (!terminal) {
+      return HttpResponse.json({ success: false, error: 'Terminal not found' }, { status: 404 })
+    }
+    mockStore.terminals.delete(params.id as string)
+    return HttpResponse.json({ success: true, data: { message: 'Terminal deleted' } })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/terminals/:id/activation-code`, ({ params }) => {
+    const terminal = mockStore.terminals.get(params.id as string)
+    if (!terminal) {
+      return HttpResponse.json({ success: false, error: 'Terminal not found' }, { status: 404 })
+    }
+    return HttpResponse.json({
+      success: true,
+      data: {
+        activationCode: 'ABC123',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        qrCodeDataUrl: 'data:image/png;base64,mock',
+      },
+    })
+  }),
+
+  // --------------------------------------------------------------------------
+  // Provider Cost Structures
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: Array.from(mockStore.costStructures.values()),
+    })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures/merchant-account/:merchantAccountId`, ({ params }) => {
+    const structures = Array.from(mockStore.costStructures.values())
+      .filter(s => s.merchantAccountId === params.merchantAccountId)
+    return HttpResponse.json({ success: true, data: structures })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures/active/:merchantAccountId`, ({ params }) => {
+    const structure = Array.from(mockStore.costStructures.values())
+      .find(s => s.merchantAccountId === params.merchantAccountId && s.active && !s.effectiveTo)
+    return HttpResponse.json({ success: true, data: structure || null })
+  }),
+
+  http.get(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures/:id`, ({ params }) => {
+    const structure = mockStore.costStructures.get(params.id as string)
+    if (!structure) {
+      return HttpResponse.json({ success: false, error: 'Cost structure not found' }, { status: 404 })
+    }
+    return HttpResponse.json({ success: true, data: structure })
+  }),
+
+  http.post(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures`, async ({ request }) => {
+    const body = await request.json() as any
+    const structure = createMockCostStructure(body.merchantAccountId, body)
+    return HttpResponse.json({ success: true, data: structure }, { status: 201 })
+  }),
+
+  http.patch(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures/:id`, async ({ params, request }) => {
+    const structure = mockStore.costStructures.get(params.id as string)
+    if (!structure) {
+      return HttpResponse.json({ success: false, error: 'Cost structure not found' }, { status: 404 })
+    }
+    const body = await request.json() as any
+    Object.assign(structure, body, { updatedAt: new Date().toISOString() })
+    return HttpResponse.json({ success: true, data: structure })
+  }),
+
+  http.delete(`${BASE_URL}/api/v1/dashboard/superadmin/provider-cost-structures/:id`, ({ params }) => {
+    const structure = mockStore.costStructures.get(params.id as string)
+    if (!structure) {
+      return HttpResponse.json({ success: false, error: 'Cost structure not found' }, { status: 404 })
+    }
+
+    // Update merchant account _count
+    const account = mockStore.merchantAccounts.get(structure.merchantAccountId)
+    if (account && account._count) {
+      account._count.costStructures = Math.max(0, account._count.costStructures - 1)
+    }
+
+    mockStore.costStructures.delete(params.id as string)
+    return HttpResponse.json({ success: true, data: { message: 'Cost structure deleted' } })
+  }),
+
+  // --------------------------------------------------------------------------
+  // Venue Payment Config
+  // --------------------------------------------------------------------------
+  http.get(`${BASE_URL}/api/v1/dashboard/venues/:venueId/payment-config/readiness`, ({ params }) => {
+    const venueId = params.venueId as string
+    const terminals = Array.from(mockStore.terminals.values()).filter(t => t.venueId === venueId)
+    const configs = Array.from(mockStore.venueConfigs.values()).filter(c => c.venueId === venueId)
+
+    const hasTerminal = terminals.length > 0
+    const hasMerchantAccount = configs.length > 0
+    const hasAssignedMerchant = terminals.some(t => t.assignedMerchantIds && t.assignedMerchantIds.length > 0)
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        venueId,
+        isReady: hasTerminal && hasMerchantAccount && hasAssignedMerchant,
+        checklist: {
+          hasTerminal: { status: hasTerminal, count: terminals.length },
+          hasMerchantAccount: { status: hasMerchantAccount, count: configs.length },
+          hasAssignedMerchant: { status: hasAssignedMerchant },
+          hasActiveCredentials: { status: false },
+          hasCostStructure: { status: false },
+        },
+        terminalIds: terminals.map(t => t.id),
+        merchantAccountIds: configs.map(c => c.merchantAccountId),
+      },
+    })
+  }),
+]

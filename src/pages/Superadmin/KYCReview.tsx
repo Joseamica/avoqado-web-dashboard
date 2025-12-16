@@ -28,6 +28,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { superadminAPI } from '@/services/superadmin.service'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface KYCDocument {
   type: string
@@ -83,6 +84,7 @@ const KYCReview: React.FC = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { formatDate } = useVenueDateTime()
 
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
@@ -402,7 +404,7 @@ const KYCReview: React.FC = () => {
                   <Label className="text-muted-foreground">{t('review.venue.kycSubmitted')}</Label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <p>{venue.kycSubmittedAt ? new Date(venue.kycSubmittedAt).toLocaleDateString() : t('review.venue.notSubmitted')}</p>
+                    <p>{venue.kycSubmittedAt ? formatDate(venue.kycSubmittedAt) : t('review.venue.notSubmitted')}</p>
                   </div>
                 </div>
               </div>

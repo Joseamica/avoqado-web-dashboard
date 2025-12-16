@@ -45,7 +45,8 @@ import { useToast } from '@/hooks/use-toast'
 import customerService from '@/services/customer.service'
 import loyaltyService from '@/services/loyalty.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
-import type { LoyaltyTransaction, CustomerGroup } from '@/types/customer'
+import { useVenueDateTime } from '@/utils/datetime'
+import type { LoyaltyTransaction, CustomerGroup, LoyaltyTransactionType } from '@/types/customer'
 
 import CustomerForm from './components/CustomerForm'
 
@@ -57,6 +58,7 @@ export default function CustomerDetail() {
 	const queryClient = useQueryClient()
 	const { t, i18n } = useTranslation('customers')
 	const { t: tCommon } = useTranslation()
+	const { formatDate: formatDateVenue } = useVenueDateTime()
 
 	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -82,7 +84,7 @@ export default function CustomerDetail() {
 		queryFn: () =>
 			loyaltyService.getCustomerTransactions(venueId, customerId!, {
 				pageSize: 50,
-				type: loyaltyTypeFilter || undefined,
+				type: (loyaltyTypeFilter as LoyaltyTransactionType) || undefined,
 			}),
 		enabled: !!customerId,
 	})
@@ -138,17 +140,8 @@ export default function CustomerDetail() {
 		[i18n.language]
 	)
 
-	// Format date
-	const formatDate = useMemo(
-		() => (dateStr: string) => {
-			return new Date(dateStr).toLocaleDateString(getIntlLocale(i18n.language), {
-				year: 'numeric',
-				month: 'long',
-				day: 'numeric',
-			})
-		},
-		[i18n.language]
-	)
+	// Format date - using venue timezone
+	const formatDate = formatDateVenue
 
 	const handleGoBack = () => {
 		navigate(-1)
@@ -202,7 +195,7 @@ export default function CustomerDetail() {
 			})
 			return
 		}
-		adjustPointsMutation.mutate(data)
+		adjustPointsMutation.mutate(data as { points: number; reason: string })
 	}
 
 	const handleOpenAdjustDialog = () => {

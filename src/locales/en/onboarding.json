@@ -339,60 +339,54 @@
   },
   "kycDocuments": {
     "title": "Tax Documentation",
-    "subtitle": "Upload the required documents for tax verification",
-    "description": "These documents are required to verify your identity and enable payments to your account.",
+    "subtitle": "Upload the required documents to verify your business",
     "requiredNotice": "This step is required and cannot be skipped.",
     "entityType": {
       "title": "Entity Type",
-      "description": "Select the type of entity for your business",
-      "PERSONA_FISICA": "Individual (Persona Física)",
-      "PERSONA_MORAL": "Company (Persona Moral)"
+      "subtitle": "Select the type of taxpayer",
+      "personaFisica": "Individual (Persona Física)",
+      "personaFisicaDesc": "Individual with business activity",
+      "personaMoral": "Company (Persona Moral)",
+      "personaMoralDesc": "Incorporated company or business entity"
     },
+    "documentsTitle": "Required Documents",
     "documents": {
-      "title": "Required Documents",
-      "description": "Upload the following documents. Click on each field to select a file.",
-      "ine": {
-        "label": "Official ID (INE/IFE)",
-        "description": "Valid government-issued ID"
-      },
-      "rfc": {
-        "label": "RFC Certificate",
-        "description": "Tax registration certificate (Constancia de Situación Fiscal)"
-      },
-      "comprobanteDomicilio": {
-        "label": "Proof of Address",
-        "description": "Utility bill or bank statement (less than 3 months old)"
-      },
-      "caratulaBancaria": {
-        "label": "Bank Account Statement",
-        "description": "Document showing your CLABE and account details"
-      },
-      "actaConstitutiva": {
-        "label": "Articles of Incorporation",
-        "description": "Company formation document (only for companies)"
-      },
-      "poderLegal": {
-        "label": "Power of Attorney",
-        "description": "Legal representative authorization (optional for companies)"
-      }
+      "actaConstitutiva": "Articles of Incorporation",
+      "actaConstitutivaDesc": "Company formation document",
+      "ine": "Official ID (INE/IFE)",
+      "ineDesc": "Government-issued ID of legal representative",
+      "rfc": "Tax Registration Certificate (CSF)",
+      "rfcDesc": "Official SAT document containing RFC (must be less than 3 months old)",
+      "comprobante": "Proof of Address",
+      "comprobanteDesc": "Utility bill (electricity, water, or phone)",
+      "caratula": "Bank Account Statement",
+      "caratulaDesc": "Statement showing visible CLABE",
+      "poderLegal": "Power of Attorney",
+      "poderLegalDesc": "Notarized legal representative authorization (optional)"
     },
-    "upload": {
-      "select": "Select file",
-      "change": "Change file",
-      "uploading": "Uploading...",
-      "uploaded": "Uploaded",
-      "dragDrop": "Drag and drop or click to upload",
-      "maxSize": "Maximum file size: 10MB",
-      "formats": "Accepted formats: PDF, JPG, PNG"
+    "uploading": "Uploading...",
+    "changeDocument": "Change document",
+    "uploadDocument": "Upload Document",
+    "required": "This document is required",
+    "notice": {
+      "title": "Document verification",
+      "description": "Your documents will be reviewed by our team. This process may take up to 48 business hours."
     },
-    "validation": {
-      "entityTypeRequired": "Please select an entity type",
-      "ineRequired": "Official ID is required",
-      "rfcRequired": "RFC Certificate is required",
-      "comprobanteDomicilioRequired": "Proof of Address is required",
-      "caratulaBancariaRequired": "Bank Account Statement is required",
-      "actaConstitutivaRequired": "Articles of Incorporation is required for companies",
-      "allDocumentsRequired": "Please upload all required documents"
+    "errors": {
+      "invalidFileType": "Invalid file type",
+      "invalidFileTypeDesc": "Only PDF, PNG, JPG files are allowed",
+      "fileTooLarge": "File too large",
+      "fileTooLargeDesc": "File must not exceed 10MB",
+      "uploadFailed": "Upload failed",
+      "uploadFailedDesc": "Could not upload the document. Please try again.",
+      "entityTypeRequired": "Select entity type",
+      "entityTypeRequiredDesc": "You must select whether you are Individual or Company",
+      "missingDocs": "Missing documents",
+      "missingDocsDesc": "You must upload all required documents"
+    },
+    "success": {
+      "uploaded": "Document uploaded",
+      "uploadedDesc": "The document was saved successfully"
     }
   },
   "payment": {

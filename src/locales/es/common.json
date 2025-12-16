@@ -135,7 +135,11 @@
     "addVenue": "Agregar sucursal",
     "selectVenue": "Seleccionar sucursal",
     "current": "(actual)",
-    "inactive": "Inactivas"
+    "inactive": "Inactivas",
+    "corporation": "Corporación",
+    "suspended": "Suspendido",
+    "adminSuspended": "Suspendido por Admin",
+    "closed": "Cerrado"
   },
   "layout": {
     "noVenuesAssigned": "No tienes sucursales asignadas",

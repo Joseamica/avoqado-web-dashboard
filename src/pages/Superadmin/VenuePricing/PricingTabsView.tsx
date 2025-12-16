@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Pencil, Plus, AlertCircle, Check, X } from 'lucide-react'
 import { type VenuePricingStructure } from '@/services/paymentProvider.service'
+import { useVenueDateTime } from '@/utils/datetime'
 
 interface PricingTabsViewProps {
   venueId: string
@@ -38,6 +39,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
   calculateMargin,
 }) => {
   const { t } = useTranslation('venuePricing')
+  const { formatDate } = useVenueDateTime()
   const [activeTab, setActiveTab] = useState('primary')
   const [editingAccountType, setEditingAccountType] = useState<'PRIMARY' | 'SECONDARY' | 'TERTIARY' | null>(null)
   const [formData, setFormData] = useState<any>(null)
@@ -365,7 +367,7 @@ export const PricingTabsView: React.FC<PricingTabsViewProps> = ({
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{t('summary.effectiveFrom')}</span>
-                  <span className="font-medium">{new Date(structure.effectiveFrom).toLocaleDateString()}</span>
+                  <span className="font-medium">{formatDate(structure.effectiveFrom)}</span>
                 </div>
                 {structure.fixedFeePerTransaction && (
                   <div className="flex justify-between text-sm">
