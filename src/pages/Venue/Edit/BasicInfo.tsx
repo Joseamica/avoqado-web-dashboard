@@ -11,19 +11,20 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import { isDemoVenueStatus } from '@/types/superadmin'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, AlertCircle, FileText } from 'lucide-react'
+import { ArrowLeft, AlertCircle, FileText, Loader2, Clock } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
@@ -48,6 +49,7 @@ const basicInfoFormSchema = z.object({
   type: z.nativeEnum(BusinessType).default(BusinessType.RESTAURANT),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
+  enableShifts: z.boolean().default(true).optional(),
 })
 
 type BasicInfoFormValues = z.infer<typeof basicInfoFormSchema>
@@ -94,6 +96,8 @@ export default function BasicInfo() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [showSuspendDialog, setShowSuspendDialog] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
+  const [showActiveShiftBlockedDialog, setShowActiveShiftBlockedDialog] = useState(false)
+  const [activeShiftStaffName, setActiveShiftStaffName] = useState<string | null>(null)
 
   const { data: venue, isLoading } = useQuery({
     queryKey: ['get-venue-data', venueId],
@@ -116,6 +120,7 @@ export default function BasicInfo() {
       type: BusinessType.RESTAURANT,
       timezone: 'America/Mexico_City',
       currency: 'MXN',
+      enableShifts: true,
     },
   })
 
@@ -131,6 +136,7 @@ export default function BasicInfo() {
         type: (venue.type as BusinessType) || BusinessType.RESTAURANT,
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
+        enableShifts: venue.settings?.enableShifts ?? true,
       })
     }
   }, [venue, form])
@@ -148,7 +154,9 @@ export default function BasicInfo() {
         timezone: data.timezone,
         currency: data.currency,
       }
-      return await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
+
+      // Save venue basic info only - enableShifts is handled by separate mutation
+      await api.put(`/api/v1/dashboard/venues/${venueId}`, venueData)
     },
     onSuccess: () => {
       toast({
@@ -165,6 +173,72 @@ export default function BasicInfo() {
         variant: 'destructive',
       })
       console.error('Error updating venue:', error)
+    },
+  })
+
+  // Check for active shift before allowing toggle to disable
+  const checkActiveShift = async (): Promise<{ hasActiveShift: boolean; staffName?: string }> => {
+    try {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/shifts`, {
+        params: { page: 1, pageSize: 10 },
+      })
+      const shifts = response.data?.data || []
+      const activeShift = shifts.find((shift: any) => shift.status === 'OPEN')
+      if (activeShift) {
+        const staffName = activeShift.staff
+          ? `${activeShift.staff.firstName || ''} ${activeShift.staff.lastName || ''}`.trim()
+          : 'Desconocido'
+        return { hasActiveShift: true, staffName }
+      }
+      return { hasActiveShift: false }
+    } catch (error) {
+      console.error('Error checking active shift:', error)
+      // On error, allow the toggle (fail open)
+      return { hasActiveShift: false }
+    }
+  }
+
+  // Separate mutation for enableShifts - makes immediate API call on toggle
+  const toggleShifts = useMutation({
+    mutationFn: async (enableShifts: boolean) => {
+      // Option E: If trying to DISABLE, check for active shift first
+      if (!enableShifts) {
+        const { hasActiveShift, staffName } = await checkActiveShift()
+        if (hasActiveShift) {
+          setActiveShiftStaffName(staffName || null)
+          setShowActiveShiftBlockedDialog(true)
+          throw new Error('ACTIVE_SHIFT_BLOCKED')
+        }
+      }
+
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, {
+        enableShifts,
+      })
+      return enableShifts
+    },
+    onSuccess: (enableShifts) => {
+      // Update form state to match saved value
+      form.setValue('enableShifts', enableShifts, { shouldDirty: false })
+      toast({
+        title: enableShifts ? 'Sistema de turnos habilitado' : 'Sistema de turnos deshabilitado',
+        description: 'La configuración se guardó correctamente.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      // Don't show error toast for blocked dialog (it has its own UI)
+      if (error?.message === 'ACTIVE_SHIFT_BLOCKED') {
+        return
+      }
+      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      // Revert form state on error
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      console.error('Error toggling shifts:', error)
     },
   })
 
@@ -340,6 +414,34 @@ export default function BasicInfo() {
               className="bg-amber-600 text-primary-foreground hover:bg-amber-700"
             >
               {suspendVenue.isPending ? t('common:suspending', { defaultValue: 'Suspendiendo...' }) : t('edit.dangerZone.suspend')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Active Shift Blocked Dialog (Option E validation) */}
+      <AlertDialog open={showActiveShiftBlockedDialog} onOpenChange={setShowActiveShiftBlockedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              Turno Activo
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>No puedes desactivar el sistema de turnos mientras hay un turno abierto.</p>
+              <p className="text-sm text-muted-foreground">
+                Turno actual: <span className="font-medium">{activeShiftStaffName || 'Desconocido'}</span>
+              </p>
+              <p className="font-medium text-foreground">Primero cierra el turno desde la pantalla de Turnos.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowActiveShiftBlockedDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Link to={`/venues/${venueSlug}/shifts`}>
+                <Clock className="mr-2 h-4 w-4" />
+                Ir a Turnos
+              </Link>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -554,6 +656,39 @@ export default function BasicInfo() {
                     </FormItem>
                   )}
                 />
+
+                <div className="pt-4">
+                  <h4 className="text-sm font-medium mb-3">Configuración Operativa</h4>
+                  <FormField
+                    control={form.control}
+                    name="enableShifts"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
+                          <FormDescription>
+                            Habilita el control de caja y turnos para el personal.
+                          </FormDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {toggleShifts.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                // Immediate API call on toggle (not on form save)
+                                toggleShifts.mutate(checked)
+                              }}
+                              disabled={!canEdit || toggleShifts.isPending}
+                            />
+                          </FormControl>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               {/* Danger Zone Section */}

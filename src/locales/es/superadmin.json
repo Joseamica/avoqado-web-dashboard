@@ -1390,6 +1390,10 @@
         "description": "Ver y gestionar tarifas y estructuras de costos de proveedores",
         "searchPlaceholder": "Buscar por proveedor, cuenta o propuesta..."
       },
+      "filters": {
+        "allProviders": "Todos los proveedores",
+        "allMerchants": "Todas las cuentas"
+      },
       "toasts": {
         "success": "Éxito",
         "createSuccess": "Estructura de costos creada exitosamente",

@@ -1937,6 +1937,10 @@
       "description": "View and manage provider cost rates and structures",
       "searchPlaceholder": "Search by provider, account, or proposal..."
     },
+    "filters": {
+      "allProviders": "All providers",
+      "allMerchants": "All accounts"
+    },
     "toasts": {
       "success": "Success",
       "createSuccess": "Cost structure created successfully",
