@@ -294,7 +294,7 @@ function DashboardContent() {
 
         <div className="flex flex-col flex-1 gap-4">
           {/* Main Content */}
-          <div className={`min-h-screen flex-1 rounded-xl bg-background md:min-h-min transition-colors duration-200`}>
+          <div className={`flex-1 rounded-xl bg-background transition-colors duration-200`}>
             <Outlet />
           </div>
         </div>
