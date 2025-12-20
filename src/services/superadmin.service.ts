@@ -304,6 +304,205 @@ export async function rejectKYC(venueId: string, reason: string, rejectedDocumen
   })
 }
 
+// ===== CREDIT ASSESSMENT TYPES =====
+
+export type CreditGrade = 'A' | 'B' | 'C' | 'D'
+export type CreditEligibility = 'ELIGIBLE' | 'REVIEW_REQUIRED' | 'INELIGIBLE' | 'OFFER_PENDING' | 'ACTIVE_LOAN'
+export type TrendDirection = 'GROWING' | 'FLAT' | 'DECLINING'
+export type CreditOfferStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'WITHDRAWN'
+
+export interface CreditScoreBreakdown {
+  volumeScore: number
+  growthScore: number
+  stabilityScore: number
+  riskScore: number
+  totalScore: number
+}
+
+export interface VenueMetrics {
+  annualVolume: number
+  monthlyAverage: number
+  currentMonthVolume: number
+  transactionCount12m: number
+  yoyGrowthPercent: number
+  momGrowthPercent: number
+  trendDirection: TrendDirection
+  revenueVariance: number
+  consistencyScore: number
+  daysSinceLastTx: number
+  operatingDaysRatio: number
+  averageTicket: number
+  chargebackRate: number
+  refundRate: number
+  chargebackCount: number
+  paymentMethodMix: Record<string, number>
+}
+
+export interface CreditRecommendation {
+  recommendedCreditLimit: number
+  suggestedFactorRate: number
+  maxRepaymentPercent: number
+  estimatedTermDays: number
+}
+
+export interface CreditAssessment {
+  id: string
+  venueId: string
+  creditScore: number
+  creditGrade: CreditGrade
+  eligibilityStatus: CreditEligibility
+  annualVolume: number
+  monthlyAverage: number
+  currentMonthVolume: number
+  transactionCount12m: number
+  yoyGrowthPercent: number
+  momGrowthPercent: number
+  trendDirection: TrendDirection
+  revenueVariance: number
+  consistencyScore: number
+  daysSinceLastTx: number
+  operatingDaysRatio: number
+  averageTicket: number
+  chargebackRate: number
+  refundRate: number
+  chargebackCount: number
+  paymentMethodMix: Record<string, number> | null
+  recommendedCreditLimit: number
+  suggestedFactorRate: number
+  maxRepaymentPercent: number
+  alerts: string[]
+  calculatedAt: string
+  dataAsOf: string
+  venue: {
+    id: string
+    name: string
+    slug: string
+    status: string
+    organization: {
+      name: string
+    }
+  }
+  offers: CreditOffer[]
+}
+
+export interface CreditOffer {
+  id: string
+  venueId: string
+  offerAmount: number
+  factorRate: number
+  totalRepayment: number
+  repaymentPercent: number
+  estimatedTermDays: number
+  status: CreditOfferStatus
+  expiresAt: string
+  acceptedAt: string | null
+  rejectedAt: string | null
+  rejectionReason: string | null
+  notes: string | null
+  createdAt: string
+  createdBy?: { firstName: string; lastName: string }
+  acceptedBy?: { firstName: string; lastName: string }
+}
+
+export interface CreditAssessmentSummary {
+  totalAssessments: number
+  gradeDistribution: Record<CreditGrade, number>
+  eligibilityDistribution: Record<string, number>
+  totalEligibleCredit: number
+  pendingOffers: number
+}
+
+export interface CreditAssessmentListResponse {
+  data: CreditAssessment[]
+  pagination: {
+    page: number
+    pageSize: number
+    total: number
+    totalPages: number
+  }
+}
+
+// ===== CREDIT ASSESSMENT API FUNCTIONS =====
+
+export async function getCreditAssessments(params?: {
+  page?: number
+  pageSize?: number
+  eligibility?: CreditEligibility[]
+  grade?: CreditGrade[]
+  minScore?: number
+  maxScore?: number
+  sortBy?: 'creditScore' | 'annualVolume' | 'calculatedAt'
+  sortOrder?: 'asc' | 'desc'
+}): Promise<CreditAssessmentListResponse> {
+  const queryParams = new URLSearchParams()
+
+  if (params?.page) queryParams.set('page', String(params.page))
+  if (params?.pageSize) queryParams.set('pageSize', String(params.pageSize))
+  if (params?.eligibility?.length) queryParams.set('eligibility', params.eligibility.join(','))
+  if (params?.grade?.length) queryParams.set('grade', params.grade.join(','))
+  if (params?.minScore !== undefined) queryParams.set('minScore', String(params.minScore))
+  if (params?.maxScore !== undefined) queryParams.set('maxScore', String(params.maxScore))
+  if (params?.sortBy) queryParams.set('sortBy', params.sortBy)
+  if (params?.sortOrder) queryParams.set('sortOrder', params.sortOrder)
+
+  const response = await api.get(`/api/v1/superadmin/credit/assessments?${queryParams.toString()}`)
+  return response.data
+}
+
+export async function getCreditAssessmentSummary(): Promise<CreditAssessmentSummary> {
+  const response = await api.get('/api/v1/superadmin/credit/summary')
+  return response.data.data
+}
+
+export async function getVenueCreditAssessment(venueId: string): Promise<CreditAssessment> {
+  const response = await api.get(`/api/v1/superadmin/credit/venues/${venueId}`)
+  return response.data.data
+}
+
+export async function refreshVenueCreditAssessment(venueId: string): Promise<CreditAssessment> {
+  const response = await api.post(`/api/v1/superadmin/credit/venues/${venueId}/refresh`)
+  return response.data.data
+}
+
+export async function refreshAllCreditAssessments(): Promise<{ processed: number; errors: number; total: number }> {
+  const response = await api.post('/api/v1/superadmin/credit/refresh-all')
+  return response.data.data
+}
+
+export async function createCreditOffer(
+  venueId: string,
+  offerData: {
+    offerAmount: number
+    factorRate: number
+    repaymentPercent: number
+    expiresInDays?: number
+    notes?: string
+  }
+): Promise<CreditOffer> {
+  const response = await api.post(`/api/v1/superadmin/credit/venues/${venueId}/offers`, offerData)
+  return response.data.data
+}
+
+export async function getVenueCreditOffers(venueId: string): Promise<CreditOffer[]> {
+  const response = await api.get(`/api/v1/superadmin/credit/venues/${venueId}/offers`)
+  return response.data.data
+}
+
+export async function acceptCreditOffer(offerId: string): Promise<CreditOffer> {
+  const response = await api.patch(`/api/v1/superadmin/credit/offers/${offerId}/accept`)
+  return response.data.data
+}
+
+export async function rejectCreditOffer(offerId: string, rejectionReason?: string): Promise<CreditOffer> {
+  const response = await api.patch(`/api/v1/superadmin/credit/offers/${offerId}/reject`, { rejectionReason })
+  return response.data.data
+}
+
+export async function withdrawCreditOffer(offerId: string): Promise<CreditOffer> {
+  const response = await api.patch(`/api/v1/superadmin/credit/offers/${offerId}/withdraw`)
+  return response.data.data
+}
+
 // Convenience API object (canonical import target for components expecting superadminAPI)
 export const superadminAPI = {
   getDashboardData: async (): Promise<SASuperadminDashboardData> => {
