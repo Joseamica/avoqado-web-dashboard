@@ -123,7 +123,8 @@
       "tpv_time_entries": "Time Clock",
       "tpv_reports": "TPV Reports",
       "tpv_products": "TPV Products (Scan & Go)",
-      "tpv_factory_reset": "Factory Reset (CRITICAL)"
+      "tpv_factory_reset": "Factory Reset (CRITICAL)",
+      "billing": "Billing & Subscriptions"
     },
     "actions": {
       "read": "Read",

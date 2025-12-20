@@ -177,6 +177,12 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'coupons:delete',
     // TPV Settings (can view, but not modify by default)
     'tpv-settings:read',
+    // Billing (read-only for MANAGER)
+    'billing:read',
+    'billing:subscriptions:read',
+    'billing:history:read',
+    'billing:payment-methods:read',
+    'billing:tokens:read',
   ],
 
   /**
@@ -314,6 +320,19 @@ export const PERMISSION_CATEGORIES = {
   TPV_SETTINGS: {
     label: 'TPV Settings',
     permissions: ['tpv-settings:read', 'tpv-settings:update'],
+  },
+  BILLING: {
+    label: 'Billing & Subscriptions',
+    permissions: [
+      'billing:read',
+      'billing:subscriptions:read',
+      'billing:subscriptions:manage',
+      'billing:history:read',
+      'billing:payment-methods:read',
+      'billing:payment-methods:manage',
+      'billing:tokens:read',
+      'billing:tokens:purchase',
+    ],
   },
   // ===========================
   // TPV-SPECIFIC PERMISSIONS (Granular TPV Features)

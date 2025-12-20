@@ -123,7 +123,8 @@
       "tpv_time_entries": "Control de Tiempo",
       "tpv_reports": "Reportes TPV",
       "tpv_products": "Productos TPV (Scan & Go)",
-      "tpv_factory_reset": "Restablecer de Fábrica (CRÍTICO)"
+      "tpv_factory_reset": "Restablecer de Fábrica (CRÍTICO)",
+      "billing": "Facturación y Suscripciones"
     },
     "actions": {
       "read": "Ver",
@@ -149,7 +150,12 @@
       "assign": "Asignar",
       "write": "Escribir",
       "execute": "Ejecutar",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "subscriptions": "Suscripciones",
+      "history": "Historial",
+      "payment-methods": "Métodos de Pago",
+      "tokens": "Tokens IA",
+      "purchase": "Comprar"
     },
     "resources": {
       "home": "Inicio",
@@ -183,7 +189,8 @@
       "tpv-time-entries": "Entradas de Tiempo",
       "tpv-reports": "Reportes TPV",
       "tpv-products": "Productos TPV",
-      "tpv-factory-reset": "Restablecer de Fábrica"
+      "tpv-factory-reset": "Restablecer de Fábrica",
+      "billing": "Facturación"
     }
   },
   "roleDisplayNames": {

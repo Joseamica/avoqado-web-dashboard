@@ -78,7 +78,7 @@ export const DASHBOARD_SUPER_CATEGORIES: SuperCategory[] = [
     descriptionKey: 'rolePermissions.superCategories.teamSettingsDesc',
     icon: 'Building',
     accentColor: 'blue',
-    categoryKeys: ['TEAMS', 'SETTINGS', 'VENUES'],
+    categoryKeys: ['TEAMS', 'SETTINGS', 'VENUES', 'BILLING'],
   },
   {
     id: 'marketing-loyalty',
