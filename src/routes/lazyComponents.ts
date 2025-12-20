@@ -83,8 +83,10 @@ export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts
 export { default as Terminals } from '@/pages/Superadmin/Terminals'
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
+export { default as SettlementConfigurations } from '@/pages/Superadmin/SettlementConfigurations'
 export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
 export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
+export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))

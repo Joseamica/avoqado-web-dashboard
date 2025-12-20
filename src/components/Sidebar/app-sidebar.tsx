@@ -1,17 +1,17 @@
 ﻿import {
   AlertTriangle,
-  Banknote,
   BarChart3,
   BookOpen,
   Building,
   CreditCard,
   DollarSign,
   FlaskConical,
-  Frame,
   Home,
   Package,
+  Receipt,
   Settings2,
   Shield,
+  ShoppingCart,
   Smartphone,
   Star,
   Store,
@@ -35,15 +35,18 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
-  const { allVenues, activeVenue } = useAuth()
+  const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can } = usePermissions()
+
+  // Use venue-specific role from staffInfo (properly derived from active venue)
+  const effectiveRole = staffInfo?.role || user.role
 
   // Check if venue can access operational features (KYC verification)
   const hasKYCAccess = React.useMemo(() => canAccessOperationalFeatures(activeVenue), [activeVenue])
 
   const navMain = React.useMemo(() => {
-    // Define all possible items with their required permissions
+    // Define all possible items with their required permissions and features
     const allItems = [
       { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
       {
@@ -77,23 +80,9 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Package,
         permission: 'inventory:read',
         locked: !hasKYCAccess,
+        requiredFeature: 'INVENTORY_TRACKING', // Only show if feature is active
       },
-      {
-        title: t('sidebar:routes.payments'),
-        isActive: true,
-        url: 'payments',
-        icon: Banknote,
-        permission: 'payments:read',
-        locked: !hasKYCAccess,
-      },
-      {
-        title: t('sidebar:routes.orders'),
-        isActive: true,
-        url: 'orders',
-        icon: Frame,
-        permission: 'orders:read',
-        locked: !hasKYCAccess,
-      },
+      // NOTE: Payments and Orders moved to "Ventas" collapsible section below
       {
         title: t('sidebar:routes.shifts'),
         isActive: true,
@@ -113,15 +102,63 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 
-    // Filter items based on permissions
-    const filteredItems = allItems.filter(item => can(item.permission))
+    // Filter items based on permissions AND active features
+    const filteredItems = allItems.filter(item => {
+      // Check permission
+      if (!can(item.permission)) return false
 
-    // Customers submenu - filter subitems based on permissions
+      // Check required feature (if specified)
+      if ('requiredFeature' in item && item.requiredFeature) {
+        return checkFeatureAccess(item.requiredFeature)
+      }
+
+      return true
+    })
+
+    // Sales submenu (Ventas) - Orders and Transactions grouped together
+    // Following Square's "Orders & payments" pattern for better UX
+    const salesSubItems = [
+      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read', requiredFeature: 'ONLINE_ORDERING' },
+      { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read' },
+    ].filter(item => {
+      // Check permission
+      if (item.permission && !can(item.permission)) return false
+      // Check required feature
+      if ('requiredFeature' in item && item.requiredFeature) {
+        return checkFeatureAccess(item.requiredFeature)
+      }
+      return true
+    })
+
+    // Only show Sales menu if user has at least one subitem
+    if (salesSubItems.length > 0) {
+      // Find index after Inventory to insert Sales menu
+      const inventoryIndex = filteredItems.findIndex(item => item.url === 'inventory/raw-materials')
+      const insertIndex = inventoryIndex !== -1 ? inventoryIndex + 1 : filteredItems.length
+      filteredItems.splice(insertIndex, 0, {
+        title: t('sidebar:salesMenu.title', { defaultValue: 'Ventas' }),
+        url: '#sales',
+        icon: ShoppingCart,
+        locked: !hasKYCAccess,
+        items: salesSubItems,
+        permission: null as any,
+      } as any)
+    }
+
+    // Customers submenu - filter subitems based on permissions AND features
     const customersSubItems = [
       { title: t('sidebar:customersMenu.all'), url: 'customers', permission: 'customers:read' },
       { title: t('sidebar:customersMenu.groups'), url: 'customers/groups', permission: 'customer-groups:read' },
-      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read' },
-    ].filter(item => !item.permission || can(item.permission))
+      { title: t('sidebar:customersMenu.loyalty'), url: 'loyalty', permission: 'loyalty:read', requiredFeature: 'LOYALTY_PROGRAM' },
+    ].filter(item => {
+      // Check permission
+      if (item.permission && !can(item.permission)) return false
+      // Check required feature
+      if ('requiredFeature' in item && item.requiredFeature) {
+        return checkFeatureAccess(item.requiredFeature)
+      }
+      return true
+    })
 
     // Only show Customers menu if user has at least one subitem
     if (customersSubItems.length > 0) {
@@ -165,12 +202,12 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
       { title: t('sidebar:routes.teams'), url: 'teams', permission: 'teams:read' },
       // Role permissions only for ADMIN+
-      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
+      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
         : []),
       // Billing only for ADMIN+
-      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(user.role)
-        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: null }]
+      ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+        ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: 'billing:read' }]
         : []),
     ].filter(item => !item.permission || can(item.permission))
 
@@ -188,7 +225,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Superadmin Venue Tools dropdown - only for SUPERADMIN
     // These are venue-specific superadmin actions (not global /superadmin routes)
-    if (user.role === 'SUPERADMIN') {
+    if (effectiveRole === 'SUPERADMIN') {
       const superadminVenueItems = [
         { title: t('sidebar:paymentConfig'), url: 'payment-config', superadminOnly: true },
         { title: t('sidebar:ecommerceChannels'), url: 'ecommerce-merchants', superadminOnly: true },
@@ -207,7 +244,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     return filteredItems
-  }, [t, user.role, can, hasKYCAccess])
+  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess])
 
   const superAdminRoutes = React.useMemo(
     () => [
@@ -225,7 +262,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   // Use all venues for SUPERADMIN and OWNER (consistent with AuthContext), otherwise use user's assigned venues
   const venuesToShow: Array<Venue | SessionVenue> =
-    (user.role === 'SUPERADMIN' || user.role === 'OWNER') && allVenues.length > 0 ? allVenues : user.venues
+    (effectiveRole === 'SUPERADMIN' || effectiveRole === 'OWNER') && allVenues.length > 0 ? allVenues : user.venues
   const defaultVenue: Venue | SessionVenue | null = venuesToShow.length > 0 ? venuesToShow[0] : null
 
   // Map app User -> NavUser expected shape

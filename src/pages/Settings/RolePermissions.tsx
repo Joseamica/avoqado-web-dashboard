@@ -33,7 +33,7 @@ type PermissionTab = 'dashboard' | 'tpv'
 
 export default function RolePermissions() {
   const { slug } = useParams<{ slug: string }>()
-  const { activeVenue, staffInfo, user } = useAuth()
+  const { activeVenue, staffInfo, user, checkFeatureAccess } = useAuth()
   const { t } = useTranslation('settings')
   const { toast } = useToast()
   const { formatDate } = useVenueDateTime()
@@ -85,15 +85,40 @@ export default function RolePermissions() {
   // Convert modifiedPermissions array to Set for efficient lookup
   const selectedPermissionsSet = useMemo(() => new Set(modifiedPermissions), [modifiedPermissions])
 
-  // Get filtered super-categories based on search
+  // Helper to filter categories based on active features
+  const filterCategoriesByFeatures = useCallback((superCategories: typeof DASHBOARD_SUPER_CATEGORIES) => {
+    // Map permission category keys to their required features (using Feature.code from database)
+    const categoryFeatureMap: Record<string, string> = {
+      'INVENTORY': 'INVENTORY_TRACKING',
+      'LOYALTY': 'LOYALTY_PROGRAM',
+      'TABLES': 'RESERVATIONS',
+      'RESERVATIONS': 'RESERVATIONS',
+      'ORDERS': 'ONLINE_ORDERING',
+    }
+
+    return superCategories
+      .map(superCat => ({
+        ...superCat,
+        categoryKeys: superCat.categoryKeys.filter(catKey => {
+          const requiredFeature = categoryFeatureMap[catKey]
+          // If no feature required, always include
+          if (!requiredFeature) return true
+          // Only include if feature is active
+          return checkFeatureAccess(requiredFeature)
+        })
+      }))
+      .filter(superCat => superCat.categoryKeys.length > 0) // Remove empty super-categories
+  }, [checkFeatureAccess])
+
+  // Get filtered super-categories based on search AND active features
   const filteredDashboardCategories = useMemo(
-    () => filterPermissionsBySearch(DASHBOARD_SUPER_CATEGORIES, debouncedSearchTerm),
-    [debouncedSearchTerm]
+    () => filterPermissionsBySearch(filterCategoriesByFeatures(DASHBOARD_SUPER_CATEGORIES), debouncedSearchTerm),
+    [debouncedSearchTerm, filterCategoriesByFeatures]
   )
 
   const filteredTpvCategories = useMemo(
-    () => filterPermissionsBySearch(TPV_SUPER_CATEGORIES, debouncedSearchTerm),
-    [debouncedSearchTerm]
+    () => filterPermissionsBySearch(filterCategoriesByFeatures(TPV_SUPER_CATEGORIES), debouncedSearchTerm),
+    [debouncedSearchTerm, filterCategoriesByFeatures]
   )
 
   // Get display count for permissions (show total if wildcard, otherwise show actual count)
@@ -320,39 +345,43 @@ export default function RolePermissions() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6 overflow-x-hidden">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Shield className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
-              <span className="truncate">{t('rolePermissions.title', 'Role Permissions')}</span>
-            </h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              {t('rolePermissions.description', 'Customize permissions for each role in your venue')}
-            </p>
-          </div>
+    <>
+      {/* Sticky Header - sticks to viewport top when scrolling */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+                <Shield className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+                <span className="truncate">{t('rolePermissions.title', 'Role Permissions')}</span>
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                {t('rolePermissions.description', 'Customize permissions for each role in your venue')}
+              </p>
+            </div>
 
-          {/* Save button */}
-          {selectedRole && (
-            <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default" className="w-full sm:w-auto flex-shrink-0">
-              {updateMutation.isPending ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                  {t('rolePermissions.saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('rolePermissions.saveChanges')}
-                </>
-              )}
-            </Button>
-          )}
+            {/* Save button */}
+            {selectedRole && (
+              <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default" className="w-full sm:w-auto flex-shrink-0">
+                {updateMutation.isPending ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                    {t('rolePermissions.saving')}
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {t('rolePermissions.saveChanges')}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Main Content */}
+      <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6">
       {/* Main Tabs */}
       <Tabs defaultValue="permissions" className="space-y-4 sm:space-y-6">
         <TabsList className="inline-flex h-9 sm:h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-fit">
@@ -660,6 +689,7 @@ export default function RolePermissions() {
           <RoleDisplayNames />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   )
 }
