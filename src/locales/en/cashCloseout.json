@@ -1,0 +1,53 @@
+{
+  "dialog": {
+    "title": "Cash Closeout",
+    "description": "Record the cash closeout and deposit method",
+    "expectedAmount": "Expected Amount",
+    "actualAmount": "Counted Amount",
+    "actualAmountPlaceholder": "Enter the amount you counted",
+    "variance": "Variance",
+    "variancePositive": "Overage",
+    "varianceNegative": "Shortage",
+    "varianceWarning": "Variance is greater than 5%. Please verify the count.",
+    "depositMethod": "Deposit Method",
+    "depositMethods": {
+      "BANK_DEPOSIT": "Bank Deposit",
+      "SAFE": "Safe",
+      "OWNER_WITHDRAWAL": "Owner Withdrawal",
+      "NEXT_SHIFT": "Next Shift Float"
+    },
+    "bankReference": "Bank Reference",
+    "bankReferencePlaceholder": "Receipt or reference number",
+    "notes": "Notes",
+    "notesPlaceholder": "Additional observations...",
+    "submit": "Record Closeout",
+    "success": "Cash closeout recorded",
+    "successDescription": "Cash has been closed out successfully",
+    "error": "Error recording closeout",
+    "periodInfo": "Period from {{date}}"
+  },
+  "alert": {
+    "title": "Closeout Reminder",
+    "message": "It's been {{days}} days since your last cash closeout",
+    "action": "Close Out"
+  },
+  "history": {
+    "title": "Closeout History",
+    "empty": "No cash closeouts recorded",
+    "showing": "Showing {{count}} of {{total}} closeouts",
+    "page": "Page {{current}} of {{total}}",
+    "columns": {
+      "date": "Date",
+      "expected": "Expected",
+      "actual": "Counted",
+      "variance": "Variance",
+      "method": "Method",
+      "closedBy": "Closed By"
+    }
+  },
+  "button": "Cash Closeout",
+  "lastCloseout": "Last closeout: {{days}} days ago",
+  "lastCloseoutToday": "Last closeout: today",
+  "noCloseouts": "No previous closeouts",
+  "viewHistory": "View History"
+}

@@ -1,0 +1,53 @@
+{
+  "dialog": {
+    "title": "Corte de Caja",
+    "description": "Registra el cierre de efectivo y el metodo de deposito",
+    "expectedAmount": "Monto Esperado",
+    "actualAmount": "Monto Contado",
+    "actualAmountPlaceholder": "Ingresa el monto que contaste",
+    "variance": "Diferencia",
+    "variancePositive": "Sobrante",
+    "varianceNegative": "Faltante",
+    "varianceWarning": "La diferencia es mayor al 5%. Por favor verifica el conteo.",
+    "depositMethod": "Metodo de Deposito",
+    "depositMethods": {
+      "BANK_DEPOSIT": "Deposito Bancario",
+      "SAFE": "Caja de Seguridad",
+      "OWNER_WITHDRAWAL": "Retiro del Dueño",
+      "NEXT_SHIFT": "Fondo para Siguiente Turno"
+    },
+    "bankReference": "Referencia Bancaria",
+    "bankReferencePlaceholder": "Numero de ficha o referencia",
+    "notes": "Notas",
+    "notesPlaceholder": "Observaciones adicionales...",
+    "submit": "Registrar Corte",
+    "success": "Corte de caja registrado",
+    "successDescription": "El efectivo ha sido cerrado correctamente",
+    "error": "Error al registrar el corte",
+    "periodInfo": "Periodo desde {{date}}"
+  },
+  "alert": {
+    "title": "Recordatorio de Corte",
+    "message": "Han pasado {{days}} dias desde el ultimo corte de caja",
+    "action": "Hacer Corte"
+  },
+  "history": {
+    "title": "Historial de Cortes",
+    "empty": "No hay cortes de caja registrados",
+    "showing": "Mostrando {{count}} de {{total}} cortes",
+    "page": "Página {{current}} de {{total}}",
+    "columns": {
+      "date": "Fecha",
+      "expected": "Esperado",
+      "actual": "Contado",
+      "variance": "Diferencia",
+      "method": "Método",
+      "closedBy": "Realizado por"
+    }
+  },
+  "button": "Corte de Caja",
+  "lastCloseout": "Último corte: hace {{days}} días",
+  "lastCloseoutToday": "Último corte: hoy",
+  "noCloseouts": "Sin cortes previos",
+  "viewHistory": "Ver Historial"
+}
