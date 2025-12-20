@@ -12,6 +12,7 @@ export enum TransactionCardType {
   CREDIT = 'CREDIT',
   AMEX = 'AMEX',
   INTERNATIONAL = 'INTERNATIONAL',
+  CASH = 'CASH',
 }
 
 export interface AvailableBalanceSummary {

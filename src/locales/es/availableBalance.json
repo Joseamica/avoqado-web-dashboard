@@ -11,6 +11,9 @@
   "kpi": {
     "availableNow": "Disponible Ahora",
     "availableNowDescription": "Ya liquidado y disponible para retiro",
+    "cardsAvailable": "Tarjetas Disponible",
+    "cardsAvailableDescription": "Liquidado de pagos con tarjeta",
+    "cashAvailable": "Efectivo Disponible",
     "pending": "Pendiente de Liquidación",
     "pendingDescription": "En espera de liquidación del procesador de pagos",
     "nextSettlement": "Próxima Liquidación",
@@ -35,12 +38,21 @@
     }
   },
 
+  "tabs": {
+    "all": "Todo",
+    "cards": "Tarjetas",
+    "cash": "Efectivo"
+  },
+
   "cardType": {
     "debit": "Débito",
     "credit": "Crédito",
     "amex": "American Express",
-    "international": "Internacional"
+    "international": "Internacional",
+    "cash": "Efectivo"
   },
+
+  "instant": "Inmediato",
 
   "timeline": {
     "title": "Línea de Tiempo de Liquidaciones",
