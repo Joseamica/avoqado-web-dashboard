@@ -272,7 +272,7 @@ export function PermissionSuperCategory({
               {/* Permission count badge */}
               <Badge
                 variant={enabledCount === totalCount ? 'default' : 'outline'}
-                className={cn('text-[10px] sm:text-xs', enabledCount === totalCount && 'bg-green-500 hover:bg-green-600 text-white')}
+                className={cn('text-[10px] sm:text-xs', enabledCount === totalCount && 'bg-green-500 hover:bg-green-600 text-primary-foreground')}
               >
                 {enabledCount}/{totalCount}
               </Badge>
