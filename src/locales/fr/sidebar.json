@@ -20,12 +20,18 @@
     "discounts": "Réductions",
     "coupons": "Codes Promo"
   },
+  "salesMenu": {
+    "title": "Ventes",
+    "orders": "Commandes",
+    "transactions": "Transactions"
+  },
   "growth": "Croissance",
   "paymentProviders": "Fournisseurs de paiement",
   "merchantAccounts": "Comptes commerçant",
   "costStructures": "Structures de coûts",
   "venuePricing": "Tarification des établissements",
   "paymentAnalytics": "Analytique des paiements",
+  "creditAssessment": "Évaluation de Crédit",
   "paymentConfig": "Configuration des paiements",
   "platform": "Plateforme",
   "features": "Fonctionnalités",

@@ -21,12 +21,19 @@
     "discounts": "Discounts",
     "coupons": "Coupon Codes"
   },
+  "salesMenu": {
+    "title": "Sales",
+    "orders": "Orders",
+    "transactions": "Transactions"
+  },
   "growth": "Growth",
   "paymentProviders": "Payment Providers",
   "merchantAccounts": "Merchant Accounts",
   "costStructures": "Cost Structures",
+  "settlementTerms": "Settlement Terms",
   "venuePricing": "Venue Pricing",
   "paymentAnalytics": "Payment Analytics",
+  "creditAssessment": "Credit Assessment",
   "paymentConfig": "Payment Config",
   "ecommerceChannels": "E-commerce Channels",
   "superadminTools": "SA Tools",

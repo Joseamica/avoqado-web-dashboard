@@ -80,6 +80,10 @@ import availableBalanceFr from '@/locales/fr/availableBalance.json'
 import settlementIncidentsEn from '@/locales/en/settlementIncidents.json'
 import settlementIncidentsEs from '@/locales/es/settlementIncidents.json'
 import settlementIncidentsFr from '@/locales/fr/settlementIncidents.json'
+import cashCloseoutEn from '@/locales/en/cashCloseout.json'
+import cashCloseoutEs from '@/locales/es/cashCloseout.json'
+import creditOfferEn from '@/locales/en/creditOffer.json'
+import creditOfferEs from '@/locales/es/creditOffer.json'
 import googleIntegrationEn from '@/locales/en/googleIntegration.json'
 import googleIntegrationEs from '@/locales/es/googleIntegration.json'
 import googleIntegrationFr from '@/locales/fr/googleIntegration.json'
@@ -404,6 +408,22 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'settlementIncidents', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', cashCloseoutEn],
+    ['es', cashCloseoutEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'cashCloseout', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', creditOfferEn],
+    ['es', creditOfferEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'creditOffer', bundle as Record<string, unknown>, true, true)
 })
 ;(
   [

@@ -20,12 +20,19 @@
     "discounts": "Descuentos",
     "coupons": "Códigos de Cupón"
   },
+  "salesMenu": {
+    "title": "Ventas",
+    "orders": "Órdenes",
+    "transactions": "Transacciones"
+  },
   "growth": "Crecimiento",
   "paymentProviders": "Proveedores de pago",
   "merchantAccounts": "Cuentas de comercio",
   "costStructures": "Estructuras de costos",
+  "settlementTerms": "Plazos de liquidacion",
   "venuePricing": "Precios por sucursal",
   "paymentAnalytics": "Análisis de pagos",
+  "creditAssessment": "Evaluacion de Credito",
   "paymentConfig": "Configuración de pagos",
   "ecommerceChannels": "Canales E-commerce",
   "superadminTools": "Herramientas SA",

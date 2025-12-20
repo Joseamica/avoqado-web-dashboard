@@ -12,6 +12,7 @@ import {
   Banknote,
   Building2,
   Calendar,
+  Camera,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -80,6 +81,7 @@ interface SectionState {
   cardDetails: boolean
   orderItems: boolean
   venueInfo: boolean
+  verification: boolean
 }
 
 interface TimelineEvent {
@@ -459,6 +461,7 @@ export default function PaymentId() {
     cardDetails: false,
     orderItems: false,
     venueInfo: false,
+    verification: false,
   })
   const { toast } = useToast()
   const { venueId, venue } = useCurrentVenue()
@@ -1289,6 +1292,67 @@ export default function PaymentId() {
                   )}
                 </div>
               </CollapsibleSection>
+
+              {/* Verification Photos Section - Only show if payment has verification */}
+              {payment?.saleVerification?.photos && payment.saleVerification.photos.length > 0 && (
+                <CollapsibleSection
+                  title={t('detail.sections.verification', { defaultValue: 'Verificación de Venta' })}
+                  subtitle={t('detail.sections.verificationDesc', {
+                    defaultValue: '{{count}} foto(s) capturada(s)',
+                    count: payment.saleVerification.photos.length,
+                  })}
+                  isOpen={sectionsOpen.verification}
+                  onToggle={() => toggleSection('verification')}
+                  icon={Camera}
+                >
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {payment.saleVerification.photos.map((photoUrl: string, index: number) => (
+                        <a
+                          key={index}
+                          href={photoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group relative aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                        >
+                          <img
+                            src={photoUrl}
+                            alt={t('detail.verification.photoAlt', {
+                              defaultValue: 'Foto de verificación {{number}}',
+                              number: index + 1,
+                            })}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors flex items-center justify-center">
+                            <ExternalLink className="w-5 h-5 text-background opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                    {/* Scanned products info if any */}
+                    {payment.saleVerification?.scannedProducts &&
+                      Array.isArray(payment.saleVerification.scannedProducts) &&
+                      payment.saleVerification.scannedProducts.length > 0 && (
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            {t('detail.verification.scannedProducts', {
+                              defaultValue: 'Productos escaneados',
+                            })}
+                          </p>
+                          <div className="space-y-1">
+                            {(payment.saleVerification.scannedProducts as Array<{ barcode: string; productName?: string }>).map(
+                              (product, idx) => (
+                                <p key={idx} className="text-xs font-mono text-foreground">
+                                  {product.productName || product.barcode}
+                                </p>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                </CollapsibleSection>
+              )}
 
               {/* Send Receipt Dialog */}
               {can('payments:refund') && (

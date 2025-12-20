@@ -20,17 +20,22 @@ import { StaffRole } from '@/types'
  * }
  */
 export function usePermissions() {
-  const { user, activeVenue } = useAuth()
+  const { user, activeVenue, staffInfo } = useAuth()
 
   const allPermissions = useMemo(() => {
     if (!user) return []
 
-    // Get default permissions for the user's role
-    const defaultPermissions = DEFAULT_PERMISSIONS[user.role as StaffRole] || []
+    // Get the user's role for the current venue
+    // Priority: staffInfo.role (properly derived) > venue-specific role > user.role fallback
+    const venueStaff = activeVenue ? user.venues?.find(v => v.id === activeVenue.id) : null
+    const effectiveRole = staffInfo?.role || venueStaff?.role || user.role
+
+    // Get default permissions for the user's effective role
+    const defaultPermissions = DEFAULT_PERMISSIONS[effectiveRole as StaffRole] || []
 
     // SUPERADMIN EXCEPTION: Always use wildcard, never custom permissions
     // This prevents accidental lockout if SUPERADMIN permissions are customized
-    if (user.role === 'SUPERADMIN') {
+    if (effectiveRole === 'SUPERADMIN') {
       return ['*:*']
     }
 
@@ -38,11 +43,8 @@ export function usePermissions() {
     // StaffVenue.permissions is stored as JSON array: ["tpv:create", "analytics:export", ...]
     let customPermissions: string[] = []
 
-    if (activeVenue) {
-      const venueStaff = user.venues?.find(v => v.id === activeVenue.id)
-      if (venueStaff && Array.isArray(venueStaff.permissions)) {
-        customPermissions = venueStaff.permissions as string[]
-      }
+    if (venueStaff && Array.isArray(venueStaff.permissions)) {
+      customPermissions = venueStaff.permissions as string[]
     }
 
     // OVERRIDE MODE for wildcard roles (OWNER, ADMIN):
@@ -69,7 +71,7 @@ export function usePermissions() {
     // Example: 'orders:read' automatically includes 'products:read', 'payments:read', etc.
     const resolvedSet = resolvePermissions(basePermissions)
     return Array.from(resolvedSet)
-  }, [user, activeVenue])
+  }, [user, activeVenue, staffInfo])
 
   /**
    * Check if user has a specific permission

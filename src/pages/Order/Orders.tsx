@@ -320,7 +320,18 @@ export default function Orders() {
         accessorKey: 'orderNumber',
         meta: { label: t('columns.orderNumber') },
         header: t('columns.orderNumber'),
-        cell: info => <>{(info.getValue() as string) || '-'}</>,
+        cell: ({ row }) => {
+          const orderNumber = row.original.orderNumber || '-'
+          const isFastSale = orderNumber.startsWith('FAST-')
+
+          if (isFastSale) {
+            // Show last 6 digits for FAST orders: "FAST-1766069887997" → "#887997"
+            const shortNumber = orderNumber.slice(-6)
+            return <span className="font-mono text-muted-foreground">#{shortNumber}</span>
+          }
+
+          return <>{orderNumber}</>
+        },
       },
       // {
       //   // CAMBIO: `billName` ahora es `customerName`
@@ -337,33 +348,38 @@ export default function Orders() {
             {t('columns.type')}
           </div>
         ),
-        cell: ({ cell }) => {
-          const type = cell.getValue() as string
+        cell: ({ row }) => {
+          const type = row.original.type as string
+          const orderNumber = row.original.orderNumber || ''
+          const isFastSale = orderNumber.startsWith('FAST-')
 
           // Badge styling for order types
           let typeClasses = { bg: 'bg-muted', text: 'text-muted-foreground' }
-          if (type === 'DINE_IN') {
+          let displayText = type
+
+          if (isFastSale) {
+            // Fast sales get a distinct yellow/amber style
+            typeClasses = { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-800 dark:text-amber-400' }
+            displayText = t('types.FAST', { defaultValue: 'Venta Rápida' })
+          } else if (type === 'DINE_IN') {
             typeClasses = { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-800 dark:text-blue-400' }
+            displayText = t('types.DINE_IN')
           } else if (type === 'TAKEOUT') {
             typeClasses = { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-800 dark:text-purple-400' }
+            displayText = t('types.TAKEOUT')
           } else if (type === 'DELIVERY') {
             typeClasses = { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-800 dark:text-orange-400' }
+            displayText = t('types.DELIVERY')
           } else if (type === 'PICKUP') {
             typeClasses = { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-800 dark:text-cyan-400' }
-          }
-
-          // Translation map for order types
-          const typeMap: Record<string, string> = {
-            DINE_IN: t('types.DINE_IN'),
-            TAKEOUT: t('types.TAKEOUT'),
-            DELIVERY: t('types.DELIVERY'),
-            PICKUP: t('types.PICKUP'),
+            displayText = t('types.PICKUP')
           }
 
           return (
             <div className="flex justify-center">
               <Badge variant="soft" className={`${typeClasses.bg} ${typeClasses.text} border-transparent`}>
-                {typeMap[type] || type}
+                {isFastSale && <span className="mr-1">⚡</span>}
+                {displayText}
               </Badge>
             </div>
           )
@@ -564,12 +580,17 @@ export default function Orders() {
           const waiter = order.servedBy || order.createdBy
           const waiterName = waiter ? `${waiter.firstName} ${waiter.lastName}` : '-'
           const tableName = order.table?.number || '-'
+          const isFastSale = order.orderNumber?.startsWith('FAST-')
+
+          // For fast sales, show shorter folio and "Venta Rápida" type
+          const displayFolio = isFastSale ? `#${order.orderNumber?.slice(-6)}` : (order.orderNumber || '-')
+          const displayType = isFastSale ? t('types.FAST', { defaultValue: 'Venta Rápida' }) : t(`types.${order.type}` as any)
 
           return {
             [t('columns.date')]: formatDate(order.createdAt),
-            [t('columns.orderNumber')]: order.orderNumber || '-',
+            [t('columns.orderNumber')]: displayFolio,
             // [t('columns.customer')]: order.customerName || t('counter'),
-            [t('columns.type')]: t(`types.${order.type}` as any),
+            [t('columns.type')]: displayType,
             [t('columns.table')]: tableName,
             [t('columns.waiter')]: waiterName,
             [t('columns.status')]: t(`statuses.${order.status}` as any),

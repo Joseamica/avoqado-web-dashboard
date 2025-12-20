@@ -50,6 +50,7 @@ const basicInfoFormSchema = z.object({
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
   enableShifts: z.boolean().default(true).optional(),
+  requireClockInPhoto: z.boolean().default(false).optional(),
 })
 
 type BasicInfoFormValues = z.infer<typeof basicInfoFormSchema>
@@ -121,6 +122,7 @@ export default function BasicInfo() {
       timezone: 'America/Mexico_City',
       currency: 'MXN',
       enableShifts: true,
+      requireClockInPhoto: false,
     },
   })
 
@@ -137,6 +139,7 @@ export default function BasicInfo() {
         timezone: venue.timezone || 'America/Mexico_City',
         currency: venue.currency || 'MXN',
         enableShifts: venue.settings?.enableShifts ?? true,
+        requireClockInPhoto: venue.settings?.requireClockInPhoto ?? false,
       })
     }
   }, [venue, form])
@@ -239,6 +242,36 @@ export default function BasicInfo() {
       // Revert form state on error
       queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
       console.error('Error toggling shifts:', error)
+    },
+  })
+
+  // Separate mutation for requireClockInPhoto - Anti-fraud: require photo on clock-in
+  const toggleClockInPhoto = useMutation({
+    mutationFn: async (requireClockInPhoto: boolean) => {
+      await api.put(`/api/v1/dashboard/venues/${venueId}/settings`, {
+        requireClockInPhoto,
+      })
+      return requireClockInPhoto
+    },
+    onSuccess: (requireClockInPhoto) => {
+      form.setValue('requireClockInPhoto', requireClockInPhoto, { shouldDirty: false })
+      toast({
+        title: requireClockInPhoto ? 'Foto de entrada habilitada' : 'Foto de entrada deshabilitada',
+        description: requireClockInPhoto
+          ? 'Los empleados deberán tomar una foto al registrar su entrada.'
+          : 'Ya no se requerirá foto al registrar entrada.',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Error al guardar la configuración'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+      queryClient.invalidateQueries({ queryKey: ['get-venue-data', venueId] })
+      console.error('Error toggling clock-in photo:', error)
     },
   })
 
@@ -659,35 +692,67 @@ export default function BasicInfo() {
 
                 <div className="pt-4">
                   <h4 className="text-sm font-medium mb-3">Configuración Operativa</h4>
-                  <FormField
-                    control={form.control}
-                    name="enableShifts"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
-                          <FormDescription>
-                            Habilita el control de caja y turnos para el personal.
-                          </FormDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {toggleShifts.isPending && (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={(checked) => {
-                                // Immediate API call on toggle (not on form save)
-                                toggleShifts.mutate(checked)
-                              }}
-                              disabled={!canEdit || toggleShifts.isPending}
-                            />
-                          </FormControl>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="enableShifts"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base cursor-pointer">Sistema de Turnos</FormLabel>
+                            <FormDescription>
+                              Habilita el control de caja y turnos para el personal.
+                            </FormDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {toggleShifts.isPending && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  // Immediate API call on toggle (not on form save)
+                                  toggleShifts.mutate(checked)
+                                }}
+                                disabled={!canEdit || toggleShifts.isPending}
+                              />
+                            </FormControl>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="requireClockInPhoto"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base cursor-pointer">Foto de Entrada (Anti-fraude)</FormLabel>
+                            <FormDescription>
+                              Requiere que los empleados tomen una foto al registrar su entrada.
+                            </FormDescription>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {toggleClockInPhoto.isPending && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  // Immediate API call on toggle (not on form save)
+                                  toggleClockInPhoto.mutate(checked)
+                                }}
+                                disabled={!canEdit || toggleClockInPhoto.isPending}
+                              />
+                            </FormControl>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
 

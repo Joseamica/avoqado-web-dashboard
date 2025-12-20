@@ -161,12 +161,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, attemptLiveDemoLogin])
 
   const userRole = useMemo(() => {
-    // World-Class Pattern: Use role field directly if present (for OWNER without venues, SUPERADMIN, etc.)
+    // SUPERADMIN: Always system-wide, don't derive from venue
+    if (user?.role === 'SUPERADMIN') return StaffRole.SUPERADMIN
+
+    // Multi-tenant pattern: Get role from ACTIVE venue's StaffVenue entry
+    // This is the correct approach for venue-specific permissions
+    if (activeVenue && user?.venues) {
+      const venueEntry = user.venues.find(v => v.id === activeVenue.id)
+      if (venueEntry?.role) return venueEntry.role
+    }
+
+    // Fallback to global role (OWNER without specific venue, etc.)
     if (user?.role) return user.role
 
-    // Fallback: Derive role from venues (for backwards compatibility)
-    return user?.venues?.some(v => v.role === StaffRole.OWNER) ? StaffRole.OWNER : user?.venues?.[0]?.role
-  }, [user?.role, user?.venues])
+    // Last fallback: First venue's role (backwards compatibility)
+    return user?.venues?.[0]?.role
+  }, [user?.role, user?.venues, activeVenue])
 
   const allVenues = useMemo(
     () => (user?.role === 'SUPERADMIN' || userRole === StaffRole.OWNER ? statusData?.allVenues : user?.venues) ?? [],
