@@ -9,7 +9,17 @@
     "description": "Please confirm whether these expected settlements have arrived in your bank account",
     "expectedOn": "Expected on",
     "confirmButton": "Confirm",
+    "confirmAll": "Confirm All ({{count}})",
+    "confirmDate": "Confirm Date",
+    "transactionCount": "{{count}} transaction",
+    "transactionCount_other": "{{count}} transactions",
     "totalPending": "Total Pending"
+  },
+  "bulkConfirm": {
+    "success": "Settlements confirmed",
+    "successDescription": "{{count}} settlement confirmed successfully",
+    "successDescription_other": "{{count}} settlements confirmed successfully",
+    "error": "Error confirming settlements"
   },
   "confirmDialog": {
     "title": "Confirm Settlement Status",
