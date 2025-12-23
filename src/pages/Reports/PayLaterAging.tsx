@@ -172,7 +172,7 @@ export default function PayLaterAging() {
         header: 'Días Vencido',
         cell: ({ row }) => {
           const days = row.original.daysOld
-          let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default'
+          const variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default'
           let className = ''
 
           if (days <= 30) {
