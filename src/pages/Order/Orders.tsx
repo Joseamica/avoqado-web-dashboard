@@ -39,7 +39,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Download, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react'
+import { Download, ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Clock } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -129,6 +129,24 @@ export default function Orders() {
     queryKey: ['team', venueId],
     queryFn: () => teamService.getTeamMembers(venueId, 1, 100),
     enabled: isSuperAdmin && editDialogOpen,
+  })
+
+  // Query for pay-later summary (for the banner)
+  const { data: payLaterSummary } = useQuery({
+    queryKey: ['pay-later-summary', venueId],
+    queryFn: async () => {
+      const response = await api.get<{
+        success: boolean
+        data: {
+          summary: {
+            total_balance: number
+            total_count: number
+          }
+        }
+      }>('/api/v1/dashboard/reports/pay-later-aging')
+      return response.data.data.summary
+    },
+    staleTime: 60000, // Cache for 1 minute
   })
 
   useSocketEvents(venueId, socketData => {
@@ -333,13 +351,48 @@ export default function Orders() {
           return <>{orderNumber}</>
         },
       },
-      // {
-      //   // CAMBIO: `billName` ahora es `customerName`
-      //   accessorKey: 'customerName',
-      //   meta: { label: t('columns.customer') },
-      //   header: t('columns.customer'),
-      //   cell: info => <>{(info.getValue() as string) || t('counter')}</>,
-      // },
+      {
+        // Cliente (from orderCustomers for pay-later orders)
+        accessorFn: row => {
+          if (row.orderCustomers && row.orderCustomers.length > 0) {
+            const customer = row.orderCustomers[0].customer
+            return `${customer.firstName} ${customer.lastName}`.trim()
+          }
+          return null
+        },
+        id: 'customerName',
+        meta: { label: t('columns.customer', { defaultValue: 'Cliente' }) },
+        header: t('columns.customer', { defaultValue: 'Cliente' }),
+        cell: ({ row }) => {
+          // Show "Por Cobrar" badge only for UNPAID orders with customers
+          if (
+            row.original.orderCustomers &&
+            row.original.orderCustomers.length > 0 &&
+            (row.original.paymentStatus === 'PENDING' || row.original.paymentStatus === 'PARTIAL')
+          ) {
+            const customer = row.original.orderCustomers[0].customer
+            const customerName = `${customer.firstName} ${customer.lastName}`.trim()
+            return (
+              <div className="flex flex-col gap-1">
+                <span className="font-medium">{customerName}</span>
+                <Badge variant="outline" className="w-fit text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {t('payLater.badge', { defaultValue: 'Por Cobrar' })}
+                </Badge>
+              </div>
+            )
+          }
+
+          // Show customer name without badge for PAID orders
+          if (row.original.orderCustomers && row.original.orderCustomers.length > 0) {
+            const customer = row.original.orderCustomers[0].customer
+            const customerName = `${customer.firstName} ${customer.lastName}`.trim()
+            return <span className="font-medium">{customerName}</span>
+          }
+
+          return <span className="text-muted-foreground">—</span>
+        },
+      },
       {
         accessorKey: 'type',
         meta: { label: t('columns.type') },
@@ -377,7 +430,7 @@ export default function Orders() {
 
           return (
             <div className="flex justify-center">
-              <Badge variant="soft" className={`${typeClasses.bg} ${typeClasses.text} border-transparent`}>
+              <Badge variant="soft" className={`${typeClasses.bg} ${typeClasses.text} border-transparent whitespace-nowrap`}>
                 {isFastSale && <span className="mr-1">⚡</span>}
                 {displayText}
               </Badge>
@@ -521,6 +574,7 @@ export default function Orders() {
   // Sort data before displaying
   const sortedData = useMemo(() => {
     const orders = data?.data || []
+
     if (!sortField) return orders
 
     return [...orders].sort((a: any, b: any) => {
@@ -627,20 +681,55 @@ export default function Orders() {
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">{t('title')}</h1>
-        {/* Export button */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              {t('export.button')}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-2">
+          {/* Pay Later - Navigate to dedicated report */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate('../reports/pay-later-aging')}
+          >
+            <Clock className="h-4 w-4" />
+            {t('payLater.button', { defaultValue: 'Cuentas por Cobrar' })}
+          </Button>
+          {/* Export button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="h-4 w-4" />
+                {t('export.button')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('csv')}>{t('export.asCSV')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      {/* Pay-Later Alert Banner - Uses backend data for accurate counts */}
+      {payLaterSummary && payLaterSummary.total_count > 0 && (
+        <div
+          className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          onClick={() => navigate('../reports/pay-later-aging')}
+        >
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="flex-1">
+              <p className="font-semibold text-red-900 dark:text-red-200">
+                {t('payLater.banner.title', { defaultValue: '⚠️ Cuentas por Cobrar Pendientes' })}
+              </p>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {payLaterSummary.total_count} {payLaterSummary.total_count === 1 ? 'orden' : 'órdenes'} pendiente{payLaterSummary.total_count === 1 ? '' : 's'} de pago - {Currency(payLaterSummary.total_balance)}
+              </p>
+            </div>
+            <span className="text-xs text-red-600 dark:text-red-400">
+              {t('payLater.banner.viewDetails', { defaultValue: 'Ver reporte →' })}
+            </span>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className={`p-4 mb-4 rounded bg-red-100 text-red-800`}>

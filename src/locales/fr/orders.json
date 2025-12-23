@@ -27,6 +27,14 @@
     "error": "Échec de l'exportation des commandes",
     "noData": "Aucune donnée à exporter"
   },
+  "payLater": {
+    "badge": "À Payer",
+    "button": "Comptes à Recevoir",
+    "banner": {
+      "title": "⚠️ Comptes à Recevoir en Attente",
+      "viewDetails": "Voir le rapport →"
+    }
+  },
   "editDialog": {
     "description": "Modifier commande #{{id}}"
   },

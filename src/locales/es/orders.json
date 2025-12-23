@@ -36,6 +36,14 @@
     "error": "Error al exportar órdenes",
     "noData": "No hay datos para exportar"
   },
+  "payLater": {
+    "badge": "Por Cobrar",
+    "button": "Cuentas por Cobrar",
+    "banner": {
+      "title": "⚠️ Cuentas por Cobrar Pendientes",
+      "viewDetails": "Ver reporte →"
+    }
+  },
   "editDialog": {
     "description": "Editar orden #{{id}}"
   },

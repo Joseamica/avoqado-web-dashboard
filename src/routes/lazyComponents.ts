@@ -136,3 +136,6 @@ export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organiz
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
+
+// Reports
+export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))

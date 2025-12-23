@@ -112,6 +112,7 @@ import {
   Webhooks,
   Terminals,
   CreditAssessment,
+  PayLaterAging,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -521,20 +522,15 @@ const router = createBrowserRouter(
                 // Public receipts (no permission required)
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
 
-                // Orders (requires orders:read permission + ONLINE_ORDERING feature + KYC verification)
+                // Orders (requires orders:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="orders:read" />,
                   children: [
                     {
-                      element: <FeatureProtectedRoute requiredFeature="ONLINE_ORDERING" />,
+                      element: <KYCProtectedRoute />,
                       children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { path: 'orders', element: <Orders /> },
-                            { path: 'orders/:orderId', element: <OrderId /> },
-                          ],
-                        },
+                        { path: 'orders', element: <Orders /> },
+                        { path: 'orders/:orderId', element: <OrderId /> },
                       ],
                     },
                   ],
@@ -553,6 +549,17 @@ const router = createBrowserRouter(
                           children: [{ index: true, element: <AnalyticsOverview /> }],
                         },
                       ],
+                    },
+                  ],
+                },
+                // Reports (requires specific report permissions + KYC verification)
+                {
+                  path: 'reports/pay-later-aging',
+                  element: <PermissionProtectedRoute permission="tpv-reports:pay-later-aging" />,
+                  children: [
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [{ index: true, element: <PayLaterAging /> }],
                     },
                   ],
                 },

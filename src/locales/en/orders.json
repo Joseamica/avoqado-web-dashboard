@@ -36,6 +36,14 @@
     "error": "Failed to export orders",
     "noData": "No data to export"
   },
+  "payLater": {
+    "badge": "Pay Later",
+    "button": "Accounts Receivable",
+    "banner": {
+      "title": "⚠️ Pending Accounts Receivable",
+      "viewDetails": "View report →"
+    }
+  },
   "editDialog": {
     "description": "Edit order #{{id}}"
   },

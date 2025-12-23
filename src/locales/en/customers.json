@@ -9,7 +9,8 @@
 		"searchPlaceholder": "Search by name, email, or phone...",
 		"filters": {
 			"allGroups": "All Groups",
-			"noGroup": "No Group"
+			"noGroup": "No Group",
+			"pendingBalance": "With Pending Balance"
 		},
 		"sort": {
 			"label": "Sort by",
@@ -26,7 +27,9 @@
 			"totalSpent": "Total Spent",
 			"visits": "Visits",
 			"points": "Points",
-			"lastVisit": "Last Visit"
+			"lastVisit": "Last Visit",
+			"pendingOrders": "Pending Orders",
+			"pendingBalance": "Pending Balance"
 		}
 	},
 	"detail": {
@@ -202,6 +205,19 @@
 		"adjustPoints": "Adjust Points",
 		"viewDetails": "View Details",
 		"assignToGroup": "Assign to Group",
-		"removeFromGroup": "Remove from Group"
+		"removeFromGroup": "Remove from Group",
+		"settleBalance": "Settle Balance"
+	},
+	"settleBalance": {
+		"title": "Settle Pending Balance",
+		"description": "Mark all pending orders for {{name}} as paid",
+		"pendingOrders": "Pending orders",
+		"totalBalance": "Total balance",
+		"notesLabel": "Notes (optional)",
+		"notesPlaceholder": "E.g.: Cash payment, Bank transfer...",
+		"notesHelp": "Add details about how the payment was received",
+		"confirm": "Settle Balance",
+		"successTitle": "Balance Settled",
+		"successDescription": "Settled {{count}} order(s) for a total of {{amount}}"
 	}
 }

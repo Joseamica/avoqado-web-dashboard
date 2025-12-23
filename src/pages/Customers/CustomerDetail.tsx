@@ -292,8 +292,8 @@ export default function CustomerDetail() {
 						<CardHeader>
 							<div className="flex items-center space-x-3">
 								<div className="w-12 h-12 bg-linear-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
-									{customer.firstName[0]}
-									{customer.lastName[0]}
+									{customer.firstName?.[0] || ''}
+									{customer.lastName?.[0] || ''}
 								</div>
 								<div className="flex-1">
 									<CardTitle className="text-lg">

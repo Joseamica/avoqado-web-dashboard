@@ -76,7 +76,8 @@ export default function CustomerForm({ venueId, customer, groups, onSuccess }: C
 			lastName: customer?.lastName || '',
 			email: customer?.email || '',
 			phone: customer?.phone || '',
-			customerGroupId: customer?.customerGroupId || '',
+			// Check both customerGroupId and customerGroup.id (backend might return either)
+			customerGroupId: customer?.customerGroupId || customer?.customerGroup?.id || '',
 		},
 	})
 

@@ -3,6 +3,7 @@
   BarChart3,
   BookOpen,
   Building,
+  Clock,
   CreditCard,
   DollarSign,
   FlaskConical,
@@ -118,15 +119,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Sales submenu (Ventas) - Orders and Transactions grouped together
     // Following Square's "Orders & payments" pattern for better UX
     const salesSubItems = [
-      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read', requiredFeature: 'ONLINE_ORDERING' },
+      { title: t('sidebar:salesMenu.orders', { defaultValue: 'Órdenes' }), url: 'orders', permission: 'orders:read' },
       { title: t('sidebar:salesMenu.transactions', { defaultValue: 'Transacciones' }), url: 'payments', permission: 'payments:read' },
     ].filter(item => {
       // Check permission
       if (item.permission && !can(item.permission)) return false
-      // Check required feature
-      if ('requiredFeature' in item && item.requiredFeature) {
-        return checkFeatureAccess(item.requiredFeature)
-      }
       return true
     })
 
@@ -192,6 +189,26 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Tag,
         locked: false,
         items: promotionsSubItems,
+        permission: null as any,
+      } as any)
+    }
+
+    // Reports submenu - filter subitems based on permissions
+    const reportsSubItems = [
+      { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', permission: 'tpv-reports:pay-later-aging' },
+    ].filter(item => !item.permission || can(item.permission))
+
+    // Only show Reports menu if user has at least one subitem
+    if (reportsSubItems.length > 0) {
+      // Find index after Promotions menu to insert Reports menu
+      const promotionsIndex = filteredItems.findIndex(item => item.url === '#promotions')
+      const insertIndex = promotionsIndex !== -1 ? promotionsIndex + 1 : filteredItems.length
+      filteredItems.splice(insertIndex, 0, {
+        title: t('sidebar:reportsMenu.title', { defaultValue: 'Reportes' }),
+        url: '#reports',
+        icon: Receipt,
+        locked: !hasKYCAccess,
+        items: reportsSubItems,
         permission: null as any,
       } as any)
     }

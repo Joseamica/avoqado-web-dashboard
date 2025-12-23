@@ -4,14 +4,54 @@ import { cn } from '@/lib/utils'
 
 type TableProps = React.HTMLAttributes<HTMLTableElement> & {
   containerClassName?: string
+  /** Enable sticky first column with shadow indicator on scroll */
+  stickyFirstColumn?: boolean
 }
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({ className, containerClassName, ...props }, ref) => (
-    <div className={cn('relative w-full overflow-auto', containerClassName)}>
-      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
-    </div>
-  ),
+  ({ className, containerClassName, stickyFirstColumn = false, ...props }, ref) => {
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+    const [isScrolled, setIsScrolled] = React.useState(false)
+
+    // Detect horizontal scroll to show/hide shadow
+    React.useEffect(() => {
+      if (!stickyFirstColumn) return
+
+      const container = scrollContainerRef.current
+      if (!container) return
+
+      const handleScroll = () => {
+        setIsScrolled(container.scrollLeft > 0)
+      }
+
+      container.addEventListener('scroll', handleScroll, { passive: true })
+      return () => container.removeEventListener('scroll', handleScroll)
+    }, [stickyFirstColumn])
+
+    return (
+      // Outer container: handles border-radius clipping
+      <div className={cn('relative w-full', containerClassName)}>
+        {/* Inner container: handles horizontal scroll */}
+        <div
+          ref={scrollContainerRef}
+          className={cn(
+            'w-full overflow-x-auto',
+            isScrolled && 'table-scrolled'
+          )}
+        >
+          <table
+            ref={ref}
+            className={cn(
+              'w-full caption-bottom text-sm',
+              stickyFirstColumn && 'table-sticky-col-first',
+              className
+            )}
+            {...props}
+          />
+        </div>
+      </div>
+    )
+  },
 )
 Table.displayName = 'Table'
 

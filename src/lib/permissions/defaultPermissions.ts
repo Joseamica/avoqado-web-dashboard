@@ -158,6 +158,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'customers:create',
     'customers:update',
     'customers:delete',
+    'customers:settle-balance', // Can mark pending balances as paid
     'customer-groups:read',
     'customer-groups:create',
     'customer-groups:update',
@@ -299,7 +300,7 @@ export const PERMISSION_CATEGORIES = {
   },
   CUSTOMERS: {
     label: 'Customer Management',
-    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete'],
+    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete', 'customers:settle-balance'],
   },
   CUSTOMER_GROUPS: {
     label: 'Customer Groups',
@@ -371,7 +372,7 @@ export const PERMISSION_CATEGORIES = {
   },
   TPV_REPORTS: {
     label: 'TPV Reports',
-    permissions: ['tpv-reports:read', 'tpv-reports:export'],
+    permissions: ['tpv-reports:read', 'tpv-reports:export', 'tpv-reports:pay-later-aging'],
   },
   TPV_PRODUCTS: {
     label: 'TPV Products (Scan & Go)',

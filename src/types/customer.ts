@@ -16,6 +16,8 @@ export interface Customer {
 	customerGroup: CustomerGroupBasic | null
 	createdAt: string
 	updatedAt: string
+	pendingOrderCount: number  // Count of pay-later orders
+	pendingBalance: number      // Total balance pending
 }
 
 export interface CustomerGroupBasic {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowUpDown, Banknote, Clock, MoreHorizontal, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -26,6 +26,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
 	Select,
 	SelectContent,
@@ -61,10 +63,13 @@ export default function Customers() {
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
 	const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
+	const [settlingCustomer, setSettlingCustomer] = useState<Customer | null>(null)
+	const [settleNotes, setSettleNotes] = useState('')
+	const [showPendingOnly, setShowPendingOnly] = useState(false)
 
 	// Fetch customers
 	const { data: customersData, isLoading: isLoadingCustomers } = useQuery({
-		queryKey: ['customers', venueId, pagination.pageIndex, pagination.pageSize, sortBy, sortOrder, selectedGroupId],
+		queryKey: ['customers', venueId, pagination.pageIndex, pagination.pageSize, sortBy, sortOrder, selectedGroupId, showPendingOnly],
 		queryFn: () =>
 			customerService.getCustomers(venueId, {
 				page: pagination.pageIndex + 1,
@@ -74,6 +79,7 @@ export default function Customers() {
 				// 'none' means filter customers without a group, otherwise filter by group ID
 				customerGroupId: selectedGroupId && selectedGroupId !== 'none' ? selectedGroupId : undefined,
 				noGroup: selectedGroupId === 'none' ? true : undefined,
+				hasPendingBalance: showPendingOnly || undefined,
 			}),
 		refetchOnWindowFocus: true,
 	})
@@ -82,6 +88,18 @@ export default function Customers() {
 	const { data: groupsData } = useQuery({
 		queryKey: ['customer-groups', venueId],
 		queryFn: () => customerService.getCustomerGroups(venueId, { pageSize: 100 }),
+	})
+
+	// Fetch count of customers with pending balance (for badge)
+	const { data: pendingBalanceData } = useQuery({
+		queryKey: ['customers-pending-balance-count', venueId],
+		queryFn: () =>
+			customerService.getCustomers(venueId, {
+				page: 1,
+				pageSize: 1, // We only need the count, not the data
+				hasPendingBalance: true,
+			}),
+		refetchOnWindowFocus: true,
 	})
 
 	// Delete customer mutation
@@ -96,15 +114,43 @@ export default function Customers() {
 		},
 		onError: (error: any) => {
 			toast({
-				title: tCommon('common.error'),
+				title: tCommon('error'),
 				description: error.response?.data?.message || t('toasts.error'),
 				variant: 'destructive',
 			})
 		},
 	})
 
-	// Memoized customers list
-	const customers = useMemo(() => customersData?.data || [], [customersData?.data])
+	// Settle balance mutation
+	const settleBalanceMutation = useMutation({
+		mutationFn: ({ customerId, notes }: { customerId: string; notes?: string }) =>
+			customerService.settleBalance(venueId, customerId, notes),
+		onSuccess: (data) => {
+			toast({
+				title: t('settleBalance.successTitle'),
+				description: t('settleBalance.successDescription', {
+					count: data.settledOrderCount,
+					amount: formatCurrency(data.settledAmount),
+				}),
+			})
+			queryClient.invalidateQueries({ queryKey: ['customers', venueId] })
+			setSettlingCustomer(null)
+			setSettleNotes('')
+		},
+		onError: (error: any) => {
+			toast({
+				title: tCommon('error'),
+				description: error.response?.data?.message || t('toasts.error'),
+				variant: 'destructive',
+			})
+		},
+	})
+
+	// Customers list (no client-side filtering needed - backend handles it)
+	const customers = customersData?.data || []
+
+	// Count customers with pending balance for the badge (from server)
+	const pendingCustomersCount = pendingBalanceData?.meta.totalCount || 0
 
 	// Client-side search
 	const handleSearch = useCallback((search: string, rows: Customer[]) => {
@@ -138,10 +184,10 @@ export default function Customers() {
 			const diffMs = now.getTime() - date.getTime()
 			const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-			if (diffDays === 0) return t('list.columns.lastVisit') + ': ' + tCommon('common.today')
-			if (diffDays === 1) return t('list.columns.lastVisit') + ': ' + tCommon('common.yesterday')
-			if (diffDays < 7) return `${diffDays} ${tCommon('common.daysAgo')}`
-			if (diffDays < 30) return `${Math.floor(diffDays / 7)} ${tCommon('common.weeksAgo')}`
+			if (diffDays === 0) return t('list.columns.lastVisit') + ': ' + tCommon('today')
+			if (diffDays === 1) return t('list.columns.lastVisit') + ': ' + tCommon('yesterday')
+			if (diffDays < 7) return `${diffDays} ${tCommon('daysAgo')}`
+			if (diffDays < 30) return `${Math.floor(diffDays / 7)} ${tCommon('weeksAgo')}`
 			return formatDate(dateStr)
 		},
 		[formatDate, t, tCommon]
@@ -227,7 +273,35 @@ export default function Customers() {
 			{
 				accessorKey: 'lastVisit',
 				header: t('list.columns.lastVisit'),
-				cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatRelativeDate(row.original.lastVisit)}</span>,
+				cell: ({ row }) => <span className="text-sm text-muted-foreground whitespace-nowrap">{formatRelativeDate(row.original.lastVisit)}</span>,
+			},
+			{
+				accessorKey: 'pendingOrderCount',
+				header: t('list.columns.pendingOrders'),
+				cell: ({ row }) => {
+					const count = row.original.pendingOrderCount || 0
+					return count > 0 ? (
+						<div className="text-center">
+							<Badge variant="destructive">{count}</Badge>
+						</div>
+					) : (
+						<span className="text-center text-muted-foreground">—</span>
+					)
+				},
+			},
+			{
+				accessorKey: 'pendingBalance',
+				header: t('list.columns.pendingBalance'),
+				cell: ({ row }) => {
+					const balance = row.original.pendingBalance || 0
+					return balance > 0 ? (
+						<div className="text-right">
+							<span className="font-semibold text-orange-600">{formatCurrency(balance)}</span>
+						</div>
+					) : (
+						<span className="text-right text-muted-foreground">$0.00</span>
+					)
+				},
 			},
 			{
 				id: 'actions',
@@ -247,6 +321,18 @@ export default function Customers() {
 										{t('actions.edit')}
 									</DropdownMenuItem>
 								</PermissionGate>
+								{/* Settle Balance - only show if customer has pending balance */}
+								{(row.original.pendingBalance || 0) > 0 && (
+									<PermissionGate permission="customers:settle-balance">
+										<DropdownMenuItem
+											onClick={() => setSettlingCustomer(row.original)}
+											className="text-green-600"
+										>
+											<Banknote className="h-4 w-4 mr-2" />
+											{t('actions.settleBalance')}
+										</DropdownMenuItem>
+									</PermissionGate>
+								)}
 								<DropdownMenuSeparator />
 								<PermissionGate permission="customers:delete">
 									<DropdownMenuItem onClick={() => setDeletingCustomer(row.original)} className="text-red-600">
@@ -301,6 +387,22 @@ export default function Customers() {
 
 			{/* Filters */}
 			<div className="flex items-center gap-4 mb-4">
+				{/* Pending balance filter */}
+				<Button
+					variant={showPendingOnly ? 'default' : 'outline'}
+					size="sm"
+					className="gap-2"
+					onClick={() => setShowPendingOnly(!showPendingOnly)}
+				>
+					<Clock className="h-4 w-4" />
+					{t('list.filters.pendingBalance', { defaultValue: 'Con Saldo Pendiente' })}
+					{pendingCustomersCount > 0 && (
+						<Badge variant={showPendingOnly ? 'secondary' : 'destructive'} className="ml-1">
+							{pendingCustomersCount}
+						</Badge>
+					)}
+				</Button>
+
 				<Select value={selectedGroupId || 'all'} onValueChange={(value) => setSelectedGroupId(value === 'all' ? '' : value)}>
 					<SelectTrigger className="w-[200px]">
 						<SelectValue placeholder={t('list.filters.allGroups')} />
@@ -332,7 +434,7 @@ export default function Customers() {
 				</Select>
 
 				<Select value={sortOrder} onValueChange={(value) => setSortOrder(value as 'asc' | 'desc')}>
-					<SelectTrigger className="w-[120px]">
+					<SelectTrigger className="w-[140px]">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -355,6 +457,7 @@ export default function Customers() {
 				searchPlaceholder={t('list.searchPlaceholder')}
 				onSearch={handleSearch}
 				clickableRow={row => ({ to: row.id })}
+				stickyFirstColumn={true}
 			/>
 
 			{/* Edit Customer Dialog */}
@@ -404,6 +507,82 @@ export default function Customers() {
 						</AlertDialogFooter>
 					</AlertDialogContent>
 				</AlertDialog>
+			)}
+
+			{/* Settle Balance Dialog */}
+			{settlingCustomer && (
+				<Dialog
+					open={!!settlingCustomer}
+					onOpenChange={(open) => {
+						if (!open) {
+							setSettlingCustomer(null)
+							setSettleNotes('')
+						}
+					}}
+				>
+					<DialogContent className="max-w-md">
+						<DialogHeader>
+							<DialogTitle>{t('settleBalance.title')}</DialogTitle>
+							<DialogDescription>
+								{t('settleBalance.description', {
+									name: `${settlingCustomer.firstName} ${settlingCustomer.lastName}`,
+								})}
+							</DialogDescription>
+						</DialogHeader>
+
+						<div className="space-y-4 py-4">
+							{/* Balance Summary */}
+							<div className="rounded-lg border border-border bg-muted/50 p-4">
+								<div className="flex items-center justify-between mb-2">
+									<span className="text-sm text-muted-foreground">{t('settleBalance.pendingOrders')}</span>
+									<span className="font-medium">{settlingCustomer.pendingOrderCount || 0}</span>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm text-muted-foreground">{t('settleBalance.totalBalance')}</span>
+									<span className="text-lg font-bold text-orange-600">
+										{formatCurrency(settlingCustomer.pendingBalance || 0)}
+									</span>
+								</div>
+							</div>
+
+							{/* Notes Input */}
+							<div className="space-y-2">
+								<Label htmlFor="settle-notes">{t('settleBalance.notesLabel')}</Label>
+								<Input
+									id="settle-notes"
+									placeholder={t('settleBalance.notesPlaceholder')}
+									value={settleNotes}
+									onChange={(e) => setSettleNotes(e.target.value)}
+								/>
+								<p className="text-xs text-muted-foreground">{t('settleBalance.notesHelp')}</p>
+							</div>
+						</div>
+
+						<div className="flex justify-end gap-2">
+							<Button
+								variant="outline"
+								onClick={() => {
+									setSettlingCustomer(null)
+									setSettleNotes('')
+								}}
+							>
+								{tCommon('cancel')}
+							</Button>
+							<Button
+								onClick={() =>
+									settleBalanceMutation.mutate({
+										customerId: settlingCustomer.id,
+										notes: settleNotes || undefined,
+									})
+								}
+								disabled={settleBalanceMutation.isPending}
+								className="bg-green-600 hover:bg-green-700"
+							>
+								{settleBalanceMutation.isPending ? tCommon('loading') : t('settleBalance.confirm')}
+							</Button>
+						</div>
+					</DialogContent>
+				</Dialog>
 			)}
 		</div>
 	)

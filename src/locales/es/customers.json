@@ -9,7 +9,8 @@
 		"searchPlaceholder": "Buscar por nombre, email o teléfono...",
 		"filters": {
 			"allGroups": "Todos los Grupos",
-			"noGroup": "Sin Grupo"
+			"noGroup": "Sin Grupo",
+			"pendingBalance": "Con Saldo Pendiente"
 		},
 		"sort": {
 			"label": "Ordenar por",
@@ -26,7 +27,9 @@
 			"totalSpent": "Total Gastado",
 			"visits": "Visitas",
 			"points": "Puntos",
-			"lastVisit": "Última Visita"
+			"lastVisit": "Última Visita",
+			"pendingOrders": "Órdenes Pendientes",
+			"pendingBalance": "Saldo Pendiente"
 		}
 	},
 	"detail": {
@@ -202,6 +205,19 @@
 		"adjustPoints": "Ajustar Puntos",
 		"viewDetails": "Ver Detalles",
 		"assignToGroup": "Asignar a Grupo",
-		"removeFromGroup": "Remover del Grupo"
+		"removeFromGroup": "Remover del Grupo",
+		"settleBalance": "Liquidar Saldo"
+	},
+	"settleBalance": {
+		"title": "Liquidar Saldo Pendiente",
+		"description": "Marcar como pagadas todas las órdenes pendientes de {{name}}",
+		"pendingOrders": "Órdenes pendientes",
+		"totalBalance": "Saldo total",
+		"notesLabel": "Notas (opcional)",
+		"notesPlaceholder": "Ej: Pago en efectivo, Transferencia bancaria...",
+		"notesHelp": "Agrega detalles sobre cómo se recibió el pago",
+		"confirm": "Liquidar Saldo",
+		"successTitle": "Saldo Liquidado",
+		"successDescription": "Se liquidaron {{count}} orden(es) por un total de {{amount}}"
 	}
 }
