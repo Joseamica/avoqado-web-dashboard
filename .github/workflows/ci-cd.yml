@@ -100,7 +100,7 @@ jobs:
 
       # ✅ OPTIMIZATION: Upload artifacts to reuse in deploy jobs
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dashboard-build-${{ github.sha }}
           path: dist/
