@@ -11,6 +11,9 @@
   "kpi": {
     "availableNow": "Available Now",
     "availableNowDescription": "Already settled and available for withdrawal",
+    "cardsAvailable": "Cards Available",
+    "cardsAvailableDescription": "Settled from card payments",
+    "cashAvailable": "Cash Available",
     "pending": "Pending Settlement",
     "pendingDescription": "Awaiting settlement from payment processor",
     "nextSettlement": "Next Settlement",
@@ -35,12 +38,21 @@
     }
   },
 
+  "tabs": {
+    "all": "All",
+    "cards": "Cards",
+    "cash": "Cash"
+  },
+
   "cardType": {
     "debit": "Debit",
     "credit": "Credit",
     "amex": "American Express",
-    "international": "International"
+    "international": "International",
+    "cash": "Cash"
   },
+
+  "instant": "Instant",
 
   "timeline": {
     "title": "Settlement Timeline",

@@ -25,6 +25,7 @@ export interface CustomerQueryParams {
 	noGroup?: boolean
 	sortBy?: 'createdAt' | 'totalSpent' | 'visitCount' | 'lastVisit'
 	sortOrder?: 'asc' | 'desc'
+	hasPendingBalance?: boolean
 }
 
 // Customer Group query parameters
@@ -49,6 +50,7 @@ export const customerService = {
 		if (params.noGroup) searchParams.append('noGroup', 'true')
 		if (params.sortBy) searchParams.append('sortBy', params.sortBy)
 		if (params.sortOrder) searchParams.append('sortOrder', params.sortOrder)
+		if (params.hasPendingBalance) searchParams.append('hasPendingBalance', 'true')
 
 		const queryString = searchParams.toString()
 		const url = `/api/v1/dashboard/venues/${venueId}/customers${queryString ? `?${queryString}` : ''}`
@@ -84,6 +86,18 @@ export const customerService = {
 	// Delete customer
 	async deleteCustomer(venueId: string, customerId: string): Promise<void> {
 		await api.delete(`/api/v1/dashboard/venues/${venueId}/customers/${customerId}`)
+	},
+
+	// Settle customer pending balance (mark pay-later orders as paid)
+	async settleBalance(
+		venueId: string,
+		customerId: string,
+		notes?: string
+	): Promise<{ settledOrderCount: number; settledAmount: number; message: string }> {
+		const response = await api.post(`/api/v1/dashboard/venues/${venueId}/customers/${customerId}/settle-balance`, {
+			notes,
+		})
+		return response.data
 	},
 
 	// ==================== CUSTOMER GROUPS ====================

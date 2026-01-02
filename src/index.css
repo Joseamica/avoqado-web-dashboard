@@ -107,6 +107,69 @@
     top: 0;
     z-index: 10;
   }
+
+  /*
+   * Sticky First Column (Stripe/Linear pattern)
+   * Keeps the first column visible during horizontal scroll with a shadow indicator.
+   * Usage: Add `stickyFirstColumn` prop to DataTable
+   */
+
+  /* Base sticky positioning */
+  .table-sticky-col-first th:first-child,
+  .table-sticky-col-first td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+  }
+
+  /* Header first cell needs higher z-index (sticky both vertically and horizontally) */
+  .table-sticky-col-first thead th:first-child {
+    z-index: 15;
+  }
+
+  /* Shadow indicator (appears when scrolled) */
+  .table-sticky-col-first th:first-child::after,
+  .table-sticky-col-first td:first-child::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -8px;
+    bottom: 0;
+    width: 8px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  /* Show shadow when container has scrolled */
+  .table-scrolled .table-sticky-col-first th:first-child::after,
+  .table-scrolled .table-sticky-col-first td:first-child::after {
+    opacity: 1;
+  }
+
+  /* Dark mode shadow (more visible) */
+  .dark .table-scrolled .table-sticky-col-first th:first-child::after,
+  .dark .table-scrolled .table-sticky-col-first td:first-child::after {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
+  }
+
+  /* Background colors for sticky cells (prevents content from showing through) */
+  .table-sticky-col-first tbody tr td:first-child {
+    background: var(--background);
+  }
+
+  .table-sticky-col-first tbody tr:hover td:first-child {
+    background: var(--muted);
+  }
+
+  .table-sticky-col-first thead tr th:first-child {
+    background: var(--muted);
+  }
+
+  .dark .table-sticky-col-first thead tr th:first-child {
+    background: #262626;
+  }
   /* Slow pulse animation for validation errors */
   @keyframes pulse-slow {
     0%,

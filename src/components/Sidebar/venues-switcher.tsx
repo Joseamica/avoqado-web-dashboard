@@ -36,7 +36,8 @@ interface VenuesSwitcherProps {
 }
 
 export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
-  const { isMobile } = useSidebar()
+  const { isMobile, state: sidebarState } = useSidebar()
+  const isCollapsed = sidebarState === 'collapsed' && !isMobile
   const navigate = useNavigate()
   const location = useLocation()
   const { checkVenueAccess, user, switchVenue, isLoading } = useAuth()
@@ -183,15 +184,19 @@ export function VenuesSwitcher({ venues, defaultVenue }: VenuesSwitcherProps) {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
                 disabled={isLoading}
               >
-                <Avatar className="flex justify-center items-center rounded-lg aspect-square size-8">
+                <Avatar className={`flex justify-center items-center rounded-lg aspect-square ${isCollapsed ? 'size-7' : 'size-8'}`}>
                   <AvatarImage src={currentVenue?.logo} alt={`${currentVenue?.name} Logo`} />
-                  <AvatarFallback>{currentVenue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{currentVenue?.name?.charAt(0).toLocaleUpperCase() || 'V'}</AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-sm leading-tight text-left">
-                  <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
-                  <span className="text-xs truncate">{currentVenue?.city || ''}</span>
-                </div>
-                <ChevronsUpDown className="ml-auto" />
+                {!isCollapsed && (
+                  <>
+                    <div className="grid flex-1 text-sm leading-tight text-left">
+                      <span className="font-semibold truncate">{currentVenue?.name || t('venuesSwitcher.selectVenue')}</span>
+                      <span className="text-xs truncate">{currentVenue?.city || ''}</span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto" />
+                  </>
+                )}
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent

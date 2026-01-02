@@ -1937,6 +1937,10 @@
       "description": "View and manage provider cost rates and structures",
       "searchPlaceholder": "Search by provider, account, or proposal..."
     },
+    "filters": {
+      "allProviders": "All providers",
+      "allMerchants": "All accounts"
+    },
     "toasts": {
       "success": "Success",
       "createSuccess": "Cost structure created successfully",
@@ -3079,6 +3083,99 @@
       "serialNumber": "Serial Number",
       "active": "Active",
       "inactive": "Inactive"
+    }
+  },
+  "settlementConfigurations": {
+    "title": "Settlement Terms",
+    "subtitle": "Define payment days per card type for each merchant account",
+    "description": "Configure how many days until the client receives their funds based on card type",
+    "addButton": "Add Configuration",
+    "bulkCreate": "Create Configurations",
+    "cardTypes": {
+      "DEBIT": "Debit",
+      "CREDIT": "Credit",
+      "AMEX": "American Express",
+      "INTERNATIONAL": "International",
+      "OTHER": "Other"
+    },
+    "dayTypes": {
+      "BUSINESS_DAYS": "Business days",
+      "CALENDAR_DAYS": "Calendar days"
+    },
+    "dayTypeDescriptions": {
+      "BUSINESS_DAYS": "Excludes weekends",
+      "CALENDAR_DAYS": "Includes all days"
+    },
+    "columns": {
+      "merchantAccount": "Merchant Account",
+      "cardType": "Card Type",
+      "settlementDays": "Settlement Days",
+      "dayType": "Day Type",
+      "cutoffTime": "Cutoff Time",
+      "effectiveFrom": "Effective From",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Settlement Configuration",
+      "merchantAccount": "Merchant Account",
+      "merchantAccountPlaceholder": "Select merchant account",
+      "cardType": "Card Type",
+      "settlementDays": "Settlement Days",
+      "settlementDaysHint": "Number of days until funds are available",
+      "dayType": "Day Type",
+      "settlementDayType": "Day Type",
+      "cutoffTime": "Cutoff Time",
+      "cutoffTimeHint": "Cutoff time for counting transactions",
+      "cutoffTimezone": "Timezone",
+      "effectiveFrom": "Effective From",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes about this configuration..."
+    },
+    "wizard": {
+      "title": "Settlement Terms",
+      "description": "Define how many days until the client receives their funds",
+      "daysLabel": "days",
+      "dayLabel": "day",
+      "hint": "These terms will be shown to the client in their available balance"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "pending": "Pending"
+    },
+    "stats": {
+      "totalConfigs": "Total Configurations",
+      "merchantsWithConfig": "Configured Accounts",
+      "merchantsWithoutConfig": "Not Configured"
+    },
+    "empty": {
+      "title": "No configurations",
+      "description": "No settlement configurations found. Create one to define payment terms."
+    },
+    "filters": {
+      "allMerchants": "All accounts",
+      "allCardTypes": "All types",
+      "searchPlaceholder": "Search by merchant account..."
+    },
+    "toasts": {
+      "success": "Success",
+      "createSuccess": "Configuration created successfully",
+      "createError": "Failed to create configuration",
+      "updateSuccess": "Configuration updated successfully",
+      "updateError": "Failed to update configuration",
+      "deleteSuccess": "Configuration deleted successfully",
+      "deleteError": "Failed to delete configuration",
+      "bulkCreateSuccess": "{{count}} configurations created successfully",
+      "bulkCreateError": "Failed to create configurations"
+    },
+    "confirmations": {
+      "delete": "Are you sure you want to delete this settlement configuration?"
+    },
+    "merchantsWithoutConfig": {
+      "title": "Accounts Without Configuration",
+      "description": "The following merchant accounts have no settlement configuration",
+      "configure": "Configure"
     }
   }
 }

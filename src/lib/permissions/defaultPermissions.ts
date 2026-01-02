@@ -158,6 +158,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'customers:create',
     'customers:update',
     'customers:delete',
+    'customers:settle-balance', // Can mark pending balances as paid
     'customer-groups:read',
     'customer-groups:create',
     'customer-groups:update',
@@ -177,6 +178,12 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'coupons:delete',
     // TPV Settings (can view, but not modify by default)
     'tpv-settings:read',
+    // Billing (read-only for MANAGER)
+    'billing:read',
+    'billing:subscriptions:read',
+    'billing:history:read',
+    'billing:payment-methods:read',
+    'billing:tokens:read',
   ],
 
   /**
@@ -293,7 +300,7 @@ export const PERMISSION_CATEGORIES = {
   },
   CUSTOMERS: {
     label: 'Customer Management',
-    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete'],
+    permissions: ['customers:read', 'customers:create', 'customers:update', 'customers:delete', 'customers:settle-balance'],
   },
   CUSTOMER_GROUPS: {
     label: 'Customer Groups',
@@ -314,5 +321,65 @@ export const PERMISSION_CATEGORIES = {
   TPV_SETTINGS: {
     label: 'TPV Settings',
     permissions: ['tpv-settings:read', 'tpv-settings:update'],
+  },
+  BILLING: {
+    label: 'Billing & Subscriptions',
+    permissions: [
+      'billing:read',
+      'billing:subscriptions:read',
+      'billing:subscriptions:manage',
+      'billing:history:read',
+      'billing:payment-methods:read',
+      'billing:payment-methods:manage',
+      'billing:tokens:read',
+      'billing:tokens:purchase',
+    ],
+  },
+  // ===========================
+  // TPV-SPECIFIC PERMISSIONS (Granular TPV Features)
+  // ===========================
+  TPV_TERMINAL: {
+    label: 'Terminal Configuration',
+    permissions: ['tpv-terminal:settings'],
+  },
+  TPV_ORDERS: {
+    label: 'TPV Orders (Advanced)',
+    permissions: ['tpv-orders:comp', 'tpv-orders:void', 'tpv-orders:discount'],
+  },
+  TPV_PAYMENTS: {
+    label: 'TPV Payments (Advanced)',
+    permissions: ['tpv-payments:send-receipt'],
+  },
+  TPV_SHIFTS: {
+    label: 'TPV Shifts',
+    permissions: ['tpv-shifts:create', 'tpv-shifts:close'],
+  },
+  TPV_TABLES: {
+    label: 'TPV Tables',
+    permissions: ['tpv-tables:assign', 'tpv-tables:write', 'tpv-tables:delete'],
+  },
+  TPV_FLOOR_ELEMENTS: {
+    label: 'Floor Elements',
+    permissions: ['tpv-floor-elements:read', 'tpv-floor-elements:write', 'tpv-floor-elements:delete'],
+  },
+  TPV_CUSTOMERS: {
+    label: 'TPV Customers',
+    permissions: ['tpv-customers:read', 'tpv-customers:create'],
+  },
+  TPV_TIME_ENTRIES: {
+    label: 'Time Clock',
+    permissions: ['tpv-time-entries:read', 'tpv-time-entries:write'],
+  },
+  TPV_REPORTS: {
+    label: 'TPV Reports',
+    permissions: ['tpv-reports:read', 'tpv-reports:export', 'tpv-reports:pay-later-aging'],
+  },
+  TPV_PRODUCTS: {
+    label: 'TPV Products (Scan & Go)',
+    permissions: ['tpv-products:read', 'tpv-products:write'],
+  },
+  TPV_FACTORY_RESET: {
+    label: 'Factory Reset (CRITICAL)',
+    permissions: ['tpv-factory-reset:execute'],
   },
 } as const

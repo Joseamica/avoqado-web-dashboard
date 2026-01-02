@@ -1390,6 +1390,10 @@
         "description": "Ver y gestionar tarifas y estructuras de costos de proveedores",
         "searchPlaceholder": "Buscar por proveedor, cuenta o propuesta..."
       },
+      "filters": {
+        "allProviders": "Todos los proveedores",
+        "allMerchants": "Todas las cuentas"
+      },
       "toasts": {
         "success": "Éxito",
         "createSuccess": "Estructura de costos creada exitosamente",
@@ -2669,6 +2673,99 @@
       "serialNumber": "Número de Serie",
       "active": "Activo",
       "inactive": "Inactivo"
+    }
+  },
+  "settlementConfigurations": {
+    "title": "Plazos de Liquidacion",
+    "subtitle": "Define los dias de pago por tipo de tarjeta para cada cuenta comercial",
+    "description": "Configura cuantos dias tardara el cliente en recibir sus fondos segun el tipo de tarjeta",
+    "addButton": "Agregar Configuracion",
+    "bulkCreate": "Crear Configuraciones",
+    "cardTypes": {
+      "DEBIT": "Debito",
+      "CREDIT": "Credito",
+      "AMEX": "American Express",
+      "INTERNATIONAL": "Internacional",
+      "OTHER": "Otros"
+    },
+    "dayTypes": {
+      "BUSINESS_DAYS": "Dias habiles",
+      "CALENDAR_DAYS": "Dias calendario"
+    },
+    "dayTypeDescriptions": {
+      "BUSINESS_DAYS": "Excluye fines de semana",
+      "CALENDAR_DAYS": "Incluye todos los dias"
+    },
+    "columns": {
+      "merchantAccount": "Cuenta Comercial",
+      "cardType": "Tipo de Tarjeta",
+      "settlementDays": "Dias de Liquidacion",
+      "dayType": "Tipo de Dias",
+      "cutoffTime": "Hora de Corte",
+      "effectiveFrom": "Vigente Desde",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "form": {
+      "title": "Configuracion de Liquidacion",
+      "merchantAccount": "Cuenta Comercial",
+      "merchantAccountPlaceholder": "Seleccionar cuenta comercial",
+      "cardType": "Tipo de Tarjeta",
+      "settlementDays": "Dias de Liquidacion",
+      "settlementDaysHint": "Numero de dias hasta que los fondos esten disponibles",
+      "dayType": "Tipo de Dias",
+      "settlementDayType": "Tipo de Dias",
+      "cutoffTime": "Hora de Corte",
+      "cutoffTimeHint": "Hora limite para considerar transacciones del dia",
+      "cutoffTimezone": "Zona Horaria",
+      "effectiveFrom": "Vigente Desde",
+      "notes": "Notas",
+      "notesPlaceholder": "Notas opcionales sobre esta configuracion..."
+    },
+    "wizard": {
+      "title": "Plazos de Liquidacion",
+      "description": "Define cuantos dias tardara el cliente en recibir sus fondos",
+      "daysLabel": "dias",
+      "dayLabel": "dia",
+      "hint": "Estos plazos se mostraran al cliente en su saldo disponible"
+    },
+    "status": {
+      "active": "Activo",
+      "expired": "Expirado",
+      "pending": "Pendiente"
+    },
+    "stats": {
+      "totalConfigs": "Total Configuraciones",
+      "merchantsWithConfig": "Cuentas Configuradas",
+      "merchantsWithoutConfig": "Sin Configurar"
+    },
+    "empty": {
+      "title": "Sin configuraciones",
+      "description": "No hay configuraciones de liquidacion. Crea una para definir los plazos de pago."
+    },
+    "filters": {
+      "allMerchants": "Todas las cuentas",
+      "allCardTypes": "Todos los tipos",
+      "searchPlaceholder": "Buscar por cuenta comercial..."
+    },
+    "toasts": {
+      "success": "Exito",
+      "createSuccess": "Configuracion creada exitosamente",
+      "createError": "Error al crear configuracion",
+      "updateSuccess": "Configuracion actualizada exitosamente",
+      "updateError": "Error al actualizar configuracion",
+      "deleteSuccess": "Configuracion eliminada exitosamente",
+      "deleteError": "Error al eliminar configuracion",
+      "bulkCreateSuccess": "{{count}} configuraciones creadas exitosamente",
+      "bulkCreateError": "Error al crear configuraciones"
+    },
+    "confirmations": {
+      "delete": "Estas seguro de que deseas eliminar esta configuracion de liquidacion?"
+    },
+    "merchantsWithoutConfig": {
+      "title": "Cuentas sin Configuracion",
+      "description": "Las siguientes cuentas comerciales no tienen configuracion de liquidacion",
+      "configure": "Configurar"
     }
   }
 }

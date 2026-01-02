@@ -38,6 +38,8 @@ type DataTableProps<TData> = {
   onSearch?: (searchTerm: string, data: TData[]) => TData[]
   // Row styling
   getRowClassName?: (row: TData) => string | undefined
+  /** Enable sticky first column with shadow indicator on horizontal scroll (Stripe/Linear pattern) */
+  stickyFirstColumn?: boolean
 }
 
 function DataTable<TData>({
@@ -55,6 +57,7 @@ function DataTable<TData>({
   searchPlaceholder,
   onSearch,
   getRowClassName,
+  stickyFirstColumn = false,
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
@@ -186,7 +189,7 @@ function DataTable<TData>({
           </DropdownMenu>
         )}
       </div>
-      <Table containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden" className="table-sticky">
+      <Table containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden" className="table-sticky" stickyFirstColumn={stickyFirstColumn}>
         {/* <TableCaption>{t('dashboard.tableTexts.paymentsList')}</TableCaption> */}
         <TableHeader className="sticky top-0 z-10 bg-muted dark:bg-[#262626] text-muted-foreground">
           {table.getHeaderGroups().map(headerGroup => (

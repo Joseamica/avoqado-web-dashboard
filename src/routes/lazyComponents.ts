@@ -38,7 +38,6 @@ export const Reviews = lazyWithRetry(() => import('@/pages/Review/Reviews'))
 // export const Waiters = lazyWithRetry(() => import('@/pages/Waiter/Waiters'))
 export const Teams = lazyWithRetry(() => import('@/pages/Team/Teams'))
 export const TeamMemberDetails = lazyWithRetry(() => import('@/pages/Team/TeamMemberDetails'))
-export const EditVenue = lazyWithRetry(() => import('@/pages/Venue/Venue.edit'))
 export const VenueEditLayout = lazyWithRetry(() => import('@/pages/Venue/VenueEditLayout'))
 export const BasicInfo = lazyWithRetry(() => import('@/pages/Venue/Edit/BasicInfo'))
 export const ContactImages = lazyWithRetry(() => import('@/pages/Venue/Edit/ContactImages'))
@@ -84,8 +83,10 @@ export { default as MerchantAccounts } from '@/pages/Superadmin/MerchantAccounts
 export { default as Terminals } from '@/pages/Superadmin/Terminals'
 export { default as PaymentAnalytics } from '@/pages/Superadmin/PaymentAnalytics'
 export { default as CostStructures } from '@/pages/Superadmin/CostStructures'
+export { default as SettlementConfigurations } from '@/pages/Superadmin/SettlementConfigurations'
 export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
 export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
+export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))
@@ -135,3 +136,6 @@ export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organiz
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
+
+// Reports
+export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))

@@ -1,0 +1,39 @@
+{
+  "banner": {
+    "title": "You have a financing offer available",
+    "subtitle": "Access up to {{amount}} to grow your business",
+    "learnMore": "Learn more",
+    "dismiss": "Dismiss"
+  },
+  "dialog": {
+    "title": "Financing Offer",
+    "description": "You've been pre-qualified for a cash advance based on your sales",
+    "offerAmount": "Available Amount",
+    "preQualified": "Pre-qualified",
+    "repaymentPercent": "Repayment Percentage",
+    "repaymentPercentDesc": "of your daily sales",
+    "estimatedTerm": "Estimated Term",
+    "estimatedTermDesc": "until paid off",
+    "days": "days",
+    "totalRepayment": "Total Repayment Amount",
+    "factorRate": "Rate: {{rate}}x",
+    "expiresOn": "This offer expires on {{date}}",
+    "howItWorks": "How it works",
+    "step1": "Receive funds in your account within 24-48 hours",
+    "step2": "A fixed percentage of your daily sales is automatically deducted",
+    "step3": "No fixed monthly payments - you only pay when you sell",
+    "disclaimer": "Final approval is subject to document verification and may vary. This is a preliminary offer based on your sales history.",
+    "maybeLater": "Maybe later",
+    "interested": "I'm interested"
+  },
+  "interest": {
+    "success": "Interest registered",
+    "successDescription": "Our team will contact you soon with the next steps.",
+    "error": "Error",
+    "errorDescription": "We couldn't register your interest. Please try again."
+  },
+  "decline": {
+    "success": "Offer dismissed",
+    "successDescription": "You may receive new offers in the future based on your performance."
+  }
+}

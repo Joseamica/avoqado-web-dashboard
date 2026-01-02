@@ -186,3 +186,37 @@ export async function getGlobalIncidentStats(): Promise<{ success: boolean; data
   })
   return res.data
 }
+
+/**
+ * Bulk confirm multiple incidents
+ * Confirms multiple incidents in a single batch operation
+ */
+export async function bulkConfirmIncidents(
+  venueId: string,
+  incidentIds: string[],
+  params: ConfirmIncidentParams,
+): Promise<{
+  success: boolean
+  data: {
+    confirmed: number
+    failed: number
+    results: Array<{
+      incidentId: string
+      success: boolean
+      error?: string
+    }>
+  }
+  message: string
+}> {
+  const res = await api.post(
+    `/api/v1/dashboard/venues/${venueId}/settlement-incidents/bulk-confirm`,
+    {
+      incidentIds,
+      ...params,
+    },
+    {
+      withCredentials: true,
+    },
+  )
+  return res.data
+}

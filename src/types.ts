@@ -604,6 +604,7 @@ export interface VenueSettings {
   // Operations
   autoCloseShifts: boolean
   shiftDuration: number
+  enableShifts: boolean
   requirePinLogin: boolean
 
   // Reviews

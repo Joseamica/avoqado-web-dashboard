@@ -18,7 +18,7 @@ type AdminProtectedRouteProps = {
 }
 
 export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: AdminProtectedRouteProps) => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, staffInfo } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
 
@@ -27,10 +27,14 @@ export const AdminProtectedRoute = ({ requiredRole = AdminAccessLevel.ADMIN }: A
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
+  // Use staffInfo.role which is properly derived from venue-specific role
+  // This ensures we check the user's role for the current venue, not just the raw user object
+  const userRole = staffInfo?.role || user.role
+
   // Verificar roles para diferentes niveles de acceso
-  const isAdmin = user.role === StaffRole.ADMIN || user.role === StaffRole.OWNER || user.role === StaffRole.SUPERADMIN
-  const isOwner = user.role === StaffRole.OWNER || user.role === StaffRole.SUPERADMIN
-  const isSuperAdmin = user.role === StaffRole.SUPERADMIN
+  const isAdmin = userRole === StaffRole.ADMIN || userRole === StaffRole.OWNER || userRole === StaffRole.SUPERADMIN
+  const isOwner = userRole === StaffRole.OWNER || userRole === StaffRole.SUPERADMIN
+  const isSuperAdmin = userRole === StaffRole.SUPERADMIN
 
   // Check access based on required role
   let hasAccess = false

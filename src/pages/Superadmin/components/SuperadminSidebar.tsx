@@ -21,6 +21,8 @@ import {
   Tags,
   Webhook,
   Smartphone,
+  Clock,
+  Banknote,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -47,8 +49,10 @@ const SuperadminSidebar: React.FC = () => {
         { name: tSidebar('paymentProviders'), href: '/superadmin/payment-providers', icon: CreditCard },
         { name: tSidebar('merchantAccounts'), href: '/superadmin/merchant-accounts', icon: Wallet },
         { name: tSidebar('costStructures'), href: '/superadmin/cost-structures', icon: Receipt },
+        { name: tSidebar('settlementTerms'), href: '/superadmin/settlement-terms', icon: Clock },
         { name: tSidebar('venuePricing'), href: '/superadmin/venue-pricing', icon: Tags },
         { name: tSidebar('paymentAnalytics'), href: '/superadmin/payment-analytics', icon: TrendingUp },
+        { name: tSidebar('creditAssessment'), href: '/superadmin/credit-assessment', icon: Banknote },
         { name: tSidebar('customers'), href: '/superadmin/customers', icon: Users },
         { name: tSidebar('growth'), href: '/superadmin/growth', icon: TrendingUp },
       ],

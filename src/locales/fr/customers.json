@@ -9,7 +9,8 @@
 		"searchPlaceholder": "Rechercher par nom, email ou téléphone...",
 		"filters": {
 			"allGroups": "Tous les Groupes",
-			"noGroup": "Sans Groupe"
+			"noGroup": "Sans Groupe",
+			"pendingBalance": "Avec Solde en Attente"
 		},
 		"sort": {
 			"label": "Trier par",
@@ -26,7 +27,9 @@
 			"totalSpent": "Total Dépensé",
 			"visits": "Visites",
 			"points": "Points",
-			"lastVisit": "Dernière Visite"
+			"lastVisit": "Dernière Visite",
+			"pendingOrders": "Commandes en Attente",
+			"pendingBalance": "Solde en Attente"
 		}
 	},
 	"detail": {
@@ -202,6 +205,19 @@
 		"adjustPoints": "Ajuster les Points",
 		"viewDetails": "Voir les Détails",
 		"assignToGroup": "Assigner au Groupe",
-		"removeFromGroup": "Retirer du Groupe"
+		"removeFromGroup": "Retirer du Groupe",
+		"settleBalance": "Régler le Solde"
+	},
+	"settleBalance": {
+		"title": "Régler le Solde en Attente",
+		"description": "Marquer toutes les commandes en attente de {{name}} comme payées",
+		"pendingOrders": "Commandes en attente",
+		"totalBalance": "Solde total",
+		"notesLabel": "Notes (optionnel)",
+		"notesPlaceholder": "Ex: Paiement en espèces, Virement bancaire...",
+		"notesHelp": "Ajoutez des détails sur la réception du paiement",
+		"confirm": "Régler le Solde",
+		"successTitle": "Solde Réglé",
+		"successDescription": "{{count}} commande(s) réglée(s) pour un total de {{amount}}"
 	}
 }

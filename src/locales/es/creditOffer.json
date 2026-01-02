@@ -1,0 +1,39 @@
+{
+  "banner": {
+    "title": "Tienes una oferta de financiamiento disponible",
+    "subtitle": "Accede a hasta {{amount}} para hacer crecer tu negocio",
+    "learnMore": "Conocer mas",
+    "dismiss": "Descartar"
+  },
+  "dialog": {
+    "title": "Oferta de Financiamiento",
+    "description": "Has sido preseleccionado para un adelanto de efectivo basado en tus ventas",
+    "offerAmount": "Monto Disponible",
+    "preQualified": "Pre-aprobado",
+    "repaymentPercent": "Porcentaje de Reembolso",
+    "repaymentPercentDesc": "de tus ventas diarias",
+    "estimatedTerm": "Plazo Estimado",
+    "estimatedTermDesc": "hasta liquidar",
+    "days": "dias",
+    "totalRepayment": "Monto Total a Pagar",
+    "factorRate": "Tasa: {{rate}}x",
+    "expiresOn": "Esta oferta expira el {{date}}",
+    "howItWorks": "Como funciona",
+    "step1": "Recibe los fondos en tu cuenta en 24-48 horas",
+    "step2": "Un porcentaje fijo de tus ventas diarias se deduce automaticamente",
+    "step3": "Sin pagos fijos mensuales - pagas solo cuando vendes",
+    "disclaimer": "La aprobacion final esta sujeta a verificacion de documentos y puede variar. Esta es una oferta preliminar basada en tu historial de ventas.",
+    "maybeLater": "Tal vez despues",
+    "interested": "Me interesa"
+  },
+  "interest": {
+    "success": "Interes registrado",
+    "successDescription": "Nuestro equipo se pondra en contacto contigo pronto para los siguientes pasos.",
+    "error": "Error",
+    "errorDescription": "No pudimos registrar tu interes. Por favor intenta de nuevo."
+  },
+  "decline": {
+    "success": "Oferta descartada",
+    "successDescription": "Puedes recibir nuevas ofertas en el futuro basadas en tu desempeno."
+  }
+}

@@ -20,12 +20,15 @@ import {
   Calculator,
   Terminal,
   Building2,
+  Clock,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { paymentProviderAPI, type MccLookupResult } from '@/services/paymentProvider.service'
+import { bulkCreateSettlementConfigurations, CARD_TYPES, DEFAULT_SETTLEMENT_DAYS, type SettlementDayType } from '@/services/settlementConfiguration.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { cn } from '@/lib/utils'
 import { StepIndicator } from './shared-components'
+import { useTranslation } from 'react-i18next'
 
 interface BlumonAutoFetchWizardProps {
   open: boolean
@@ -41,6 +44,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
   onSuccess
 }) => {
   const { toast } = useToast()
+  const { t } = useTranslation('superadmin')
   const [step, setStep] = useState(initialVenueId ? 1 : 0) // Skip venue step if venueId provided
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -62,6 +66,17 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
   const [mccPreview, setMccPreview] = useState<MccLookupResult | null>(null)
   const [loadingMccPreview, setLoadingMccPreview] = useState(false)
 
+  // Settlement terms state
+  const [settlementTerms, setSettlementTerms] = useState({
+    debitDays: DEFAULT_SETTLEMENT_DAYS.DEBIT,
+    creditDays: DEFAULT_SETTLEMENT_DAYS.CREDIT,
+    amexDays: DEFAULT_SETTLEMENT_DAYS.AMEX,
+    internationalDays: DEFAULT_SETTLEMENT_DAYS.INTERNATIONAL,
+    otherDays: DEFAULT_SETTLEMENT_DAYS.OTHER,
+    dayType: 'BUSINESS_DAYS' as SettlementDayType,
+    cutoffTime: '23:00',
+  })
+
   // Fetch all venues for dropdown (only for superadmin context)
   const { data: venues = [] } = useQuery({
     queryKey: ['superadmin-venues'],
@@ -75,6 +90,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
         { label: 'Terminal', description: 'Datos del dispositivo' },
         { label: 'Configurar', description: 'Opciones adicionales' },
         { label: 'Costos', description: 'Estructura de costos' },
+        { label: 'Plazos', description: 'Dias de liquidacion' },
         { label: 'Confirmar', description: 'Revisar y crear' },
       ]
     : [
@@ -82,11 +98,12 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
         { label: 'Terminal', description: 'Datos del dispositivo' },
         { label: 'Configurar', description: 'Opciones adicionales' },
         { label: 'Costos', description: 'Estructura de costos' },
+        { label: 'Plazos', description: 'Dias de liquidacion' },
         { label: 'Confirmar', description: 'Revisar y crear' },
       ]
 
   const resetWizard = () => {
-    setStep(initialVenueId ? 1 : 0)
+    setStep(0)
     setResult(null)
     setSelectedVenueId(initialVenueId || '')
     setFormData({
@@ -100,6 +117,15 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
     setCreateCostStructure(true)
     setMccPreview(null)
     setLoadingMccPreview(false)
+    setSettlementTerms({
+      debitDays: DEFAULT_SETTLEMENT_DAYS.DEBIT,
+      creditDays: DEFAULT_SETTLEMENT_DAYS.CREDIT,
+      amexDays: DEFAULT_SETTLEMENT_DAYS.AMEX,
+      internationalDays: DEFAULT_SETTLEMENT_DAYS.INTERNATIONAL,
+      otherDays: DEFAULT_SETTLEMENT_DAYS.OTHER,
+      dayType: 'BUSINESS_DAYS' as SettlementDayType,
+      cutoffTime: '23:00',
+    })
   }
 
   const handleClose = () => {
@@ -150,6 +176,26 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
         businessCategory: formData.businessCategory || undefined,
         skipCostStructure: !createCostStructure,
       })
+
+      // Create settlement configurations for the new merchant account
+      if (response.id && !response.alreadyExists) {
+        try {
+          await bulkCreateSettlementConfigurations({
+            merchantAccountId: response.id,
+            configs: [
+              { cardType: 'DEBIT', settlementDays: settlementTerms.debitDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+              { cardType: 'CREDIT', settlementDays: settlementTerms.creditDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+              { cardType: 'AMEX', settlementDays: settlementTerms.amexDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+              { cardType: 'INTERNATIONAL', settlementDays: settlementTerms.internationalDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+              { cardType: 'OTHER', settlementDays: settlementTerms.otherDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+            ],
+            effectiveFrom: new Date().toISOString(),
+          })
+        } catch (settlementError) {
+          console.warn('Settlement configuration creation failed:', settlementError)
+          // Don't block the main success - settlement can be configured later
+        }
+      }
 
       if (response.alreadyExists) {
         toast({
@@ -482,8 +528,133 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
       )
     }
 
-    // Step 4: Confirmation
-    const confirmStep = initialVenueId ? 3 : 4
+    // Step 4: Settlement Terms
+    const settlementStep = initialVenueId ? 3 : 4
+    if (contentStep === settlementStep) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+            <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="font-medium mb-1">{t('settlementConfigurations.wizard.title')}</p>
+              <p>{t('settlementConfigurations.wizard.description')}</p>
+            </div>
+          </div>
+
+          {/* Settlement Days Grid */}
+          <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+            <h4 className="font-medium mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-600" />
+              {t('settlementConfigurations.wizard.title')}
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Debit */}
+              <div className="p-3 rounded-lg bg-background/50 border border-border/30">
+                <p className="text-xs text-muted-foreground mb-2">{t('settlementConfigurations.cardTypes.DEBIT')}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={settlementTerms.debitDays}
+                    onChange={e => setSettlementTerms({ ...settlementTerms, debitDays: parseInt(e.target.value) || 1 })}
+                    className="h-10 w-20 text-center font-bold text-blue-600"
+                  />
+                  <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.daysLabel')}</span>
+                </div>
+              </div>
+              {/* Credit */}
+              <div className="p-3 rounded-lg bg-background/50 border border-border/30">
+                <p className="text-xs text-muted-foreground mb-2">{t('settlementConfigurations.cardTypes.CREDIT')}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={settlementTerms.creditDays}
+                    onChange={e => setSettlementTerms({ ...settlementTerms, creditDays: parseInt(e.target.value) || 1 })}
+                    className="h-10 w-20 text-center font-bold text-green-600"
+                  />
+                  <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.daysLabel')}</span>
+                </div>
+              </div>
+              {/* Amex */}
+              <div className="p-3 rounded-lg bg-background/50 border border-border/30">
+                <p className="text-xs text-muted-foreground mb-2">{t('settlementConfigurations.cardTypes.AMEX')}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={settlementTerms.amexDays}
+                    onChange={e => setSettlementTerms({ ...settlementTerms, amexDays: parseInt(e.target.value) || 1 })}
+                    className="h-10 w-20 text-center font-bold text-purple-600"
+                  />
+                  <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.daysLabel')}</span>
+                </div>
+              </div>
+              {/* International */}
+              <div className="p-3 rounded-lg bg-background/50 border border-border/30">
+                <p className="text-xs text-muted-foreground mb-2">{t('settlementConfigurations.cardTypes.INTERNATIONAL')}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={settlementTerms.internationalDays}
+                    onChange={e => setSettlementTerms({ ...settlementTerms, internationalDays: parseInt(e.target.value) || 1 })}
+                    className="h-10 w-20 text-center font-bold text-orange-600"
+                  />
+                  <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.daysLabel')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Day Type Selection */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t('settlementConfigurations.form.settlementDayType')}</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSettlementTerms({ ...settlementTerms, dayType: 'BUSINESS_DAYS' })}
+                className={cn(
+                  'p-3 rounded-xl border-2 text-left transition-all',
+                  settlementTerms.dayType === 'BUSINESS_DAYS'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                    : 'border-border hover:border-muted-foreground/50',
+                )}
+              >
+                <span className="font-medium text-sm">{t('settlementConfigurations.dayTypes.BUSINESS_DAYS')}</span>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('settlementConfigurations.dayTypeDescriptions.BUSINESS_DAYS')}</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettlementTerms({ ...settlementTerms, dayType: 'CALENDAR_DAYS' })}
+                className={cn(
+                  'p-3 rounded-xl border-2 text-left transition-all',
+                  settlementTerms.dayType === 'CALENDAR_DAYS'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                    : 'border-border hover:border-muted-foreground/50',
+                )}
+              >
+                <span className="font-medium text-sm">{t('settlementConfigurations.dayTypes.CALENDAR_DAYS')}</span>
+                <p className="text-xs text-muted-foreground mt-0.5">{t('settlementConfigurations.dayTypeDescriptions.CALENDAR_DAYS')}</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Info hint */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/20 text-xs text-muted-foreground">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>{t('settlementConfigurations.wizard.hint')}</p>
+          </div>
+        </div>
+      )
+    }
+
+    // Step 5: Confirmation
+    const confirmStep = initialVenueId ? 4 : 5
     if (contentStep === confirmStep) {
       return (
         <div className="space-y-6">
@@ -518,11 +689,20 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
                   <span className="text-sm font-medium">{formData.displayName}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Estructura de costos</span>
                 <Badge variant={createCostStructure ? 'default' : 'secondary'}>
                   {createCostStructure ? 'Se creará' : 'Configurar después'}
                 </Badge>
+              </div>
+              {/* Settlement Terms Summary */}
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.title')}</span>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-blue-600">{t('settlementConfigurations.cardTypes.DEBIT')}: {settlementTerms.debitDays}d</Badge>
+                  <Badge variant="outline" className="text-green-600">{t('settlementConfigurations.cardTypes.CREDIT')}: {settlementTerms.creditDays}d</Badge>
+                  <Badge variant="outline" className="text-purple-600">AMEX: {settlementTerms.amexDays}d</Badge>
+                </div>
               </div>
             </div>
           </div>
@@ -535,6 +715,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
                 <li>• Se obtendrán credenciales OAuth de Blumon</li>
                 <li>• Se descargarán RSA keys y DUKPT keys</li>
                 {createCostStructure && <li>• Se creará la estructura de costos automáticamente</li>}
+                <li>• Se configurarán los plazos de liquidación para todos los tipos de tarjeta</li>
               </ul>
             </div>
           </div>
@@ -550,7 +731,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto bg-background p-0">
+      <DialogContent className="sm:max-w-[850px] max-h-[90vh] overflow-y-auto bg-background p-0">
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border-b border-border/50 p-6">
           <div className="flex items-center gap-3 mb-4">

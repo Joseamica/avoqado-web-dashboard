@@ -1,4 +1,10 @@
-﻿import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/Sidebar/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -8,9 +14,10 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { ChevronRight, Lock, type LucideIcon } from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom' // Import Link
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 export function NavMain({
@@ -48,6 +55,8 @@ export function NavMain({
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('sidebar')
+  const { state: sidebarState, isMobile } = useSidebar()
+  const isCollapsed = sidebarState === 'collapsed' && !isMobile
 
   const isSuperadminPath = (url: string) => url.startsWith('/superadmin')
   const superadminButtonClass =
@@ -86,6 +95,52 @@ export function NavMain({
             const isSuperadminItem = isSuperadminPath(item.url) || !!item.superadminOnly
 
             if (item.items) {
+              // When collapsed, use DropdownMenu instead of Collapsible
+              if (isCollapsed) {
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip={item.title}
+                          isActive={isItemActive(item.url) || item.items?.some(s => isSubItemActive(s.url))}
+                          className={`relative ${isSuperadminItem ? superadminButtonClass : ''}`}
+                        >
+                          {item.icon && <item.icon className={isSuperadminItem ? superadminIconClass : undefined} />}
+                          <ChevronRight className="absolute -right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        </SidebarMenuButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start" sideOffset={4}>
+                        {item.items.map(subItem => {
+                          const isSuperadminSubItem = isSuperadminPath(subItem.url) || !!subItem.superadminOnly
+                          return (
+                            <DropdownMenuItem
+                              key={subItem.url}
+                              asChild
+                              className={isSubItemActive(subItem.url) ? 'bg-accent' : ''}
+                            >
+                              <NavLink
+                                to={subItem.url}
+                                className={isSuperadminSubItem ? superadminGradientTextClass : undefined}
+                                onClick={e => {
+                                  if (!subItem.url.startsWith('/') && !subItem.url.startsWith('#')) {
+                                    e.preventDefault()
+                                    navigate(subItem.url)
+                                  }
+                                }}
+                              >
+                                {subItem.title}
+                              </NavLink>
+                            </DropdownMenuItem>
+                          )
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </SidebarMenuItem>
+                )
+              }
+
+              // When expanded, use Collapsible
               return (
                 <Collapsible
                   key={item.url}
@@ -182,38 +237,76 @@ export function NavMain({
         <SidebarGroup>
           <SidebarGroupLabel>{t('superadmin')}</SidebarGroupLabel>
           <SidebarMenu>
-            {superadminItems.map(item =>
-              item.items ? (
-                <Collapsible
-                  key={item.url}
-                  asChild
-                  defaultOpen={item.isActive || (item.items?.some(s => isSubItemActive(s.url)) ?? false)}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
-                        {item.icon && <item.icon className={superadminIconClass} />}
-                        <span className={superadminGradientTextClass}>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items.map(subItem => (
-                          <SidebarMenuSubItem key={subItem.url}>
-                            <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
-                              <NavLink to={subItem.url}>
-                                <span className={superadminGradientTextClass}>{subItem.title}</span>
+            {superadminItems.map(item => {
+              if (item.items) {
+                // When collapsed, use DropdownMenu
+                if (isCollapsed) {
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuButton
+                            tooltip={item.title}
+                            isActive={isItemActive(item.url) || item.items?.some(s => isSubItemActive(s.url))}
+                            className={`relative ${superadminButtonClass}`}
+                          >
+                            {item.icon && <item.icon className={superadminIconClass} />}
+                            <ChevronRight className="absolute -right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-amber-400/70" />
+                          </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start" sideOffset={4}>
+                          {item.items.map(subItem => (
+                            <DropdownMenuItem
+                              key={subItem.url}
+                              asChild
+                              className={isSubItemActive(subItem.url) ? 'bg-accent' : ''}
+                            >
+                              <NavLink to={subItem.url} className={superadminGradientTextClass}>
+                                {subItem.title}
                               </NavLink>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ) : (
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </SidebarMenuItem>
+                  )
+                }
+
+                // When expanded, use Collapsible
+                return (
+                  <Collapsible
+                    key={item.url}
+                    asChild
+                    defaultOpen={item.isActive || (item.items?.some(s => isSubItemActive(s.url)) ?? false)}
+                    className="group/collapsible"
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
+                          {item.icon && <item.icon className={superadminIconClass} />}
+                          <span className={superadminGradientTextClass}>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items.map(subItem => (
+                            <SidebarMenuSubItem key={subItem.url}>
+                              <SidebarMenuSubButton asChild isActive={isSubItemActive(subItem.url)} className={superadminSubButtonClass}>
+                                <NavLink to={subItem.url}>
+                                  <span className={superadminGradientTextClass}>{subItem.title}</span>
+                                </NavLink>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                )
+              }
+
+              return (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild tooltip={item.title} isActive={isItemActive(item.url)} className={superadminButtonClass}>
                     <NavLink
@@ -231,8 +324,8 @@ export function NavMain({
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ),
-            )}
+              )
+            })}
           </SidebarMenu>
         </SidebarGroup>
       )}

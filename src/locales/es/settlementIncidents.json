@@ -9,7 +9,17 @@
     "description": "Por favor confirma si estas liquidaciones esperadas han llegado a tu cuenta bancaria",
     "expectedOn": "Esperado el",
     "confirmButton": "Confirmar",
+    "confirmAll": "Confirmar Todo ({{count}})",
+    "confirmDate": "Confirmar Fecha",
+    "transactionCount": "{{count}} transacción",
+    "transactionCount_other": "{{count}} transacciones",
     "totalPending": "Total Pendiente"
+  },
+  "bulkConfirm": {
+    "success": "Liquidaciones confirmadas",
+    "successDescription": "{{count}} liquidación confirmada exitosamente",
+    "successDescription_other": "{{count}} liquidaciones confirmadas exitosamente",
+    "error": "Error al confirmar las liquidaciones"
   },
   "confirmDialog": {
     "title": "Confirmar Estado de Liquidación",

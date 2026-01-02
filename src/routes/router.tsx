@@ -81,6 +81,7 @@ import {
   RevenueDashboard,
   Reviews,
   RolePermissions,
+  SettlementConfigurations,
   // WaiterId,
   ShiftId,
   Shifts,
@@ -110,6 +111,8 @@ import {
   Venues,
   Webhooks,
   Terminals,
+  CreditAssessment,
+  PayLaterAging,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -119,6 +122,7 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { Layout } from '@/Layout'
 import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
+import { FeatureProtectedRoute } from './FeatureProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
@@ -360,6 +364,10 @@ const router = createBrowserRouter(
                       element: <CostStructures />,
                     },
                     {
+                      path: 'settlement-terms',
+                      element: <SettlementConfigurations />,
+                    },
+                    {
                       path: 'venue-pricing',
                       element: <VenuePricing />,
                     },
@@ -370,6 +378,10 @@ const router = createBrowserRouter(
                     {
                       path: 'webhooks',
                       element: <Webhooks />,
+                    },
+                    {
+                      path: 'credit-assessment',
+                      element: <CreditAssessment />,
                     },
                   ],
                 },
@@ -540,6 +552,17 @@ const router = createBrowserRouter(
                     },
                   ],
                 },
+                // Reports (requires specific report permissions + KYC verification)
+                {
+                  path: 'reports/pay-later-aging',
+                  element: <PermissionProtectedRoute permission="tpv-reports:pay-later-aging" />,
+                  children: [
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [{ index: true, element: <PayLaterAging /> }],
+                    },
+                  ],
+                },
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="settlements:read" />,
@@ -670,19 +693,40 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // Billing Management (ADMIN only)
+                // Billing Management (requires billing:read permission + ADMIN role)
                 {
                   path: 'settings/billing',
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
                   children: [
                     {
-                      element: <BillingLayout />,
+                      element: <PermissionProtectedRoute permission="billing:read" />,
                       children: [
-                        { index: true, element: <Navigate to="subscriptions" replace /> },
-                        { path: 'subscriptions', element: <BillingSubscriptions /> },
-                        { path: 'history', element: <BillingHistory /> },
-                        { path: 'payment-methods', element: <BillingPaymentMethods /> },
-                        { path: 'tokens', element: <BillingTokens /> },
+                        {
+                          element: <BillingLayout />,
+                          children: [
+                            { index: true, element: <Navigate to="subscriptions" replace /> },
+                            {
+                              path: 'subscriptions',
+                              element: <PermissionProtectedRoute permission="billing:subscriptions:read" />,
+                              children: [{ index: true, element: <BillingSubscriptions /> }],
+                            },
+                            {
+                              path: 'history',
+                              element: <PermissionProtectedRoute permission="billing:history:read" />,
+                              children: [{ index: true, element: <BillingHistory /> }],
+                            },
+                            {
+                              path: 'payment-methods',
+                              element: <PermissionProtectedRoute permission="billing:payment-methods:read" />,
+                              children: [{ index: true, element: <BillingPaymentMethods /> }],
+                            },
+                            {
+                              path: 'tokens',
+                              element: <PermissionProtectedRoute permission="billing:tokens:read" />,
+                              children: [{ index: true, element: <BillingTokens /> }],
+                            },
+                          ],
+                        },
                       ],
                     },
                   ],

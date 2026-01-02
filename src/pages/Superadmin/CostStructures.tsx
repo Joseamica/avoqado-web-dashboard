@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
 import { DollarSign, Plus, Pencil, Trash2, CheckCircle, XCircle } from 'lucide-react'
@@ -23,8 +24,48 @@ const CostStructures: React.FC = () => {
     queryFn: () => paymentProviderAPI.getProviderCostStructures(),
   })
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('all')
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedCostStructure, setSelectedCostStructure] = useState<ProviderCostStructure | null>(null)
+
+  // Extract unique providers from cost structures
+  const uniqueProviders = useMemo(() => {
+    const providersMap = new Map<string, { id: string; name: string }>()
+    costStructures.forEach(cs => {
+      if (cs.merchantAccount?.provider) {
+        providersMap.set(cs.merchantAccount.provider.id, {
+          id: cs.merchantAccount.provider.id,
+          name: cs.merchantAccount.provider.name,
+        })
+      }
+    })
+    return Array.from(providersMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [costStructures])
+
+  // Extract unique merchant accounts (filtered by selected provider if one is selected)
+  const uniqueMerchants = useMemo(() => {
+    const merchantsMap = new Map<string, { id: string; name: string }>()
+    costStructures.forEach(cs => {
+      if (cs.merchantAccount) {
+        // If a provider is selected, only show merchants from that provider
+        if (selectedProviderId !== 'all' && cs.merchantAccount.provider?.id !== selectedProviderId) {
+          return
+        }
+        merchantsMap.set(cs.merchantAccount.id, {
+          id: cs.merchantAccount.id,
+          name: cs.merchantAccount.displayName || cs.merchantAccount.alias || cs.merchantAccount.id,
+        })
+      }
+    })
+    return Array.from(merchantsMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [costStructures, selectedProviderId])
+
+  // Reset merchant filter when provider changes
+  const handleProviderChange = (value: string) => {
+    setSelectedProviderId(value)
+    setSelectedMerchantId('all') // Reset merchant filter when provider changes
+  }
 
   // Create mutation
   const createMutation = useMutation({
@@ -104,15 +145,33 @@ const CostStructures: React.FC = () => {
     }
   }
 
-  // Filter cost structures based on search
-  const filteredCostStructures = costStructures.filter(
-    cs =>
-      cs.merchantAccount.provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cs.merchantAccount.alias?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false ||
-      cs.proposalReference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false,
-  )
+  // Filter cost structures based on search, provider, and merchant filters
+  const filteredCostStructures = useMemo(() => {
+    return costStructures.filter(cs => {
+      // Provider filter
+      if (selectedProviderId !== 'all' && cs.merchantAccount?.provider?.id !== selectedProviderId) {
+        return false
+      }
+
+      // Merchant account filter
+      if (selectedMerchantId !== 'all' && cs.merchantAccount?.id !== selectedMerchantId) {
+        return false
+      }
+
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase()
+        return (
+          cs.merchantAccount?.provider?.name?.toLowerCase().includes(searchLower) ||
+          cs.merchantAccount?.alias?.toLowerCase().includes(searchLower) ||
+          cs.merchantAccount?.displayName?.toLowerCase().includes(searchLower) ||
+          cs.proposalReference?.toLowerCase().includes(searchLower)
+        )
+      }
+
+      return true
+    })
+  }, [costStructures, selectedProviderId, selectedMerchantId, searchTerm])
 
   const columns: ColumnDef<ProviderCostStructure>[] = [
     {
@@ -249,6 +308,32 @@ const CostStructures: React.FC = () => {
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
+            <Select value={selectedProviderId} onValueChange={handleProviderChange}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder={t('costStructures.filters.allProviders')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('costStructures.filters.allProviders')}</SelectItem>
+                {uniqueProviders.map(provider => (
+                  <SelectItem key={provider.id} value={provider.id}>
+                    {provider.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedMerchantId} onValueChange={setSelectedMerchantId}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder={t('costStructures.filters.allMerchants')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('costStructures.filters.allMerchants')}</SelectItem>
+                {uniqueMerchants.map(merchant => (
+                  <SelectItem key={merchant.id} value={merchant.id}>
+                    {merchant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {isLoading ? (
