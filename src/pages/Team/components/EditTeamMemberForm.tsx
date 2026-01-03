@@ -48,7 +48,9 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
     active: z.boolean().optional(),
     pin: z
       .string()
-      .regex(/^\d{4}$/, t('edit.validation.pinFormat'))
+      .min(4, t('edit.validation.pinMinLength'))
+      .max(10, t('edit.validation.pinMaxLength'))
+      .regex(/^\d+$/, t('edit.validation.pinOnlyDigits'))
       .optional()
       .or(z.literal('')),
   })
@@ -242,7 +244,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
             type={showPin ? 'text' : 'password'}
             placeholder={t('edit.newPin')}
             className="pr-10"
-            maxLength={4}
+            maxLength={10}
             {...register('pin')}
           />
           <button
