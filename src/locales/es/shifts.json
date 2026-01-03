@@ -17,7 +17,22 @@
   },
   "methods": {
     "card": "Tarjeta",
-    "cash": "Efectivo"
+    "cash": "Efectivo",
+    "CASH": "Efectivo",
+    "CARD": "Tarjeta",
+    "CREDIT_CARD": "Tarjeta de Credito",
+    "DEBIT_CARD": "Tarjeta de Debito",
+    "DIGITAL_WALLET": "Billetera Digital",
+    "BANK_TRANSFER": "Transferencia",
+    "OTHER": "Otro"
+  },
+  "cardBrands": {
+    "VISA": "Visa",
+    "MASTERCARD": "Mastercard",
+    "AMEX": "American Express",
+    "DISCOVER": "Discover",
+    "CARNET": "Carnet",
+    "OTHER": "Otra"
   },
   "common": {
     "copied": "Copiado!"
@@ -34,6 +49,7 @@
     "systemIdLabel": "ID del Sistema",
     "openTimeLabel": "Hora de Apertura",
     "closeTimeLabel": "Hora de Cierre",
+    "duration": "{{hours}}h {{minutes}}m",
     "actions": {
       "copyId": "Copiar ID del Turno",
       "export": "Exportar datos del turno",
@@ -42,7 +58,11 @@
     "stats": {
       "subtotal": "Subtotal",
       "tips": "Propinas",
-      "payments": "Pagos"
+      "payments": "Pagos",
+      "orders": "Ordenes",
+      "products": "Productos",
+      "avgOrder": "Ticket Promedio",
+      "avgTip": "Propina Promedio"
     },
     "timeline": {
       "title": "Actividad reciente",
@@ -53,10 +73,44 @@
     "sections": {
       "payments": "Pagos",
       "paymentsDesc": "{{count}} pago(s) en este turno",
+      "paymentMethods": "Metodos de Pago",
+      "paymentMethodsDesc": "Desglose por tipo de pago",
       "financial": "Resumen Financiero",
       "financialDesc": "Desglose de ventas y propinas",
       "shiftInfo": "Informacion del Turno",
-      "shiftInfoDesc": "Detalles y tiempos del turno"
+      "shiftInfoDesc": "Detalles y tiempos del turno",
+      "staff": "Ventas por Empleado",
+      "staffDesc": "Rendimiento del equipo durante el turno",
+      "orders": "Ordenes",
+      "ordersDesc": "{{count}} orden(es) en este turno",
+      "products": "Productos Vendidos",
+      "productsDesc": "Top productos del turno",
+      "viewAll": "Ver todo"
+    },
+    "paymentBreakdown": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "cardTypes": "Tipos de Tarjeta",
+      "byCardBrand": "Por marca de tarjeta",
+      "payments": "pagos",
+      "noPayments": "Sin pagos registrados"
+    },
+    "staffBreakdown": {
+      "sales": "Ventas",
+      "tips": "Propinas",
+      "orders": "ordenes",
+      "noStaff": "Sin datos de empleados"
+    },
+    "ordersList": {
+      "table": "Mesa",
+      "items": "articulos",
+      "noOrders": "Sin ordenes registradas",
+      "viewOrder": "Ver orden"
+    },
+    "productsList": {
+      "sold": "vendidos",
+      "revenue": "Ingresos",
+      "noProducts": "Sin productos vendidos"
     },
     "payments": {
       "base": "Base",

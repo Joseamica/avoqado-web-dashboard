@@ -1241,12 +1241,87 @@ export interface Table {
   orders?: Order[]
 }
 
+// Shift breakdown types (for detailed shift reports)
+export interface PaymentMethodBreakdown {
+  method: 'CASH' | 'CARD'
+  total: number
+  tips: number
+  count: number
+  percentage: number
+}
+
+export interface CardBrandBreakdown {
+  brand: string // VISA, MASTERCARD, AMEX, etc.
+  total: number
+  count: number
+  percentage: number
+}
+
+export interface StaffBreakdown {
+  staffId: string
+  name: string
+  sales: number
+  tips: number
+  tipPercentage: number
+  ordersCount: number
+  paymentsCount: number
+}
+
+export interface TopProduct {
+  name: string
+  quantity: number
+  revenue: number
+}
+
+export interface ShiftPayment {
+  id: string
+  amount: number
+  tipAmount: number
+  total: number
+  method: string
+  cardBrand: string | null
+  cardLast4: string | null
+  staffName: string | null
+  staffId: string | null
+  orderId: string | null
+  createdAt: string
+}
+
+export interface ShiftOrder {
+  id: string
+  orderNumber: number | null
+  total: number
+  subtotal: number
+  tableName: string | null
+  staffName: string | null
+  staffId: string | null
+  paymentMethod: string | null
+  cardBrand: string | null
+  cardLast4: string | null
+  createdAt: string
+  itemsCount: number
+  items: Array<{
+    name: string
+    quantity: number
+    price: number
+  }>
+}
+
+export interface ShiftStats {
+  totalPayments: number
+  totalOrders: number
+  totalProducts: number
+  avgOrderValue: number
+  avgTipPercentage: number
+}
+
 export interface Shift {
   id: string
   venueId: string
-  venue?: Venue
+  venue?: Venue & { timezone?: string }
   staffId: string
   staff?: Staff
+  turnId?: number
 
   startTime: string
   endTime: string | null
@@ -1264,8 +1339,16 @@ export interface Shift {
   status: ShiftStatus
   notes: string | null
 
-  orders?: Order[]
-  payments?: Payment[]
+  // Detailed data (from getShiftById)
+  orders?: ShiftOrder[]
+  payments?: ShiftPayment[]
+
+  // Breakdowns (from getShiftById)
+  paymentMethodBreakdown?: PaymentMethodBreakdown[]
+  cardBrandBreakdown?: CardBrandBreakdown[]
+  staffBreakdown?: StaffBreakdown[]
+  topProducts?: TopProduct[]
+  stats?: ShiftStats
 
   createdAt: string
   updatedAt: string

@@ -17,7 +17,22 @@
   },
   "methods": {
     "card": "Card",
-    "cash": "Cash"
+    "cash": "Cash",
+    "CASH": "Cash",
+    "CARD": "Card",
+    "CREDIT_CARD": "Credit Card",
+    "DEBIT_CARD": "Debit Card",
+    "DIGITAL_WALLET": "Digital Wallet",
+    "BANK_TRANSFER": "Bank Transfer",
+    "OTHER": "Other"
+  },
+  "cardBrands": {
+    "VISA": "Visa",
+    "MASTERCARD": "Mastercard",
+    "AMEX": "American Express",
+    "DISCOVER": "Discover",
+    "CARNET": "Carnet",
+    "OTHER": "Other"
   },
   "common": {
     "copied": "Copied!"
@@ -34,6 +49,7 @@
     "systemIdLabel": "System ID",
     "openTimeLabel": "Opening Time",
     "closeTimeLabel": "Closing Time",
+    "duration": "{{hours}}h {{minutes}}m",
     "actions": {
       "copyId": "Copy Shift ID",
       "export": "Export shift data",
@@ -42,7 +58,11 @@
     "stats": {
       "subtotal": "Subtotal",
       "tips": "Tips",
-      "payments": "Payments"
+      "payments": "Payments",
+      "orders": "Orders",
+      "products": "Products",
+      "avgOrder": "Avg. Order",
+      "avgTip": "Avg. Tip"
     },
     "timeline": {
       "title": "Recent activity",
@@ -53,10 +73,44 @@
     "sections": {
       "payments": "Payments",
       "paymentsDesc": "{{count}} payment(s) in this shift",
+      "paymentMethods": "Payment Methods",
+      "paymentMethodsDesc": "Breakdown by payment type",
       "financial": "Financial Summary",
       "financialDesc": "Breakdown of sales and tips",
       "shiftInfo": "Shift Information",
-      "shiftInfoDesc": "Shift details and timestamps"
+      "shiftInfoDesc": "Shift details and timestamps",
+      "staff": "Sales by Employee",
+      "staffDesc": "Team performance during the shift",
+      "orders": "Orders",
+      "ordersDesc": "{{count}} order(s) in this shift",
+      "products": "Products Sold",
+      "productsDesc": "Top products of the shift",
+      "viewAll": "View all"
+    },
+    "paymentBreakdown": {
+      "cash": "Cash",
+      "card": "Card",
+      "cardTypes": "Card Types",
+      "byCardBrand": "By card brand",
+      "payments": "payments",
+      "noPayments": "No payments recorded"
+    },
+    "staffBreakdown": {
+      "sales": "Sales",
+      "tips": "Tips",
+      "orders": "orders",
+      "noStaff": "No employee data"
+    },
+    "ordersList": {
+      "table": "Table",
+      "items": "items",
+      "noOrders": "No orders recorded",
+      "viewOrder": "View order"
+    },
+    "productsList": {
+      "sold": "sold",
+      "revenue": "Revenue",
+      "noProducts": "No products sold"
     },
     "payments": {
       "base": "Base",
