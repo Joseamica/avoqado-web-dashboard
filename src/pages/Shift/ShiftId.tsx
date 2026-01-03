@@ -149,7 +149,7 @@ const getCardBrandColor = (brand: string): string => {
     case 'CARNET':
       return 'bg-green-600'
     default:
-      return 'bg-gray-500'
+      return 'bg-muted-foreground'
   }
 }
 
@@ -628,7 +628,7 @@ export default function ShiftId() {
 
   // Real-time payment updates to refresh shift totals
   const handlePaymentCompleted = useCallback(
-    (event: any) => {
+    (_event: any) => {
       queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
       queryClient.invalidateQueries({
         predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
