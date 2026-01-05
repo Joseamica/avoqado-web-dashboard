@@ -203,10 +203,13 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
           }),
         })
 
-        // Invalidate menu queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ['menuCategories', venueId] })
-        queryClient.invalidateQueries({ queryKey: ['products', venueId] })
-        queryClient.invalidateQueries({ queryKey: ['modifierGroups', venueId] })
+        // Invalidate ALL menu-related queries to refresh data across all pages
+        queryClient.invalidateQueries({ queryKey: ['categories', venueId] }) // Categories page
+        queryClient.invalidateQueries({ queryKey: ['menu-categories', venueId] }) // Product creation, menu pages
+        queryClient.invalidateQueries({ queryKey: ['menuCategories', venueId] }) // Legacy
+        queryClient.invalidateQueries({ queryKey: ['products', venueId] }) // Products page
+        queryClient.invalidateQueries({ queryKey: ['modifierGroups', venueId] }) // Modifier groups
+        queryClient.invalidateQueries({ queryKey: ['menus', venueId] }) // Menus page
 
         onOpenChange(false)
       } else {
