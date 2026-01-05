@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import api from '@/api'
@@ -25,7 +26,15 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
 import { useToast } from '@/hooks/use-toast'
-import { StaffRole } from '@/types'
+import {
+  CardBrandBreakdown,
+  PaymentMethodBreakdown,
+  ShiftOrder,
+  ShiftPayment,
+  StaffBreakdown,
+  StaffRole,
+  TopProduct,
+} from '@/types'
 import { Currency } from '@/utils/currency'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -40,29 +49,28 @@ import {
   Download,
   Eye,
   FileText,
+  Package,
   Pencil,
   Receipt,
+  ShoppingBag,
   Trash2,
   User,
+  Users,
+  Wallet,
   XCircle,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 // ========== TYPES & INTERFACES ==========
 interface SectionState {
+  paymentMethods: boolean
+  staff: boolean
+  orders: boolean
+  products: boolean
   payments: boolean
-  financial: boolean
   details: boolean
-}
-
-interface TimelineEvent {
-  type: 'opened' | 'closed' | 'payment' | 'updated'
-  timestamp: string
-  description: string
-  icon: React.ComponentType<{ className?: string }>
-  iconColor: string
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -119,11 +127,6 @@ const formatDateShort = (dateString: string | undefined, locale: string, timezon
   })
 }
 
-const calculateTipPercentage = (tip: number, subtotal: number): string => {
-  if (subtotal === 0) return '0.0'
-  return ((tip / subtotal) * 100).toFixed(1)
-}
-
 const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
   navigator.clipboard.writeText(text)
   toast({
@@ -132,75 +135,25 @@ const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
   })
 }
 
+// Card brand icons/colors
+const getCardBrandColor = (brand: string): string => {
+  switch (brand?.toUpperCase()) {
+    case 'VISA':
+      return 'bg-blue-500'
+    case 'MASTERCARD':
+      return 'bg-orange-500'
+    case 'AMEX':
+      return 'bg-blue-700'
+    case 'DISCOVER':
+      return 'bg-amber-500'
+    case 'CARNET':
+      return 'bg-green-600'
+    default:
+      return 'bg-muted-foreground'
+  }
+}
+
 // ========== SUB-COMPONENTS ==========
-const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLast: boolean }) => {
-  const Icon = event.icon
-  return (
-    <div className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
-      </div>
-      <div className="flex-1 pb-6">
-        <p className="text-sm font-medium text-foreground">{event.description}</p>
-        <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
-      </div>
-    </div>
-  )
-}
-
-const ShiftTimeline = ({ shift, locale, timezone, t }: { shift: any; locale: string; timezone: string; t: any }) => {
-  const events: TimelineEvent[] = []
-
-  // Shift closed event
-  if (shift?.status === 'CLOSED' && shift?.endTime) {
-    events.push({
-      type: 'closed',
-      timestamp: formatDateShort(shift.endTime, locale, timezone),
-      description: t('detail.timeline.shiftClosed'),
-      icon: CheckCircle2,
-      iconColor: 'text-muted-foreground border-border',
-    })
-  }
-
-  // Payment events
-  if (shift?.payments && shift.payments.length > 0) {
-    shift.payments.slice(0, 5).forEach((payment: any) => {
-      events.push({
-        type: 'payment',
-        timestamp: formatDateShort(payment.createdAt, locale, timezone),
-        description: `${t('detail.timeline.paymentReceived')}: ${Currency(
-          Number(payment.amount) + payment.tips.reduce((acc: number, tip: any) => acc + parseFloat(tip.amount), 0)
-        )}`,
-        icon: CreditCard,
-        iconColor: 'text-success border-success/20',
-      })
-    })
-  }
-
-  // Shift opened event
-  events.push({
-    type: 'opened',
-    timestamp: formatDateShort(shift?.startTime, locale, timezone),
-    description: t('detail.timeline.shiftOpened'),
-    icon: Clock,
-    iconColor: 'text-primary border-primary/20',
-  })
-
-  // Sort by timestamp (most recent first)
-  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-
-  return (
-    <div className="space-y-2">
-      {events.slice(0, 5).map((event, index) => (
-        <TimelineEventComponent key={index} event={event} isLast={index === events.length - 1} />
-      ))}
-    </div>
-  )
-}
-
 const CollapsibleSection = ({
   title,
   subtitle,
@@ -208,6 +161,7 @@ const CollapsibleSection = ({
   onToggle,
   children,
   icon: Icon,
+  badge,
 }: {
   title: string
   subtitle?: string
@@ -215,29 +169,360 @@ const CollapsibleSection = ({
   onToggle: () => void
   children: React.ReactNode
   icon?: React.ComponentType<{ className?: string }>
+  badge?: React.ReactNode
 }) => {
   return (
     <Collapsible open={isOpen} onOpenChange={onToggle}>
       <Card className="border-border">
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3 px-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {Icon && <Icon className="h-5 w-5 text-muted-foreground" />}
+                {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
                 <div>
-                  <CardTitle className="text-lg font-medium">{title}</CardTitle>
-                  {subtitle && <CardDescription className="mt-1">{subtitle}</CardDescription>}
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                    {badge}
+                  </div>
+                  {subtitle && <CardDescription className="text-xs mt-0.5">{subtitle}</CardDescription>}
                 </div>
               </div>
-              {isOpen ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+              {isOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="pt-0">{children}</CardContent>
+          <CardContent className="pt-0 px-4 pb-4">{children}</CardContent>
         </CollapsibleContent>
       </Card>
     </Collapsible>
+  )
+}
+
+// Unified Payment Breakdown Component (Square/Toast style - integrated hierarchy)
+const UnifiedPaymentSection = ({
+  paymentMethods,
+  cardBrands,
+  t,
+}: {
+  paymentMethods: PaymentMethodBreakdown[]
+  cardBrands: CardBrandBreakdown[]
+  t: any
+}) => {
+  if (!paymentMethods || paymentMethods.length === 0) {
+    return <p className="text-xs text-muted-foreground py-3">{t('detail.paymentBreakdown.noPayments')}</p>
+  }
+
+  const hasCardBrands = cardBrands && cardBrands.length > 0
+
+  return (
+    <div className="space-y-4">
+      {paymentMethods.map(method => {
+        const isCardMethod = method.method !== 'CASH'
+
+        return (
+          <div key={method.method} className="space-y-2">
+            {/* Main payment method row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${
+                    method.method === 'CASH' ? 'bg-green-500/10' : 'bg-blue-500/10'
+                  }`}
+                >
+                  {method.method === 'CASH' ? (
+                    <Banknote className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{t(`methods.${method.method}`)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {method.count} {t('detail.paymentBreakdown.payments')}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold text-sm">{Currency(method.total)}</p>
+                <p className="text-xs text-muted-foreground">{method.percentage}%</p>
+              </div>
+            </div>
+            <Progress value={method.percentage} className="h-1.5" />
+            {method.tips > 0 && (
+              <p className="text-[10px] text-muted-foreground pl-10">
+                {t('detail.stats.tips')}: {Currency(method.tips)}
+              </p>
+            )}
+
+            {/* Nested card brands (only for card payments) */}
+            {isCardMethod && hasCardBrands && (
+              <div className="ml-5 mt-1 pl-3 border-l-2 border-blue-200 dark:border-blue-800 space-y-1">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide pb-0.5">
+                  {t('detail.paymentBreakdown.byCardBrand')}
+                </p>
+                {cardBrands.map(brand => (
+                  <div
+                    key={brand.brand}
+                    className="flex items-center justify-between py-1.5 px-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-2 h-5 rounded-full ${getCardBrandColor(brand.brand)}`} />
+                      <span className="text-xs font-medium">{brand.brand}</span>
+                      <span className="text-[10px] text-muted-foreground">({brand.count})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold">{Currency(brand.total)}</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {brand.percentage}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Staff Breakdown Component
+const StaffSection = ({
+  breakdown,
+  t,
+}: {
+  breakdown: StaffBreakdown[]
+  t: any
+}) => {
+  if (!breakdown || breakdown.length === 0) {
+    return <p className="text-xs text-muted-foreground py-3">{t('detail.staffBreakdown.noStaff')}</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {breakdown.map((staff, index) => (
+        <div
+          key={staff.staffId}
+          className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:border-foreground/20 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+              {index + 1}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{staff.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {staff.ordersCount} {t('detail.staffBreakdown.orders')}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold">{Currency(staff.sales)}</p>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>
+                {t('detail.staffBreakdown.tips')}: {Currency(staff.tips)}
+              </span>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {staff.tipPercentage}%
+              </Badge>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Orders Section Component
+const OrdersSection = ({
+  orders,
+  slug,
+  locale,
+  timezone,
+  t,
+  navigate,
+}: {
+  orders: ShiftOrder[]
+  slug: string
+  locale: string
+  timezone: string
+  t: any
+  navigate: any
+}) => {
+  if (!orders || orders.length === 0) {
+    return <p className="text-xs text-muted-foreground py-3">{t('detail.ordersList.noOrders')}</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {orders.slice(0, 20).map(order => (
+        <div
+          key={order.id}
+          className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:border-foreground/20 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-muted">
+              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">#{order.orderNumber}</p>
+                {order.tableName && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {order.tableName}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {order.itemsCount} {t('detail.ordersList.items')} • {formatDateShort(order.createdAt, locale, timezone)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-sm font-semibold">{Currency(order.total)}</p>
+              {order.paymentMethod && (
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  {order.paymentMethod === 'CASH' ? (
+                    <Banknote className="h-2.5 w-2.5" />
+                  ) : (
+                    <CreditCard className="h-2.5 w-2.5" />
+                  )}
+                  {order.cardBrand && <span>{order.cardBrand}</span>}
+                  {order.cardLast4 && <span>•••• {order.cardLast4}</span>}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => navigate(`/venues/${slug}/orders/${order.id}`)}
+            >
+              <Eye className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Products Section Component
+const ProductsSection = ({
+  products,
+  t,
+}: {
+  products: TopProduct[]
+  t: any
+}) => {
+  if (!products || products.length === 0) {
+    return <p className="text-xs text-muted-foreground py-3">{t('detail.productsList.noProducts')}</p>
+  }
+
+  const maxQuantity = Math.max(...products.map(p => p.quantity))
+
+  return (
+    <div className="space-y-2">
+      {products.slice(0, 15).map((product, index) => (
+        <div key={product.name} className="space-y-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-muted-foreground w-5">{index + 1}.</span>
+              <div>
+                <p className="text-sm font-medium">{product.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {product.quantity} {t('detail.productsList.sold')}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold">{Currency(product.revenue)}</p>
+            </div>
+          </div>
+          <Progress value={(product.quantity / maxQuantity) * 100} className="h-1" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Payments List Component
+const PaymentsList = ({
+  payments,
+  slug,
+  locale,
+  timezone,
+  t,
+  navigate,
+}: {
+  payments: ShiftPayment[]
+  slug: string
+  locale: string
+  timezone: string
+  t: any
+  navigate: any
+}) => {
+  if (!payments || payments.length === 0) {
+    return <p className="text-xs text-muted-foreground py-3">{t('detail.payments.noPayments')}</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {payments.map(payment => (
+        <div
+          key={payment.id}
+          className="flex justify-between items-start p-2.5 rounded-lg border border-border hover:border-foreground/20 transition-colors"
+        >
+          <div className="flex items-start gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-muted border border-border">
+              {payment.method === 'CASH' ? (
+                <Banknote className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : (
+                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium">{t(`methods.${payment.method}`)}</span>
+                {payment.cardBrand && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    {payment.cardBrand}
+                    {payment.cardLast4 && ` •••• ${payment.cardLast4}`}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">{formatDateShort(payment.createdAt, locale, timezone)}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-medium text-foreground">{Currency(payment.total)}</p>
+            <div className="text-[10px] text-muted-foreground">
+              {payment.tipAmount > 0 && (
+                <span>
+                  {t('detail.payments.tip')}: {Currency(payment.tipAmount)}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-[10px]"
+              onClick={() => navigate(`/venues/${slug}/payments/${payment.id}`)}
+            >
+              <Eye className="h-2.5 w-2.5 mr-0.5" />
+              {t('detail.payments.view')}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -257,8 +542,11 @@ export default function ShiftId() {
 
   // State
   const [sectionsOpen, setSectionsOpen] = useState<SectionState>({
-    payments: true,
-    financial: false,
+    paymentMethods: true,
+    staff: true,
+    orders: false,
+    products: false,
+    payments: false,
     details: false,
   })
   const [isEditing, setIsEditing] = useState(false)
@@ -277,6 +565,21 @@ export default function ShiftId() {
       return response.data
     },
   })
+
+  // Memoized data
+  const paymentMethodBreakdown: PaymentMethodBreakdown[] = useMemo(
+    () => shift?.paymentMethodBreakdown || [],
+    [shift?.paymentMethodBreakdown]
+  )
+  const cardBrandBreakdown: CardBrandBreakdown[] = useMemo(
+    () => shift?.cardBrandBreakdown || [],
+    [shift?.cardBrandBreakdown]
+  )
+  const staffBreakdown: StaffBreakdown[] = useMemo(() => shift?.staffBreakdown || [], [shift?.staffBreakdown])
+  const orders: ShiftOrder[] = useMemo(() => shift?.orders || [], [shift?.orders])
+  const payments: ShiftPayment[] = useMemo(() => shift?.payments || [], [shift?.payments])
+  const topProducts: TopProduct[] = useMemo(() => shift?.topProducts || [], [shift?.topProducts])
+  const stats = useMemo(() => shift?.stats || {}, [shift?.stats])
 
   // Set breadcrumb with shift turn ID
   useEffect(() => {
@@ -325,7 +628,7 @@ export default function ShiftId() {
 
   // Real-time payment updates to refresh shift totals
   const handlePaymentCompleted = useCallback(
-    (event: any) => {
+    (_event: any) => {
       queryClient.invalidateQueries({ queryKey: ['shift', venueId, shiftId] })
       queryClient.invalidateQueries({
         predicate: query => query.queryKey[0] === 'shifts' && query.queryKey[1] === venueId,
@@ -434,7 +737,6 @@ export default function ShiftId() {
   }
 
   // Calculate totals
-  const payments = shift?.payments || []
   const totalAmount = Number(shift?.totalSales || 0)
   const totalTips = Number(shift?.totalTips || 0)
   const tipPercentage = totalAmount !== 0 ? (totalTips / totalAmount) * 100 : 0
@@ -448,13 +750,16 @@ export default function ShiftId() {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b border-border bg-background">
-          <div className="max-w-[1400px] mx-auto px-6 py-4">
+          <div className="max-w-[1400px] mx-auto px-4 py-3">
             {/* Title + Actions */}
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-semibold text-foreground">{Currency(totalAmount + totalTips)}</h1>
-                  <Badge variant="outline" className={`${statusConfig.bg} ${statusConfig.color} ${statusConfig.border} border`}>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-semibold text-foreground">{Currency(totalAmount + totalTips)}</h1>
+                  <Badge
+                    variant="outline"
+                    className={`${statusConfig.bg} ${statusConfig.color} ${statusConfig.border} border`}
+                  >
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {shiftStatus === 'CLOSED' ? t('detail.statusClosed') : t('detail.statusOpen')}
                   </Badge>
@@ -468,15 +773,6 @@ export default function ShiftId() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(shift.id || '', 'Shift ID', toast, t)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('detail.actions.copyId')}</TooltipContent>
-                </Tooltip>
-
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -545,200 +841,184 @@ export default function ShiftId() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {tCommon('superadmin.delete.description', { item: `Turno #${shift.turnId}` })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteShiftMutation.mutate()}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {deleteShiftMutation.isPending ? tCommon('deleting') : tCommon('delete')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{tCommon('superadmin.delete.title')}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {tCommon('superadmin.delete.description', { item: `Turno #${shift.turnId}` })}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteShiftMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteShiftMutation.isPending ? tCommon('deleting') : tCommon('delete')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </>
                 )}
               </div>
             </div>
 
             {/* Quick stats bar */}
-            <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('detail.stats.subtotal')}: </span>
-                <span className="font-medium">{Currency(totalAmount)}</span>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 pt-3 border-t border-border">
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold">{Currency(totalAmount)}</p>
+                <p className="text-[10px] text-muted-foreground">{t('detail.stats.subtotal')}</p>
               </div>
-              <div>
-                <span className="text-muted-foreground">{t('detail.stats.tips')}: </span>
-                <span className="font-medium">{Currency(totalTips)}</span>
-                <span className="text-muted-foreground ml-1">({tipPercentage.toFixed(1)}%)</span>
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold">{Currency(totalTips)}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {t('detail.stats.tips')} ({tipPercentage.toFixed(1)}%)
+                </p>
               </div>
-              <div>
-                <span className="text-muted-foreground">{t('detail.stats.payments')}: </span>
-                <span className="font-medium">{payments.length}</span>
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold">{stats.totalPayments || payments.length}</p>
+                <p className="text-[10px] text-muted-foreground">{t('detail.stats.payments')}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold">{stats.totalOrders || orders.length}</p>
+                <p className="text-[10px] text-muted-foreground">{t('detail.stats.orders')}</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-muted/50">
+                <p className="text-lg font-bold">{Currency(stats.avgOrderValue || 0)}</p>
+                <p className="text-[10px] text-muted-foreground">{t('detail.stats.avgOrder')}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="max-w-[1400px] mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="max-w-[1400px] mx-auto px-4 py-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Main Column (65%) */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Timeline */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    {t('detail.timeline.title')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ShiftTimeline shift={shift} locale={i18n.language} timezone={venueTimezone} t={t} />
-                </CardContent>
-              </Card>
+            <div className="lg:col-span-2 space-y-4">
+              {/* Section 1: Unified Payment Breakdown (Cash + Card + Brands) */}
+              <CollapsibleSection
+                title={t('detail.sections.paymentMethods')}
+                subtitle={t('detail.sections.paymentMethodsDesc')}
+                isOpen={sectionsOpen.paymentMethods}
+                onToggle={() => toggleSection('paymentMethods')}
+                icon={Wallet}
+                badge={
+                  paymentMethodBreakdown.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {paymentMethodBreakdown.length}
+                    </Badge>
+                  )
+                }
+              >
+                <UnifiedPaymentSection paymentMethods={paymentMethodBreakdown} cardBrands={cardBrandBreakdown} t={t} />
+              </CollapsibleSection>
 
-              {/* Payments - Collapsible */}
+              {/* Section 2: Staff Performance */}
+              <CollapsibleSection
+                title={t('detail.sections.staff')}
+                subtitle={t('detail.sections.staffDesc')}
+                isOpen={sectionsOpen.staff}
+                onToggle={() => toggleSection('staff')}
+                icon={Users}
+                badge={
+                  staffBreakdown.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {staffBreakdown.length}
+                    </Badge>
+                  )
+                }
+              >
+                <StaffSection breakdown={staffBreakdown} t={t} />
+              </CollapsibleSection>
+
+              {/* Section 4: Orders */}
+              <CollapsibleSection
+                title={t('detail.sections.orders')}
+                subtitle={t('detail.sections.ordersDesc', { count: orders.length })}
+                isOpen={sectionsOpen.orders}
+                onToggle={() => toggleSection('orders')}
+                icon={ShoppingBag}
+                badge={
+                  orders.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {orders.length}
+                    </Badge>
+                  )
+                }
+              >
+                <OrdersSection
+                  orders={orders}
+                  slug={slug || ''}
+                  locale={i18n.language}
+                  timezone={venueTimezone}
+                  t={t}
+                  navigate={navigate}
+                />
+              </CollapsibleSection>
+
+              {/* Section 5: Top Products */}
+              <CollapsibleSection
+                title={t('detail.sections.products')}
+                subtitle={t('detail.sections.productsDesc')}
+                isOpen={sectionsOpen.products}
+                onToggle={() => toggleSection('products')}
+                icon={Package}
+                badge={
+                  topProducts.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {stats.totalProducts || topProducts.reduce((sum, p) => sum + p.quantity, 0)}
+                    </Badge>
+                  )
+                }
+              >
+                <ProductsSection products={topProducts} t={t} />
+              </CollapsibleSection>
+
+              {/* Section 5: All Payments */}
               <CollapsibleSection
                 title={t('detail.sections.payments')}
                 subtitle={t('detail.sections.paymentsDesc', { count: payments.length })}
                 isOpen={sectionsOpen.payments}
                 onToggle={() => toggleSection('payments')}
                 icon={Receipt}
+                badge={
+                  payments.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {payments.length}
+                    </Badge>
+                  )
+                }
               >
-                {payments.length > 0 ? (
-                  <div className="space-y-3">
-                    {payments.map((payment: any) => {
-                      const paymentTip = payment.tips?.reduce((acc: number, tip: any) => acc + parseFloat(tip.amount), 0) || 0
-                      return (
-                        <div
-                          key={payment.id}
-                          className="flex justify-between items-start p-4 rounded-lg border border-border hover:border-foreground/20 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex items-center justify-center w-9 h-7 rounded-lg bg-muted border border-border shadow-sm">
-                              {payment.paymentType === 'CASH' ? (
-                                <Banknote className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">
-                                  {payment.paymentType === 'CARD' ? t('methods.card') : t('methods.cash')}
-                                </span>
-                                <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language, venueTimezone)}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                <span>
-                                  {t('detail.payments.base')}: {Currency(Number(payment.amount))}
-                                </span>
-                                <span className="ml-3">
-                                  {t('detail.payments.tip')}: {Currency(paymentTip)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-foreground">{Currency(Number(payment.amount) + paymentTip)}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-1 h-auto p-0 text-xs"
-                              onClick={() => navigate(`/venues/${slug}/payments/${payment.id}`)}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              {t('detail.payments.view')}
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground py-4">{t('detail.payments.noPayments')}</p>
-                )}
-              </CollapsibleSection>
-
-              {/* Financial Summary - Collapsible */}
-              <CollapsibleSection
-                title={t('detail.sections.financial')}
-                subtitle={t('detail.sections.financialDesc')}
-                isOpen={sectionsOpen.financial}
-                onToggle={() => toggleSection('financial')}
-                icon={Banknote}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-lg border border-border">
-                    <Label className="text-xs text-muted-foreground">{t('detail.overview.subtotal')}</Label>
-                    <p className="text-xl font-semibold mt-1">{Currency(totalAmount)}</p>
-                  </div>
-                  <div className="p-4 rounded-lg border border-border">
-                    <Label className="text-xs text-muted-foreground">{t('detail.overview.tips')}</Label>
-                    <p className="text-xl font-semibold mt-1">{Currency(totalTips)}</p>
-                    <p className="text-xs text-muted-foreground">{tipPercentage.toFixed(1)}% {t('detail.overview.ofSubtotal')}</p>
-                  </div>
-                  <div className="p-4 rounded-lg border border-border">
-                    <Label className="text-xs text-muted-foreground">{t('detail.overview.total')}</Label>
-                    <p className="text-xl font-semibold mt-1">{Currency(totalAmount + totalTips)}</p>
-                  </div>
-                </div>
-              </CollapsibleSection>
-
-              {/* Shift Details - Collapsible */}
-              <CollapsibleSection
-                title={t('detail.sections.shiftInfo')}
-                subtitle={t('detail.sections.shiftInfoDesc')}
-                isOpen={sectionsOpen.details}
-                onToggle={() => toggleSection('details')}
-                icon={FileText}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.turnId')}</Label>
-                    <p className="text-sm font-mono mt-1">#{shift.turnId}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.systemId')}</Label>
-                    <p className="text-sm font-mono mt-1 truncate">{shift.id}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.startTime')}</Label>
-                    <p className="text-sm mt-1">{formatDateLong(shift.startTime, i18n.language, venueTimezone)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.endTime')}</Label>
-                    <p className="text-sm mt-1">{shift.endTime ? formatDateLong(shift.endTime, i18n.language, venueTimezone) : '-'}</p>
-                  </div>
-                </div>
+                <PaymentsList
+                  payments={payments}
+                  slug={slug || ''}
+                  locale={i18n.language}
+                  timezone={venueTimezone}
+                  t={t}
+                  navigate={navigate}
+                />
               </CollapsibleSection>
             </div>
 
             {/* Sidebar (35% - sticky) */}
-            <div className="lg:sticky lg:top-6 lg:self-start space-y-6">
+            <div className="lg:sticky lg:top-4 lg:self-start space-y-4">
               {/* Status */}
               <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium">{t('detail.sidebar.status')}</CardTitle>
+                <CardHeader className="py-2.5 px-3">
+                  <CardTitle className="text-sm font-medium">{t('detail.sidebar.status')}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${statusConfig.bg}`}>
-                      <StatusIcon className={`h-5 w-5 ${statusConfig.color}`} />
+                <CardContent className="px-3 pb-3 pt-0">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full ${statusConfig.bg}`}>
+                      <StatusIcon className={`h-3.5 w-3.5 ${statusConfig.color}`} />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">
+                      <p className="text-sm font-medium text-foreground">
                         {shiftStatus === 'CLOSED' ? t('detail.statusClosed') : t('detail.statusOpen')}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         {t('detail.sidebar.lastUpdate')}: {formatDateShort(shift.updatedAt, i18n.language, venueTimezone)}
                       </p>
                     </div>
@@ -749,63 +1029,75 @@ export default function ShiftId() {
               {/* Financial Summary */}
               <Card
                 id="financial-summary-card"
-                className={isEditing ? "border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10" : canEdit ? "border-2 border-amber-400/30" : "border-border"}
+                className={
+                  isEditing
+                    ? 'border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-pink-500/10'
+                    : canEdit
+                      ? 'border-2 border-amber-400/30'
+                      : 'border-border'
+                }
               >
-                <CardHeader>
+                <CardHeader className="py-2.5 px-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {canEdit && (
-                        <div className="p-1.5 rounded-md bg-gradient-to-r from-amber-400 to-pink-500">
-                          <Pencil className="h-3 w-3 text-primary-foreground" />
+                        <div className="p-1 rounded-md bg-gradient-to-r from-amber-400 to-pink-500">
+                          <Pencil className="h-2.5 w-2.5 text-primary-foreground" />
                         </div>
                       )}
-                      <CardTitle className={canEdit ? "text-lg font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent" : "text-lg font-medium"}>
+                      <CardTitle
+                        className={
+                          canEdit
+                            ? 'text-sm font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent'
+                            : 'text-sm font-medium'
+                        }
+                      >
                         {t('detail.sidebar.financialSummary')}
                       </CardTitle>
                     </div>
                     {isEditing && (
-                      <Badge className="bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
+                      <Badge className="text-[10px] px-1.5 py-0 bg-gradient-to-r from-amber-400 to-pink-500 text-primary-foreground border-0">
                         {tCommon('superadmin.edit.editMode')}
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="px-3 pb-3 pt-0 space-y-2">
                   {/* Subtotal (totalSales) */}
-                  <div className="flex justify-between items-center text-sm">
-                    <Label className="text-muted-foreground">{t('detail.overview.subtotal')}</Label>
+                  <div className="flex justify-between items-center text-xs">
+                    <Label className="text-muted-foreground text-xs">{t('detail.overview.subtotal')}</Label>
                     {isEditing ? (
                       <Input
                         type="number"
                         step="0.01"
                         value={editedValues.totalSales}
                         onChange={e => setEditedValues(prev => ({ ...prev, totalSales: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 w-32 text-right border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+                        className="h-7 w-28 text-xs text-right border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
                       />
                     ) : (
-                      <span className="font-medium">{Currency(totalAmount)}</span>
+                      <span className="text-sm font-medium">{Currency(totalAmount)}</span>
                     )}
                   </div>
 
                   {/* Tips (totalTips) */}
-                  <div className="flex justify-between items-center text-sm">
-                    <Label className="text-muted-foreground">{t('detail.overview.tips')}</Label>
+                  <div className="flex justify-between items-center text-xs">
+                    <Label className="text-muted-foreground text-xs">{t('detail.overview.tips')}</Label>
                     {isEditing ? (
                       <Input
                         type="number"
                         step="0.01"
                         value={editedValues.totalTips}
                         onChange={e => setEditedValues(prev => ({ ...prev, totalTips: parseFloat(e.target.value) || 0 }))}
-                        className="h-8 w-32 text-right border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
+                        className="h-7 w-28 text-xs text-right border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20"
                       />
                     ) : (
-                      <span className="font-medium">{Currency(totalTips)}</span>
+                      <span className="text-sm font-medium">{Currency(totalTips)}</span>
                     )}
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
-                    <span className="font-medium text-foreground">{t('detail.overview.total')}</span>
-                    <span className="font-bold text-lg text-foreground">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-foreground">{t('detail.overview.total')}</span>
+                    <span className="font-bold text-sm text-foreground">
                       {isEditing ? Currency(editedValues.totalSales + editedValues.totalTips) : Currency(totalAmount + totalTips)}
                     </span>
                   </div>
@@ -814,16 +1106,16 @@ export default function ShiftId() {
 
               {/* Shift Info */}
               <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <User className="h-5 w-5 text-muted-foreground" />
+                <CardHeader className="py-2.5 px-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
                     {t('detail.sidebar.shiftInfo')}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+                <CardContent className="px-3 pb-3 pt-0 space-y-1.5 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.sidebar.turnId')}:</span>
-                    <span className="font-mono">#{shift.turnId}</span>
+                    <span className="font-mono text-xs">#{shift.turnId}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">{t('detail.sidebar.payments')}:</span>
@@ -833,36 +1125,59 @@ export default function ShiftId() {
                     <span className="text-muted-foreground">{t('detail.sidebar.duration')}:</span>
                     <span>
                       {shift.startTime && shift.endTime
-                        ? `${Math.round((new Date(shift.endTime).getTime() - new Date(shift.startTime).getTime()) / (1000 * 60 * 60))}h`
+                        ? (() => {
+                            const hours = Math.floor(
+                              (new Date(shift.endTime).getTime() - new Date(shift.startTime).getTime()) / (1000 * 60 * 60)
+                            )
+                            const minutes = Math.floor(
+                              ((new Date(shift.endTime).getTime() - new Date(shift.startTime).getTime()) % (1000 * 60 * 60)) /
+                                (1000 * 60)
+                            )
+                            return t('detail.duration', { hours, minutes })
+                          })()
                         : '-'}
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Additional Info */}
-              <Card className="border-border">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    {t('detail.sidebar.additionalInfo')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
+              {/* Shift Details - Collapsible */}
+              <CollapsibleSection
+                title={t('detail.sections.shiftInfo')}
+                subtitle={t('detail.sections.shiftInfoDesc')}
+                isOpen={sectionsOpen.details}
+                onToggle={() => toggleSection('details')}
+                icon={FileText}
+              >
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.venueId')}</p>
-                    <p className="mt-1 font-mono text-xs truncate">{shift.venueId}</p>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.startTime')}</Label>
+                    <p className="text-sm mt-1">{formatDateLong(shift.startTime, i18n.language, venueTimezone)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.createdAt')}</p>
-                    <p className="mt-1">{formatDateShort(shift.createdAt, i18n.language, venueTimezone)}</p>
+                    <Label className="text-xs text-muted-foreground">{t('detail.fields.endTime')}</Label>
+                    <p className="text-sm mt-1">
+                      {shift.endTime ? formatDateLong(shift.endTime, i18n.language, venueTimezone) : '-'}
+                    </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('detail.fields.updatedAt')}</p>
-                    <p className="mt-1">{formatDateShort(shift.updatedAt, i18n.language, venueTimezone)}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                  {canEdit && (
+                    <div className="pt-2 border-t border-border">
+                      <Label className="text-xs text-muted-foreground">{t('detail.fields.systemId')}</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm font-mono truncate flex-1">{shift.id}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(shift.id || '', 'System ID', toast, t)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleSection>
             </div>
           </div>
         </div>
@@ -871,8 +1186,17 @@ export default function ShiftId() {
         <div className="border-t border-border mt-12">
           <div className="max-w-[1400px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{t('detail.footer.shiftId', { id: shift.id })}</span>
-              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(getIntlLocale(i18n.language)).toLocaleString(DateTime.DATETIME_MED) })}</span>
+              <span>
+                {t('detail.turnId')}: #{shift.turnId}
+              </span>
+              <span>
+                {t('detail.footer.generated', {
+                  date: DateTime.now()
+                    .setZone(venueTimezone)
+                    .setLocale(getIntlLocale(i18n.language))
+                    .toLocaleString(DateTime.DATETIME_MED),
+                })}
+              </span>
             </div>
           </div>
         </div>

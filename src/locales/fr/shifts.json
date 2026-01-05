@@ -17,7 +17,22 @@
   },
   "methods": {
     "card": "Carte",
-    "cash": "Especes"
+    "cash": "Especes",
+    "CASH": "Especes",
+    "CARD": "Carte",
+    "CREDIT_CARD": "Carte de Credit",
+    "DEBIT_CARD": "Carte de Debit",
+    "DIGITAL_WALLET": "Portefeuille Numerique",
+    "BANK_TRANSFER": "Virement Bancaire",
+    "OTHER": "Autre"
+  },
+  "cardBrands": {
+    "VISA": "Visa",
+    "MASTERCARD": "Mastercard",
+    "AMEX": "American Express",
+    "DISCOVER": "Discover",
+    "CARNET": "Carnet",
+    "OTHER": "Autre"
   },
   "common": {
     "copied": "Copie!"
@@ -34,6 +49,7 @@
     "systemIdLabel": "ID Systeme",
     "openTimeLabel": "Heure d'Ouverture",
     "closeTimeLabel": "Heure de Fermeture",
+    "duration": "{{hours}}h {{minutes}}m",
     "actions": {
       "copyId": "Copier l'ID du Shift",
       "export": "Exporter les donnees du shift",
@@ -42,7 +58,11 @@
     "stats": {
       "subtotal": "Sous-total",
       "tips": "Pourboires",
-      "payments": "Paiements"
+      "payments": "Paiements",
+      "orders": "Commandes",
+      "products": "Produits",
+      "avgOrder": "Ticket Moyen",
+      "avgTip": "Pourboire Moyen"
     },
     "timeline": {
       "title": "Activite recente",
@@ -53,10 +73,44 @@
     "sections": {
       "payments": "Paiements",
       "paymentsDesc": "{{count}} paiement(s) dans ce shift",
+      "paymentMethods": "Methodes de Paiement",
+      "paymentMethodsDesc": "Repartition par type de paiement",
       "financial": "Resume Financier",
       "financialDesc": "Detail des ventes et pourboires",
       "shiftInfo": "Informations du Shift",
-      "shiftInfoDesc": "Details et horodatages du shift"
+      "shiftInfoDesc": "Details et horodatages du shift",
+      "staff": "Ventes par Employe",
+      "staffDesc": "Performance de l'equipe pendant le shift",
+      "orders": "Commandes",
+      "ordersDesc": "{{count}} commande(s) dans ce shift",
+      "products": "Produits Vendus",
+      "productsDesc": "Top produits du shift",
+      "viewAll": "Voir tout"
+    },
+    "paymentBreakdown": {
+      "cash": "Especes",
+      "card": "Carte",
+      "cardTypes": "Types de Carte",
+      "byCardBrand": "Par marque de carte",
+      "payments": "paiements",
+      "noPayments": "Aucun paiement enregistre"
+    },
+    "staffBreakdown": {
+      "sales": "Ventes",
+      "tips": "Pourboires",
+      "orders": "commandes",
+      "noStaff": "Aucune donnee d'employe"
+    },
+    "ordersList": {
+      "table": "Table",
+      "items": "articles",
+      "noOrders": "Aucune commande enregistree",
+      "viewOrder": "Voir la commande"
+    },
+    "productsList": {
+      "sold": "vendus",
+      "revenue": "Revenus",
+      "noProducts": "Aucun produit vendu"
     },
     "payments": {
       "base": "Base",

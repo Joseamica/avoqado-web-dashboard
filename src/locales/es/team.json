@@ -11,7 +11,7 @@
     "memberActive": "El miembro puede acceder al sistema",
     "memberInactive": "El miembro no puede acceder al sistema",
     "changePin": "Cambiar PIN (opcional)",
-    "newPin": "Nuevo PIN de 4 dígitos",
+    "newPin": "Nuevo PIN (4-10 dígitos)",
     "newPinSet": "Se establecerá un nuevo PIN para el miembro",
     "totalSales": "Ventas Totales",
     "orders": "Ordenes",
@@ -36,7 +36,9 @@
       "viewerDesc": "Acceso de solo lectura a análisis y reportes"
     },
     "validation": {
-      "pinFormat": "El PIN debe tener exactamente 4 dígitos",
+      "pinMinLength": "El PIN debe tener al menos 4 dígitos",
+      "pinMaxLength": "El PIN no puede tener más de 10 dígitos",
+      "pinOnlyDigits": "El PIN debe contener solo números",
       "pinUnavailable": "PIN no disponible. Por favor, elige otro diferente."
     }
   },
