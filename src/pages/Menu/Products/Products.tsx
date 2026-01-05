@@ -70,7 +70,11 @@ export default function Products() {
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
-  const { data: products, isLoading, dataUpdatedAt } = useQuery({
+  const {
+    data: products,
+    isLoading,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ['products', venueId, 'orderBy:name'],
     queryFn: () => getProducts(venueId!, { orderBy: 'name' }),
     // ✅ FIX: Reduce staleTime to keep inventory data fresh
@@ -213,7 +217,17 @@ export default function Products() {
   })
 
   const adjustStockMutation = useMutation({
-    mutationFn: async ({ productId, adjustment, reason, notes }: { productId: string; adjustment: number; reason: string; notes: string }) => {
+    mutationFn: async ({
+      productId,
+      adjustment,
+      reason,
+      notes,
+    }: {
+      productId: string
+      adjustment: number
+      reason: string
+      notes: string
+    }) => {
       const payload: AdjustInventoryStockDto = {
         type: 'ADJUSTMENT',
         quantity: adjustment,
@@ -374,7 +388,7 @@ export default function Products() {
 
         return (
           <div className="flex flex-wrap gap-1">
-            {groups.slice(0, 3).map((group) => (
+            {groups.slice(0, 3).map(group => (
               <Badge key={group.id} variant="secondary" className="text-xs px-2 py-0.5">
                 {group.name}
               </Badge>
@@ -396,11 +410,7 @@ export default function Products() {
       enableColumnFilter: false,
       cell: ({ cell }) => {
         const updatedAt = cell.getValue() as string
-        return (
-          <span>
-            {formatDate(updatedAt)}
-          </span>
-        )
+        return <span>{formatDate(updatedAt)}</span>
       },
     },
     {
@@ -417,7 +427,7 @@ export default function Products() {
           <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
             <Switch
               checked={isActive}
-              onCheckedChange={(checked) => {
+              onCheckedChange={checked => {
                 toggleActive.mutate({ productId: product.id, status: checked })
               }}
               className={isActive ? 'data-[state=checked]:bg-green-500' : 'data-[state=unchecked]:bg-red-500'}
@@ -425,7 +435,9 @@ export default function Products() {
             {isActive ? (
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             ) : (
-              <Badge variant="destructive" className="text-xs">{t('products.columns.unavailable')}</Badge>
+              <Badge variant="destructive" className="text-xs">
+                {t('products.columns.unavailable')}
+              </Badge>
             )}
           </div>
         )
@@ -536,9 +548,7 @@ export default function Products() {
         <Alert className="mb-4 border-orange-200 bg-orange-50 dark:bg-orange-950/50">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertDescription className="flex items-center justify-between">
-            <span className="text-orange-800 dark:text-orange-200">
-              {t('products.lowStock.alert', { count: lowStockProducts.length })}
-            </span>
+            <span className="text-orange-800 dark:text-orange-200">{t('products.lowStock.alert', { count: lowStockProducts.length })}</span>
             <Button
               variant="outline"
               size="sm"
@@ -602,11 +612,7 @@ export default function Products() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <InventoryDetailsModal
-        product={selectedProduct}
-        open={isInventoryModalOpen}
-        onOpenChange={setIsInventoryModalOpen}
-      />
+      <InventoryDetailsModal product={selectedProduct} open={isInventoryModalOpen} onOpenChange={setIsInventoryModalOpen} />
 
       {/* ✅ TOAST POS PATTERN: Quick stock adjustment dialog */}
       <AdjustStockDialog
