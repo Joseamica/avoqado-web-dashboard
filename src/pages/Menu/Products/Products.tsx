@@ -320,7 +320,7 @@ export default function Products() {
 
       cell: ({ cell }) => {
         const price = cell.getValue() as number
-        return <ul>{Currency(price, false)}</ul>
+        return <ul>{Currency(price, true)}</ul>
       },
     },
     {
