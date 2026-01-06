@@ -16,13 +16,11 @@ export default function MenuMakerLayout() {
 export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
   const { t } = useTranslation('menu')
   return (
-    <nav className={cn("flex items-center space-x-6 lg:space-x-8 border-y border-border p-4", className)} {...props}>
+    <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-y border-border p-4', className)} {...props}>
       <NavLink
         to="overview"
         className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
         }
       >
         {t('menumaker.nav.overview', { defaultValue: 'Overview' })}
@@ -30,9 +28,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <NavLink
         to="menus"
         className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
         }
       >
         {t('menumaker.nav.menus', { defaultValue: 'Menus' })}
@@ -40,9 +36,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <NavLink
         to="categories"
         className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
         }
       >
         {t('menumaker.nav.categories', { defaultValue: 'Categories' })}
@@ -50,9 +44,7 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <NavLink
         to="products"
         className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
         }
       >
         {t('menumaker.nav.products', { defaultValue: 'Products' })}
@@ -60,22 +52,10 @@ export function MenuNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
       <NavLink
         to="modifier-groups"
         className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
+          `text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'}`
         }
       >
         {t('menumaker.nav.modifierGroups', { defaultValue: 'Modifier Groups' })}
-      </NavLink>
-      <NavLink
-        to="/examples/dashboard"
-        className={({ isActive }) =>
-          `text-sm font-medium transition-colors ${
-            isActive ? 'text-foreground' : 'text-muted-foreground hover:text-primary'
-          }`
-        }
-      >
-        {t('menumaker.nav.customers', { defaultValue: 'Customers' })}
       </NavLink>
     </nav>
   )

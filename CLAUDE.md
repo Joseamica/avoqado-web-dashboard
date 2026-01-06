@@ -2,9 +2,32 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## 🔴 MANDATORY: Documentation Update Rule (READ FIRST)
+
+**When implementing or modifying ANY feature, you MUST:**
+
+1. **Check if documentation exists** for the feature/area you're modifying
+2. **Update the documentation** if your changes affect documented behavior
+3. **Create new documentation** if implementing a new significant feature
+4. **Update references in CLAUDE.md** if you create new docs
+5. **Cross-repo features** → Update `avoqado-server/docs/` (central hub)
+
+**This is NOT optional.** Documentation debt causes confusion and bugs.
+
+```
+✅ DO: Implement feature → Update docs → Commit both together
+❌ DON'T: Implement feature → "I'll document it later" → Never document it
+```
+
+**Central hub:** `avoqado-server/docs/README.md` is the master index for ALL cross-repo documentation.
+
+---
+
 ## Quick Start
 
-**Essential reading:** [Quick Reference](.claude/docs/quick-reference.md) - Dev commands, critical rules, common patterns
+**Essential reading:** [Quick Reference](docs/quick-reference.md) - Dev commands, critical rules, common patterns
 
 ## Development Commands
 
@@ -99,32 +122,87 @@ When you create components or files that are fully implemented but not yet integ
 
 ## 📚 Documentation Policy
 
-**Managing Documentation Files:**
+### Documentation Structure
 
-When creating new documentation:
+```
+avoqado-server/docs/           ← CENTRAL HUB (cross-repo)
+├── README.md                  ← Master index of ALL documentation
+├── architecture/              ← Cross-repo architecture
+├── features/                  ← Cross-repo features
+└── ...
 
-1. **Location**: ALWAYS place new .md files in the `.claude/docs/` directory
-   - ✅ CORRECT: `.claude/docs/features/NEW_FEATURE.md`
+avoqado-web-dashboard/docs/    ← Frontend-specific ONLY (this repo)
+├── README.md                  ← Frontend docs index
+├── architecture/              ← React routing, overview
+├── features/                  ← i18n, theme, inventory UI
+├── guides/                    ← UI patterns, performance
+└── troubleshooting/           ← React-specific issues
+
+avoqado-tpv/docs/              ← Android-specific ONLY
+├── android/                   ← Kotlin/Compose patterns
+└── devices/                   ← PAX hardware guides
+```
+
+### Where to Document
+
+| Type of Documentation | Location |
+|-----------------------|----------|
+| Cross-repo features (payments, inventory logic) | `avoqado-server/docs/features/` |
+| Architecture, DB schema, API | `avoqado-server/docs/` |
+| React/UI patterns, components | `docs/` (this repo) |
+| Android/Kotlin patterns | `avoqado-tpv/docs/` |
+
+### When Creating New Documentation
+
+1. **Frontend-specific**: Place in `docs/` directory
+   - ✅ CORRECT: `docs/features/NEW_FEATURE.md`
    - ❌ WRONG: `NEW_FEATURE.md` (root level)
-   - Follow the existing structure: `architecture/`, `features/`, `guides/`, `troubleshooting/`
+   - Follow structure: `architecture/`, `features/`, `guides/`, `troubleshooting/`
 
-2. **Reference in CLAUDE.md**: ALWAYS add a reference to the new file in the relevant section
-   - Architecture docs → Link in "Architecture Documentation" section
-   - Feature docs → Link in "Feature Documentation" section
-   - Guide docs → Link in "Development Guides" section
-   - Format: `- [Title](.claude/docs/category/filename.md) - Brief description`
+2. **Cross-repo features**: Place in `avoqado-server/docs/`
+   - Features affecting multiple repos → `avoqado-server/docs/features/`
+   - Architecture changes → `avoqado-server/docs/`
 
-3. **Keep Documentation Updated**: When making changes to code covered by documentation:
-   - If the change affects architecture/design patterns → Update the relevant .md file
-   - If the change only modifies implementation details → Update code comments, no .md update needed
-   - Always check: Does this change invalidate any statements in the docs?
+3. **Reference in CLAUDE.md**: Add link in relevant section
+   - Format: `- [Title](docs/category/filename.md) - Brief description`
 
-**Examples of changes requiring doc updates:**
-- ✅ New permission system behavior → Update `.claude/docs/architecture/permissions.md`
-- ✅ Changed theme color tokens → Update `.claude/docs/features/theme.md`
-- ✅ New i18n namespace → Update `.claude/docs/features/i18n.md`
-- ❌ Fixed typo in component → No doc update needed
-- ❌ Refactored function names → No doc update needed
+### Cross-Repo Documentation (Central Hub)
+
+**Master index:** [`avoqado-server/docs/README.md`](../avoqado-server/docs/README.md)
+
+| Topic | Location |
+|-------|----------|
+| Architecture, APIs, DB | `avoqado-server/docs/` |
+| Payment integrations (Blumon, Stripe) | `avoqado-server/docs/blumon-*/` |
+| Business Types & MCC | `avoqado-server/docs/BUSINESS_TYPES.md` |
+| Database schema | `avoqado-server/docs/DATABASE_SCHEMA.md` |
+| Inventory system (backend) | `avoqado-server/docs/INVENTORY_REFERENCE.md` |
+| Settlement incidents | `avoqado-server/docs/features/SETTLEMENT_INCIDENTS.md` |
+| Frontend components, routing | `docs/` (this repo) |
+
+### When to Update Docs
+
+| Change Type | Action |
+|-------------|--------|
+| New VenueType | Update `avoqado-server/docs/BUSINESS_TYPES.md` |
+| Payment flow changes | Update `avoqado-server/docs/PAYMENT_ARCHITECTURE.md` |
+| API/DB changes | Update `avoqado-server/docs/DATABASE_SCHEMA.md` |
+| UI pattern changes | Update `docs/` (this repo) |
+| React performance patterns | Update `docs/guides/performance.md` |
+
+### Documentation Update Checklist
+
+> **See "🔴 MANDATORY: Documentation Update Rule" at the top of this file.**
+
+**Checklist before committing:**
+- [ ] Does this change affect any existing documentation?
+- [ ] Did I update line number references if file structure changed?
+- [ ] Did I update progress percentages if completing phases?
+- [ ] Did I add new documentation if this is a new feature?
+
+**Avoid fragile line number references.** Instead of `"See file.ts lines 100-200"`, use:
+- Function/class names: `"See createOrder() in order.service.ts"`
+- Section headers: `"See ## Authentication section in AUTH.md"`
 
 ## 🚨 Critical Rules (NO EXCEPTIONS)
 
@@ -146,7 +224,7 @@ const { t } = useTranslation()
 - Use interpolation: `t('greeting', { name })`
 - No hardcoded strings in JSX
 
-**See:** [Complete i18n guide](.claude/docs/features/i18n.md)
+**See:** [Complete i18n guide](docs/features/i18n.md)
 
 ### 2. Performance & Memoization
 
@@ -170,7 +248,7 @@ const filteredData = useMemo(
 - ✅ Search handlers → `useCallback`
 - ✅ Column definitions → `useMemo`
 
-**See:** [Performance guide](.claude/docs/guides/performance.md) | [Render loops troubleshooting](.claude/docs/troubleshooting/render-loops.md)
+**See:** [Performance guide](docs/guides/performance.md) | [Render loops troubleshooting](docs/troubleshooting/render-loops.md)
 
 ### 3. Permissions
 
@@ -186,7 +264,7 @@ const filteredData = useMemo(
 router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 ```
 
-**See:** [Permission system guide](.claude/docs/architecture/permissions.md)
+**See:** [Permission system guide](docs/architecture/permissions.md)
 
 ### 4. Theme System
 
@@ -200,7 +278,7 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 <div className="bg-muted text-foreground">
 ```
 
-**See:** [Theme guide](.claude/docs/features/theme.md)
+**See:** [Theme guide](docs/features/theme.md)
 
 ### 5. Pill-Style Tabs (MANDATORY)
 
@@ -228,7 +306,7 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 
 **Reference:** `/src/pages/Team/Teams.tsx` (lines 372-392)
 
-**See:** [Complete UI Patterns guide](.claude/docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
+**See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
 
 ### 6. SUPERADMIN Gradient (MANDATORY)
 
@@ -682,24 +760,25 @@ const { staffInfo } = useAuth()
 ## Architecture Documentation
 
 **Core concepts:**
-- [Architecture Overview](.claude/docs/architecture/overview.md) - Tech stack, data models, component guidelines
-- [Routing System](.claude/docs/architecture/routing.md) - Route protection layers, navigation patterns
-- [Permission System](.claude/docs/architecture/permissions.md) - Granular access control (UI controls)
+- [Architecture Overview](docs/architecture/overview.md) - Tech stack, data models, component guidelines
+- [Routing System](docs/architecture/routing.md) - Route protection layers, navigation patterns
+- [Permission System](docs/architecture/permissions.md) - Granular access control (UI controls)
+- [Business Types & Categories](../avoqado-server/docs/BUSINESS_TYPES.md) - VenueType enum, MCC mapping (cross-repo)
 
 ## Feature Documentation
 
 **Major features:**
-- [Inventory Management](.claude/docs/features/inventory.md) - FIFO stock tracking, recipes, pricing
-- [Internationalization (i18n)](.claude/docs/features/i18n.md) - Translation system with JSON namespaces
-- [Theme System](.claude/docs/features/theme.md) - Light/dark mode with semantic colors
-- [Settlement Incident Tracking](.claude/docs/features/settlement-incidents.md) - Automated settlement monitoring and risk management for SOFOM partnership
+- [Inventory Management](docs/features/inventory.md) - FIFO stock tracking UI, recipes, pricing
+- [Internationalization (i18n)](docs/features/i18n.md) - Translation system with JSON namespaces
+- [Theme System](docs/features/theme.md) - Light/dark mode with semantic colors
+- [Settlement Incidents](../avoqado-server/docs/features/SETTLEMENT_INCIDENTS.md) - Settlement monitoring (cross-repo)
 
 ## Development Guides
 
 **Best practices:**
-- [UI Patterns](.claude/docs/guides/ui-patterns.md) - Icon-based selections, horizontal navigation, common UI patterns
-- [Performance Optimization](.claude/docs/guides/performance.md) - React performance patterns, memoization
-- [Troubleshooting Render Loops](.claude/docs/troubleshooting/render-loops.md) - Debug infinite re-renders
+- [UI Patterns](docs/guides/ui-patterns.md) - Icon-based selections, horizontal navigation, common UI patterns
+- [Performance Optimization](docs/guides/performance.md) - React performance patterns, memoization
+- [Troubleshooting Render Loops](docs/troubleshooting/render-loops.md) - Debug infinite re-renders
 
 ## Key Patterns
 
@@ -821,11 +900,12 @@ gh workflow run ci-cd.yml --field environment=demo
 
 ## Need Help?
 
-- **Quick reference**: [Quick Reference](.claude/docs/quick-reference.md)
-- **Architecture**: [Overview](.claude/docs/architecture/overview.md) | [Routing](.claude/docs/architecture/routing.md) | [Permissions](.claude/docs/architecture/permissions.md)
-- **Features**: [Inventory](.claude/docs/features/inventory.md) | [i18n](.claude/docs/features/i18n.md) | [Theme](.claude/docs/features/theme.md)
-- **Guides**: [UI Patterns](.claude/docs/guides/ui-patterns.md) | [Performance](.claude/docs/guides/performance.md)
-- **Troubleshooting**: [Render Loops](.claude/docs/troubleshooting/render-loops.md)
+- **Quick reference**: [Quick Reference](docs/quick-reference.md)
+- **Architecture**: [Overview](docs/architecture/overview.md) | [Routing](docs/architecture/routing.md) | [Permissions](docs/architecture/permissions.md)
+- **Features**: [Inventory](docs/features/inventory.md) | [i18n](docs/features/i18n.md) | [Theme](docs/features/theme.md)
+- **Guides**: [UI Patterns](docs/guides/ui-patterns.md) | [Performance](docs/guides/performance.md)
+- **Troubleshooting**: [Render Loops](docs/troubleshooting/render-loops.md)
+- **Cross-repo docs**: [avoqado-server/docs/README.md](../avoqado-server/docs/README.md)
 
 ## Contributing
 
