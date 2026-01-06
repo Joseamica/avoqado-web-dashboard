@@ -320,7 +320,7 @@ export async function exportCurrentMenu(
         rows.push([
           product.name,
           product.sku,
-          (product.price / 100).toFixed(2), // Convert cents to dollars
+          Number(product.price).toFixed(2),
           category.name,
           product.description || '',
           product.type || 'FOOD',
@@ -373,7 +373,7 @@ export async function exportCurrentMenu(
               const group = modifierGroups.find(mg => mg.id === pmg.groupId)
               if (!group) return ''
               const modifiersForGroup = group.modifiers
-                .map((mod: any) => `${mod.name}:${(mod.price / 100).toFixed(2)}`)
+                .map((mod: any) => `${mod.name}:${Number(mod.price).toFixed(2)}`)
                 .join('>')
               return `${group.name}>${modifiersForGroup}`
             })
@@ -384,8 +384,8 @@ export async function exportCurrentMenu(
         rows.push([
           product.name,
           product.sku,
-          (product.price / 100).toFixed(2),
-          product.cost ? (product.cost / 100).toFixed(2) : '',
+          Number(product.price).toFixed(2),
+          product.cost ? Number(product.cost).toFixed(2) : '',
           category.name,
           product.description || '',
           product.type || 'FOOD',

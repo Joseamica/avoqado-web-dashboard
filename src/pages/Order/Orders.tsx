@@ -340,10 +340,9 @@ export default function Orders() {
         header: t('columns.orderNumber'),
         cell: ({ row }) => {
           const orderNumber = row.original.orderNumber || '-'
-          const isFastSale = orderNumber.startsWith('FAST-')
 
-          if (isFastSale) {
-            // Show last 6 digits for FAST orders: "FAST-1766069887997" → "#887997"
+          // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
+          if (orderNumber !== '-' && orderNumber.length > 6) {
             const shortNumber = orderNumber.slice(-6)
             return <span className="font-mono text-muted-foreground">#{shortNumber}</span>
           }
@@ -636,8 +635,10 @@ export default function Orders() {
           const tableName = order.table?.number || '-'
           const isFastSale = order.orderNumber?.startsWith('FAST-')
 
-          // For fast sales, show shorter folio and "Venta Rápida" type
-          const displayFolio = isFastSale ? `#${order.orderNumber?.slice(-6)}` : (order.orderNumber || '-')
+          // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
+          const displayFolio = order.orderNumber && order.orderNumber.length > 6
+            ? `#${order.orderNumber.slice(-6)}`
+            : (order.orderNumber || '-')
           const displayType = isFastSale ? t('types.FAST', { defaultValue: 'Venta Rápida' }) : t(`types.${order.type}` as any)
 
           return {

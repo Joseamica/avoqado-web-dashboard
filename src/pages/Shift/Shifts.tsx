@@ -364,14 +364,11 @@ export default function Shifts() {
         const totalTips = parseAmount(row.original.totalTips)
         const totalSales = parseAmount(row.original.totalSales)
         const providedSubtotal = parseAmount((row.original as any).subtotal)
-        // Prefer provided subtotal; else use (sales - tips) if that seems valid
-        let subtotal = providedSubtotal > 0 ? providedSubtotal : totalSales - totalTips
+        // totalSales already represents subtotal (before tips), use it directly
+        let subtotal = providedSubtotal > 0 ? providedSubtotal : totalSales
         if (subtotal <= 0) subtotal = totalSales // fallback
         let tipPercentage = subtotal > 0 ? (totalTips / subtotal) * 100 : 0
-        if ((subtotal <= 0 || !Number.isFinite(tipPercentage)) && totalTips > 0) {
-          const gross = totalSales + totalTips
-          if (gross > 0) tipPercentage = (totalTips / gross) * 100
-        }
+        // Note: tipPercentage = tips / subtotal, NOT tips / (subtotal + tips)
         // Fallback to provided percentage field if available
         const providedPct = Number((row.original as any).tipPercentage ?? (row.original as any).tipsPercentage)
         if (!Number.isFinite(tipPercentage) || tipPercentage === 0) {

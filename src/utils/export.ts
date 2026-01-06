@@ -117,9 +117,10 @@ export function formatDateForExport(dateString: string): string {
 
 /**
  * Format currency for export (removes currency symbol, keeps number)
- * @param amount Amount in cents or smallest currency unit
+ * @param amount Amount in pesos (e.g., 129.50 = $129.50)
+ *   NOTE: Database values are stored in PESOS, not centavos.
  * @returns Formatted number string
  */
 export function formatCurrencyForExport(amount: number): string {
-  return (amount / 100).toFixed(2)
+  return Number(amount).toFixed(2)
 }

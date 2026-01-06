@@ -172,7 +172,7 @@ function SortableProduct({
         />
         <Input
           type="text"
-          value={editedPrices[product.id] ?? (product.price / 100).toFixed(2)}
+          value={editedPrices[product.id] ?? Number(product.price).toFixed(2)}
           onChange={e => handlePriceChange(product.id, e.target.value)}
           onBlur={e => handlePriceBlur(product.id, e.target.value)}
           className="w-24 text-right"
@@ -435,7 +435,7 @@ export default function Overview() {
   const handlePriceBlur = (productId: string, value: string) => {
     const numericPrice = parseFloat(value)
     if (!isNaN(numericPrice)) {
-      updateProductPriceMutation.mutate({ productId, price: Math.round(numericPrice * 100) })
+      updateProductPriceMutation.mutate({ productId, price: numericPrice })
     }
     setEditedPrices(prev => {
       const newPrices = { ...prev }

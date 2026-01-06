@@ -50,14 +50,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // Define all possible items with their required permissions and features
     const allItems = [
       { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
-      {
-        title: t('sidebar:analytics'),
-        isActive: true,
-        url: 'analytics',
-        icon: TrendingUp,
-        permission: 'analytics:read',
-        locked: !hasKYCAccess,
-      },
+      // {
+      //   title: t('sidebar:analytics'),
+      //   isActive: true,
+      //   url: 'analytics',
+      //   icon: TrendingUp,
+      //   permission: 'analytics:read',
+      //   locked: !hasKYCAccess,
+      // },
       {
         title: t('sidebar:availableBalance'),
         isActive: true,
@@ -195,7 +195,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
     // Reports submenu - filter subitems based on permissions
     const reportsSubItems = [
-      { title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }), url: 'reports/pay-later-aging', permission: 'tpv-reports:pay-later-aging' },
+      {
+        title: t('sidebar:reportsMenu.payLaterAging', { defaultValue: 'Cuentas por Cobrar' }),
+        url: 'reports/pay-later-aging',
+        permission: 'tpv-reports:pay-later-aging',
+      },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Reports menu if user has at least one subitem
