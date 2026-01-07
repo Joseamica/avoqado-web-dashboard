@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { ChevronDown, ChevronUp, FilterX, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, FilterX, Search, Star } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export interface ReviewFiltersState {
   sources: string[]
-  minRating: number | null
+  ratings: number[]
   sentiment: string | null
   responseStatus: 'all' | 'responded' | 'unresponded'
   searchQuery: string
@@ -24,7 +24,8 @@ interface ReviewFiltersProps {
   filteredCount: number
 }
 
-const sources = ['AVOQADO', 'GOOGLE', 'TRIPADVISOR', 'FACEBOOK', 'YELP']
+// TODO: Habilitar fuentes externas cuando tengamos verificado el negocio (Google, TripAdvisor, Facebook, Yelp)
+const sources = ['AVOQADO' /*, 'GOOGLE', 'TRIPADVISOR', 'FACEBOOK', 'YELP'*/]
 const sentiments = ['positive', 'neutral', 'negative']
 
 export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCount }: ReviewFiltersProps) {
@@ -36,9 +37,11 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
     onFiltersChange({ ...filters, sources: newSources })
   }
 
-  const handleRatingChange = (value: string) => {
-    const rating = value === 'all' ? null : parseInt(value)
-    onFiltersChange({ ...filters, minRating: rating })
+  const handleRatingToggle = (rating: number) => {
+    const newRatings = filters.ratings.includes(rating)
+      ? filters.ratings.filter(r => r !== rating)
+      : [...filters.ratings, rating]
+    onFiltersChange({ ...filters, ratings: newRatings })
   }
 
   const handleSentimentChange = (value: string) => {
@@ -57,7 +60,7 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
   const handleReset = () => {
     onFiltersChange({
       sources: [],
-      minRating: null,
+      ratings: [],
       sentiment: null,
       responseStatus: 'all',
       searchQuery: '',
@@ -65,7 +68,11 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
   }
 
   const hasActiveFilters =
-    filters.sources.length > 0 || filters.minRating !== null || filters.sentiment !== null || filters.responseStatus !== 'all' || filters.searchQuery !== ''
+    filters.sources.length > 0 ||
+    filters.ratings.length > 0 ||
+    filters.sentiment !== null ||
+    filters.responseStatus !== 'all' ||
+    filters.searchQuery !== ''
 
   return (
     <Card>
@@ -111,8 +118,8 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
 
           <Separator />
 
-          {/* Source Filters */}
-          <div className="space-y-2">
+          {/* Source Filters - TODO: Pending implementation of external sources */}
+          {/* <div className="space-y-2">
             <Label className="text-sm font-medium">{t('filters.sources.label')}</Label>
             <div className="space-y-2">
               {sources.map(source => (
@@ -126,27 +133,46 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
             </div>
           </div>
 
-          <Separator />
+          <Separator /> */}
 
-          {/* Rating Filter */}
-          <div className="space-y-2">
+          {/* Rating Filter (Multi-select) */}
+          <div className="space-y-3">
             <Label className="text-sm font-medium">{t('filters.rating.label')}</Label>
-            <RadioGroup value={filters.minRating === null ? 'all' : filters.minRating.toString()} onValueChange={handleRatingChange}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="rating-all" />
-                <Label htmlFor="rating-all" className="text-sm font-normal cursor-pointer">
-                  {t('filters.rating.all')}
-                </Label>
+            
+            <div className="flex flex-col gap-2">
+              <Button
+                variant={filters.ratings.length === 0 ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => onFiltersChange({ ...filters, ratings: [] })}
+                className="w-full justify-center"
+              >
+                {t('filters.rating.all')}
+              </Button>
+              
+              <div className="grid grid-cols-5 gap-2">
+                {[5, 4, 3, 2, 1].map((star) => (
+                  <Button
+                    key={star}
+                    variant={filters.ratings.includes(star) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleRatingToggle(star)}
+                    className="h-9 p-0 flex items-center justify-center gap-1"
+                    title={t('filters.rating.exact', { rating: star, defaultValue: `${star} estrellas` })}
+                  >
+                    <span className="font-medium">{star}</span>
+                    <Star 
+                      className={`h-3.5 w-3.5 ${filters.ratings.includes(star) ? 'fill-primary-foreground text-primary-foreground' : 'fill-yellow-400 text-yellow-400'}`} 
+                    />
+                  </Button>
+                ))}
               </div>
-              {[5, 4, 3, 2, 1].map(rating => (
-                <div key={rating} className="flex items-center space-x-2">
-                  <RadioGroupItem value={rating.toString()} id={`rating-${rating}`} />
-                  <Label htmlFor={`rating-${rating}`} className="text-sm font-normal cursor-pointer">
-                    {rating === 5 ? t('filters.rating.exactly', { rating }) : t('filters.rating.andUp', { rating })}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+            </div>
+            
+            {filters.ratings.length > 0 && (
+              <p className="text-xs text-muted-foreground text-center pt-1">
+                {t('filters.rating.multiSelectHint', { defaultValue: 'Filtrando por: ' }) + filters.ratings.sort((a, b) => b - a).join(', ') + ' ★'}
+              </p>
+            )}
           </div>
 
           <Separator />
@@ -174,8 +200,8 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
 
           <Separator />
 
-          {/* Response Status */}
-          <div className="space-y-2">
+          {/* Response Status - TODO: Pending Google Business verification and response feature */}
+          {/* <div className="space-y-2">
             <Label className="text-sm font-medium">{t('filters.responseStatus.label')}</Label>
             <RadioGroup value={filters.responseStatus} onValueChange={handleResponseStatusChange}>
               <div className="flex items-center space-x-2">
@@ -197,7 +223,7 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
                 </Label>
               </div>
             </RadioGroup>
-          </div>
+          </div> */}
         </CardContent>
       )}
     </Card>

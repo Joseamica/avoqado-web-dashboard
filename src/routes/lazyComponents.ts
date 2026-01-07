@@ -139,3 +139,4 @@ export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organiza
 
 // Reports
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))
+export const SalesSummary = lazyWithRetry(() => import('@/pages/Reports/SalesSummary'))

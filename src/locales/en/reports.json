@@ -1,0 +1,43 @@
+{
+  "salesSummary": {
+    "title": "Sales Summary",
+    "totalSales": "Total Sales",
+    "transactions": "transactions",
+    "actions": {
+      "exportPDF": "Export PDF",
+      "exportCSV": "Export CSV",
+      "print": "Print"
+    },
+    "filters": {
+      "metrics": "Metrics",
+      "reportType": "Report type",
+      "location": "Location",
+      "more": "More filters"
+    },
+    "sections": {
+      "summary": "Summary",
+      "summaryDesc": "Sales breakdown for the period",
+      "paymentMethods": "Payment Methods",
+      "paymentMethodsDesc": "Distribution by payment type"
+    },
+    "columns": {
+      "concept": "Concept",
+      "count": "Count",
+      "amount": "Amount"
+    },
+    "rows": {
+      "grossSales": "Gross sales",
+      "discounts": "Discounts",
+      "refunds": "Refunds",
+      "netSales": "Net sales",
+      "taxes": "Taxes",
+      "tips": "Tips",
+      "totalCollected": "Total collected"
+    },
+    "paymentTypes": {
+      "card": "Card",
+      "cash": "Cash",
+      "other": "Other"
+    }
+  }
+}

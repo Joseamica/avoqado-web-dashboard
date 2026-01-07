@@ -1,10 +1,33 @@
 # GEMINI.md
 
-This file provides guidance to Gemini Code (gemini.ai/code) when working with code in this repository.
+This file provides guidance to Gemini when working with code in this repository.
+
+---
+
+## 🔴 MANDATORY: Documentation Update Rule (READ FIRST)
+
+**When implementing or modifying ANY feature, you MUST:**
+
+1. **Check if documentation exists** for the feature/area you're modifying
+2. **Update the documentation** if your changes affect documented behavior
+3. **Create new documentation** if implementing a new significant feature
+4. **Update references in GEMINI.md** if you create new docs
+5. **Cross-repo features** → Update `avoqado-server/docs/` (central hub)
+
+**This is NOT optional.** Documentation debt causes confusion and bugs.
+
+```
+✅ DO: Implement feature → Update docs → Commit both together
+❌ DON'T: Implement feature → "I'll document it later" → Never document it
+```
+
+**Central hub:** `avoqado-server/docs/README.md` is the master index for ALL cross-repo documentation.
+
+---
 
 ## Quick Start
 
-**Essential reading:** [Quick Reference](.gemini/docs/quick-reference.md) - Dev commands, critical rules, common patterns
+**Essential reading:** [Quick Reference](docs/quick-reference.md) - Dev commands, critical rules, common patterns
 
 ## Development Commands
 
@@ -13,7 +36,8 @@ This file provides guidance to Gemini Code (gemini.ai/code) when working with co
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
 
-**⚠️ NEVER kill or restart dev servers manually.** Both frontend (Vite) and backend (nodemon) automatically detect file changes and hot-reload. Do NOT use `pkill`, `kill`, or restart commands - just save the file and the servers will reload automatically.
+**⚠️ NEVER kill or restart dev servers manually.** Both frontend (Vite) and backend (nodemon) automatically detect file changes and
+hot-reload. Do NOT use `pkill`, `kill`, or restart commands - just save the file and the servers will reload automatically.
 
 ### Database Access (Local Development)
 
@@ -24,6 +48,7 @@ PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT * FR
 ```
 
 **Database Connection:**
+
 - URL: `postgresql://postgres:exitosoy777@localhost:5432/av-db-25`
 - Host: `localhost:5432`
 - User: `postgres`
@@ -31,6 +56,7 @@ PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT * FR
 - Database: `av-db-25`
 
 **Common queries:**
+
 ```bash
 # Check venue data
 PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "SELECT id, name, slug, address, city, state, \"zipCode\", country, email, phone FROM \"Venue\" WHERE slug = 'venue-slug';"
@@ -51,7 +77,8 @@ PGPASSWORD=exitosoy777 psql -h localhost -U postgres -d av-db-25 -c "\d \"Venue\
 
 **⚠️ PENDING IMPLEMENTATION MARKER SYSTEM:**
 
-When you create components or files that are fully implemented but not yet integrated into the application, mark them with the `@pending-implementation` marker at the top:
+When you create components or files that are fully implemented but not yet integrated into the application, mark them with the
+`@pending-implementation` marker at the top:
 
 ```typescript
 /**
@@ -67,6 +94,7 @@ When you create components or files that are fully implemented but not yet integ
 ```
 
 **Example:**
+
 ```typescript
 /**
  * @pending-implementation
@@ -82,12 +110,14 @@ When you create components or files that are fully implemented but not yet integ
 ```
 
 **When to use this marker:**
+
 - ✅ Component/file is completely implemented and tested
 - ✅ Will be integrated soon but not immediately
 - ✅ Should be excluded from unused code detection
 - ✅ You want to document implementation status for future developers
 
 **How it works:**
+
 1. Add `@pending-implementation` marker in the first 500 characters of the file
 2. Run `npm run update:unused-ignore` to automatically add the file to `.unimportedrc.json`
 3. The file will be ignored by `npm run check:unused` until you remove the marker
@@ -95,36 +125,96 @@ When you create components or files that are fully implemented but not yet integ
 
 **Auto-update script:** `scripts/update-unused-ignore.js` scans for files with this marker and updates `.unimportedrc.json` automatically.
 
-**⚠️ Important:** This marker is for files that are **READY to use** but not yet integrated. Don't use it for incomplete implementations or work-in-progress files.
+**⚠️ Important:** This marker is for files that are **READY to use** but not yet integrated. Don't use it for incomplete implementations or
+work-in-progress files.
 
 ## 📚 Documentation Policy
 
-**Managing Documentation Files:**
+### Documentation Structure
 
-When creating new documentation:
+```
+avoqado-server/docs/           ← CENTRAL HUB (cross-repo)
+├── README.md                  ← Master index of ALL documentation
+├── architecture/              ← Cross-repo architecture
+├── features/                  ← Cross-repo features
+└── ...
 
-1. **Location**: ALWAYS place new .md files in the `.gemini/docs/` directory
-   - ✅ CORRECT: `.gemini/docs/features/NEW_FEATURE.md`
+avoqado-web-dashboard/docs/    ← Frontend-specific ONLY (this repo)
+├── README.md                  ← Frontend docs index
+├── architecture/              ← React routing, overview
+├── features/                  ← i18n, theme, inventory UI
+├── guides/                    ← UI patterns, performance
+└── troubleshooting/           ← React-specific issues
+
+avoqado-tpv/docs/              ← Android-specific ONLY
+├── android/                   ← Kotlin/Compose patterns
+└── devices/                   ← PAX hardware guides
+```
+
+### Where to Document
+
+| Type of Documentation                           | Location                        |
+| ----------------------------------------------- | ------------------------------- |
+| Cross-repo features (payments, inventory logic) | `avoqado-server/docs/features/` |
+| Architecture, DB schema, API                    | `avoqado-server/docs/`          |
+| React/UI patterns, components                   | `docs/` (this repo)             |
+| Android/Kotlin patterns                         | `avoqado-tpv/docs/`             |
+
+### When Creating New Documentation
+
+1. **Frontend-specific**: Place in `docs/` directory
+
+   - ✅ CORRECT: `docs/features/NEW_FEATURE.md`
    - ❌ WRONG: `NEW_FEATURE.md` (root level)
-   - Follow the existing structure: `architecture/`, `features/`, `guides/`, `troubleshooting/`
+   - Follow structure: `architecture/`, `features/`, `guides/`, `troubleshooting/`
 
-2. **Reference in GEMINI.md**: ALWAYS add a reference to the new file in the relevant section
-   - Architecture docs → Link in "Architecture Documentation" section
-   - Feature docs → Link in "Feature Documentation" section
-   - Guide docs → Link in "Development Guides" section
-   - Format: `- [Title](.gemini/docs/category/filename.md) - Brief description`
+2. **Cross-repo features**: Place in `avoqado-server/docs/`
 
-3. **Keep Documentation Updated**: When making changes to code covered by documentation:
-   - If the change affects architecture/design patterns → Update the relevant .md file
-   - If the change only modifies implementation details → Update code comments, no .md update needed
-   - Always check: Does this change invalidate any statements in the docs?
+   - Features affecting multiple repos → `avoqado-server/docs/features/`
+   - Architecture changes → `avoqado-server/docs/`
 
-**Examples of changes requiring doc updates:**
-- ✅ New permission system behavior → Update `.gemini/docs/architecture/permissions.md`
-- ✅ Changed theme color tokens → Update `.gemini/docs/features/theme.md`
-- ✅ New i18n namespace → Update `.gemini/docs/features/i18n.md`
-- ❌ Fixed typo in component → No doc update needed
-- ❌ Refactored function names → No doc update needed
+3. **Reference in GEMINI.md**: Add link in relevant section
+   - Format: `- [Title](docs/category/filename.md) - Brief description`
+
+### Cross-Repo Documentation (Central Hub)
+
+**Master index:** [`avoqado-server/docs/README.md`](../avoqado-server/docs/README.md)
+
+| Topic                                 | Location                                               |
+| ------------------------------------- | ------------------------------------------------------ |
+| Architecture, APIs, DB                | `avoqado-server/docs/`                                 |
+| Payment integrations (Blumon, Stripe) | `avoqado-server/docs/blumon-*/`                        |
+| Business Types & MCC                  | `avoqado-server/docs/BUSINESS_TYPES.md`                |
+| Database schema                       | `avoqado-server/docs/DATABASE_SCHEMA.md`               |
+| Inventory system (backend)            | `avoqado-server/docs/INVENTORY_REFERENCE.md`           |
+| Settlement incidents                  | `avoqado-server/docs/features/SETTLEMENT_INCIDENTS.md` |
+| Frontend components, routing          | `docs/` (this repo)                                    |
+
+### When to Update Docs
+
+| Change Type                | Action                                               |
+| -------------------------- | ---------------------------------------------------- |
+| New VenueType              | Update `avoqado-server/docs/BUSINESS_TYPES.md`       |
+| Payment flow changes       | Update `avoqado-server/docs/PAYMENT_ARCHITECTURE.md` |
+| API/DB changes             | Update `avoqado-server/docs/DATABASE_SCHEMA.md`      |
+| UI pattern changes         | Update `docs/` (this repo)                           |
+| React performance patterns | Update `docs/guides/performance.md`                  |
+
+### Documentation Update Checklist
+
+> **See "🔴 MANDATORY: Documentation Update Rule" at the top of this file.**
+
+**Checklist before committing:**
+
+- [ ] Does this change affect any existing documentation?
+- [ ] Did I update line number references if file structure changed?
+- [ ] Did I update progress percentages if completing phases?
+- [ ] Did I add new documentation if this is a new feature?
+
+**Avoid fragile line number references.** Instead of `"See file.ts lines 100-200"`, use:
+
+- Function/class names: `"See createOrder() in order.service.ts"`
+- Section headers: `"See ## Authentication section in AUTH.md"`
 
 ## 🚨 Critical Rules (NO EXCEPTIONS)
 
@@ -142,11 +232,12 @@ const { t } = useTranslation()
 ```
 
 **Requirements:**
+
 - Add translations for BOTH `en` and `es` (and `fr` if applicable)
 - Use interpolation: `t('greeting', { name })`
 - No hardcoded strings in JSX
 
-**See:** [Complete i18n guide](.gemini/docs/features/i18n.md)
+**See:** [Complete i18n guide](docs/features/i18n.md)
 
 ### 2. Performance & Memoization
 
@@ -166,11 +257,12 @@ const filteredData = useMemo(
 ```
 
 **When to memoize:**
+
 - ✅ Filtered/mapped/sorted arrays → `useMemo`
 - ✅ Search handlers → `useCallback`
 - ✅ Column definitions → `useMemo`
 
-**See:** [Performance guide](.gemini/docs/guides/performance.md) | [Render loops troubleshooting](.gemini/docs/troubleshooting/render-loops.md)
+**See:** [Performance guide](docs/guides/performance.md) | [Render loops troubleshooting](docs/troubleshooting/render-loops.md)
 
 ### 3. Permissions
 
@@ -178,7 +270,7 @@ const filteredData = useMemo(
 
 ```typescript
 // UI control (hide/show)
-<PermissionGate permission="tpv:create">
+;<PermissionGate permission="tpv:create">
   <Button>Create</Button>
 </PermissionGate>
 
@@ -186,7 +278,7 @@ const filteredData = useMemo(
 router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 ```
 
-**See:** [Permission system guide](.gemini/docs/architecture/permissions.md)
+**See:** [Permission system guide](docs/architecture/permissions.md)
 
 ### 4. Theme System
 
@@ -200,7 +292,7 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 <div className="bg-muted text-foreground">
 ```
 
-**See:** [Theme guide](.gemini/docs/features/theme.md)
+**See:** [Theme guide](docs/features/theme.md)
 
 ### 5. Pill-Style Tabs (MANDATORY)
 
@@ -228,7 +320,7 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 
 **Reference:** `/src/pages/Team/Teams.tsx` (lines 372-392)
 
-**See:** [Complete UI Patterns guide](.gemini/docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
+**See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
 
 ### 6. SUPERADMIN Gradient (MANDATORY)
 
@@ -255,11 +347,13 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 ```
 
 **When to use:**
+
 - ✅ SUPERADMIN-only buttons in `/venues/:slug/*` pages (e.g., quick terminal creation)
 - ✅ SUPERADMIN-only action elements visible to superadmins in normal dashboard
 - ❌ NOT in `/superadmin/*` routes (those have their own styling)
 
 **Reference:**
+
 - Example usage: `src/pages/Tpv/Tpvs.tsx` (quick create button)
 - Dialog example: `src/pages/Tpv/components/SuperadminTerminalDialog.tsx`
 
@@ -294,10 +388,10 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 
 **Decision Rule:**
 
-| Question | Answer | Where |
-|----------|--------|-------|
-| Does this affect ALL venues/platform? | Yes | `/superadmin/` |
-| Does this affect ONE specific venue? | Yes | Inline in `/venues/:slug/` with amber-pink gradient |
+| Question                              | Answer | Where                                               |
+| ------------------------------------- | ------ | --------------------------------------------------- |
+| Does this affect ALL venues/platform? | Yes    | `/superadmin/`                                      |
+| Does this affect ONE specific venue?  | Yes    | Inline in `/venues/:slug/` with amber-pink gradient |
 
 **Examples:**
 
@@ -307,18 +401,23 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 // This defines the feature for ALL venues
 
 // ✅ VENUE-SPECIFIC → Inline in /venues/:slug/settings/billing
-{isSuperadmin && (
-  <Card className="gradient-superadmin">
-    <Button>Activar Chatbot para ESTE venue</Button>
-    <Button>Extender trial para ESTE venue</Button>
-    <p className="text-xs">⚠️ Solo afecta a {venue.name}</p>
-  </Card>
-)}
+{
+  isSuperadmin && (
+    <Card className="gradient-superadmin">
+      <Button>Activar Chatbot para ESTE venue</Button>
+      <Button>Extender trial para ESTE venue</Button>
+      <p className="text-xs">⚠️ Solo afecta a {venue.name}</p>
+    </Card>
+  )
+}
 ```
 
 **Why this pattern?**
-- [AWS SaaS Architecture](https://docs.aws.amazon.com/whitepapers/latest/saas-architecture-fundamentals/control-plane-vs.-application-plane.html): "The control plane is not multi-tenant. It manages the environment."
-- [Microsoft Azure](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes): "Control plane isolation reduces security vulnerabilities."
+
+- [AWS SaaS Architecture](https://docs.aws.amazon.com/whitepapers/latest/saas-architecture-fundamentals/control-plane-vs.-application-plane.html):
+  "The control plane is not multi-tenant. It manages the environment."
+- [Microsoft Azure](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes): "Control plane
+  isolation reduces security vulnerabilities."
 - Reduces context switching for superadmins working on a specific venue
 
 ### 8. Superadmin Lazy Loading (Performance)
@@ -326,6 +425,7 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 **NEVER load superadmin modules, services, or make API calls for non-superadmin users.**
 
 When adding superadmin functionality to shared components (Application Plane), use lazy loading to ensure:
+
 - Non-superadmin users don't download superadmin code
 - No superadmin API calls are made for regular users
 - Components remain lightweight for the majority of users
@@ -345,9 +445,9 @@ const { data: platformFeatures } = useQuery({
 })
 
 // ✅ CORRECT - Only render UI for superadmin
-{isSuperadmin && (
-  <SuperadminPanel features={platformFeatures} />
-)}
+{
+  isSuperadmin && <SuperadminPanel features={platformFeatures} />
+}
 
 // ❌ WRONG - Static import loads for ALL users
 import { getAllFeatures } from '@/services/superadmin.service'
@@ -361,6 +461,7 @@ const { data } = useQuery({
 ```
 
 **Checklist for superadmin features in shared components:**
+
 - [ ] Use dynamic `import()` for superadmin services
 - [ ] Add `enabled: isSuperadmin` to all superadmin queries
 - [ ] Wrap superadmin UI with `{isSuperadmin && ...}`
@@ -379,7 +480,7 @@ This prevents making a backend request on every keystroke, which would cause per
 const [searchTerm, setSearchTerm] = useState('')
 
 const { data } = useQuery({
-  queryKey: ['items', searchTerm],  // Triggers on every keystroke!
+  queryKey: ['items', searchTerm], // Triggers on every keystroke!
   queryFn: () => fetchItems(searchTerm),
 })
 
@@ -390,12 +491,13 @@ const [searchTerm, setSearchTerm] = useState('')
 const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
 const { data } = useQuery({
-  queryKey: ['items', debouncedSearchTerm],  // Only triggers after 300ms of inactivity
+  queryKey: ['items', debouncedSearchTerm], // Only triggers after 300ms of inactivity
   queryFn: () => fetchItems(debouncedSearchTerm),
 })
 ```
 
 **Requirements:**
+
 - Use `useDebounce` hook from `@/hooks/useDebounce`
 - Default delay: 300ms (industry standard used by Stripe, Google, etc.)
 - Keep `searchTerm` for the input value (instant UI feedback)
@@ -412,6 +514,7 @@ Inspired by: Stripe Dashboard, Linear, Vercel. Reference implementation: `src/pa
 #### Components:
 
 **1. GlassCard - Glassmorphism wrapper**
+
 ```typescript
 const GlassCard: React.FC<{
   children: React.ReactNode
@@ -426,7 +529,7 @@ const GlassCard: React.FC<{
       'shadow-sm transition-all duration-300',
       hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
       onClick && 'cursor-pointer',
-      className
+      className,
     )}
   >
     {children}
@@ -435,6 +538,7 @@ const GlassCard: React.FC<{
 ```
 
 **2. StatusPulse - Animated status indicator**
+
 ```typescript
 const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral' }> = ({ status }) => {
   const colors = {
@@ -453,6 +557,7 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 ```
 
 **3. MetricCard - Bento grid metric display**
+
 ```typescript
 // Icon with gradient background + large value + label
 <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
@@ -463,6 +568,7 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 ```
 
 **4. Collapsible sections for progressive disclosure**
+
 ```typescript
 <Collapsible open={isOpen} onOpenChange={setIsOpen}>
   <GlassCard>
@@ -491,6 +597,7 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 ```
 
 **5. Aligned grid rows (for tables/comparisons)**
+
 ```typescript
 // Header and rows MUST use same grid template
 <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-2">
@@ -501,17 +608,20 @@ const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral
 ```
 
 #### Color Accents:
+
 - **Green**: Success, positive margins, profit → `from-green-500/20 to-green-500/5 text-green-600`
 - **Blue**: Info, primary data → `from-blue-500/20 to-blue-500/5 text-blue-600`
 - **Purple**: Features, tools → `from-purple-500/20 to-purple-500/5 text-purple-600`
 - **Orange**: Warnings, international → `from-orange-500/20 to-orange-500/5 text-orange-600`
 
 #### Layout:
+
 - Use **12-column Bento Grid**: `grid grid-cols-12 gap-4`
 - Main content: `col-span-12 lg:col-span-8`
 - Side metrics: `col-span-12 lg:col-span-4`
 
 #### Icon Buttons & Cursor:
+
 **ALWAYS add `cursor-pointer` to icon buttons**, especially when wrapped in Tooltip components.
 
 Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cursor. Explicit `cursor-pointer` ensures consistent UX.
@@ -557,6 +667,7 @@ const { formatDate, formatTime, formatDateTime, venueTimezone } = useVenueDateTi
 ```
 
 **For services/utilities (non-React):**
+
 ```typescript
 // ❌ WRONG - No timezone parameter
 export function formatNotificationTime(dateString: string) {
@@ -567,11 +678,7 @@ export function formatNotificationTime(dateString: string) {
 import { DateTime } from 'luxon'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
-export function formatNotificationTime(
-  dateString: string,
-  locale: string = 'es',
-  timezone: string = 'America/Mexico_City'
-): string {
+export function formatNotificationTime(dateString: string, locale: string = 'es', timezone: string = 'America/Mexico_City'): string {
   return DateTime.fromISO(dateString, { zone: 'utc' })
     .setZone(timezone)
     .setLocale(getIntlLocale(locale))
@@ -580,19 +687,20 @@ export function formatNotificationTime(
 ```
 
 **For relative times:**
+
 ```typescript
 // ❌ WRONG - date-fns formatDistanceToNow (no timezone)
 import { formatDistanceToNow } from 'date-fns'
-{formatDistanceToNow(new Date(date))}
+{
+  formatDistanceToNow(new Date(date))
+}
 
 // ✅ CORRECT - Luxon toRelative with venue timezone
-DateTime.fromISO(date, { zone: 'utc' })
-  .setZone(venueTimezone)
-  .setLocale(localeCode)
-  .toRelative()
+DateTime.fromISO(date, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toRelative()
 ```
 
 **For currency formatting:**
+
 ```typescript
 // ❌ WRONG - Hardcoded locale
 new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
@@ -604,6 +712,7 @@ new Intl.NumberFormat(localeCode, { style: 'currency', currency: 'MXN' })
 ```
 
 **Architecture:**
+
 ```
 BACKEND → UTC (ISO 8601 with Z suffix) → API Response
                     ↓
@@ -617,6 +726,7 @@ FRONTEND → useVenueDateTime() hook
 ```
 
 **Why venue timezone (not browser)?**
+
 - All team members see consistent times regardless of physical location
 - Financial reports match the business's operating timezone
 - Compliance: Transactions must reflect where the business operates
@@ -682,24 +792,28 @@ const { staffInfo } = useAuth()
 ## Architecture Documentation
 
 **Core concepts:**
-- [Architecture Overview](.gemini/docs/architecture/overview.md) - Tech stack, data models, component guidelines
-- [Routing System](.gemini/docs/architecture/routing.md) - Route protection layers, navigation patterns
-- [Permission System](.gemini/docs/architecture/permissions.md) - Granular access control (UI controls)
+
+- [Architecture Overview](docs/architecture/overview.md) - Tech stack, data models, component guidelines
+- [Routing System](docs/architecture/routing.md) - Route protection layers, navigation patterns
+- [Permission System](docs/architecture/permissions.md) - Granular access control (UI controls)
+- [Business Types & Categories](../avoqado-server/docs/BUSINESS_TYPES.md) - VenueType enum, MCC mapping (cross-repo)
 
 ## Feature Documentation
 
 **Major features:**
-- [Inventory Management](.gemini/docs/features/inventory.md) - FIFO stock tracking, recipes, pricing
-- [Internationalization (i18n)](.gemini/docs/features/i18n.md) - Translation system with JSON namespaces
-- [Theme System](.gemini/docs/features/theme.md) - Light/dark mode with semantic colors
-- [Settlement Incident Tracking](.gemini/docs/features/settlement-incidents.md) - Automated settlement monitoring and risk management for SOFOM partnership
+
+- [Inventory Management](docs/features/inventory.md) - FIFO stock tracking UI, recipes, pricing
+- [Internationalization (i18n)](docs/features/i18n.md) - Translation system with JSON namespaces
+- [Theme System](docs/features/theme.md) - Light/dark mode with semantic colors
+- [Settlement Incidents](../avoqado-server/docs/features/SETTLEMENT_INCIDENTS.md) - Settlement monitoring (cross-repo)
 
 ## Development Guides
 
 **Best practices:**
-- [UI Patterns](.gemini/docs/guides/ui-patterns.md) - Icon-based selections, horizontal navigation, common UI patterns
-- [Performance Optimization](.gemini/docs/guides/performance.md) - React performance patterns, memoization
-- [Troubleshooting Render Loops](.gemini/docs/troubleshooting/render-loops.md) - Debug infinite re-renders
+
+- [UI Patterns](docs/guides/ui-patterns.md) - Icon-based selections, horizontal navigation, common UI patterns
+- [Performance Optimization](docs/guides/performance.md) - React performance patterns, memoization
+- [Troubleshooting Render Loops](docs/troubleshooting/render-loops.md) - Debug infinite re-renders
 
 ## Key Patterns
 
@@ -724,13 +838,13 @@ const { staffInfo } = useAuth()
 ### Permission Format
 
 ```typescript
-"resource:action"
+'resource:action'
 
 // Examples:
-"tpv:create"          // Create TPV terminals
-"menu:update"         // Update menu items
-"analytics:export"    // Export analytics data
-"*:*"                 // All permissions (ADMIN, OWNER, SUPERADMIN)
+'tpv:create' // Create TPV terminals
+'menu:update' // Update menu items
+'analytics:export' // Export analytics data
+'*:*' // All permissions (ADMIN, OWNER, SUPERADMIN)
 ```
 
 ## Common Workflows
@@ -738,6 +852,7 @@ const { staffInfo } = useAuth()
 ### Creating a New Feature with Permissions
 
 1. **Add permission to defaults** (`src/lib/permissions/defaultPermissions.ts`):
+
    ```typescript
    [StaffRole.MANAGER]: [
      // ... existing
@@ -747,6 +862,7 @@ const { staffInfo } = useAuth()
    ```
 
 2. **Protect route** (`src/routes/router.tsx`):
+
    ```typescript
    <Route element={<PermissionProtectedRoute permission="reports:read" />}>
      <Route path="reports" element={<ReportsPage />} />
@@ -754,6 +870,7 @@ const { staffInfo } = useAuth()
    ```
 
 3. **Use PermissionGate in component**:
+
    ```typescript
    <PermissionGate permission="reports:create">
      <Button onClick={createReport}>Create Report</Button>
@@ -761,6 +878,7 @@ const { staffInfo } = useAuth()
    ```
 
 4. **Add backend protection** (see backend GEMINI.md):
+
    ```typescript
    router.post('/reports', checkPermission('reports:create'), controller.create)
    ```
@@ -770,6 +888,7 @@ const { staffInfo } = useAuth()
 ### Adding Translations
 
 1. **Create JSON structure** (`src/locales/[en|es|fr]/feature.json`):
+
    ```json
    {
      "feature": {
@@ -784,6 +903,7 @@ const { staffInfo } = useAuth()
    ```
 
 2. **Register namespace** (`src/i18n.ts`):
+
    ```typescript
    i18n.addResourceBundle('en', 'feature', featureEn, true, true)
    ```
@@ -797,6 +917,7 @@ const { staffInfo } = useAuth()
 ## Testing
 
 Currently no automated tests. Quality maintained through:
+
 - TypeScript strict mode
 - ESLint static analysis
 - Manual testing with dev server
@@ -805,31 +926,37 @@ Currently no automated tests. Quality maintained through:
 ## Environment & Deployment
 
 **Three environments:**
+
 - **Demo** (`demo.dashboard.avoqado.io`) → `demo.api.avoqado.io`
 - **Staging** (`staging.dashboard.avoqado.io`) → Render staging API
 - **Production** (`dashboardv2.avoqado.io`) → `api.avoqado.io`
 
 **Deployment:**
+
 - GitHub Actions + Cloudflare Pages
 - Auto-deploy on push to `develop` (demo + staging) or `main` (production)
 - Environment variables stored in **GitHub Environments** (NOT Cloudflare Pages UI)
 
 **Manual deploy:**
+
 ```bash
 gh workflow run ci-cd.yml --field environment=demo
 ```
 
 ## Need Help?
 
-- **Quick reference**: [Quick Reference](.gemini/docs/quick-reference.md)
-- **Architecture**: [Overview](.gemini/docs/architecture/overview.md) | [Routing](.gemini/docs/architecture/routing.md) | [Permissions](.gemini/docs/architecture/permissions.md)
-- **Features**: [Inventory](.gemini/docs/features/inventory.md) | [i18n](.gemini/docs/features/i18n.md) | [Theme](.gemini/docs/features/theme.md)
-- **Guides**: [UI Patterns](.gemini/docs/guides/ui-patterns.md) | [Performance](.gemini/docs/guides/performance.md)
-- **Troubleshooting**: [Render Loops](.gemini/docs/troubleshooting/render-loops.md)
+- **Quick reference**: [Quick Reference](docs/quick-reference.md)
+- **Architecture**: [Overview](docs/architecture/overview.md) | [Routing](docs/architecture/routing.md) |
+  [Permissions](docs/architecture/permissions.md)
+- **Features**: [Inventory](docs/features/inventory.md) | [i18n](docs/features/i18n.md) | [Theme](docs/features/theme.md)
+- **Guides**: [UI Patterns](docs/guides/ui-patterns.md) | [Performance](docs/guides/performance.md)
+- **Troubleshooting**: [Render Loops](docs/troubleshooting/render-loops.md)
+- **Cross-repo docs**: [avoqado-server/docs/README.md](../avoqado-server/docs/README.md)
 
 ## Contributing
 
 **Before deploying:**
+
 - [ ] All user-facing text uses `t('...')`
 - [ ] Translations added for en, es, fr
 - [ ] Arrays/objects memoized with `useMemo`/`useCallback`

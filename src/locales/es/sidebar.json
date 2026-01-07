@@ -41,7 +41,17 @@
   "features": "Funciones",
   "system": "Estado del sistema",
   "webhooks": "Webhooks",
-  "reports": "Reportes",
+  "reportsMenu": {
+    "title": "Reportes",
+    "payLaterAging": "Cuentas por Cobrar",
+    "salesSummary": "Resumen de Ventas",
+    "salesByItem": "Ventas por Artículo",
+    "salesByCategory": "Ventas por Categoría",
+    "paymentMethods": "Métodos de Pago",
+    "taxes": "Impuestos",
+    "voids": "Anulaciones",
+    "modifiers": "Modificadores"
+  },
   "support": "Soporte",
   "admin": "Administración",
   "config": "Configuración",

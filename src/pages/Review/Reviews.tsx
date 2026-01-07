@@ -57,7 +57,7 @@ export default function ReviewSummary() {
 
   const [filters, setFilters] = useState<ReviewFiltersState>({
     sources: [],
-    minRating: null,
+    ratings: [],
     sentiment: null,
     responseStatus: 'all',
     searchQuery: '',
@@ -129,9 +129,9 @@ export default function ReviewSummary() {
       result = result.filter(review => filters.sources.includes(review.source))
     }
 
-    // Rating filter
-    if (filters.minRating !== null) {
-      result = result.filter(review => review.overallRating >= filters.minRating!)
+    // Rating filter (Multi-select)
+    if (filters.ratings.length > 0) {
+      result = result.filter(review => filters.ratings.includes(Math.floor(review.overallRating)))
     }
 
     // Sentiment filter
@@ -203,6 +203,8 @@ export default function ReviewSummary() {
   }
 
   const handleRespond = (review: Review) => {
+    // TODO: Habilitar cuando tengamos verificado el negocio de Google Business.
+    // Por ahora el botón en ReviewCard está deshabilitado.
     setSelectedReview(review)
     setResponseDialogOpen(true)
   }

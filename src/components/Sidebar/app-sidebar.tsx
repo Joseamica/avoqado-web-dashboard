@@ -100,6 +100,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         permission: 'tpv:read',
         locked: !hasKYCAccess,
       },
+      {
+        title: t('sidebar:routes.teams'),
+        isActive: true,
+        url: 'teams',
+        icon: Users,
+        permission: 'teams:read',
+        locked: false,
+      },
       { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 
@@ -200,6 +208,13 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         url: 'reports/pay-later-aging',
         permission: 'tpv-reports:pay-later-aging',
       },
+      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary' },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item' },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category' },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods' },
+      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes' },
+      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids' },
+      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers' },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Reports menu if user has at least one subitem
@@ -221,7 +236,6 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // NOTE: Superadmin-specific items (payment-config, ecommerce-merchants) moved to separate Superadmin dropdown
     const settingsSubItems = [
       { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
-      { title: t('sidebar:routes.teams'), url: 'teams', permission: 'teams:read' },
       // Role permissions only for ADMIN+
       ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
         ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]

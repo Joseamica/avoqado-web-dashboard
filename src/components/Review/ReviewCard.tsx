@@ -97,6 +97,10 @@ export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: Review
       </CardHeader>
 
       <CardContent className="pb-3 space-y-3">
+        {/* 
+          TODO: Fuentes de reseña (Google, TripAdvisor, Facebook, Yelp) 
+          Pendiente de implementar cuando las integraciones estén listas.
+        */}
         {/* Detailed Ratings */}
         {(review.foodRating || review.serviceRating || review.ambienceRating) && (
           <div className="grid grid-cols-3 gap-3 p-3 bg-muted/50 rounded-lg">
@@ -152,16 +156,19 @@ export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: Review
         )}
       </CardContent>
 
-      {!review.responseText && (
-        <CardFooter className="pt-0">
-          <PermissionGate permission="reviews:respond">
-            <Button variant="outline" size="sm" className="w-full" onClick={() => onRespond?.(review)}>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {t('card.actions.respond')}
-            </Button>
-          </PermissionGate>
-        </CardFooter>
-      )}
+      {/* 
+        TODO: Habilitar CardFooter con botón de respuesta cuando tengamos verificado el negocio de Google Business.
+        {!review.responseText && (
+          <CardFooter className="pt-0">
+            <PermissionGate permission="reviews:respond">
+              <Button variant="outline" size="sm" className="w-full" onClick={() => onRespond?.(review)}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {t('card.actions.respond')}
+              </Button>
+            </PermissionGate>
+          </CardFooter>
+        )}
+      */}
     </Card>
   )
 }

@@ -113,6 +113,7 @@ import {
   Terminals,
   CreditAssessment,
   PayLaterAging,
+  SalesSummary,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -562,6 +563,12 @@ const router = createBrowserRouter(
                       children: [{ index: true, element: <PayLaterAging /> }],
                     },
                   ],
+                },
+                // Sales Summary Report (requires KYC verification)
+                {
+                  path: 'reports/sales-summary',
+                  element: <KYCProtectedRoute />,
+                  children: [{ index: true, element: <SalesSummary /> }],
                 },
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {

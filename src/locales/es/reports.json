@@ -1,0 +1,43 @@
+{
+  "salesSummary": {
+    "title": "Resumen de Ventas",
+    "totalSales": "Total de Ventas",
+    "transactions": "transacciones",
+    "actions": {
+      "exportPDF": "Exportar PDF",
+      "exportCSV": "Exportar CSV",
+      "print": "Imprimir"
+    },
+    "filters": {
+      "metrics": "Métricas",
+      "reportType": "Tipo informe",
+      "location": "Ubicación",
+      "more": "Más filtros"
+    },
+    "sections": {
+      "summary": "Resumen",
+      "summaryDesc": "Desglose de ventas del período",
+      "paymentMethods": "Métodos de Pago",
+      "paymentMethodsDesc": "Distribución por forma de pago"
+    },
+    "columns": {
+      "concept": "Concepto",
+      "count": "Cantidad",
+      "amount": "Monto"
+    },
+    "rows": {
+      "grossSales": "Ventas brutas",
+      "discounts": "Descuentos",
+      "refunds": "Reembolsos",
+      "netSales": "Ventas netas",
+      "taxes": "Impuestos",
+      "tips": "Propinas",
+      "totalCollected": "Total cobrado"
+    },
+    "paymentTypes": {
+      "card": "Tarjeta",
+      "cash": "Efectivo",
+      "other": "Otros"
+    }
+  }
+}
