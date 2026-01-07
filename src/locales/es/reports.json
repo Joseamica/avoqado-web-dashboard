@@ -3,15 +3,24 @@
     "title": "Resumen de Ventas",
     "totalSales": "Total de Ventas",
     "transactions": "transacciones",
+    "transactionsLabel": "transacciones",
     "actions": {
       "exportPDF": "Exportar PDF",
       "exportCSV": "Exportar CSV",
       "print": "Imprimir"
     },
+    "export": {
+      "title": "Exportar",
+      "subtitle": "Ajustes",
+      "exportAll": "Exportar todos los datos",
+      "exportAllDesc": "Incluye resumen y métodos de pago",
+      "exportView": "Exportar vista",
+      "exportViewDesc": "Solo incluye la vista actual",
+      "button": "Exportar"
+    },
     "filters": {
       "metrics": "Métricas",
       "reportType": "Tipo informe",
-      "location": "Ubicación",
       "more": "Más filtros"
     },
     "sections": {
@@ -25,19 +34,159 @@
       "count": "Cantidad",
       "amount": "Monto"
     },
+    "tableColumns": {
+      "method": "Método de pago",
+      "percentage": "Porcentaje"
+    },
     "rows": {
       "grossSales": "Ventas brutas",
+      "items": "Artículos",
+      "serviceCosts": "Costes del servicio",
       "discounts": "Descuentos",
-      "refunds": "Reembolsos",
+      "refunds": "Devoluciones",
       "netSales": "Ventas netas",
+      "deferredSales": "Ventas diferidas",
       "taxes": "Impuestos",
       "tips": "Propinas",
-      "totalCollected": "Total cobrado"
+      "commissions": "Comisiones",
+      "totalSales": "Total de las ventas",
+      "totalCollected": "Total neto"
+    },
+    "tooltips": {
+      "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
+      "items": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
+      "serviceCosts": "Costes del servicio, incluidas las propinas integradas en la cuenta, los recargos y otras comisiones",
+      "discounts": "Descuentos aplicados a los pedidos, incluyendo promociones y cupones",
+      "refunds": "Devoluciones procesadas durante el período seleccionado",
+      "netSales": "Ventas brutas menos descuentos y reembolsos (Ventas brutas - Descuentos - Reembolsos)",
+      "deferredSales": "Suma total cobrada a los clientes por pedidos que siguen abiertos o pendientes de pago",
+      "taxes": "Impuestos recaudados en las ventas del período",
+      "tips": "Propinas recibidas por el personal durante el período",
+      "commissions": "Comisiones de plataforma, delivery y otros servicios externos",
+      "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
+      "totalCollected": "Ventas netas + propinas - comisiones (flujo de caja real)"
     },
     "paymentTypes": {
       "card": "Tarjeta",
       "cash": "Efectivo",
       "other": "Otros"
+    },
+    "controls": {
+      "title": "Controles",
+      "apply": "Aplicar",
+      "reportType": {
+        "label": "Tipo de informe",
+        "description": "Consulta el informe en intervalos horarios, diarios, semanales o mensuales.",
+        "longDescription": "Si cambias el tipo de informe, cambiará la visualización de tus datos. Los informes resumidos mostrarán cifras totales únicas, mientras que en otros puede haber cambios por días, por ejemplo.",
+        "summariesSection": "Resúmenes",
+        "incrementsSection": "Incrementos individuales",
+        "options": {
+          "summary": "Resumen",
+          "summaryDesc": "Agrupa las mismas métricas de días distintos como valores totales, sin segmentarlas cronológicamente",
+          "hourlySum": "Resumen por horas",
+          "hourlySumDesc": "Agrupa las métricas de días distintos por horas (p. ej., todas las ventas registradas entre las 9:00 y las 9:59, entre las 10:00 y las 10:59, etc.)",
+          "dailySum": "Resumen por días",
+          "dailySumDesc": "Agrupa las métricas de días distintos por día de la semana (p. ej., todas las ventas registradas los martes)",
+          "hours": "Horas",
+          "hoursDesc": "Muestra los datos de cada hora del período seleccionado",
+          "days": "Días",
+          "daysDesc": "Muestra los datos de cada día del período seleccionado",
+          "weeks": "Semanas",
+          "weeksDesc": "Muestra los datos de cada semana del período seleccionado",
+          "months": "Meses",
+          "monthsDesc": "Muestra los datos de cada mes del período seleccionado"
+        }
+      },
+      "viewType": {
+        "label": "Ver",
+        "description": "Cambia la forma en que se muestra tu información",
+        "longDescription": "Selecciona cómo quieres visualizar los datos de tu informe.",
+        "options": {
+          "gauge": "Gráfico de calibre",
+          "gaugeDesc": "Barra horizontal con desglose de porcentajes",
+          "pie": "Gráfico circular",
+          "pieDesc": "Gráfico de dona con distribución de valores",
+          "table": "Tabla",
+          "tableDesc": "Vista detallada en formato tabla"
+        }
+      },
+      "terminal": {
+        "label": "Terminales",
+        "description": "Filtra los datos por terminal",
+        "longDescription": "Selecciona qué terminales incluir en el informe.",
+        "options": {
+          "all": "Todas",
+          "allDesc": "Incluir todas las terminales"
+        }
+      },
+      "groupBy": {
+        "label": "Agrupar las métricas por",
+        "description": "Agrupar las métricas en la tabla de datos",
+        "longDescription": "Segmenta los datos del informe según diferentes criterios.",
+        "options": {
+          "none": "Ninguna",
+          "noneDesc": "Sin agrupar (opción predeterminada)",
+          "origin": "Origen",
+          "originDesc": "Agrupa por tipo de pedido (para comer aquí, para llevar, delivery)",
+          "channel": "Canal",
+          "channelDesc": "Agrupa por canal de venta (TPV, QR, Web, App)",
+          "paymentMethod": "Método de pago",
+          "paymentMethodDesc": "Agrupa por forma de pago (efectivo, tarjeta, digital)",
+          "shift": "Turno",
+          "shiftDesc": "Agrupa por turno de caja",
+          "staff": "Empleado",
+          "staffDesc": "Agrupa por cajero o mesero que procesó la venta"
+        }
+      },
+      "filterBy": {
+        "label": "Filtrar por",
+        "description": "Muestra u oculta los datos asociados a varias dimensiones diferentes",
+        "none": "Período"
+      },
+      "metrics": {
+        "label": "Métricas",
+        "description": "Elige qué métricas mostrar en el informe",
+        "longDescription": "Las métricas seleccionadas se mostrarán en el informe y en las exportaciones.",
+        "chartHint": "La métrica seleccionada se mostrará en el informe. Si seleccionas el icono del gráfico, se modificará la visualización del informe.",
+        "allMetrics": "Todas las métricas",
+        "options": {
+          "grossSales": "Ventas brutas",
+          "grossSalesDesc": "Ventas de artículos, incluidos los modificadores y costes del servicio",
+          "items": "Artículos",
+          "itemsDesc": "Todas las ventas de artículos, sin incluir impuestos, descuentos, cortesías ni reembolsos",
+          "serviceCosts": "Costes del servicio",
+          "serviceCostsDesc": "Costes del servicio, incluidas las propinas integradas, recargos y otras comisiones",
+          "discounts": "Descuentos",
+          "discountsDesc": "Deducciones aplicadas a tus ventas por promociones, cupones o cortesías",
+          "refunds": "Devoluciones",
+          "refundsDesc": "Todos los reembolsos desglosados, excluidos los parciales",
+          "netSales": "Ventas netas",
+          "netSalesDesc": "Ventas brutas menos devoluciones, descuentos y cortesías",
+          "deferredSales": "Ventas diferidas",
+          "deferredSalesDesc": "Suma total cobrada por pedidos que siguen abiertos o pendientes de pago",
+          "taxes": "Impuestos",
+          "taxesDesc": "El importe de los impuestos se aplica en el momento de la venta",
+          "tips": "Propinas",
+          "tipsDesc": "Propinas recibidas por el personal durante el período",
+          "commissions": "Comisiones",
+          "commissionsDesc": "Comisiones de plataforma, delivery y otros servicios externos",
+          "totalCollected": "Total cobrado",
+          "totalCollectedDesc": "Ventas netas más impuestos, propinas y otros cargos"
+        },
+        "selected": "seleccionadas"
+      }
+    },
+    "periodTable": {
+      "hourly": "Resumen por horas",
+      "daily": "Resumen por días",
+      "weekly": "Resumen por semanas",
+      "monthly": "Resumen por meses",
+      "hourlySum": "Resumen por horas",
+      "dailySum": "Resumen por días de la semana",
+      "allDaySubtitle": "Todo el día (0:00-23:59 hora de {{timezone}})",
+      "allWeekSubtitle": "Todos los días del período",
+      "allWeeksSubtitle": "Todas las semanas del período",
+      "allMonthsSubtitle": "Todos los meses del período"
     }
   }
 }

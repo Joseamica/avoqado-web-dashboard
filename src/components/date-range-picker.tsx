@@ -36,9 +36,7 @@ export interface DateRangePickerProps {
 }
 
 const formatDate = (date: Date, locale: string = 'en-US'): string => {
-  return DateTime.fromJSDate(date)
-    .setLocale(getIntlLocale(locale))
-    .toLocaleString(DateTime.DATE_MED)
+  return DateTime.fromJSDate(date).setLocale(getIntlLocale(locale)).toLocaleString(DateTime.DATE_MED)
 }
 
 const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
@@ -390,7 +388,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
 
   return (
     <Popover
-      modal={true}
+      modal={false}
       open={isOpen}
       onOpenChange={(open: boolean) => {
         if (!open) {
@@ -421,6 +419,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
         ref={contentRef}
         align={align}
         className="w-auto"
+        // Prevent focus from escaping to the trigger prematurely
+        onFocusCapture={e => e.stopPropagation()}
         onOpenAutoFocus={e => {
           // Prevent Radix default focusing to avoid retaining focus on trigger during aria-hidden application
           e.preventDefault()

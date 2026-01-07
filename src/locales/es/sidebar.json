@@ -39,6 +39,7 @@
   "rolePermissions": "Permisos de Roles",
   "platform": "Plataforma",
   "features": "Funciones",
+  "modules": "Módulos",
   "system": "Estado del sistema",
   "webhooks": "Webhooks",
   "reportsMenu": {

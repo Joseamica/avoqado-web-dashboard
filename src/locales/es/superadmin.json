@@ -2767,5 +2767,107 @@
       "description": "Las siguientes cuentas comerciales no tienen configuracion de liquidacion",
       "configure": "Configurar"
     }
+  },
+  "moduleMgmt": {
+    "title": "Gestión de Módulos",
+    "subtitle": "Configura y gestiona módulos para todas las sucursales",
+    "createModule": "Crear Módulo",
+    "tableTitle": "Todos los Módulos",
+    "tableDesc": "Ver todos los módulos disponibles y sus asignaciones",
+    "searchPlaceholder": "Buscar módulos...",
+    "presetsCount": "presets",
+    "columns": {
+      "module": "Módulo",
+      "description": "Descripción",
+      "enabledVenues": "Sucursales Activas",
+      "presets": "Presets",
+      "actions": "Acciones"
+    },
+    "dropdown": {
+      "viewVenues": "Ver Sucursales",
+      "editModule": "Editar Módulo",
+      "deleteModule": "Eliminar Módulo"
+    },
+    "venueColumns": {
+      "venue": "Sucursal",
+      "status": "Estado",
+      "enabledAt": "Activado El",
+      "actions": "Acciones"
+    },
+    "status": {
+      "enabled": "Activo",
+      "disabled": "Inactivo"
+    },
+    "actions": {
+      "enable": "Activar",
+      "disable": "Desactivar"
+    },
+    "stats": {
+      "totalModules": "Total de Módulos",
+      "availableForVenues": "Disponibles para sucursales",
+      "totalEnabledCount": "Total Activados",
+      "acrossAllVenues": "En todas las sucursales",
+      "mostPopular": "Más Popular",
+      "venues": "sucursales"
+    },
+    "venueDialog": {
+      "title": "Sucursales con {{module}}",
+      "description": "Ver y gestionar qué sucursales tienen este módulo activo"
+    },
+    "enableDialog": {
+      "title": "Activar Módulo",
+      "description": "Activar {{module}} para {{venue}}",
+      "presetLabel": "Preset de Configuración",
+      "presetPlaceholder": "Seleccionar preset (opcional)",
+      "noPreset": "Sin preset (config por defecto)",
+      "presetHelp": "Los presets proveen configuraciones preestablecidas para casos de uso específicos",
+      "cancel": "Cancelar",
+      "enabling": "Activando...",
+      "confirm": "Activar Módulo"
+    },
+    "createDialog": {
+      "title": "Crear Nuevo Módulo",
+      "description": "Crea un nuevo módulo global que podrá ser activado para las sucursales",
+      "confirm": "Crear Módulo"
+    },
+    "editDialog": {
+      "title": "Editar Módulo",
+      "description": "Editando configuración del módulo {{module}}"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Módulo",
+      "description": "¿Estás seguro que deseas eliminar el módulo {{module}}?",
+      "warningEnabled": "Este módulo está activo en {{count}} sucursales. Debes desactivarlo de todas las sucursales antes de eliminarlo.",
+      "confirmText": "Esta acción no se puede deshacer. El módulo será eliminado permanentemente.",
+      "confirm": "Eliminar Módulo"
+    },
+    "form": {
+      "code": "Código",
+      "codeHelp": "Solo mayúsculas y guiones bajos (ej: SERIALIZED_INVENTORY)",
+      "codeNotEditable": "El código no puede modificarse",
+      "name": "Nombre",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Describe qué hace este módulo...",
+      "defaultConfig": "Configuración por Defecto (JSON)",
+      "defaultConfigHelp": "Configuración que se aplicará cuando no se use un preset",
+      "presets": "Presets (JSON)",
+      "presetsHelp": "Configuraciones predefinidas para diferentes casos de uso (ej: telecom, joyería)"
+    },
+    "toast": {
+      "enabledTitle": "Módulo Activado",
+      "enableFailed": "Error al Activar",
+      "disabledTitle": "Módulo Desactivado",
+      "disableFailed": "Error al Desactivar",
+      "createdTitle": "Módulo Creado",
+      "createdDesc": "El módulo {{name}} ha sido creado exitosamente",
+      "createFailed": "Error al Crear Módulo",
+      "updatedTitle": "Módulo Actualizado",
+      "updatedDesc": "El módulo {{name}} ha sido actualizado exitosamente",
+      "updateFailed": "Error al Actualizar Módulo",
+      "deletedTitle": "Módulo Eliminado",
+      "deleteFailed": "Error al Eliminar Módulo",
+      "jsonError": "Error de JSON",
+      "jsonErrorDesc": "La configuración o presets contienen JSON inválido"
+    }
   }
 }

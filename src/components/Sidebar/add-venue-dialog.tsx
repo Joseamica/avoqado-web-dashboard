@@ -31,7 +31,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
       pos: 'SOFTRESTAURANT',
     },
   })
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -87,7 +87,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
     const blob = await fetch(croppedImage).then(res => res.blob())
 
     const fileName = `cropped_${Date.now()}.jpg`
-    const storageRef = ref(storage, `venues/${venueId}/logos/${fileName}`)
+    const storageRef = ref(storage, `venues/${venueSlug}/logos/${fileName}`)
     const uploadTask = uploadBytesResumable(storageRef, blob)
 
     setUploading(true)

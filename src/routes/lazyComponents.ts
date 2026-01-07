@@ -87,6 +87,7 @@ export { default as SettlementConfigurations } from '@/pages/Superadmin/Settleme
 export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
 export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
 export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment'
+export { default as ModuleManagement } from '@/pages/Superadmin/ModuleManagement'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))

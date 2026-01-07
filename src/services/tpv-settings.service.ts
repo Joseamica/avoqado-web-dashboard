@@ -14,6 +14,10 @@ export interface TpvSettings {
   showVerificationScreen: boolean  // Show verification screen after payment success
   requireVerificationPhoto: boolean  // Require at least one photo in verification
   requireVerificationBarcode: boolean  // Require at least one barcode scan in verification
+  // Attendance verification (clock-in/out with photo + GPS)
+  requireClockInPhoto: boolean   // Require selfie + GPS at clock-in
+  requireClockOutPhoto: boolean  // Require selfie + GPS at clock-out
+  requireClockInToLogin: boolean // Require active clock-in to log into TPV
 }
 
 /**
@@ -29,6 +33,10 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   showVerificationScreen: false,
   requireVerificationPhoto: false,
   requireVerificationBarcode: false,
+  // Attendance verification disabled by default
+  requireClockInPhoto: false,
+  requireClockOutPhoto: false,
+  requireClockInToLogin: false,
 }
 
 /**

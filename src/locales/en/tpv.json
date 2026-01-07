@@ -307,7 +307,14 @@
     "requireVerificationPhoto": "Require photo",
     "requireVerificationPhotoDesc": "Require at least one photo to complete verification",
     "requireVerificationBarcode": "Require barcode",
-    "requireVerificationBarcodeDesc": "Require at least one barcode scan to complete verification"
+    "requireVerificationBarcodeDesc": "Require at least one barcode scan to complete verification",
+    "attendanceSection": "Time Clock",
+    "requireClockInPhoto": "Photo at clock-in",
+    "requireClockInPhotoDesc": "Require selfie with GPS location when clocking in",
+    "requireClockOutPhoto": "Photo at clock-out",
+    "requireClockOutPhotoDesc": "Require selfie with GPS location when clocking out",
+    "requireClockInToLogin": "Require clock-in to login",
+    "requireClockInToLoginDesc": "Staff must have active clock-in to access the system"
   },
   "activation": {
     "title": "Activate Terminal",

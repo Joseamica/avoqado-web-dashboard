@@ -3,15 +3,24 @@
     "title": "Sales Summary",
     "totalSales": "Total Sales",
     "transactions": "transactions",
+    "transactionsLabel": "transactions",
     "actions": {
       "exportPDF": "Export PDF",
       "exportCSV": "Export CSV",
       "print": "Print"
     },
+    "export": {
+      "title": "Export",
+      "subtitle": "Settings",
+      "exportAll": "Export all data",
+      "exportAllDesc": "Include summary and payment methods",
+      "exportView": "Export view",
+      "exportViewDesc": "Only include the current view",
+      "button": "Export"
+    },
     "filters": {
       "metrics": "Metrics",
       "reportType": "Report type",
-      "location": "Location",
       "more": "More filters"
     },
     "sections": {
@@ -25,19 +34,159 @@
       "count": "Count",
       "amount": "Amount"
     },
+    "tableColumns": {
+      "method": "Payment method",
+      "percentage": "Percentage"
+    },
     "rows": {
       "grossSales": "Gross sales",
+      "items": "Items",
+      "serviceCosts": "Service costs",
       "discounts": "Discounts",
       "refunds": "Refunds",
       "netSales": "Net sales",
+      "deferredSales": "Deferred sales",
       "taxes": "Taxes",
       "tips": "Tips",
-      "totalCollected": "Total collected"
+      "commissions": "Commissions",
+      "totalSales": "Total sales",
+      "totalCollected": "Net total"
+    },
+    "tooltips": {
+      "grossSales": "Total sales amount before discounts and refunds are applied",
+      "items": "All item sales, excluding taxes, discounts, comps, and refunds",
+      "serviceCosts": "Service costs including integrated tips, surcharges, and other fees",
+      "discounts": "Discounts applied to orders, including promotions and coupons",
+      "refunds": "Refunds processed during the selected period",
+      "netSales": "Gross sales minus discounts and refunds (Gross sales - Discounts - Refunds)",
+      "deferredSales": "Total amount charged to customers for orders that are still open or pending payment",
+      "taxes": "Taxes collected on sales during the period",
+      "tips": "Tips received by staff during the period",
+      "commissions": "Platform, delivery, and other external service commissions",
+      "totalSales": "Net sales (taxes are already included in prices)",
+      "totalCollected": "Net sales + tips - commissions (actual cash flow)"
     },
     "paymentTypes": {
       "card": "Card",
       "cash": "Cash",
       "other": "Other"
+    },
+    "controls": {
+      "title": "Controls",
+      "apply": "Apply",
+      "reportType": {
+        "label": "Report type",
+        "description": "View the report in hourly, daily, weekly or monthly intervals.",
+        "longDescription": "Changing the report type will change how your data is displayed. Summary reports will show single total figures, while others may show changes by day, for example.",
+        "summariesSection": "Summaries",
+        "incrementsSection": "Individual increments",
+        "options": {
+          "summary": "Summary",
+          "summaryDesc": "Groups the same metrics from different days as total values, without segmenting them chronologically",
+          "hourlySum": "Hourly summary",
+          "hourlySumDesc": "Groups metrics from different days by hour (e.g., all sales recorded between 9:00 and 9:59, between 10:00 and 10:59, etc.)",
+          "dailySum": "Daily summary",
+          "dailySumDesc": "Groups metrics from different days by day of the week (e.g., all sales recorded on Tuesdays)",
+          "hours": "Hours",
+          "hoursDesc": "Shows data for each hour of the selected period",
+          "days": "Days",
+          "daysDesc": "Shows data for each day of the selected period",
+          "weeks": "Weeks",
+          "weeksDesc": "Shows data for each week of the selected period",
+          "months": "Months",
+          "monthsDesc": "Shows data for each month of the selected period"
+        }
+      },
+      "viewType": {
+        "label": "View",
+        "description": "Change how your information is displayed",
+        "longDescription": "Select how you want to visualize your report data.",
+        "options": {
+          "gauge": "Gauge chart",
+          "gaugeDesc": "Horizontal bar with percentage breakdown",
+          "pie": "Pie chart",
+          "pieDesc": "Donut chart with value distribution",
+          "table": "Table",
+          "tableDesc": "Detailed table view"
+        }
+      },
+      "terminal": {
+        "label": "Terminals",
+        "description": "Filter data by terminal",
+        "longDescription": "Select which terminals to include in the report.",
+        "options": {
+          "all": "All",
+          "allDesc": "Include all terminals"
+        }
+      },
+      "groupBy": {
+        "label": "Group metrics by",
+        "description": "Group metrics in the data table",
+        "longDescription": "Segment the report data by different criteria.",
+        "options": {
+          "none": "None",
+          "noneDesc": "No grouping (default)",
+          "origin": "Origin",
+          "originDesc": "Group by order type (dine-in, takeout, delivery)",
+          "channel": "Channel",
+          "channelDesc": "Group by sales channel (TPV, QR, Web, App)",
+          "paymentMethod": "Payment method",
+          "paymentMethodDesc": "Group by payment type (cash, card, digital)",
+          "shift": "Shift",
+          "shiftDesc": "Group by cashier shift",
+          "staff": "Staff",
+          "staffDesc": "Group by cashier or server who processed the sale"
+        }
+      },
+      "filterBy": {
+        "label": "Filter by",
+        "description": "Show or hide data associated with different dimensions",
+        "none": "Period"
+      },
+      "metrics": {
+        "label": "Metrics",
+        "description": "Choose which metrics to show in the report",
+        "longDescription": "Selected metrics will be shown in the report and exports.",
+        "chartHint": "The selected metric will be shown in the report. If you select the chart icon, it will modify the report visualization.",
+        "allMetrics": "All metrics",
+        "options": {
+          "grossSales": "Gross sales",
+          "grossSalesDesc": "Item sales, including modifiers and service costs",
+          "items": "Items",
+          "itemsDesc": "All item sales, excluding taxes, discounts, comps, and refunds",
+          "serviceCosts": "Service costs",
+          "serviceCostsDesc": "Service costs including integrated tips, surcharges, and other fees",
+          "discounts": "Discounts",
+          "discountsDesc": "Deductions applied to your sales for promotions, coupons, or comps",
+          "refunds": "Refunds",
+          "refundsDesc": "All itemized refunds, excluding partial refunds",
+          "netSales": "Net sales",
+          "netSalesDesc": "Gross sales minus refunds, discounts, and comps",
+          "deferredSales": "Deferred sales",
+          "deferredSalesDesc": "Total charged for orders that are still open or pending payment",
+          "taxes": "Taxes",
+          "taxesDesc": "Tax amount applied at the time of sale",
+          "tips": "Tips",
+          "tipsDesc": "Tips received by staff during the period",
+          "commissions": "Commissions",
+          "commissionsDesc": "Platform, delivery, and other external service commissions",
+          "totalCollected": "Total collected",
+          "totalCollectedDesc": "Net sales plus taxes, tips, and other charges"
+        },
+        "selected": "selected"
+      }
+    },
+    "periodTable": {
+      "hourly": "Hourly breakdown",
+      "daily": "Daily breakdown",
+      "weekly": "Weekly breakdown",
+      "monthly": "Monthly breakdown",
+      "hourlySum": "Hourly summary",
+      "dailySum": "Day of week summary",
+      "allDaySubtitle": "All day (0:00-23:59 {{timezone}} time)",
+      "allWeekSubtitle": "All days in the period",
+      "allWeeksSubtitle": "All weeks in the period",
+      "allMonthsSubtitle": "All months in the period"
     }
   }
 }

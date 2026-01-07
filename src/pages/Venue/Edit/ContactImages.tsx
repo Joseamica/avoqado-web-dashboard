@@ -58,7 +58,7 @@ function ContactImagesSkeleton() {
 
 export default function ContactImages() {
   const { t } = useTranslation(['venue', 'common'])
-  const { venueId } = useCurrentVenue()
+  const { venueId, venueSlug } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
   const { setActions } = useVenueEditActions()
@@ -172,7 +172,7 @@ export default function ContactImages() {
     const blob = await fetch(croppedImage).then(r => r.blob())
 
     const fileName = `cropped_${Date.now()}.jpg`
-    const storageRef = ref(storage, `venues/${venueId}/logos/${fileName}`)
+    const storageRef = ref(storage, `venues/${venueSlug}/logos/${fileName}`)
     const uploadTask = uploadBytesResumable(storageRef, blob)
     setUploading(true)
     uploadTask.on(

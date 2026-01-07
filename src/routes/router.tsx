@@ -112,6 +112,7 @@ import {
   Webhooks,
   Terminals,
   CreditAssessment,
+  ModuleManagement,
   PayLaterAging,
   SalesSummary,
 } from './lazyComponents'
@@ -383,6 +384,10 @@ const router = createBrowserRouter(
                     {
                       path: 'credit-assessment',
                       element: <CreditAssessment />,
+                    },
+                    {
+                      path: 'modules',
+                      element: <ModuleManagement />,
                     },
                   ],
                 },

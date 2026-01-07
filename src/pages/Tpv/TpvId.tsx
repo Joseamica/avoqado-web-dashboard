@@ -1,4 +1,5 @@
 import api from '@/api'
+import { cn } from '@/lib/utils'
 import { DateTime } from 'luxon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -14,10 +15,14 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { GlassCard } from '@/components/ui/glass-card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MetricCard } from '@/components/ui/metric-card'
 import { Progress } from '@/components/ui/progress'
+import { StatusPulse } from '@/components/ui/status-pulse'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -51,6 +56,7 @@ import {
   Wrench,
   XIcon,
   Zap,
+  ChevronRight,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -338,12 +344,8 @@ export default function TpvId() {
 
   // Get assigned merchant accounts (full objects)
   const assignedMerchantIds = terminalDetails?.assignedMerchantIds || []
-  const assignedMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) =>
-    assignedMerchantIds.includes(m.id)
-  )
-  const availableMerchantAccounts = merchantAccounts.filter(
-    (m: MerchantAccount) => !assignedMerchantIds.includes(m.id)
-  )
+  const assignedMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) => assignedMerchantIds.includes(m.id))
+  const availableMerchantAccounts = merchantAccounts.filter((m: MerchantAccount) => !assignedMerchantIds.includes(m.id))
 
   // SUPERADMIN: Link merchant account to terminal
   const handleLinkMerchantAccount = async () => {
@@ -652,9 +654,6 @@ export default function TpvId() {
                   <ArrowLeft className="h-5 w-5 text-muted-foreground" />
                 </Link>
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20">
-                    <Terminal className="h-5 w-5 text-primary" />
-                  </div>
                   <div>
                     <h1 className="text-lg font-semibold text-foreground">{tpv?.name || t('detail.terminal')}</h1>
                     <p className="text-sm text-muted-foreground">
@@ -673,85 +672,7 @@ export default function TpvId() {
 
                 {/* Action Buttons */}
                 {!isEditing && (
-                  <div className="flex items-center space-x-4">
-                    {/* Maintenance Mode Toggle */}
-                    <PermissionGate permission="tpv:command">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center space-x-2">
-                            {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE' ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
-                            ) : (
-                              <Wrench className={`w-4 h-4 ${isInMaintenance ? 'text-orange-500' : 'text-muted-foreground'}`} />
-                            )}
-                            <Switch
-                              checked={isInMaintenance}
-                              onCheckedChange={checked => {
-                                if (checked) {
-                                  sendTpvCommand('MAINTENANCE_MODE')
-                                } else {
-                                  sendTpvCommand('EXIT_MAINTENANCE')
-                                }
-                              }}
-                              disabled={(!terminalOnline && !isInMaintenance) || commandMutation.isPending}
-                              className="data-[state=checked]:bg-orange-500"
-                            />
-                            <span className="text-xs text-muted-foreground hidden sm:inline">
-                              {pendingCommand === 'MAINTENANCE_MODE' || pendingCommand === 'EXIT_MAINTENANCE'
-                                ? t('common:loading')
-                                : t('actions.maintenance')}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {isInMaintenance
-                              ? t('detail.tooltips.reactivate')
-                              : terminalOnline
-                              ? t('detail.tooltips.maintenanceMode')
-                              : t('actions.offline')}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </PermissionGate>
-
-                    {/* Lock Toggle */}
-                    <PermissionGate permission="tpv:command">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center space-x-2">
-                            {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                            ) : tpv?.isLocked ? (
-                              <Lock className="w-4 h-4 text-red-500" />
-                            ) : (
-                              <LockOpen className="w-4 h-4 text-muted-foreground" />
-                            )}
-                            <Switch
-                              checked={tpv?.isLocked ?? false}
-                              onCheckedChange={checked => {
-                                if (checked) {
-                                  sendTpvCommand('LOCK')
-                                } else {
-                                  sendTpvCommand('UNLOCK')
-                                }
-                              }}
-                              disabled={!terminalOnline || commandMutation.isPending}
-                              className="data-[state=checked]:bg-red-500"
-                            />
-                            <span className="text-xs text-muted-foreground hidden sm:inline">
-                              {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK' ? t('common:loading') : t('actions.lock')}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{tpv?.isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </PermissionGate>
-
-                    <div className="h-6 w-px bg-border" />
-
+                  <div className="flex items-center space-x-2">
                     {/* Update Status Button */}
                     <PermissionGate permission="tpv:command">
                       <Tooltip>
@@ -829,416 +750,384 @@ export default function TpvId() {
               >
                 {t('commands.remoteCommands')}
               </TabsTrigger>
-              <TabsTrigger
-                value="settings"
-                className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-              >
-                {t('tpvSettings.title')}
-              </TabsTrigger>
+              <PermissionGate permission="tpv:update">
+                <TabsTrigger
+                  value="settings"
+                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+                >
+                  {t('tpvSettings.title')}
+                </TabsTrigger>
+              </PermissionGate>
             </TabsList>
 
             {/* Info Tab */}
             <TabsContent value="info" className="space-y-6">
+              {/* Status Metrics - Stack on mobile, 4 columns on desktop */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <MetricCard
+                  label={t('detail.connection')}
+                  value={isInMaintenance ? t('detail.inMaintenance') : terminalOnline ? t('detail.connected') : t('detail.disconnected')}
+                  icon={
+                    isInMaintenance ? (
+                      <Wrench className="w-4 h-4" />
+                    ) : terminalOnline ? (
+                      <Wifi className="w-4 h-4" />
+                    ) : (
+                      <WifiOff className="w-4 h-4" />
+                    )
+                  }
+                  accent={isInMaintenance ? 'orange' : terminalOnline ? 'green' : 'red'}
+                />
+                <MetricCard
+                  label={t('detail.registration', { defaultValue: 'Registro' })}
+                  value={
+                    tpv?.activatedAt
+                      ? t('detail.registered', { defaultValue: 'Registrado' })
+                      : t('detail.pendingRegistration', { defaultValue: 'Pendiente' })
+                  }
+                  icon={<Key className="w-4 h-4" />}
+                  accent={tpv?.activatedAt ? 'green' : 'yellow'}
+                />
+                <MetricCard
+                  label={t('detail.lastContact')}
+                  value={
+                    tpv?.lastHeartbeat
+                      ? DateTime.fromISO(tpv.lastHeartbeat, { zone: 'utc' })
+                          .setZone(venueTimezone)
+                          .setLocale(getIntlLocale(i18n.language))
+                          .toRelative() || '-'
+                      : t('detail.never')
+                  }
+                  icon={<Clock className="w-4 h-4" />}
+                  accent="blue"
+                />
+                <MetricCard
+                  label={t('detail.version')}
+                  value={tpv?.version || 'N/A'}
+                  icon={<Shield className="w-4 h-4" />}
+                  accent="purple"
+                />
+              </div>
+
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Left Column - Main Info */}
                 <div className="xl:col-span-2 space-y-6">
-                  {/* Status Overview Card */}
-                  <Card className="overflow-hidden">
-                    <CardHeader className="bg-linear-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
-                      <CardTitle className="flex items-center text-lg">
-                        <Activity className="w-5 h-5 mr-2 text-primary" />
-                        {t('detail.terminalStatus')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="text-center p-4 rounded-lg bg-muted">
-                          <div className="flex justify-center mb-2">
-                            {isInMaintenance ? (
-                              <Wrench className="w-8 h-8 text-orange-800 dark:text-orange-400" />
-                            ) : terminalOnline ? (
-                              <Wifi className="w-8 h-8 text-green-600" />
-                            ) : (
-                              <WifiOff className="w-8 h-8 text-destructive" />
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{t('detail.connection')}</p>
-                          <p
-                            className={`font-semibold ${
-                              isInMaintenance
-                                ? ' text-orange-800  dark:text-orange-400 border border-transparent'
-                                : terminalOnline
-                                ? 'text-green-600'
-                                : 'text-destructive'
-                            }`}
-                          >
-                            {isInMaintenance
-                              ? t('detail.inMaintenance')
-                              : terminalOnline
-                              ? t('detail.connected')
-                              : t('detail.disconnected')}
-                          </p>
-                        </div>
-
-                        <div className="text-center p-4 rounded-lg bg-muted">
-                          <div className="flex justify-center mb-2">
-                            {tpv?.activatedAt ? (
-                              <Key className="w-8 h-8 text-green-600" />
-                            ) : (
-                              <Key className="w-8 h-8 text-yellow-600 dark:text-yellow-500" />
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{t('detail.activationStatus')}</p>
-                          <p className={`font-semibold ${tpv?.activatedAt ? 'text-green-600' : 'text-yellow-600 dark:text-yellow-500'}`}>
-                            {tpv?.activatedAt ? t('detail.activated') : t('detail.notActivated')}
-                          </p>
-                        </div>
-
-                        <div className="text-center p-4 rounded-lg bg-muted">
-                          <div className="flex justify-center mb-2">
-                            <Clock className="w-8 h-8 text-blue-600" />
-                          </div>
-                          <p className="text-sm text-muted-foreground">{t('detail.lastContact')}</p>
-                          <p className="font-semibold text-foreground">
-                            {tpv?.lastHeartbeat ? (
-                              <span className="text-xs">
-                                {DateTime.fromISO(tpv.lastHeartbeat, { zone: 'utc' })
-                                  .setZone(venueTimezone)
-                                  .setLocale(getIntlLocale(i18n.language))
-                                  .toLocaleString({
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                              </span>
-                            ) : (
-                              t('detail.never')
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="text-center p-4 rounded-lg bg-muted">
-                          <div className="flex justify-center mb-2">
-                            <Shield className="w-8 h-8 text-primary" />
-                          </div>
-                          <p className="text-sm text-muted-foreground">{t('detail.version')}</p>
-                          <p className="font-semibold text-foreground">{tpv?.version || 'N/A'}</p>
-                        </div>
-                      </div>
-
-                      {/* System Info */}
-                      {tpv?.systemInfo && (
-                        <div className="mt-6 pt-6 border-t border-border">
-                          <h4 className="text-sm font-medium text-foreground mb-4">{t('detail.systemInfo')}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {tpv.systemInfo.platform && (
-                              <div className="flex items-center space-x-2">
-                                <Cpu className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{t('detail.platform')}:</span>
-                                <span className="text-sm font-mono text-foreground">{tpv.systemInfo.platform}</span>
+                  {/* System Info - Collapsible */}
+                  {tpv?.systemInfo && (
+                    <Collapsible defaultOpen>
+                      <GlassCard>
+                        <CollapsibleTrigger asChild>
+                          <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                                <Cpu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                               </div>
-                            )}
-
-                            {tpv.systemInfo.memory && (
-                              <div className="flex items-center space-x-2">
-                                <MemoryStick className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{t('detail.memory')}:</span>
-                                <span className="text-sm font-mono text-foreground">
-                                  {formatBytes(tpv.systemInfo.memory.used)} / {formatBytes(tpv.systemInfo.memory.total)}
-                                </span>
+                              <div>
+                                <h3 className="font-medium text-sm">{t('detail.systemInfo')}</h3>
+                                <p className="text-xs text-muted-foreground">{tpv.systemInfo.platform || 'Android'}</p>
                               </div>
-                            )}
-
-                            {tpv.systemInfo.uptime && (
-                              <div className="flex items-center space-x-2">
-                                <Zap className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{t('detail.uptime')}:</span>
-                                <span className="text-sm font-mono text-foreground">{formatUptime(tpv.systemInfo.uptime)}</span>
-                              </div>
-                            )}
-
-                            {tpv?.ipAddress && (
-                              <div className="flex items-center space-x-2">
-                                <Wifi className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">{t('detail.ip')}:</span>
-                                <span className="text-sm font-mono text-foreground">{tpv.ipAddress}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Memory Usage Progress */}
-                          {tpv.systemInfo.memory && tpv.systemInfo.memory.total > 0 && (
-                            <div className="mt-4">
-                              <div className="flex items-center justify-between text-sm mb-2">
-                                <span className="text-muted-foreground">{t('detail.memoryUsage')}</span>
-                                <span className="text-foreground font-mono">
-                                  {Math.round((tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100)}%
-                                </span>
-                              </div>
-                              <Progress value={(tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100} className="h-2" />
                             </div>
-                          )}
+                            <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="px-4 pb-4 space-y-4">
+                            <div className="h-px bg-border/50" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {tpv.systemInfo.platform && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <Cpu className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">{t('detail.platform')}</span>
+                                  </div>
+                                  <span className="text-sm font-mono text-foreground">{tpv.systemInfo.platform}</span>
+                                </div>
+                              )}
+
+                              {tpv?.ipAddress && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <Wifi className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">{t('detail.ip')}</span>
+                                  </div>
+                                  <span className="text-sm font-mono text-foreground">{tpv.ipAddress}</span>
+                                </div>
+                              )}
+
+                              {tpv.systemInfo.uptime && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <Zap className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">{t('detail.uptime')}</span>
+                                  </div>
+                                  <span className="text-sm font-mono text-foreground">{formatUptime(tpv.systemInfo.uptime)}</span>
+                                </div>
+                              )}
+
+                              {tpv.systemInfo.memory && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                                  <div className="flex items-center gap-2">
+                                    <MemoryStick className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">{t('detail.memory')}</span>
+                                  </div>
+                                  <span className="text-sm font-mono text-foreground">
+                                    {formatBytes(tpv.systemInfo.memory.used)} / {formatBytes(tpv.systemInfo.memory.total)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Memory Usage Progress */}
+                            {tpv.systemInfo.memory && tpv.systemInfo.memory.total > 0 && (
+                              <div className="p-3 rounded-xl bg-muted/50">
+                                <div className="flex items-center justify-between text-sm mb-2">
+                                  <span className="text-muted-foreground">{t('detail.memoryUsage')}</span>
+                                  <span className="text-foreground font-mono">
+                                    {Math.round((tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100)}%
+                                  </span>
+                                </div>
+                                <Progress value={(tpv.systemInfo.memory.used / tpv.systemInfo.memory.total) * 100} className="h-2" />
+                              </div>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </GlassCard>
+                    </Collapsible>
+                  )}
+
+                  {/* Terminal Configuration - GlassCard style matching System Info */}
+                  <Collapsible defaultOpen>
+                    <GlassCard>
+                      <CollapsibleTrigger asChild>
+                        <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                              <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm">{t('detail.terminalInfo')}</h3>
+                              <p className="text-xs text-muted-foreground">{tpv?.name || 'Terminal'}</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Terminal Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-lg">
-                        <Settings className="w-5 h-5 mr-2 text-primary" />
-                        {t('detail.terminalInfo')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                          {/* Basic Information */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                              control={form.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-sm font-medium">{t('detail.terminalName')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      disabled={!isEditing}
-                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="serialNumber"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-sm font-medium">{t('detail.serialNumber')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      disabled={!isEditing}
-                                      className={isEditing ? 'border-primary/50 focus:border-primary font-mono' : 'bg-muted font-mono'}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="type"
-                              render={({ field }) => {
-                                // Map enum values to translations
-                                const typeTranslations: Record<string, string> = {
-                                  TPV_ANDROID: t('detail.types.tpvAndroid'),
-                                  TPV_IOS: t('detail.types.tpvIOS'),
-                                  PRINTER_RECEIPT: t('detail.types.printerReceipt'),
-                                  PRINTER_KITCHEN: t('detail.types.printerKitchen'),
-                                  KDS: t('detail.types.kds'),
-                                }
-                                const displayValue = field.value ? typeTranslations[field.value] || field.value : t('detail.notSpecified')
-
-                                return (
-                                  <FormItem>
-                                    <FormLabel className="text-sm font-medium">{t('detail.terminalType')}</FormLabel>
-                                    <FormControl>
-                                      {isEditing ? (
-                                        <Select onValueChange={field.onChange} value={field.value || ''} defaultValue={field.value || ''}>
-                                          <SelectTrigger className="border-primary/50 focus:border-primary">
-                                            <SelectValue placeholder={t('detail.selectType')} />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="TPV_ANDROID">{t('detail.types.tpvAndroid')}</SelectItem>
-                                            <SelectItem value="TPV_IOS">{t('detail.types.tpvIOS')}</SelectItem>
-                                            <SelectItem value="PRINTER_RECEIPT">{t('detail.types.printerReceipt')}</SelectItem>
-                                            <SelectItem value="PRINTER_KITCHEN">{t('detail.types.printerKitchen')}</SelectItem>
-                                            <SelectItem value="KDS">{t('detail.types.kds')}</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      ) : (
-                                        <Input value={displayValue} disabled className="bg-muted" />
-                                      )}
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )
-                              }}
-                            />
-
-                            {/* Status Selector - SUPERADMIN Only */}
-                            {isSuperAdmin && (
-                              <FormField
-                                control={form.control}
-                                name="status"
-                                render={({ field }) => {
-                                  // Map enum values to translations
-                                  const statusTranslations: Record<string, string> = {
-                                    ACTIVE: t('detail.statusOptions.active'),
-                                    INACTIVE: t('detail.statusOptions.inactive'),
-                                    MAINTENANCE: t('detail.statusOptions.maintenance'),
-                                    RETIRED: t('detail.statusOptions.retired'),
-                                  }
-                                  const displayValue = field.value
-                                    ? statusTranslations[field.value] || field.value
-                                    : t('detail.notSpecified')
-
-                                  return (
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-4">
+                          <div className="h-px bg-border/50" />
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                              {/* Basic Information */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                  control={form.control}
+                                  name="name"
+                                  render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-sm font-medium">{t('detail.terminalStatus')}</FormLabel>
+                                      <FormLabel className="text-sm font-medium">{t('detail.terminalName')}</FormLabel>
                                       <FormControl>
-                                        {isEditing ? (
-                                          <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value || 'ACTIVE'}
-                                            defaultValue={field.value || 'ACTIVE'}
-                                          >
-                                            <SelectTrigger className="border-primary/50 focus:border-primary">
-                                              <SelectValue placeholder={t('detail.selectStatus')} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="ACTIVE">{t('detail.statusOptions.active')}</SelectItem>
-                                              <SelectItem value="INACTIVE">{t('detail.statusOptions.inactive')}</SelectItem>
-                                              <SelectItem value="MAINTENANCE">{t('detail.statusOptions.maintenance')}</SelectItem>
-                                              <SelectItem value="RETIRED">{t('detail.statusOptions.retired')}</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        ) : (
-                                          <Input value={displayValue} disabled className="bg-muted" />
-                                        )}
+                                        <Input
+                                          {...field}
+                                          disabled={!isEditing}
+                                          className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                        />
                                       </FormControl>
                                       <FormMessage />
-                                      {field.value === 'RETIRED' && (
-                                        <p className="text-xs text-muted-foreground mt-1">⚠️ {t('detail.retiredWarning')}</p>
-                                      )}
                                     </FormItem>
-                                  )
-                                }}
-                              />
-                            )}
-                          </div>
+                                  )}
+                                />
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField
-                              control={form.control}
-                              name="brand"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-sm font-medium">{t('detail.brand')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      disabled={!isEditing}
-                                      placeholder={t('detail.brandPlaceholder')}
-                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="model"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-sm font-medium">{t('detail.model')}</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      disabled={!isEditing}
-                                      placeholder={t('detail.modelPlaceholder')}
-                                      className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          {/* Configuration JSON */}
-                          <div className="space-y-4">
-                            <h4 className="text-sm font-medium text-foreground flex items-center">
-                              <HardDrive className="w-4 h-4 mr-2 text-muted-foreground" />
-                              {t('detail.advancedConfig')}
-                            </h4>
-                            <FormField
-                              control={form.control}
-                              name="config"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    {isEditing ? (
-                                      <div className="relative">
-                                        <Textarea
+                                <FormField
+                                  control={form.control}
+                                  name="serialNumber"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">{t('detail.serialNumber')}</FormLabel>
+                                      <FormControl>
+                                        <Input
                                           {...field}
-                                          className="w-full h-32 p-4 text-sm font-mono resize-y border-primary/50 focus:border-primary bg-muted"
-                                          placeholder='{"configuracion": "valor", "ajuste": true}'
+                                          disabled={!isEditing}
+                                          className={isEditing ? 'border-primary/50 focus:border-primary font-mono' : 'bg-muted font-mono'}
                                         />
-                                        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
-                                          JSON
-                                        </div>
-                                      </div>
-                                    ) : tpv?.config ? (
-                                      <div className="relative p-4 border rounded-lg bg-muted overflow-x-auto">
-                                        <pre className="whitespace-pre-wrap text-xs font-mono text-foreground">
-                                          {JSON.stringify(tpv.config, null, 2)}
-                                        </pre>
-                                        <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-background px-2 py-1 rounded">
-                                          JSON
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="p-8 text-center border-2 border-dashed border-border rounded-lg">
-                                        <HardDrive className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                                        <p className="text-sm text-muted-foreground">{t('detail.noConfig')}</p>
-                                      </div>
-                                    )}
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                          {isEditing && (
-                            <PermissionGate permission="tpv:update">
-                              <div className="flex justify-end space-x-3 pt-6 border-t border-border">
-                                <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
-                                  <XIcon className="w-4 h-4 mr-2" />
-                                  {t('common:cancel')}
-                                </Button>
-                                <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
-                                  <SaveIcon className="w-4 h-4 mr-2" />
-                                  {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
-                                </Button>
+                                <FormField
+                                  control={form.control}
+                                  name="type"
+                                  render={({ field }) => {
+                                    // Map enum values to translations
+                                    const typeTranslations: Record<string, string> = {
+                                      TPV_ANDROID: t('detail.types.tpvAndroid'),
+                                      TPV_IOS: t('detail.types.tpvIOS'),
+                                      PRINTER_RECEIPT: t('detail.types.printerReceipt'),
+                                      PRINTER_KITCHEN: t('detail.types.printerKitchen'),
+                                      KDS: t('detail.types.kds'),
+                                    }
+                                    const displayValue = field.value
+                                      ? typeTranslations[field.value] || field.value
+                                      : t('detail.notSpecified')
+
+                                    return (
+                                      <FormItem>
+                                        <FormLabel className="text-sm font-medium">{t('detail.terminalType')}</FormLabel>
+                                        <FormControl>
+                                          {isEditing ? (
+                                            <Select
+                                              onValueChange={field.onChange}
+                                              value={field.value || ''}
+                                              defaultValue={field.value || ''}
+                                            >
+                                              <SelectTrigger className="border-primary/50 focus:border-primary">
+                                                <SelectValue placeholder={t('detail.selectType')} />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="TPV_ANDROID">{t('detail.types.tpvAndroid')}</SelectItem>
+                                                <SelectItem value="TPV_IOS">{t('detail.types.tpvIOS')}</SelectItem>
+                                                <SelectItem value="PRINTER_RECEIPT">{t('detail.types.printerReceipt')}</SelectItem>
+                                                <SelectItem value="PRINTER_KITCHEN">{t('detail.types.printerKitchen')}</SelectItem>
+                                                <SelectItem value="KDS">{t('detail.types.kds')}</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          ) : (
+                                            <Input value={displayValue} disabled className="bg-muted" />
+                                          )}
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )
+                                  }}
+                                />
+
+                                {/* Status Selector - SUPERADMIN Only */}
+                                {isSuperAdmin && (
+                                  <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => {
+                                      // Map enum values to translations
+                                      const statusTranslations: Record<string, string> = {
+                                        ACTIVE: t('detail.statusOptions.active'),
+                                        INACTIVE: t('detail.statusOptions.inactive'),
+                                        MAINTENANCE: t('detail.statusOptions.maintenance'),
+                                        RETIRED: t('detail.statusOptions.retired'),
+                                      }
+                                      const displayValue = field.value
+                                        ? statusTranslations[field.value] || field.value
+                                        : t('detail.notSpecified')
+
+                                      return (
+                                        <FormItem>
+                                          <FormLabel className="text-sm font-medium">{t('detail.terminalStatus')}</FormLabel>
+                                          <FormControl>
+                                            {isEditing ? (
+                                              <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value || 'ACTIVE'}
+                                                defaultValue={field.value || 'ACTIVE'}
+                                              >
+                                                <SelectTrigger className="border-primary/50 focus:border-primary">
+                                                  <SelectValue placeholder={t('detail.selectStatus')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="ACTIVE">{t('detail.statusOptions.active')}</SelectItem>
+                                                  <SelectItem value="INACTIVE">{t('detail.statusOptions.inactive')}</SelectItem>
+                                                  <SelectItem value="MAINTENANCE">{t('detail.statusOptions.maintenance')}</SelectItem>
+                                                  <SelectItem value="RETIRED">{t('detail.statusOptions.retired')}</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                            ) : (
+                                              <Input value={displayValue} disabled className="bg-muted" />
+                                            )}
+                                          </FormControl>
+                                          <FormMessage />
+                                          {field.value === 'RETIRED' && (
+                                            <p className="text-xs text-muted-foreground mt-1">⚠️ {t('detail.retiredWarning')}</p>
+                                          )}
+                                        </FormItem>
+                                      )
+                                    }}
+                                  />
+                                )}
                               </div>
-                            </PermissionGate>
-                          )}
-                        </form>
-                      </Form>
-                    </CardContent>
-                  </Card>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField
+                                  control={form.control}
+                                  name="brand"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">{t('detail.brand')}</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          {...field}
+                                          disabled={!isEditing}
+                                          placeholder={t('detail.brandPlaceholder')}
+                                          className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="model"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">{t('detail.model')}</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          {...field}
+                                          disabled={!isEditing}
+                                          placeholder={t('detail.modelPlaceholder')}
+                                          className={isEditing ? 'border-primary/50 focus:border-primary' : 'bg-muted'}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              {isEditing && (
+                                <PermissionGate permission="tpv:update">
+                                  <div className="flex justify-end space-x-3 pt-6 border-t border-border">
+                                    <Button type="button" variant="outline" onClick={handleCancel} disabled={updateTpvMutation.isPending}>
+                                      <XIcon className="w-4 h-4 mr-2" />
+                                      {t('common:cancel')}
+                                    </Button>
+                                    <Button type="submit" disabled={updateTpvMutation.isPending} className="bg-primary hover:bg-primary/90">
+                                      <SaveIcon className="w-4 h-4 mr-2" />
+                                      {updateTpvMutation.isPending ? t('common:saving') : t('detail.saveChanges')}
+                                    </Button>
+                                  </div>
+                                </PermissionGate>
+                              )}
+                            </form>
+                          </Form>
+                        </div>
+                      </CollapsibleContent>
+                    </GlassCard>
+                  </Collapsible>
                 </div>
 
                 {/* Right Column - Additional Info */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">{t('detail.quickActions')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-4">
+                  <GlassCard className="p-0">
+                    <div className="p-4 border-b border-border/50">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+                          <Activity className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h3 className="font-semibold text-sm">{t('detail.quickActions')}</h3>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-4">
                       {/* Maintenance Mode Toggle */}
                       <PermissionGate permission="tpv:command">
                         <div
@@ -1327,99 +1216,85 @@ export default function TpvId() {
                         </div>
                       </PermissionGate>
 
-                      {/* Inactive Status Alert */}
+                      {/* Terminal status alert - only show if status is INACTIVE (different from disconnected) */}
                       {isInactive && (
                         <Alert className="bg-muted text-muted-foreground border border-border">
                           <XIcon className="h-4 w-4" />
                           <AlertDescription>
-                            <span className="text-sm">{t('detail.alerts.terminalInactive')}</span>
+                            <span className="text-sm">
+                              {t('detail.alerts.terminalDisabled', { defaultValue: 'Terminal deshabilitado por administrador' })}
+                            </span>
                           </AlertDescription>
                         </Alert>
                       )}
 
-                      <div className="border-t border-border pt-4 space-y-3">
-                        <PermissionGate permission="tpv:command">
+                      {/* Separator before secondary actions */}
+                      <div className="border-t border-border/50 pt-4 space-y-3">
+                        <PermissionGate permission="tpv:update">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-start"
+                                  onClick={() => generateActivationCodeMutation.mutate()}
+                                  disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
+                                >
+                                  <Key className="w-4 h-4 mr-2" />
+                                  {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
+                                </Button>
+                              </TooltipTrigger>
+                              {tpv?.activatedAt && (
+                                <TooltipContent>
+                                  <p>{t('activation.alreadyActivatedTooltip')}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
+                        </PermissionGate>
+
+                        {isSuperAdmin && tpv?.activatedAt && (
                           <Button
                             variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => sendTpvCommand('UPDATE_STATUS')}
-                            disabled={!terminalOnline || commandMutation.isPending}
+                            className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+                            onClick={() => setShowDeactivateDialog(true)}
+                            disabled={deactivateTpvMutation.isPending}
                           >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            {t('detail.updateStatus')}
+                            <Wrench className="w-4 h-4 mr-2" />
+                            {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
                           </Button>
-                        </PermissionGate>
+                        )}
                       </div>
-
-                      <PermissionGate permission="tpv:update">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className="w-full justify-start"
-                                onClick={() => generateActivationCodeMutation.mutate()}
-                                disabled={generateActivationCodeMutation.isPending || !!tpv?.activatedAt}
-                              >
-                                <Key className="w-4 h-4 mr-2" />
-                                {generateActivationCodeMutation.isPending ? t('common:loading') : t('actions.generateCode')}
-                              </Button>
-                            </TooltipTrigger>
-                            {tpv?.activatedAt && (
-                              <TooltipContent>
-                                <p>{t('activation.alreadyActivatedTooltip')}</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      </PermissionGate>
-
-                      {isSuperAdmin && tpv?.activatedAt && (
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
-                          onClick={() => setShowDeactivateDialog(true)}
-                          disabled={deactivateTpvMutation.isPending}
-                        >
-                          <Wrench className="w-4 h-4 mr-2" />
-                          {deactivateTpvMutation.isPending ? t('actions.deactivating') : t('actions.deactivate')}
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </GlassCard>
 
                   {/* SUPERADMIN: Merchant Accounts Card */}
                   {isSuperAdmin && (
-                    <Card className="border-amber-200 dark:border-amber-800/50">
-                      <CardHeader className="bg-gradient-to-r from-amber-400/10 to-pink-500/10">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                          Cuentas de Comercio
+                    <GlassCard className="border-amber-200/50 dark:border-amber-800/30">
+                      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-amber-400/10 to-pink-500/10 rounded-t-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl bg-gradient-to-br from-amber-400/20 to-pink-500/20">
+                            <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <h3 className="font-semibold text-sm">Cuentas de Comercio</h3>
                           <Badge variant="outline" className="ml-auto text-xs border-amber-400 text-amber-600 dark:text-amber-400">
                             {assignedMerchantAccounts.length}
                           </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 space-y-4">
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-4">
                         {/* Assigned Merchant Accounts */}
                         {assignedMerchantAccounts.length > 0 ? (
                           <div className="space-y-2">
                             {assignedMerchantAccounts.map((account: MerchantAccount) => (
-                              <div
-                                key={account.id}
-                                className="flex items-center justify-between p-3 rounded-lg bg-muted"
-                              >
+                              <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-400/20 to-pink-500/20">
                                     <CreditCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-sm font-medium truncate">
-                                      {account.displayName || account.externalMerchantId}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {account.provider?.name || 'Proveedor desconocido'}
-                                    </p>
+                                    <p className="text-sm font-medium truncate">{account.displayName || account.externalMerchantId}</p>
+                                    <p className="text-xs text-muted-foreground">{account.provider?.name || 'Proveedor desconocido'}</p>
                                   </div>
                                 </div>
                                 <Button
@@ -1441,9 +1316,7 @@ export default function TpvId() {
                         ) : (
                           <div className="p-4 text-center border-2 border-dashed border-border rounded-lg">
                             <CreditCard className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">
-                              No hay cuentas de comercio asignadas
-                            </p>
+                            <p className="text-sm text-muted-foreground">No hay cuentas de comercio asignadas</p>
                           </div>
                         )}
 
@@ -1456,13 +1329,15 @@ export default function TpvId() {
                             disabled={availableMerchantAccounts.length === 0}
                           >
                             <SelectTrigger className={availableMerchantAccounts.length === 0 ? 'opacity-60' : ''}>
-                              <SelectValue placeholder={
-                                merchantAccounts.length === 0
-                                  ? "No hay cuentas en el venue"
-                                  : availableMerchantAccounts.length === 0
-                                  ? "Todas las cuentas ya están asignadas"
-                                  : "Seleccionar cuenta..."
-                              } />
+                              <SelectValue
+                                placeholder={
+                                  merchantAccounts.length === 0
+                                    ? 'No hay cuentas en el venue'
+                                    : availableMerchantAccounts.length === 0
+                                    ? 'Todas las cuentas ya están asignadas'
+                                    : 'Seleccionar cuenta...'
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               {availableMerchantAccounts.map((account: MerchantAccount) => (
@@ -1498,89 +1373,99 @@ export default function TpvId() {
                                 className="text-amber-600 dark:text-amber-400 underline hover:text-amber-700"
                               >
                                 Crear cuenta de comercio
-                              </Link>
-                              {' '}para poder vincularla
+                              </Link>{' '}
+                              para poder vincularla
                             </p>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </GlassCard>
                   )}
 
-                  {/* System Details */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">{t('detail.systemDetails')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="p-3 rounded-lg bg-muted">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.created')}</Label>
-                          <p className="text-sm text-foreground mt-1">
-                            {tpv?.createdAt
-                              ? DateTime.fromISO(tpv.createdAt, { zone: 'utc' })
-                                  .setZone(venueTimezone)
-                                  .setLocale(getIntlLocale(i18n.language))
-                                  .toLocaleString({
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                              : '-'}
-                          </p>
+                  {/* System Details - Collapsible */}
+                  <Collapsible defaultOpen>
+                    <GlassCard>
+                      <CollapsibleTrigger asChild>
+                        <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                              <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm">{t('detail.systemDetails')}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {tpv?.activatedAt ? t('detail.activated') : t('detail.pendingActivation')}
+                              </p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
                         </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4 space-y-4">
+                          <div className="h-px bg-border/50" />
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                              <span className="text-sm text-muted-foreground">{t('detail.created')}</span>
+                              <span className="text-sm text-foreground">
+                                {tpv?.createdAt
+                                  ? DateTime.fromISO(tpv.createdAt, { zone: 'utc' })
+                                      .setZone(venueTimezone)
+                                      .setLocale(getIntlLocale(i18n.language))
+                                      .toLocaleString({
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })
+                                  : '-'}
+                              </span>
+                            </div>
 
-                        <div className="p-3 rounded-lg bg-muted">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t('detail.lastUpdate')}</Label>
-                          <p className="text-sm text-foreground mt-1">
-                            {tpv?.updatedAt
-                              ? DateTime.fromISO(tpv.updatedAt, { zone: 'utc' })
-                                  .setZone(venueTimezone)
-                                  .setLocale(getIntlLocale(i18n.language))
-                                  .toLocaleString({
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                              : '-'}
-                          </p>
-                        </div>
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                              <span className="text-sm text-muted-foreground">{t('detail.lastUpdate')}</span>
+                              <span className="text-sm text-foreground">
+                                {tpv?.updatedAt
+                                  ? DateTime.fromISO(tpv.updatedAt, { zone: 'utc' })
+                                      .setZone(venueTimezone)
+                                      .setLocale(getIntlLocale(i18n.language))
+                                      .toRelative()
+                                  : '-'}
+                              </span>
+                            </div>
 
-                        <div
-                          className={`p-3 rounded-lg ${
-                            tpv?.activatedAt ? 'bg-green-50 dark:bg-green-950/30' : 'bg-yellow-50 dark:bg-yellow-950/30'
-                          }`}
-                        >
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                            <Key className="w-3 h-3" />
-                            {t('detail.activatedOn')}
-                          </Label>
-                          <p
-                            className={`text-sm font-medium mt-1 ${
-                              tpv?.activatedAt ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'
-                            }`}
-                          >
-                            {tpv?.activatedAt
-                              ? DateTime.fromISO(tpv.activatedAt, { zone: 'utc' })
-                                  .setZone(venueTimezone)
-                                  .setLocale(getIntlLocale(i18n.language))
-                                  .toLocaleString({
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
-                              : t('detail.pendingActivation')}
-                          </p>
+                            <div
+                              className={`flex items-center justify-between p-3 rounded-xl ${
+                                tpv?.activatedAt
+                                  ? 'bg-green-500/10 border border-green-500/20'
+                                  : 'bg-yellow-500/10 border border-yellow-500/20'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Key className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">{t('detail.activatedOn')}</span>
+                              </div>
+                              <span
+                                className={`text-sm font-medium ${
+                                  tpv?.activatedAt ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'
+                                }`}
+                              >
+                                {tpv?.activatedAt
+                                  ? DateTime.fromISO(tpv.activatedAt, { zone: 'utc' })
+                                      .setZone(venueTimezone)
+                                      .setLocale(getIntlLocale(i18n.language))
+                                      .toLocaleString({
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })
+                                  : t('detail.pendingActivation')}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CollapsibleContent>
+                    </GlassCard>
+                  </Collapsible>
                 </div>
               </div>
             </TabsContent>
@@ -1607,7 +1492,7 @@ export default function TpvId() {
                   <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <AlertDescription className="text-blue-800 dark:text-blue-200">{t('tpvSettings.infoAlert')}</AlertDescription>
                 </Alert>
-                <TpvSettingsForm tpvId={tpvId!} />
+                <TpvSettingsForm tpvId={tpvId!} compact={true} />
               </PermissionGate>
             </TabsContent>
           </Tabs>

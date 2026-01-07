@@ -3177,5 +3177,107 @@
       "description": "The following merchant accounts have no settlement configuration",
       "configure": "Configure"
     }
+  },
+  "moduleMgmt": {
+    "title": "Module Management",
+    "subtitle": "Configure and manage modules for all venues",
+    "createModule": "Create Module",
+    "tableTitle": "All Modules",
+    "tableDesc": "View all available modules and their venue assignments",
+    "searchPlaceholder": "Search modules...",
+    "presetsCount": "presets",
+    "columns": {
+      "module": "Module",
+      "description": "Description",
+      "enabledVenues": "Enabled Venues",
+      "presets": "Presets",
+      "actions": "Actions"
+    },
+    "dropdown": {
+      "viewVenues": "View Venues",
+      "editModule": "Edit Module",
+      "deleteModule": "Delete Module"
+    },
+    "venueColumns": {
+      "venue": "Venue",
+      "status": "Status",
+      "enabledAt": "Enabled At",
+      "actions": "Actions"
+    },
+    "status": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "actions": {
+      "enable": "Enable",
+      "disable": "Disable"
+    },
+    "stats": {
+      "totalModules": "Total Modules",
+      "availableForVenues": "Available for venues",
+      "totalEnabledCount": "Total Enabled",
+      "acrossAllVenues": "Across all venues",
+      "mostPopular": "Most Popular",
+      "venues": "venues"
+    },
+    "venueDialog": {
+      "title": "Venues for {{module}}",
+      "description": "View and manage which venues have this module enabled"
+    },
+    "enableDialog": {
+      "title": "Enable Module",
+      "description": "Enable {{module}} for {{venue}}",
+      "presetLabel": "Configuration Preset",
+      "presetPlaceholder": "Select a preset (optional)",
+      "noPreset": "No preset (default config)",
+      "presetHelp": "Presets provide pre-configured settings for specific use cases",
+      "cancel": "Cancel",
+      "enabling": "Enabling...",
+      "confirm": "Enable Module"
+    },
+    "createDialog": {
+      "title": "Create New Module",
+      "description": "Create a new global module that can be enabled for venues",
+      "confirm": "Create Module"
+    },
+    "editDialog": {
+      "title": "Edit Module",
+      "description": "Editing configuration for module {{module}}"
+    },
+    "deleteDialog": {
+      "title": "Delete Module",
+      "description": "Are you sure you want to delete the module {{module}}?",
+      "warningEnabled": "This module is enabled for {{count}} venues. You must disable it for all venues before deleting.",
+      "confirmText": "This action cannot be undone. The module will be permanently deleted.",
+      "confirm": "Delete Module"
+    },
+    "form": {
+      "code": "Code",
+      "codeHelp": "Uppercase letters and underscores only (e.g., SERIALIZED_INVENTORY)",
+      "codeNotEditable": "Code cannot be modified",
+      "name": "Name",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this module does...",
+      "defaultConfig": "Default Configuration (JSON)",
+      "defaultConfigHelp": "Configuration that will be applied when no preset is used",
+      "presets": "Presets (JSON)",
+      "presetsHelp": "Pre-defined configurations for different use cases (e.g., telecom, jewelry)"
+    },
+    "toast": {
+      "enabledTitle": "Module Enabled",
+      "enableFailed": "Failed to Enable",
+      "disabledTitle": "Module Disabled",
+      "disableFailed": "Failed to Disable",
+      "createdTitle": "Module Created",
+      "createdDesc": "Module {{name}} has been created successfully",
+      "createFailed": "Failed to Create Module",
+      "updatedTitle": "Module Updated",
+      "updatedDesc": "Module {{name}} has been updated successfully",
+      "updateFailed": "Failed to Update Module",
+      "deletedTitle": "Module Deleted",
+      "deleteFailed": "Failed to Delete Module",
+      "jsonError": "JSON Error",
+      "jsonErrorDesc": "Configuration or presets contain invalid JSON"
+    }
   }
 }

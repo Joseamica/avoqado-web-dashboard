@@ -2825,5 +2825,114 @@
       "venueCreatedDesc": "The new venue has been created successfully.",
       "createVenueError": "Could not create venue."
     }
+  },
+  "moduleMgmt": {
+    "title": "Gestion des Modules",
+    "subtitle": "Configurer et gérer les modules pour tous les établissements",
+    "tableTitle": "Tous les Modules",
+    "tableDesc": "Voir tous les modules disponibles et leurs attributions",
+    "searchPlaceholder": "Rechercher des modules...",
+    "presetsCount": "préréglages",
+    "createModule": "Créer Module",
+    "columns": {
+      "module": "Module",
+      "description": "Description",
+      "enabledVenues": "Établissements Actifs",
+      "presets": "Préréglages",
+      "actions": "Actions"
+    },
+    "dropdown": {
+      "viewVenues": "Voir Établissements",
+      "editModule": "Modifier Module",
+      "deleteModule": "Supprimer Module"
+    },
+    "venueColumns": {
+      "venue": "Établissement",
+      "status": "Statut",
+      "enabledAt": "Activé Le",
+      "actions": "Actions"
+    },
+    "status": {
+      "enabled": "Actif",
+      "disabled": "Inactif"
+    },
+    "actions": {
+      "enable": "Activer",
+      "disable": "Désactiver"
+    },
+    "stats": {
+      "totalModules": "Total des Modules",
+      "availableForVenues": "Disponibles pour les établissements",
+      "totalEnabledCount": "Total Activés",
+      "acrossAllVenues": "Dans tous les établissements",
+      "mostPopular": "Le Plus Populaire",
+      "venues": "établissements"
+    },
+    "venueDialog": {
+      "title": "Établissements avec {{module}}",
+      "description": "Voir et gérer quels établissements ont ce module actif"
+    },
+    "enableDialog": {
+      "title": "Activer Module",
+      "description": "Activer {{module}} pour {{venue}}",
+      "presetLabel": "Préréglage de Configuration",
+      "presetPlaceholder": "Sélectionner un préréglage (optionnel)",
+      "noPreset": "Aucun préréglage (config par défaut)",
+      "presetHelp": "Les préréglages fournissent des configurations prédéfinies pour des cas d'utilisation spécifiques",
+      "cancel": "Annuler",
+      "enabling": "Activation...",
+      "confirm": "Activer Module"
+    },
+    "createDialog": {
+      "title": "Créer Nouveau Module",
+      "description": "Créer un nouveau module disponible pour tous les établissements"
+    },
+    "editDialog": {
+      "title": "Modifier Module",
+      "description": "Mettre à jour la configuration du module {{name}}"
+    },
+    "deleteDialog": {
+      "title": "Supprimer Module",
+      "description": "Êtes-vous sûr de vouloir supprimer le module {{name}} ? Cette action ne peut pas être annulée.",
+      "cannotDelete": "Impossible de supprimer un module actuellement activé sur des établissements. Désactivez d'abord le module sur tous les établissements.",
+      "cancel": "Annuler",
+      "deleting": "Suppression...",
+      "confirm": "Supprimer Module"
+    },
+    "form": {
+      "code": "Code du Module",
+      "codeHelp": "Identifiant unique (ex: SERIALIZED_INVENTORY). Majuscules et underscores uniquement.",
+      "codeReadonly": "Le code ne peut pas être modifié après création",
+      "name": "Nom",
+      "nameHelp": "Nom affiché pour le module",
+      "description": "Description",
+      "descriptionHelp": "Description brève de ce que fait le module",
+      "defaultConfig": "Configuration par Défaut (JSON)",
+      "defaultConfigHelp": "Configuration JSON par défaut appliquée à tous les établissements",
+      "presets": "Préréglages (JSON)",
+      "presetsHelp": "Configurations prédéfinies pour des cas d'utilisation spécifiques (ex: telecom, jewelry)",
+      "cancel": "Annuler",
+      "creating": "Création...",
+      "create": "Créer Module",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer"
+    },
+    "toast": {
+      "enabledTitle": "Module Activé",
+      "enableFailed": "Échec de l'Activation",
+      "disabledTitle": "Module Désactivé",
+      "disableFailed": "Échec de la Désactivation",
+      "createdTitle": "Module Créé",
+      "createdDesc": "Le module {{name}} a été créé avec succès",
+      "createFailed": "Échec de la Création",
+      "updatedTitle": "Module Mis à Jour",
+      "updatedDesc": "Le module {{name}} a été mis à jour avec succès",
+      "updateFailed": "Échec de la Mise à Jour",
+      "deletedTitle": "Module Supprimé",
+      "deletedDesc": "Le module {{name}} a été supprimé avec succès",
+      "deleteFailed": "Échec de la Suppression",
+      "jsonError": "JSON Invalide",
+      "jsonErrorDesc": "Vérifiez que defaultConfig et presets sont du JSON valide"
+    }
   }
 }

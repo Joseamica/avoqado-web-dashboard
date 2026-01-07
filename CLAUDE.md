@@ -614,6 +614,48 @@ Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cur
 
 **Reference:** `src/pages/Venue/VenuePaymentConfig.tsx`
 
+#### Clickable Selection Rows (MANDATORY)
+
+**When a row contains a checkbox or radio button, make the ENTIRE row clickable**, not just the checkbox/radio itself. Users expect to click anywhere on the row to toggle selection.
+
+```typescript
+// ❌ WRONG - Only checkbox is clickable
+<div className="flex items-center p-4">
+  <div className="flex-1">
+    <p className="font-semibold">{label}</p>
+    <p className="text-muted-foreground">{description}</p>
+  </div>
+  <Checkbox
+    checked={isSelected}
+    onCheckedChange={() => toggleItem(item.key)}
+  />
+</div>
+
+// ✅ CORRECT - Entire row is clickable with cursor-pointer
+<div
+  className="flex items-center p-4 cursor-pointer hover:bg-muted/50"
+  onClick={() => toggleItem(item.key)}
+>
+  <div className="flex-1">
+    <p className="font-semibold">{label}</p>
+    <p className="text-muted-foreground">{description}</p>
+  </div>
+  <Checkbox
+    checked={isSelected}
+    onClick={(e) => e.stopPropagation()}  // Prevent double-toggle
+    className="cursor-pointer"
+  />
+</div>
+```
+
+**Key points:**
+- Add `cursor-pointer` to the clickable container
+- Add `hover:bg-muted/50` for visual feedback
+- Use `onClick={(e) => e.stopPropagation()}` on nested interactive elements to prevent double actions
+- Remove `onCheckedChange` from Checkbox when row handles the toggle
+
+**Reference:** `src/pages/Reports/SalesSummary.tsx` (metrics selection panel)
+
 ### 11. Timezone Handling (MANDATORY)
 
 **ALL date/time displays MUST use venue timezone, NOT browser timezone.**

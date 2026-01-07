@@ -306,7 +306,14 @@
     "requireVerificationPhoto": "Requerir foto",
     "requireVerificationPhotoDesc": "Requiere al menos una foto para completar la verificación",
     "requireVerificationBarcode": "Requerir código de barras",
-    "requireVerificationBarcodeDesc": "Requiere al menos un escaneo de código de barras para completar la verificación"
+    "requireVerificationBarcodeDesc": "Requiere al menos un escaneo de código de barras para completar la verificación",
+    "attendanceSection": "Reloj Checador",
+    "requireClockInPhoto": "Foto al registrar entrada",
+    "requireClockInPhotoDesc": "Requiere selfie con ubicación GPS al hacer clock-in",
+    "requireClockOutPhoto": "Foto al registrar salida",
+    "requireClockOutPhotoDesc": "Requiere selfie con ubicación GPS al hacer clock-out",
+    "requireClockInToLogin": "Requiere entrada para iniciar sesión",
+    "requireClockInToLoginDesc": "El personal debe tener clock-in activo para acceder al sistema"
   },
   "activation": {
     "title": "Activar Terminal",

@@ -23,6 +23,7 @@ import {
   Smartphone,
   Clock,
   Banknote,
+  Boxes,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -61,6 +62,7 @@ const SuperadminSidebar: React.FC = () => {
       title: tSidebar('platform'),
       items: [
         { name: tSidebar('features'), href: '/superadmin/features', icon: Zap },
+        { name: tSidebar('modules'), href: '/superadmin/modules', icon: Boxes },
         { name: tSidebar('system'), href: '/superadmin/system', icon: Shield },
         { name: tSidebar('webhooks'), href: '/superadmin/webhooks', icon: Webhook },
         { name: tSidebar('reports'), href: '/superadmin/reports', icon: FileText },
