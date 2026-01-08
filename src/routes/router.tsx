@@ -114,6 +114,7 @@ import {
   CreditAssessment,
   ModuleManagement,
   PayLaterAging,
+  SalesByItem,
   SalesSummary,
 } from './lazyComponents'
 
@@ -574,6 +575,12 @@ const router = createBrowserRouter(
                   path: 'reports/sales-summary',
                   element: <KYCProtectedRoute />,
                   children: [{ index: true, element: <SalesSummary /> }],
+                },
+                // Sales by Item Report (requires KYC verification)
+                {
+                  path: 'reports/sales-by-item',
+                  element: <KYCProtectedRoute />,
+                  children: [{ index: true, element: <SalesByItem /> }],
                 },
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {

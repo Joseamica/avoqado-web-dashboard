@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 import { getDownloadURL, ref, uploadBytesResumable, deleteObject } from 'firebase/storage'
-import { storage } from '@/firebase'
+import { storage, buildStoragePath } from '@/firebase'
 import { Button } from '../ui/button'
 import { DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useForm } from 'react-hook-form'
@@ -87,7 +87,7 @@ export function AddVenueDialog({ onClose, navigate }: AddVenueDialogProps) {
     const blob = await fetch(croppedImage).then(res => res.blob())
 
     const fileName = `cropped_${Date.now()}.jpg`
-    const storageRef = ref(storage, `venues/${venueSlug}/logos/${fileName}`)
+    const storageRef = ref(storage, buildStoragePath(`venues/${venueSlug}/logos/${fileName}`))
     const uploadTask = uploadBytesResumable(storageRef, blob)
 
     setUploading(true)

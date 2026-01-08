@@ -188,5 +188,92 @@
       "allWeeksSubtitle": "Todas las semanas del período",
       "allMonthsSubtitle": "Todos los meses del período"
     }
+  },
+  "salesByItem": {
+    "title": "Ventas por artículo",
+    "subtitle": "Desglose de ventas por artículo del período",
+    "noData": "Sin datos de ventas para este período",
+    "chart": {
+      "title": "Ventas por período"
+    },
+    "columns": {
+      "item": "Artículo",
+      "sku": "SKU",
+      "category": "Categoría",
+      "unit": "Unidad",
+      "itemsSold": "Artículos vendidos",
+      "unitsSold": "Unidades vendidas",
+      "grossSales": "Ventas brutas",
+      "discounts": "Descuentos",
+      "netSales": "Ventas netas"
+    },
+    "summary": {
+      "title": "Resumen",
+      "itemsSold": "Artículos vendidos",
+      "unitsSold": "Unidades vendidas",
+      "grossSales": "Ventas brutas",
+      "discounts": "Descuentos",
+      "netSales": "Ventas netas"
+    },
+    "controls": {
+      "title": "Controles",
+      "apply": "Aplicar",
+      "hoursFilter": {
+        "label": "Horas de los informes diarios",
+        "description": "Filtra los datos por horas del día",
+        "longDescription": "Elige si incluir todas las horas del día o especificar un rango de tiempo personalizado.",
+        "start": "Hora inicio",
+        "end": "Hora fin",
+        "options": {
+          "all": "Todo el día",
+          "allDesc": "Incluir todas las horas (0:00-23:59)",
+          "custom": "Personalizado",
+          "customDesc": "Especificar un rango de tiempo personalizado"
+        }
+      },
+      "reportType": {
+        "label": "Tipo de informe",
+        "description": "Consulta el informe en intervalos horarios, diarios, semanales o mensuales."
+      },
+      "groupBy": {
+        "label": "Mostrar por",
+        "description": "Agrupa artículos por diferentes criterios",
+        "longDescription": "Elige cómo segmentar los artículos en el informe. Esto afecta cómo se organizan los datos en la tabla.",
+        "options": {
+          "none": "Ninguno",
+          "noneDesc": "Sin agrupar (opción predeterminada)",
+          "category": "Categoría",
+          "categoryDesc": "Agrupa por categoría del artículo",
+          "channel": "Canal",
+          "channelDesc": "Agrupa por canal de venta",
+          "paymentMethod": "Método de pago",
+          "paymentMethodDesc": "Agrupa por forma de pago",
+          "device": "Dispositivo",
+          "deviceDesc": "Agrupa por dispositivo",
+          "source": "Fuente",
+          "sourceDesc": "Agrupa por origen del pedido",
+          "serviceOption": "Opción de servicio",
+          "serviceOptionDesc": "Agrupa por tipo de servicio",
+          "itemType": "Tipo de artículo",
+          "itemTypeDesc": "Agrupa por tipo de producto"
+        }
+      },
+      "filterBy": {
+        "label": "Filtrar por",
+        "description": "Filtra artículos por criterios específicos"
+      }
+    },
+    "filters": {
+      "reportType": "Tipo informe"
+    },
+    "actions": {
+      "exportCSV": "Exportar CSV"
+    },
+    "units": {
+      "each": "c/u"
+    },
+    "totals": {
+      "label": "Total"
+    }
   }
 }

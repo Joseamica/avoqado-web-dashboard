@@ -188,5 +188,92 @@
       "allWeeksSubtitle": "All weeks in the period",
       "allMonthsSubtitle": "All months in the period"
     }
+  },
+  "salesByItem": {
+    "title": "Sales by Item",
+    "subtitle": "Item sales breakdown for the period",
+    "noData": "No sales data for this period",
+    "chart": {
+      "title": "Sales by Period"
+    },
+    "columns": {
+      "item": "Item",
+      "sku": "SKU",
+      "category": "Category",
+      "unit": "Unit",
+      "itemsSold": "Items Sold",
+      "unitsSold": "Units Sold",
+      "grossSales": "Gross Sales",
+      "discounts": "Discounts",
+      "netSales": "Net Sales"
+    },
+    "summary": {
+      "title": "Summary",
+      "itemsSold": "Items Sold",
+      "unitsSold": "Units Sold",
+      "grossSales": "Gross Sales",
+      "discounts": "Discounts",
+      "netSales": "Net Sales"
+    },
+    "controls": {
+      "title": "Controls",
+      "apply": "Apply",
+      "hoursFilter": {
+        "label": "Daily report hours",
+        "description": "Filter data by hours of the day",
+        "longDescription": "Choose whether to include all hours of the day or specify a custom time range.",
+        "start": "Start time",
+        "end": "End time",
+        "options": {
+          "all": "All day",
+          "allDesc": "Include all hours (0:00-23:59)",
+          "custom": "Custom",
+          "customDesc": "Specify a custom time range"
+        }
+      },
+      "reportType": {
+        "label": "Report type",
+        "description": "View the report in hourly, daily, weekly or monthly intervals."
+      },
+      "groupBy": {
+        "label": "Show by",
+        "description": "Group items by different criteria",
+        "longDescription": "Choose how to segment items in the report. This affects how data is organized in the table.",
+        "options": {
+          "none": "None",
+          "noneDesc": "No grouping (default)",
+          "category": "Category",
+          "categoryDesc": "Group by item category",
+          "channel": "Channel",
+          "channelDesc": "Group by sales channel",
+          "paymentMethod": "Payment method",
+          "paymentMethodDesc": "Group by payment type",
+          "device": "Device",
+          "deviceDesc": "Group by device",
+          "source": "Source",
+          "sourceDesc": "Group by order source",
+          "serviceOption": "Service option",
+          "serviceOptionDesc": "Group by service type",
+          "itemType": "Item type",
+          "itemTypeDesc": "Group by product type"
+        }
+      },
+      "filterBy": {
+        "label": "Filter by",
+        "description": "Filter items by specific criteria"
+      }
+    },
+    "filters": {
+      "reportType": "Report type"
+    },
+    "actions": {
+      "exportCSV": "Export CSV"
+    },
+    "units": {
+      "each": "ea"
+    },
+    "totals": {
+      "label": "Total"
+    }
   }
 }

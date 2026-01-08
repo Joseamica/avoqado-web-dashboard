@@ -457,8 +457,10 @@ export interface OrderItem {
   id: string
   orderId: string
   order?: Order
-  productId: string
-  product: Product
+  productId: string | null  // Nullable for serialized inventory items
+  product?: Product | null  // Nullable for serialized inventory items
+  productName?: string | null  // Snapshot field - used when productId is null (e.g., serialized items)
+  productSku?: string | null  // Snapshot field - used for serialized item serial numbers
   quantity: number
   unitPrice: number
   total: number
@@ -1103,13 +1105,16 @@ export interface TableSimple {
   capacity: number
 }
 
-export interface OrderItem {
+// Note: This simplified OrderItem interface is kept for backward compatibility
+// but the main OrderItem interface (above) should be used for new code
+export interface OrderItemSimple {
   id: string
   quantity: number
   unitPrice: number
   total: number
   notes: string | null
-  product: Product // El producto asociado a este item
+  product?: Product | null  // Optional for serialized inventory items
+  productName?: string | null  // Snapshot field for when productId is null
 }
 
 // ==========================================

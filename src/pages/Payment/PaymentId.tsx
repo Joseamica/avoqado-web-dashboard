@@ -1117,7 +1117,7 @@ export default function PaymentId() {
                       >
                         <div className="flex-1">
                           <p className="text-sm font-medium text-foreground">
-                            {item.quantity}x {item.product?.name || item.name || 'Item'}
+                            {item.quantity}x {item.productName || item.product?.name || item.name || 'Item'}
                           </p>
                           {item.notes && (
                             <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>

@@ -19,7 +19,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useTranslation } from 'react-i18next'
 import { useVenueEditActions } from '../VenueEditLayout'
 import Cropper from 'react-easy-crop'
-import { storage } from '@/firebase'
+import { storage, buildStoragePath } from '@/firebase'
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
 import { getCroppedImg } from '@/utils/cropImage'
 
@@ -172,7 +172,7 @@ export default function ContactImages() {
     const blob = await fetch(croppedImage).then(r => r.blob())
 
     const fileName = `cropped_${Date.now()}.jpg`
-    const storageRef = ref(storage, `venues/${venueSlug}/logos/${fileName}`)
+    const storageRef = ref(storage, buildStoragePath(`venues/${venueSlug}/logos/${fileName}`))
     const uploadTask = uploadBytesResumable(storageRef, blob)
     setUploading(true)
     uploadTask.on(

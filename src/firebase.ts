@@ -72,4 +72,25 @@ if (app) {
   storage = null
 }
 
+/**
+ * Get the storage prefix based on environment
+ * - production → 'prod'
+ * - development → 'dev'
+ */
+export function getStorageEnvPrefix(): 'prod' | 'dev' {
+  return import.meta.env.PROD ? 'prod' : 'dev'
+}
+
+/**
+ * Build a storage path with environment prefix
+ * @param path - Path without env prefix (e.g., 'venues/my-venue/logos/file.jpg')
+ * @returns Path with env prefix (e.g., 'prod/venues/my-venue/logos/file.jpg')
+ */
+export function buildStoragePath(path: string): string {
+  const prefix = getStorageEnvPrefix()
+  // Remove leading slash if present
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  return `${prefix}/${cleanPath}`
+}
+
 export { storage }

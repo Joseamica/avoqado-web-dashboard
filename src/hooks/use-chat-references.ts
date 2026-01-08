@@ -116,7 +116,7 @@ export function useChatReferences() {
       // Build items list
       let itemsList = ''
       if (order.items && order.items.length > 0) {
-        const items = order.items.slice(0, 5).map(item => `     • ${item.quantity}x ${item.product?.name || 'Producto'} - ${Currency(Number(item.total) || 0)}`)
+        const items = order.items.slice(0, 5).map(item => `     • ${item.quantity}x ${item.productName || item.product?.name || 'Producto'} - ${Currency(Number(item.total) || 0)}`)
         itemsList = `\n   - Productos:\n${items.join('\n')}`
         if (order.items.length > 5) {
           itemsList += `\n     ... y ${order.items.length - 5} productos más`

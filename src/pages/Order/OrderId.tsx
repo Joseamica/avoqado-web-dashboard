@@ -629,7 +629,7 @@ export default function OrderId() {
                               {item.quantity}x
                             </Badge>
                             <span className="font-medium text-foreground">
-                              {item.product?.name || t('detail.items.productNotAvailable')}
+                              {item.productName || item.product?.name || t('detail.items.productNotAvailable')}
                             </span>
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
