@@ -192,7 +192,14 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 						</div>
 						<Switch
 							checked={data.tiersEnabled}
-							onCheckedChange={(checked) => updateData({ tiersEnabled: checked })}
+							onCheckedChange={(checked) => {
+								// Mutually exclusive: if enabling tiers, disable role rates
+								if (checked) {
+									updateData({ tiersEnabled: true, roleRatesEnabled: false })
+								} else {
+									updateData({ tiersEnabled: false })
+								}
+							}}
 						/>
 					</div>
 
@@ -351,7 +358,14 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 						</div>
 						<Switch
 							checked={data.roleRatesEnabled}
-							onCheckedChange={(checked) => updateData({ roleRatesEnabled: checked })}
+							onCheckedChange={(checked) => {
+								// Mutually exclusive: if enabling role rates, disable tiers
+								if (checked) {
+									updateData({ roleRatesEnabled: true, tiersEnabled: false })
+								} else {
+									updateData({ roleRatesEnabled: false })
+								}
+							}}
 						/>
 					</div>
 
