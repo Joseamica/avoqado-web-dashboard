@@ -144,6 +144,15 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 
 			const createdConfig = await createConfigMutation.mutateAsync(input)
 
+			// Create tiers after config creation if enabled
+			if (data.tiersEnabled && data.tiers.length > 0 && venueId && createdConfig?.id) {
+				const tiersWithPeriod = data.tiers.map((tier) => ({
+					...tier,
+					tierPeriod: data.tierPeriod,
+				}))
+				await commissionService.createTiersBatch(venueId, createdConfig.id, tiersWithPeriod)
+			}
+
 			// Create overrides after config creation if enabled
 			if (data.overridesEnabled && data.overrides.length > 0 && venueId && createdConfig?.id) {
 				const overridePromises = data.overrides.map((override) =>
@@ -155,9 +164,6 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 				)
 				await Promise.all(overridePromises)
 			}
-
-			// Note: Tiers are created separately after config creation
-			// This would need a follow-up API call if tiers are enabled
 
 			toast({
 				title: t('success.configCreated'),
