@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import type { CommissionConfig, CommissionCalcType, CommissionRecipient } from '@/types/commission'
@@ -85,8 +86,12 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 	const { t: tCommon } = useTranslation()
 	const navigate = useNavigate()
 	const { venueSlug } = useCurrentVenue()
+	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 	const { toast } = useToast()
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+	// Check if role rates are configured
+	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
 
 	const deleteConfigMutation = useDeleteCommissionConfig()
 
@@ -160,21 +165,48 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 					</div>
 
 					{/* Stats Grid */}
-					<div className="grid grid-cols-2 gap-4 mb-4">
-						<div className="p-3 rounded-lg bg-muted/50">
-							<p className="text-xs text-muted-foreground">{t('config.defaultRate')}</p>
-							<p className="text-lg font-semibold">{formatPercent(config.defaultRate)}</p>
-						</div>
-						<div className="p-3 rounded-lg bg-muted/50">
-							<p className="text-xs text-muted-foreground">{t('config.recipient')}</p>
-							<div className="flex items-center gap-1.5 mt-1">
-								{recipientIcons[config.recipient]}
-								<span className="text-sm font-medium">
-									{t('recipients.' + config.recipient)}
-								</span>
+					{hasRoleRates ? (
+						<div className="space-y-3 mb-4">
+							{/* Role Rates */}
+							<div className="p-3 rounded-lg bg-muted/50">
+								<p className="text-xs text-muted-foreground mb-2">{t('config.roleRates')}</p>
+								<div className="grid grid-cols-3 gap-2">
+									{Object.entries(config.roleRates!).map(([role, rate]) => (
+										<div key={role} className="text-center">
+											<p className="text-lg font-semibold">{formatPercent(rate)}</p>
+											<p className="text-xs text-muted-foreground">{getRoleDisplayName(role)}</p>
+										</div>
+									))}
+								</div>
+							</div>
+							{/* Recipient */}
+							<div className="p-3 rounded-lg bg-muted/50">
+								<p className="text-xs text-muted-foreground">{t('config.recipient')}</p>
+								<div className="flex items-center gap-1.5 mt-1">
+									{recipientIcons[config.recipient]}
+									<span className="text-sm font-medium">
+										{t('recipients.' + config.recipient)}
+									</span>
+								</div>
 							</div>
 						</div>
-					</div>
+					) : (
+						<div className="grid grid-cols-2 gap-4 mb-4">
+							<div className="p-3 rounded-lg bg-muted/50">
+								<p className="text-xs text-muted-foreground">{t('config.defaultRate')}</p>
+								<p className="text-lg font-semibold">{formatPercent(config.defaultRate)}</p>
+							</div>
+							<div className="p-3 rounded-lg bg-muted/50">
+								<p className="text-xs text-muted-foreground">{t('config.recipient')}</p>
+								<div className="flex items-center gap-1.5 mt-1">
+									{recipientIcons[config.recipient]}
+									<span className="text-sm font-medium">
+										{t('recipients.' + config.recipient)}
+									</span>
+								</div>
+							</div>
+						</div>
+					)}
 
 					{/* Meta Info */}
 					<div className="flex items-center justify-between text-xs text-muted-foreground">
