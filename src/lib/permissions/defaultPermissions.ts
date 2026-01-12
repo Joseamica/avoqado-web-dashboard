@@ -85,6 +85,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'tpv:read', // Can view TPV terminals (but not create/edit/command)
     'customers:read',
     'loyalty:read',
+    'commissions:view_own', // Can view their own commissions
   ],
 
   /**
@@ -106,6 +107,7 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'loyalty:read',
     'loyalty:redeem', // Can redeem points at POS
     'coupons:read', // Can validate coupons at POS
+    'commissions:view_own', // Can view their own commissions
   ],
 
   /**
@@ -184,6 +186,10 @@ export const DEFAULT_PERMISSIONS: Record<StaffRole, string[]> = {
     'billing:history:read',
     'billing:payment-methods:read',
     'billing:tokens:read',
+    // Commission Management (read + approve for MANAGER)
+    'commissions:read',
+    'commissions:view_own',
+    'commissions:approve',
   ],
 
   /**
@@ -333,6 +339,18 @@ export const PERMISSION_CATEGORIES = {
       'billing:payment-methods:manage',
       'billing:tokens:read',
       'billing:tokens:purchase',
+    ],
+  },
+  COMMISSIONS: {
+    label: 'Commission Management',
+    permissions: [
+      'commissions:read',
+      'commissions:create',
+      'commissions:update',
+      'commissions:delete',
+      'commissions:approve',
+      'commissions:process_payout',
+      'commissions:view_own',
     ],
   },
   // ===========================
