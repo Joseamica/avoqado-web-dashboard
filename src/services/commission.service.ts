@@ -69,8 +69,8 @@ export const commissionService = {
 
 	// Update a commission config
 	async updateConfig(venueId: string, configId: string, data: UpdateCommissionConfigInput): Promise<CommissionConfig> {
-		const response = await api.patch(`${BASE_URL}/venues/${venueId}/configs/${configId}`, data)
-		return response.data
+		const response = await api.put(`${BASE_URL}/venues/${venueId}/configs/${configId}`, data)
+		return response.data.data
 	},
 
 	// Delete a commission config (soft delete)
