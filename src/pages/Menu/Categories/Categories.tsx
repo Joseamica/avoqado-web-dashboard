@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 export default function Categories() {
   const { t } = useTranslation('menu')
@@ -135,7 +136,13 @@ export default function Categories() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('categories.title')}</h1>
+        <PageTitleWithInfo
+          title={t('categories.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.categories', {
+            defaultValue: 'Crea y organiza categorias para agrupar productos del menu.',
+          })}
+        />
         <PermissionGate permission="menu:create">
           <Button asChild>
             <Link

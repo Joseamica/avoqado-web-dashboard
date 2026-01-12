@@ -3,6 +3,7 @@ import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DateRangePicker } from '@/components/date-range-picker'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { getPreviousPeriod } from '@/utils/datetime'
 
@@ -47,7 +48,13 @@ export const DashboardHeader = ({
   return (
     <div className="sticky top-0 z-10 bg-background border-b border-border shadow-sm p-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-2xl font-bold text-foreground"
+          tooltip={t('info.overview', {
+            defaultValue: 'Resumen general del rendimiento del venue.',
+          })}
+        />
         <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
           {/* Quick filter buttons */}
           <div className="flex space-x-2">

@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import api from '@/api'
 import { Loader2 } from 'lucide-react'
 import { PermissionGate } from '@/components/PermissionGate'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 interface ProductPricingAnalysis {
   id: string
@@ -430,7 +431,13 @@ export default function Pricing() {
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-row items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">{t('pricing.title')}</h1>
+            <PageTitleWithInfo
+              title={t('pricing.title')}
+              className="text-xl font-semibold"
+              tooltip={t('info.pricing', {
+                defaultValue: 'Analiza costos vs precio para detectar margen y rentabilidad.',
+              })}
+            />
             <p className="text-sm text-muted-foreground">{t('pricing.subtitle')}</p>
           </div>
         </div>

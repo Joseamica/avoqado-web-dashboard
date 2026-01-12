@@ -9,6 +9,7 @@ import { Menu, MenuCategory, Product } from '@/types'
 import { InventoryBadge } from '@/components/inventory/InventoryBadge'
 import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
 import { MenuImportDialog } from '@/components/menu/MenuImportDialog'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { Active, closestCenter, DndContext, DragOverlay, KeyboardSensor, Over, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -511,7 +512,13 @@ export default function Overview() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold">{t('overview.title')}</h1>
+        <PageTitleWithInfo
+          title={t('overview.title')}
+          className="text-3xl font-bold"
+          tooltip={t('info.overview', {
+            defaultValue: 'Resumen del menu con categorias y productos para gestionar estructura y disponibilidad.',
+          })}
+        />
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
             {t('overview.manageCategories')}

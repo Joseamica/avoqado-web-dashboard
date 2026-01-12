@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   Select,
   SelectContent,
@@ -119,10 +120,18 @@ const OrganizationDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-primary" />
-            {overview?.name || t('dashboard.title')}
-          </h1>
+          <PageTitleWithInfo
+            title={
+              <>
+                <Building2 className="h-8 w-8 text-primary" />
+                <span>{overview?.name || t('dashboard.title')}</span>
+              </>
+            }
+            className="text-3xl font-bold text-foreground flex items-center gap-2"
+            tooltip={t('info.dashboard', {
+              defaultValue: 'Vista general de la organizacion con KPIs multi-venue.',
+            })}
+          />
           <p className="text-muted-foreground mt-1">
             {t('dashboard.subtitle', { count: overview?.venueCount || 0 })}
           </p>

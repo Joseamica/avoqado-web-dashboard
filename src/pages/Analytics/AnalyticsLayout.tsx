@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Outlet, useSearchParams } from 'react-router-dom'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 const compares = ['previous_period', 'previous_year'] as const
 
@@ -40,7 +41,13 @@ export default function AnalyticsLayout() {
     <div className="p-4 grid gap-3">
       <header className="flex items-center justify-between">
         <div className="grid gap-1">
-          <h1 className="text-xl font-semibold">{t('title')}</h1>
+          <PageTitleWithInfo
+            title={t('title')}
+            className="text-xl font-semibold"
+            tooltip={t('info.overview', {
+              defaultValue: 'Dashboard de analiticas con indicadores clave y tendencias del negocio.',
+            })}
+          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

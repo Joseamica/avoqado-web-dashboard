@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   Form,
   FormControl,
@@ -99,10 +100,18 @@ const OrganizationSettings: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Settings className="h-8 w-8 text-primary" />
-          {t('settings.title')}
-        </h1>
+        <PageTitleWithInfo
+          title={
+            <>
+              <Settings className="h-8 w-8 text-primary" />
+              <span>{t('settings.title')}</span>
+            </>
+          }
+          className="text-3xl font-bold text-foreground flex items-center gap-2"
+          tooltip={t('info.settings', {
+            defaultValue: 'Configura datos legales y facturacion de la organizacion.',
+          })}
+        />
         <p className="text-muted-foreground mt-1">
           {t('settings.subtitle')}
         </p>
@@ -200,7 +209,7 @@ const OrganizationSettings: React.FC = () => {
                         <Input
                           {...field}
                           value={field.value || ''}
-                          placeholder="RFC"
+                          placeholder={t('settings.taxIdPlaceholder', { defaultValue: 'RFC' })}
                         />
                       </FormControl>
                       <FormDescription>
@@ -224,7 +233,7 @@ const OrganizationSettings: React.FC = () => {
                             {...field}
                             value={field.value || ''}
                             className="pl-10"
-                            placeholder="facturacion@empresa.com"
+                            placeholder={t('settings.billingEmailPlaceholder', { defaultValue: 'facturacion@empresa.com' })}
                           />
                         </div>
                       </FormControl>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Bell, Filter, Search, Check, CheckCheck, Trash2, Settings, RefreshCw } from 'lucide-react'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useNotifications } from '@/context/NotificationContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
@@ -108,15 +109,23 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center">
-            <Bell className="h-6 w-6 mr-2" />
-            {t('title')}
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {unreadCount}
-              </Badge>
-            )}
-          </h1>
+          <PageTitleWithInfo
+            title={
+              <>
+                <Bell className="h-6 w-6 mr-2" />
+                {t('title')}
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </>
+            }
+            className="text-2xl font-bold text-foreground flex items-center"
+            tooltip={t('info.page', {
+              defaultValue: 'Centro de notificaciones del venue con filtros y acciones rapidas.',
+            })}
+          />
           <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
         </div>
 

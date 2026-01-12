@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   Select,
   SelectContent,
@@ -87,10 +88,18 @@ const OrganizationVenues: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Store className="h-8 w-8 text-primary" />
-            {t('venues.title')}
-          </h1>
+          <PageTitleWithInfo
+            title={
+              <>
+                <Store className="h-8 w-8 text-primary" />
+                <span>{t('venues.title')}</span>
+              </>
+            }
+            className="text-3xl font-bold text-foreground flex items-center gap-2"
+            tooltip={t('info.venues', {
+              defaultValue: 'Analiticas y rendimiento por venue dentro de la organizacion.',
+            })}
+          />
           <p className="text-muted-foreground mt-1">
             {t('venues.subtitle', { count: venues?.length || 0 })}
           </p>

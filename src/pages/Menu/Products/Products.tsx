@@ -42,6 +42,7 @@ import { InventoryBadge } from '@/components/inventory/InventoryBadge'
 import { InventoryDetailsModal } from '@/components/inventory/InventoryDetailsModal'
 import { AdjustStockDialog } from '@/components/AdjustStockDialog'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 export default function Products() {
   const { t } = useTranslation('menu')
@@ -527,7 +528,13 @@ export default function Products() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('products.title')}</h1>
+        <PageTitleWithInfo
+          title={t('products.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.products', {
+            defaultValue: 'Lista y administra productos, precios, inventario y visibilidad en el menu.',
+          })}
+        />
         <PermissionGate permission="menu:create">
           <Button asChild>
             <Link

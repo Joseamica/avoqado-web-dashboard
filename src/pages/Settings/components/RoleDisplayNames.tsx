@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RotateCcw, Save, Info, EyeOff, Eye, Palette, X } from 'lucide-react'
+import { Info, EyeOff, Eye, Palette, X } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +19,6 @@ import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { RoleConfigInput, StaffRole, DEFAULT_ROLE_DISPLAY_NAMES } from '@/types'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
-import { PermissionGate } from '@/components/PermissionGate'
 
 // Predefined colors for roles
 const ROLE_COLORS = [
@@ -43,7 +41,19 @@ interface RoleEditState {
   isActive: boolean
 }
 
-export default function RoleDisplayNames() {
+export type RoleDisplayNamesActions = {
+  onSave: () => void
+  onReset: () => void
+  hasChanges: boolean
+  isUpdating: boolean
+  isResetting: boolean
+}
+
+interface RoleDisplayNamesProps {
+  onActionsChange?: (actions: RoleDisplayNamesActions | null) => void
+}
+
+export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesProps) {
   const { t } = useTranslation('settings')
   const { toast } = useToast()
 
@@ -207,6 +217,22 @@ export default function RoleDisplayNames() {
     }
   }
 
+  useEffect(() => {
+    if (!onActionsChange) return
+    onActionsChange({
+      onSave: handleSave,
+      onReset: () => setShowResetDialog(true),
+      hasChanges,
+      isUpdating,
+      isResetting,
+    })
+  }, [onActionsChange, handleSave, hasChanges, isUpdating, isResetting])
+
+  useEffect(() => {
+    if (!onActionsChange) return
+    return () => onActionsChange(null)
+  }, [onActionsChange])
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -229,41 +255,6 @@ export default function RoleDisplayNames() {
           )}
         </AlertDescription>
       </Alert>
-
-      {/* Actions */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {hasChanges && t('roleDisplayNames.unsavedChanges', 'You have unsaved changes')}
-        </div>
-        <div className="flex items-center gap-2">
-          <PermissionGate permission="role-config:update">
-            <Button
-              variant="outline"
-              onClick={() => setShowResetDialog(true)}
-              disabled={isResetting}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              {t('roleDisplayNames.resetAll', 'Reset All')}
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || isUpdating}
-            >
-              {isUpdating ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                  {t('roleDisplayNames.saving', 'Saving...')}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('roleDisplayNames.saveChanges', 'Save Changes')}
-                </>
-              )}
-            </Button>
-          </PermissionGate>
-        </div>
-      </div>
 
       {/* Role Cards */}
       <div className="grid gap-4 md:grid-cols-2">

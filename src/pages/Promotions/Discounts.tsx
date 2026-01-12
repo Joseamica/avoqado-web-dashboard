@@ -34,6 +34,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import discountService from '@/services/discount.service'
@@ -336,7 +337,13 @@ export default function Discounts() {
 		<div className="p-4 bg-background text-foreground">
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h1 className="text-2xl font-bold">{t('discounts.title')}</h1>
+					<PageTitleWithInfo
+						title={t('discounts.title')}
+						className="text-2xl font-bold"
+						tooltip={t('info.discounts', {
+							defaultValue: 'Crea y administra descuentos para pedidos, productos o grupos de clientes.',
+						})}
+					/>
 					<p className="text-muted-foreground">{t('discounts.subtitle')}</p>
 				</div>
 

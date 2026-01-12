@@ -6,6 +6,7 @@ import { ReviewFilters, ReviewFiltersState } from '@/components/Review/ReviewFil
 import { ReviewResponseDialog } from '@/components/Review/ReviewResponseDialog'
 import { ReviewStats } from '@/components/Review/ReviewStats'
 import { getSentimentFromRating } from '@/components/Review/SentimentBadge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -215,7 +216,13 @@ export default function ReviewSummary() {
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
-        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-bold text-foreground"
+          tooltip={t('info.page', {
+            defaultValue: 'Monitorea y responde resenas de clientes con filtros por fuente y calificacion.',
+          })}
+        />
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           <span className="ml-2 text-foreground">{t('loading')}</span>
@@ -228,7 +235,13 @@ export default function ReviewSummary() {
   if (error) {
     return (
       <div className="p-6 space-y-6">
-        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-bold text-foreground"
+          tooltip={t('info.page', {
+            defaultValue: 'Monitorea y responde resenas de clientes con filtros por fuente y calificacion.',
+          })}
+        />
         <div className="text-center py-12 text-destructive">
           <p className="text-lg font-semibold">{t('error')}</p>
           <p className="text-sm text-muted-foreground mt-2">{error instanceof Error ? error.message : t('unknownError')}</p>
@@ -241,7 +254,13 @@ export default function ReviewSummary() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-bold text-foreground"
+          tooltip={t('info.page', {
+            defaultValue: 'Monitorea y responde resenas de clientes con filtros por fuente y calificacion.',
+          })}
+        />
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => setSettingsDialogOpen(true)} className="gap-2">
             <Settings className="h-4 w-4" />

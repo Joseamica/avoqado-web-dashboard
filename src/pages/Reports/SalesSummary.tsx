@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DateRangePicker } from '@/components/date-range-picker'
@@ -926,7 +927,13 @@ export default function SalesSummary() {
     return (
       <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{t('salesSummary.title')}</h1>
+          <PageTitleWithInfo
+            title={t('salesSummary.title')}
+            className="text-2xl font-bold"
+            tooltip={t('info.salesSummary', {
+              defaultValue: 'Resumen de ventas con totales y desglose por metodo, canal y periodo.',
+            })}
+          />
         </div>
         <GlassCard className="p-6">
           <p className="text-destructive">
@@ -942,7 +949,13 @@ export default function SalesSummary() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{t('salesSummary.title')}</h1>
+          <PageTitleWithInfo
+            title={t('salesSummary.title')}
+            className="text-2xl font-bold"
+            tooltip={t('info.salesSummary', {
+              defaultValue: 'Resumen de ventas con totales y desglose por metodo, canal y periodo.',
+            })}
+          />
           <Badge variant="outline" className="text-xs font-normal">
             Beta
           </Badge>

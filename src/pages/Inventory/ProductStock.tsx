@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { getProducts } from '@/services/menu.service'
@@ -275,7 +276,13 @@ export default function ProductStock() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">{t('productStock.title')}</h1>
+        <PageTitleWithInfo
+          title={t('productStock.title')}
+          className="text-3xl font-bold"
+          tooltip={t('info.productStock', {
+            defaultValue: 'Estado de stock por producto, alertas y valor total.',
+          })}
+        />
         <p className="text-muted-foreground">{t('productStock.subtitle')}</p>
       </div>
 

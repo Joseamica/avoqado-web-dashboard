@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useToast } from '@/hooks/use-toast'
 import { notificationCategories } from '@/lib/notifications/categories'
 import * as notificationService from '@/services/notification.service'
@@ -160,7 +161,13 @@ export function NotificationPreferencesV2({ className }: NotificationPreferences
     <div className={`max-w-5xl mx-auto p-6 space-y-6 ${className}`}>
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{t('preferences')}</h1>
+        <PageTitleWithInfo
+          title={t('preferences')}
+          className="text-3xl font-bold text-foreground"
+          tooltip={t('info.preferences', {
+            defaultValue: 'Configura canales, horarios y prioridades de notificaciones.',
+          })}
+        />
         <p className="text-muted-foreground mt-2">{t('preferencesSubtitle')}</p>
         <div className="mt-4 flex items-center gap-2">
           <Badge variant="secondary" className="text-sm">

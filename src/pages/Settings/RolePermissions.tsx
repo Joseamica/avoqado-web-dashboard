@@ -7,6 +7,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import { useDebounce } from '@/hooks/useDebounce'
 
 import { Button } from '@/components/ui/button'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { SimpleConfirmDialog } from '@/pages/Inventory/components/SimpleConfirmDialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -17,7 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole } from '@/types'
 import rolePermissionService from '@/services/rolePermission.service'
-import RoleDisplayNames from './components/RoleDisplayNames'
+import RoleDisplayNames, { type RoleDisplayNamesActions } from './components/RoleDisplayNames'
 import PermissionSearch from './components/PermissionSearch'
 import PermissionTemplateSelector from './components/PermissionTemplateSelector'
 import PermissionSuperCategory from './components/PermissionSuperCategory'
@@ -28,8 +29,10 @@ import {
   TPV_SUPER_CATEGORIES,
   filterPermissionsBySearch,
 } from '@/lib/permissions/permissionGroups'
+import { PermissionGate } from '@/components/PermissionGate'
 
 type PermissionTab = 'dashboard' | 'tpv'
+type RolePermissionsTab = 'permissions' | 'display-names'
 
 export default function RolePermissions() {
   const { slug } = useParams<{ slug: string }>()
@@ -37,6 +40,8 @@ export default function RolePermissions() {
   const { t } = useTranslation('settings')
   const { toast } = useToast()
   const { formatDate } = useVenueDateTime()
+  const [activeRoleTab, setActiveRoleTab] = useState<RolePermissionsTab>('permissions')
+  const [roleDisplayActions, setRoleDisplayActions] = useState<RoleDisplayNamesActions | null>(null)
   const queryClient = useQueryClient()
 
   // Get venueId from activeVenue or find it from user's venues using slug
@@ -351,18 +356,31 @@ export default function RolePermissions() {
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-                <Shield className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
-                <span className="truncate">{t('rolePermissions.title', 'Role Permissions')}</span>
-              </h1>
+              <PageTitleWithInfo
+                title={
+                  <>
+                    <Shield className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0" />
+                    <span className="truncate">{t('rolePermissions.title', 'Role Permissions')}</span>
+                  </>
+                }
+                className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"
+                tooltip={t('info.rolePermissions', {
+                  defaultValue: 'Define permisos por rol para controlar accesos y acciones.',
+                })}
+              />
               <p className="text-muted-foreground text-sm sm:text-base">
                 {t('rolePermissions.description', 'Customize permissions for each role in your venue')}
               </p>
             </div>
 
-            {/* Save button */}
-            {selectedRole && (
-              <Button onClick={handleSave} disabled={!hasChanges || updateMutation.isPending} size="default" className="w-full sm:w-auto flex-shrink-0">
+            {/* Header actions (contextual by tab) */}
+            {activeRoleTab === 'permissions' && selectedRole && (
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || updateMutation.isPending}
+                size="default"
+                className="w-full sm:w-auto flex-shrink-0"
+              >
                 {updateMutation.isPending ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
@@ -376,6 +394,40 @@ export default function RolePermissions() {
                 )}
               </Button>
             )}
+            {activeRoleTab === 'display-names' && (
+              <PermissionGate permission="role-config:update">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={() => roleDisplayActions?.onReset()}
+                    disabled={!roleDisplayActions || roleDisplayActions.isResetting}
+                    size="default"
+                    className="w-full sm:w-auto flex-shrink-0"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    {t('roleDisplayNames.resetAll')}
+                  </Button>
+                  <Button
+                    onClick={() => roleDisplayActions?.onSave()}
+                    disabled={!roleDisplayActions || !roleDisplayActions.hasChanges || roleDisplayActions.isUpdating}
+                    size="default"
+                    className="w-full sm:w-auto flex-shrink-0"
+                  >
+                    {roleDisplayActions?.isUpdating ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                        {t('roleDisplayNames.saving')}
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {t('roleDisplayNames.saveChanges')}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </PermissionGate>
+            )}
           </div>
         </div>
       </div>
@@ -383,7 +435,7 @@ export default function RolePermissions() {
       {/* Main Content */}
       <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6">
       {/* Main Tabs */}
-      <Tabs defaultValue="permissions" className="space-y-4 sm:space-y-6">
+      <Tabs value={activeRoleTab} onValueChange={value => setActiveRoleTab(value as RolePermissionsTab)} className="space-y-4 sm:space-y-6">
         <TabsList className="inline-flex h-9 sm:h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border w-fit">
           <TabsTrigger
             value="permissions"
@@ -686,7 +738,7 @@ export default function RolePermissions() {
 
         {/* Display Names Tab */}
         <TabsContent value="display-names" className="space-y-6">
-          <RoleDisplayNames />
+          <RoleDisplayNames onActionsChange={setRoleDisplayActions} />
         </TabsContent>
       </Tabs>
       </div>

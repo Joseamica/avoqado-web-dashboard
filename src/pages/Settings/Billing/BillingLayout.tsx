@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 export default function BillingLayout() {
   const { t } = useTranslation('billing')
@@ -10,7 +11,13 @@ export default function BillingLayout() {
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
       <div className="flex flex-row justify-between w-full px-6 py-3 bg-background border-b">
-        <h1 className="text-xl font-semibold text-foreground">{t('pageTitle')}</h1>
+        <PageTitleWithInfo
+          title={t('pageTitle')}
+          className="text-xl font-semibold text-foreground"
+          tooltip={t('info.billing', {
+            defaultValue: 'Gestiona suscripciones, historial, metodos de pago y tokens.',
+          })}
+        />
       </div>
 
       {/* Horizontal Navigation */}

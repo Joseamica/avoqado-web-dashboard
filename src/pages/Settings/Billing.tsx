@@ -32,6 +32,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useVenueDateTime } from '@/utils/datetime'
 import { AlertCircle, Calendar, CheckCircle2, CreditCard, Download, Filter, Search, Sparkles, X } from 'lucide-react'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PaymentMethodsSection } from './components/PaymentMethodsSection'
@@ -414,7 +415,13 @@ export default function Billing() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">{t('pageTitle')}</h1>
+        <PageTitleWithInfo
+          title={t('pageTitle')}
+          className="text-3xl font-bold"
+          tooltip={t('info.overview', {
+            defaultValue: 'Resumen del plan, suscripciones activas y consumo.',
+          })}
+        />
         <p className="text-muted-foreground mt-2">{t('pageSubtitle')}</p>
       </div>
 

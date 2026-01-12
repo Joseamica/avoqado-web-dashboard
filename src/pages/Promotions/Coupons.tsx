@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import couponService from '@/services/coupon.service'
@@ -267,7 +268,13 @@ export default function Coupons() {
     <div className="p-4 bg-background text-foreground">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('coupons.title')}</h1>
+          <PageTitleWithInfo
+            title={t('coupons.title')}
+            className="text-2xl font-bold"
+            tooltip={t('info.coupons', {
+              defaultValue: 'Crea y administra cupones vinculados a descuentos y su vigencia.',
+            })}
+          />
           <p className="text-muted-foreground">{t('coupons.subtitle')}</p>
         </div>
 

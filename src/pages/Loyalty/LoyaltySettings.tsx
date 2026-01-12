@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { PermissionGate } from '@/components/PermissionGate'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import loyaltyService from '@/services/loyalty.service'
 import { getIntlLocale } from '@/utils/i18n-locale'
 
@@ -143,7 +144,13 @@ export default function LoyaltySettings() {
 	return (
 		<div className="p-6 bg-background text-foreground">
 			<div className="mb-6">
-				<h1 className="text-2xl font-bold">{t('title')}</h1>
+				<PageTitleWithInfo
+					title={t('title')}
+					className="text-2xl font-bold"
+					tooltip={t('info.loyalty', {
+						defaultValue: 'Configura el programa de lealtad, reglas de acumulacion y canje.',
+					})}
+				/>
 				<p className="text-muted-foreground">{t('subtitle')}</p>
 			</div>
 

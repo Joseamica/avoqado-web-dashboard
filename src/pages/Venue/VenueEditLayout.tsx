@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // Context para controlar los botones de acción desde las páginas hijas
@@ -75,7 +76,13 @@ export default function VenueEditLayout() {
             <Button variant="ghost" size="icon" onClick={() => navigate(`/venues/${venueSlug}`)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold text-foreground">{t('edit.title', { defaultValue: 'Venue Settings' })}</h1>
+            <PageTitleWithInfo
+              title={t('edit.title', { defaultValue: 'Venue Settings' })}
+              className="text-xl font-semibold text-foreground"
+              tooltip={t('info.edit', {
+                defaultValue: 'Actualiza datos del venue, documentos e integraciones.',
+              })}
+            />
           </div>
 
           {/* Action Buttons - Support both legacy and new interface */}

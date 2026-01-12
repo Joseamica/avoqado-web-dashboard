@@ -34,6 +34,7 @@ import api from '@/api'
 import * as orderService from '@/services/order.service'
 import { teamService, type TeamMember } from '@/services/team.service'
 import { AddToAIButton } from '@/components/AddToAIButton'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
@@ -681,7 +682,13 @@ export default function Orders() {
   return (
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.list', {
+            defaultValue: 'Consulta y filtra las ordenes del venue, con acceso al detalle y exportacion.',
+          })}
+        />
         <div className="flex gap-2">
           {/* Pay Later - Navigate to dedicated report */}
           <Button

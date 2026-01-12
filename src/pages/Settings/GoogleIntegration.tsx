@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -153,7 +154,13 @@ export default function GoogleIntegration() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-2xl font-bold text-foreground"
+          tooltip={t('info.page', {
+            defaultValue: 'Conecta Google Business para resenas y sincronizacion.',
+          })}
+        />
         <p className="text-muted-foreground mt-1">{t('description')}</p>
       </div>
 

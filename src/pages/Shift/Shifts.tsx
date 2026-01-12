@@ -39,6 +39,7 @@ import { useShiftSocketEvents } from '@/hooks/use-shift-socket-events'
 import { usePaymentSocketEvents } from '@/hooks/use-payment-socket-events'
 import { useToast } from '@/hooks/use-toast'
 import { AddToAIButton } from '@/components/AddToAIButton'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { ShiftReference } from '@/types/chat-references'
 
@@ -476,7 +477,13 @@ export default function Shifts() {
   return (
     <div className="p-4 bg-background text-foreground">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('title')}</h1>
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.list', {
+            defaultValue: 'Lista de turnos con ventas y propinas, incluyendo detalle por staff.',
+          })}
+        />
         {/* <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
       {mutation.isPending ? 'Syncing...' : 'Syncronizar Meseros'}
     </Button> */}

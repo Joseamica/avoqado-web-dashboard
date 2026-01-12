@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { GlassCard } from '@/components/ui/glass-card'
 import { StatusPulse } from '@/components/ui/status-pulse'
 import { MetricCard } from '@/components/ui/metric-card'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useAuth } from '@/context/AuthContext'
 import { Terminal as TerminalType, StaffRole } from '@/types'
@@ -644,7 +645,13 @@ export default function Tpvs() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t('tpv.title', { defaultValue: 'Terminales Punto de Venta' })}</h1>
+            <PageTitleWithInfo
+              title={t('tpv.title', { defaultValue: 'Terminales Punto de Venta' })}
+              className="text-2xl font-bold tracking-tight"
+              tooltip={t('tpv.info', {
+                defaultValue: 'Administra terminales TPV, su estado y acciones remotas.',
+              })}
+            />
             <p className="text-sm text-muted-foreground mt-1">
               {t('tpv.subtitle', { defaultValue: 'Gestiona los dispositivos TPV de tu restaurante' })}
             </p>

@@ -35,6 +35,7 @@ import { useForm } from 'react-hook-form'
 import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
@@ -288,7 +289,13 @@ export default function ModifierGroups() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('modifiers.title')}</h1>
+        <PageTitleWithInfo
+          title={t('modifiers.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.modifierGroups', {
+            defaultValue: 'Configura grupos de modificadores para personalizar productos (ej. extras o tamanos).',
+          })}
+        />
 
         <PermissionGate permission="menu:create">
           <Button asChild>

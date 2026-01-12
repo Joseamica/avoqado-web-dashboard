@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -85,10 +86,18 @@ export default function Account() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <User className="h-6 w-6" />
-          {t('title')}
-        </h1>
+        <PageTitleWithInfo
+          title={
+            <>
+              <User className="h-6 w-6" />
+              <span>{t('title')}</span>
+            </>
+          }
+          className="text-2xl font-semibold flex items-center gap-2"
+          tooltip={t('info.page', {
+            defaultValue: 'Administra tus datos de cuenta, perfil y credenciales.',
+          })}
+        />
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 

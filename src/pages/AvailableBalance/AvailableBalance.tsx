@@ -7,6 +7,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -404,7 +405,13 @@ export default function AvailableBalance() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <PageTitleWithInfo
+            title={t('title')}
+            className="text-3xl font-bold tracking-tight"
+            tooltip={t('info.page', {
+              defaultValue: 'Consulta el saldo disponible y simula fechas de deposito.',
+            })}
+          />
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <Button onClick={() => setShowSimulationDialog(true)}>

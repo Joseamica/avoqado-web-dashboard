@@ -6,6 +6,7 @@ import { getOrganizationTeam } from '@/services/organization.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Table,
@@ -99,10 +100,18 @@ const OrganizationTeam: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-8 w-8 text-primary" />
-            {t('team.title')}
-          </h1>
+          <PageTitleWithInfo
+            title={
+              <>
+                <Users className="h-8 w-8 text-primary" />
+                <span>{t('team.title')}</span>
+              </>
+            }
+            className="text-3xl font-bold text-foreground flex items-center gap-2"
+            tooltip={t('info.team', {
+              defaultValue: 'Gestiona miembros y roles a nivel organizacion.',
+            })}
+          />
           <p className="text-muted-foreground mt-1">
             {t('team.subtitle', { count: team?.length || 0 })}
           </p>

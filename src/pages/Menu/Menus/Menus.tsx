@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import DataTable from '@/components/data-table'
 import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getMenus } from '@/services/menu.service'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -90,7 +91,13 @@ export default function Menus() {
   return (
     <div className="p-4">
       <div className="flex flex-row items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">{t('menus.title')}</h1>
+        <PageTitleWithInfo
+          title={t('menus.title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.menus', {
+            defaultValue: 'Gestiona los menus del venue, horarios y categorias asignadas.',
+          })}
+        />
         <Button asChild>
           <Link
             to={`create`}

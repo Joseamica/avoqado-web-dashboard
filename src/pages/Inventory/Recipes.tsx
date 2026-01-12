@@ -18,6 +18,7 @@ import api from '@/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { PermissionGate } from '@/components/PermissionGate'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 interface ProductWithRecipe {
   id: string
@@ -344,7 +345,13 @@ export default function Recipes() {
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-row items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">{t('recipes.title')}</h1>
+            <PageTitleWithInfo
+              title={t('recipes.title')}
+              className="text-xl font-semibold"
+              tooltip={t('info.recipes', {
+                defaultValue: 'Define recetas y cantidades para calcular costos y consumo de inventario.',
+              })}
+            />
             <p className="text-sm text-muted-foreground">{t('recipes.subtitle')}</p>
           </div>
           <Button

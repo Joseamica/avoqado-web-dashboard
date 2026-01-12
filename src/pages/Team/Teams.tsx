@@ -41,6 +41,7 @@ import { useVenueDateTime } from '@/utils/datetime'
 import EditTeamMemberForm from './components/EditTeamMemberForm'
 import InviteTeamMemberForm from './components/InviteTeamMemberForm'
 import { PermissionGate } from '@/components/PermissionGate'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 export default function Teams() {
   const { venueId } = useCurrentVenue()
@@ -384,7 +385,13 @@ export default function Teams() {
     <div className={`p-4 bg-background text-foreground`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('header.title')}</h1>
+          <PageTitleWithInfo
+            title={t('header.title')}
+            className="text-2xl font-bold"
+            tooltip={t('info.team', {
+              defaultValue: 'Gestiona miembros del equipo, roles e invitaciones pendientes.',
+            })}
+          />
           <p className="text-muted-foreground">{t('header.subtitle')}</p>
         </div>
 

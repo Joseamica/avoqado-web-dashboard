@@ -308,7 +308,69 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 
 **See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
 
-### 6. SUPERADMIN Gradient (MANDATORY)
+### 6. URL Hash-Based Tabs (MANDATORY)
+
+**Tabs that represent page sections MUST persist state via URL hash** to survive page reloads and enable direct linking.
+
+```typescript
+// ❌ WRONG - Tab state lost on reload
+const [activeTab, setActiveTab] = useState('overview')
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  {/* Tabs lost on F5/reload */}
+</Tabs>
+
+// ✅ CORRECT - Tab state persists via URL hash
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+const VALID_TABS = ['overview', 'config', 'approvals', 'payouts'] as const
+type TabValue = typeof VALID_TABS[number]
+
+export default function MyPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Get tab from URL hash, default to first tab
+  const getTabFromHash = (): TabValue => {
+    const hash = location.hash.replace('#', '')
+    return VALID_TABS.includes(hash as TabValue) ? (hash as TabValue) : 'overview'
+  }
+
+  const [activeTab, setActiveTab] = useState<TabValue>(getTabFromHash)
+
+  // Sync tab with URL hash on hash change (browser back/forward)
+  useEffect(() => {
+    const tabFromHash = getTabFromHash()
+    if (tabFromHash !== activeTab) {
+      setActiveTab(tabFromHash)
+    }
+  }, [location.hash])
+
+  // Update URL hash when tab changes
+  const handleTabChange = (value: string) => {
+    const tab = value as TabValue
+    setActiveTab(tab)
+    navigate(`${location.pathname}#${tab}`, { replace: true })
+  }
+
+  return (
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
+      {/* Tab content */}
+    </Tabs>
+  )
+}
+```
+
+**Benefits:**
+- Tab survives page reload (F5)
+- Users can bookmark/share specific tabs: `/venues/my-venue/commissions#config`
+- Browser back/forward navigates between tabs
+- Enables deep linking from notifications or other pages
+
+**Reference:** `src/pages/Commissions/CommissionsPage.tsx`
+
+### 7. SUPERADMIN Gradient (MANDATORY)
 
 **All SUPERADMIN-only UI elements in `/dashboard/` routes MUST use the amber-to-pink gradient.**
 
@@ -341,7 +403,7 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 - Example usage: `src/pages/Tpv/Tpvs.tsx` (quick create button)
 - Dialog example: `src/pages/Tpv/components/SuperadminTerminalDialog.tsx`
 
-### 7. Control Plane vs Application Plane (Architecture)
+### 8. Control Plane vs Application Plane (Architecture)
 
 **This is the industry-standard pattern for multi-tenant SaaS (AWS, Microsoft, Stripe).**
 
@@ -399,7 +461,7 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 - [Microsoft Azure](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes): "Control plane isolation reduces security vulnerabilities."
 - Reduces context switching for superadmins working on a specific venue
 
-### 8. Superadmin Lazy Loading (Performance)
+### 9. Superadmin Lazy Loading (Performance)
 
 **NEVER load superadmin modules, services, or make API calls for non-superadmin users.**
 
@@ -446,7 +508,7 @@ const { data } = useQuery({
 
 **Reference:** `src/pages/Settings/Billing/Subscriptions.tsx` (superadmin feature management)
 
-### 9. Search Input Debouncing (MANDATORY)
+### 10. Search Input Debouncing (MANDATORY)
 
 **ALL search inputs that trigger API calls MUST use debouncing.**
 
@@ -481,7 +543,7 @@ const { data } = useQuery({
 
 **Reference:** `src/hooks/useDebounce.ts` | `src/pages/Payment/Payments.tsx`
 
-### 10. Modern Dashboard Design System (2025/2026)
+### 11. Modern Dashboard Design System (2025/2026)
 
 **Use this design system for configuration pages, settings, and data visualization.**
 
@@ -656,7 +718,7 @@ Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cur
 
 **Reference:** `src/pages/Reports/SalesSummary.tsx` (metrics selection panel)
 
-### 11. Timezone Handling (MANDATORY)
+### 12. Timezone Handling (MANDATORY)
 
 **ALL date/time displays MUST use venue timezone, NOT browser timezone.**
 

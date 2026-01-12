@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { AddToAIButton } from '@/components/AddToAIButton'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -748,7 +749,13 @@ export default function Payments() {
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-row items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">{t('title')}</h1>
+            <PageTitleWithInfo
+              title={t('title')}
+              className="text-xl font-semibold"
+              tooltip={t('info.list', {
+                defaultValue: 'Historial de pagos del venue con filtros, estado y acceso al detalle.',
+              })}
+            />
             <p className="text-sm text-muted-foreground">
               {t('filters.showing')} {payments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
             </p>
