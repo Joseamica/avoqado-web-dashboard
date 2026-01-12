@@ -448,6 +448,12 @@
 					"desc": "Customize commission conditions for specific employees.",
 					"example": "Useful for new employees in probation period, employees with special agreements, or managers who don't participate in commissions."
 				}
+			},
+			"mutualExclusive": {
+				"tiersEnabled": "Tiered commission enabled",
+				"roleRatesDisabled": "\"Role rates\" was disabled because both options cannot be active at the same time.",
+				"roleRatesEnabled": "Role rates enabled",
+				"tiersDisabled": "\"Tiered commission\" was disabled because both options cannot be active at the same time."
 			}
 		},
 		"buttons": {

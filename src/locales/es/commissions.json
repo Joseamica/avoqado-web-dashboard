@@ -444,6 +444,12 @@
 					"desc": "Permite personalizar las condiciones de comisión para empleados específicos.",
 					"example": "Útil para nuevos empleados en período de prueba, empleados con acuerdos especiales, o gerentes que no participan en comisiones."
 				}
+			},
+			"mutualExclusive": {
+				"tiersEnabled": "Comisión por niveles activada",
+				"roleRatesDisabled": "Se desactivó \"Tasas por rol\" porque no pueden estar activas ambas opciones a la vez.",
+				"roleRatesEnabled": "Tasas por rol activada",
+				"tiersDisabled": "Se desactivó \"Comisión por niveles\" porque no pueden estar activas ambas opciones a la vez."
 			}
 		},
 		"buttons": {

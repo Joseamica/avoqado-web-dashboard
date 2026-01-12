@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { teamService } from '@/services/team.service'
@@ -29,6 +30,7 @@ const tierEmojis = ['🥉', '🥈', '🥇', '💎', '👑']
 
 export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange }: AdvancedConfigProps) {
 	const { t, i18n } = useTranslation('commissions')
+	const { toast } = useToast()
 	const { venueId } = useCurrentVenue()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 	const [staffComboboxOpen, setStaffComboboxOpen] = useState(false)
@@ -195,6 +197,12 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 							onCheckedChange={(checked) => {
 								// Mutually exclusive: if enabling tiers, disable role rates
 								if (checked) {
+									if (data.roleRatesEnabled) {
+										toast({
+											title: t('wizard.advanced.mutualExclusive.tiersEnabled'),
+											description: t('wizard.advanced.mutualExclusive.roleRatesDisabled'),
+										})
+									}
 									updateData({ tiersEnabled: true, roleRatesEnabled: false })
 								} else {
 									updateData({ tiersEnabled: false })
@@ -361,6 +369,12 @@ export default function AdvancedConfig({ data, updateData, isOpen, onOpenChange 
 							onCheckedChange={(checked) => {
 								// Mutually exclusive: if enabling role rates, disable tiers
 								if (checked) {
+									if (data.tiersEnabled) {
+										toast({
+											title: t('wizard.advanced.mutualExclusive.roleRatesEnabled'),
+											description: t('wizard.advanced.mutualExclusive.tiersDisabled'),
+										})
+									}
 									updateData({ roleRatesEnabled: true, tiersEnabled: false })
 								} else {
 									updateData({ roleRatesEnabled: false })
