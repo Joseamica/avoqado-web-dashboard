@@ -127,13 +127,24 @@ export default function EditConfigDialog({
 		try {
 			// For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
 			const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
-			const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
+			const effectiveRate = data.calcType === 'FIXED' ? Number(data.fixedAmount) : Number(data.defaultRate)
 
 			// Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
 			const toISODateTime = (dateStr: string | null | undefined) => {
 				if (!dateStr) return null
 				return new Date(dateStr + 'T00:00:00').toISOString()
 			}
+
+			// Ensure numeric values are numbers, not strings
+			const minAmount = data.limitsEnabled && data.minAmount !== null ? Number(data.minAmount) : null
+			const maxAmount = data.limitsEnabled && data.maxAmount !== null ? Number(data.maxAmount) : null
+
+			// Convert roleRates values to numbers
+			const roleRates = data.roleRatesEnabled && data.roleRates
+				? Object.fromEntries(
+					Object.entries(data.roleRates).map(([key, value]) => [key, Number(value)])
+				)
+				: null
 
 			await updateConfigMutation.mutateAsync({
 				configId: config.id,
@@ -142,13 +153,13 @@ export default function EditConfigDialog({
 					calcType: effectiveCalcType,
 					recipient: data.recipient,
 					defaultRate: effectiveRate,
-					minAmount: data.limitsEnabled ? data.minAmount : null,
-					maxAmount: data.limitsEnabled ? data.maxAmount : null,
+					minAmount,
+					maxAmount,
 					// Always use subtotal (these are fixed as per design)
 					includeTips: false,
 					includeDiscount: false,
 					includeTax: false,
-					roleRates: data.roleRatesEnabled ? data.roleRates : null,
+					roleRates,
 					effectiveFrom: toISODateTime(data.effectiveFrom),
 					effectiveTo: toISODateTime(data.effectiveTo),
 					priority: config.priority, // Keep existing priority
