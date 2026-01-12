@@ -1,46 +1,28 @@
-import { getTpvs, sendTpvCommand as sendTpvCommandApi, deleteTpv } from '@/services/tpv.service'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/hooks/use-toast'
+import { deleteTpv, getTpvs, sendTpvCommand as sendTpvCommandApi } from '@/services/tpv.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
-  Wrench,
-  CheckCircle2,
   AlertTriangle,
-  Package,
-  KeyRound,
-  Trash2,
-  Shield,
+  CheckCircle2,
   CreditCard,
+  KeyRound,
   Loader2,
+  Package,
   Plus,
-  X,
-  Wifi,
-  WifiOff,
+  Shield,
   Terminal,
-  Activity,
+  Trash2,
+  Wifi,
+  Wrench,
+  X,
 } from 'lucide-react'
-import { useCallback, useState, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useToast } from '@/hooks/use-toast'
 
 import DataTable from '@/components/data-table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { GlassCard } from '@/components/ui/glass-card'
-import { StatusPulse } from '@/components/ui/status-pulse'
-import { MetricCard } from '@/components/ui/metric-card'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { useAuth } from '@/context/AuthContext'
-import { Terminal as TerminalType, StaffRole } from '@/types'
-import { useTranslation } from 'react-i18next'
 import { PermissionGate } from '@/components/PermissionGate'
-import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
-import { ActivateTerminalModal } from './components/ActivateTerminalModal'
-import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
-import { terminalAPI } from '@/services/superadmin-terminals.service'
-import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,7 +33,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { GlassCard } from '@/components/ui/glass-card'
+import { MetricCard } from '@/components/ui/metric-card'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { StatusPulse } from '@/components/ui/status-pulse'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
+import { StaffRole, Terminal as TerminalType } from '@/types'
+import { useTranslation } from 'react-i18next'
+import { ActivateTerminalModal } from './components/ActivateTerminalModal'
+import { TerminalPurchaseWizard } from './components/purchase-wizard/TerminalPurchaseWizard'
+import { SuperadminTerminalDialog } from './components/SuperadminTerminalDialog'
 
 export default function Tpvs() {
   const { venueId } = useCurrentVenue()

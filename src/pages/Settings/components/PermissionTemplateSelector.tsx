@@ -15,8 +15,8 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { StaffRole } from '@/types'
-import { getRoleDisplayName } from '@/lib/permissions/roleHierarchy'
-import { ROLE_TEMPLATES, detectMatchingTemplate, getRelevantTemplates } from '@/lib/permissions/permissionGroups'
+import { detectMatchingTemplate, getRelevantTemplates } from '@/lib/permissions/permissionGroups'
+import { useRoleConfig } from '@/hooks/use-role-config'
 
 // Icon mapping for role templates
 const ROLE_ICON_MAP: Record<string, React.ReactNode> = {
@@ -82,6 +82,7 @@ interface PermissionTemplateSelectorProps {
 interface TemplateCardProps {
   role: StaffRole | 'custom'
   icon: React.ReactNode
+  roleLabel: string
   description: string
   permissionCount?: number
   isActive: boolean
@@ -89,7 +90,7 @@ interface TemplateCardProps {
   disabled?: boolean
 }
 
-function TemplateCard({ role, icon, description, permissionCount, isActive, onClick, disabled }: TemplateCardProps) {
+function TemplateCard({ role, icon, roleLabel, description, permissionCount, isActive, onClick, disabled }: TemplateCardProps) {
   const { t } = useTranslation('settings')
   const isCustom = role === 'custom'
 
@@ -111,7 +112,7 @@ function TemplateCard({ role, icon, description, permissionCount, isActive, onCl
         <div className={cn('p-1 sm:p-1.5 rounded-lg', isActive ? 'bg-green-500/20' : 'bg-muted')}>{icon}</div>
         {isActive && <StatusPulse status="success" />}
       </div>
-      <p className="font-medium text-xs sm:text-sm truncate">{isCustom ? t('rolePermissions.templates.custom', 'Custom') : getRoleDisplayName(role)}</p>
+      <p className="font-medium text-xs sm:text-sm truncate">{roleLabel}</p>
       <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2 h-6 sm:h-8">{description}</p>
       {permissionCount !== undefined && !isCustom && (
         <Badge variant="outline" className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs">
@@ -146,6 +147,7 @@ export function PermissionTemplateSelector({
   disabled = false,
 }: PermissionTemplateSelectorProps) {
   const { t } = useTranslation('settings')
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
   // Get relevant templates for the selected role
   const relevantTemplates = useMemo(() => getRelevantTemplates(selectedRole), [selectedRole])
@@ -181,6 +183,7 @@ export function PermissionTemplateSelector({
               key={template.role}
               role={template.role}
               icon={icon}
+              roleLabel={getRoleDisplayName(template.role)}
               description={t(template.descriptionKey, '')}
               permissionCount={template.permissionCount}
               isActive={isActive}
@@ -194,6 +197,7 @@ export function PermissionTemplateSelector({
         <TemplateCard
           role="custom"
           icon={<Settings className="w-4 h-4" />}
+          roleLabel={t('rolePermissions.templates.custom', 'Custom')}
           description={t('rolePermissions.templates.customDesc', 'Custom permissions configured')}
           isActive={matchingTemplate === 'custom'}
           onClick={() => {}}

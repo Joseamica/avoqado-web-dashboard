@@ -12,14 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole, VenueSettings } from '@/types'
 
-const AVAILABLE_ROLES: { value: StaffRole; labelKey: string }[] = [
-  { value: StaffRole.OWNER, labelKey: 'roles.owner' },
-  { value: StaffRole.ADMIN, labelKey: 'roles.admin' },
-  { value: StaffRole.MANAGER, labelKey: 'roles.manager' },
-  { value: StaffRole.CASHIER, labelKey: 'roles.cashier' },
-  { value: StaffRole.WAITER, labelKey: 'roles.waiter' },
+const AVAILABLE_ROLES: StaffRole[] = [
+  StaffRole.OWNER,
+  StaffRole.ADMIN,
+  StaffRole.MANAGER,
+  StaffRole.CASHIER,
+  StaffRole.WAITER,
 ]
 
 const THRESHOLD_OPTIONS = [
@@ -46,6 +47,7 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
   const queryClient = useQueryClient()
   const { t } = useTranslation('reviews')
   const { t: tCommon } = useTranslation()
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
   const [settings, setSettings] = useState<BadReviewSettings>({
     notifyBadReviews: true,
@@ -177,14 +179,14 @@ export function BadReviewSettingsDialog({ open, onOpenChange }: BadReviewSetting
                   <p className="text-sm text-muted-foreground">{t('settings.badReviews.rolesDescription')}</p>
                   <div className="grid grid-cols-2 gap-3 mt-2">
                     {AVAILABLE_ROLES.map(role => (
-                      <div key={role.value} className="flex items-center space-x-2">
+                      <div key={role} className="flex items-center space-x-2">
                         <Checkbox
-                          id={`role-${role.value}`}
-                          checked={settings.badReviewAlertRoles.includes(role.value)}
-                          onCheckedChange={() => handleRoleToggle(role.value)}
+                          id={`role-${role}`}
+                          checked={settings.badReviewAlertRoles.includes(role)}
+                          onCheckedChange={() => handleRoleToggle(role)}
                         />
-                        <label htmlFor={`role-${role.value}`} className="text-sm font-medium leading-none cursor-pointer">
-                          {tCommon(role.labelKey)}
+                        <label htmlFor={`role-${role}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {getRoleDisplayName(role)}
                         </label>
                       </div>
                     ))}

@@ -21,9 +21,10 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService from '@/services/team.service'
-import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
+import { canViewSuperadminInfo, getRoleBadgeColor } from '@/utils/role-permissions'
 import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -43,6 +44,7 @@ export default function TeamMemberDetails() {
   const { t: tCommon } = useTranslation()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
   const { formatDate } = useVenueDateTime()
+  const { getDisplayName: getCustomRoleDisplayName } = useRoleConfig()
 
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
@@ -146,6 +148,12 @@ export default function TeamMemberDetails() {
 
   const canEdit = memberDetails.role !== StaffRole.SUPERADMIN
   const canRemove = memberDetails.role !== StaffRole.OWNER && memberDetails.role !== StaffRole.SUPERADMIN
+  const getRoleLabel = (role: StaffRole) => {
+    if (role === StaffRole.SUPERADMIN && !canViewSuperadminInfo(staffInfo?.role)) {
+      return 'Sistema'
+    }
+    return getCustomRoleDisplayName(role)
+  }
 
   return (
     <div className="p-6 bg-background text-foreground">
@@ -194,7 +202,7 @@ export default function TeamMemberDetails() {
                     {memberDetails.firstName} {memberDetails.lastName}
                   </CardTitle>
                   <Badge variant="soft" className={getRoleBadgeColor(memberDetails.role, staffInfo?.role)}>
-                    {getRoleDisplayName(memberDetails.role, staffInfo?.role)}
+                    {getRoleLabel(memberDetails.role)}
                   </Badge>
                 </div>
               </div>

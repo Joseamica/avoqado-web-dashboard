@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { X, Plus, Mail, Info } from 'lucide-react'
 import { OnboardingStepProps } from '../OnboardingWizard'
 import { NavigationButtons } from '../components/NavigationButtons'
+import { useRoleConfig } from '@/hooks/use-role-config'
 
 export interface TeamInvite {
   email: string
@@ -29,7 +30,7 @@ const ROLES = ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER', 'KITCHEN', 'HOST', 'VIEW
 
 export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSave, initialValue }: TeamInvitesStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
   const [invites, setInvites] = useState<TeamInvite[]>(initialValue?.invites || [])
   const [newInvite, setNewInvite] = useState({ email: '', firstName: '', lastName: '', role: '' })
@@ -181,7 +182,7 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
                   <SelectContent>
                     {ROLES.map(role => (
                       <SelectItem key={role} value={role}>
-                        {t(`teamInvites.roles.${role}`)}
+                        {getRoleDisplayName(role)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -206,7 +207,7 @@ export function TeamInvitesStep({ onNext, onPrevious, onSkip, isFirstStep, onSav
                 <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{invite.email}</p>
-                    <p className="text-sm text-muted-foreground">{t(`teamInvites.roles.${invite.role}`)}</p>
+                    <p className="text-sm text-muted-foreground">{getRoleDisplayName(invite.role)}</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => handleRemoveInvite(index)}>
                     <X className="h-4 w-4" />

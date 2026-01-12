@@ -21,9 +21,10 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/context/AuthContext'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService, { TeamMember, UpdateTeamMemberRequest } from '@/services/team.service'
-import { canViewSuperadminInfo, getRoleDisplayName, getRoleBadgeColor } from '@/utils/role-permissions'
+import { canViewSuperadminInfo, getRoleBadgeColor } from '@/utils/role-permissions'
 
 type EditTeamMemberFormData = {
   role?: StaffRole
@@ -42,6 +43,14 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
+  const { getDisplayName: getCustomRoleDisplayName } = useRoleConfig()
+
+  const getRoleLabel = (role: StaffRole) => {
+    if (role === StaffRole.SUPERADMIN && !canViewSuperadminInfo(staffInfo?.role)) {
+      return 'Sistema'
+    }
+    return getCustomRoleDisplayName(role)
+  }
 
   const editTeamMemberSchema = z.object({
     role: z.nativeEnum(StaffRole).optional(),
@@ -56,13 +65,13 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
   })
 
   const ROLE_OPTIONS = [
-    { value: StaffRole.ADMIN, label: t('edit.roles.admin'), description: t('edit.roles.adminDesc') },
-    { value: StaffRole.MANAGER, label: t('edit.roles.manager'), description: t('edit.roles.managerDesc') },
-    { value: StaffRole.WAITER, label: t('edit.roles.waiter'), description: t('edit.roles.waiterDesc') },
-    { value: StaffRole.CASHIER, label: t('edit.roles.cashier'), description: t('edit.roles.cashierDesc') },
-    { value: StaffRole.KITCHEN, label: t('edit.roles.kitchen'), description: t('edit.roles.kitchenDesc') },
-    { value: StaffRole.HOST, label: t('edit.roles.host'), description: t('edit.roles.hostDesc') },
-    { value: StaffRole.VIEWER, label: t('edit.roles.viewer'), description: t('edit.roles.viewerDesc') },
+    { value: StaffRole.ADMIN, label: getRoleLabel(StaffRole.ADMIN), description: t('edit.roles.adminDesc') },
+    { value: StaffRole.MANAGER, label: getRoleLabel(StaffRole.MANAGER), description: t('edit.roles.managerDesc') },
+    { value: StaffRole.WAITER, label: getRoleLabel(StaffRole.WAITER), description: t('edit.roles.waiterDesc') },
+    { value: StaffRole.CASHIER, label: getRoleLabel(StaffRole.CASHIER), description: t('edit.roles.cashierDesc') },
+    { value: StaffRole.KITCHEN, label: getRoleLabel(StaffRole.KITCHEN), description: t('edit.roles.kitchenDesc') },
+    { value: StaffRole.HOST, label: getRoleLabel(StaffRole.HOST), description: t('edit.roles.hostDesc') },
+    { value: StaffRole.VIEWER, label: getRoleLabel(StaffRole.VIEWER), description: t('edit.roles.viewerDesc') },
   ]
   const [showPin, setShowPin] = useState(false)
   const [selectedRole, setSelectedRole] = useState<StaffRole>(teamMember.role)
@@ -164,7 +173,7 @@ export default function EditTeamMemberForm({ venueId, teamMember, onSuccess }: E
           <p className="text-sm text-muted-foreground">{teamMember.email}</p>
         </div>
         <Badge variant="soft" className={getRoleBadgeColor(teamMember.role, staffInfo?.role)}>
-          {getRoleDisplayName(teamMember.role, staffInfo?.role)}
+          {getRoleLabel(teamMember.role)}
         </Badge>
       </div>
 

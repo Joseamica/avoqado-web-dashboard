@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Currency } from '@/utils/currency'
+import { useRoleConfig } from '@/hooks/use-role-config'
 
 export const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
   const { t } = useTranslation('home')
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
   const staffData = data?.staffPerformance || []
 
   return (
@@ -27,7 +29,7 @@ export const StaffEfficiencyMetrics = ({ data }: { data: any }) => {
                   </div>
                   <div>
                     <p className="font-medium text-foreground">{staff.name}</p>
-                    <p className="text-sm text-muted-foreground">{staff.role}</p>
+                    <p className="text-sm text-muted-foreground">{getRoleDisplayName(staff.role)}</p>
                   </div>
                 </div>
                 <div className="text-right">

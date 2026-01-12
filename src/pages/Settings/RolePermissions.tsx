@@ -5,6 +5,7 @@ import { Shield, Save, RotateCcw, AlertCircle, Info, Check, X, AlertTriangle, Ta
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useRoleConfig } from '@/hooks/use-role-config'
 
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -22,7 +23,7 @@ import RoleDisplayNames, { type RoleDisplayNamesActions } from './components/Rol
 import PermissionSearch from './components/PermissionSearch'
 import PermissionTemplateSelector from './components/PermissionTemplateSelector'
 import PermissionSuperCategory from './components/PermissionSuperCategory'
-import { getModifiableRoles, getRoleDisplayName, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
+import { getModifiableRoles, PERMISSION_CATEGORIES } from '@/lib/permissions/roleHierarchy'
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions/defaultPermissions'
 import {
   DASHBOARD_SUPER_CATEGORIES,
@@ -40,6 +41,7 @@ export default function RolePermissions() {
   const { t } = useTranslation('settings')
   const { toast } = useToast()
   const { formatDate } = useVenueDateTime()
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
   const [activeRoleTab, setActiveRoleTab] = useState<RolePermissionsTab>('permissions')
   const [roleDisplayActions, setRoleDisplayActions] = useState<RoleDisplayNamesActions | null>(null)
   const queryClient = useQueryClient()
@@ -64,6 +66,10 @@ export default function RolePermissions() {
   const [showRevertDialog, setShowRevertDialog] = useState(false)
   const [pendingTemplate, setPendingTemplate] = useState<StaffRole | null>(null)
   const [showTemplateConfirmDialog, setShowTemplateConfirmDialog] = useState(false)
+  const getRoleLabel = useCallback(
+    (role?: StaffRole | null) => (role ? getRoleDisplayName(role) : ''),
+    [getRoleDisplayName]
+  )
 
   // Get all role permissions for the venue
   const { data: rolePermissionsData, isLoading } = useQuery({
@@ -148,7 +154,7 @@ export default function RolePermissions() {
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', venueId] })
       toast({
         title: t('rolePermissions.updateSuccess'),
-        description: t('rolePermissions.updateSuccessDesc', { role: getRoleDisplayName(variables.role) }),
+        description: t('rolePermissions.updateSuccessDesc', { role: getRoleLabel(variables.role) }),
       })
       setHasChanges(false)
     },
@@ -169,7 +175,7 @@ export default function RolePermissions() {
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', venueId] })
       toast({
         title: t('rolePermissions.revertSuccess'),
-        description: t('rolePermissions.revertSuccessDesc', { role: getRoleDisplayName(role) }),
+        description: t('rolePermissions.revertSuccessDesc', { role: getRoleLabel(role) }),
       })
       setHasChanges(false)
     },
@@ -500,7 +506,7 @@ export default function RolePermissions() {
                           }`}
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <span className="font-medium text-xs sm:text-sm truncate">{getRoleDisplayName(role)}</span>
+                            <span className="font-medium text-xs sm:text-sm truncate">{getRoleLabel(role)}</span>
                             {roleData?.isCustom && (
                               <Badge variant={isSelected ? 'secondary' : 'outline'} className="text-[10px] sm:text-xs px-1 sm:px-1.5 flex-shrink-0">
                                 {t('rolePermissions.custom', 'Custom')}
@@ -529,7 +535,7 @@ export default function RolePermissions() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="space-y-1 min-w-0">
                         <CardTitle className="flex items-center gap-2 flex-wrap text-base sm:text-lg">
-                          <span className="truncate">{getRoleDisplayName(selectedRole)}</span>
+                          <span className="truncate">{getRoleLabel(selectedRole)}</span>
                           {currentRolePermission.isCustom && (
                             <Badge variant="secondary" className="text-xs">{t('rolePermissions.customized', 'Customized')}</Badge>
                           )}
@@ -711,7 +717,7 @@ export default function RolePermissions() {
             <SimpleConfirmDialog
               open={showRevertDialog}
               onOpenChange={setShowRevertDialog}
-              title={t('rolePermissions.confirmRevert', { role: getRoleDisplayName(selectedRole) })}
+              title={t('rolePermissions.confirmRevert', { role: getRoleLabel(selectedRole) })}
               message={t('rolePermissions.confirmRevertMessage')}
               confirmLabel={t('rolePermissions.revertToDefaults')}
               cancelLabel={t('rolePermissions.cancel')}
@@ -726,8 +732,8 @@ export default function RolePermissions() {
             <SimpleConfirmDialog
               open={showTemplateConfirmDialog}
               onOpenChange={setShowTemplateConfirmDialog}
-              title={t('rolePermissions.templates.confirmApply', { role: getRoleDisplayName(pendingTemplate) })}
-              message={t('rolePermissions.templates.confirmApplyMessage', { role: getRoleDisplayName(pendingTemplate) })}
+              title={t('rolePermissions.templates.confirmApply', { role: getRoleLabel(pendingTemplate) })}
+              message={t('rolePermissions.templates.confirmApplyMessage', { role: getRoleLabel(pendingTemplate) })}
               confirmLabel={t('rolePermissions.templates.applyTemplate')}
               cancelLabel={t('rolePermissions.cancel')}
               onConfirm={confirmTemplateApply}

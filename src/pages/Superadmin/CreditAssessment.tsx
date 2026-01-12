@@ -12,85 +12,53 @@
  * This is the CONTROL PLANE view - merchants never see these scores.
  */
 
-import React, { useState, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { cn } from '@/lib/utils'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  DollarSign,
-  BarChart3,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  RefreshCw,
-  ChevronRight,
-  Building2,
-  FileText,
-  Send,
-  Eye,
-  Loader2,
-  Search,
-  Filter,
-  Star,
-  Target,
-  Activity,
-  Percent,
-  Calendar,
-  CreditCard,
-  Banknote,
-} from 'lucide-react'
-import {
+  createCreditOffer,
   getCreditAssessments,
   getCreditAssessmentSummary,
-  refreshVenueCreditAssessment,
   refreshAllCreditAssessments,
-  createCreditOffer,
+  refreshVenueCreditAssessment,
   type CreditAssessment as CreditAssessmentData,
   type CreditAssessmentSummary,
-  type CreditGrade,
   type CreditEligibility,
+  type CreditGrade,
 } from '@/services/superadmin.service'
 import { useVenueDateTime } from '@/utils/datetime'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Activity,
+  AlertTriangle,
+  Building2,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Eye,
+  Loader2,
+  Minus,
+  RefreshCw,
+  Search,
+  Send,
+  Shield,
+  TrendingDown,
+  TrendingUp,
+  XCircle,
+} from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // =============================================================================
 // GLASS CARD COMPONENT (Following Modern Dashboard Design System)
@@ -109,7 +77,7 @@ const GlassCard: React.FC<{
       'shadow-sm transition-all duration-300',
       hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
       onClick && 'cursor-pointer',
-      className
+      className,
     )}
   >
     {children}
@@ -188,10 +156,7 @@ function formatPercent(value: number | string | null | undefined, decimals: numb
 // SUMMARY CARDS COMPONENT
 // =============================================================================
 
-const SummaryCards: React.FC<{ summary: CreditAssessmentSummary | undefined; isLoading: boolean }> = ({
-  summary,
-  isLoading,
-}) => {
+const SummaryCards: React.FC<{ summary: CreditAssessmentSummary | undefined; isLoading: boolean }> = ({ summary, isLoading }) => {
   const { t } = useTranslation('superadmin')
 
   if (isLoading) {
@@ -250,9 +215,7 @@ const SummaryCards: React.FC<{ summary: CreditAssessmentSummary | undefined; isL
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-muted-foreground">{card.title}</p>
-              <p className={cn('font-bold tracking-tight mt-1', card.isLarge ? 'text-xl' : 'text-2xl')}>
-                {card.value}
-              </p>
+              <p className={cn('font-bold tracking-tight mt-1', card.isLarge ? 'text-xl' : 'text-2xl')}>{card.value}</p>
             </div>
             <div className={cn('p-2 rounded-xl bg-gradient-to-br', card.color)}>
               <card.icon className={cn('w-4 h-4', card.iconColor)} />
@@ -293,7 +256,7 @@ const GradeDistribution: React.FC<{ summary: CreditAssessmentSummary | undefined
                   <div
                     className={cn(
                       'flex-1 h-8 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-sm cursor-default',
-                      getGradeColor(grade)
+                      getGradeColor(grade),
                     )}
                     style={{ opacity: count > 0 ? 1 : 0.3 }}
                   >
@@ -327,19 +290,14 @@ const AssessmentRow: React.FC<{
   const eligibility = getEligibilityBadge(assessment.eligibilityStatus)
   const EligibilityIcon = eligibility.icon
 
-  const TrendIcon =
-    assessment.trendDirection === 'GROWING'
-      ? TrendingUp
-      : assessment.trendDirection === 'DECLINING'
-        ? TrendingDown
-        : Minus
+  const TrendIcon = assessment.trendDirection === 'GROWING' ? TrendingUp : assessment.trendDirection === 'DECLINING' ? TrendingDown : Minus
 
   const trendColor =
     assessment.trendDirection === 'GROWING'
       ? 'text-green-600'
       : assessment.trendDirection === 'DECLINING'
-        ? 'text-red-600'
-        : 'text-muted-foreground'
+      ? 'text-red-600'
+      : 'text-muted-foreground'
 
   return (
     <GlassCard hover onClick={() => onSelect(assessment)} className="p-4 mb-3">
@@ -350,7 +308,7 @@ const AssessmentRow: React.FC<{
           <div
             className={cn(
               'w-12 h-12 rounded-full flex items-center justify-center text-primary-foreground font-bold',
-              getGradeColor(assessment.creditGrade)
+              getGradeColor(assessment.creditGrade),
             )}
           >
             {assessment.creditScore}
@@ -383,9 +341,7 @@ const AssessmentRow: React.FC<{
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Credito Recomendado</p>
-            <p className="font-medium text-purple-600 dark:text-purple-400">
-              {formatCurrency(Number(assessment.recommendedCreditLimit))}
-            </p>
+            <p className="font-medium text-purple-600 dark:text-purple-400">{formatCurrency(Number(assessment.recommendedCreditLimit))}</p>
           </div>
         </div>
 
@@ -526,7 +482,7 @@ const DetailPanel: React.FC<{
             <div
               className={cn(
                 'w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-primary-foreground font-bold',
-                getGradeColor(assessment.creditGrade)
+                getGradeColor(assessment.creditGrade),
               )}
             >
               <span className="text-3xl">{assessment.creditScore}</span>
@@ -618,13 +574,7 @@ const CreateOfferDialog: React.FC<{
   assessment: CreditAssessmentData | null
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: {
-    offerAmount: number
-    factorRate: number
-    repaymentPercent: number
-    expiresInDays: number
-    notes?: string
-  }) => void
+  onSubmit: (data: { offerAmount: number; factorRate: number; repaymentPercent: number; expiresInDays: number; notes?: string }) => void
   isSubmitting: boolean
 }> = ({ assessment, isOpen, onClose, onSubmit, isSubmitting }) => {
   const [offerAmount, setOfferAmount] = useState('')
@@ -669,16 +619,8 @@ const CreateOfferDialog: React.FC<{
           {/* Offer Amount */}
           <div className="space-y-2">
             <Label>Monto de la Oferta (MXN)</Label>
-            <Input
-              type="number"
-              value={offerAmount}
-              onChange={e => setOfferAmount(e.target.value)}
-              min={50000}
-              max={2000000}
-            />
-            <p className="text-xs text-muted-foreground">
-              Recomendado: {formatCurrency(Number(assessment?.recommendedCreditLimit || 0))}
-            </p>
+            <Input type="number" value={offerAmount} onChange={e => setOfferAmount(e.target.value)} min={50000} max={2000000} />
+            <p className="text-xs text-muted-foreground">Recomendado: {formatCurrency(Number(assessment?.recommendedCreditLimit || 0))}</p>
           </div>
 
           {/* Factor Rate */}
@@ -701,16 +643,8 @@ const CreateOfferDialog: React.FC<{
           {/* Repayment Percent */}
           <div className="space-y-2">
             <Label>Porcentaje de Retencion Diaria (%)</Label>
-            <Input
-              type="number"
-              value={repaymentPercent}
-              onChange={e => setRepaymentPercent(e.target.value)}
-              min={5}
-              max={20}
-            />
-            <p className="text-xs text-muted-foreground">
-              Del volumen diario de ventas
-            </p>
+            <Input type="number" value={repaymentPercent} onChange={e => setRepaymentPercent(e.target.value)} min={5} max={20} />
+            <p className="text-xs text-muted-foreground">Del volumen diario de ventas</p>
           </div>
 
           {/* Expires In Days */}
@@ -754,12 +688,7 @@ const CreateOfferDialog: React.FC<{
           {/* Notes */}
           <div className="space-y-2">
             <Label>Notas (opcional)</Label>
-            <Textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Notas internas sobre la oferta..."
-              rows={2}
-            />
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas internas sobre la oferta..." rows={2} />
           </div>
         </div>
 
@@ -898,9 +827,7 @@ const CreditAssessment: React.FC = () => {
 
     const term = searchTerm.toLowerCase()
     return assessmentsData.data.filter(
-      a =>
-        a.venue.name.toLowerCase().includes(term) ||
-        a.venue.organization.name.toLowerCase().includes(term)
+      a => a.venue.name.toLowerCase().includes(term) || a.venue.organization.name.toLowerCase().includes(term),
     )
   }, [assessmentsData?.data, searchTerm])
 
@@ -912,16 +839,8 @@ const CreditAssessment: React.FC = () => {
           <h1 className="text-2xl font-bold">Evaluacion de Credito</h1>
           <p className="text-muted-foreground">SOFOM - Analisis para otorgamiento de creditos</p>
         </div>
-        <Button
-          onClick={() => refreshAllMutation.mutate()}
-          disabled={refreshAllMutation.isPending}
-          variant="outline"
-        >
-          {refreshAllMutation.isPending ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
-          )}
+        <Button onClick={() => refreshAllMutation.mutate()} disabled={refreshAllMutation.isPending} variant="outline">
+          {refreshAllMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
           Actualizar Todo
         </Button>
       </div>
@@ -936,12 +855,7 @@ const CreditAssessment: React.FC = () => {
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar venue..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Buscar venue..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
 
         <Select value={gradeFilter} onValueChange={v => setGradeFilter(v as CreditGrade | 'ALL')}>
@@ -1007,12 +921,7 @@ const CreditAssessment: React.FC = () => {
       {/* Pagination */}
       {assessmentsData && assessmentsData.pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
             Anterior
           </Button>
           <span className="text-sm text-muted-foreground">
@@ -1032,10 +941,7 @@ const CreditAssessment: React.FC = () => {
       {/* Detail Panel */}
       {selectedAssessment && (
         <>
-          <div
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-            onClick={() => setSelectedAssessment(null)}
-          />
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" onClick={() => setSelectedAssessment(null)} />
           <DetailPanel
             assessment={selectedAssessment}
             onClose={() => setSelectedAssessment(null)}

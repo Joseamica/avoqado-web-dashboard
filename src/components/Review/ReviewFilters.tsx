@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -38,9 +37,7 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
   }
 
   const handleRatingToggle = (rating: number) => {
-    const newRatings = filters.ratings.includes(rating)
-      ? filters.ratings.filter(r => r !== rating)
-      : [...filters.ratings, rating]
+    const newRatings = filters.ratings.includes(rating) ? filters.ratings.filter(r => r !== rating) : [...filters.ratings, rating]
     onFiltersChange({ ...filters, ratings: newRatings })
   }
 
@@ -138,39 +135,45 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
           {/* Rating Filter (Multi-select) */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">{t('filters.rating.label')}</Label>
-            
+
             <div className="flex flex-col gap-2">
               <Button
-                variant={filters.ratings.length === 0 ? "secondary" : "outline"}
+                variant={filters.ratings.length === 0 ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => onFiltersChange({ ...filters, ratings: [] })}
                 className="w-full justify-center"
               >
                 {t('filters.rating.all')}
               </Button>
-              
+
               <div className="grid grid-cols-5 gap-2">
-                {[5, 4, 3, 2, 1].map((star) => (
+                {[5, 4, 3, 2, 1].map(star => (
                   <Button
                     key={star}
-                    variant={filters.ratings.includes(star) ? "default" : "outline"}
+                    variant={filters.ratings.includes(star) ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleRatingToggle(star)}
                     className="h-9 p-0 flex items-center justify-center gap-1"
                     title={t('filters.rating.exact', { rating: star, defaultValue: `${star} estrellas` })}
                   >
                     <span className="font-medium">{star}</span>
-                    <Star 
-                      className={`h-3.5 w-3.5 ${filters.ratings.includes(star) ? 'fill-primary-foreground text-primary-foreground' : 'fill-yellow-400 text-yellow-400'}`} 
+                    <Star
+                      className={`h-3.5 w-3.5 ${
+                        filters.ratings.includes(star)
+                          ? 'fill-primary-foreground text-primary-foreground'
+                          : 'fill-yellow-400 text-yellow-400'
+                      }`}
                     />
                   </Button>
                 ))}
               </div>
             </div>
-            
+
             {filters.ratings.length > 0 && (
               <p className="text-xs text-muted-foreground text-center pt-1">
-                {t('filters.rating.multiSelectHint', { defaultValue: 'Filtrando por: ' }) + filters.ratings.sort((a, b) => b - a).join(', ') + ' ★'}
+                {t('filters.rating.multiSelectHint', { defaultValue: 'Filtrando por: ' }) +
+                  filters.ratings.sort((a, b) => b - a).join(', ') +
+                  ' ★'}
               </p>
             )}
           </div>

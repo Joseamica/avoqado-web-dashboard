@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
 import teamService, { InviteTeamMemberRequest } from '@/services/team.service'
 
@@ -53,15 +54,16 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
   const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
+  const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
   const ROLE_OPTIONS = [
-    { value: StaffRole.ADMIN, label: t('edit.roles.admin'), description: t('edit.roles.adminDesc') },
-    { value: StaffRole.MANAGER, label: t('edit.roles.manager'), description: t('edit.roles.managerDesc') },
-    { value: StaffRole.WAITER, label: t('edit.roles.waiter'), description: t('edit.roles.waiterDesc') },
-    { value: StaffRole.CASHIER, label: t('edit.roles.cashier'), description: t('edit.roles.cashierDesc') },
-    { value: StaffRole.KITCHEN, label: t('edit.roles.kitchen'), description: t('edit.roles.kitchenDesc') },
-    { value: StaffRole.HOST, label: t('edit.roles.host'), description: t('edit.roles.hostDesc') },
-    { value: StaffRole.VIEWER, label: t('edit.roles.viewer'), description: t('edit.roles.viewerDesc') },
+    { value: StaffRole.ADMIN, label: getRoleDisplayName(StaffRole.ADMIN), description: t('edit.roles.adminDesc') },
+    { value: StaffRole.MANAGER, label: getRoleDisplayName(StaffRole.MANAGER), description: t('edit.roles.managerDesc') },
+    { value: StaffRole.WAITER, label: getRoleDisplayName(StaffRole.WAITER), description: t('edit.roles.waiterDesc') },
+    { value: StaffRole.CASHIER, label: getRoleDisplayName(StaffRole.CASHIER), description: t('edit.roles.cashierDesc') },
+    { value: StaffRole.KITCHEN, label: getRoleDisplayName(StaffRole.KITCHEN), description: t('edit.roles.kitchenDesc') },
+    { value: StaffRole.HOST, label: getRoleDisplayName(StaffRole.HOST), description: t('edit.roles.hostDesc') },
+    { value: StaffRole.VIEWER, label: getRoleDisplayName(StaffRole.VIEWER), description: t('edit.roles.viewerDesc') },
   ]
 
   const {
