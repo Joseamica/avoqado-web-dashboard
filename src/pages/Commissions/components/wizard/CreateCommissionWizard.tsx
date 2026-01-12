@@ -87,10 +87,10 @@ const initialData: WizardData = {
 
 interface CreateCommissionWizardProps {
 	onSuccess: () => void
-	onCancel: () => void
+	onCancel?: () => void
 }
 
-export default function CreateCommissionWizard({ onSuccess, onCancel }: CreateCommissionWizardProps) {
+export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWizardProps) {
 	const { t } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()

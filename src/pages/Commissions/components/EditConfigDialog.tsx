@@ -1,65 +1,32 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { Percent, DollarSign } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-	FormDescription,
-} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
-import type { CommissionConfig, CommissionCalcType, CommissionRecipient } from '@/types/commission'
-
-const calcTypes: CommissionCalcType[] = ['PERCENTAGE', 'FIXED', 'TIERED', 'MILESTONE', 'MANUAL']
-const recipients: CommissionRecipient[] = ['CREATOR', 'SERVER', 'PROCESSOR']
-
-const editConfigSchema = z.object({
-	name: z.string().min(1, 'Name is required'),
-	calcType: z.enum(['PERCENTAGE', 'FIXED', 'TIERED', 'MILESTONE', 'MANUAL']),
-	recipient: z.enum(['CREATOR', 'SERVER', 'PROCESSOR']),
-	defaultRate: z.number().min(0, 'Rate must be >= 0').max(100, 'Rate must be <= 100'),
-	minAmount: z.number().nullable(),
-	maxAmount: z.number().nullable(),
-	includeTips: z.boolean(),
-	includeDiscount: z.boolean(),
-	includeTax: z.boolean(),
-	effectiveFrom: z.string().optional(),
-	effectiveTo: z.string().optional(),
-	priority: z.number().min(1),
-	active: z.boolean(),
-})
-
-type ConfigFormData = z.infer<typeof editConfigSchema>
+import { cn } from '@/lib/utils'
+import type { CommissionConfig, CommissionCalcType, TierPeriod } from '@/types/commission'
+import type { WizardData } from './wizard/CreateCommissionWizard'
+import CommissionAdvancedConfig from './wizard/CommissionAdvancedConfig'
+import LiveExample from './wizard/LiveExample'
 
 interface EditConfigDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	config: CommissionConfig
 }
+
+// Get today's date in ISO format (YYYY-MM-DD)
+const getTodayISO = () => new Date().toISOString().split('T')[0]
 
 export default function EditConfigDialog({
 	open,
@@ -72,51 +39,99 @@ export default function EditConfigDialog({
 
 	const updateConfigMutation = useUpdateCommissionConfig()
 
-	const form = useForm<ConfigFormData>({
-		resolver: zodResolver(editConfigSchema),
-		defaultValues: {
-			name: config.name,
-			calcType: config.calcType,
-			recipient: config.recipient,
-			defaultRate: config.defaultRate * 100,
-			minAmount: config.minAmount,
-			maxAmount: config.maxAmount,
-			includeTips: config.includeTips,
-			includeDiscount: config.includeDiscount,
-			includeTax: config.includeTax,
-			effectiveFrom: config.effectiveFrom?.split('T')[0] || '',
-			effectiveTo: config.effectiveTo?.split('T')[0] || '',
-			priority: config.priority,
-			active: config.active,
-		},
-	})
+	// Convert config to WizardData format for reusing wizard components
+	const configToWizardData = (cfg: CommissionConfig): WizardData => {
+		const isTiered = cfg.calcType === 'TIERED'
+		const isFixed = cfg.calcType === 'FIXED'
+
+		return {
+			recipient: cfg.recipient,
+			calcType: isFixed ? 'FIXED' : 'PERCENTAGE',
+			defaultRate: isFixed ? 0.03 : cfg.defaultRate, // For FIXED, defaultRate is the actual amount
+			fixedAmount: isFixed ? cfg.defaultRate : 10,
+			tiersEnabled: isTiered,
+			tierPeriod: (cfg.tiers?.[0]?.tierPeriod as TierPeriod) || 'MONTHLY',
+			tiers: cfg.tiers?.map((tier) => ({
+				tierLevel: tier.tierLevel,
+				name: tier.tierName,
+				minThreshold: tier.minThreshold,
+				maxThreshold: tier.maxThreshold,
+				rate: tier.rate,
+			})) || [
+				{ tierLevel: 1, name: 'Bronce', minThreshold: 0, maxThreshold: 10000, rate: 0.02 },
+				{ tierLevel: 2, name: 'Plata', minThreshold: 10000, maxThreshold: 25000, rate: 0.03 },
+				{ tierLevel: 3, name: 'Oro', minThreshold: 25000, maxThreshold: null, rate: 0.04 },
+			],
+			roleRatesEnabled: cfg.roleRates !== null && Object.keys(cfg.roleRates || {}).length > 0,
+			roleRates: cfg.roleRates || { WAITER: 0.03, CASHIER: 0.025, MANAGER: 0.015 },
+			limitsEnabled: cfg.minAmount !== null || cfg.maxAmount !== null,
+			minAmount: cfg.minAmount,
+			maxAmount: cfg.maxAmount,
+			overridesEnabled: (cfg.overrides?.length || 0) > 0,
+			overrides: cfg.overrides?.map((o) => ({
+				staffId: o.staffId,
+				staffName: `${o.staff?.firstName || ''} ${o.staff?.lastName || ''}`.trim() || o.staffId,
+				customRate: o.customRate,
+				excludeFromCommissions: o.excludeFromCommissions,
+			})) || [],
+			name: cfg.name,
+			customValidityEnabled: cfg.effectiveTo !== null,
+			effectiveFrom: cfg.effectiveFrom?.split('T')[0] || getTodayISO(),
+			effectiveTo: cfg.effectiveTo?.split('T')[0] || null,
+		}
+	}
+
+	const [data, setData] = useState<WizardData>(() => configToWizardData(config))
+	const [advancedOpen, setAdvancedOpen] = useState(false)
 
 	// Reset form when config changes
 	useEffect(() => {
 		if (open && config) {
-			form.reset({
-				name: config.name,
-				calcType: config.calcType,
-				recipient: config.recipient,
-				defaultRate: config.defaultRate * 100,
-				minAmount: config.minAmount,
-				maxAmount: config.maxAmount,
-				includeTips: config.includeTips,
-				includeDiscount: config.includeDiscount,
-				includeTax: config.includeTax,
-				effectiveFrom: config.effectiveFrom?.split('T')[0] || '',
-				effectiveTo: config.effectiveTo?.split('T')[0] || '',
-				priority: config.priority,
-				active: config.active,
-			})
+			const wizardData = configToWizardData(config)
+			setData(wizardData)
+			setAdvancedOpen(
+				wizardData.tiersEnabled || wizardData.roleRatesEnabled || wizardData.limitsEnabled || wizardData.overridesEnabled
+			)
 		}
-	}, [open, config, form])
+	}, [open, config])
 
-	const onSubmit = async (data: ConfigFormData) => {
+	const updateData = (updates: Partial<WizardData>) => {
+		setData((prev) => ({ ...prev, ...updates }))
+	}
+
+	// Convert decimal to percentage for display
+	const ratePercentage = (data.defaultRate * 100).toFixed(2)
+
+	// Handle percentage input change
+	const handleRateChange = (value: string) => {
+		const num = parseFloat(value)
+		if (!isNaN(num) && num >= 0 && num <= 100) {
+			updateData({ defaultRate: num / 100 })
+		}
+	}
+
+	// Handle fixed amount change
+	const handleFixedAmountChange = (value: string) => {
+		const num = parseFloat(value)
+		if (!isNaN(num) && num >= 0) {
+			updateData({ fixedAmount: num })
+		}
+	}
+
+	// Handle calc type change
+	const handleCalcTypeChange = (type: CommissionCalcType) => {
+		updateData({ calcType: type })
+	}
+
+	const handleSubmit = async () => {
 		try {
+			// For FIXED type, use fixedAmount; for PERCENTAGE/TIERED, use defaultRate
+			const effectiveCalcType = data.tiersEnabled ? 'TIERED' : data.calcType
+			const effectiveRate = data.calcType === 'FIXED' ? data.fixedAmount : data.defaultRate
+
 			// Convert date strings to ISO-8601 DateTime format (Prisma requires full DateTime)
-			const toISODateTime = (dateStr: string | undefined) => {
-				if (!dateStr) return undefined
+			const toISODateTime = (dateStr: string | null | undefined) => {
+				if (!dateStr) return null
 				return new Date(dateStr + 'T00:00:00').toISOString()
 			}
 
@@ -124,18 +139,20 @@ export default function EditConfigDialog({
 				configId: config.id,
 				data: {
 					name: data.name,
-					calcType: data.calcType,
+					calcType: effectiveCalcType,
 					recipient: data.recipient,
-					defaultRate: data.defaultRate / 100,
-					minAmount: data.minAmount,
-					maxAmount: data.maxAmount,
-					includeTips: data.includeTips,
-					includeDiscount: data.includeDiscount,
-					includeTax: data.includeTax,
+					defaultRate: effectiveRate,
+					minAmount: data.limitsEnabled ? data.minAmount : null,
+					maxAmount: data.limitsEnabled ? data.maxAmount : null,
+					// Always use subtotal (these are fixed as per design)
+					includeTips: false,
+					includeDiscount: false,
+					includeTax: false,
+					roleRates: data.roleRatesEnabled ? data.roleRates : null,
 					effectiveFrom: toISODateTime(data.effectiveFrom),
 					effectiveTo: toISODateTime(data.effectiveTo),
-					priority: data.priority,
-					active: data.active,
+					priority: config.priority, // Keep existing priority
+					active: config.active, // Keep existing active status (edit via detail page)
 				},
 			})
 
@@ -155,330 +172,173 @@ export default function EditConfigDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t('config.edit')}</DialogTitle>
-					<DialogDescription>
-						{t('config.editDescription')}
-					</DialogDescription>
 				</DialogHeader>
 
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-						{/* Name */}
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>{t('config.name')}</FormLabel>
-									<FormControl>
-										<Input placeholder={t('config.namePlaceholder')} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
+				<div className="space-y-6 py-4">
+					{/* Name Input */}
+					<div className="space-y-2">
+						<Label htmlFor="config-name">{t('config.name')}</Label>
+						<Input
+							id="config-name"
+							value={data.name}
+							onChange={(e) => updateData({ name: e.target.value })}
+							placeholder={t('config.namePlaceholder')}
 						/>
+					</div>
 
-						{/* Calc Type and Recipient */}
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="calcType"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.calcType')}</FormLabel>
-										<Select onValueChange={field.onChange} value={field.value}>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												{calcTypes.map((type) => (
-													<SelectItem key={type} value={type}>
-														{t(`calcTypes.${type}`)}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="recipient"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.recipient')}</FormLabel>
-										<Select onValueChange={field.onChange} value={field.value}>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												{recipients.map((recipient) => (
-													<SelectItem key={recipient} value={recipient}>
-														{t(`recipients.${recipient}`)}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						{/* Default Rate and Priority */}
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="defaultRate"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.defaultRate')}</FormLabel>
-										<FormControl>
-											<div className="relative">
-												<Input
-													type="number"
-													step="0.01"
-													min={0}
-													max={100}
-													className="pr-8"
-													{...field}
-													onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-												/>
-												<span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-													%
-												</span>
-											</div>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="priority"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.priority')}</FormLabel>
-										<FormControl>
-											<Input
-												type="number"
-												min={1}
-												{...field}
-												onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-											/>
-										</FormControl>
-										<FormDescription>
-											{t('config.priorityDescription')}
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						{/* Min/Max Amount */}
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="minAmount"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.minAmount')}</FormLabel>
-										<FormControl>
-											<Input
-												type="number"
-												step="0.01"
-												min={0}
-												placeholder={t('config.optional')}
-												value={field.value ?? ''}
-												onChange={(e) => {
-													const value = e.target.value
-													field.onChange(value === '' ? null : parseFloat(value))
-												}}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="maxAmount"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.maxAmount')}</FormLabel>
-										<FormControl>
-											<Input
-												type="number"
-												step="0.01"
-												min={0}
-												placeholder={t('config.optional')}
-												value={field.value ?? ''}
-												onChange={(e) => {
-													const value = e.target.value
-													field.onChange(value === '' ? null : parseFloat(value))
-												}}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						{/* Effective Dates */}
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="effectiveFrom"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.effectiveFrom')}</FormLabel>
-										<FormControl>
-											<Input type="date" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="effectiveTo"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t('config.effectiveTo')}</FormLabel>
-										<FormControl>
-											<Input type="date" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						{/* Toggle Options */}
-						<div className="space-y-3">
-							<FormField
-								control={form.control}
-								name="includeTips"
-								render={({ field }) => (
-									<FormItem className="flex items-center justify-between rounded-lg border p-3">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												{t('config.includeTips')}
-											</FormLabel>
-											<FormDescription>
-												{t('config.includeTipsDescription')}
-											</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="includeDiscount"
-								render={({ field }) => (
-									<FormItem className="flex items-center justify-between rounded-lg border p-3">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												{t('config.includeDiscount')}
-											</FormLabel>
-											<FormDescription>
-												{t('config.includeDiscountDescription')}
-											</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="includeTax"
-								render={({ field }) => (
-									<FormItem className="flex items-center justify-between rounded-lg border p-3">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												{t('config.includeTax')}
-											</FormLabel>
-											<FormDescription>
-												{t('config.includeTaxDescription')}
-											</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="active"
-								render={({ field }) => (
-									<FormItem className="flex items-center justify-between rounded-lg border p-3">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												{t('config.active')}
-											</FormLabel>
-											<FormDescription>
-												{t('config.activeDescription')}
-											</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
-									</FormItem>
-								)}
-							/>
-						</div>
-
-						<DialogFooter>
-							<Button
+					{/* Calc Type Toggle */}
+					<div className="flex justify-center">
+						<div className="inline-flex rounded-lg bg-muted p-1">
+							<button
 								type="button"
-								variant="outline"
-								onClick={() => onOpenChange(false)}
-								disabled={updateConfigMutation.isPending}
+								onClick={() => handleCalcTypeChange('PERCENTAGE')}
+								className={cn(
+									'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+									data.calcType === 'PERCENTAGE'
+										? 'bg-background text-foreground shadow-sm'
+										: 'text-muted-foreground hover:text-foreground'
+								)}
 							>
-								{t('actions.cancel')}
-							</Button>
-							<Button type="submit" disabled={updateConfigMutation.isPending}>
-								{updateConfigMutation.isPending
-									? tCommon('common.saving')
-									: t('actions.save')}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+								<Percent className="w-4 h-4" />
+								{t('wizard.step2.percentage')}
+							</button>
+							<button
+								type="button"
+								onClick={() => handleCalcTypeChange('FIXED')}
+								className={cn(
+									'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
+									data.calcType === 'FIXED'
+										? 'bg-background text-foreground shadow-sm'
+										: 'text-muted-foreground hover:text-foreground'
+								)}
+							>
+								<DollarSign className="w-4 h-4" />
+								{t('wizard.step2.fixedAmount')}
+							</button>
+						</div>
+					</div>
+
+					{/* Main Input - Percentage */}
+					{data.calcType === 'PERCENTAGE' && (
+						<div className="flex flex-col items-center py-4">
+							<div className="relative w-40">
+								<Input
+									type="number"
+									step="0.01"
+									min="0"
+									max="100"
+									value={ratePercentage}
+									onChange={(e) => handleRateChange(e.target.value)}
+									className="text-center text-3xl font-bold h-16 pr-10"
+								/>
+								<span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">
+									%
+								</span>
+							</div>
+							<p className="text-sm text-muted-foreground mt-2">
+								{t('wizard.step2.ofEachSale')}
+							</p>
+						</div>
+					)}
+
+					{/* Main Input - Fixed Amount */}
+					{data.calcType === 'FIXED' && (
+						<div className="flex flex-col items-center py-4">
+							<div className="relative w-40">
+								<span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">
+									$
+								</span>
+								<Input
+									type="number"
+									step="1"
+									min="0"
+									value={data.fixedAmount}
+									onChange={(e) => handleFixedAmountChange(e.target.value)}
+									className="text-center text-3xl font-bold h-16 pl-10"
+								/>
+							</div>
+							<p className="text-sm text-muted-foreground mt-2">
+								{t('wizard.step2.perTransaction')}
+							</p>
+						</div>
+					)}
+
+					{/* Live Example */}
+					<LiveExample data={data} saleAmount={1000} />
+
+					{/* Separator */}
+					<div className="relative">
+						<div className="absolute inset-0 flex items-center">
+							<div className="w-full border-t border-border/50"></div>
+						</div>
+					</div>
+
+					{/* Advanced Config */}
+					<CommissionAdvancedConfig
+						data={data}
+						updateData={updateData}
+						isOpen={advancedOpen}
+						onOpenChange={setAdvancedOpen}
+					/>
+
+					{/* Validity Dates */}
+					<div className="p-4 rounded-xl border border-border/50 space-y-4">
+						<div className="flex items-center justify-between">
+							<div>
+								<Label className="text-sm font-medium">{t('wizard.step3.validityCustom')}</Label>
+								<p className="text-xs text-muted-foreground">{t('wizard.step3.validityDesc')}</p>
+							</div>
+							<Switch
+								checked={data.customValidityEnabled}
+								onCheckedChange={(checked) => updateData({ customValidityEnabled: checked })}
+							/>
+						</div>
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label>{t('config.effectiveFrom')}</Label>
+								<Input
+									type="date"
+									value={data.effectiveFrom}
+									onChange={(e) => updateData({ effectiveFrom: e.target.value })}
+								/>
+							</div>
+							{data.customValidityEnabled && (
+								<div className="space-y-2">
+									<Label>{t('config.effectiveTo')}</Label>
+									<Input
+										type="date"
+										value={data.effectiveTo || ''}
+										onChange={(e) => updateData({ effectiveTo: e.target.value || null })}
+									/>
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Actions */}
+					<div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							disabled={updateConfigMutation.isPending}
+						>
+							{t('actions.cancel')}
+						</Button>
+						<Button
+							onClick={handleSubmit}
+							disabled={updateConfigMutation.isPending || !data.name.trim()}
+						>
+							{updateConfigMutation.isPending
+								? tCommon('common.saving')
+								: t('actions.save')}
+						</Button>
+					</div>
+				</div>
 			</DialogContent>
 		</Dialog>
 	)

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import type { WizardData } from './CreateCommissionWizard'
 import type { CommissionCalcType } from '@/types/commission'
 import LiveExample from './LiveExample'
-import AdvancedConfig from './AdvancedConfig'
+import CommissionAdvancedConfig from './CommissionAdvancedConfig'
 
 interface StepAmountProps {
 	data: WizardData
@@ -143,7 +143,7 @@ export default function StepAmount({ data, updateData, onNext, onPrevious }: Ste
 			</div>
 
 			{/* Advanced Config */}
-			<AdvancedConfig
+			<CommissionAdvancedConfig
 				data={data}
 				updateData={updateData}
 				isOpen={advancedOpen}

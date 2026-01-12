@@ -22,7 +22,7 @@ export default function LiveExample({ data, saleAmount = 1000 }: LiveExampleProp
 	const calculation = useMemo(() => {
 		// Calculate raw commission based on calc type
 		const isFixed = data.calcType === 'FIXED'
-		let rawCommission = isFixed ? data.fixedAmount : saleAmount * data.defaultRate
+		const rawCommission = isFixed ? data.fixedAmount : saleAmount * data.defaultRate
 		let commission = rawCommission
 
 		// Apply limits if enabled (only for percentage mode)

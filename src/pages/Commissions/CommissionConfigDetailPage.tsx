@@ -5,7 +5,6 @@ import {
 	ArrowLeft,
 	Pencil,
 	Trash2,
-	Plus,
 	Percent,
 	DollarSign,
 	TrendingUp,
@@ -14,21 +13,11 @@ import {
 	User,
 	UserCheck,
 	CreditCard,
-	Calendar,
-	CheckCircle2,
-	XCircle,
 	Settings2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -258,11 +247,6 @@ export default function CommissionConfigDetailPage() {
 							</div>
 
 							<div className="flex items-center justify-between py-2 border-b border-border/50">
-								<span className="text-sm text-muted-foreground">{t('config.priority')}</span>
-								<span className="text-sm font-medium">{config.priority}</span>
-							</div>
-
-							<div className="flex items-center justify-between py-2 border-b border-border/50">
 								<span className="text-sm text-muted-foreground">{t('config.effectiveFrom')}</span>
 								<span className="text-sm font-medium">{formatDate(config.effectiveFrom)}</span>
 							</div>
@@ -274,44 +258,25 @@ export default function CommissionConfigDetailPage() {
 								</div>
 							)}
 
-							<div className="flex items-center justify-between py-2 border-b border-border/50">
-								<span className="text-sm text-muted-foreground">{t('config.minAmount')}</span>
-								<span className="text-sm font-medium">{formatCurrency(config.minAmount)}</span>
-							</div>
-
-							<div className="flex items-center justify-between py-2 border-b border-border/50">
-								<span className="text-sm text-muted-foreground">{t('config.maxAmount')}</span>
-								<span className="text-sm font-medium">{formatCurrency(config.maxAmount)}</span>
-							</div>
+							{/* Show limits only if configured */}
+							{(config.minAmount !== null || config.maxAmount !== null) && (
+								<>
+									{config.minAmount !== null && (
+										<div className="flex items-center justify-between py-2 border-b border-border/50">
+											<span className="text-sm text-muted-foreground">{t('config.minAmount')}</span>
+											<span className="text-sm font-medium">{formatCurrency(config.minAmount)}</span>
+										</div>
+									)}
+									{config.maxAmount !== null && (
+										<div className="flex items-center justify-between py-2 border-b border-border/50">
+											<span className="text-sm text-muted-foreground">{t('config.maxAmount')}</span>
+											<span className="text-sm font-medium">{formatCurrency(config.maxAmount)}</span>
+										</div>
+									)}
+								</>
+							)}
 						</div>
 
-						{/* Toggle Settings */}
-						<div className="mt-4 pt-4 border-t border-border/50 space-y-2">
-							<div className="flex items-center justify-between">
-								<span className="text-sm">{t('config.includeTips')}</span>
-								{config.includeTips ? (
-									<CheckCircle2 className="h-4 w-4 text-green-500" />
-								) : (
-									<XCircle className="h-4 w-4 text-muted-foreground" />
-								)}
-							</div>
-							<div className="flex items-center justify-between">
-								<span className="text-sm">{t('config.includeDiscount')}</span>
-								{config.includeDiscount ? (
-									<CheckCircle2 className="h-4 w-4 text-green-500" />
-								) : (
-									<XCircle className="h-4 w-4 text-muted-foreground" />
-								)}
-							</div>
-							<div className="flex items-center justify-between">
-								<span className="text-sm">{t('config.includeTax')}</span>
-								{config.includeTax ? (
-									<CheckCircle2 className="h-4 w-4 text-green-500" />
-								) : (
-									<XCircle className="h-4 w-4 text-muted-foreground" />
-								)}
-							</div>
-						</div>
 
 						{/* Role Rates */}
 						{config.roleRates && Object.keys(config.roleRates).length > 0 && (

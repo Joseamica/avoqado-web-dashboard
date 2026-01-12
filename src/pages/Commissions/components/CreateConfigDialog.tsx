@@ -17,7 +17,7 @@ export default function CreateConfigDialog({ open, onOpenChange }: CreateConfigD
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t('config.create')}</DialogTitle>
 				</DialogHeader>

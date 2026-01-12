@@ -181,10 +181,15 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 						<span>
 							{t('config.effectiveFrom')}: {formatDate(config.effectiveFrom)}
 						</span>
-						{config._count && (
+						{config._count && (config._count.tiers > 0 || config._count.overrides > 0) && (
 							<span>
-								{config._count.tiers} {t('tiers.title').toLowerCase()} •{' '}
-								{config._count.overrides} {t('overrides.title').toLowerCase()}
+								{config._count.tiers > 0 && (
+									<>{config._count.tiers} {t('tiers.title').toLowerCase()}</>
+								)}
+								{config._count.tiers > 0 && config._count.overrides > 0 && ' • '}
+								{config._count.overrides > 0 && (
+									<>{config._count.overrides} {t('overrides.title').toLowerCase()}</>
+								)}
 							</span>
 						)}
 					</div>
