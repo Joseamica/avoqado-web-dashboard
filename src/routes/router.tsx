@@ -116,6 +116,7 @@ import {
   PayLaterAging,
   SalesByItem,
   SalesSummary,
+  SerializedSalesDemo,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -582,6 +583,11 @@ const router = createBrowserRouter(
                   element: <KYCProtectedRoute />,
                   children: [{ index: true, element: <SalesByItem /> }],
                 },
+
+                // Demo: Serialized Inventory Sales (hidden route - temporary)
+                // Access via /venues/:slug/serialized-sales-demo
+                { path: 'serialized-sales-demo', element: <SerializedSalesDemo /> },
+
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="settlements:read" />,

@@ -37,6 +37,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
 import { cn } from '@/lib/utils'
@@ -185,7 +186,13 @@ export default function CustomerGroups() {
     <div className="p-4 bg-background text-foreground">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('groups.title')}</h1>
+          <PageTitleWithInfo
+            title={t('groups.title')}
+            className="text-2xl font-bold"
+            tooltip={t('info.groups', {
+              defaultValue: 'Muestra y administra los grupos de clientes para segmentarlos, por ejemplo Clientes VIP o Frecuentes.',
+            })}
+          />
           <p className="text-muted-foreground">{t('groups.subtitle')}</p>
         </div>
 

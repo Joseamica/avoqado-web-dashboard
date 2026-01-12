@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/select'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import customerService from '@/services/customer.service'
 import type { Customer, CustomerGroup } from '@/types/customer'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -353,7 +354,13 @@ export default function Customers() {
 		<div className="p-4 bg-background text-foreground">
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h1 className="text-2xl font-bold">{t('title')}</h1>
+					<PageTitleWithInfo
+						title={t('title')}
+						className="text-2xl font-bold"
+						tooltip={t('info.list', {
+							defaultValue: 'Listado de clientes con filtros, saldo pendiente y acceso al detalle de cada cliente.',
+						})}
+					/>
 					<p className="text-muted-foreground">{t('subtitle')}</p>
 				</div>
 

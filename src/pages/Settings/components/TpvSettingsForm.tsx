@@ -15,6 +15,7 @@ import {
   MapPin,
   ChevronRight,
   LogIn,
+  Tablet,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -340,6 +341,38 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 description={t('tpvSettings.requireClockInToLoginDesc')}
                 checked={settings.requireClockInToLogin}
                 onCheckedChange={checked => handleToggle('requireClockInToLogin', checked)}
+              />
+            </div>
+          </CollapsibleContent>
+        </GlassCard>
+      </Collapsible>
+
+      {/* Kiosk Mode Section */}
+      <Collapsible defaultOpen>
+        <GlassCard className="mb-4">
+          <CollapsibleTrigger asChild>
+            <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                  <Tablet className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">{t('tpvSettings.kioskSection')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('tpvSettings.kioskSectionDesc')}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform data-[state=open]:rotate-90" />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-1">
+              <div className="h-px bg-border/50 mb-3" />
+              <SettingRow
+                icon={Tablet}
+                label={t('tpvSettings.kioskModeEnabled')}
+                description={t('tpvSettings.kioskModeEnabledDesc')}
+                checked={settings.kioskModeEnabled}
+                onCheckedChange={checked => handleToggle('kioskModeEnabled', checked)}
               />
             </div>
           </CollapsibleContent>

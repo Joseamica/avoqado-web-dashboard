@@ -18,6 +18,8 @@ export interface TpvSettings {
   requireClockInPhoto: boolean   // Require selfie + GPS at clock-in
   requireClockOutPhoto: boolean  // Require selfie + GPS at clock-out
   requireClockInToLogin: boolean // Require active clock-in to log into TPV
+  // Kiosk Mode
+  kioskModeEnabled: boolean      // Allow terminal to enter self-service kiosk mode
 }
 
 /**
@@ -37,6 +39,8 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   requireClockInPhoto: false,
   requireClockOutPhoto: false,
   requireClockInToLogin: false,
+  // Kiosk Mode disabled by default
+  kioskModeEnabled: false,
 }
 
 /**

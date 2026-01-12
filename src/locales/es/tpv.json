@@ -313,7 +313,11 @@
     "requireClockOutPhoto": "Foto al registrar salida",
     "requireClockOutPhotoDesc": "Requiere selfie con ubicación GPS al hacer clock-out",
     "requireClockInToLogin": "Requiere entrada para iniciar sesión",
-    "requireClockInToLoginDesc": "El personal debe tener clock-in activo para acceder al sistema"
+    "requireClockInToLoginDesc": "El personal debe tener clock-in activo para acceder al sistema",
+    "kioskSection": "Modo Kiosk",
+    "kioskSectionDesc": "Configuración del modo autoservicio",
+    "kioskModeEnabled": "Habilitar Modo Kiosk",
+    "kioskModeEnabledDesc": "Permite que este terminal entre en modo autoservicio para clientes"
   },
   "activation": {
     "title": "Activar Terminal",

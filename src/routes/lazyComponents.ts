@@ -142,3 +142,6 @@ export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organiza
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))
 export const SalesSummary = lazyWithRetry(() => import('@/pages/Reports/SalesSummary'))
 export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByItem'))
+
+// Demo Pages (temporary)
+export const SerializedSalesDemo = lazyWithRetry(() => import('@/pages/SerializedSalesDemo'))
