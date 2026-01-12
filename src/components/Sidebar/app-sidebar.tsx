@@ -108,6 +108,14 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         permission: 'teams:read',
         locked: false,
       },
+      {
+        title: t('sidebar:routes.commissions'),
+        isActive: true,
+        url: 'commissions',
+        icon: DollarSign,
+        permission: 'commissions:read',
+        locked: !hasKYCAccess,
+      },
       { title: t('sidebar:routes.reviews'), isActive: true, url: 'reviews', icon: Star, permission: 'reviews:read', locked: false },
     ]
 

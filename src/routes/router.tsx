@@ -117,6 +117,8 @@ import {
   SalesByItem,
   SalesSummary,
   SerializedSalesDemo,
+  CommissionsPage,
+  CommissionConfigDetailPage,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -660,6 +662,21 @@ const router = createBrowserRouter(
                   children: [
                     { index: true, element: <Teams /> },
                     { path: ':memberId', element: <TeamMemberDetails /> },
+                  ],
+                },
+
+                // Commission Management (requires commissions:read permission)
+                {
+                  path: 'commissions',
+                  element: <PermissionProtectedRoute permission="commissions:read" />,
+                  children: [
+                    {
+                      element: <KYCProtectedRoute />,
+                      children: [
+                        { index: true, element: <CommissionsPage /> },
+                        { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
+                      ],
+                    },
                   ],
                 },
 

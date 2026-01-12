@@ -145,3 +145,7 @@ export const SalesByItem = lazyWithRetry(() => import('@/pages/Reports/SalesByIt
 
 // Demo Pages (temporary)
 export const SerializedSalesDemo = lazyWithRetry(() => import('@/pages/SerializedSalesDemo'))
+
+// Commissions
+export const CommissionsPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionsPage'))
+export const CommissionConfigDetailPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionConfigDetailPage'))

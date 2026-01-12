@@ -29,6 +29,8 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
+import StaffCommissionSection from './components/StaffCommissionSection'
+import { PermissionGate } from '@/components/PermissionGate'
 
 export default function TeamMemberDetails() {
   const { venueId } = useCurrentVenue()
@@ -351,6 +353,11 @@ export default function TeamMemberDetails() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Commissions Section */}
+          <PermissionGate permission="commissions:read">
+            <StaffCommissionSection staffId={memberDetails.staffId} />
+          </PermissionGate>
         </div>
       </div>
 
