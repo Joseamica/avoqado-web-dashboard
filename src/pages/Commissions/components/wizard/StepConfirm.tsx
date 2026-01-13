@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next'
-import { TrendingUp, Calculator, DollarSign, Percent, Calendar, ChevronDown } from 'lucide-react'
+import { TrendingUp, Calculator, DollarSign, Percent, Calendar, ChevronDown, Clock, ArrowUpNarrowWide } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import type { WizardData } from './CreateCommissionWizard'
+import type { TierPeriod } from '@/types/commission'
 
 interface StepConfirmProps {
 	data: WizardData
@@ -184,7 +186,7 @@ export default function StepConfirm({
 						open={data.customValidityEnabled}
 						onOpenChange={(open) => updateData({ customValidityEnabled: open })}
 					>
-						<div className="py-2">
+						<div className="py-2 border-b border-border/30">
 							<CollapsibleTrigger asChild>
 								<button
 									type="button"
@@ -238,6 +240,49 @@ export default function StepConfirm({
 							</CollapsibleContent>
 						</div>
 					</Collapsible>
+
+					{/* Aggregation Period - How often to group commissions for payroll */}
+					<div className="flex items-center justify-between py-2 border-b border-border/30">
+						<div className="flex items-center gap-2">
+							<Clock className="w-4 h-4 text-muted-foreground" />
+							<div>
+								<span className="text-sm text-muted-foreground">{t('wizard.step3.aggregationPeriod')}</span>
+								<p className="text-xs text-muted-foreground">{t('wizard.step3.aggregationPeriodHint')}</p>
+							</div>
+						</div>
+						<Select
+							value={data.aggregationPeriod}
+							onValueChange={(value) => updateData({ aggregationPeriod: value as TierPeriod })}
+						>
+							<SelectTrigger className="w-[140px] h-9">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="WEEKLY">{t('wizard.step3.periodOptions.WEEKLY')}</SelectItem>
+								<SelectItem value="BIWEEKLY">{t('wizard.step3.periodOptions.BIWEEKLY')}</SelectItem>
+								<SelectItem value="MONTHLY">{t('wizard.step3.periodOptions.MONTHLY')}</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Priority - Which config takes precedence when multiple exist */}
+					<div className="flex items-center justify-between py-2">
+						<div className="flex items-center gap-2">
+							<ArrowUpNarrowWide className="w-4 h-4 text-muted-foreground" />
+							<div>
+								<span className="text-sm text-muted-foreground">{t('wizard.step3.priority')}</span>
+								<p className="text-xs text-muted-foreground">{t('wizard.step3.priorityHint')}</p>
+							</div>
+						</div>
+						<Input
+							type="number"
+							min={1}
+							max={100}
+							value={data.priority}
+							onChange={(e) => updateData({ priority: Math.max(1, Math.min(100, parseInt(e.target.value) || 1)) })}
+							className="w-[80px] h-9 text-center"
+						/>
+					</div>
 				</div>
 			</div>
 

@@ -1,11 +1,11 @@
 {
   "title": "Ordenes",
-  "searchPlaceholder": "Buscar por folio, mesa o mesero...",
+  "searchPlaceholder": "Buscar",
   "errorPrefix": "Error al cargar órdenes",
   "counter": "Mostrador",
   "columns": {
     "date": "Fecha",
-    "orderNumber": "Folio",
+    "orderNumber": "Número de orden",
     "customer": "Cliente",
     "type": "Tipo",
     "table": "Mesa",
@@ -15,8 +15,9 @@
     "total": "Total"
   },
   "types": {
-    "DINE_IN": "Para Comer Aquí",
-    "TAKEOUT": "Para Llevar",
+    "DINE_IN": "Servicio de mesa",
+    "TAKEOUT": "Venta con productos",
+    "FAST": "Venta sin productos",
     "DELIVERY": "Entrega a Domicilio",
     "PICKUP": "Recoger"
   },
@@ -118,7 +119,7 @@
       "orderId": "ID de orden",
       "dateTime": "Fecha y Hora",
       "createdAt": "Creada el",
-      "orderNumber": "Folio",
+      "orderNumber": "Número de orden",
       "customer": "Cliente",
       "customerName": "Nombre del cliente",
       "customerPlaceholder": "Nombre del cliente",

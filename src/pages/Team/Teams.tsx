@@ -98,7 +98,7 @@ export default function Teams() {
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)

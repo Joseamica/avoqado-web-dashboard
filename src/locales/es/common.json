@@ -33,6 +33,15 @@
   "refresh": "Actualizar",
   "settings": "Configuración",
   "filters": "Filtros",
+  "pagination": {
+    "selectedRows": "{{selected}} de {{total}} fila(s) seleccionada(s).",
+    "rowsPerPage": "Filas por página",
+    "pageOf": "Página {{current}} de {{total}}",
+    "firstPage": "Ir a la primera página",
+    "previousPage": "Ir a la página anterior",
+    "nextPage": "Ir a la página siguiente",
+    "lastPage": "Ir a la última página"
+  },
   "retry": "Reintentar",
   "selectAll": "Seleccionar todo",
   "optional": "Opcional",

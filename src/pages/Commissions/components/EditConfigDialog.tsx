@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Percent, DollarSign } from 'lucide-react'
+import { Percent, DollarSign, Clock, ArrowUpNarrowWide } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -78,6 +79,8 @@ export default function EditConfigDialog({
 			customValidityEnabled: cfg.effectiveTo !== null,
 			effectiveFrom: cfg.effectiveFrom?.split('T')[0] || getTodayISO(),
 			effectiveTo: cfg.effectiveTo?.split('T')[0] || null,
+			aggregationPeriod: (cfg.aggregationPeriod as TierPeriod) || 'MONTHLY',
+			priority: cfg.priority || 1,
 		}
 	}
 
@@ -162,7 +165,8 @@ export default function EditConfigDialog({
 					roleRates,
 					effectiveFrom: toISODateTime(data.effectiveFrom),
 					effectiveTo: toISODateTime(data.effectiveTo),
-					priority: config.priority, // Keep existing priority
+					aggregationPeriod: data.aggregationPeriod,
+					priority: data.priority,
 					active: config.active, // Keep existing active status (edit via detail page)
 				},
 			})
@@ -327,6 +331,52 @@ export default function EditConfigDialog({
 									/>
 								</div>
 							)}
+						</div>
+					</div>
+
+					{/* Aggregation Period & Priority */}
+					<div className="p-4 rounded-xl border border-border/50 space-y-4">
+						{/* Aggregation Period */}
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<Clock className="w-4 h-4 text-muted-foreground" />
+								<div>
+									<Label className="text-sm font-medium">{t('wizard.step3.aggregationPeriod')}</Label>
+									<p className="text-xs text-muted-foreground">{t('wizard.step3.aggregationPeriodHint')}</p>
+								</div>
+							</div>
+							<Select
+								value={data.aggregationPeriod}
+								onValueChange={(value) => updateData({ aggregationPeriod: value as TierPeriod })}
+							>
+								<SelectTrigger className="w-[140px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="WEEKLY">{t('wizard.step3.periodOptions.WEEKLY')}</SelectItem>
+									<SelectItem value="BIWEEKLY">{t('wizard.step3.periodOptions.BIWEEKLY')}</SelectItem>
+									<SelectItem value="MONTHLY">{t('wizard.step3.periodOptions.MONTHLY')}</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* Priority */}
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<ArrowUpNarrowWide className="w-4 h-4 text-muted-foreground" />
+								<div>
+									<Label className="text-sm font-medium">{t('wizard.step3.priority')}</Label>
+									<p className="text-xs text-muted-foreground">{t('wizard.step3.priorityHint')}</p>
+								</div>
+							</div>
+							<Input
+								type="number"
+								min={1}
+								max={100}
+								value={data.priority}
+								onChange={(e) => updateData({ priority: Math.max(1, Math.min(100, parseInt(e.target.value) || 1)) })}
+								className="w-[80px] text-center"
+							/>
 						</div>
 					</div>
 

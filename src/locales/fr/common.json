@@ -32,6 +32,15 @@
   "refresh": "Actualiser",
   "settings": "Paramètres",
   "filters": "Filtres",
+  "pagination": {
+    "selectedRows": "{{selected}} sur {{total}} ligne(s) sélectionnée(s).",
+    "rowsPerPage": "Lignes par page",
+    "pageOf": "Page {{current}} sur {{total}}",
+    "firstPage": "Aller à la première page",
+    "previousPage": "Aller à la page précédente",
+    "nextPage": "Aller à la page suivante",
+    "lastPage": "Aller à la dernière page"
+  },
   "retry": "Réessayer",
   "selectAll": "Tout sélectionner",
   "optional": "Optionnel",

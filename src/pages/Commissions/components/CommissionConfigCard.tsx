@@ -10,9 +10,6 @@ import {
 	TrendingUp,
 	Target,
 	Hand,
-	User,
-	UserCheck,
-	CreditCard,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,7 +34,7 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDeleteCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
-import type { CommissionConfig, CommissionCalcType, CommissionRecipient } from '@/types/commission'
+import type { CommissionConfig, CommissionCalcType } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
 // GlassCard with hover effect
@@ -70,13 +67,6 @@ const calcTypeIcons: Record<CommissionCalcType, React.ReactNode> = {
 	MANUAL: <Hand className="w-4 h-4" />,
 }
 
-// Icons for recipients
-const recipientIcons: Record<CommissionRecipient, React.ReactNode> = {
-	CREATOR: <User className="w-4 h-4" />,
-	SERVER: <UserCheck className="w-4 h-4" />,
-	PROCESSOR: <CreditCard className="w-4 h-4" />,
-}
-
 interface CommissionConfigCardProps {
 	config: CommissionConfig
 }
@@ -92,6 +82,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 
 	// Check if role rates are configured
 	const hasRoleRates = config.roleRates && Object.keys(config.roleRates).length > 0
+	const hasAmountLimits = config.minAmount !== null || config.maxAmount !== null
 
 	const deleteConfigMutation = useDeleteCommissionConfig()
 
@@ -107,6 +98,9 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 			minimumFractionDigits: 0,
 		}).format(amount)
 	}
+
+	const minAmountLabel = config.minAmount !== null ? formatCurrency(config.minAmount) : tCommon('common.na')
+	const maxAmountLabel = config.maxAmount !== null ? formatCurrency(config.maxAmount) : tCommon('common.na')
 
 	// Format date
 	const formatDate = (dateString: string) => {
@@ -158,6 +152,9 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 									<span className="text-xs text-muted-foreground">
 										{t('calcTypes.' + config.calcType)}
 									</span>
+									<span className="text-xs text-muted-foreground">
+										• {t('config.priority')}: {config.priority}
+									</span>
 								</div>
 							</div>
 						</div>
@@ -179,41 +176,79 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 									))}
 								</div>
 							</div>
-							{/* Recipient */}
-							<div className="p-3 rounded-lg bg-muted/50">
-								<p className="text-xs text-muted-foreground">{t('config.recipient')}</p>
-								<div className="flex items-center gap-1.5 mt-1">
-									{recipientIcons[config.recipient]}
-									<span className="text-sm font-medium">
-										{t('recipients.' + config.recipient)}
-									</span>
+							<div className="grid grid-cols-2 gap-3">
+								<div className="p-3 rounded-lg bg-muted/50">
+									<p className="text-xs text-muted-foreground">{t('config.effectiveFrom')}</p>
+									<p className="text-sm font-medium">{formatDate(config.effectiveFrom)}</p>
+									{config.effectiveTo && (
+										<p className="text-xs text-muted-foreground mt-1">
+											{t('config.effectiveTo')}: {formatDate(config.effectiveTo)}
+										</p>
+									)}
+								</div>
+								<div className="p-3 rounded-lg bg-muted/50">
+									<p className="text-xs text-muted-foreground">{t('wizard.advanced.limits.title')}</p>
+									{hasAmountLimits ? (
+										<div className="mt-1 space-y-1 text-xs">
+											<div className="flex items-center justify-between">
+												<span className="text-muted-foreground">{t('config.minAmount')}</span>
+												<span className="font-medium">{minAmountLabel}</span>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-muted-foreground">{t('config.maxAmount')}</span>
+												<span className="font-medium">{maxAmountLabel}</span>
+											</div>
+										</div>
+									) : (
+										<p className="text-sm font-medium mt-1">
+											{t('wizard.advanced.limits.disabled')}
+										</p>
+									)}
 								</div>
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-2 gap-4 mb-4">
-							<div className="p-3 rounded-lg bg-muted/50">
-								<p className="text-xs text-muted-foreground">{t('config.defaultRate')}</p>
-								<p className="text-lg font-semibold">{formatPercent(config.defaultRate)}</p>
+						<div className="space-y-3 mb-4">
+							<div className="grid grid-cols-2 gap-3">
+								<div className="p-3 rounded-lg bg-muted/50">
+									<p className="text-xs text-muted-foreground">{t('config.defaultRate')}</p>
+									<p className="text-lg font-semibold">{formatPercent(config.defaultRate)}</p>
+								</div>
+								<div className="p-3 rounded-lg bg-muted/50">
+									<p className="text-xs text-muted-foreground">{t('config.effectiveFrom')}</p>
+									<p className="text-sm font-medium">{formatDate(config.effectiveFrom)}</p>
+									{config.effectiveTo && (
+										<p className="text-xs text-muted-foreground mt-1">
+											{t('config.effectiveTo')}: {formatDate(config.effectiveTo)}
+										</p>
+									)}
+								</div>
 							</div>
 							<div className="p-3 rounded-lg bg-muted/50">
-								<p className="text-xs text-muted-foreground">{t('config.recipient')}</p>
-								<div className="flex items-center gap-1.5 mt-1">
-									{recipientIcons[config.recipient]}
-									<span className="text-sm font-medium">
-										{t('recipients.' + config.recipient)}
-									</span>
-								</div>
+								<p className="text-xs text-muted-foreground">{t('wizard.advanced.limits.title')}</p>
+								{hasAmountLimits ? (
+									<div className="mt-1 space-y-1 text-xs">
+										<div className="flex items-center justify-between">
+											<span className="text-muted-foreground">{t('config.minAmount')}</span>
+											<span className="font-medium">{minAmountLabel}</span>
+										</div>
+										<div className="flex items-center justify-between">
+											<span className="text-muted-foreground">{t('config.maxAmount')}</span>
+											<span className="font-medium">{maxAmountLabel}</span>
+										</div>
+									</div>
+								) : (
+									<p className="text-sm font-medium mt-1">
+										{t('wizard.advanced.limits.disabled')}
+									</p>
+								)}
 							</div>
 						</div>
 					)}
 
 					{/* Meta Info */}
-					<div className="flex items-center justify-between text-xs text-muted-foreground">
-						<span>
-							{t('config.effectiveFrom')}: {formatDate(config.effectiveFrom)}
-						</span>
-						{config._count && (config._count.tiers > 0 || config._count.overrides > 0) && (
+					{config._count && (config._count.tiers > 0 || config._count.overrides > 0) && (
+						<div className="flex items-center justify-end text-xs text-muted-foreground">
 							<span>
 								{config._count.tiers > 0 && (
 									<>{config._count.tiers} {t('tiers.title').toLowerCase()}</>
@@ -223,8 +258,8 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 									<>{config._count.overrides} {t('overrides.title').toLowerCase()}</>
 								)}
 							</span>
-						)}
-					</div>
+						</div>
+					)}
 
 					{/* Actions */}
 					<div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">

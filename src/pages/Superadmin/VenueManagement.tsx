@@ -366,7 +366,7 @@ const VenueManagement: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredVenues}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               tableId="superadmin:venues"
               rowCount={filteredVenues.length}

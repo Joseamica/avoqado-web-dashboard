@@ -103,7 +103,7 @@ function DataTable<TData>({
   // Default pagination state if not provided
   const defaultPagination = {
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   }
 
   const table = useReactTable({

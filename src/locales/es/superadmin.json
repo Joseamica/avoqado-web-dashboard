@@ -144,12 +144,12 @@
   },
   "orders": {
     "title": "Ordenes",
-    "searchPlaceholder": "Buscar por folio, cliente o mesero...",
+    "searchPlaceholder": "Buscar por número de orden, cliente o mesero...",
     "errorPrefix": "Error al cargar órdenes",
     "counter": "Mostrador",
     "columns": {
       "date": "Fecha",
-      "orderNumber": "Folio",
+      "orderNumber": "Número de orden",
       "customer": "Cliente",
       "waiter": "Mesero",
       "status": "Estado",
@@ -182,7 +182,7 @@
       "fields": {
         "orderId": "ID de orden",
         "createdAt": "Creada el",
-        "orderNumber": "Folio",
+        "orderNumber": "Número de orden",
         "customerName": "Nombre del cliente",
         "table": "Mesa",
         "waiter": "Mesero"

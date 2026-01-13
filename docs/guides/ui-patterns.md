@@ -5,6 +5,7 @@ This guide documents common UI patterns used throughout the Avoqado Dashboard. T
 ## Table of Contents
 
 - [Pill-Style Tabs (MANDATORY)](#pill-style-tabs-mandatory)
+- [Stripe-Style Filters (MANDATORY)](#stripe-style-filters-mandatory)
 - [Icon-Based Radio Group Selection](#icon-based-radio-group-selection)
 - [Horizontal Navigation (VenueEditLayout Pattern)](#horizontal-navigation-venueeditlayout-pattern)
 - [Multi-Step Wizard Dialog](#multi-step-wizard-dialog)
@@ -98,6 +99,373 @@ If you don't need count badges, simplify the trigger:
 - ✅ Page sections (Orders/History, Members/Invitations)
 - ✅ Detail views with multiple content sections
 - ❌ Do NOT use default Radix `TabsList` styling
+
+---
+
+## Stripe-Style Filters (MANDATORY)
+
+**⚠️ ALWAYS use this pattern for table/list filters. DO NOT use the DataTable's built-in column customizer.**
+
+**When to use:** Any page with a data table or list that needs filtering (e.g., Orders, Payments, Team, Customers).
+
+**Reference implementation:** `/src/pages/Order/Orders.tsx`
+
+### Visual Specifications - Single-Row with Responsive Wrap
+
+Inspired by Stripe's filter bar: filters on the left, action buttons on the right (wrap to new line when space runs out).
+
+```
+WIDE SCREEN (everything fits in one row):
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  Borrar   ┌──────────┐ ┌──────────┐ │
+│ │+ Fecha ▼│ │+ Tipo ▼ │ │+ Mesa ▼ │ │+ Estado▼│  filtros  │▼ Exportar│ │⚙ Columnas│ │
+│ └─────────┘ └─────────┘ └─────────┘ └─────────┘           └──────────┘ └──────────┘ │
+│ ←─── Filter pills (rounded-full) ────────────→   ←───ml-auto pushes right──────────→│
+└──────────────────────────────────────────────────────────────────────────────────────┘
+
+NARROW SCREEN (action buttons wrap to new line, LEFT-aligned):
+┌──────────────────────────────────────────────────────┐
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐     │
+│ │+ Fecha ▼│ │+ Tipo ▼ │ │+ Mesa ▼ │ │+ Estado▼│     │
+│ └─────────┘ └─────────┘ └─────────┘ └─────────┘     │
+│ ┌─────────┐  Borrar filtros                         │
+│ │+ Total ▼│                                         │
+│ └─────────┘                                         │
+│                          ↑ gap-y-3 spacing          │
+│ ┌──────────────────┐ ┌──────────┐ ┌────────────┐   │
+│ │⏱ Cuentas x Cobrar│ │▼ Exportar│ │⚙ Columnas │   │
+│ └──────────────────┘ └──────────┘ └────────────┘   │
+│ ←─ Action buttons wrap LEFT (natural flex) ──────→ │
+└──────────────────────────────────────────────────────┘
+```
+
+### Key Styling Rules
+
+| Element | Style | Example Classes |
+|---------|-------|-----------------|
+| **Filter Pills** | Rounded-full (pill shape) | `rounded-full border-dashed` |
+| **Reset Filters Button** | Rounded-full, white bg in dark mode | `rounded-full dark:bg-white dark:text-black dark:hover:text-black` |
+| **Action Buttons** | Default rounded (squared) | `rounded-md` (default, NO `rounded-full`) |
+| **ColumnCustomizer** | Squared like other actions | No `rounded-full` class |
+
+### Single-Row Layout with Responsive Wrap
+
+```typescript
+{/* Stripe-style Filter Bar */}
+<div className="mb-4">
+  {/* Single row: Filters left, Actions right (wrap when space runs out) */}
+  <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+    {/* Search input */}
+    <div className="relative flex-shrink-0">
+      <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        placeholder={t('search.placeholder')}
+        value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        className="h-8 w-[200px] rounded-full pl-8"
+      />
+    </div>
+
+    {/* Filter Pills - rounded-full style */}
+    <FilterPill label={t('filters.date')} {...dateFilterProps}>
+      <DateFilterContent {...} />
+    </FilterPill>
+
+    <FilterPill label={t('filters.status')} {...statusFilterProps}>
+      <CheckboxFilterContent {...} />
+    </FilterPill>
+
+    {/* Reset filters - white background button with X icon */}
+    {activeFiltersCount > 0 && (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={resetFilters}
+        className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+      >
+        <X className="h-3.5 w-3.5" />
+        {t('filters.reset', { defaultValue: 'Borrar filtros' })}
+      </Button>
+    )}
+
+    {/* Action buttons - pushed right with ml-auto, wrap left when space runs out */}
+    <div className="ml-auto flex flex-wrap items-center gap-2">
+      {/* Custom action buttons - NO rounded-full (squared style) */}
+      <Button variant="outline" size="sm" className="h-8 gap-2">
+        <Clock className="h-3.5 w-3.5" />
+        {t('customAction.button')}
+      </Button>
+
+      {/* Export dropdown - NO rounded-full */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5">
+            <Download className="h-3.5 w-3.5" />
+            {t('export.button')}
+          </Button>
+        </DropdownMenuTrigger>
+        {/* ... dropdown content */}
+      </DropdownMenu>
+
+      {/* Column customizer - NO rounded-full */}
+      <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} />
+    </div>
+  </div>
+</div>
+```
+
+**Key points:**
+- **Single row** with `flex-wrap` and `gap-x-2 gap-y-3` (different horizontal/vertical gaps)
+- **Filter pills** on the left with `rounded-full` style
+- **"Borrar filtros"** button with X icon, white background, and `rounded-full`
+- **Action buttons** pushed to the right with `ml-auto` wrapper
+- **When space runs out:** Action buttons wrap to a new line and stay LEFT-aligned (natural flex behavior)
+
+### Reset Filters Button (Dark Mode Styling)
+
+The "Borrar filtros" button has special styling to stand out in dark mode with a white background:
+
+```typescript
+{activeFiltersCount > 0 && (
+  <Button
+    variant="outline"
+    size="sm"
+    onClick={resetFilters}
+    className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+  >
+    <X className="h-3.5 w-3.5" />
+    {t('filters.reset', { defaultValue: 'Borrar filtros' })}
+  </Button>
+)}
+```
+
+**Key classes:**
+- `rounded-full` - Pill shape to match other filter pills
+- `gap-1.5` - Space between X icon and text
+- `dark:bg-white` - White background in dark mode
+- `dark:text-black` - Black text in dark mode
+- `dark:hover:bg-gray-100` - Slight gray on hover in dark mode
+- `dark:hover:text-black` - Keep text black on hover (prevents default hover text color)
+
+- **Filter Pills**: Rounded-full buttons with dropdown popovers
+- **Action Buttons**: Default rounded (squared), NOT rounded-full
+- **Multi-select**: Filters use arrays, not single values
+- **Column Customizer**: Separate component, NOT DataTable's built-in
+- **Clear Button**: Shows "×" with white bg in dark mode when filter is active
+
+### Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `FilterPill` | `@/components/filters/FilterPill` | Pill button with popover trigger |
+| `CheckboxFilterContent` | `@/components/filters/CheckboxFilterContent` | Multi-select checkbox list |
+| `ColumnCustomizer` | `@/components/filters/ColumnCustomizer` | Column visibility toggles |
+
+### Code Example - Filter State
+
+```typescript
+// ✅ CORRECT - Use arrays for multi-select
+const [statusFilter, setStatusFilter] = useState<string[]>([])
+const [typeFilter, setTypeFilter] = useState<string[]>([])
+const [paymentMethodFilter, setPaymentMethodFilter] = useState<string[]>([])
+
+// ✅ CORRECT - Column visibility state
+const [visibleColumns, setVisibleColumns] = useState<string[]>([
+  'select', 'orderNumber', 'customer', 'date', 'type', 'items',
+  'paymentMethod', 'total', 'status', 'actions'
+])
+
+// ❌ WRONG - Single value filters
+const [statusFilter, setStatusFilter] = useState<string>('')
+```
+
+### Code Example - Filter Options Extraction
+
+```typescript
+// Extract unique filter options from data
+const statusOptions = useMemo(() => {
+  const uniqueStatuses = [...new Set(orders.map(o => o.status))]
+  return uniqueStatuses.map(status => ({
+    value: status,
+    label: t(`statuses.${status}`)
+  }))
+}, [orders, t])
+
+// For sale types based on orderNumber prefix (FAST vs REGULAR)
+const saleTypes = useMemo(() => {
+  const saleTypesSet = new Set<string>()
+  orders.forEach(o => {
+    const isFastSale = o.orderNumber?.startsWith('FAST-')
+    saleTypesSet.add(isFastSale ? 'FAST' : 'REGULAR')
+  })
+  return Array.from(saleTypesSet)
+}, [orders])
+```
+
+### Code Example - Filtering Logic
+
+```typescript
+const filteredData = useMemo(() => {
+  return orders.filter(order => {
+    // Status filter (multi-select)
+    if (statusFilter.length > 0 && !statusFilter.includes(order.status)) {
+      return false
+    }
+
+    // Type filter based on orderNumber prefix
+    if (typeFilter.length > 0) {
+      const isFastSale = order.orderNumber?.startsWith('FAST-')
+      const orderType = isFastSale ? 'FAST' : 'REGULAR'
+      if (!typeFilter.includes(orderType)) {
+        return false
+      }
+    }
+
+    // Payment method filter
+    if (paymentMethodFilter.length > 0 && !paymentMethodFilter.includes(order.paymentMethod)) {
+      return false
+    }
+
+    return true
+  })
+}, [orders, statusFilter, typeFilter, paymentMethodFilter])
+```
+
+### Code Example - Column Filtering
+
+```typescript
+// Filter columns based on visibility settings
+const filteredColumns = useMemo(() => {
+  return columns.filter(col => {
+    const colId = col.id || (col as any).accessorKey
+    if (!colId) return true // Keep columns without ID
+    return visibleColumns.includes(colId)
+  })
+}, [columns, visibleColumns])
+
+// Pass filtered columns to DataTable
+<DataTable
+  data={filteredData}
+  columns={filteredColumns}  // ← Use filtered columns
+  showColumnCustomizer={false}  // ← IMPORTANT: Disable built-in customizer
+/>
+```
+
+### Code Example - Filter Pills UI
+
+```typescript
+import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
+
+// Helper to format filter display label
+const getFilterDisplayLabel = (
+  selectedValues: string[],
+  options: { value: string; label: string }[]
+): string | undefined => {
+  if (selectedValues.length === 0) return undefined
+  if (selectedValues.length === 1) {
+    return options.find(o => o.value === selectedValues[0])?.label
+  }
+  return `${selectedValues.length} seleccionados`
+}
+
+// Filter Pills Row
+<div className="flex flex-wrap items-center gap-2">
+  {/* Status Filter */}
+  <FilterPill
+    label={t('columns.status')}
+    activeValue={getFilterDisplayLabel(statusFilter, statusOptions)}
+    isActive={statusFilter.length > 0}
+    onClear={() => setStatusFilter([])}
+  >
+    <CheckboxFilterContent
+      title={t('columns.status')}
+      options={statusOptions}
+      selectedValues={statusFilter}
+      onApply={setStatusFilter}
+    />
+  </FilterPill>
+
+  {/* Type Filter */}
+  <FilterPill
+    label={t('columns.type')}
+    activeValue={getFilterDisplayLabel(
+      typeFilter,
+      saleTypes.map(st => ({
+        value: st,
+        label: st === 'FAST'
+          ? t('types.FAST', { defaultValue: 'Venta sin productos' })
+          : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
+      }))
+    )}
+    isActive={typeFilter.length > 0}
+    onClear={() => setTypeFilter([])}
+  >
+    <CheckboxFilterContent
+      title={t('columns.type')}
+      options={saleTypes.map(st => ({
+        value: st,
+        label: st === 'FAST'
+          ? t('types.FAST', { defaultValue: 'Venta sin productos' })
+          : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
+      }))}
+      selectedValues={typeFilter}
+      onApply={setTypeFilter}
+    />
+  </FilterPill>
+
+  {/* Column Customizer */}
+  <ColumnCustomizer
+    columns={columnOptions}
+    onApply={setVisibleColumns}
+    label={t('columns.customize', { defaultValue: 'Columnas' })}
+  />
+</div>
+```
+
+### DataTable Configuration
+
+**CRITICAL: Disable the built-in column customizer when using FilterPill-based filters.**
+
+```typescript
+// ❌ WRONG - Uses built-in customizer (duplicate UI)
+<DataTable
+  data={filteredData}
+  columns={columns}
+  // showColumnCustomizer defaults to true
+/>
+
+// ✅ CORRECT - Disable built-in, use FilterPill-based customizer
+<DataTable
+  data={filteredData}
+  columns={filteredColumns}  // ← Already filtered by visibility
+  showColumnCustomizer={false}  // ← Disable built-in
+/>
+```
+
+### Real-World Usage
+
+**Examples in codebase:**
+- `/src/pages/Order/Orders.tsx` - **Reference implementation**
+
+**Where to apply (needs migration):**
+- ❌ `/src/pages/Payment/Payments.tsx` - Still uses old filter pattern
+- ❌ `/src/pages/Customers/Customers.tsx` - Still uses old filter pattern
+- ❌ `/src/pages/Inventory/Inventory.tsx` - Still uses old filter pattern
+
+**Checklist for implementing:**
+- [ ] Import filter components from `@/components/filters`
+- [ ] Change filter state from single value to array (`useState<string[]>([])`)
+- [ ] Create `filteredColumns` useMemo based on `visibleColumns`
+- [ ] Add `showColumnCustomizer={false}` to DataTable
+- [ ] Pass `filteredColumns` to DataTable instead of `columns`
+- [ ] Memoize filter options extraction
+
+### Accessibility
+
+- Filter pills are keyboard accessible (Tab, Enter to open)
+- Checkboxes support Space to toggle
+- Focus traps work correctly in popovers
+- Clear button has aria-label for screen readers
 
 ---
 
@@ -741,6 +1109,120 @@ const schema = z.object({
 - Apply same gradient as inputs: `bg-linear-to-b from-muted to-muted/70 dark:from-zinc-900 dark:to-zinc-950`
 - Use `border-input` for consistent border color
 - Add ring effect on selection for visual feedback
+
+---
+
+## Consistent Card Actions Layout (MANDATORY)
+
+**When to use:** Any card grid where cards may have variable content height but action buttons need to stay visually aligned across the grid.
+
+**Pattern characteristics:**
+- Cards use `flex flex-col` to enable vertical layout control
+- Dynamic/optional content (like messages, notes, or expandable sections) goes in a `flex-1` container
+- Action buttons use `mt-auto` to always stick to the bottom
+
+### Why This Pattern
+
+When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra content (like a dispute message) and another doesn't, the action buttons will be at different vertical positions. This creates visual inconsistency and makes the UI feel broken.
+
+**The fix:** Use flexbox to push actions to the bottom regardless of content height.
+
+### Visual Example
+
+```
+❌ WITHOUT pattern (buttons misaligned):
+┌────────────────┐  ┌────────────────┐
+│ Header         │  │ Header         │
+│                │  │                │
+│ Amounts        │  │ Amounts        │
+│                │  │                │
+│ [Extra content]│  │ ─────────────  │
+│                │  │ [Actions]      │
+│ ─────────────  │  └────────────────┘
+│ [Actions]      │
+└────────────────┘
+
+✅ WITH pattern (buttons aligned):
+┌────────────────┐  ┌────────────────┐
+│ Header         │  │ Header         │
+│                │  │                │
+│ Amounts        │  │ Amounts        │
+│                │  │                │
+│ [Extra content]│  │                │
+│                │  │                │
+│ ─────────────  │  │ ─────────────  │
+│ [Actions]      │  │ [Actions]      │
+└────────────────┘  └────────────────┘
+```
+
+### Code Example
+
+```typescript
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  {items.map((item) => (
+    <Card key={item.id} className="p-5 flex flex-col">
+      {/* Fixed content - Always in same position */}
+      <div className="flex items-start justify-between mb-4">
+        <h3 className="font-semibold">{item.title}</h3>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      {/* More fixed content */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <MetricBox label="Metric 1" value={item.metric1} />
+        <MetricBox label="Metric 2" value={item.metric2} />
+        <MetricBox label="Metric 3" value={item.metric3} />
+      </div>
+
+      {/* FLEXIBLE AREA - Dynamic content goes here */}
+      <div className="flex-1">
+        {item.hasExtraContent && (
+          <div className="mb-4 p-3 rounded-lg bg-muted">
+            <p>{item.extraContent}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ACTIONS - Always at bottom with mt-auto */}
+      <div className="flex items-center gap-2 pt-4 border-t border-border/50 mt-auto">
+        <Button size="sm" onClick={() => handleAction(item.id)}>
+          {t('action.primary')}
+        </Button>
+        <Button size="sm" variant="outline">
+          {t('action.secondary')}
+        </Button>
+      </div>
+    </Card>
+  ))}
+</div>
+```
+
+### Key Classes Breakdown
+
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| Card container | `flex flex-col` | Enable vertical flex layout |
+| Dynamic content wrapper | `flex-1` | Takes remaining space, pushes actions down |
+| Actions container | `mt-auto` | Sticks to bottom of card |
+
+### Real-World Usage
+
+**Examples in codebase:**
+- `/src/pages/Commissions/components/SummaryApprovalList.tsx` - Approval cards with optional dispute messages
+
+**Where to apply:**
+- ✅ Card grids where some cards have conditional content
+- ✅ Approval/review interfaces with notes or messages
+- ✅ Product cards with variable descriptions
+- ✅ Any two-column card layout with action buttons
+- ❌ Single-column layouts where alignment doesn't matter
+- ❌ Cards with no action buttons
+
+### Accessibility
+
+- Ensure action buttons have consistent tab order
+- Screen readers should announce card content in logical order
+- Focus management should work consistently regardless of card height
 
 ---
 

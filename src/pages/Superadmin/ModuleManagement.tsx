@@ -530,7 +530,7 @@ const ModuleManagement: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredModules}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               rowCount={filteredModules.length}
             />
@@ -556,7 +556,7 @@ const ModuleManagement: React.FC = () => {
               <DataTable
                 columns={venueColumns}
                 data={moduleVenuesData?.venues || []}
-                pagination={{ pageIndex: 0, pageSize: 10 }}
+                pagination={{ pageIndex: 0, pageSize: 20 }}
                 setPagination={() => {}}
                 rowCount={moduleVenuesData?.venues?.length || 0}
               />

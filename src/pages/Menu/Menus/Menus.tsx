@@ -67,7 +67,10 @@ export default function Menus() {
     },
     {
       id: 'categories',
-      accessorKey: 'categories',
+      accessorFn: (menu) =>
+        (menu.categories || [])
+          .map(assignment => assignment.category)
+          .filter((category): category is { id: string; name: string } => Boolean(category?.name)),
       meta: { label: t('menus.columns.categories') },
       header: t('menus.columns.categories'),
       enableColumnFilter: false,

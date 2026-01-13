@@ -21,8 +21,13 @@ export interface SalesSummaryMetrics {
   deferredSales: number
   taxes: number
   tips: number
-  commissions: number
+  // Costs breakdown
+  platformFees: number // Avoqado platform fees
+  staffCommissions: number // Commissions paid to staff
+  commissions: number // Legacy field (= platformFees for backwards compatibility)
   totalCollected: number
+  // True profit after all costs
+  netProfit: number
   transactionCount: number
 }
 

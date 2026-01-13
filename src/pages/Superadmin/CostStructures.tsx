@@ -342,7 +342,7 @@ const CostStructures: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredCostStructures}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               rowCount={filteredCostStructures.length}
             />

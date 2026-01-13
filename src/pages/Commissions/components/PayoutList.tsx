@@ -80,7 +80,7 @@ export default function PayoutList({ payouts, isLoading }: PayoutListProps) {
 
 	const [pagination, setPagination] = useState({
 		pageIndex: 0,
-		pageSize: 10,
+		pageSize: 20,
 	})
 
 	const processPayoutMutation = useProcessPayout()

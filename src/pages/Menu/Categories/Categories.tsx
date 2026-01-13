@@ -82,6 +82,20 @@ export default function Categories() {
       },
     },
     {
+      id: 'productsCount',
+      accessorFn: (category) => {
+        const withCount = category as MenuCategory & { _count?: { products?: number } }
+        return withCount.products?.length ?? withCount._count?.products ?? 0
+      },
+      meta: { label: t('categories.columns.products') },
+      header: t('categories.columns.products'),
+      enableColumnFilter: false,
+      cell: ({ cell }) => {
+        const value = cell.getValue() as number
+        return <span className="text-sm">{value}</span>
+      },
+    },
+    {
       id: 'updatedAt',
       accessorKey: 'updatedAt',
       meta: { label: t('categories.columns.lastModification') },
@@ -97,9 +111,12 @@ export default function Categories() {
       },
     },
     {
-      id: 'active',
+      id: 'activeStatus',
       accessorKey: 'active',
-      header: '',
+      meta: { label: t('categories.columns.active') },
+      header: t('categories.columns.active'),
+      enableSorting: false,
+      enableHiding: false,
       enableColumnFilter: false,
       cell: ({ row, cell }) => {
         const categoryId = row.original.id as string

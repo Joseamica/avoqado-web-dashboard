@@ -52,7 +52,7 @@ export default function Shifts() {
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [shiftToDelete, setShiftToDelete] = useState<any>(null)
@@ -492,7 +492,7 @@ export default function Shifts() {
       <DataTable
         data={data?.data || []}
         rowCount={totalShifts}
-        enableColumnResizing={true}
+        // enableColumnResizing={true}
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}

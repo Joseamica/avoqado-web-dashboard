@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -59,7 +58,6 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 interface SectionState {
   items: boolean
   payments: boolean
-  details: boolean
   verification: boolean
 }
 
@@ -182,6 +180,15 @@ const calculateTipPercentage = (tip: number, subtotal: number): string => {
   return ((tip / subtotal) * 100).toFixed(1)
 }
 
+const formatOrderNumber = (orderNumber?: string | null): string => {
+  if (!orderNumber) return '-'
+  const match = orderNumber.match(/(?:ORD|FAST)-(.+)/)
+  if (!match) return orderNumber
+  const digits = match[1].replace(/\D/g, '')
+  if (!digits) return orderNumber
+  return digits.length > 6 ? digits.slice(-6) : digits
+}
+
 const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
   navigator.clipboard.writeText(text)
   toast({
@@ -226,22 +233,39 @@ const getPaymentIcon = (payment: any) => {
 }
 
 // ========== SUB-COMPONENTS ==========
-const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLast: boolean }) => {
+const HorizontalTimelineEvent = ({
+  event,
+  isLast,
+  isFirst
+}: {
+  event: TimelineEvent
+  isLast: boolean
+  isFirst: boolean
+}) => {
   const Icon = event.icon
   return (
-    <div className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background`}>
+    <div className="flex flex-col items-center flex-1 min-w-0">
+      {/* Icon row with connecting lines */}
+      <div className="flex items-center w-full">
+        {/* Left line */}
+        <div className={`flex-1 h-0.5 ${isFirst ? 'bg-transparent' : 'bg-border'}`} />
+
+        {/* Icon */}
+        <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 ${event.iconColor} bg-background shrink-0`}>
           <Icon className="h-4 w-4" />
         </div>
-        {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
+
+        {/* Right line */}
+        <div className={`flex-1 h-0.5 ${isLast ? 'bg-transparent' : 'bg-border'}`} />
       </div>
-      <div className="flex-1 pb-6">
-        <p className="text-sm font-medium text-foreground">{event.description}</p>
-        <p className="text-xs text-muted-foreground mt-1">{event.timestamp}</p>
+
+      {/* Text below */}
+      <div className="mt-3 text-center px-1 max-w-[140px]">
+        <p className="text-xs font-medium text-foreground leading-tight line-clamp-2">{event.description}</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{event.timestamp}</p>
         {event.user && (
-          <p className="text-xs text-muted-foreground">
-            by {event.user.firstName} {event.user.lastName}
+          <p className="text-[10px] text-muted-foreground">
+            {event.user.firstName} {event.user.lastName}
           </p>
         )}
       </div>
@@ -254,33 +278,7 @@ const OrderTimeline = ({ order, locale, timezone }: { order: OrderType; locale: 
 
   const events: TimelineEvent[] = []
 
-  // Payment events
-  if (order.payments && order.payments.length > 0) {
-    order.payments.forEach(payment => {
-      events.push({
-        type: 'payment',
-        timestamp: formatDateShort(payment.createdAt, locale, timezone),
-        description: `${t('detail.timeline.paymentReceived')}: ${Currency(Number(payment.amount) + Number(payment.tipAmount))} via ${
-          payment.method
-        }`,
-        icon: CreditCard,
-        iconColor: 'text-success border-success/20',
-      })
-    })
-  }
-
-  // Status change (simplified - just current status)
-  if (order.status) {
-    events.push({
-      type: 'status_change',
-      timestamp: formatDateShort(order.updatedAt, locale, timezone),
-      description: `${t('detail.timeline.statusUpdated')}: ${t(`detail.statuses.${order.status}`)}`,
-      icon: CheckCircle2,
-      iconColor: 'text-primary border-primary/20',
-    })
-  }
-
-  // Order created
+  // Order created (first event chronologically)
   events.push({
     type: 'created',
     timestamp: formatDateShort(order.createdAt, locale, timezone),
@@ -290,13 +288,50 @@ const OrderTimeline = ({ order, locale, timezone }: { order: OrderType; locale: 
     iconColor: 'text-muted-foreground border-border',
   })
 
-  // Sort by timestamp (most recent first)
-  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  // Status change (simplified - just current status)
+  if (order.status) {
+    events.push({
+      type: 'status_change',
+      timestamp: formatDateShort(order.updatedAt, locale, timezone),
+      description: `${t(`detail.statuses.${order.status}`)}`,
+      icon: CheckCircle2,
+      iconColor: 'text-primary border-primary/20',
+    })
+  }
+
+  // Payment events
+  if (order.payments && order.payments.length > 0) {
+    order.payments.forEach(payment => {
+      // Show card brand if available, otherwise translate the method
+      const paymentLabel = payment.cardBrand
+        ? payment.cardBrand
+        : t(`payment:methods.${String(payment.method).toLowerCase()}`, { defaultValue: payment.method })
+
+      events.push({
+        type: 'payment',
+        timestamp: formatDateShort(payment.createdAt, locale, timezone),
+        description: `${Currency(Number(payment.amount) + Number(payment.tipAmount))} ${paymentLabel}`,
+        icon: CreditCard,
+        iconColor: 'text-success border-success/20',
+      })
+    })
+  }
+
+  // Sort chronologically (oldest first for horizontal display)
+  events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+  // Limit to 4 events for horizontal display
+  const displayEvents = events.slice(0, 4)
 
   return (
-    <div className="space-y-2">
-      {events.slice(0, 5).map((event, index) => (
-        <TimelineEventComponent key={index} event={event} isLast={index === events.length - 1} />
+    <div className="flex items-start justify-between gap-2 py-2">
+      {displayEvents.map((event, index) => (
+        <HorizontalTimelineEvent
+          key={index}
+          event={event}
+          isFirst={index === 0}
+          isLast={index === displayEvents.length - 1}
+        />
       ))}
     </div>
   )
@@ -364,39 +399,14 @@ export default function OrderId() {
   const [sectionsOpen, setSectionsOpen] = useState<SectionState>({
     items: true,
     payments: false,
-    details: false,
     verification: false,
   })
-  const [editingField, setEditingField] = useState<string | null>(null)
-  const [editedValues, setEditedValues] = useState<Record<string, any>>({})
 
   // Fetch order
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', venueId, orderId],
     queryFn: () => orderService.getOrder(venueId, orderId),
     enabled: !!orderId,
-  })
-
-  // Mutations
-  const updateOrderMutation = useMutation({
-    mutationFn: (updatedOrder: Partial<OrderType>) => orderService.updateOrder(venueId, orderId, updatedOrder),
-    onSuccess: () => {
-      toast({
-        title: t('detail.toast.updatedTitle'),
-        description: t('detail.toast.updatedDesc'),
-      })
-      queryClient.invalidateQueries({ queryKey: ['order', venueId, orderId] })
-      queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
-      setEditingField(null)
-      setEditedValues({})
-    },
-    onError: (error: any) => {
-      toast({
-        title: t('detail.toast.updateErrorTitle'),
-        description: error.response?.data?.message || t('detail.toast.updateErrorDesc'),
-        variant: 'destructive',
-      })
-    },
   })
 
   const deleteOrderMutation = useMutation({
@@ -421,7 +431,7 @@ export default function OrderId() {
   // Set breadcrumb with order number
   useEffect(() => {
     if (order?.orderNumber && orderId) {
-      setCustomSegment(orderId, order.orderNumber)
+      setCustomSegment(orderId, formatOrderNumber(order.orderNumber))
     }
     return () => {
       if (orderId) {
@@ -433,21 +443,6 @@ export default function OrderId() {
   // Handlers
   const toggleSection = (section: keyof SectionState) => {
     setSectionsOpen(prev => ({ ...prev, [section]: !prev[section] }))
-  }
-
-  const handleFieldEdit = (field: string, value: any) => {
-    setEditedValues(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleFieldSave = (field: string) => {
-    if (editedValues[field] !== undefined) {
-      updateOrderMutation.mutate({ [field]: editedValues[field] } as Partial<OrderType>)
-    }
-  }
-
-  const startEditing = (field: string, currentValue: any) => {
-    setEditingField(field)
-    setEditedValues({ [field]: currentValue })
   }
 
   const from = (location.state as any)?.from || `/venues/${venueSlug}/orders`
@@ -492,6 +487,9 @@ export default function OrderId() {
             {/* Title + Actions */}
             <div className="flex items-start justify-between">
               <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  {t('detail.orderNumber', { defaultValue: 'Orden' })} #{formatOrderNumber(order.orderNumber)}
+                </p>
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-semibold text-foreground">{Currency(order.total || 0)}</h1>
                   <Badge variant="outline" className={`${orderStatus.bg} ${orderStatus.color} ${orderStatus.border} border`}>
@@ -503,10 +501,13 @@ export default function OrderId() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                  <span>
-                    {t('detail.chargedTo', { defaultValue: 'Charged to' })}{' '}
-                    <span className="font-mono text-xs">{order.customerName || t('detail.counter', { defaultValue: 'Counter' })}</span>
-                  </span>
+                  <span>{formatDateShort(order.createdAt, i18n.language, venueTimezone)}</span>
+                  {order.customerName && (
+                    <>
+                      <span>•</span>
+                      <span>{order.customerName}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -514,11 +515,11 @@ export default function OrderId() {
               <div className="flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(order.id || '', 'Order ID', toast, t)}>
+                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(formatOrderNumber(order.orderNumber), t('detail.orderNumber', { defaultValue: 'Número de orden' }), toast, t)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{t('detail.actions.copyId')}</TooltipContent>
+                  <TooltipContent>{t('detail.actions.copyOrderNumber', { defaultValue: 'Copiar número de orden' })}</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -532,7 +533,7 @@ export default function OrderId() {
                         const url = URL.createObjectURL(blob)
                         const a = document.createElement('a')
                         a.href = url
-                        a.download = `order-${order.orderNumber}.json`
+                        a.download = `order-${formatOrderNumber(order.orderNumber)}.json`
                         a.click()
                         URL.revokeObjectURL(url)
                       }}
@@ -617,43 +618,47 @@ export default function OrderId() {
                 icon={Utensils}
               >
                 {order.items && order.items.length > 0 ? (
-                  <div className="space-y-3">
-                    {order.items.map((item, index) => (
-                      <div
-                        key={item.id || index}
-                        className="flex justify-between items-start p-4 rounded-lg border border-border hover:border-foreground/20 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="font-medium">
-                              {item.quantity}x
-                            </Badge>
-                            <span className="font-medium text-foreground">
-                              {item.productName || item.product?.name || t('detail.items.productNotAvailable')}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {Currency(item.unitPrice || 0)} {t('detail.items.each')}
-                          </div>
-                          {item.modifiers && item.modifiers.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {item.modifiers.map((modifier, idx) => (
-                                <div key={idx} className="text-xs text-muted-foreground flex items-center gap-1 ml-6">
-                                  <span>•</span>
-                                  <span>{modifier.name || 'Unknown modifier'}</span>
-                                  <span className="text-foreground font-medium">
-                                    (+{Currency(modifier.price || 0)})
-                                  </span>
-                                </div>
-                              ))}
+                  <div className="rounded-xl bg-muted/30 p-2">
+                    <div className="space-y-2">
+                      {order.items.map((item, index) => (
+                        <div
+                          key={item.id || index}
+                          className="flex justify-between items-start rounded-lg px-3 py-3 transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="font-medium">
+                                {item.quantity}x
+                              </Badge>
+                              <span className="font-medium text-foreground">
+                                {item.productName || item.product?.name || t('detail.items.productNotAvailable')}
+                              </span>
                             </div>
-                          )}
+                            {item.modifiers && item.modifiers.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {item.modifiers.map((modifier, idx) => (
+                                  <div key={idx} className="text-xs text-muted-foreground flex items-center gap-1 ml-6">
+                                    <span>•</span>
+                                    <span>{modifier.name || 'Unknown modifier'}</span>
+                                    <span className="text-foreground font-medium">
+                                      (+{Currency(modifier.price || 0)})
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-right">
+                            {item.quantity > 1 && (
+                              <span className="text-xs text-muted-foreground">
+                                {Currency(item.unitPrice || 0)} {t('detail.items.each')}
+                              </span>
+                            )}
+                            <p className="font-medium text-foreground">{Currency(item.total || 0)}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium text-foreground">{Currency(item.total || 0)}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground py-4">{t('detail.items.noItems')}</p>
@@ -669,105 +674,49 @@ export default function OrderId() {
                 icon={Receipt}
               >
                 {order.payments && order.payments.length > 0 ? (
-                  <div className="space-y-3">
-                    {order.payments.map(payment => (
-                      <div
-                        key={payment.id}
-                        className="flex justify-between items-start p-4 rounded-lg border border-border hover:border-foreground/20 transition-colors"
-                      >
-                        <div className="flex items-start gap-3">
-                          {getPaymentIcon(payment)}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{t(`payment:methods.${String(payment.method).toLowerCase()}`)}</span>
-                              <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language, venueTimezone)}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              <span>
-                                {t('detail.payments.base')}: {Currency(payment.amount)}
-                              </span>
-                              <span className="ml-3">
-                                {t('detail.payments.tip')}: {Currency(payment.tipAmount)}
-                              </span>
+                  <div className="rounded-xl bg-muted/30 p-2">
+                    <div className="space-y-2">
+                      {order.payments.map(payment => (
+                        <div
+                          key={payment.id}
+                          className="flex justify-between items-start rounded-lg px-3 py-3 transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex items-start gap-3">
+                            {getPaymentIcon(payment)}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{t(`payment:methods.${String(payment.method).toLowerCase()}`)}</span>
+                                <span className="text-xs text-muted-foreground">{formatDateShort(payment.createdAt, i18n.language, venueTimezone)}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <span>
+                                  {t('detail.payments.base')}: {Currency(payment.amount)}
+                                </span>
+                                <span className="ml-3">
+                                  {t('detail.payments.tip')}: {Currency(payment.tipAmount)}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                            <p className="font-medium text-foreground">{Currency(Number(payment.amount) + Number(payment.tipAmount))}</p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-1 h-auto p-0 text-xs"
+                              onClick={() => navigate(`/venues/${venueSlug}/payments/${payment.id}`)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              {t('detail.payments.view')}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium text-foreground">{Currency(Number(payment.amount) + Number(payment.tipAmount))}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-1 h-auto p-0 text-xs"
-                            onClick={() => navigate(`/venues/${venueSlug}/payments/${payment.id}`)}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            {t('detail.payments.view')}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground py-4">{t('detail.payments.noPayments')}</p>
                 )}
-              </CollapsibleSection>
-
-              {/* Order Details - Collapsible */}
-              <CollapsibleSection
-                title={t('detail.sections.orderInfo')}
-                subtitle={t('detail.sections.orderInfoDesc', { defaultValue: 'Order details and information' })}
-                isOpen={sectionsOpen.details}
-                onToggle={() => toggleSection('details')}
-                icon={FileText}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderNumber')}</Label>
-                    <p className="text-sm font-mono mt-1">{order.orderNumber}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.dateTime')}</Label>
-                    <p className="text-sm mt-1">{formatDateLong(order.createdAt, i18n.language, venueTimezone)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.customer')}</Label>
-                    {canEdit && editingField === 'customerName' ? (
-                      <Input
-                        value={editedValues.customerName || ''}
-                        onChange={e => handleFieldEdit('customerName', e.target.value)}
-                        onBlur={() => handleFieldSave('customerName')}
-                        autoFocus
-                        className="h-8 mt-1"
-                      />
-                    ) : (
-                      <p
-                        className="text-sm mt-1 cursor-pointer hover:text-primary"
-                        onClick={() => canEdit && startEditing('customerName', order.customerName)}
-                      >
-                        {order.customerName || t('detail.counter', { defaultValue: 'Counter' })}
-                      </p>
-                    )}
-                  </div>
-                  {order.tableId && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.table')}</Label>
-                      <p className="text-sm mt-1">
-                        {order.table?.number || t('detail.fields.noTable')}
-                        {order.table?.area?.name && <span className="text-muted-foreground ml-1">({order.table.area.name})</span>}
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.waiter')}</Label>
-                    <p className="text-sm mt-1">
-                      {order.createdBy ? `${order.createdBy.firstName} ${order.createdBy.lastName}` : t('detail.fields.noWaiter')}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">{t('detail.fields.orderType')}</Label>
-                    <p className="text-sm mt-1">{order.type || t('detail.fields.noType')}</p>
-                  </div>
-                </div>
               </CollapsibleSection>
 
               {/* 📸 Verification Photos Section - Only show if any payment has verification */}
@@ -1022,8 +971,8 @@ export default function OrderId() {
         <div className="border-t border-border mt-12">
           <div className="max-w-[1400px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{t('detail.footer.orderId', { id: order.id })}</span>
-              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(getIntlLocale(i18n.language)).toLocaleString(DateTime.DATETIME_MED) })}</span>
+              <span>{t('detail.footer.orderNumber', { number: formatOrderNumber(order.orderNumber), defaultValue: 'Orden #{{number}}' })}</span>
+              <span>{formatDateLong(order.createdAt, i18n.language, venueTimezone)}</span>
             </div>
           </div>
         </div>

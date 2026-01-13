@@ -158,6 +158,7 @@
 		"netAmount": "Monto Neto",
 		"calculations": "Cálculos",
 		"approve": "Aprobar",
+		"approveDisputed": "Aprobar Disputa",
 		"approveAll": "Aprobar Todos",
 		"dispute": "Disputar",
 		"disputeReason": "Razón de la Disputa",
@@ -361,7 +362,16 @@
 			"subtotal": "Subtotal venta:",
 			"commissionAmount": "Comisión ({{rate}}%):",
 			"commissionFixed": "Comisión fija:",
-			"resultText": "El mesero que atendió ganaría {{amount}} de comisión"
+			"resultText": "El mesero que atendió ganaría {{amount}} de comisión",
+			"aggregationPeriod": "Período de resumen",
+			"aggregationPeriodHint": "Cada cuándo agrupar comisiones para nómina",
+			"periodOptions": {
+				"WEEKLY": "Semanal",
+				"BIWEEKLY": "Quincenal",
+				"MONTHLY": "Mensual"
+			},
+			"priority": "Prioridad",
+			"priorityHint": "Mayor número = se aplica primero si hay varias configs"
 		},
 		"advanced": {
 			"tiers": {
@@ -456,6 +466,23 @@
 			"next": "Siguiente",
 			"previous": "Anterior",
 			"create": "Crear"
+		}
+	},
+	"advanced": {
+		"limits": {
+			"title": "Límites por comisión",
+			"disabled": "Sin límites",
+			"enabled": "Con límites",
+			"min": "Mínimo",
+			"max": "Máximo",
+			"limitApplied": "Límite aplicado:",
+			"exampleTitle": "Ejemplo con máximo {{max}}:",
+			"exampleText": "Venta de {{sale}} × {{rate}}% = {{calculated}} → Recibe {{actual}} (límite)",
+			"tooltip": {
+				"title": "Límites de comisión",
+				"minExplain": "Mínimo: Garantiza comisión mínima por orden. Ej: Mínimo $5, aunque 3% de $100 = $3, el empleado recibe $5",
+				"maxExplain": "Máximo: Limita comisiones en ventas grandes. Ej: Máximo $100, aunque 3% de $5000 = $150, el empleado recibe $100"
+			}
 		}
 	}
 }

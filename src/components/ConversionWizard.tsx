@@ -46,12 +46,13 @@ type DocumentType = 'ID' | 'CSF' | 'DOMICILIO' | 'CARATULA' | 'ACTA' | 'PODER'
 
 // Pricing in MXN (matches backend seed data and FeaturesStep)
 const FEATURE_PRICING: Record<string, number> = {
-  CHATBOT: 399,
-  ADVANCED_ANALYTICS: 499,
-  INVENTORY_TRACKING: 299,
+  CHATBOT: 199,
+  INVENTORY_TRACKING: 89,
   LOYALTY_PROGRAM: 599,
-  ONLINE_ORDERING: 799,
-  RESERVATIONS: 399,
+  ONLINE_ORDERING: 99,
+  // TEMPORARILY DISABLED - Re-enable when ready for launch
+  // ADVANCED_ANALYTICS: 499,
+  // RESERVATIONS: 399,
 }
 
 export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue }: ConversionWizardProps) {

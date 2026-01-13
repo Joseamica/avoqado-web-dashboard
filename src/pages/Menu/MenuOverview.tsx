@@ -166,11 +166,7 @@ function SortableProduct({
       </div>
       <div className="font-medium text-foreground flex-grow">{product.name}</div>
       <div className="ml-auto flex items-center space-x-4 pointer-events-auto">
-        <InventoryBadge
-          product={product}
-          onClick={() => onProductClick?.(product)}
-          size="sm"
-        />
+        <InventoryBadge product={product} onClick={() => onProductClick?.(product)} size="sm" />
         <Input
           type="text"
           value={editedPrices[product.id] ?? Number(product.price).toFixed(2)}
@@ -520,9 +516,6 @@ export default function Overview() {
           })}
         />
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories`)}>
-            {t('overview.manageCategories')}
-          </Button>
           {/* Import button - Requires menu:import permission (MANAGER+) */}
           {can('menu:import') && (
             <Button variant="outline" onClick={() => setIsImportDialogOpen(true)} className="gap-2">
@@ -683,9 +676,7 @@ export default function Overview() {
                 <div className="p-2 rounded-md shadow-2xl bg-card border-border border bg-opacity-95 backdrop-blur-sm">
                   <div className="flex items-center space-x-2">
                     <GripVertical className="text-muted-foreground" size={18} />
-                    <p className="font-semibold text-sm">
-                      {'name' in activeItem ? (activeItem as any).name : t('overview.draggedItem')}
-                    </p>
+                    <p className="font-semibold text-sm">{'name' in activeItem ? (activeItem as any).name : t('overview.draggedItem')}</p>
                   </div>
                 </div>
               )}

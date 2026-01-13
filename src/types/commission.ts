@@ -33,6 +33,7 @@ export interface CommissionConfig {
 	roleRates: Record<string, number> | null
 	effectiveFrom: string
 	effectiveTo: string | null
+	aggregationPeriod: TierPeriod // Period for grouping commissions into summaries (payroll alignment)
 	active: boolean
 	createdAt: string
 	updatedAt: string
@@ -189,6 +190,19 @@ export interface CommissionSummaryBasic {
 	status: CommissionSummaryStatus
 }
 
+// Commission info for a specific payment (used in PaymentId.tsx)
+export interface PaymentCommission {
+	id: string
+	staffId: string
+	staffName: string
+	netCommission: number
+	effectiveRate: number
+	baseAmount: number
+	status: string
+	calculatedAt: string
+	configName: string
+}
+
 // ============================================
 // Tier Progress Types
 // ============================================
@@ -233,14 +247,12 @@ export interface PayoutStats {
 	averagePayout: number
 }
 
+// Stats returned by getStaffCommissions endpoint
+// Note: This is the actual shape from the backend, not the shape in StaffCommissionsResponse docs
 export interface StaffCommissionStats {
-	totalEarned: number
-	pendingAmount: number
-	currentMonthEarnings: number
-	previousMonthEarnings: number
-	activeConfig: CommissionConfigBasic | null
-	currentRate: number
-	hasOverride: boolean
+	thisMonth: number
+	lastMonth: number
+	total: number
 }
 
 // ============================================
@@ -261,6 +273,7 @@ export interface CreateCommissionConfigInput {
 	effectiveFrom?: string
 	effectiveTo?: string | null
 	priority?: number
+	aggregationPeriod?: TierPeriod // Period for grouping commissions into summaries (payroll alignment)
 }
 
 export interface UpdateCommissionConfigInput {
@@ -278,6 +291,7 @@ export interface UpdateCommissionConfigInput {
 	effectiveTo?: string | null
 	priority?: number
 	active?: boolean
+	aggregationPeriod?: TierPeriod // Period for grouping commissions into summaries (payroll alignment)
 }
 
 export interface CreateCommissionTierInput {

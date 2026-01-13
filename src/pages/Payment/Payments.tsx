@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { FilterPill, CheckboxFilterContent, AmountFilterContent, ColumnCustomizer, type AmountFilter } from '@/components/filters'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +45,7 @@ import {
   Pencil,
   QrCode,
   RotateCcw,
+  Search,
   Smartphone,
   TabletSmartphone,
   TestTube,
@@ -63,13 +65,13 @@ export default function Payments() {
   const { user, checkFeatureAccess } = useAuth()
   const isSuperAdmin = user?.role === StaffRole.SUPERADMIN
   const hasChatbot = checkFeatureAccess('CHATBOT')
-  const { formatTime, formatDate, venueTimezoneShort } = useVenueDateTime()
+  const { formatDate } = useVenueDateTime()
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [paymentToDelete, setPaymentToDelete] = useState<PaymentType | null>(null)
@@ -82,50 +84,47 @@ export default function Payments() {
     status: PaymentStatus
   }>({ amount: 0, tipAmount: 0, method: PaymentMethod.CASH, status: PaymentStatus.PAID })
 
-  // Filter states
-  const [merchantAccountFilter, setMerchantAccountFilter] = useState<string>('all')
-  const [methodFilter, setMethodFilter] = useState<string>('all')
-  const [sourceFilter, setSourceFilter] = useState<string>('all')
-  const [waiterFilter, setWaiterFilter] = useState<string>('all')
+  // Filter states (arrays for multi-select Stripe-style filters)
+  const [merchantAccountFilter, setMerchantAccountFilter] = useState<string[]>([])
+  const [methodFilter, setMethodFilter] = useState<string[]>([])
+  const [sourceFilter, setSourceFilter] = useState<string[]>([])
+  const [waiterFilter, setWaiterFilter] = useState<string[]>([])
+  const [subtotalFilter, setSubtotalFilter] = useState<AmountFilter | null>(null)
+  const [tipFilter, setTipFilter] = useState<AmountFilter | null>(null)
+  const [totalFilter, setTotalFilter] = useState<AmountFilter | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    'createdAt',
+    'waiterName',
+    'merchantAccount',
+    'source',
+    'method',
+    'amount',
+    'totalTipAmount',
+    'totalAmount',
+  ])
 
   // Reset pagination when filters change (using debounced search to avoid flicker)
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
-  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, debouncedSearchTerm])
+  }, [merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, subtotalFilter, tipFilter, totalFilter, debouncedSearchTerm])
 
-  // --- SIN CAMBIOS EN useQuery ---
-  // La lógica de fetching sigue siendo válida porque el nuevo backend
-  // devuelve la estructura { data, meta } que el frontend espera.
+  // Fetch payments - client-side filtering for multi-select support
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: [
-      'payments',
-      venueId,
-      pagination.pageIndex,
-      pagination.pageSize,
-      merchantAccountFilter,
-      methodFilter,
-      sourceFilter,
-      waiterFilter,
-      debouncedSearchTerm,
-    ],
+    queryKey: ['payments', venueId, pagination.pageIndex, pagination.pageSize],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
         params: {
           page: pagination.pageIndex + 1,
           pageSize: pagination.pageSize,
-          ...(merchantAccountFilter !== 'all' && { merchantAccountId: merchantAccountFilter }),
-          ...(methodFilter !== 'all' && { method: methodFilter }),
-          ...(sourceFilter !== 'all' && { source: sourceFilter }),
-          ...(waiterFilter !== 'all' && { staffId: waiterFilter }),
-          ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
         },
       })
-      // La respuesta ya tiene el formato { data: Payment[], meta: {...} }
       return response.data
     },
-    // Habilitar refetchOnWindowFocus puede ser útil para datos en tiempo real
     refetchOnWindowFocus: true,
   })
 
@@ -223,27 +222,42 @@ export default function Payments() {
   // Get payments data directly from server (already filtered)
   const payments = useMemo(() => data?.data || [], [data?.data])
 
-  // Extract unique options for filters
+  // Separate query to get all filter options (without filters applied)
+  const { data: filterOptionsData } = useQuery({
+    queryKey: ['payments-filter-options', venueId],
+    queryFn: async () => {
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/payments`, {
+        params: {
+          page: 1,
+          pageSize: 500, // Get enough data to extract all unique options
+        },
+      })
+      return response.data
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  })
+
+  // Extract unique options for filters from unfiltered data
   const { merchantAccounts, methods, sources, waiters } = useMemo(() => {
-    const payments = data?.data || []
+    const allPayments = filterOptionsData?.data || []
 
     // Unique merchant accounts
     const merchantAccountsMap = new Map()
-    payments.forEach((p: PaymentType) => {
+    allPayments.forEach((p: PaymentType) => {
       if (p.merchantAccount) {
         merchantAccountsMap.set(p.merchantAccount.id, p.merchantAccount)
       }
     })
 
     // Unique methods
-    const methodsSet = new Set(payments.map((p: PaymentType) => p.method).filter(Boolean))
+    const methodsSet = new Set(allPayments.map((p: PaymentType) => p.method).filter(Boolean))
 
     // Unique sources
-    const sourcesSet = new Set(payments.map((p: PaymentType) => p.source).filter(Boolean))
+    const sourcesSet = new Set(allPayments.map((p: PaymentType) => p.source).filter(Boolean))
 
     // Unique waiters
     const waitersMap = new Map()
-    payments.forEach((p: PaymentType) => {
+    allPayments.forEach((p: PaymentType) => {
       if (p.processedBy) {
         waitersMap.set(p.processedBy.id, p.processedBy)
       }
@@ -255,25 +269,128 @@ export default function Payments() {
       sources: Array.from(sourcesSet),
       waiters: Array.from(waitersMap.values()),
     }
-  }, [data?.data])
+  }, [filterOptionsData?.data])
 
-  // Count active filters
+  // Count active filters (arrays with values count as active)
   const activeFiltersCount = [
-    merchantAccountFilter !== 'all',
-    methodFilter !== 'all',
-    sourceFilter !== 'all',
-    waiterFilter !== 'all',
+    merchantAccountFilter.length > 0,
+    methodFilter.length > 0,
+    sourceFilter.length > 0,
+    waiterFilter.length > 0,
+    subtotalFilter !== null,
+    tipFilter !== null,
+    totalFilter !== null,
     searchTerm !== '',
   ].filter(Boolean).length
 
   // Reset all filters
   const resetFilters = useCallback(() => {
-    setMerchantAccountFilter('all')
-    setMethodFilter('all')
-    setSourceFilter('all')
-    setWaiterFilter('all')
+    setMerchantAccountFilter([])
+    setMethodFilter([])
+    setSourceFilter([])
+    setWaiterFilter([])
+    setSubtotalFilter(null)
+    setTipFilter(null)
+    setTotalFilter(null)
     setSearchTerm('')
   }, [])
+
+  // Helper to get display label for active filters
+  const getFilterDisplayLabel = (values: string[], options: { value: string; label: string }[]) => {
+    if (values.length === 0) return null
+    if (values.length === 1) {
+      const option = options.find(o => o.value === values[0])
+      return option?.label || values[0]
+    }
+    return `${values.length} seleccionados`
+  }
+
+  // Helper to get display label for amount filters
+  const getAmountFilterLabel = (filter: AmountFilter | null): string | null => {
+    if (!filter) return null
+    switch (filter.operator) {
+      case 'gt':
+        return `> ${Currency(filter.value || 0)}`
+      case 'lt':
+        return `< ${Currency(filter.value || 0)}`
+      case 'eq':
+        return `= ${Currency(filter.value || 0)}`
+      case 'between':
+        return `${Currency(filter.value || 0)} - ${Currency(filter.value2 || 0)}`
+      default:
+        return null
+    }
+  }
+
+  // Apply client-side multi-select filtering
+  const filteredPayments = useMemo(() => {
+    let payments = data?.data || []
+
+    // Merchant account filter
+    if (merchantAccountFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => p.merchantAccount && merchantAccountFilter.includes(p.merchantAccount.id))
+    }
+    // Method filter
+    if (methodFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => p.method && methodFilter.includes(p.method))
+    }
+    // Source filter
+    if (sourceFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => p.source && sourceFilter.includes(p.source))
+    }
+    // Waiter filter
+    if (waiterFilter.length > 0) {
+      payments = payments.filter((p: PaymentType) => p.processedBy && waiterFilter.includes(p.processedBy.id))
+    }
+    // Search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
+      payments = payments.filter((p: PaymentType) => {
+        const waiterName = p.processedBy ? `${p.processedBy.firstName} ${p.processedBy.lastName}`.toLowerCase() : ''
+        const merchantName = p.merchantAccount?.displayName?.toLowerCase() || ''
+        const last4 = p.last4?.toLowerCase() || ''
+        return waiterName.includes(searchLower) || merchantName.includes(searchLower) || last4.includes(searchLower)
+      })
+    }
+    // Tip amount filter
+    if (tipFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const tip = Number(p.tipAmount) || 0
+        switch (tipFilter.operator) {
+          case 'gt':
+            return tip > (tipFilter.value || 0)
+          case 'lt':
+            return tip < (tipFilter.value || 0)
+          case 'eq':
+            return tip === (tipFilter.value || 0)
+          case 'between':
+            return tip >= (tipFilter.value || 0) && tip <= (tipFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+    // Total amount filter
+    if (totalFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const total = (Number(p.amount) || 0) + (Number(p.tipAmount) || 0)
+        switch (totalFilter.operator) {
+          case 'gt':
+            return total > (totalFilter.value || 0)
+          case 'lt':
+            return total < (totalFilter.value || 0)
+          case 'eq':
+            return total === (totalFilter.value || 0)
+          case 'between':
+            return total >= (totalFilter.value || 0) && total <= (totalFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
+
+    return payments
+  }, [data?.data, merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, tipFilter, totalFilter, debouncedSearchTerm])
 
   // ==================================================================
   // --- PRINCIPALES CAMBIOS EN LA DEFINICIÓN DE COLUMNAS ---
@@ -301,33 +418,29 @@ export default function Payments() {
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
-        header: () => (
-          <div className="flex flex-col">
-            <span>{t('columns.date')}</span>
-            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
-          </div>
-        ),
+        header: () => <span className="text-xs">{t('columns.date')}</span>,
         cell: ({ cell }) => {
           const value = cell.getValue() as string
-          // ✅ Uses venue timezone instead of browser timezone
-          const time = formatTime(value)
-          const date = formatDate(value)
-
+          // Format as "13 ene 14:30" - day, month abbrev, 24-hour time (no year, no AM/PM)
+          const dateObj = new Date(value)
+          const day = dateObj.getDate()
+          const month = dateObj.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '')
+          const hours = dateObj.getHours().toString().padStart(2, '0')
+          const minutes = dateObj.getMinutes().toString().padStart(2, '0')
           return (
-            <div className="flex flex-col space-y-2">
-              <span className="text-sm font-medium">{time}</span>
-              <span className="text-xs text-muted-foreground">{date}</span>
-            </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {day} {month} {hours}:{minutes}
+            </span>
           )
         },
       },
       {
         // CAMBIO: Accedemos al mesero a través de `processedBy`
         accessorFn: row => (row.processedBy ? `${row.processedBy.firstName} ${row.processedBy.lastName}` : '-'),
-        id: 'waiterName', // Es buena práctica dar un ID único al usar accessorFn
+        id: 'waiterName',
         meta: { label: t('columns.waiter') },
-        header: t('columns.waiter'),
-        cell: info => <>{info.getValue() as string}</>,
+        header: () => <span className="text-xs">{t('columns.waiter')}</span>,
+        cell: info => <span className="text-xs text-muted-foreground">{info.getValue() as string}</span>,
       },
 
       {
@@ -335,7 +448,7 @@ export default function Payments() {
         accessorFn: row => row.merchantAccount?.displayName || row.merchantAccount?.externalMerchantId || 'N/A',
         id: 'merchantAccount',
         meta: { label: t('columns.merchantAccount') },
-        header: t('columns.merchantAccount'),
+        header: () => <span className="text-xs">{t('columns.merchantAccount')}</span>,
         cell: ({ row }) => {
           const payment = row.original
           const merchant = payment.merchantAccount
@@ -345,9 +458,9 @@ export default function Payments() {
           }
 
           return (
-            <div className="flex flex-col space-y-1">
-              <span className="text-sm font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
-              {merchant.bankName && <span className="text-xs text-muted-foreground">{merchant.bankName}</span>}
+            <div className="flex flex-col">
+              <span className="text-xs font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
+              {merchant.bankName && <span className="text-[10px] text-muted-foreground">{merchant.bankName}</span>}
             </div>
           )
         },
@@ -359,9 +472,14 @@ export default function Payments() {
         id: 'source',
         meta: { label: t('columns.source') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7 px-2"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
             {t('columns.source')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
+            <ArrowUpDown className="w-3 h-3 ml-1" />
           </Button>
         ),
         cell: ({ cell }) => {
@@ -369,36 +487,36 @@ export default function Payments() {
           const source = String(cell.getValue() || 'UNKNOWN')
 
           const iconBox = (icon: JSX.Element, bgColor: string = 'bg-muted') => (
-            <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${bgColor} border border-border shadow-sm`}>{icon}</div>
+            <div className={`flex items-center justify-center w-6 h-6 rounded-md ${bgColor} border border-border shadow-sm`}>{icon}</div>
           )
 
           const map = {
             POS: {
-              icon: iconBox(<Computer className="h-4 w-4 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
+              icon: iconBox(<Computer className="h-3 w-3 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
               label: t('sources.POS'),
             },
             TPV: {
-              icon: iconBox(<TabletSmartphone className="h-4 w-4 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
+              icon: iconBox(<TabletSmartphone className="h-3 w-3 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
               label: t('sources.TPV'),
             },
             QR: {
-              icon: iconBox(<QrCode className="h-4 w-4 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
+              icon: iconBox(<QrCode className="h-3 w-3 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
               label: t('sources.QR'),
             },
             WEB: {
-              icon: iconBox(<Globe className="h-4 w-4 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
+              icon: iconBox(<Globe className="h-3 w-3 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
               label: t('sources.WEB'),
             },
             APP: {
-              icon: iconBox(<AppWindow className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+              icon: iconBox(<AppWindow className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
               label: t('sources.APP'),
             },
             DASHBOARD_TEST: {
-              icon: iconBox(<TestTube className="h-4 w-4 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+              icon: iconBox(<TestTube className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
               label: t('sources.DASHBOARD_TEST'),
             },
             UNKNOWN: {
-              icon: iconBox(<Smartphone className="h-4 w-4 text-muted-foreground" />, 'bg-muted'),
+              icon: iconBox(<Smartphone className="h-3 w-3 text-muted-foreground" />, 'bg-muted'),
               label: t('sources.UNKNOWN'),
             },
           } as const
@@ -406,9 +524,9 @@ export default function Payments() {
           const item = map[source as keyof typeof map] || map.UNKNOWN
 
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {item.icon}
-              <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{item.label}</span>
+              <span className="text-xs text-muted-foreground">{item.label}</span>
             </div>
           )
         },
@@ -416,33 +534,46 @@ export default function Payments() {
       {
         accessorKey: 'method',
         meta: { label: t('columns.method') },
-        header: t('columns.method'),
+        header: () => <span className="text-xs">{t('columns.method')}</span>,
         cell: ({ row }) => {
           const payment = row.original
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
           const isCard = payment.method === 'CREDIT_CARD' || payment.method === 'DEBIT_CARD'
-          const methodDisplay = payment.method === 'CASH' ? t('methods.cash') : t('methods.card')
+          const methodDisplay =
+            payment.method === 'CASH'
+              ? t('methods.cash')
+              : payment.method === 'CREDIT_CARD'
+              ? t('methods.creditCard')
+              : payment.method === 'DEBIT_CARD'
+              ? t('methods.debitCard')
+              : payment.method === 'DIGITAL_WALLET'
+              ? t('methods.digitalWallet')
+              : payment.method === 'BANK_TRANSFER'
+              ? t('methods.bankTransfer')
+              : payment.method === 'OTHER'
+              ? t('methods.other')
+              : t('methods.card')
 
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
           const cardBrand = payment.cardBrand || payment.processorData?.cardBrand || null
-          const last4 = payment.last4 || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
+          const last4Raw = payment.last4 || (payment as any).maskedPan || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
+          const last4Digits = last4Raw ? String(last4Raw).replace(/\D/g, '').slice(-4) : ''
+          const maskedLast4 = last4Digits || ''
 
           return (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">
-                    {last4 ? `**** ${last4}` : t('methods.card')}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{maskedLast4}</span>
                 </>
               ) : (
                 <>
-                  <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
-                    <Banknote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
+                    <Banknote className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{methodDisplay}</span>
+                  <span className="text-xs text-muted-foreground">{methodDisplay}</span>
                 </>
               )}
             </div>
@@ -453,11 +584,10 @@ export default function Payments() {
         // CAMBIO: `amount` ahora es el subtotal del pago. Es numérico.
         accessorKey: 'amount',
         meta: { label: t('columns.subtotal') },
-        header: t('columns.subtotal'),
+        header: () => <span className="text-xs">{t('columns.subtotal')}</span>,
         cell: ({ cell }) => {
           const value = cell.getValue()
-          // Convert to number, Currency function handles null/undefined
-          return Currency(Math.abs(Number(value) || 0))
+          return <span className="text-xs text-muted-foreground">{Currency(Math.abs(Number(value) || 0))}</span>
         },
       },
       {
@@ -467,9 +597,14 @@ export default function Payments() {
         id: 'totalTipAmount',
         meta: { label: t('columns.tip') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7 px-2"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          >
             {t('columns.tip')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
+            <ArrowUpDown className="w-3 h-3 ml-1" />
           </Button>
         ),
         cell: ({ cell, row }) => {
@@ -490,10 +625,9 @@ export default function Payments() {
           }
 
           return (
-            <div className="flex flex-col space-y-1 items-center">
-              <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
-              {/* Formatear propina en unidades (Currency ya maneja decimales) */}
-              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
                 {Currency(totalTip)}
               </Badge>
             </div>
@@ -513,9 +647,14 @@ export default function Payments() {
               meta: { label: t('columns.profit') },
               header: ({ column }: any) => (
                 <div className="flex justify-center">
-                  <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                  >
                     {t('columns.profit')}
-                    <ArrowUpDown className="w-4 h-4 ml-2" />
+                    <ArrowUpDown className="w-3 h-3 ml-1" />
                   </Button>
                 </div>
               ),
@@ -540,15 +679,15 @@ export default function Payments() {
                 if (isRefund) {
                   return (
                     <div
-                      className="flex flex-col space-y-1 items-center"
+                      className="flex flex-col items-center"
                       title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(
                         Math.abs(venueCharge),
                       )}`}
                     >
-                      <span className="text-xs font-semibold text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
+                      <span className="text-[10px] text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
                       <Badge
                         variant="outline"
-                        className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800"
+                        className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800 text-[10px] px-1.5 py-0 h-5"
                       >
                         −{Currency(Math.abs(profit))}
                       </Badge>
@@ -580,11 +719,14 @@ export default function Payments() {
 
                 return (
                   <div
-                    className="flex flex-col space-y-1 items-center"
+                    className="flex flex-col items-center"
                     title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}
                   >
-                    <span className="text-xs font-semibold text-muted-foreground">{(margin * 100).toFixed(2)}%</span>
-                    <Badge variant="outline" className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border}`}>
+                    <span className="text-[10px] text-muted-foreground">{(margin * 100).toFixed(2)}%</span>
+                    <Badge
+                      variant="outline"
+                      className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border} text-[10px] px-1.5 py-0 h-5`}
+                    >
                       {Currency(profit)}
                     </Badge>
                   </div>
@@ -603,20 +745,19 @@ export default function Payments() {
         },
         id: 'totalAmount',
         meta: { label: t('columns.total') },
-        header: t('columns.total'),
+        header: () => <span className="text-xs">{t('columns.total')}</span>,
         cell: ({ cell, row }) => {
           const value = cell.getValue()
           const isRefund = row.original.type === PaymentRecordType.REFUND
-          // Convert to number, Currency function handles null/undefined
           return (
             <div className="flex flex-col">
-              <span className={cn(isRefund && 'text-red-600 dark:text-red-400 font-semibold')}>
+              <span className={cn('text-xs font-medium', isRefund && 'text-red-600 dark:text-red-400')}>
                 {isRefund && '−'}
                 {Currency(Math.abs(Number(value) || 0))}
               </span>
               {isRefund && (
-                <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
-                  <RotateCcw className="h-3 w-3" />
+                <span className="text-[10px] text-red-500 dark:text-red-400 flex items-center gap-0.5">
+                  <RotateCcw className="h-2.5 w-2.5" />
                   {t('types.refund')}
                 </span>
               )}
@@ -659,13 +800,24 @@ export default function Payments() {
           ]
         : []),
     ],
-    [t, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot],
+    [t, isSuperAdmin, hasChatbot],
   )
+
+  // Filter columns based on visibility settings
+  const filteredColumns = useMemo(() => {
+    return columns.filter(col => {
+      // Get column id (either from 'id' or 'accessorKey')
+      const colId = col.id || (col as any).accessorKey
+      // Always show columns without id (like AI, actions) or columns in visibleColumns
+      if (!colId) return true
+      return visibleColumns.includes(colId)
+    })
+  }, [columns, visibleColumns])
 
   // Export functionality
   const handleExport = useCallback(
     (format: 'csv' | 'excel') => {
-      if (!payments || payments.length === 0) {
+      if (!filteredPayments || filteredPayments.length === 0) {
         toast({
           title: t('export.noData'),
           variant: 'destructive',
@@ -675,7 +827,7 @@ export default function Payments() {
 
       try {
         // Transform payments to flat structure for export
-        const exportData = payments.map((payment: PaymentType) => {
+        const exportData = filteredPayments.map((payment: PaymentType) => {
           const processedBy = payment.processedBy ? `${payment.processedBy.firstName} ${payment.processedBy.lastName}` : '-'
           const merchantAccount = payment.merchantAccount?.displayName || payment.merchantAccount?.externalMerchantId || 'N/A'
           const cardInfo = payment.last4 ? `**** ${payment.last4}` : ''
@@ -721,12 +873,12 @@ export default function Payments() {
         if (format === 'csv') {
           exportToCSV(exportData, filename)
           toast({
-            title: t('export.success', { count: payments.length }),
+            title: t('export.success', { count: filteredPayments.length }),
           })
         } else {
           exportToExcel(exportData, filename, 'Payments')
           toast({
-            title: t('export.success', { count: payments.length }),
+            title: t('export.success', { count: filteredPayments.length }),
           })
         }
       } catch (error) {
@@ -737,32 +889,245 @@ export default function Payments() {
         })
       }
     },
-    [payments, formatDate, isSuperAdmin, venueId, t, toast],
+    [filteredPayments, formatDate, isSuperAdmin, venueId, t, toast],
   )
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-row items-center justify-between">
-          <div>
-            <PageTitleWithInfo
-              title={t('title')}
-              className="text-xl font-semibold"
-              tooltip={t('info.list', {
-                defaultValue: 'Historial de pagos del venue con filtros, estado y acceso al detalle.',
-              })}
-            />
-            <p className="text-sm text-muted-foreground">
-              {t('filters.showing')} {payments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
-            </p>
+      <div className="mb-4">
+        <PageTitleWithInfo
+          title={t('title')}
+          className="text-xl font-semibold"
+          tooltip={t('info.list', {
+            defaultValue: 'Historial de pagos del venue con filtros, estado y acceso al detalle.',
+          })}
+        />
+        <p className="text-sm text-muted-foreground">
+          {t('filters.showing')} {filteredPayments.length} {t('filters.of')} {totalPayments} {t('filters.payments')}
+        </p>
+      </div>
+
+      {/* Stripe-style Filter Bar */}
+      <div className="mb-4">
+        {/* Single row: Filters left, Actions right (wrap when needed) */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+          {/* Expandable Search Icon */}
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('filters.searchPlaceholder')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        if (!searchTerm) setIsSearchOpen(false)
+                      }
+                    }}
+                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+                    autoFocus
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setIsSearchOpen(false)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant={searchTerm ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+                {searchTerm && <span className="sr-only">{t('filters.searchActive', { defaultValue: 'Búsqueda activa' })}</span>}
+              </Button>
+            )}
+            {/* Active search indicator dot */}
+            {searchTerm && !isSearchOpen && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />}
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Merchant Account Filter Pill */}
+          <FilterPill
+            label={t('columns.merchantAccount')}
+            activeValue={getFilterDisplayLabel(
+              merchantAccountFilter,
+              merchantAccounts.map(account => ({
+                value: account.id,
+                label: account.displayName || account.externalMerchantId,
+              })),
+            )}
+            isActive={merchantAccountFilter.length > 0}
+            onClear={() => setMerchantAccountFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.merchantAccount').toLowerCase()}`}
+              options={merchantAccounts.map(account => ({
+                value: account.id,
+                label: account.displayName || account.externalMerchantId,
+              }))}
+              selectedValues={merchantAccountFilter}
+              onApply={setMerchantAccountFilter}
+              searchable={merchantAccounts.length > 5}
+              searchPlaceholder={t('filters.searchMerchant', { defaultValue: 'Buscar cuenta...' })}
+            />
+          </FilterPill>
+
+          {/* Method Filter Pill */}
+          <FilterPill
+            label={t('columns.method')}
+            activeValue={getFilterDisplayLabel(
+              methodFilter,
+              methods.map((method: string) => ({
+                value: method,
+                label:
+                  method === 'CASH'
+                    ? t('methods.cash')
+                    : method === 'CREDIT_CARD'
+                    ? t('methods.creditCard')
+                    : method === 'DEBIT_CARD'
+                    ? t('methods.debitCard')
+                    : t('methods.card'),
+              })),
+            )}
+            isActive={methodFilter.length > 0}
+            onClear={() => setMethodFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.method').toLowerCase()}`}
+              options={methods.map((method: string) => ({
+                value: method,
+                label:
+                  method === 'CASH'
+                    ? t('methods.cash')
+                    : method === 'CREDIT_CARD'
+                    ? t('methods.creditCard')
+                    : method === 'DEBIT_CARD'
+                    ? t('methods.debitCard')
+                    : t('methods.card'),
+              }))}
+              selectedValues={methodFilter}
+              onApply={setMethodFilter}
+            />
+          </FilterPill>
+
+          {/* Source Filter Pill */}
+          <FilterPill
+            label={t('columns.source')}
+            activeValue={getFilterDisplayLabel(
+              sourceFilter,
+              sources.map((source: string) => ({
+                value: source,
+                label: t(`sources.${source}` as any),
+              })),
+            )}
+            isActive={sourceFilter.length > 0}
+            onClear={() => setSourceFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.source').toLowerCase()}`}
+              options={sources.map((source: string) => ({
+                value: source,
+                label: t(`sources.${source}` as any),
+              }))}
+              selectedValues={sourceFilter}
+              onApply={setSourceFilter}
+            />
+          </FilterPill>
+
+          {/* Waiter Filter Pill */}
+          <FilterPill
+            label={t('columns.waiter')}
+            activeValue={getFilterDisplayLabel(
+              waiterFilter,
+              waiters.map((waiter: any) => ({
+                value: waiter.id,
+                label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+              })),
+            )}
+            isActive={waiterFilter.length > 0}
+            onClear={() => setWaiterFilter([])}
+          >
+            <CheckboxFilterContent
+              title={`Filtrar por: ${t('columns.waiter').toLowerCase()}`}
+              options={waiters.map((waiter: any) => ({
+                value: waiter.id,
+                label: `${waiter.firstName} ${waiter.lastName}`.trim(),
+              }))}
+              selectedValues={waiterFilter}
+              onApply={setWaiterFilter}
+              searchable={waiters.length > 5}
+              searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
+            />
+          </FilterPill>
+
+          {/* Tip Filter Pill */}
+          <FilterPill
+            label={t('columns.tip')}
+            activeValue={getAmountFilterLabel(tipFilter)}
+            isActive={tipFilter !== null}
+            onClear={() => setTipFilter(null)}
+          >
+            <AmountFilterContent
+              title={`Filtrar por: ${t('columns.tip').toLowerCase()}`}
+              currentFilter={tipFilter}
+              onApply={setTipFilter}
+            />
+          </FilterPill>
+
+          {/* Total Filter Pill */}
+          <FilterPill
+            label={t('columns.total')}
+            activeValue={getAmountFilterLabel(totalFilter)}
+            isActive={totalFilter !== null}
+            onClear={() => setTotalFilter(null)}
+          >
+            <AmountFilterContent
+              title={`Filtrar por: ${t('columns.total').toLowerCase()}`}
+              currentFilter={totalFilter}
+              onApply={setTotalFilter}
+            />
+          </FilterPill>
+
+          {/* Reset filters - white background button with X icon */}
+          {activeFiltersCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetFilters}
+              className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+            >
+              <X className="h-3.5 w-3.5" />
+              {t('filters.reset', { defaultValue: 'Borrar filtros' })}
+            </Button>
+          )}
+
+          {/* Action buttons - pushed right with ml-auto, wrap left when needed */}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Export button */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
                   {t('export.button')}
                 </Button>
               </DropdownMenuTrigger>
@@ -771,82 +1136,22 @@ export default function Payments() {
                 <DropdownMenuItem onClick={() => handleExport('excel')}>{t('export.asExcel')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* Clear filters button */}
-            {activeFiltersCount > 0 && (
-              <Button variant="outline" size="sm" onClick={resetFilters} className="gap-2">
-                <X className="h-4 w-4" />
-                {t('filters.clearAll')} ({activeFiltersCount})
-              </Button>
-            )}
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="flex-1">
-            <Input
-              placeholder={t('filters.searchPlaceholder')}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="max-w-md"
+            {/* Column Customizer */}
+            <ColumnCustomizer
+              columns={[
+                { id: 'createdAt', label: t('columns.date'), visible: visibleColumns.includes('createdAt') },
+                { id: 'waiterName', label: t('columns.waiter'), visible: visibleColumns.includes('waiterName') },
+                { id: 'merchantAccount', label: t('columns.merchantAccount'), visible: visibleColumns.includes('merchantAccount') },
+                { id: 'source', label: t('columns.source'), visible: visibleColumns.includes('source') },
+                { id: 'method', label: t('columns.method'), visible: visibleColumns.includes('method') },
+                { id: 'amount', label: t('columns.subtotal'), visible: visibleColumns.includes('amount') },
+                { id: 'totalTipAmount', label: t('columns.tip'), visible: visibleColumns.includes('totalTipAmount') },
+                { id: 'totalAmount', label: t('columns.total'), visible: visibleColumns.includes('totalAmount'), disabled: true },
+              ]}
+              onApply={setVisibleColumns}
             />
           </div>
-
-          <Select value={merchantAccountFilter} onValueChange={setMerchantAccountFilter}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder={t('filters.merchantAccount')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.allMerchantAccounts')}</SelectItem>
-              {merchantAccounts.map(account => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.displayName || account.externalMerchantId}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={methodFilter} onValueChange={setMethodFilter}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder={t('filters.method')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.allMethods')}</SelectItem>
-              {methods.map((method: string) => (
-                <SelectItem key={method} value={method}>
-                  {method === 'CASH' ? t('methods.cash') : method === 'CREDIT_CARD' ? t('methods.credit_card') : t('methods.card')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder={t('filters.source')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.allSources')}</SelectItem>
-              {sources.map((source: string) => (
-                <SelectItem key={source} value={source}>
-                  {t(`sources.${source}` as any)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={waiterFilter} onValueChange={setWaiterFilter}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder={t('filters.waiter')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('filters.allWaiters')}</SelectItem>
-              {waiters.map(waiter => (
-                <SelectItem key={waiter.id} value={waiter.id}>
-                  {waiter.firstName} {waiter.lastName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
@@ -857,13 +1162,13 @@ export default function Payments() {
       )}
 
       <DataTable
-        data={payments}
-        rowCount={totalPayments}
-        columns={columns}
+        data={filteredPayments}
+        rowCount={filteredPayments.length}
+        columns={filteredColumns}
         isLoading={isLoading}
         tableId="payments:main"
         enableSearch={false}
-        enableColumnResizing={true}
+        showColumnCustomizer={false}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },

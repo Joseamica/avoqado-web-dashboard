@@ -1278,8 +1278,8 @@
     },
     "pagination": {
       "selectedRows": "{{selected}} of {{total}} row(s) selected.",
-      "rowsPerPage": "Rows per page",
-      "pageOf": "Page {{current}} of {{total}}",
+      "rowsPerPage": "Filas por pagina",
+      "pageOf": "Pagina {{current}} de {{total}}",
       "firstPage": "Go to first page",
       "previousPage": "Go to previous page",
       "nextPage": "Go to next page",

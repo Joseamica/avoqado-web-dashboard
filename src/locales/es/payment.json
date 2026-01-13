@@ -27,7 +27,7 @@
     "source": "Origen",
     "allSources": "Todos los Orígenes",
     "waiter": "Mesero",
-    "allWaiters": "Todos los Meseros"
+    "allWaiters": "Todos el personal"
   },
   "columns": {
     "date": "Fecha",
@@ -207,6 +207,21 @@
     },
     "totals": {
       "total": "Total"
+    },
+    "commission": {
+      "staffName": "Empleado",
+      "amount": "Comisión",
+      "rate": "Tasa",
+      "baseAmount": "Base de cálculo",
+      "config": "Configuración",
+      "status": "Estado",
+      "statuses": {
+        "PENDING": "Pendiente",
+        "CALCULATED": "Calculada",
+        "APPROVED": "Aprobada",
+        "PAID": "Pagada",
+        "VOIDED": "Anulada"
+      }
     },
     "timeline": {
       "title": "Actividad Reciente",

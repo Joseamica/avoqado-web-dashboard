@@ -27,6 +27,7 @@ export function ReviewStats({ reviews }: ReviewStatsProps) {
         responseRate: 0,
         avgResponseTime: 0,
         sentimentDistribution: { positive: 0, neutral: 0, negative: 0 },
+        ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
         sourceDistribution: {},
         trend: 0,
       }

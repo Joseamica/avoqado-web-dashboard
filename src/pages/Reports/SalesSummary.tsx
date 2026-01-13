@@ -71,7 +71,7 @@ const CONTROL_OPTION_KEYS = {
 
 // Available metrics for the report (based on database schema)
 // Some metrics can be shown in the chart visualization (hasChart: true)
-// Organized following Square's structure: Sales breakdown → Deductions → Totals → Fees
+// Organized following Square's structure: Sales breakdown → Deductions → Totals → Costs → Profit
 const AVAILABLE_METRICS = [
   // Sales breakdown
   { key: 'grossSales', hasChart: true },      // Ventas brutas - includes modifiers
@@ -86,15 +86,18 @@ const AVAILABLE_METRICS = [
   // Fees and taxes
   { key: 'taxes', hasChart: false },          // Impuestos
   { key: 'tips', hasChart: false },           // Propinas
-  { key: 'commissions', hasChart: false },    // Comisiones - platform/delivery fees
-  // Final total
+  // Costs breakdown (NEW - for clarity)
+  { key: 'platformFees', hasChart: false },   // Comisiones de plataforma (Avoqado)
+  { key: 'staffCommissions', hasChart: false }, // Comisiones a empleados
+  // Final totals
   { key: 'totalCollected', hasChart: true },  // Total cobrado
+  { key: 'netProfit', hasChart: true },       // Ganancia neta (after all costs)
 ] as const
 
 type MetricKey = typeof AVAILABLE_METRICS[number]['key']
 
 // Default selected metrics (most commonly used)
-const DEFAULT_SELECTED_METRICS: MetricKey[] = ['grossSales', 'discounts', 'refunds', 'netSales', 'taxes', 'tips', 'totalCollected']
+const DEFAULT_SELECTED_METRICS: MetricKey[] = ['grossSales', 'discounts', 'refunds', 'netSales', 'taxes', 'tips', 'platformFees', 'staffCommissions', 'totalCollected', 'netProfit']
 const DEFAULT_CHART_METRIC: MetricKey = 'totalCollected'
 
 // LocalStorage key for persisting user preferences
@@ -871,8 +874,11 @@ export default function SalesSummary() {
         deferredSales: apiResponse.summary.deferredSales,
         taxes: apiResponse.summary.taxes,
         tips: apiResponse.summary.tips,
-        commissions: apiResponse.summary.commissions,
+        // Costs breakdown (NEW - for clarity)
+        platformFees: apiResponse.summary.platformFees,       // Avoqado platform fees
+        staffCommissions: apiResponse.summary.staffCommissions, // Commissions paid to staff
         totalCollected: apiResponse.summary.totalCollected,
+        netProfit: apiResponse.summary.netProfit,             // True profit after all costs
       },
       transactions: {
         total: apiResponse.summary.transactionCount,
@@ -1710,17 +1716,27 @@ export default function SalesSummary() {
                 />
               )}
 
-              {/* Comisiones */}
-              {selectedMetrics.includes('commissions') && (
+              {/* Comisiones de plataforma (Avoqado) */}
+              {selectedMetrics.includes('platformFees') && (
                 <SummaryRow
-                  label={t('salesSummary.rows.commissions')}
-                  value={-data.summary.commissions}
+                  label={t('salesSummary.rows.platformFees')}
+                  value={-data.summary.platformFees}
                   type="negative"
-                  tooltip={t('salesSummary.tooltips.commissions')}
+                  tooltip={t('salesSummary.tooltips.platformFees')}
                 />
               )}
 
-              {/* Total neto - Final total */}
+              {/* Comisiones a empleados */}
+              {selectedMetrics.includes('staffCommissions') && (
+                <SummaryRow
+                  label={t('salesSummary.rows.staffCommissions')}
+                  value={-data.summary.staffCommissions}
+                  type="negative"
+                  tooltip={t('salesSummary.tooltips.staffCommissions')}
+                />
+              )}
+
+              {/* Total cobrado - Money received */}
               {selectedMetrics.includes('totalCollected') && (
                 <>
                   <div className="h-px bg-border/30 mx-4 my-2" />
@@ -1730,6 +1746,20 @@ export default function SalesSummary() {
                     type="positive"
                     bold
                     tooltip={t('salesSummary.tooltips.totalCollected')}
+                  />
+                </>
+              )}
+
+              {/* Ganancia neta - True profit after all costs */}
+              {selectedMetrics.includes('netProfit') && (
+                <>
+                  <div className="h-px bg-border/50 mx-4 my-3" />
+                  <SummaryRow
+                    label={t('salesSummary.rows.netProfit')}
+                    value={data.summary.netProfit}
+                    type="positive"
+                    bold
+                    tooltip={t('salesSummary.tooltips.netProfit')}
                   />
                 </>
               )}

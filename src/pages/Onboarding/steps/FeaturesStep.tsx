@@ -23,21 +23,23 @@ interface FeaturesStepProps {
 
 const AVAILABLE_FEATURES = [
   'CHATBOT',
-  'ADVANCED_ANALYTICS',
   'INVENTORY_TRACKING',
   'LOYALTY_PROGRAM',
   'ONLINE_ORDERING',
-  'RESERVATIONS',
+  // TEMPORARILY DISABLED - Re-enable when ready for launch
+  // 'ADVANCED_ANALYTICS',
+  // 'RESERVATIONS',
 ] as const
 
 // Pricing in MXN (matches backend seed data)
 const FEATURE_PRICING: Record<string, number> = {
-  CHATBOT: 399,
-  ADVANCED_ANALYTICS: 499,
-  INVENTORY_TRACKING: 299,
+  CHATBOT: 199,
+  INVENTORY_TRACKING: 89,
   LOYALTY_PROGRAM: 599,
-  ONLINE_ORDERING: 799,
-  RESERVATIONS: 399,
+  ONLINE_ORDERING: 99,
+  // TEMPORARILY DISABLED - Re-enable when ready for launch
+  // ADVANCED_ANALYTICS: 499,
+  // RESERVATIONS: 399,
 }
 
 export function FeaturesStep({ onNext, onPrevious, isFirstStep, onSave, initialValue }: FeaturesStepProps) {

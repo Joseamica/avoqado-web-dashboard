@@ -60,7 +60,7 @@ export default function Products() {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)

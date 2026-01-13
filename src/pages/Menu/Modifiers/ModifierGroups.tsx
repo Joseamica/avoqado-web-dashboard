@@ -246,7 +246,7 @@ export default function ModifierGroups() {
 
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
 
   // Form configuration for the sheet

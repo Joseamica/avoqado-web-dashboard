@@ -52,7 +52,7 @@ export default function Recipes() {
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
 
   // Fetch products with recipes

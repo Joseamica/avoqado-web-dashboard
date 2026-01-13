@@ -48,9 +48,11 @@
       "deferredSales": "Deferred sales",
       "taxes": "Taxes",
       "tips": "Tips",
-      "commissions": "Commissions",
+      "platformFees": "Platform fees",
+      "staffCommissions": "Staff commissions",
       "totalSales": "Total sales",
-      "totalCollected": "Net total"
+      "totalCollected": "Total collected",
+      "netProfit": "Net profit"
     },
     "tooltips": {
       "grossSales": "Total sales amount before discounts and refunds are applied",
@@ -62,9 +64,11 @@
       "deferredSales": "Total amount charged to customers for orders that are still open or pending payment",
       "taxes": "Taxes collected on sales during the period",
       "tips": "Tips received by staff during the period",
-      "commissions": "Platform, delivery, and other external service commissions",
+      "platformFees": "Fees charged by Avoqado for payment processing and platform usage",
+      "staffCommissions": "Commissions paid to employees based on venue commission configurations",
       "totalSales": "Net sales (taxes are already included in prices)",
-      "totalCollected": "Net sales + tips - commissions (actual cash flow)"
+      "totalCollected": "Money received: net sales + tips - platform fees",
+      "netProfit": "True profit after all costs: net sales - platform fees - staff commissions"
     },
     "paymentTypes": {
       "card": "Card",
@@ -168,10 +172,14 @@
           "taxesDesc": "Tax amount applied at the time of sale",
           "tips": "Tips",
           "tipsDesc": "Tips received by staff during the period",
-          "commissions": "Commissions",
-          "commissionsDesc": "Platform, delivery, and other external service commissions",
+          "platformFees": "Platform fees",
+          "platformFeesDesc": "Fees charged by Avoqado for payment processing",
+          "staffCommissions": "Staff commissions",
+          "staffCommissionsDesc": "Commissions paid to employees based on venue configurations",
           "totalCollected": "Total collected",
-          "totalCollectedDesc": "Net sales plus taxes, tips, and other charges"
+          "totalCollectedDesc": "Net sales plus taxes, tips, and other charges",
+          "netProfit": "Net profit",
+          "netProfitDesc": "True profit after all costs (including staff commissions)"
         },
         "selected": "selected"
       }

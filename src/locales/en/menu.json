@@ -52,7 +52,9 @@
     "searchPlaceholder": "Search...",
     "columns": {
       "name": "Name",
-      "lastModification": "Last Modification"
+      "products": "Products",
+      "lastModification": "Last Modification",
+      "active": "Active"
     },
     "toasts": {
       "activated": "Category activated",

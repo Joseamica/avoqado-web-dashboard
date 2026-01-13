@@ -91,6 +91,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         icon: Ungroup,
         permission: 'shifts:read',
         locked: !hasKYCAccess,
+        requiresShiftsEnabled: true, // Only show if venue has shifts enabled
       },
       {
         title: t('sidebar:routes.tpv'),
@@ -127,6 +128,11 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       // Check required feature (if specified)
       if ('requiredFeature' in item && item.requiredFeature) {
         return checkFeatureAccess(item.requiredFeature)
+      }
+
+      // Check if shifts are enabled (for shifts menu item)
+      if ('requiresShiftsEnabled' in item && item.requiresShiftsEnabled) {
+        return activeVenue?.enableShifts === true
       }
 
       return true
@@ -216,13 +222,13 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
         url: 'reports/pay-later-aging',
         permission: 'tpv-reports:pay-later-aging',
       },
-      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary' },
-      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item' },
-      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category' },
-      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods' },
-      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes' },
-      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids' },
-      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers' },
+      { title: t('sidebar:reportsMenu.salesSummary'), url: 'reports/sales-summary', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.salesByItem'), url: 'reports/sales-by-item', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.salesByCategory'), url: 'reports/sales-by-category', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.paymentMethods'), url: 'reports/payment-methods', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.taxes'), url: 'reports/taxes', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.voids'), url: 'reports/voids', permission: 'reports:read' },
+      { title: t('sidebar:reportsMenu.modifiers'), url: 'reports/modifiers', permission: 'reports:read' },
     ].filter(item => !item.permission || can(item.permission))
 
     // Only show Reports menu if user has at least one subitem
@@ -287,7 +293,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     return filteredItems
-  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess])
+  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, activeVenue])
 
   const superAdminRoutes = React.useMemo(
     () => [

@@ -208,6 +208,21 @@
     "totals": {
       "total": "Total"
     },
+    "commission": {
+      "staffName": "Employee",
+      "amount": "Commission",
+      "rate": "Rate",
+      "baseAmount": "Base amount",
+      "config": "Configuration",
+      "status": "Status",
+      "statuses": {
+        "PENDING": "Pending",
+        "CALCULATED": "Calculated",
+        "APPROVED": "Approved",
+        "PAID": "Paid",
+        "VOIDED": "Voided"
+      }
+    },
     "timeline": {
       "title": "Recent Activity",
       "receiptViewed": "Receipt viewed",

@@ -48,9 +48,11 @@
       "deferredSales": "Ventas diferidas",
       "taxes": "Impuestos",
       "tips": "Propinas",
-      "commissions": "Comisiones",
+      "platformFees": "Comisiones de plataforma",
+      "staffCommissions": "Comisiones a empleados",
       "totalSales": "Total de las ventas",
-      "totalCollected": "Total neto"
+      "totalCollected": "Total cobrado",
+      "netProfit": "Ganancia neta"
     },
     "tooltips": {
       "grossSales": "Importe total de ventas antes de aplicar descuentos y reembolsos",
@@ -62,9 +64,11 @@
       "deferredSales": "Suma total cobrada a los clientes por pedidos que siguen abiertos o pendientes de pago",
       "taxes": "Impuestos recaudados en las ventas del período",
       "tips": "Propinas recibidas por el personal durante el período",
-      "commissions": "Comisiones de plataforma, delivery y otros servicios externos",
+      "platformFees": "Comisiones cobradas por Avoqado por procesamiento de pagos y uso de la plataforma",
+      "staffCommissions": "Comisiones pagadas a empleados según las configuraciones de comisiones del venue",
       "totalSales": "Ventas netas (los impuestos ya están incluidos en los precios)",
-      "totalCollected": "Ventas netas + propinas - comisiones (flujo de caja real)"
+      "totalCollected": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
+      "netProfit": "Ganancia real después de todos los costos: ventas netas - comisiones de plataforma - comisiones a empleados"
     },
     "paymentTypes": {
       "card": "Tarjeta",
@@ -168,10 +172,14 @@
           "taxesDesc": "El importe de los impuestos se aplica en el momento de la venta",
           "tips": "Propinas",
           "tipsDesc": "Propinas recibidas por el personal durante el período",
-          "commissions": "Comisiones",
-          "commissionsDesc": "Comisiones de plataforma, delivery y otros servicios externos",
+          "platformFees": "Comisiones de plataforma",
+          "platformFeesDesc": "Comisiones cobradas por Avoqado por procesamiento de pagos",
+          "staffCommissions": "Comisiones a empleados",
+          "staffCommissionsDesc": "Comisiones pagadas a empleados según las configuraciones del venue",
           "totalCollected": "Total cobrado",
-          "totalCollectedDesc": "Ventas netas más impuestos, propinas y otros cargos"
+          "totalCollectedDesc": "Dinero recibido: ventas netas + propinas - comisiones de plataforma",
+          "netProfit": "Ganancia neta",
+          "netProfitDesc": "Ganancia real después de todos los costos (incluyendo comisiones a empleados)"
         },
         "selected": "seleccionadas"
       }

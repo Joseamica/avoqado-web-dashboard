@@ -13,7 +13,7 @@ import {
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useStaffCommissions, useCommissionStats } from '@/hooks/useCommissions'
+import { useStaffCommissions } from '@/hooks/useCommissions'
 import type { CommissionSummary, CommissionSummaryStatus } from '@/types/commission'
 import { cn } from '@/lib/utils'
 
@@ -50,11 +50,8 @@ interface StaffCommissionSectionProps {
 export default function StaffCommissionSection({ staffId }: StaffCommissionSectionProps) {
 	const { t, i18n } = useTranslation('commissions')
 
-	// Fetch staff commissions
+	// Fetch staff commissions (includes calculations, summaries, stats, and tierProgress)
 	const { data: commissions, isLoading: isLoadingCommissions } = useStaffCommissions(staffId)
-
-	// Fetch stats for this staff
-	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 
 	// Format currency
 	const formatCurrency = (amount: number) => {
@@ -79,32 +76,16 @@ export default function StaffCommissionSection({ staffId }: StaffCommissionSecti
 		return `${startDate} - ${endDate}`
 	}
 
-	// Calculate staff-specific stats
+	// Staff stats come directly from the API (calculated from CommissionCalculation records)
 	const staffStats = useMemo(() => {
-		if (!commissions?.summaries) return { thisMonth: 0, lastMonth: 0, total: 0 }
+		if (!commissions?.stats) return { thisMonth: 0, lastMonth: 0, total: 0 }
 
-		const now = new Date()
-		const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-		const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-		const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
-
-		let thisMonth = 0
-		let lastMonth = 0
-		let total = 0
-
-		commissions.summaries.forEach((summary: CommissionSummary) => {
-			const periodStart = new Date(summary.periodStart)
-			total += summary.netAmount
-
-			if (periodStart >= thisMonthStart) {
-				thisMonth += summary.netAmount
-			} else if (periodStart >= lastMonthStart && periodStart <= lastMonthEnd) {
-				lastMonth += summary.netAmount
-			}
-		})
-
-		return { thisMonth, lastMonth, total }
-	}, [commissions?.summaries])
+		return {
+			thisMonth: commissions.stats.thisMonth ?? 0,
+			lastMonth: commissions.stats.lastMonth ?? 0,
+			total: commissions.stats.total ?? 0,
+		}
+	}, [commissions?.stats])
 
 	// Table columns
 	const columns: ColumnDef<CommissionSummary>[] = useMemo(
@@ -160,7 +141,7 @@ export default function StaffCommissionSection({ staffId }: StaffCommissionSecti
 		[t, i18n.language]
 	)
 
-	const isLoading = isLoadingCommissions || isLoadingStats
+	const isLoading = isLoadingCommissions
 
 	if (isLoading) {
 		return (

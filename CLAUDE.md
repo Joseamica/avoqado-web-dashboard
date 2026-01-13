@@ -308,7 +308,42 @@ router.post('/tpvs', checkPermission('tpv:create'), controller.create)
 
 **See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#pill-style-tabs-mandatory)
 
-### 6. URL Hash-Based Tabs (MANDATORY)
+### 6. Stripe-Style Filters (MANDATORY)
+
+**ALWAYS use Stripe-style filter pills for table/list filters. NEVER use DataTable's built-in column customizer.**
+
+```typescript
+// ❌ WRONG - Old pattern with single value filters
+const [statusFilter, setStatusFilter] = useState<string>('')
+<DataTable columns={columns} showColumnCustomizer={true} />
+
+// ✅ CORRECT - Stripe-style with multi-select arrays
+const [statusFilter, setStatusFilter] = useState<string[]>([])
+const [visibleColumns, setVisibleColumns] = useState<string[]>([...])
+
+// Filter columns based on visibility
+const filteredColumns = useMemo(() =>
+  columns.filter(col => visibleColumns.includes(col.id || col.accessorKey)),
+  [columns, visibleColumns]
+)
+
+// Use FilterPill components
+<FilterPill label={t('status')} isActive={statusFilter.length > 0} onClear={() => setStatusFilter([])}>
+  <CheckboxFilterContent options={statusOptions} selectedValues={statusFilter} onApply={setStatusFilter} />
+</FilterPill>
+
+<DataTable columns={filteredColumns} showColumnCustomizer={false} />
+```
+
+**Components:** `@/components/filters/FilterPill`, `CheckboxFilterContent`, `ColumnCustomizer`
+
+**Reference:** `/src/pages/Order/Orders.tsx`
+
+**Pages needing migration:** `Payments.tsx`, `Customers.tsx`, `Inventory.tsx`
+
+**See:** [Complete UI Patterns guide](docs/guides/ui-patterns.md#stripe-style-filters-mandatory)
+
+### 7. URL Hash-Based Tabs (MANDATORY)
 
 **Tabs that represent page sections MUST persist state via URL hash** to survive page reloads and enable direct linking.
 
@@ -370,7 +405,7 @@ export default function MyPage() {
 
 **Reference:** `src/pages/Commissions/CommissionsPage.tsx`
 
-### 7. SUPERADMIN Gradient (MANDATORY)
+### 8. SUPERADMIN Gradient (MANDATORY)
 
 **All SUPERADMIN-only UI elements in `/dashboard/` routes MUST use the amber-to-pink gradient.**
 
@@ -403,7 +438,7 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 - Example usage: `src/pages/Tpv/Tpvs.tsx` (quick create button)
 - Dialog example: `src/pages/Tpv/components/SuperadminTerminalDialog.tsx`
 
-### 8. Control Plane vs Application Plane (Architecture)
+### 9. Control Plane vs Application Plane (Architecture)
 
 **This is the industry-standard pattern for multi-tenant SaaS (AWS, Microsoft, Stripe).**
 
@@ -461,7 +496,7 @@ This creates visual consistency and clearly identifies superadmin-exclusive func
 - [Microsoft Azure](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/control-planes): "Control plane isolation reduces security vulnerabilities."
 - Reduces context switching for superadmins working on a specific venue
 
-### 9. Superadmin Lazy Loading (Performance)
+### 10. Superadmin Lazy Loading (Performance)
 
 **NEVER load superadmin modules, services, or make API calls for non-superadmin users.**
 
@@ -508,7 +543,7 @@ const { data } = useQuery({
 
 **Reference:** `src/pages/Settings/Billing/Subscriptions.tsx` (superadmin feature management)
 
-### 10. Search Input Debouncing (MANDATORY)
+### 11. Search Input Debouncing (MANDATORY)
 
 **ALL search inputs that trigger API calls MUST use debouncing.**
 
@@ -543,7 +578,7 @@ const { data } = useQuery({
 
 **Reference:** `src/hooks/useDebounce.ts` | `src/pages/Payment/Payments.tsx`
 
-### 11. Modern Dashboard Design System (2025/2026)
+### 12. Modern Dashboard Design System (2025/2026)
 
 **Use this design system for configuration pages, settings, and data visualization.**
 
@@ -718,7 +753,7 @@ Radix UI's `TooltipTrigger` with `asChild` can interfere with default button cur
 
 **Reference:** `src/pages/Reports/SalesSummary.tsx` (metrics selection panel)
 
-### 12. Timezone Handling (MANDATORY)
+### 13. Timezone Handling (MANDATORY)
 
 **ALL date/time displays MUST use venue timezone, NOT browser timezone.**
 

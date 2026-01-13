@@ -313,7 +313,7 @@ const Terminals: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredTerminals}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               rowCount={filteredTerminals.length}
             />

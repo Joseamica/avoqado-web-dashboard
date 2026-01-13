@@ -25,6 +25,7 @@ import {
   FileText,
   Mail,
   Pencil,
+  Percent,
   Receipt,
   RefreshCw,
   RotateCcw,
@@ -40,7 +41,7 @@ import {
   TrendingUp,
   ArrowRight,
 } from 'lucide-react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import getIcon from '@/utils/getIcon'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
@@ -56,6 +57,7 @@ import { useTranslation } from 'react-i18next'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { ReceiptUrls } from '@/constants/receipt'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useCommissionByPayment } from '@/hooks/useCommissions'
 import { useAuth } from '@/context/AuthContext'
 import { StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -80,8 +82,8 @@ interface SectionState {
   processorData: boolean
   cardDetails: boolean
   orderItems: boolean
-  venueInfo: boolean
   verification: boolean
+  commission: boolean
 }
 
 interface TimelineEvent {
@@ -195,6 +197,23 @@ const formatDateShort = (dateString: string | undefined, locale: string, timezon
   })
 }
 
+const formatOrderNumber = (orderNumber?: string | null): string => {
+  if (!orderNumber) return '-'
+
+  // Handle different prefixes: ORD-, FAST-, etc.
+  const prefixMatch = orderNumber.match(/^(ORD-|FAST-|ORDER-)(.+)$/i)
+  if (!prefixMatch) {
+    // No known prefix - extract last 6 digits if it's numeric
+    const digits = orderNumber.replace(/\D/g, '')
+    return digits.length > 6 ? digits.slice(-6) : (digits || orderNumber)
+  }
+
+  const rawSuffix = prefixMatch[2]
+  const digits = rawSuffix.replace(/\D/g, '')
+  if (!digits) return orderNumber
+  return digits.length > 6 ? digits.slice(-6) : digits
+}
+
 const calculateTipPercentage = (tip: number, amount: number): string => {
   if (amount === 0) return '0.0'
   return ((tip / amount) * 100).toFixed(1)
@@ -249,7 +268,11 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   return (
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background ${event.isPending ? 'opacity-50' : ''}`}>
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-full border ${event.iconColor} bg-background ${
+            event.isPending ? 'opacity-50' : ''
+          }`}
+        >
           <Icon className="h-4 w-4" />
         </div>
         {!isLast && <div className="w-px flex-1 bg-border mt-2" />}
@@ -263,7 +286,19 @@ const TimelineEventComponent = ({ event, isLast }: { event: TimelineEvent; isLas
   )
 }
 
-const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: any; receipts: any[]; locale: string; timezone: string; t: any }) => {
+const PaymentTimeline = ({
+  payment,
+  receipts,
+  locale,
+  timezone,
+  t,
+}: {
+  payment: any
+  receipts: any[]
+  locale: string
+  timezone: string
+  t: any
+}) => {
   const events: TimelineEvent[] = []
 
   // Settlement event (pending or completed)
@@ -337,18 +372,6 @@ const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: 
     })
   }
 
-  // Order completed
-  if (payment?.order?.completedAt) {
-    events.push({
-      type: 'order_completed',
-      timestamp: formatDateShort(payment.order.completedAt, locale, timezone),
-      rawTimestamp: payment.order.completedAt,
-      description: t('detail.timeline.orderCompleted'),
-      icon: CheckCircle2,
-      iconColor: 'text-green-600 border-green-200',
-    })
-  }
-
   // Payment processed
   events.push({
     type: 'created',
@@ -358,18 +381,6 @@ const PaymentTimeline = ({ payment, receipts, locale, timezone, t }: { payment: 
     icon: CreditCard,
     iconColor: 'text-primary border-primary/20',
   })
-
-  // Order created
-  if (payment?.order?.createdAt) {
-    events.push({
-      type: 'order_created',
-      timestamp: formatDateShort(payment.order.createdAt, locale, timezone),
-      rawTimestamp: payment.order.createdAt,
-      description: t('detail.timeline.orderCreated'),
-      icon: ShoppingBag,
-      iconColor: 'text-muted-foreground border-border',
-    })
-  }
 
   // Sort by raw timestamp (most recent first), pending events go at the top
   events.sort((a, b) => {
@@ -460,8 +471,8 @@ export default function PaymentId() {
     processorData: false,
     cardDetails: false,
     orderItems: false,
-    venueInfo: false,
     verification: false,
+    commission: true,
   })
   const { toast } = useToast()
   const { venueId, venue } = useCurrentVenue()
@@ -508,6 +519,9 @@ export default function PaymentId() {
       return failureCount < 2
     },
   })
+
+  // Fetch commission info for this payment
+  const { data: commission, isLoading: isLoadingCommission } = useCommissionByPayment(paymentId)
 
   const from = (location.state as any)?.from || `/venues/${venueId}/payments`
 
@@ -617,7 +631,7 @@ export default function PaymentId() {
   // Set breadcrumb with order number
   useEffect(() => {
     if (payment?.order?.orderNumber && paymentId) {
-      setCustomSegment(paymentId, payment.order.orderNumber)
+      setCustomSegment(paymentId, formatOrderNumber(payment.order.orderNumber))
     }
     return () => {
       if (paymentId) {
@@ -704,7 +718,11 @@ export default function PaymentId() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className={`text-3xl font-semibold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+                  <h1
+                    className={`text-3xl font-semibold ${
+                      payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'
+                    }`}
+                  >
                     {(() => {
                       const baseAmount = payment?.amount ? Number(payment.amount) : 0
                       const tipAmount = payment?.tipAmount ? Number(payment.tipAmount) : 0
@@ -716,13 +734,19 @@ export default function PaymentId() {
                   </h1>
                   {/* Refund Badge */}
                   {payment?.type === PaymentRecordType.REFUND && (
-                    <Badge variant="outline" className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800">
+                    <Badge
+                      variant="outline"
+                      className="bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+                    >
                       <RotateCcw className="h-3 w-3 mr-1" />
                       {t('types.refund')}
                     </Badge>
                   )}
                   {paymentStatusConfig && (
-                    <Badge variant="outline" className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color} ${paymentStatusConfig.border} border`}>
+                    <Badge
+                      variant="outline"
+                      className={`${paymentStatusConfig.bg} ${paymentStatusConfig.color} ${paymentStatusConfig.border} border`}
+                    >
                       <StatusIcon className="h-3 w-3 mr-1" />
                       {t(`statuses.${payment?.status?.toLowerCase()}`)}
                     </Badge>
@@ -741,14 +765,20 @@ export default function PaymentId() {
                   )}
                   {/* Test Payment Badge */}
                   {(payment?.source === 'DASHBOARD_TEST' || payment?.posRawData?.paymentType === 'TEST') && (
-                    <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800">
+                    <Badge
+                      variant="outline"
+                      className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800"
+                    >
                       <TestTube2 className="h-3 w-3 mr-1" />
                       {t('detail.badges.testPayment')}
                     </Badge>
                   )}
                   {/* Split Payment Badge */}
                   {payment?.posRawData?.splitType && payment.posRawData.splitType !== 'FULLPAYMENT' && (
-                    <Badge variant="outline" className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800">
+                    <Badge
+                      variant="outline"
+                      className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+                    >
                       <Split className="h-3 w-3 mr-1" />
                       {t('detail.badges.splitPayment')}
                     </Badge>
@@ -773,7 +803,11 @@ export default function PaymentId() {
               <div className="flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(payment?.id || '', t('detail.actions.paymentIdLabel'), toast, t)}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -861,15 +895,19 @@ export default function PaymentId() {
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.base')}: </span>
                 <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
-                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.amount || 0))}
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}
+                  {Currency(Math.abs(payment?.amount || 0))}
                 </span>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.tip')}: </span>
                 <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : ''}`}>
-                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment?.tipAmount || 0))}
+                  {payment?.type === PaymentRecordType.REFUND ? '−' : ''}
+                  {Currency(Math.abs(payment?.tipAmount || 0))}
                 </span>
-                <span className="text-muted-foreground ml-1">({calculateTipPercentage(Math.abs(payment?.tipAmount || 0), Math.abs(payment?.amount || 0))}%)</span>
+                <span className="text-muted-foreground ml-1">
+                  ({calculateTipPercentage(Math.abs(payment?.tipAmount || 0), Math.abs(payment?.amount || 0))}%)
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">{t('detail.stats.method')}: </span>
@@ -928,14 +966,12 @@ export default function PaymentId() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.dateTime')}</Label>
-                    <p className="text-sm mt-1">
-                      {payment?.createdAt ? formatDateLong(payment.createdAt, locale, venueTimezone) : '-'}
-                    </p>
+                    <p className="text-sm mt-1">{payment?.createdAt ? formatDateLong(payment.createdAt, locale, venueTimezone) : '-'}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">{t('detail.fields.orderId')}</Label>
                     <p className="text-sm font-mono mt-1">
-                      {payment?.order?.orderNumber || t('detail.fields.notAvailable')}
+                      {payment?.order?.orderNumber ? formatOrderNumber(payment.order.orderNumber) : t('detail.fields.notAvailable')}
                     </p>
                   </div>
                   <div>
@@ -958,34 +994,6 @@ export default function PaymentId() {
                       <p className="text-sm mt-1">
                         {t(`detail.splitTypes.${payment.posRawData.splitType}`, { defaultValue: payment.posRawData.splitType })}
                       </p>
-                    </div>
-                  )}
-                  {payment?.order?.status && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderStatus')}</Label>
-                      <p className="text-sm mt-1">
-                        {t(`detail.orderStatuses.${payment.order.status}`, { defaultValue: payment.order.status })}
-                      </p>
-                    </div>
-                  )}
-                  {payment?.order?.kitchenStatus && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.kitchenStatus')}</Label>
-                      <p className="text-sm mt-1">
-                        {t(`detail.kitchenStatuses.${payment.order.kitchenStatus}`, { defaultValue: payment.order.kitchenStatus })}
-                      </p>
-                    </div>
-                  )}
-                  {payment?.order?.createdAt && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCreated')}</Label>
-                      <p className="text-sm mt-1">{formatDateShort(payment.order.createdAt, locale, venueTimezone)}</p>
-                    </div>
-                  )}
-                  {payment?.order?.completedAt && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.fields.orderCompleted')}</Label>
-                      <p className="text-sm mt-1">{formatDateShort(payment.order.completedAt, locale, venueTimezone)}</p>
                     </div>
                   )}
                 </div>
@@ -1100,96 +1108,57 @@ export default function PaymentId() {
                 </CollapsibleSection>
               )}
 
-              {/* Order Items - Collapsible */}
-              {payment?.order?.items && payment.order.items.length > 0 && (
+              {/* Commission Section - Show if commission exists */}
+              {commission && (
                 <CollapsibleSection
-                  title={t('detail.sections.orderItems')}
-                  subtitle={t('detail.sections.orderItemsDesc')}
-                  isOpen={sectionsOpen.orderItems}
-                  onToggle={() => toggleSection('orderItems')}
-                  icon={ShoppingBag}
-                >
-                  <div className="space-y-2">
-                    {payment.order.items.map((item: any, index: number) => (
-                      <div
-                        key={item.id || index}
-                        className="flex justify-between items-center py-2 border-b border-border last:border-0"
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">
-                            {item.quantity}x {item.productName || item.product?.name || item.name || 'Item'}
-                          </p>
-                          {item.notes && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
-                          )}
-                          {item.modifiers && item.modifiers.length > 0 && (
-                            <div className="mt-1 space-y-0.5">
-                              {item.modifiers.map((mod: any, modIndex: number) => (
-                                <p key={modIndex} className="text-xs text-muted-foreground">
-                                  + {mod.modifier?.name || mod.name} {mod.price > 0 && Currency(mod.price)}
-                                </p>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-sm font-medium text-foreground">
-                          {Currency(item.total || item.unitPrice * item.quantity)}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-border">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {payment.order.items.length} {payment.order.items.length === 1 ? 'item' : 'items'}
-                      </span>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-              )}
-
-              {/* Venue Information - Collapsible */}
-              {venue && (
-                <CollapsibleSection
-                  title={t('detail.sections.venueInfo')}
-                  subtitle={t('detail.sections.venueInfoDesc')}
-                  isOpen={sectionsOpen.venueInfo}
-                  onToggle={() => toggleSection('venueInfo')}
-                  icon={Building2}
+                  title={t('detail.sections.commission', { defaultValue: 'Comisión' })}
+                  subtitle={t('detail.sections.commissionDesc', { defaultValue: 'Comisión generada por este pago' })}
+                  isOpen={sectionsOpen.commission}
+                  onToggle={() => toggleSection('commission')}
+                  icon={Percent}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div>
-                      <Label className="text-xs text-muted-foreground">{t('detail.venue.name')}</Label>
-                      <p className="text-sm mt-1">{venue.name}</p>
+                      <Label className="text-xs text-muted-foreground">
+                        {t('detail.commission.staffName', { defaultValue: 'Empleado' })}
+                      </Label>
+                      <p className="text-sm font-medium mt-1">{commission.staffName}</p>
                     </div>
-                    {venue.address && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">{t('detail.venue.address')}</Label>
-                        <p className="text-sm mt-1">{venue.address}</p>
-                      </div>
-                    )}
-                    {(venue.city || venue.state) && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">{t('detail.venue.city')}</Label>
-                        <p className="text-sm mt-1">{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
-                      </div>
-                    )}
-                    {venue.country && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">{t('detail.venue.country')}</Label>
-                        <p className="text-sm mt-1">{venue.country}</p>
-                      </div>
-                    )}
-                    {venue.phone && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">{t('detail.venue.phone')}</Label>
-                        <p className="text-sm mt-1">{venue.phone}</p>
-                      </div>
-                    )}
-                    {venue.email && (
-                      <div>
-                        <Label className="text-xs text-muted-foreground">{t('detail.venue.email')}</Label>
-                        <p className="text-sm mt-1">{venue.email}</p>
-                      </div>
-                    )}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.commission.amount', { defaultValue: 'Comisión' })}</Label>
+                      <p className="text-sm font-semibold mt-1 text-green-600 dark:text-green-400">{Currency(commission.netCommission)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">{t('detail.commission.rate', { defaultValue: 'Tasa' })}</Label>
+                      <p className="text-sm mt-1">{(commission.effectiveRate * 100).toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        {t('detail.commission.baseAmount', { defaultValue: 'Base de cálculo' })}
+                      </Label>
+                      <p className="text-sm mt-1">{Currency(commission.baseAmount)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        {t('detail.commission.config', { defaultValue: 'Configuración' })}
+                      </Label>
+                      <p className="text-sm mt-1">{commission.configName}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 items-start">
+                      <Label className="text-xs text-muted-foreground">{t('detail.commission.status', { defaultValue: 'Estado' })}</Label>
+                      <Badge
+                        variant="outline"
+                        className={
+                          commission.status === 'PAID'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800 self-start'
+                            : commission.status === 'APPROVED'
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-800 self-start'
+                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 self-start'
+                        }
+                      >
+                        {t(`detail.commission.statuses.${commission.status}`, { defaultValue: commission.status })}
+                      </Badge>
+                    </div>
                   </div>
                 </CollapsibleSection>
               )}
@@ -1209,85 +1178,89 @@ export default function PaymentId() {
                       <span className="text-muted-foreground">{t('detail.receipts.loading', { defaultValue: 'Cargando recibos...' })}</span>
                     </div>
                   ) : Array.isArray(receipts) && receipts.length > 0 ? (
-                    <div className="space-y-3">
-                      {receipts.map((receipt: any) => (
-                        <div
-                          key={receipt.id}
-                          className="flex justify-between items-center p-4 rounded-lg border border-border hover:shadow-md transition-shadow"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-3">
-                              <Badge variant="secondary" className="font-medium">
-                                {receipt.status}
-                              </Badge>
-                              <span className="font-medium text-foreground">
-                                {receipt.recipientEmail || t('detail.receipts.noRecipient', { defaultValue: 'Sin destinatario' })}
-                              </span>
+                    <div className="rounded-xl bg-muted/30 p-2">
+                      <div className="space-y-2">
+                        {receipts.map((receipt: any) => (
+                          <div
+                            key={receipt.id}
+                            className="flex justify-between items-center rounded-lg px-3 py-3 transition-colors hover:bg-muted/40"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-3">
+                                <Badge variant="secondary" className="font-medium">
+                                  {receipt.status}
+                                </Badge>
+                                <span className="font-medium text-foreground">
+                                  {receipt.recipientEmail || t('detail.receipts.noRecipient', { defaultValue: 'Sin destinatario' })}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                <span className="flex items-center space-x-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{formatReceiptDate(receipt.createdAt)}</span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <FileText className="h-3 w-3" />
+                                  <span>#{receipt.accessKey?.slice(-4).toUpperCase() || 'N/A'}</span>
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{formatReceiptDate(receipt.createdAt)}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <FileText className="h-3 w-3" />
-                                <span>#{receipt.accessKey?.slice(-4).toUpperCase() || 'N/A'}</span>
-                              </span>
+                            <div className="flex space-x-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => viewReceipt(receipt)}
+                                    className="hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('detail.receipts.view', { defaultValue: 'Ver recibo' })}</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-green-50 dark:hover:bg-green-950/30"
+                                    onClick={() => {
+                                      const publicUrl = ReceiptUrls.public(receipt.accessKey)
+                                      window.open(publicUrl, '_blank')
+                                    }}
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('detail.receipts.openPublic', { defaultValue: 'Abrir enlace público' })}</TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="hover:bg-muted"
+                                    onClick={() => copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo', toast, t)}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('detail.receipts.copyLink', { defaultValue: 'Copiar enlace' })}</TooltipContent>
+                              </Tooltip>
                             </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => viewReceipt(receipt)}
-                                  className="hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{t('detail.receipts.view', { defaultValue: 'Ver recibo' })}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="hover:bg-green-50 dark:hover:bg-green-950/30"
-                                  onClick={() => {
-                                    const publicUrl = ReceiptUrls.public(receipt.accessKey)
-                                    window.open(publicUrl, '_blank')
-                                  }}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{t('detail.receipts.openPublic', { defaultValue: 'Abrir enlace público' })}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="hover:bg-muted"
-                                  onClick={() => copyToClipboard(ReceiptUrls.public(receipt.accessKey), 'Enlace del recibo', toast, t)}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{t('detail.receipts.copyLink', { defaultValue: 'Copiar enlace' })}</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <Alert className="border-border">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{t('detail.receipts.none', { defaultValue: 'No se han enviado recibos digitales para esta transacción.' })}</AlertDescription>
+                      <AlertDescription>
+                        {t('detail.receipts.none', { defaultValue: 'No se han enviado recibos digitales para esta transacción.' })}
+                      </AlertDescription>
                     </Alert>
                   )}
                 </div>
@@ -1345,7 +1318,7 @@ export default function PaymentId() {
                                 <p key={idx} className="text-xs font-mono text-foreground">
                                   {product.productName || product.barcode}
                                 </p>
-                              )
+                              ),
                             )}
                           </div>
                         </div>
@@ -1372,7 +1345,9 @@ export default function PaymentId() {
                     </DialogHeader>
                     <div className="mt-4 space-y-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="email">{t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}</Label>
+                        <Label htmlFor="email">
+                          {t('detail.email.recipientLabel', { defaultValue: 'Correo electrónico del destinatario' })}
+                        </Label>
                         <Input
                           id="email"
                           type="email"
@@ -1385,7 +1360,11 @@ export default function PaymentId() {
                         <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="flex-1">
                           {t('common:cancel')}
                         </Button>
-                        <Button disabled={!recipientEmail || sendReceiptMutation.isPending} onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })} className="flex-1">
+                        <Button
+                          disabled={!recipientEmail || sendReceiptMutation.isPending}
+                          onClick={() => sendReceiptMutation.mutate({ email: recipientEmail })}
+                          className="flex-1"
+                        >
                           {t('detail.email.send')}
                         </Button>
                       </div>
@@ -1430,13 +1409,11 @@ export default function PaymentId() {
                     {/* Overall Rating */}
                     <div className="flex items-center gap-2">
                       <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                        {[1, 2, 3, 4, 5].map(star => (
                           <Star
                             key={star}
                             className={`h-5 w-5 ${
-                              star <= (payment.review.overallRating || 0)
-                                ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-muted-foreground'
+                              star <= (payment.review.overallRating || 0) ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'
                             }`}
                           />
                         ))}
@@ -1475,9 +1452,7 @@ export default function PaymentId() {
                       </div>
                     )}
 
-                    <p className="text-xs text-muted-foreground">
-                      {formatDateShort(payment.review.createdAt, locale, venueTimezone)}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDateShort(payment.review.createdAt, locale, venueTimezone)}</p>
                   </CardContent>
                 </Card>
               )}
@@ -1504,7 +1479,9 @@ export default function PaymentId() {
                             : 'bg-muted text-muted-foreground border-transparent'
                         }
                       >
-                        {t(`detail.settlement.${payment.transactions[0].status?.toLowerCase()}`, { defaultValue: payment.transactions[0].status })}
+                        {t(`detail.settlement.${payment.transactions[0].status?.toLowerCase()}`, {
+                          defaultValue: payment.transactions[0].status,
+                        })}
                       </Badge>
                     </div>
                     {payment.transactions[0].estimatedSettlementDate && (
@@ -1565,7 +1542,7 @@ export default function PaymentId() {
                         step="0.01"
                         className="w-28 h-7 text-right text-sm font-medium border-amber-400/50"
                         value={editedValues.tipAmount}
-                        onChange={(e) => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
+                        onChange={e => setEditedValues(prev => ({ ...prev, tipAmount: parseFloat(e.target.value) || 0 }))}
                       />
                     ) : (
                       <span className="font-medium">
@@ -1590,10 +1567,14 @@ export default function PaymentId() {
                         </span>
                       )}
                     </div>
-                    <span className={`font-bold text-lg ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+                    <span
+                      className={`font-bold text-lg ${
+                        payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-foreground'
+                      }`}
+                    >
                       {(() => {
-                        const baseAmount = isEditing ? editedValues.amount : (payment?.amount ? Number(payment.amount) : 0)
-                        const tipAmount = isEditing ? editedValues.tipAmount : (payment?.tipAmount ? Number(payment.tipAmount) : 0)
+                        const baseAmount = isEditing ? editedValues.amount : payment?.amount ? Number(payment.amount) : 0
+                        const tipAmount = isEditing ? editedValues.tipAmount : payment?.tipAmount ? Number(payment.tipAmount) : 0
                         const total = baseAmount + tipAmount
                         const isRefund = payment?.type === PaymentRecordType.REFUND
                         return `${isRefund ? '−' : ''}${Currency(Math.abs(total))}`
@@ -1609,11 +1590,24 @@ export default function PaymentId() {
                       </div>
                       <Separator />
                       <div className="flex justify-between pt-2">
-                        <span className={`font-medium ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                        <span
+                          className={`font-medium ${
+                            payment?.type === PaymentRecordType.REFUND
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-green-600 dark:text-green-400'
+                          }`}
+                        >
                           {t('detail.summary.netAmount')}
                         </span>
-                        <span className={`font-bold ${payment?.type === PaymentRecordType.REFUND ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                          {payment?.type === PaymentRecordType.REFUND ? '−' : ''}{Currency(Math.abs(payment.transactions[0].netAmount || 0))}
+                        <span
+                          className={`font-bold ${
+                            payment?.type === PaymentRecordType.REFUND
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-green-600 dark:text-green-400'
+                          }`}
+                        >
+                          {payment?.type === PaymentRecordType.REFUND ? '−' : ''}
+                          {Currency(Math.abs(payment.transactions[0].netAmount || 0))}
                         </span>
                       </div>
                     </>
@@ -1634,16 +1628,6 @@ export default function PaymentId() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{t('detail.sidebar.table')}:</span>
                       <span>{getTableInfo(payment)}</span>
-                    </div>
-                  )}
-                  {/* Covers / Customer count */}
-                  {payment?.order?.customerCount && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.covers')}:</span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {payment.order.customerCount} {t('detail.sidebar.people')}
-                      </span>
                     </div>
                   )}
                   {/* Processed By */}
@@ -1669,11 +1653,28 @@ export default function PaymentId() {
                     <span className="text-muted-foreground">{t('detail.sidebar.receipts')}:</span>
                     <span>{receipts?.length || 0}</span>
                   </div>
-                  {payment?.order?.orderNumber && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('detail.sidebar.order')}:</span>
-                      <span className="font-mono text-xs">{payment.order.orderNumber}</span>
-                    </div>
+                  {payment?.order?.orderNumber && payment?.order?.id && venue?.slug && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">{t('detail.sidebar.order')}:</span>
+                        <Link
+                          to={`/venues/${venue.slug}/orders/${payment.order.id}`}
+                          className="font-mono text-xs text-primary hover:underline flex items-center gap-1 transition-colors"
+                        >
+                          {formatOrderNumber(payment.order.orderNumber)}
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                      <div className="pt-3 mt-1 border-t border-border/50">
+                        <Link to={`/venues/${venue.slug}/orders/${payment.order.id}`}>
+                          <Button variant="outline" size="sm" className="w-full gap-2">
+                            <ShoppingBag className="h-4 w-4" />
+                            {t('detail.sidebar.viewOrder', { defaultValue: 'Ver Orden' })}
+                            <ArrowRight className="h-3 w-3 ml-auto" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -1691,7 +1692,7 @@ export default function PaymentId() {
                       <Label className="text-xs text-muted-foreground">{t('detail.overview.method')}</Label>
                       <Select
                         value={editedValues.method}
-                        onValueChange={(value: PaymentMethod) => setEditedValues((prev) => ({ ...prev, method: value }))}
+                        onValueChange={(value: PaymentMethod) => setEditedValues(prev => ({ ...prev, method: value }))}
                       >
                         <SelectTrigger className="h-9 border-amber-400/50">
                           <SelectValue />
@@ -1710,7 +1711,7 @@ export default function PaymentId() {
                       <Label className="text-xs text-muted-foreground">{t('columns.status')}</Label>
                       <Select
                         value={editedValues.status}
-                        onValueChange={(value: PaymentStatus) => setEditedValues((prev) => ({ ...prev, status: value }))}
+                        onValueChange={(value: PaymentStatus) => setEditedValues(prev => ({ ...prev, status: value }))}
                       >
                         <SelectTrigger className="h-9 border-amber-400/50">
                           <SelectValue />
@@ -1735,7 +1736,11 @@ export default function PaymentId() {
           <div className="max-w-[1400px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{t('detail.footer.paymentId', { id: payment?.id })}</span>
-              <span>{t('detail.footer.generated', { date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED) })}</span>
+              <span>
+                {t('detail.footer.generated', {
+                  date: DateTime.now().setZone(venueTimezone).setLocale(locale).toLocaleString(DateTime.DATETIME_MED),
+                })}
+              </span>
             </div>
           </div>
         </div>
@@ -1755,14 +1760,14 @@ export default function PaymentId() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.receiptNumber')}</Label>
-                  <p className="font-mono text-sm p-2 bg-muted rounded">#{selectedReceiptForDetail.accessKey?.slice(-4).toUpperCase() || 'N/A'}</p>
+                  <p className="font-mono text-sm p-2 bg-muted rounded">
+                    #{selectedReceiptForDetail.accessKey?.slice(-4).toUpperCase() || 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">{t('detail.receiptsDialog.status')}</Label>
                   <div className="p-2">
-                    <Badge variant="secondary">
-                      {selectedReceiptForDetail.status}
-                    </Badge>
+                    <Badge variant="secondary">{selectedReceiptForDetail.status}</Badge>
                   </div>
                 </div>
                 <div>
@@ -1789,7 +1794,12 @@ export default function PaymentId() {
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      copyToClipboard(ReceiptUrls.public(selectedReceiptForDetail.accessKey), t('detail.receiptsDialog.receiptLink'), toast, t)
+                      copyToClipboard(
+                        ReceiptUrls.public(selectedReceiptForDetail.accessKey),
+                        t('detail.receiptsDialog.receiptLink'),
+                        toast,
+                        t,
+                      )
                     }
                   >
                     <Copy className="h-4 w-4" />

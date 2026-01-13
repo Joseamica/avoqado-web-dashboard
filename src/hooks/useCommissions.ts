@@ -54,6 +54,9 @@ export const commissionKeys = {
 	// Stats
 	stats: (venueId: string | null) => [...commissionKeys.all, 'stats', venueId] as const,
 	payoutStats: (venueId: string | null) => [...commissionKeys.all, 'payout-stats', venueId] as const,
+	// Payment Commission
+	paymentCommission: (venueId: string | null, paymentId: string) =>
+		[...commissionKeys.all, 'payment', venueId, paymentId] as const,
 }
 
 // ============================================
@@ -650,6 +653,26 @@ export function usePayoutStats() {
 }
 
 // ============================================
+// PAYMENT COMMISSION HOOKS
+// ============================================
+
+/**
+ * Hook for fetching commission info for a specific payment
+ * Used in PaymentId.tsx to show commission details
+ */
+export function useCommissionByPayment(paymentId: string | undefined) {
+	const { venueId } = useCurrentVenue()
+
+	return useQuery({
+		queryKey: commissionKeys.paymentCommission(venueId, paymentId || ''),
+		queryFn: () => commissionService.getCommissionByPaymentId(venueId!, paymentId!),
+		enabled: !!venueId && !!paymentId,
+		staleTime: 5 * 60 * 1000, // 5 minutes - commission data doesn't change often
+		gcTime: 30 * 60 * 1000,
+	})
+}
+
+// ============================================
 // CALCULATION TRIGGERS
 // ============================================
 
@@ -724,6 +747,7 @@ export default {
 	useCancelPayout,
 	useCommissionStats,
 	usePayoutStats,
+	useCommissionByPayment,
 	useCalculateCommission,
 	useGenerateSummaries,
 }

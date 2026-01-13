@@ -25,6 +25,7 @@ import type {
 	PayoutFilters,
 	CommissionSummaryStatus,
 	CommissionPayoutStatus,
+	PaymentCommission,
 } from '@/types/commission'
 
 const BASE_URL = '/api/v1/dashboard/commissions'
@@ -225,10 +226,17 @@ export const commissionService = {
 		return response.data
 	},
 
-	// Get summaries pending approval
+	// Get summaries that need attention (pending approval or disputed)
 	async getPendingSummaries(venueId: string): Promise<CommissionSummary[]> {
-		const response = await api.get(`${BASE_URL}/venues/${venueId}/summaries?status=PENDING_APPROVAL`)
-		return normalizeArrayResponse<CommissionSummary>(response.data)
+		// Fetch both PENDING_APPROVAL and DISPUTED summaries
+		const [pendingRes, disputedRes] = await Promise.all([
+			api.get(`${BASE_URL}/venues/${venueId}/summaries?status=PENDING_APPROVAL`),
+			api.get(`${BASE_URL}/venues/${venueId}/summaries?status=DISPUTED`),
+		])
+		const pending = normalizeArrayResponse<CommissionSummary>(pendingRes.data)
+		const disputed = normalizeArrayResponse<CommissionSummary>(disputedRes.data)
+		// Return combined, with disputed first (they need more attention)
+		return [...disputed, ...pending]
 	},
 
 	// Approve a summary
@@ -348,6 +356,16 @@ export const commissionService = {
 	async getPayoutStats(venueId: string): Promise<PayoutStats> {
 		const response = await api.get(`${BASE_URL}/venues/${venueId}/payouts/stats`)
 		return response.data
+	},
+
+	// ============================================
+	// PAYMENT COMMISSION
+	// ============================================
+
+	// Get commission for a specific payment
+	async getCommissionByPaymentId(venueId: string, paymentId: string): Promise<PaymentCommission | null> {
+		const response = await api.get(`${BASE_URL}/venues/${venueId}/payments/${paymentId}/commission`)
+		return response.data.data
 	},
 
 	// ============================================

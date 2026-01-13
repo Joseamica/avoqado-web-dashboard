@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, AlertCircle, Clock, CheckCheck } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Clock, CheckCheck, AlertTriangle, MessageSquare } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -184,8 +184,8 @@ export default function SummaryApprovalList({
 			{/* Summary Cards */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 				{summaries.map((summary) => (
-					<GlassCard key={summary.id} className="p-5">
-						{/* Header */}
+					<GlassCard key={summary.id} className="p-5 flex flex-col">
+						{/* Header with status badge */}
 						<div className="flex items-start justify-between mb-4">
 							<div>
 								<h3 className="font-semibold">
@@ -195,13 +195,20 @@ export default function SummaryApprovalList({
 									{formatPeriod(summary.periodStart, summary.periodEnd)}
 								</p>
 							</div>
-							<Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-								<Clock className="h-3 w-3 mr-1" />
-								{t('status.PENDING_APPROVAL')}
-							</Badge>
+							{summary.status === 'DISPUTED' ? (
+								<Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+									<AlertTriangle className="h-3 w-3 mr-1" />
+									{t('status.DISPUTED')}
+								</Badge>
+							) : (
+								<Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+									<Clock className="h-3 w-3 mr-1" />
+									{t('status.PENDING_APPROVAL')}
+								</Badge>
+							)}
 						</div>
 
-						{/* Amounts */}
+						{/* Amounts - Always in same position */}
 						<div className="grid grid-cols-3 gap-3 mb-4">
 							<div className="p-3 rounded-lg bg-muted/50">
 								<p className="text-xs text-muted-foreground">{t('summary.commission')}</p>
@@ -217,8 +224,23 @@ export default function SummaryApprovalList({
 							</div>
 						</div>
 
-						{/* Actions */}
-						<div className="flex items-center gap-2 pt-4 border-t border-border/50">
+						{/* Dispute reason - Flexible area that grows */}
+						<div className="flex-1">
+							{summary.status === 'DISPUTED' && summary.notes && (
+								<div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30">
+									<div className="flex items-start gap-2">
+										<MessageSquare className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+										<div>
+											<p className="text-xs font-medium text-red-800 dark:text-red-300">{t('summary.disputeReason')}</p>
+											<p className="text-sm text-red-700 dark:text-red-400">{summary.notes}</p>
+										</div>
+									</div>
+								</div>
+							)}
+						</div>
+
+						{/* Actions - Always at bottom with mt-auto */}
+						<div className="flex items-center gap-2 pt-4 border-t border-border/50 mt-auto">
 							<PermissionGate permission="commissions:approve">
 								<Button
 									size="sm"
@@ -226,21 +248,24 @@ export default function SummaryApprovalList({
 									disabled={approveSummaryMutation.isPending}
 								>
 									<CheckCircle2 className="h-4 w-4 mr-2" />
-									{t('summary.approve')}
+									{summary.status === 'DISPUTED' ? t('summary.approveDisputed') : t('summary.approve')}
 								</Button>
 							</PermissionGate>
 
-							<Button
-								size="sm"
-								variant="outline"
-								onClick={() => {
-									setSelectedSummary(summary)
-									setShowDisputeDialog(true)
-								}}
-							>
-								<AlertCircle className="h-4 w-4 mr-2" />
-								{t('summary.dispute')}
-							</Button>
+							{/* Only show dispute button for non-disputed summaries */}
+							{summary.status !== 'DISPUTED' && (
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => {
+										setSelectedSummary(summary)
+										setShowDisputeDialog(true)
+									}}
+								>
+									<AlertCircle className="h-4 w-4 mr-2" />
+									{t('summary.dispute')}
+								</Button>
+							)}
 						</div>
 					</GlassCard>
 				))}

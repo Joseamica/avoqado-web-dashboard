@@ -231,7 +231,7 @@ const PaymentProviders: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredProviders}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               rowCount={filteredProviders.length}
             />

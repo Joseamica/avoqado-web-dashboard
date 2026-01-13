@@ -60,7 +60,7 @@ export default function Tpvs() {
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 20,
   })
   const [wizardOpen, setWizardOpen] = useState(false)
   const [superadminDialogOpen, setSuperadminDialogOpen] = useState(false)

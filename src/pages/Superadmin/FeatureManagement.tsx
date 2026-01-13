@@ -294,7 +294,7 @@ const FeatureManagement: React.FC = () => {
             <DataTable
               columns={columns}
               data={filteredFeatures}
-              pagination={{ pageIndex: 0, pageSize: 10 }}
+              pagination={{ pageIndex: 0, pageSize: 20 }}
               setPagination={() => {}}
               rowCount={filteredFeatures.length}
             />

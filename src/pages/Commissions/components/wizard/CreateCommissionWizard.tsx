@@ -51,6 +51,12 @@ export interface WizardData {
 	customValidityEnabled: boolean
 	effectiveFrom: string // ISO date string
 	effectiveTo: string | null // ISO date string or null for no end date
+
+	// Aggregation period for payroll alignment
+	aggregationPeriod: TierPeriod // WEEKLY, BIWEEKLY, MONTHLY - how often to group commissions for payout
+
+	// Priority for config selection (higher = takes precedence)
+	priority: number
 }
 
 // Get today's date in ISO format (YYYY-MM-DD)
@@ -83,6 +89,8 @@ const initialData: WizardData = {
 	customValidityEnabled: false,
 	effectiveFrom: getTodayISO(),
 	effectiveTo: null,
+	aggregationPeriod: 'MONTHLY', // Default to monthly (most common payroll alignment)
+	priority: 1, // Default priority (higher = takes precedence when multiple configs exist)
 }
 
 interface CreateCommissionWizardProps {
@@ -137,9 +145,10 @@ export default function CreateCommissionWizard({ onSuccess }: CreateCommissionWi
 				includeDiscount: false,
 				includeTax: false,
 				roleRates: data.roleRatesEnabled ? data.roleRates : null,
-				priority: 1,
+				priority: data.priority,
 				effectiveFrom: toISODateTime(data.effectiveFrom),
 				effectiveTo: data.effectiveTo ? toISODateTime(data.effectiveTo) : null,
+				aggregationPeriod: data.aggregationPeriod, // Period for grouping commissions into summaries
 			}
 
 			const createdConfig = await createConfigMutation.mutateAsync(input)
