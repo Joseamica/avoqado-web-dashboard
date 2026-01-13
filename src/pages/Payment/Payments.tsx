@@ -219,9 +219,6 @@ export default function Payments() {
     }
   }
 
-  // Get payments data directly from server (already filtered)
-  const payments = useMemo(() => data?.data || [], [data?.data])
-
   // Separate query to get all filter options (without filters applied)
   const { data: filterOptionsData } = useQuery({
     queryKey: ['payments-filter-options', venueId],
@@ -352,6 +349,24 @@ export default function Payments() {
         return waiterName.includes(searchLower) || merchantName.includes(searchLower) || last4.includes(searchLower)
       })
     }
+    // Subtotal amount filter
+    if (subtotalFilter) {
+      payments = payments.filter((p: PaymentType) => {
+        const subtotal = Number(p.amount) || 0
+        switch (subtotalFilter.operator) {
+          case 'gt':
+            return subtotal > (subtotalFilter.value || 0)
+          case 'lt':
+            return subtotal < (subtotalFilter.value || 0)
+          case 'eq':
+            return subtotal === (subtotalFilter.value || 0)
+          case 'between':
+            return subtotal >= (subtotalFilter.value || 0) && subtotal <= (subtotalFilter.value2 || 0)
+          default:
+            return true
+        }
+      })
+    }
     // Tip amount filter
     if (tipFilter) {
       payments = payments.filter((p: PaymentType) => {
@@ -390,7 +405,7 @@ export default function Payments() {
     }
 
     return payments
-  }, [data?.data, merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, tipFilter, totalFilter, debouncedSearchTerm])
+  }, [data?.data, merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, subtotalFilter, tipFilter, totalFilter, debouncedSearchTerm])
 
   // ==================================================================
   // --- PRINCIPALES CAMBIOS EN LA DEFINICIÓN DE COLUMNAS ---
@@ -428,7 +443,7 @@ export default function Payments() {
           const hours = dateObj.getHours().toString().padStart(2, '0')
           const minutes = dateObj.getMinutes().toString().padStart(2, '0')
           return (
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
+            <span className="text-xs text-muted-foreground dark:text-foreground whitespace-nowrap">
               {day} {month} {hours}:{minutes}
             </span>
           )
@@ -440,7 +455,7 @@ export default function Payments() {
         id: 'waiterName',
         meta: { label: t('columns.waiter') },
         header: () => <span className="text-xs">{t('columns.waiter')}</span>,
-        cell: info => <span className="text-xs text-muted-foreground">{info.getValue() as string}</span>,
+        cell: info => <span className="text-xs text-muted-foreground dark:text-foreground">{info.getValue() as string}</span>,
       },
 
       {
@@ -454,13 +469,13 @@ export default function Payments() {
           const merchant = payment.merchantAccount
 
           if (!merchant) {
-            return <span className="text-xs text-muted-foreground">{t('columns.notAvailable')}</span>
+            return <span className="text-xs text-muted-foreground dark:text-foreground">-</span>
           }
 
           return (
             <div className="flex flex-col">
               <span className="text-xs font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
-              {merchant.bankName && <span className="text-[10px] text-muted-foreground">{merchant.bankName}</span>}
+              {merchant.bankName && <span className="text-[10px] text-muted-foreground dark:text-foreground">{merchant.bankName}</span>}
             </div>
           )
         },
@@ -526,7 +541,7 @@ export default function Payments() {
           return (
             <div className="flex items-center gap-2">
               {item.icon}
-              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <span className="text-xs text-muted-foreground dark:text-foreground">{item.label}</span>
             </div>
           )
         },
@@ -566,14 +581,14 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="text-xs text-muted-foreground">{maskedLast4}</span>
+                  <span className="text-xs text-muted-foreground dark:text-foreground">{maskedLast4}</span>
                 </>
               ) : (
                 <>
                   <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                     <Banknote className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs text-muted-foreground">{methodDisplay}</span>
+                  <span className="text-xs text-muted-foreground dark:text-foreground">{methodDisplay}</span>
                 </>
               )}
             </div>
@@ -587,7 +602,7 @@ export default function Payments() {
         header: () => <span className="text-xs">{t('columns.subtotal')}</span>,
         cell: ({ cell }) => {
           const value = cell.getValue()
-          return <span className="text-xs text-muted-foreground">{Currency(Math.abs(Number(value) || 0))}</span>
+          return <span className="text-xs text-muted-foreground dark:text-foreground">{Currency(Math.abs(Number(value) || 0))}</span>
         },
       },
       {
@@ -625,8 +640,8 @@ export default function Payments() {
           }
 
           return (
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+            <div className="flex flex-col items-start">
+              <span className="text-[10px] text-muted-foreground dark:text-foreground">{tipPercentage.toFixed(1)}%</span>
               <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
                 {Currency(totalTip)}
               </Badge>
@@ -646,17 +661,15 @@ export default function Payments() {
               id: 'avoqadoProfit',
               meta: { label: t('columns.profit') },
               header: ({ column }: any) => (
-                <div className="flex justify-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7 px-2"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-                  >
-                    {t('columns.profit')}
-                    <ArrowUpDown className="w-3 h-3 ml-1" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                >
+                  {t('columns.profit')}
+                  <ArrowUpDown className="w-3 h-3 ml-1" />
+                </Button>
               ),
               cell: ({ row }: any) => {
                 const payment = row.original
@@ -664,8 +677,8 @@ export default function Payments() {
 
                 if (!payment.transactionCost) {
                   return (
-                    <div className="flex justify-center">
-                      <span className="text-xs text-muted-foreground">-</span>
+                    <div className="flex">
+                      <span className="text-xs text-muted-foreground dark:text-foreground">-</span>
                     </div>
                   )
                 }
@@ -679,7 +692,7 @@ export default function Payments() {
                 if (isRefund) {
                   return (
                     <div
-                      className="flex flex-col items-center"
+                      className="flex flex-col items-start"
                       title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(
                         Math.abs(venueCharge),
                       )}`}
@@ -719,10 +732,10 @@ export default function Payments() {
 
                 return (
                   <div
-                    className="flex flex-col items-center"
+                    className="flex flex-col items-start"
                     title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}
                   >
-                    <span className="text-[10px] text-muted-foreground">{(margin * 100).toFixed(2)}%</span>
+                    <span className="text-[10px] text-muted-foreground dark:text-foreground">{(margin * 100).toFixed(2)}%</span>
                     <Badge
                       variant="outline"
                       className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border} text-[10px] px-1.5 py-0 h-5`}
@@ -1077,6 +1090,20 @@ export default function Payments() {
               onApply={setWaiterFilter}
               searchable={waiters.length > 5}
               searchPlaceholder={t('filters.searchWaiter', { defaultValue: 'Buscar personal...' })}
+            />
+          </FilterPill>
+
+          {/* Subtotal Filter Pill */}
+          <FilterPill
+            label={t('columns.subtotal')}
+            activeValue={getAmountFilterLabel(subtotalFilter)}
+            isActive={subtotalFilter !== null}
+            onClear={() => setSubtotalFilter(null)}
+          >
+            <AmountFilterContent
+              title={`Filtrar por: ${t('columns.subtotal').toLowerCase()}`}
+              currentFilter={subtotalFilter}
+              onApply={setSubtotalFilter}
             />
           </FilterPill>
 

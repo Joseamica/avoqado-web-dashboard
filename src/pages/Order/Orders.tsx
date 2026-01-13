@@ -642,11 +642,9 @@ export default function Orders() {
           }
 
           return (
-            <div className="flex justify-center">
-              <Badge variant="soft" className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
-                {statusMap[status] || status}
-              </Badge>
-            </div>
+            <Badge variant="soft" className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
+              {statusMap[status] || status}
+            </Badge>
           )
         },
       },
