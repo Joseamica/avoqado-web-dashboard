@@ -1,6 +1,5 @@
 import api from '@/api'
-import { cn } from '@/lib/utils'
-import { DateTime } from 'luxon'
+import { PermissionGate } from '@/components/PermissionGate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -22,65 +21,63 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MetricCard } from '@/components/ui/metric-card'
 import { Progress } from '@/components/ui/progress'
-import { StatusPulse } from '@/components/ui/status-pulse'
-import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useAuth } from '@/context/AuthContext'
+import { useSocket } from '@/context/SocketContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
+import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
+import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
+import { generateActivationCode } from '@/services/tpv.service'
+import { StaffRole } from '@/types'
+import { getIntlLocale } from '@/utils/i18n-locale'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Activity,
   AlertCircle,
   ArrowLeft,
+  ChevronRight,
   Clock,
   Cpu,
-  HardDrive,
+  CreditCard,
   Home,
   Info,
   Key,
+  Link2,
+  Loader2,
   Lock,
   LockOpen,
-  Loader2,
   MemoryStick,
   PencilIcon,
   RefreshCw,
   SaveIcon,
   Settings,
   Shield,
-  Terminal,
+  Unlink,
   Wifi,
   WifiOff,
   Wrench,
   XIcon,
   Zap,
-  ChevronRight,
 } from 'lucide-react'
+import { DateTime } from 'luxon'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import * as z from 'zod'
+import { ActivationCodeDialog } from './ActivationCodeDialog'
+import { CommandHistoryTable } from './components/CommandHistoryTable'
+import { RemoteCommandPanel } from './components/RemoteCommandPanel'
 
 // Valid tab values for URL hash
 const VALID_TABS = ['info', 'commands', 'settings'] as const
 type TabValue = (typeof VALID_TABS)[number]
-import * as z from 'zod'
-import { useTranslation } from 'react-i18next'
-import { getIntlLocale } from '@/utils/i18n-locale'
-import { PermissionGate } from '@/components/PermissionGate'
-import { generateActivationCode } from '@/services/tpv.service'
-import { ActivationCodeDialog } from './ActivationCodeDialog'
-import { useAuth } from '@/context/AuthContext'
-import { useSocket } from '@/context/SocketContext'
-import { StaffRole } from '@/types'
-import { TpvSettingsForm } from '@/pages/Settings/components/TpvSettingsForm'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RemoteCommandPanel } from './components/RemoteCommandPanel'
-import { CommandHistoryTable } from './components/CommandHistoryTable'
-import { terminalAPI } from '@/services/superadmin-terminals.service'
-import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
-import { CreditCard, Link2, Unlink } from 'lucide-react'
 
 // Type for the form values
 type TpvFormValues = {

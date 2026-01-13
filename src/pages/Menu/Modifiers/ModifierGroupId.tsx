@@ -264,13 +264,13 @@ export default function ModifierGroupId() {
       }
       if (
         form.formState.dirtyFields.multipleSelectionAmount ||
-        (data && 'multipleSelectionAmount' in (data as Record<string, unknown>))
+        (data && 'multipleSelectionAmount' in data)
       ) {
         details.multipleSelectionAmount = resolvedMultipleSelectionAmount
       }
       if (
         form.formState.dirtyFields.multiMax ||
-        (data && 'multiMax' in (data as Record<string, unknown>))
+        (data && 'multiMax' in data)
       ) {
         details.multiMax = resolvedMultiMax
       }
