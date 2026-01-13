@@ -132,7 +132,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
       // Check if shifts are enabled (for shifts menu item)
       if ('requiresShiftsEnabled' in item && item.requiresShiftsEnabled) {
-        return activeVenue?.enableShifts === true
+        return activeVenue?.settings?.enableShifts === true
       }
 
       return true

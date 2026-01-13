@@ -12,7 +12,7 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getMenus } from '@/services/menu.service'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import { Menu } from '@/types'
+import { Menu, MenuCategory } from '@/types'
 import { formatDateInTimeZone } from '@/utils/luxon'
 
 export default function Menus() {
@@ -70,7 +70,7 @@ export default function Menus() {
       accessorFn: (menu) =>
         (menu.categories || [])
           .map(assignment => assignment.category)
-          .filter((category): category is { id: string; name: string } => Boolean(category?.name)),
+          .filter((category): category is MenuCategory => Boolean(category?.name)),
       meta: { label: t('menus.columns.categories') },
       header: t('menus.columns.categories'),
       enableColumnFilter: false,

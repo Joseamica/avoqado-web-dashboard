@@ -786,7 +786,7 @@ export default function Orders() {
         switch (dateFilter.operator) {
           case 'last': {
             const value = typeof dateFilter.value === 'number' ? dateFilter.value : parseInt(dateFilter.value as string) || 0
-            let cutoffDate = new Date()
+            const cutoffDate = new Date()
             switch (dateFilter.unit) {
               case 'hours':
                 cutoffDate.setHours(now.getHours() - value)
@@ -1193,7 +1193,7 @@ export default function Orders() {
               variant="outline"
               size="sm"
               onClick={resetFilters}
-              className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+              className="h-8 gap-1.5 rounded-full"
             >
               <X className="h-3.5 w-3.5" />
               {t('filters.reset', { defaultValue: 'Borrar filtros' })}

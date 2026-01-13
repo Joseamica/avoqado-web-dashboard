@@ -1141,7 +1141,7 @@ export default function Payments() {
               variant="outline"
               size="sm"
               onClick={resetFilters}
-              className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+              className="h-8 gap-1.5 rounded-full"
             >
               <X className="h-3.5 w-3.5" />
               {t('filters.reset', { defaultValue: 'Borrar filtros' })}
