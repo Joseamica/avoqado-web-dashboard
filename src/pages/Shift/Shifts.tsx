@@ -19,14 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
@@ -205,256 +198,262 @@ export default function Shifts() {
   const totalShifts = data?.meta?.totalCount || 0
 
   // Transform row data to ShiftReference for AI button
-  const toShiftReference = useCallback((row: any): ShiftReference => ({
-    id: row.id,
-    staffId: row.staff?.id || '',
-    staffName: row.staff ? `${row.staff.firstName} ${row.staff.lastName}` : 'Unknown',
-    startTime: row.startTime,
-    endTime: row.endTime,
-    status: row.endTime ? 'CLOSED' : 'ACTIVE',
-    totalSales: row.totalSales || 0,
-    totalTips: row.totalTips || 0,
-    totalOrders: row.orderCount || 0,
-  }), [])
+  const toShiftReference = useCallback(
+    (row: any): ShiftReference => ({
+      id: row.id,
+      staffId: row.staff?.id || '',
+      staffName: row.staff ? `${row.staff.firstName} ${row.staff.lastName}` : 'Unknown',
+      startTime: row.startTime,
+      endTime: row.endTime,
+      status: row.endTime ? 'CLOSED' : 'ACTIVE',
+      totalSales: row.totalSales || 0,
+      totalTips: row.totalTips || 0,
+      totalOrders: row.orderCount || 0,
+    }),
+    [],
+  )
 
-  const columns: ColumnDef<any, unknown>[] = useMemo(() => [
-    // AI column - only show if venue has chatbot feature
-    ...(hasChatbot
-      ? [
-          {
-            id: 'ai',
-            header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
-            cell: ({ row }: { row: { original: any } }) => (
-              <div className="flex justify-center">
-                <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />
-              </div>
-            ),
-            size: 50,
-            enableSorting: false,
-          } as ColumnDef<any, unknown>,
-        ]
-      : []),
-    {
-      accessorFn: row => {
-        return row.endTime ? t('closed') : t('open')
-      },
-      id: 'active',
-      sortDescFirst: true,
-      header: t('columns.status'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as string
-
-        if (value === t('open')) {
-          return (
-            <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
-              {t('open')}
-            </span>
-          )
-        } else {
-          return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('closed')}</span>
-        }
-      },
-    },
-    {
-      accessorKey: 'id',
-      sortDescFirst: true,
-      header: t('columns.shiftId'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as string
-        return value.slice(-8) // Show last 8 characters of ID
-      },
-    },
-    {
-      accessorKey: 'startTime',
-      sortDescFirst: true,
-      header: () => (
-        <div className="flex flex-col">
-          <span>{t('columns.openTime')}</span>
-          <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
-        </div>
-      ),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as string
-        // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
-        const time = formatTime(value)
-        const date = formatDate(value)
-
-        return (
-          <div className="flex flex-col space-y-2">
-            <span className="text-sm font-medium">{time}</span>
-            <span className="text-xs text-muted-foreground">{date}</span>
-          </div>
-        )
-      },
-      footer: props => props.column.id,
-      sortingFn: 'datetime',
-    },
-    {
-      accessorKey: 'endTime',
-      sortDescFirst: true,
-      header: () => (
-        <div className="flex flex-col">
-          <span>{t('columns.closeTime')}</span>
-          <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
-        </div>
-      ),
-      cell: ({ cell }) => {
-        if (!cell.getValue()) return '-'
-        const value = cell.getValue() as string
-        // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
-        const time = formatTime(value)
-        const date = formatDate(value)
-
-        return (
-          <div className="flex flex-col space-y-2">
-            <span className="text-sm font-medium">{time}</span>
-            <span className="text-xs text-muted-foreground">{date}</span>
-          </div>
-        )
-      },
-      footer: props => props.column.id,
-      sortingFn: 'datetime',
-    },
-
-    {
-      accessorKey: 'totalSales',
-      id: 'totalSales',
-      header: t('columns.subtotal'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as number
-        return value ? Currency(value) : Currency(0)
-      },
-      footer: props => props.column.id,
-      sortingFn: 'alphanumeric',
-    },
-    {
-      accessorKey: 'totalTips',
-      id: 'totalTips',
-      header: t('columns.totalTip'),
-      cell: ({ row }) => {
-        // Robust locale-aware parse: handles "1,231.00", "1.231,00", and plain numbers
-        const parseAmount = (v: any): number => {
-          if (typeof v === 'number') return Number.isFinite(v) ? v : 0
-          if (v == null) return 0
-          let s = String(v).trim()
-          // Drop currency symbols and spaces
-          s = s.replace(/[^0-9.,-]/g, '')
-          if (!s) return 0
-          const lastComma = s.lastIndexOf(',')
-          const lastDot = s.lastIndexOf('.')
-          const hasComma = lastComma !== -1
-          const hasDot = lastDot !== -1
-          if (hasComma && hasDot) {
-            // Assume the right-most separator is the decimal, drop the other as thousand
-            if (lastComma > lastDot) {
-              s = s.replace(/\./g, '') // remove thousands dots
-              s = s.replace(',', '.') // decimal comma -> dot
-            } else {
-              s = s.replace(/,/g, '') // remove thousands commas
-              // decimal dot stays
-            }
-          } else if (hasComma && !hasDot) {
-            // Treat comma as decimal
-            s = s.replace(',', '.')
-          }
-          // Only dot or plain digits: nothing to do
-          const n = Number(s)
-          return Number.isFinite(n) ? n : 0
-        }
-
-        const totalTips = parseAmount(row.original.totalTips)
-        const totalSales = parseAmount(row.original.totalSales)
-        const providedSubtotal = parseAmount((row.original as any).subtotal)
-        // totalSales already represents subtotal (before tips), use it directly
-        let subtotal = providedSubtotal > 0 ? providedSubtotal : totalSales
-        if (subtotal <= 0) subtotal = totalSales // fallback
-        let tipPercentage = subtotal > 0 ? (totalTips / subtotal) * 100 : 0
-        // Note: tipPercentage = tips / subtotal, NOT tips / (subtotal + tips)
-        // Fallback to provided percentage field if available
-        const providedPct = Number((row.original as any).tipPercentage ?? (row.original as any).tipsPercentage)
-        if (!Number.isFinite(tipPercentage) || tipPercentage === 0) {
-          if (Number.isFinite(providedPct) && providedPct > 0) tipPercentage = providedPct
-        }
-
-        let tipClasses = {
-          bg: 'bg-green-100 dark:bg-green-900/30',
-          text: 'text-green-700 dark:text-green-400',
-        }
-
-        if (tipPercentage < 7) {
-          tipClasses = {
-            bg: 'bg-red-100 dark:bg-red-900/30',
-            text: 'text-red-700 dark:text-red-400',
-          }
-        } else if (tipPercentage >= 7 && tipPercentage < 10) {
-          tipClasses = {
-            bg: 'bg-yellow-100 dark:bg-yellow-900/30',
-            text: 'text-yellow-700 dark:text-yellow-400',
-          }
-        }
-
-        return (
-          <div className="flex flex-col space-y-1 items-center">
-            <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
-            <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
-              {Currency(totalTips)}
-            </Badge>
-          </div>
-        )
-      },
-      footer: props => props.column.id,
-      sortingFn: 'alphanumeric',
-    },
-    {
-      accessorFn: row => {
-        const totalSales = row.totalSales || 0
-        const totalTips = row.totalTips || 0
-        return totalSales + totalTips
-      },
-      id: 'totalAmount',
-      header: t('columns.total'),
-      cell: ({ cell }) => {
-        const value = cell.getValue() as number
-        return value ? Currency(value) : Currency(0)
-      },
-      footer: props => props.column.id,
-      sortingFn: 'alphanumeric',
-    },
-    // Superadmin actions column
-    ...(isSuperAdmin
-      ? [
-          {
-            id: 'actions',
-            header: () => (
-              <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
-                Superadmin
-              </span>
-            ),
-            cell: ({ row }: { row: { original: any } }) => (
-              <div className="flex items-center justify-end">
-                <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
-                  <Button
-                    size="icon"
-                    className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
-                    onClick={e => handleEditClick(e, row.original)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="h-7 w-7 bg-background hover:bg-destructive/10 text-destructive border-0"
-                    onClick={e => handleDeleteClick(e, row.original)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+  const columns: ColumnDef<any, unknown>[] = useMemo(
+    () => [
+      // AI column - only show if venue has chatbot feature
+      ...(hasChatbot
+        ? [
+            {
+              id: 'ai',
+              header: () => <span className="sr-only">{tCommon('screenReaderOnly.ai')}</span>,
+              cell: ({ row }: { row: { original: any } }) => (
+                <div className="flex justify-center">
+                  <AddToAIButton type="shift" data={toShiftReference(row.original)} variant="icon" />
                 </div>
-              </div>
-            ),
-            size: 120,
-          },
-        ]
-      : []),
-  ], [t, toShiftReference, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot])
+              ),
+              size: 50,
+              enableSorting: false,
+            } as ColumnDef<any, unknown>,
+          ]
+        : []),
+      {
+        accessorFn: row => {
+          return row.endTime ? t('closed') : t('open')
+        },
+        id: 'active',
+        sortDescFirst: true,
+        header: t('columns.status'),
+        cell: ({ cell }) => {
+          const value = cell.getValue() as string
+
+          if (value === t('open')) {
+            return (
+              <span className="px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full font-medium">
+                {t('open')}
+              </span>
+            )
+          } else {
+            return <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full font-medium">{t('closed')}</span>
+          }
+        },
+      },
+      {
+        accessorKey: 'id',
+        sortDescFirst: true,
+        header: t('columns.shiftId'),
+        cell: ({ cell }) => {
+          const value = cell.getValue() as string
+          return value.slice(-8) // Show last 8 characters of ID
+        },
+      },
+      {
+        accessorKey: 'startTime',
+        sortDescFirst: true,
+        header: () => (
+          <div className="flex flex-col">
+            <span>{t('columns.openTime')}</span>
+            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+          </div>
+        ),
+        cell: ({ cell }) => {
+          const value = cell.getValue() as string
+          // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
+          const time = formatTime(value)
+          const date = formatDate(value)
+
+          return (
+            <div className="flex flex-col space-y-2">
+              <span className="text-sm font-medium">{time}</span>
+              <span className="text-xs text-muted-foreground">{date}</span>
+            </div>
+          )
+        },
+        footer: props => props.column.id,
+        sortingFn: 'datetime',
+      },
+      {
+        accessorKey: 'endTime',
+        sortDescFirst: true,
+        header: () => (
+          <div className="flex flex-col">
+            <span>{t('columns.closeTime')}</span>
+            <span className="text-xs font-normal text-muted-foreground">({venueTimezoneShort})</span>
+          </div>
+        ),
+        cell: ({ cell }) => {
+          if (!cell.getValue()) return '-'
+          const value = cell.getValue() as string
+          // ✅ CRITICAL: Uses venue timezone for accurate payroll calculations
+          const time = formatTime(value)
+          const date = formatDate(value)
+
+          return (
+            <div className="flex flex-col space-y-2">
+              <span className="text-sm font-medium">{time}</span>
+              <span className="text-xs text-muted-foreground">{date}</span>
+            </div>
+          )
+        },
+        footer: props => props.column.id,
+        sortingFn: 'datetime',
+      },
+
+      {
+        accessorKey: 'totalSales',
+        id: 'totalSales',
+        header: t('columns.subtotal'),
+        cell: ({ cell }) => {
+          const value = cell.getValue() as number
+          return value ? Currency(value) : Currency(0)
+        },
+        footer: props => props.column.id,
+        sortingFn: 'alphanumeric',
+      },
+      {
+        accessorKey: 'totalTips',
+        id: 'totalTips',
+        header: t('columns.totalTip'),
+        cell: ({ row }) => {
+          // Robust locale-aware parse: handles "1,231.00", "1.231,00", and plain numbers
+          const parseAmount = (v: any): number => {
+            if (typeof v === 'number') return Number.isFinite(v) ? v : 0
+            if (v == null) return 0
+            let s = String(v).trim()
+            // Drop currency symbols and spaces
+            s = s.replace(/[^0-9.,-]/g, '')
+            if (!s) return 0
+            const lastComma = s.lastIndexOf(',')
+            const lastDot = s.lastIndexOf('.')
+            const hasComma = lastComma !== -1
+            const hasDot = lastDot !== -1
+            if (hasComma && hasDot) {
+              // Assume the right-most separator is the decimal, drop the other as thousand
+              if (lastComma > lastDot) {
+                s = s.replace(/\./g, '') // remove thousands dots
+                s = s.replace(',', '.') // decimal comma -> dot
+              } else {
+                s = s.replace(/,/g, '') // remove thousands commas
+                // decimal dot stays
+              }
+            } else if (hasComma && !hasDot) {
+              // Treat comma as decimal
+              s = s.replace(',', '.')
+            }
+            // Only dot or plain digits: nothing to do
+            const n = Number(s)
+            return Number.isFinite(n) ? n : 0
+          }
+
+          const totalTips = parseAmount(row.original.totalTips)
+          const totalSales = parseAmount(row.original.totalSales)
+          const providedSubtotal = parseAmount((row.original as any).subtotal)
+          // totalSales already represents subtotal (before tips), use it directly
+          let subtotal = providedSubtotal > 0 ? providedSubtotal : totalSales
+          if (subtotal <= 0) subtotal = totalSales // fallback
+          let tipPercentage = subtotal > 0 ? (totalTips / subtotal) * 100 : 0
+          // Note: tipPercentage = tips / subtotal, NOT tips / (subtotal + tips)
+          // Fallback to provided percentage field if available
+          const providedPct = Number((row.original as any).tipPercentage ?? (row.original as any).tipsPercentage)
+          if (!Number.isFinite(tipPercentage) || tipPercentage === 0) {
+            if (Number.isFinite(providedPct) && providedPct > 0) tipPercentage = providedPct
+          }
+
+          let tipClasses = {
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-700 dark:text-green-400',
+          }
+
+          if (tipPercentage < 7) {
+            tipClasses = {
+              bg: 'bg-red-100 dark:bg-red-900/30',
+              text: 'text-red-700 dark:text-red-400',
+            }
+          } else if (tipPercentage >= 7 && tipPercentage < 10) {
+            tipClasses = {
+              bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+              text: 'text-yellow-700 dark:text-yellow-400',
+            }
+          }
+
+          return (
+            <div className="flex flex-col space-y-1 items-center">
+              <span className="text-xs font-semibold text-muted-foreground">{tipPercentage.toFixed(1)}%</span>
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent`}>
+                {Currency(totalTips)}
+              </Badge>
+            </div>
+          )
+        },
+        footer: props => props.column.id,
+        sortingFn: 'alphanumeric',
+      },
+      {
+        accessorFn: row => {
+          const totalSales = row.totalSales || 0
+          const totalTips = row.totalTips || 0
+          return totalSales + totalTips
+        },
+        id: 'totalAmount',
+        header: t('columns.total'),
+        cell: ({ cell }) => {
+          const value = cell.getValue() as number
+          return value ? Currency(value) : Currency(0)
+        },
+        footer: props => props.column.id,
+        sortingFn: 'alphanumeric',
+      },
+      // Superadmin actions column
+      ...(isSuperAdmin
+        ? [
+            {
+              id: 'actions',
+              header: () => (
+                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                  Superadmin
+                </span>
+              ),
+              cell: ({ row }: { row: { original: any } }) => (
+                <div className="flex items-center justify-end">
+                  <div className="flex items-center gap-1 p-1 rounded-lg bg-gradient-to-r from-amber-400 to-pink-500">
+                    <Button
+                      size="icon"
+                      className="h-7 w-7 bg-background hover:bg-muted text-foreground border-0"
+                      onClick={e => handleEditClick(e, row.original)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      className="h-7 w-7 bg-background hover:bg-destructive/10 text-destructive border-0"
+                      onClick={e => handleDeleteClick(e, row.original)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ),
+              size: 120,
+            },
+          ]
+        : []),
+    ],
+    [t, toShiftReference, formatTime, formatDate, venueTimezoneShort, isSuperAdmin, hasChatbot],
+  )
 
   // Search callback for DataTable
   const handleSearch = useCallback((searchTerm: string, shifts: any[]) => {
@@ -493,6 +492,7 @@ export default function Shifts() {
       <DataTable
         data={data?.data || []}
         rowCount={totalShifts}
+        enableColumnResizing={true}
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
@@ -538,9 +538,7 @@ export default function Shifts() {
               </Badge>
               {tCommon('superadmin.edit.title')}
             </DialogTitle>
-            <DialogDescription>
-              {t('editDialog.description', { id: shiftToEdit?.id?.slice(-8) || '' })}
-            </DialogDescription>
+            <DialogDescription>{t('editDialog.description', { id: shiftToEdit?.id?.slice(-8) || '' })}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">

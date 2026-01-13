@@ -2,10 +2,11 @@ import { getModifierGroup, getModifierGroups, getProducts, updateModifierGroup, 
 import AlertDialogWrapper from '@/components/alert-dialog'
 import DnDMultipleSelector from '@/components/draggable-multi-select'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -67,7 +68,16 @@ export default function ModifierGroupId() {
 
   // Mutation to update the modifier group details
   const updateModifierGroupDetails = useMutation({
-    mutationFn: async (details: { name: string; description?: string }) => {
+    mutationFn: async (details: {
+      name: string
+      description?: string
+      required: boolean
+      minSelections: number
+      maxSelections: number | null
+      allowMultiple: boolean
+      multipleSelectionAmount?: number
+      multiMax?: number
+    }) => {
       return await updateModifierGroup(venueId!, modifierGroupId!, details)
     },
     onSuccess: () => {
@@ -139,6 +149,11 @@ export default function ModifierGroupId() {
     avoqadoProduct: { label: string; value: string; disabled: boolean }[]
     groupName?: string
     description?: string
+    required: boolean
+    minSelections: number
+    maxSelections: number | null
+    multipleSelectionAmount?: number
+    multiMax?: number
   }
 
   type ModifierGroupUpdatePayload = {
@@ -155,6 +170,11 @@ export default function ModifierGroupId() {
       form.reset({
         groupName: data.name,
         description: data.description,
+        required: data.required ?? false,
+        minSelections: typeof data.minSelections === 'number' ? data.minSelections : 0,
+        maxSelections: typeof data.maxSelections === 'number' ? data.maxSelections : 1,
+        multipleSelectionAmount: (data as { multipleSelectionAmount?: number })?.multipleSelectionAmount ?? 0,
+        multiMax: (data as { multiMax?: number })?.multiMax ?? 1,
         modifiers: (data.modifiers || []).map(modifier => ({
           label: modifier.name,
           value: modifier.id,
@@ -171,6 +191,16 @@ export default function ModifierGroupId() {
     }
   }, [data, form, allProducts])
 
+  const watchRequired = form.watch('required')
+  useEffect(() => {
+    if (watchRequired) {
+      const currentMin = form.getValues('minSelections')
+      if (typeof currentMin === 'number' && currentMin < 1) {
+        form.setValue('minSelections', 1, { shouldValidate: true, shouldDirty: true })
+      }
+    }
+  }, [watchRequired, form])
+
   // Close the create modifier sheet when we're done
   const handleCloseCreateModifierSheet = () => {
     setIsCreateModifierSheetOpen(false)
@@ -178,12 +208,74 @@ export default function ModifierGroupId() {
 
   // Submit handler for form
   function onSubmit(formValues: FormValues) {
-    // Update basic details (name and description)
-    if (form.formState.dirtyFields.groupName || form.formState.dirtyFields.description) {
-      updateModifierGroupDetails.mutate({
+    const minSelections = typeof formValues.minSelections === 'number' ? formValues.minSelections : 0
+    const maxSelections = typeof formValues.maxSelections === 'number' ? formValues.maxSelections : 1
+
+    const hasDetailsChanges =
+      form.formState.dirtyFields.groupName ||
+      form.formState.dirtyFields.description ||
+      form.formState.dirtyFields.required ||
+      form.formState.dirtyFields.minSelections ||
+      form.formState.dirtyFields.maxSelections ||
+      form.formState.dirtyFields.multipleSelectionAmount ||
+      form.formState.dirtyFields.multiMax
+
+    // Update basic details (name, description, rules)
+    if (hasDetailsChanges) {
+      const originalMaxSelections =
+        data?.maxSelections === null
+          ? null
+          : typeof data?.maxSelections === 'number'
+            ? data.maxSelections
+            : maxSelections
+      const resolvedMaxSelections = form.formState.dirtyFields.maxSelections ? maxSelections : originalMaxSelections
+      const resolvedRequired = form.formState.dirtyFields.required ? formValues.required : data?.required ?? formValues.required
+      const resolvedMinSelections = form.formState.dirtyFields.minSelections
+        ? minSelections
+        : typeof data?.minSelections === 'number'
+          ? data.minSelections
+          : minSelections
+      const resolvedAllowMultiple = form.formState.dirtyFields.maxSelections
+        ? (resolvedMaxSelections ?? 1) > 1
+        : data?.allowMultiple ?? (resolvedMaxSelections ?? 1) > 1
+      const resolvedMultipleSelectionAmount = form.formState.dirtyFields.multipleSelectionAmount
+        ? (formValues.multipleSelectionAmount ?? 0)
+        : (data as { multipleSelectionAmount?: number })?.multipleSelectionAmount ?? formValues.multipleSelectionAmount ?? 0
+      const resolvedMultiMax = form.formState.dirtyFields.multiMax
+        ? (formValues.multiMax ?? 1)
+        : (data as { multiMax?: number })?.multiMax ?? formValues.multiMax ?? 1
+
+      const details: {
+        name: string
+        description?: string
+        required: boolean
+        minSelections: number
+        maxSelections: number | null
+        allowMultiple: boolean
+        multipleSelectionAmount?: number
+        multiMax?: number
+      } = {
         name: typeof formValues.groupName === 'string' ? formValues.groupName : '',
         description: typeof formValues.description === 'string' ? formValues.description : '',
-      })
+        required: resolvedRequired,
+        minSelections: resolvedMinSelections,
+        maxSelections: resolvedMaxSelections,
+        allowMultiple: resolvedAllowMultiple,
+      }
+      if (
+        form.formState.dirtyFields.multipleSelectionAmount ||
+        (data && 'multipleSelectionAmount' in (data as Record<string, unknown>))
+      ) {
+        details.multipleSelectionAmount = resolvedMultipleSelectionAmount
+      }
+      if (
+        form.formState.dirtyFields.multiMax ||
+        (data && 'multiMax' in (data as Record<string, unknown>))
+      ) {
+        details.multiMax = resolvedMultiMax
+      }
+
+      updateModifierGroupDetails.mutate(details)
     }
 
     // Process modifiers and products assignments
@@ -380,6 +472,150 @@ export default function ModifierGroupId() {
                       className="max-w-96"
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{t('modifiers.createGroup.selectionRules')}</h3>
+            <FormField
+              control={form.control}
+              name="required"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>{t('modifiers.createGroup.requiredSelection')}</FormLabel>
+                    <FormDescription>{t('modifiers.createGroup.requiredSelectionDesc')}</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={!!field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="minSelections"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.createGroup.minSelections')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={watchRequired ? 1 : 0}
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? '' : parseInt(val) || 0)
+                        }}
+                        onBlur={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                          field.onBlur()
+                        }}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <FormDescription>{t('modifiers.createGroup.minSelectionsDesc')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="maxSelections"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('modifiers.createGroup.maxSelections')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={field.value ?? ''}
+                        onChange={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? '' : parseInt(val) || 1)
+                        }}
+                        onBlur={e => {
+                          const val = e.target.value
+                          field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                          field.onBlur()
+                        }}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <FormDescription>{t('modifiers.createGroup.maxSelectionsDesc')}</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="multipleSelectionAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('modifiers.createGroup.multipleSelection')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder={t('modifiers.createGroup.multipleSelectionPlaceholder')}
+                      value={field.value === 0 ? '' : field.value ?? ''}
+                      onChange={e => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? '' : parseInt(val) || 0)
+                      }}
+                      onBlur={e => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? 0 : parseInt(val) || 0)
+                        field.onBlur()
+                      }}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>{t('modifiers.createGroup.multipleSelectionDesc')}</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="multiMax"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('modifiers.createGroup.maxPerModifier')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={field.value === 1 ? '' : field.value ?? ''}
+                      onChange={e => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? '' : parseInt(val) || 1)
+                      }}
+                      onBlur={e => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? 1 : parseInt(val) || 1)
+                        field.onBlur()
+                      }}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>{t('modifiers.createGroup.maxPerModifierDesc')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

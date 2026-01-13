@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 // Legacy api removed; use typed services instead
@@ -36,6 +36,7 @@ import CreateModifier from './createModifier'
 import { ModifierGroup } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { CreateModifierGroupWizard } from './components/CreateModifierGroupWizard'
 
 export default function ModifierGroups() {
   const { t } = useTranslation('menu')
@@ -45,6 +46,7 @@ export default function ModifierGroups() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [createModifier, setCreateModifier] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [modifierGroupToDelete, setModifierGroupToDelete] = useState<string | null>(null)
 
@@ -298,16 +300,8 @@ export default function ModifierGroups() {
         />
 
         <PermissionGate permission="menu:create">
-          <Button asChild>
-            <Link
-              to={`create`}
-              state={{
-                from: location.pathname,
-              }}
-              className="flex items-center space-x-2"
-            >
-              <span>{t('modifiers.newModifierGroup')}</span>
-            </Link>
+          <Button type="button" onClick={() => setCreateDialogOpen(true)}>
+            <span>{t('modifiers.newModifierGroup')}</span>
           </Button>
         </PermissionGate>
 
@@ -332,6 +326,15 @@ export default function ModifierGroups() {
                 {deleteModifierGroupMutation.isPending ? t('modifiers.dialogs.delete.deleting') : t('modifiers.dialogs.delete.delete')}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('modifiers.createGroup.title')}</DialogTitle>
+              <DialogDescription>{t('modifiers.createGroup.basicInfoDesc')}</DialogDescription>
+            </DialogHeader>
+            <CreateModifierGroupWizard onCancel={() => setCreateDialogOpen(false)} onSuccess={() => setCreateDialogOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>

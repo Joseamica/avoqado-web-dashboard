@@ -14,14 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -278,10 +271,7 @@ export default function Orders() {
   const renderSortableHeader = (label: string | JSX.Element, field: string) => {
     const isSorted = sortField === field
     return (
-      <div
-        className="flex items-center gap-2 cursor-pointer select-none hover:text-foreground"
-        onClick={() => handleSort(field)}
-      >
+      <div className="flex items-center gap-2 cursor-pointer select-none hover:text-foreground" onClick={() => handleSort(field)}>
         {label}
         <span className="flex items-center">
           {isSorted && sortOrder === 'asc' && <ArrowUp className="h-4 w-4" />}
@@ -375,7 +365,10 @@ export default function Orders() {
             return (
               <div className="flex flex-col gap-1">
                 <span className="font-medium">{customerName}</span>
-                <Badge variant="outline" className="w-fit text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+                <Badge
+                  variant="outline"
+                  className="w-fit text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                >
                   <Clock className="h-3 w-3 mr-1" />
                   {t('payLater.badge', { defaultValue: 'Por Cobrar' })}
                 </Badge>
@@ -396,11 +389,7 @@ export default function Orders() {
       {
         accessorKey: 'type',
         meta: { label: t('columns.type') },
-        header: () => (
-          <div className="flex justify-center">
-            {t('columns.type')}
-          </div>
-        ),
+        header: () => <div className="flex justify-center">{t('columns.type')}</div>,
         cell: ({ row }) => {
           const type = row.original.type as string
           const orderNumber = row.original.orderNumber || ''
@@ -637,9 +626,8 @@ export default function Orders() {
           const isFastSale = order.orderNumber?.startsWith('FAST-')
 
           // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
-          const displayFolio = order.orderNumber && order.orderNumber.length > 6
-            ? `#${order.orderNumber.slice(-6)}`
-            : (order.orderNumber || '-')
+          const displayFolio =
+            order.orderNumber && order.orderNumber.length > 6 ? `#${order.orderNumber.slice(-6)}` : order.orderNumber || '-'
           const displayType = isFastSale ? t('types.FAST', { defaultValue: 'Venta Rápida' }) : t(`types.${order.type}` as any)
 
           return {
@@ -691,12 +679,7 @@ export default function Orders() {
         />
         <div className="flex gap-2">
           {/* Pay Later - Navigate to dedicated report */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate('../reports/pay-later-aging')}
-          >
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('../reports/pay-later-aging')}>
             <Clock className="h-4 w-4" />
             {t('payLater.button', { defaultValue: 'Cuentas por Cobrar' })}
           </Button>
@@ -729,7 +712,8 @@ export default function Orders() {
                 {t('payLater.banner.title', { defaultValue: '⚠️ Cuentas por Cobrar Pendientes' })}
               </p>
               <p className="text-sm text-red-700 dark:text-red-300">
-                {payLaterSummary.total_count} {payLaterSummary.total_count === 1 ? 'orden' : 'órdenes'} pendiente{payLaterSummary.total_count === 1 ? '' : 's'} de pago - {Currency(payLaterSummary.total_balance)}
+                {payLaterSummary.total_count} {payLaterSummary.total_count === 1 ? 'orden' : 'órdenes'} pendiente
+                {payLaterSummary.total_count === 1 ? '' : 's'} de pago - {Currency(payLaterSummary.total_balance)}
               </p>
             </div>
             <span className="text-xs text-red-600 dark:text-red-400">
@@ -751,6 +735,7 @@ export default function Orders() {
         columns={columns}
         isLoading={isLoading}
         enableSearch={true}
+        enableColumnResizing={true}
         searchPlaceholder={t('searchPlaceholder')}
         onSearch={handleSearch}
         tableId="orders:main"
@@ -794,9 +779,7 @@ export default function Orders() {
               </Badge>
               {tCommon('superadmin.edit.title')}
             </DialogTitle>
-            <DialogDescription>
-              {t('editDialog.description', { id: orderToEdit?.orderNumber || '' })}
-            </DialogDescription>
+            <DialogDescription>{t('editDialog.description', { id: orderToEdit?.orderNumber || '' })}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -840,10 +823,7 @@ export default function Orders() {
               {/* Type field */}
               <div className="space-y-2">
                 <Label htmlFor="edit-type">{t('columns.type')}</Label>
-                <Select
-                  value={editValues.type}
-                  onValueChange={(value: OrderTypeEnum) => setEditValues(prev => ({ ...prev, type: value }))}
-                >
+                <Select value={editValues.type} onValueChange={(value: OrderTypeEnum) => setEditValues(prev => ({ ...prev, type: value }))}>
                   <SelectTrigger className="border-amber-400/50 focus:border-amber-400 focus:ring-amber-400/20">
                     <SelectValue />
                   </SelectTrigger>

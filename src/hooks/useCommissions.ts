@@ -491,13 +491,13 @@ export function useAddAdjustment() {
 /**
  * Hook for fetching payouts
  */
-export function useCommissionPayouts(filters?: PayoutFilters) {
+export function useCommissionPayouts(filters?: PayoutFilters, options?: { enabled?: boolean }) {
 	const { venueId } = useCurrentVenue()
 
 	return useQuery({
 		queryKey: [...commissionKeys.payouts(venueId), filters],
 		queryFn: () => commissionService.getPayouts(venueId!, filters),
-		enabled: !!venueId,
+		enabled: !!venueId && (options?.enabled ?? true),
 		staleTime: 2 * 60 * 1000,
 		gcTime: 10 * 60 * 1000,
 	})

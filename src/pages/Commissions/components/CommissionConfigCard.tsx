@@ -238,7 +238,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 											className="h-8 w-8 cursor-pointer"
 											onClick={(e) => {
 												e.stopPropagation()
-												navigate(`/venues/${venueSlug}/commissions/config/${config.id}`)
+												navigate(`/venues/${venueSlug}/commissions/config/${config.id}?edit=true`)
 											}}
 										>
 											<Pencil className="h-4 w-4" />

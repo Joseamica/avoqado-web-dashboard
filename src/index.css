@@ -432,41 +432,42 @@ button:focus-visible {
       'Apple Color Emoji', 'Segoe UI Emoji';
     --font-sans: var(--font-geist);
     --font-mono: var(--font-geist-mono);
-    /* OKLCH neutrals for better contrast & layering */
+    /* OKLCH neutrals with subtle warmth (Stripe/Linear pattern) */
+    /* Hue 60 = warm beige undertone, tiny chroma for "alive" grays */
     --radius: 0.625rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --background: oklch(0.995 0.002 60);
+    --foreground: oklch(0.14 0.005 60);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.14 0.005 60);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.14 0.005 60);
+    --primary: oklch(0.18 0.005 60);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.965 0.003 60);
+    --secondary-foreground: oklch(0.18 0.005 60);
+    --muted: oklch(0.965 0.003 60);
+    --muted-foreground: oklch(0.45 0.005 60);
+    --accent: oklch(0.96 0.004 60);
+    --accent-foreground: oklch(0.18 0.005 60);
     --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --destructive-foreground: oklch(0.99 0 0);
+    --border: oklch(0.905 0.004 60);
+    --input: oklch(0.91 0.004 60);
+    --ring: oklch(0.65 0.01 60);
 
-    /* Surface layer for subtle depth */
-    --surface: oklch(0.98 0 0);
+    /* Surface layer for subtle depth (cards, panels) */
+    --surface: oklch(0.975 0.003 60);
     --surface-foreground: var(--foreground);
 
-    /* Sidebar tokens (keep existing names) */
-    --sidebar-background: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /* Sidebar tokens with warm undertone */
+    --sidebar-background: oklch(0.98 0.003 60);
+    --sidebar-foreground: oklch(0.14 0.005 60);
+    --sidebar-primary: oklch(0.18 0.005 60);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.96 0.004 60);
+    --sidebar-accent-foreground: oklch(0.18 0.005 60);
+    --sidebar-border: oklch(0.905 0.004 60);
+    --sidebar-ring: oklch(0.65 0.01 60);
 
     /* Default chart palette; swap via brand theme if desired */
     --chart-1: var(--color-blue-300);

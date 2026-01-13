@@ -98,7 +98,7 @@ function StatusPulse({ status }: { status: 'success' | 'warning' | 'error' | 'ne
     success: 'bg-green-500',
     warning: 'bg-yellow-500',
     error: 'bg-red-500',
-    neutral: 'bg-gray-400',
+    neutral: 'bg-muted-foreground',
   }
   return (
     <span className="relative flex h-2.5 w-2.5">

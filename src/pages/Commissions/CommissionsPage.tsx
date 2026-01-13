@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCommissionStats, useCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
+import { usePermissions } from '@/hooks/usePermissions'
 import CommissionKPICards from './components/CommissionKPICards'
 import StaffCommissionTable from './components/StaffCommissionTable'
 import CommissionConfigList from './components/CommissionConfigList'
@@ -21,7 +22,11 @@ export default function CommissionsPage() {
 	const { t } = useTranslation('commissions')
 	const location = useLocation()
 	const navigate = useNavigate()
+	const { can } = usePermissions()
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
+
+	// Check permissions
+	const canViewPayouts = can('commissions:payout')
 
 	// Get tab from URL hash, default to 'overview'
 	const getTabFromHash = (): TabValue => {
@@ -34,10 +39,16 @@ export default function CommissionsPage() {
 	// Sync tab with URL hash
 	useEffect(() => {
 		const tabFromHash = getTabFromHash()
+		// If user tries to access payouts tab without permission, redirect to overview
+		if (tabFromHash === 'payouts' && !canViewPayouts) {
+			setActiveTab('overview')
+			navigate(`${location.pathname}#overview`, { replace: true })
+			return
+		}
 		if (tabFromHash !== activeTab) {
 			setActiveTab(tabFromHash)
 		}
-	}, [location.hash])
+	}, [location.hash, canViewPayouts])
 
 	// Update URL hash when tab changes
 	const handleTabChange = (value: string) => {
@@ -50,7 +61,8 @@ export default function CommissionsPage() {
 	const { data: stats, isLoading: isLoadingStats } = useCommissionStats()
 	const { data: configs, isLoading: isLoadingConfigs } = useCommissionConfigs()
 	const { data: pendingSummaries, isLoading: isLoadingPending } = usePendingCommissionSummaries()
-	const { data: payouts, isLoading: isLoadingPayouts } = useCommissionPayouts()
+	// Only fetch payouts if user has permission
+	const { data: payouts, isLoading: isLoadingPayouts } = useCommissionPayouts(undefined, { enabled: canViewPayouts })
 
 	const pendingCount = pendingSummaries?.length || 0
 	const configCount = configs?.length || 0
@@ -105,12 +117,14 @@ export default function CommissionsPage() {
 							</span>
 						)}
 					</TabsTrigger>
-					<TabsTrigger
-						value="payouts"
-						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
-					>
-						<span>{t('tabs.payouts')}</span>
-					</TabsTrigger>
+					{canViewPayouts && (
+						<TabsTrigger
+							value="payouts"
+							className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+						>
+							<span>{t('tabs.payouts')}</span>
+						</TabsTrigger>
+					)}
 				</TabsList>
 
 				{/* Overview Tab */}
@@ -136,9 +150,11 @@ export default function CommissionsPage() {
 				</TabsContent>
 
 				{/* Payouts Tab */}
-				<TabsContent value="payouts" className="space-y-6">
-					<PayoutList payouts={payouts || []} isLoading={isLoadingPayouts} />
-				</TabsContent>
+				{canViewPayouts && (
+					<TabsContent value="payouts" className="space-y-6">
+						<PayoutList payouts={payouts || []} isLoading={isLoadingPayouts} />
+					</TabsContent>
+				)}
 			</Tabs>
 
 			{/* Create Config Dialog */}

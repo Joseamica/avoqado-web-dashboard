@@ -35,7 +35,7 @@ const GlassCard: React.FC<{
 
 // Status styles
 const statusStyles: Record<CommissionSummaryStatus, { bg: string; icon: React.ReactNode }> = {
-	DRAFT: { bg: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400', icon: <Settings2 className="h-3 w-3" /> },
+	DRAFT: { bg: 'bg-muted text-muted-foreground', icon: <Settings2 className="h-3 w-3" /> },
 	CALCULATED: { bg: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', icon: <TrendingUp className="h-3 w-3" /> },
 	PENDING_APPROVAL: { bg: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <Clock className="h-3 w-3" /> },
 	APPROVED: { bg: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle2 className="h-3 w-3" /> },

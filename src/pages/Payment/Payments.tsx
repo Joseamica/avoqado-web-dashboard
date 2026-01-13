@@ -17,14 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -440,7 +433,9 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">{last4 ? `**** ${last4}` : t('methods.card')}</span>
+                  <span className="hidden min-[1600px]:inline text-sm font-medium text-foreground">
+                    {last4 ? `**** ${last4}` : t('methods.card')}
+                  </span>
                 </>
               ) : (
                 <>
@@ -546,12 +541,15 @@ export default function Payments() {
                   return (
                     <div
                       className="flex flex-col space-y-1 items-center"
-                      title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(Math.abs(venueCharge))}`}
+                      title={`${t('types.refund')} | Provider: ${Currency(Math.abs(providerCost))} | Venue: ${Currency(
+                        Math.abs(venueCharge),
+                      )}`}
                     >
-                      <span className="text-xs font-semibold text-red-500 dark:text-red-400">
-                        −{(Math.abs(margin) * 100).toFixed(2)}%
-                      </span>
-                      <Badge variant="outline" className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <span className="text-xs font-semibold text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
+                      <Badge
+                        variant="outline"
+                        className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800"
+                      >
                         −{Currency(Math.abs(profit))}
                       </Badge>
                     </div>
@@ -613,7 +611,8 @@ export default function Payments() {
           return (
             <div className="flex flex-col">
               <span className={cn(isRefund && 'text-red-600 dark:text-red-400 font-semibold')}>
-                {isRefund && '−'}{Currency(Math.abs(Number(value) || 0))}
+                {isRefund && '−'}
+                {Currency(Math.abs(Number(value) || 0))}
               </span>
               {isRefund && (
                 <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 mt-0.5">
@@ -704,9 +703,7 @@ export default function Payments() {
           // Add profit column if superadmin - show negative for refunds
           if (isSuperAdmin && payment.transactionCost) {
             const profit = Number(payment.transactionCost.grossProfit) || 0
-            row[t('columns.profit')] = isRefund
-              ? `-${formatCurrencyForExport(Math.abs(profit))}`
-              : formatCurrencyForExport(profit)
+            row[t('columns.profit')] = isRefund ? `-${formatCurrencyForExport(Math.abs(profit))}` : formatCurrencyForExport(profit)
           }
 
           row[t('columns.total')] = formatCurrencyForExport((Number(payment.amount) || 0) + (Number(payment.tipAmount) || 0))
@@ -866,6 +863,7 @@ export default function Payments() {
         isLoading={isLoading}
         tableId="payments:main"
         enableSearch={false}
+        enableColumnResizing={true}
         clickableRow={row => ({
           to: row.id,
           state: { from: location.pathname },
@@ -911,9 +909,7 @@ export default function Payments() {
               </Badge>
               {tCommon('superadmin.edit.title')}
             </DialogTitle>
-            <DialogDescription>
-              {t('editDialog.description', { id: paymentToEdit?.id?.slice(-8) || '' })}
-            </DialogDescription>
+            <DialogDescription>{t('editDialog.description', { id: paymentToEdit?.id?.slice(-8) || '' })}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -987,7 +983,9 @@ export default function Payments() {
 
             {/* Total preview */}
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-pink-500/10 rounded-lg border border-amber-400/30">
-              <span className="text-sm font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">{t('columns.total')}</span>
+              <span className="text-sm font-medium bg-gradient-to-r from-amber-500 to-pink-500 bg-clip-text text-transparent">
+                {t('columns.total')}
+              </span>
               <span className="text-lg font-semibold">{Currency(editValues.amount + editValues.tipAmount)}</span>
             </div>
           </div>

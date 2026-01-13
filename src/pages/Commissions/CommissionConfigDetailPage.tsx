@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
 	ArrowLeft,
@@ -79,6 +79,7 @@ const recipientIcons: Record<CommissionRecipient, React.ReactNode> = {
 export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
+	const [searchParams, setSearchParams] = useSearchParams()
 	const { venueSlug } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
@@ -87,6 +88,16 @@ export default function CommissionConfigDetailPage() {
 
 	const [showEditDialog, setShowEditDialog] = useState(false)
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+	// Open edit dialog if ?edit=true is in the URL
+	useEffect(() => {
+		if (searchParams.get('edit') === 'true') {
+			setShowEditDialog(true)
+			// Clean up the URL
+			searchParams.delete('edit')
+			setSearchParams(searchParams, { replace: true })
+		}
+	}, [searchParams, setSearchParams])
 
 	// Fetch data
 	const { data: config, isLoading: isLoadingConfig } = useCommissionConfig(configId!)
