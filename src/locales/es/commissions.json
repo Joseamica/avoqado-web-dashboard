@@ -3,9 +3,39 @@
 	"subtitle": "Gestiona las comisiones de tu equipo",
 	"tabs": {
 		"overview": "Resumen",
+		"ranking": "Ranking",
 		"config": "Configuración",
 		"approvals": "Aprobaciones",
 		"payouts": "Pagos"
+	},
+	"ranking": {
+		"title": "Ranking de Comisiones",
+		"description": "Acumulado de comisiones por empleado",
+		"total": "Total",
+		"empty": "Sin datos de ranking",
+		"emptyDescription": "Las comisiones aparecerán aquí cuando se generen resúmenes",
+		"emptyPeriod": "Sin datos en este período",
+		"emptyPeriodDescription": "No hay comisiones registradas para el período seleccionado",
+		"staffCount": "empleados",
+		"filterPeriod": "Período",
+		"filterOptions": {
+			"week": "Esta semana",
+			"biweek": "Esta quincena",
+			"month": "Este mes",
+			"quarter": "Este trimestre",
+			"all": "Todo el histórico"
+		},
+		"columns": {
+			"thisWeek": "Esta Semana",
+			"lastWeek": "Semana Pasada",
+			"thisBiweek": "Esta Quincena",
+			"lastBiweek": "Quincena Pasada",
+			"thisMonth": "Este Mes",
+			"lastMonth": "Mes Pasado",
+			"thisQuarter": "Este Trimestre",
+			"lastQuarter": "Trimestre Pasado",
+			"total": "Total Histórico"
+		}
 	},
 	"stats": {
 		"totalEarned": "Total Ganado",

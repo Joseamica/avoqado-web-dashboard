@@ -3,9 +3,39 @@
 	"subtitle": "Manage your team's commissions",
 	"tabs": {
 		"overview": "Overview",
+		"ranking": "Ranking",
 		"config": "Configuration",
 		"approvals": "Approvals",
 		"payouts": "Payouts"
+	},
+	"ranking": {
+		"title": "Commission Ranking",
+		"description": "Accumulated commissions per staff member",
+		"total": "Total",
+		"empty": "No ranking data",
+		"emptyDescription": "Commissions will appear here when summaries are generated",
+		"emptyPeriod": "No data in this period",
+		"emptyPeriodDescription": "No commissions recorded for the selected period",
+		"staffCount": "staff",
+		"filterPeriod": "Period",
+		"filterOptions": {
+			"week": "This week",
+			"biweek": "This fortnight",
+			"month": "This month",
+			"quarter": "This quarter",
+			"all": "All time"
+		},
+		"columns": {
+			"thisWeek": "This Week",
+			"lastWeek": "Last Week",
+			"thisBiweek": "This Fortnight",
+			"lastBiweek": "Last Fortnight",
+			"thisMonth": "This Month",
+			"lastMonth": "Last Month",
+			"thisQuarter": "This Quarter",
+			"lastQuarter": "Last Quarter",
+			"total": "All Time Total"
+		}
 	},
 	"stats": {
 		"totalEarned": "Total Earned",

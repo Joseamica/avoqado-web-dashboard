@@ -13,8 +13,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3. **Create new documentation** if implementing a new significant feature
 4. **Update references in CLAUDE.md** if you create new docs
 5. **Cross-repo features** → Update `avoqado-server/docs/` (central hub)
+6. **New pages/functionality** → Add to Feature Registry (`src/config/feature-registry.ts`)
 
 **This is NOT optional.** Documentation debt causes confusion and bugs.
+
+### Feature Registry Rule
+
+When creating a **new page or major functionality** that could be used in white-label dashboards:
+
+```typescript
+// src/config/feature-registry.ts
+AVOQADO_NEW_FEATURE: {
+  code: 'AVOQADO_NEW_FEATURE',
+  name: 'Nombre del Feature',
+  description: 'Descripción breve',
+  category: 'sales' | 'analytics' | 'inventory' | 'team' | 'custom',
+  source: 'avoqado_core',  // or 'module_specific' for vertical-specific features
+  component: { path: '@/pages/NewFeature/NewFeaturePage' },
+  routes: [{ path: 'new-feature', element: 'NewFeaturePage' }],
+  configSchema: { /* JSON Schema for configuration options */ },
+  defaultNavItem: { label: 'New Feature', icon: 'IconName' },
+}
+```
+
+**When to add to Feature Registry:**
+- ✅ New page in `src/pages/` that represents a business feature
+- ✅ Functionality that venues might want to enable/disable
+- ❌ Internal/system pages (Auth, Onboarding, Superadmin)
+- ❌ Settings or configuration pages
+
+**See:** [White-Label Dashboard docs](docs/features/WHITE_LABEL_DASHBOARD.md) for full feature list.
 
 ```
 ✅ DO: Implement feature → Update docs → Commit both together
@@ -907,6 +935,7 @@ const { staffInfo } = useAuth()
 ## Feature Documentation
 
 **Major features:**
+- [White-Label Dashboard](docs/features/WHITE_LABEL_DASHBOARD.md) - Custom branded dashboards for enterprise clients (visual builder, feature registry)
 - [Inventory Management](docs/features/inventory.md) - FIFO stock tracking UI, recipes, pricing
 - [Internationalization (i18n)](docs/features/i18n.md) - Translation system with JSON namespaces
 - [Theme System](docs/features/theme.md) - Light/dark mode with semantic colors

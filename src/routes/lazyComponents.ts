@@ -37,7 +37,7 @@ export const MenuId = lazyWithRetry(() => import('@/pages/Menu/Menus/menuId'))
 export const Reviews = lazyWithRetry(() => import('@/pages/Review/Reviews'))
 // export const Waiters = lazyWithRetry(() => import('@/pages/Waiter/Waiters'))
 export const Teams = lazyWithRetry(() => import('@/pages/Team/Teams'))
-export const TeamMemberDetails = lazyWithRetry(() => import('@/pages/Team/TeamMemberDetails'))
+export const TeamId = lazyWithRetry(() => import('@/pages/Team/TeamId'))
 export const VenueEditLayout = lazyWithRetry(() => import('@/pages/Venue/VenueEditLayout'))
 export const BasicInfo = lazyWithRetry(() => import('@/pages/Venue/Edit/BasicInfo'))
 export const ContactImages = lazyWithRetry(() => import('@/pages/Venue/Edit/ContactImages'))
@@ -160,3 +160,11 @@ export const PlayTelecomManagers = lazyWithRetry(() => import('@/pages/playtelec
 export const PlayTelecomPromoters = lazyWithRetry(() => import('@/pages/playtelecom/Promoters/PromotersAudit'))
 export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/Users/UsersManagement'))
 export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))
+
+// White-Label Dashboard
+export const WhiteLabelDashboardLayout = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelDashboardLayout'))
+export const WhiteLabelIndex = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelIndex'))
+export const WhiteLabelFeatureRouter = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelFeatureRouter'))
+
+// White-Label Builder (Superadmin)
+export const WhiteLabelWizard = lazyWithRetry(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))

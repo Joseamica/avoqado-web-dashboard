@@ -1,0 +1,515 @@
+/**
+ * WhiteLabelWizard - Visual builder for white-label dashboards
+ *
+ * 4-step wizard for Superadmin to configure white-label dashboards
+ * without writing JSON. Uses form-based UI.
+ */
+
+import { useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Palette,
+  Puzzle,
+  Settings,
+  Eye,
+} from 'lucide-react'
+import type {
+  WhiteLabelConfig,
+  WhiteLabelTheme,
+  EnabledFeature,
+  NavigationItem,
+  FeatureInstanceConfig,
+  WizardStep,
+  PresetName,
+} from '@/types/white-label'
+import { DEFAULT_WHITE_LABEL_CONFIG } from '@/types/white-label'
+import { WHITE_LABEL_PRESETS, getPreset } from '@/config/white-label-presets'
+import { FEATURE_REGISTRY } from '@/config/feature-registry'
+import { slugify } from '@/hooks/useWhiteLabelConfig'
+
+import Step1Setup from './steps/Step1Setup'
+import Step2Features from './steps/Step2Features'
+import Step3Configuration from './steps/Step3Configuration'
+import Step4Preview from './steps/Step4Preview'
+
+// ============================================
+// Types
+// ============================================
+
+export interface WizardState {
+  venueId: string
+  venueName: string
+  preset: PresetName | null
+  theme: WhiteLabelTheme
+  enabledFeatures: EnabledFeature[]
+  featureConfigs: Record<string, FeatureInstanceConfig>
+  navigation: NavigationItem[]
+}
+
+interface WhiteLabelWizardProps {
+  onComplete: (config: WhiteLabelConfig) => void
+  onCancel: () => void
+  initialVenueId?: string
+  initialVenueName?: string
+}
+
+// ============================================
+// Steps Configuration
+// ============================================
+
+const STEPS: { id: WizardStep; icon: React.ElementType; labelKey: string }[] = [
+  { id: 'setup', icon: Palette, labelKey: 'whiteLabelWizard.steps.setup' },
+  { id: 'features', icon: Puzzle, labelKey: 'whiteLabelWizard.steps.features' },
+  { id: 'configuration', icon: Settings, labelKey: 'whiteLabelWizard.steps.configuration' },
+  { id: 'preview', icon: Eye, labelKey: 'whiteLabelWizard.steps.preview' },
+]
+
+// ============================================
+// Component
+// ============================================
+
+export default function WhiteLabelWizard({
+  onComplete,
+  onCancel,
+  initialVenueId = '',
+  initialVenueName = '',
+}: WhiteLabelWizardProps) {
+  const { t } = useTranslation('superadmin')
+
+  // Current step
+  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const currentStep = STEPS[currentStepIndex]
+
+  // Wizard state
+  const [state, setState] = useState<WizardState>({
+    venueId: initialVenueId,
+    venueName: initialVenueName,
+    preset: null,
+    theme: {
+      primaryColor: '#000000',
+      brandName: initialVenueName || 'Dashboard',
+    },
+    enabledFeatures: [],
+    featureConfigs: {},
+    navigation: [],
+  })
+
+  // Loading state for final submission
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Validation errors
+  const [errors, setErrors] = useState<Record<WizardStep, string[]>>({
+    setup: [],
+    features: [],
+    configuration: [],
+    preview: [],
+  })
+
+  // ============================================
+  // State Update Handlers
+  // ============================================
+
+  const updateState = useCallback((updates: Partial<WizardState>) => {
+    setState(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  const handlePresetChange = useCallback((presetName: PresetName) => {
+    const preset = getPreset(presetName)
+    const enabledFeatures = preset.enabledFeatures
+    const featureConfigs: Record<string, FeatureInstanceConfig> = {}
+
+    // Build feature configs from preset
+    enabledFeatures.forEach(ef => {
+      const presetConfig = preset.featureConfigs?.[ef.code]
+      const registryDef = FEATURE_REGISTRY[ef.code]
+
+      // Get defaults from registry schema
+      const defaultConfig: Record<string, unknown> = {}
+      if (registryDef?.configSchema?.properties) {
+        Object.entries(registryDef.configSchema.properties).forEach(([key, prop]) => {
+          if (prop.default !== undefined) {
+            defaultConfig[key] = prop.default
+          }
+        })
+      }
+
+      featureConfigs[ef.code] = {
+        enabled: true,
+        config: {
+          ...defaultConfig,
+          ...(presetConfig?.config || {}),
+        },
+      }
+    })
+
+    // Generate navigation items
+    const navigation = generateNavigationFromFeatures(enabledFeatures)
+
+    setState(prev => ({
+      ...prev,
+      preset: presetName,
+      theme: {
+        ...prev.theme,
+        primaryColor: preset.theme.primaryColor || prev.theme.primaryColor,
+        brandName: preset.theme.brandName || prev.theme.brandName,
+      },
+      enabledFeatures,
+      featureConfigs,
+      navigation,
+    }))
+  }, [])
+
+  const handleFeaturesChange = useCallback((features: EnabledFeature[]) => {
+    setState(prev => {
+      // Update feature configs - add new features, keep existing configs
+      const newConfigs = { ...prev.featureConfigs }
+
+      features.forEach(ef => {
+        if (!newConfigs[ef.code]) {
+          const registryDef = FEATURE_REGISTRY[ef.code]
+          const defaultConfig: Record<string, unknown> = {}
+
+          if (registryDef?.configSchema?.properties) {
+            Object.entries(registryDef.configSchema.properties).forEach(([key, prop]) => {
+              if (prop.default !== undefined) {
+                defaultConfig[key] = prop.default
+              }
+            })
+          }
+
+          newConfigs[ef.code] = {
+            enabled: true,
+            config: defaultConfig,
+          }
+        }
+      })
+
+      // Remove configs for disabled features
+      Object.keys(newConfigs).forEach(code => {
+        if (!features.some(f => f.code === code)) {
+          delete newConfigs[code]
+        }
+      })
+
+      // Regenerate navigation
+      const navigation = generateNavigationFromFeatures(features)
+
+      return {
+        ...prev,
+        enabledFeatures: features,
+        featureConfigs: newConfigs,
+        navigation,
+      }
+    })
+  }, [])
+
+  const handleFeatureConfigChange = useCallback(
+    (featureCode: string, config: Record<string, unknown>) => {
+      setState(prev => ({
+        ...prev,
+        featureConfigs: {
+          ...prev.featureConfigs,
+          [featureCode]: {
+            ...prev.featureConfigs[featureCode],
+            config,
+          },
+        },
+      }))
+    },
+    []
+  )
+
+  const handleNavigationChange = useCallback((items: NavigationItem[]) => {
+    setState(prev => ({
+      ...prev,
+      navigation: items,
+    }))
+  }, [])
+
+  // ============================================
+  // Navigation
+  // ============================================
+
+  const validateCurrentStep = useCallback((): boolean => {
+    const stepErrors: string[] = []
+
+    switch (currentStep.id) {
+      case 'setup':
+        if (!state.venueId) {
+          stepErrors.push(t('whiteLabelWizard.errors.venueRequired'))
+        }
+        if (!state.theme.brandName) {
+          stepErrors.push(t('whiteLabelWizard.errors.brandNameRequired'))
+        }
+        break
+
+      case 'features':
+        if (state.enabledFeatures.length === 0) {
+          stepErrors.push(t('whiteLabelWizard.errors.featuresRequired'))
+        }
+        break
+
+      case 'configuration':
+        // Configuration is optional, no required validation
+        break
+
+      case 'preview':
+        // Preview is final step, just validate we have navigation
+        if (state.navigation.length === 0) {
+          stepErrors.push(t('whiteLabelWizard.errors.navigationRequired'))
+        }
+        break
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [currentStep.id]: stepErrors,
+    }))
+
+    return stepErrors.length === 0
+  }, [currentStep.id, state, t])
+
+  const goToNextStep = useCallback(() => {
+    if (!validateCurrentStep()) return
+
+    if (currentStepIndex < STEPS.length - 1) {
+      setCurrentStepIndex(prev => prev + 1)
+    }
+  }, [currentStepIndex, validateCurrentStep])
+
+  const goToPreviousStep = useCallback(() => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1)
+    }
+  }, [currentStepIndex])
+
+  const goToStep = useCallback(
+    (index: number) => {
+      // Only allow going to previous steps or current step
+      if (index <= currentStepIndex) {
+        setCurrentStepIndex(index)
+      }
+    },
+    [currentStepIndex]
+  )
+
+  // ============================================
+  // Final Submission
+  // ============================================
+
+  const buildFinalConfig = useCallback((): WhiteLabelConfig => {
+    return {
+      version: '1.0',
+      theme: state.theme,
+      enabledFeatures: state.enabledFeatures,
+      navigation: {
+        layout: 'sidebar',
+        items: state.navigation,
+      },
+      featureConfigs: state.featureConfigs,
+    }
+  }, [state])
+
+  const handleComplete = useCallback(async () => {
+    if (!validateCurrentStep()) return
+
+    setIsSubmitting(true)
+    try {
+      const config = buildFinalConfig()
+      await onComplete(config)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [buildFinalConfig, onComplete, validateCurrentStep])
+
+  // ============================================
+  // Step Completion Status
+  // ============================================
+
+  const isStepComplete = useMemo(() => {
+    return {
+      setup: !!state.venueId && !!state.theme.brandName,
+      features: state.enabledFeatures.length > 0,
+      configuration: true, // Optional step
+      preview: state.navigation.length > 0,
+    }
+  }, [state])
+
+  // ============================================
+  // Render
+  // ============================================
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Step Indicator */}
+      <div className="px-6 py-4 border-b">
+        <nav className="flex items-center justify-center">
+          <ol className="flex items-center space-x-2 sm:space-x-4">
+            {STEPS.map((step, index) => {
+              const Icon = step.icon
+              const isActive = index === currentStepIndex
+              const isCompleted = index < currentStepIndex || isStepComplete[step.id]
+              const isClickable = index <= currentStepIndex
+
+              return (
+                <li key={step.id} className="flex items-center">
+                  {index > 0 && (
+                    <div
+                      className={cn(
+                        'w-8 sm:w-12 h-0.5 mx-1 sm:mx-2',
+                        index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
+                      )}
+                    />
+                  )}
+                  <button
+                    onClick={() => goToStep(index)}
+                    disabled={!isClickable}
+                    className={cn(
+                      'flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors',
+                      isActive && 'bg-primary/10 text-primary',
+                      !isActive && isCompleted && 'text-primary',
+                      !isActive && !isCompleted && 'text-muted-foreground',
+                      isClickable && 'cursor-pointer hover:bg-muted',
+                      !isClickable && 'cursor-not-allowed'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-8 h-8 rounded-full',
+                        isActive && 'bg-primary text-primary-foreground',
+                        !isActive && isCompleted && 'bg-primary/20 text-primary',
+                        !isActive && !isCompleted && 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {isCompleted && !isActive ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Icon className="w-4 h-4" />
+                      )}
+                    </div>
+                    <span className="hidden sm:inline text-sm font-medium">
+                      {t(step.labelKey)}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+      </div>
+
+      {/* Step Content */}
+      <div className="flex-1 overflow-auto p-6">
+        {currentStep.id === 'setup' && (
+          <Step1Setup
+            venueId={state.venueId}
+            venueName={state.venueName}
+            preset={state.preset}
+            theme={state.theme}
+            onVenueChange={(id, name) => updateState({ venueId: id, venueName: name })}
+            onPresetChange={handlePresetChange}
+            onThemeChange={theme => updateState({ theme })}
+            errors={errors.setup}
+          />
+        )}
+
+        {currentStep.id === 'features' && (
+          <Step2Features
+            enabledFeatures={state.enabledFeatures}
+            preset={state.preset}
+            onFeaturesChange={handleFeaturesChange}
+            errors={errors.features}
+          />
+        )}
+
+        {currentStep.id === 'configuration' && (
+          <Step3Configuration
+            enabledFeatures={state.enabledFeatures}
+            featureConfigs={state.featureConfigs}
+            onConfigChange={handleFeatureConfigChange}
+            errors={errors.configuration}
+          />
+        )}
+
+        {currentStep.id === 'preview' && (
+          <Step4Preview
+            state={state}
+            onNavigationChange={handleNavigationChange}
+            errors={errors.preview}
+          />
+        )}
+      </div>
+
+      {/* Footer Navigation */}
+      <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
+        <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          {t('common.cancel')}
+        </Button>
+
+        <div className="flex items-center gap-2">
+          {currentStepIndex > 0 && (
+            <Button
+              variant="outline"
+              onClick={goToPreviousStep}
+              disabled={isSubmitting}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              {t('whiteLabelWizard.back')}
+            </Button>
+          )}
+
+          {currentStepIndex < STEPS.length - 1 ? (
+            <Button onClick={goToNextStep} disabled={isSubmitting}>
+              {t('whiteLabelWizard.next')}
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleComplete}
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('whiteLabelWizard.saving')}
+                </>
+              ) : (
+                t('whiteLabelWizard.saveAndEnable')
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// Helpers
+// ============================================
+
+function generateNavigationFromFeatures(features: EnabledFeature[]): NavigationItem[] {
+  return features
+    .map((feature, index) => {
+      const def = FEATURE_REGISTRY[feature.code]
+      if (!def) return null
+
+      const navItem: NavigationItem = {
+        id: `nav-${feature.code}`,
+        type: 'feature',
+        featureCode: feature.code,
+        label: def.defaultNavItem.label,
+        icon: def.defaultNavItem.icon,
+        order: index,
+      }
+      return navItem
+    })
+    .filter((item): item is NavigationItem => item !== null)
+}

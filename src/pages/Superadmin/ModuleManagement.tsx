@@ -19,6 +19,7 @@ import {
   Eye,
   MoreHorizontal,
   Package,
+  Palette,
   Pencil,
   Plus,
   Power,
@@ -26,8 +27,11 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { Suspense, lazy, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+// Lazy load WhiteLabelWizard to avoid loading it for all users
+const WhiteLabelWizard = lazy(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
 
 const ModuleManagement: React.FC = () => {
   const { t } = useTranslation('superadmin')
@@ -53,6 +57,9 @@ const ModuleManagement: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [moduleToEdit, setModuleToEdit] = useState<Module | null>(null)
   const [moduleToDelete, setModuleToDelete] = useState<Module | null>(null)
+
+  // White-Label Wizard state
+  const [isWhiteLabelWizardOpen, setIsWhiteLabelWizardOpen] = useState(false)
 
   // Form state for create/edit
   const [formData, setFormData] = useState<{
@@ -363,6 +370,12 @@ const ModuleManagement: React.FC = () => {
               <Pencil className="mr-2 h-4 w-4" />
               {t('moduleMgmt.dropdown.editModule')}
             </DropdownMenuItem>
+            {row.original.code === 'WHITE_LABEL_DASHBOARD' && (
+              <DropdownMenuItem onClick={() => setIsWhiteLabelWizardOpen(true)}>
+                <Palette className="mr-2 h-4 w-4" />
+                {t('moduleMgmt.dropdown.configureWhiteLabel')}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => handleOpenDeleteDialog(row.original)}
@@ -800,6 +813,21 @@ const ModuleManagement: React.FC = () => {
               {deleteMutation.isPending ? t('common.deleting') : t('moduleMgmt.deleteDialog.confirm')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* White-Label Wizard Dialog */}
+      <Dialog open={isWhiteLabelWizardOpen} onOpenChange={setIsWhiteLabelWizardOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>}>
+            <WhiteLabelWizard
+              onComplete={() => {
+                setIsWhiteLabelWizardOpen(false)
+                queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+              }}
+              onCancel={() => setIsWhiteLabelWizardOpen(false)}
+            />
+          </Suspense>
         </DialogContent>
       </Dialog>
     </div>

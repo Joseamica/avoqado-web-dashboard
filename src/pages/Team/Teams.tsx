@@ -119,11 +119,16 @@ export default function Teams() {
 
   // Remove team member mutation
   const removeTeamMemberMutation = useMutation({
-    mutationFn: (memberId: string) => teamService.removeTeamMember(venueId, memberId),
-    onSuccess: () => {
+    mutationFn: (member: TeamMember) => teamService.removeTeamMember(venueId, member.id),
+    onMutate: member => ({ member }),
+    onSuccess: (_data, _member, context) => {
+      const removedMember = context?.member
       toast({
         title: t('toasts.memberRemovedTitle'),
-        description: t('toasts.memberRemovedDesc'),
+        description: t('toasts.memberRemovedDesc', {
+          firstName: removedMember?.firstName || '',
+          lastName: removedMember?.lastName || '',
+        }),
       })
       queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
       setRemovingMember(null)
@@ -538,7 +543,7 @@ export default function Teams() {
             <AlertDialogFooter>
               <AlertDialogCancel>{t('dialogs.removeCancel')}</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => removeTeamMemberMutation.mutate(removingMember.id)}
+                onClick={() => removeTeamMemberMutation.mutate(removingMember)}
                 disabled={removeTeamMemberMutation.isPending}
                 className="bg-red-600 hover:bg-red-700"
               >

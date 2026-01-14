@@ -21,7 +21,7 @@
     "lastName": "Your last name",
     "password": "Enter your password",
     "confirmPassword": "Confirm your password",
-    "pin": "4 digits for quick access"
+    "pin": "4-10 digits for quick access"
   },
   "pinHelp": "The PIN will allow you to quickly access from POS terminals",
   "nameEditNote": "Your name can be edited later in your account settings.",
@@ -36,7 +36,7 @@
     "lastNameRequired": "Last name is required",
     "lastNameMax": "Last name must be at most 50 characters",
     "passwordMin": "Password must be at least 8 characters",
-    "pinFormat": "PIN must be exactly 4 digits",
+    "pinFormat": "PIN must be 4-10 digits",
     "passwordMatch": "Passwords do not match"
   },
   "errors": {

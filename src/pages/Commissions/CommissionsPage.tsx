@@ -9,13 +9,14 @@ import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { useCommissionStats, useCommissionConfigs, usePendingCommissionSummaries, useCommissionPayouts } from '@/hooks/useCommissions'
 import { usePermissions } from '@/hooks/usePermissions'
 import CommissionKPICards from './components/CommissionKPICards'
-import StaffCommissionTable from './components/StaffCommissionTable'
+import TeamCommissionTable from './components/TeamCommissionTable'
+import TeamCommissionRanking from './components/TeamCommissionRanking'
 import CommissionConfigList from './components/CommissionConfigList'
 import SummaryApprovalList from './components/SummaryApprovalList'
 import PayoutList from './components/PayoutList'
 import CreateConfigDialog from './components/CreateConfigDialog'
 
-const VALID_TABS = ['overview', 'config', 'approvals', 'payouts'] as const
+const VALID_TABS = ['overview', 'ranking', 'config', 'approvals', 'payouts'] as const
 type TabValue = typeof VALID_TABS[number]
 
 export default function CommissionsPage() {
@@ -96,6 +97,12 @@ export default function CommissionsPage() {
 						<span>{t('tabs.overview')}</span>
 					</TabsTrigger>
 					<TabsTrigger
+						value="ranking"
+						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+					>
+						<span>{t('tabs.ranking')}</span>
+					</TabsTrigger>
+					<TabsTrigger
 						value="config"
 						className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
 					>
@@ -130,7 +137,12 @@ export default function CommissionsPage() {
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
 					<CommissionKPICards stats={stats} isLoading={isLoadingStats} />
-					<StaffCommissionTable />
+					<TeamCommissionTable />
+				</TabsContent>
+
+				{/* Ranking Tab */}
+				<TabsContent value="ranking" className="space-y-6">
+					<TeamCommissionRanking />
 				</TabsContent>
 
 				{/* Configuration Tab */}

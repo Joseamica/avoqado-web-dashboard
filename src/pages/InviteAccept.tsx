@@ -30,7 +30,7 @@ const createAcceptInvitationSchema = (t: any) =>
       confirmPassword: z.string(),
       pin: z
         .string()
-        .regex(/^\d{4}$/, t('validation.pinFormat'))
+        .regex(/^\d{4,10}$/, t('validation.pinFormat'))
         .optional()
         .or(z.literal('')),
     })
@@ -501,7 +501,7 @@ export default function InviteAccept() {
             {/* PIN Field */}
             <div className="space-y-2">
               <Label htmlFor="pin">{t('labels.pin')}</Label>
-              <Input id="pin" type="text" placeholder={t('placeholders.pin')} maxLength={4} {...register('pin')} />
+              <Input id="pin" type="text" placeholder={t('placeholders.pin')} maxLength={10} {...register('pin')} />
               {errors.pin && <p className="text-sm text-red-600">{errors.pin.message}</p>}
               <p className="text-xs text-muted-foreground">{t('pinHelp')}</p>
             </div>

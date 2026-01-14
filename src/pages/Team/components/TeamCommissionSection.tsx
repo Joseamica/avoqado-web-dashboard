@@ -43,11 +43,11 @@ const statusStyles: Record<CommissionSummaryStatus, { bg: string; icon: React.Re
 	PAID: { bg: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', icon: <DollarSign className="h-3 w-3" /> },
 }
 
-interface StaffCommissionSectionProps {
+interface TeamCommissionSectionProps {
 	staffId: string
 }
 
-export default function StaffCommissionSection({ staffId }: StaffCommissionSectionProps) {
+export default function TeamCommissionSection({ staffId }: TeamCommissionSectionProps) {
 	const { t, i18n } = useTranslation('commissions')
 
 	// Fetch staff commissions (includes calculations, summaries, stats, and tierProgress)

@@ -21,7 +21,7 @@
     "lastName": "Tu apellido",
     "password": "Ingresa tu contraseña",
     "confirmPassword": "Confirma tu contraseña",
-    "pin": "4 dígitos para acceso rápido"
+    "pin": "4-10 dígitos para acceso rápido"
   },
   "pinHelp": "El PIN te permitirá acceder rápidamente desde terminales POS",
   "nameEditNote": "Tu nombre y apellido podrán ser editados luego en la configuración de tu cuenta.",
@@ -36,7 +36,7 @@
     "lastNameRequired": "El apellido es requerido",
     "lastNameMax": "El apellido debe tener como máximo 50 caracteres",
     "passwordMin": "La contraseña debe tener al menos 8 caracteres",
-    "pinFormat": "El PIN debe tener exactamente 4 dígitos",
+    "pinFormat": "El PIN debe tener entre 4 y 10 dígitos",
     "passwordMatch": "Las contraseñas no coinciden"
   },
   "errors": {

@@ -3196,7 +3196,8 @@
     "dropdown": {
       "viewVenues": "View Venues",
       "editModule": "Edit Module",
-      "deleteModule": "Delete Module"
+      "deleteModule": "Delete Module",
+      "configureWhiteLabel": "Configure Dashboard"
     },
     "venueColumns": {
       "venue": "Venue",
@@ -3278,6 +3279,102 @@
       "deleteFailed": "Failed to Delete Module",
       "jsonError": "JSON Error",
       "jsonErrorDesc": "Configuration or presets contain invalid JSON"
+    }
+  },
+  "whiteLabelWizard": {
+    "steps": {
+      "setup": "Setup",
+      "features": "Features",
+      "configuration": "Configuration",
+      "preview": "Preview"
+    },
+    "errors": {
+      "venueRequired": "Please select a venue",
+      "brandNameRequired": "Please enter a brand name",
+      "featuresRequired": "Please select at least one feature",
+      "navigationRequired": "No navigation items configured"
+    },
+    "back": "Back",
+    "next": "Next",
+    "saving": "Saving...",
+    "saveAndEnable": "Save & Enable",
+    "setup": {
+      "venueTitle": "Select Venue",
+      "venueDescription": "Choose the venue that will use this white-label dashboard",
+      "selectVenue": "Venue",
+      "venuePlaceholder": "Select a venue...",
+      "noVenues": "No venues available",
+      "selectedVenue": "Selected Venue",
+      "presetTitle": "Choose a Preset",
+      "presetDescription": "Start with a pre-configured template or build from scratch",
+      "brandingTitle": "Branding",
+      "brandingDescription": "Customize the look and feel of the dashboard",
+      "brandName": "Brand Name",
+      "brandNamePlaceholder": "Enter brand name",
+      "brandNameHelp": "This name will be displayed in the dashboard header",
+      "primaryColor": "Primary Color",
+      "logo": "Logo",
+      "logoUploadHint": "Drag and drop your logo here, or click to browse",
+      "uploadLogo": "Upload Logo",
+      "logoComingSoon": "Logo upload coming soon",
+      "quickPreview": "Quick Preview",
+      "previewHint": "This is a preview of how the header will look"
+    },
+    "features": {
+      "title": "Select Features",
+      "description": "Choose which features to enable for this dashboard",
+      "moduleSpecific": "Module",
+      "selected": "selected",
+      "tabs": {
+        "all": "All",
+        "moduleSpecific": "Module Specific"
+      },
+      "avoqadoCoreDesc": "Core features powered by Avoqado that can be enabled for any venue",
+      "moduleSpecificTitle": "Module Specific",
+      "moduleSpecificDesc": "Specialized features for specific industry verticals",
+      "noFeaturesInCategory": "No features available in this category",
+      "fromPreset": "From preset"
+    },
+    "configuration": {
+      "title": "Configure Features",
+      "description": "Customize settings for each enabled feature",
+      "noFeatures": "No features to configure",
+      "goBack": "Go back and select features first",
+      "noConfigOptions": "This feature has no configuration options",
+      "summary": "Configuration Summary",
+      "settings": "settings",
+      "arrayNotSupported": "Array configuration is not yet supported in the visual builder",
+      "unsupportedType": "Unsupported field type: {{type}}",
+      "enums": {
+        "weekly": "Weekly",
+        "biweekly": "Biweekly",
+        "monthly": "Monthly",
+        "sidebar": "Sidebar",
+        "topnav": "Top Navigation"
+      }
+    },
+    "preview": {
+      "title": "Preview & Finalize",
+      "description": "Review your configuration and reorder navigation items",
+      "navigation": "Navigation",
+      "navigationHelp": "Use the arrows to reorder navigation items",
+      "noNavItems": "No navigation items",
+      "visualPreview": "Visual Preview",
+      "contentPlaceholder": "Content",
+      "configSummary": "Configuration Summary",
+      "configSummaryDesc": "Review the final configuration before saving",
+      "branding": "Branding",
+      "brandName": "Brand Name",
+      "primaryColor": "Primary Color",
+      "logo": "Logo",
+      "logoSet": "Set",
+      "noLogo": "Not set",
+      "features": "Features",
+      "noFeatures": "No features selected",
+      "configuration": "Configuration",
+      "totalFeatures": "Total Features",
+      "navItems": "Navigation Items",
+      "venue": "Venue"
     }
   }
 }

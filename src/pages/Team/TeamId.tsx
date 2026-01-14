@@ -30,10 +30,10 @@ import { getIntlLocale } from '@/utils/i18n-locale'
 import { useVenueDateTime } from '@/utils/datetime'
 
 import EditTeamMemberForm from './components/EditTeamMemberForm'
-import StaffCommissionSection from './components/StaffCommissionSection'
+import TeamCommissionSection from './components/TeamCommissionSection'
 import { PermissionGate } from '@/components/PermissionGate'
 
-export default function TeamMemberDetails() {
+export default function TeamId() {
   const { venueId } = useCurrentVenue()
   const { memberId } = useParams<{ memberId: string }>()
   const navigate = useNavigate()
@@ -75,7 +75,10 @@ export default function TeamMemberDetails() {
     onSuccess: () => {
       toast({
         title: t('toasts.memberRemovedTitle'),
-        description: t('toasts.memberRemovedDesc'),
+        description: t('toasts.memberRemovedDesc', {
+          firstName: memberDetails?.firstName || '',
+          lastName: memberDetails?.lastName || '',
+        }),
       })
       navigate(-1)
     },
@@ -172,18 +175,22 @@ export default function TeamMemberDetails() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {canEdit && (
-            <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
-              <Edit3 className="h-4 w-4 mr-2" />
-              {t('actions.edit')}
-            </Button>
-          )}
-          {canRemove && (
-            <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-destructive hover:text-destructive/80">
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t('actions.delete')}
-            </Button>
-          )}
+          <PermissionGate permission="teams:update">
+            {canEdit && (
+              <Button id="member-edit-button" variant="outline" onClick={() => setShowEditDialog(true)}>
+                <Edit3 className="h-4 w-4 mr-2" />
+                {t('actions.edit')}
+              </Button>
+            )}
+          </PermissionGate>
+          <PermissionGate permission="teams:delete">
+            {canRemove && (
+              <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-destructive hover:text-destructive/80">
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('actions.delete')}
+              </Button>
+            )}
+          </PermissionGate>
         </div>
       </div>
 
@@ -364,7 +371,7 @@ export default function TeamMemberDetails() {
 
           {/* Commissions Section */}
           <PermissionGate permission="commissions:read">
-            <StaffCommissionSection staffId={memberDetails.staffId} />
+            <TeamCommissionSection staffId={memberDetails.staffId} />
           </PermissionGate>
         </div>
       </div>

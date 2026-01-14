@@ -2786,7 +2786,8 @@
     "dropdown": {
       "viewVenues": "Ver Sucursales",
       "editModule": "Editar Módulo",
-      "deleteModule": "Eliminar Módulo"
+      "deleteModule": "Eliminar Módulo",
+      "configureWhiteLabel": "Configurar Dashboard"
     },
     "venueColumns": {
       "venue": "Sucursal",
@@ -2868,6 +2869,102 @@
       "deleteFailed": "Error al Eliminar Módulo",
       "jsonError": "Error de JSON",
       "jsonErrorDesc": "La configuración o presets contienen JSON inválido"
+    }
+  },
+  "whiteLabelWizard": {
+    "steps": {
+      "setup": "Configuración",
+      "features": "Funcionalidades",
+      "configuration": "Ajustes",
+      "preview": "Vista Previa"
+    },
+    "errors": {
+      "venueRequired": "Por favor selecciona una sucursal",
+      "brandNameRequired": "Por favor ingresa un nombre de marca",
+      "featuresRequired": "Por favor selecciona al menos una funcionalidad",
+      "navigationRequired": "No hay elementos de navegación configurados"
+    },
+    "back": "Atrás",
+    "next": "Siguiente",
+    "saving": "Guardando...",
+    "saveAndEnable": "Guardar y Activar",
+    "setup": {
+      "venueTitle": "Seleccionar Sucursal",
+      "venueDescription": "Elige la sucursal que usará este dashboard personalizado",
+      "selectVenue": "Sucursal",
+      "venuePlaceholder": "Selecciona una sucursal...",
+      "noVenues": "No hay sucursales disponibles",
+      "selectedVenue": "Sucursal Seleccionada",
+      "presetTitle": "Elegir un Preset",
+      "presetDescription": "Comienza con una plantilla preconfigurada o construye desde cero",
+      "brandingTitle": "Marca",
+      "brandingDescription": "Personaliza el aspecto del dashboard",
+      "brandName": "Nombre de Marca",
+      "brandNamePlaceholder": "Ingresa el nombre de marca",
+      "brandNameHelp": "Este nombre se mostrará en el encabezado del dashboard",
+      "primaryColor": "Color Principal",
+      "logo": "Logo",
+      "logoUploadHint": "Arrastra y suelta tu logo aquí, o haz clic para buscar",
+      "uploadLogo": "Subir Logo",
+      "logoComingSoon": "Subida de logo próximamente",
+      "quickPreview": "Vista Previa Rápida",
+      "previewHint": "Así es como se verá el encabezado"
+    },
+    "features": {
+      "title": "Seleccionar Funcionalidades",
+      "description": "Elige qué funcionalidades habilitar para este dashboard",
+      "moduleSpecific": "Módulo",
+      "selected": "seleccionadas",
+      "tabs": {
+        "all": "Todas",
+        "moduleSpecific": "Específicas del Módulo"
+      },
+      "avoqadoCoreDesc": "Funcionalidades principales de Avoqado que pueden habilitarse para cualquier sucursal",
+      "moduleSpecificTitle": "Específicas del Módulo",
+      "moduleSpecificDesc": "Funcionalidades especializadas para verticales específicas de la industria",
+      "noFeaturesInCategory": "No hay funcionalidades disponibles en esta categoría",
+      "fromPreset": "Del preset"
+    },
+    "configuration": {
+      "title": "Configurar Funcionalidades",
+      "description": "Personaliza los ajustes de cada funcionalidad habilitada",
+      "noFeatures": "No hay funcionalidades para configurar",
+      "goBack": "Regresa y selecciona funcionalidades primero",
+      "noConfigOptions": "Esta funcionalidad no tiene opciones de configuración",
+      "summary": "Resumen de Configuración",
+      "settings": "ajustes",
+      "arrayNotSupported": "La configuración de arrays aún no está soportada en el constructor visual",
+      "unsupportedType": "Tipo de campo no soportado: {{type}}",
+      "enums": {
+        "weekly": "Semanal",
+        "biweekly": "Quincenal",
+        "monthly": "Mensual",
+        "sidebar": "Barra Lateral",
+        "topnav": "Navegación Superior"
+      }
+    },
+    "preview": {
+      "title": "Vista Previa y Finalizar",
+      "description": "Revisa tu configuración y reordena los elementos de navegación",
+      "navigation": "Navegación",
+      "navigationHelp": "Usa las flechas para reordenar los elementos de navegación",
+      "noNavItems": "Sin elementos de navegación",
+      "visualPreview": "Vista Previa Visual",
+      "contentPlaceholder": "Contenido",
+      "configSummary": "Resumen de Configuración",
+      "configSummaryDesc": "Revisa la configuración final antes de guardar",
+      "branding": "Marca",
+      "brandName": "Nombre de Marca",
+      "primaryColor": "Color Principal",
+      "logo": "Logo",
+      "logoSet": "Configurado",
+      "noLogo": "No configurado",
+      "features": "Funcionalidades",
+      "noFeatures": "Sin funcionalidades seleccionadas",
+      "configuration": "Configuración",
+      "totalFeatures": "Total de Funcionalidades",
+      "navItems": "Elementos de Navegación",
+      "venue": "Sucursal"
     }
   }
 }

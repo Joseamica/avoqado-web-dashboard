@@ -93,7 +93,7 @@ import {
   SuperAdminVenueEdit,
   SuperadminVenueManagement,
   SystemSettings,
-  TeamMemberDetails,
+  TeamId,
   Teams,
   Terms,
   TestingPayments,
@@ -129,6 +129,10 @@ import {
   PlayTelecomPromoters,
   PlayTelecomUsers,
   PlayTelecomTpvConfig,
+  // White-Label Dashboard
+  WhiteLabelDashboardLayout,
+  WhiteLabelIndex,
+  WhiteLabelFeatureRouter,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -676,6 +680,24 @@ const router = createBrowserRouter(
                   ],
                 },
 
+                // White-Label Dashboard (requires WHITE_LABEL_DASHBOARD module)
+                // This section provides a customizable dashboard for enterprise clients
+                {
+                  path: 'wl',
+                  element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
+                  children: [
+                    {
+                      element: <WhiteLabelDashboardLayout />,
+                      children: [
+                        // Index - Landing page or redirect to first feature
+                        { index: true, element: <WhiteLabelIndex /> },
+                        // Feature router - Dynamic feature loading based on URL
+                        { path: ':featureSlug/*', element: <WhiteLabelFeatureRouter /> },
+                      ],
+                    },
+                  ],
+                },
+
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {
                   element: <PermissionProtectedRoute permission="settlements:read" />,
@@ -743,11 +765,11 @@ const router = createBrowserRouter(
 
                 // Team Management (requires teams:read permission)
                 {
-                  path: 'teams',
+                  path: 'team',
                   element: <PermissionProtectedRoute permission="teams:read" />,
                   children: [
                     { index: true, element: <Teams /> },
-                    { path: ':memberId', element: <TeamMemberDetails /> },
+                    { path: ':memberId', element: <TeamId /> },
                   ],
                 },
 
