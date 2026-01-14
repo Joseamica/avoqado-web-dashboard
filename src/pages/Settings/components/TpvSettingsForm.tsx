@@ -16,6 +16,7 @@ import {
   ChevronRight,
   LogIn,
   Tablet,
+  Store,
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -28,7 +29,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { tpvSettingsService, TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
+import { getVenueMerchantAccountsByVenueId, type MerchantAccount } from '@/services/paymentProvider.service'
 
 interface TpvSettingsFormProps {
   tpvId: string
@@ -41,6 +44,7 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { can } = usePermissions()
+  const { venueId } = useCurrentVenue()
 
   const canUpdate = can('tpv-settings:update')
 
@@ -53,6 +57,13 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
     queryKey: ['tpvSettings', tpvId],
     queryFn: () => tpvSettingsService.getSettings(tpvId),
     enabled: !!tpvId,
+  })
+
+  // Fetch merchant accounts for kiosk merchant dropdown (only when kiosk enabled and we have venueId)
+  const { data: merchantAccounts = [] } = useQuery({
+    queryKey: ['venueMerchantAccounts', venueId],
+    queryFn: () => getVenueMerchantAccountsByVenueId(venueId!),
+    enabled: !!venueId && settings?.kioskModeEnabled,
   })
 
   // Update mutation with optimistic updates
@@ -105,6 +116,12 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
     if (!canUpdate) return
     const tipValue = value === 'none' ? null : parseInt(value, 10)
     updateMutation.mutate({ defaultTipPercentage: tipValue })
+  }
+
+  const handleKioskMerchantChange = (value: string) => {
+    if (!canUpdate) return
+    const merchantId = value === 'none' ? null : value
+    updateMutation.mutate({ kioskDefaultMerchantId: merchantId })
   }
 
   if (isLoading) {
@@ -374,6 +391,34 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                 checked={settings.kioskModeEnabled}
                 onCheckedChange={checked => handleToggle('kioskModeEnabled', checked)}
               />
+              {settings.kioskModeEnabled && (
+                <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <Store className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <Label className="text-sm font-medium">{t('tpvSettings.kioskDefaultMerchant')}</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">{t('tpvSettings.kioskDefaultMerchantDesc')}</p>
+                    </div>
+                  </div>
+                  <Select
+                    value={settings.kioskDefaultMerchantId ?? 'none'}
+                    onValueChange={handleKioskMerchantChange}
+                    disabled={!canUpdate || updateMutation.isPending || merchantAccounts.length === 0}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder={t('tpvSettings.selectMerchant')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t('tpvSettings.showMerchantSelection')}</SelectItem>
+                      {merchantAccounts.map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.displayName || account.alias || account.externalMerchantId}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </CollapsibleContent>
         </GlassCard>

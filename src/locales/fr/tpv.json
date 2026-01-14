@@ -311,6 +311,19 @@
     "requireClockOutPhoto": "Photo au départ",
     "requireClockOutPhotoDesc": "Exiger un selfie avec localisation GPS lors du pointage de départ",
     "requireClockInToLogin": "Exiger pointage pour connexion",
-    "requireClockInToLoginDesc": "Le personnel doit avoir un pointage actif pour accéder au système"
+    "requireClockInToLoginDesc": "Le personnel doit avoir un pointage actif pour accéder au système",
+    "kioskSection": "Mode Kiosque",
+    "kioskSectionDesc": "Configuration du mode libre-service",
+    "kioskModeEnabled": "Activer le Mode Kiosque",
+    "kioskModeEnabledDesc": "Permet à ce terminal d'entrer en mode libre-service pour les clients",
+    "kioskDefaultMerchant": "Commerçant par défaut",
+    "kioskDefaultMerchantDesc": "Sélectionnez un commerçant pour ignorer l'écran de sélection en mode kiosque",
+    "selectMerchant": "Sélectionner un commerçant",
+    "showMerchantSelection": "Afficher la sélection",
+    "paymentSection": "Expérience de Paiement",
+    "paymentSectionDesc": "Configurez le flux de paiement et les options de reçu",
+    "securitySection": "Sécurité et Vérification",
+    "securitySectionDesc": "Contrôle d'accès et validation des ventes",
+    "attendanceSectionDesc": "Configuration de la pointeuse"
   }
 }

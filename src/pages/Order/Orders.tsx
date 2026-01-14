@@ -707,11 +707,15 @@ export default function Orders() {
 
   // Filter columns based on visibility settings
   const filteredColumns = useMemo(() => {
+    // Columns that should always be visible (not customizable)
+    const alwaysVisibleColumns = ['ai', 'actions']
     return columns.filter(col => {
       // Get column id (either from 'id' or 'accessorKey')
       const colId = col.id || (col as any).accessorKey
-      // Always show columns without id (like AI, actions) or columns in visibleColumns
+      // Always show columns without id
       if (!colId) return true
+      // Always show AI and superadmin actions columns (they have their own visibility logic)
+      if (alwaysVisibleColumns.includes(colId)) return true
       return visibleColumns.includes(colId)
     })
   }, [columns, visibleColumns])

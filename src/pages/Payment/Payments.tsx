@@ -818,11 +818,14 @@ export default function Payments() {
 
   // Filter columns based on visibility settings
   const filteredColumns = useMemo(() => {
+    // Columns that should always be visible (not customizable)
+    const alwaysVisibleColumns = ['ai', 'actions', 'avoqadoProfit']
     return columns.filter(col => {
       // Get column id (either from 'id' or 'accessorKey')
       const colId = col.id || (col as any).accessorKey
-      // Always show columns without id (like AI, actions) or columns in visibleColumns
+      // Always show columns without id or special columns (AI, superadmin)
       if (!colId) return true
+      if (alwaysVisibleColumns.includes(colId)) return true
       return visibleColumns.includes(colId)
     })
   }, [columns, visibleColumns])

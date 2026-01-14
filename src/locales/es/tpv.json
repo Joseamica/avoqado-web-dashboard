@@ -317,7 +317,16 @@
     "kioskSection": "Modo Kiosk",
     "kioskSectionDesc": "Configuración del modo autoservicio",
     "kioskModeEnabled": "Habilitar Modo Kiosk",
-    "kioskModeEnabledDesc": "Permite que este terminal entre en modo autoservicio para clientes"
+    "kioskModeEnabledDesc": "Permite que este terminal entre en modo autoservicio para clientes",
+    "kioskDefaultMerchant": "Comercio predeterminado",
+    "kioskDefaultMerchantDesc": "Selecciona un comercio para omitir la pantalla de selección en modo kiosk",
+    "selectMerchant": "Seleccionar comercio",
+    "showMerchantSelection": "Mostrar selección",
+    "paymentSection": "Experiencia de Pago",
+    "paymentSectionDesc": "Configura el flujo de cobro y opciones de recibo",
+    "securitySection": "Seguridad y Verificación",
+    "securitySectionDesc": "Control de acceso y validación de ventas",
+    "attendanceSectionDesc": "Configuración del reloj checador"
   },
   "activation": {
     "title": "Activar Terminal",

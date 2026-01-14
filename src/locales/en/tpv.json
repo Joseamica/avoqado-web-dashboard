@@ -318,7 +318,16 @@
     "kioskSection": "Kiosk Mode",
     "kioskSectionDesc": "Self-service mode configuration",
     "kioskModeEnabled": "Enable Kiosk Mode",
-    "kioskModeEnabledDesc": "Allows this terminal to enter self-service mode for customers"
+    "kioskModeEnabledDesc": "Allows this terminal to enter self-service mode for customers",
+    "kioskDefaultMerchant": "Default merchant",
+    "kioskDefaultMerchantDesc": "Select a merchant to skip the selection screen in kiosk mode",
+    "selectMerchant": "Select merchant",
+    "showMerchantSelection": "Show selection",
+    "paymentSection": "Payment Experience",
+    "paymentSectionDesc": "Configure payment flow and receipt options",
+    "securitySection": "Security & Verification",
+    "securitySectionDesc": "Access control and sales validation",
+    "attendanceSectionDesc": "Time clock configuration"
   },
   "activation": {
     "title": "Activate Terminal",

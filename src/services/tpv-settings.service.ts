@@ -20,6 +20,7 @@ export interface TpvSettings {
   requireClockInToLogin: boolean // Require active clock-in to log into TPV
   // Kiosk Mode
   kioskModeEnabled: boolean      // Allow terminal to enter self-service kiosk mode
+  kioskDefaultMerchantId: string | null  // Pre-selected merchant for kiosk payments (skip merchant selection)
 }
 
 /**
@@ -41,6 +42,7 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   requireClockInToLogin: false,
   // Kiosk Mode disabled by default
   kioskModeEnabled: false,
+  kioskDefaultMerchantId: null,
 }
 
 /**
