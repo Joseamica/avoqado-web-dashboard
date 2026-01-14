@@ -51,6 +51,15 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
 export type TpvSettingsUpdate = Partial<TpvSettings>
 
 /**
+ * Merchant account assigned to a terminal
+ */
+export interface TerminalMerchant {
+  id: string
+  displayName: string
+  active: boolean
+}
+
+/**
  * Service for managing TPV (Terminal Point of Sale) settings
  * These settings control the payment flow screens on individual Android terminals
  * Each terminal can have its own configuration
@@ -74,6 +83,16 @@ export const tpvSettingsService = {
   async updateSettings(tpvId: string, settings: TpvSettingsUpdate): Promise<TpvSettings> {
     const response = await api.put(`/api/v1/dashboard/tpv/${tpvId}/settings`, settings)
     return response.data
+  },
+
+  /**
+   * Get merchants assigned to a specific terminal
+   * Used for kiosk default merchant dropdown
+   * @permission tpv-settings:read (MANAGER+)
+   */
+  async getTerminalMerchants(tpvId: string): Promise<TerminalMerchant[]> {
+    const response = await api.get(`/api/v1/dashboard/tpv/${tpvId}/merchants`)
+    return response.data.data || []
   },
 }
 

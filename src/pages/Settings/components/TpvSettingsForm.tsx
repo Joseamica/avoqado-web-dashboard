@@ -29,9 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
-import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { tpvSettingsService, TpvSettings, TpvSettingsUpdate } from '@/services/tpv-settings.service'
-import { getVenueMerchantAccountsByVenueId, type MerchantAccount } from '@/services/paymentProvider.service'
 
 interface TpvSettingsFormProps {
   tpvId: string
@@ -44,7 +42,6 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { can } = usePermissions()
-  const { venueId } = useCurrentVenue()
 
   const canUpdate = can('tpv-settings:update')
 
@@ -59,11 +56,11 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
     enabled: !!tpvId,
   })
 
-  // Fetch merchant accounts for kiosk merchant dropdown (only when kiosk enabled and we have venueId)
-  const { data: merchantAccounts = [] } = useQuery({
-    queryKey: ['venueMerchantAccounts', venueId],
-    queryFn: () => getVenueMerchantAccountsByVenueId(venueId!),
-    enabled: !!venueId && settings?.kioskModeEnabled,
+  // Fetch merchants assigned to this terminal for kiosk dropdown (only when kiosk enabled)
+  const { data: terminalMerchants = [] } = useQuery({
+    queryKey: ['terminalMerchants', tpvId],
+    queryFn: () => tpvSettingsService.getTerminalMerchants(tpvId),
+    enabled: !!tpvId && settings?.kioskModeEnabled,
   })
 
   // Update mutation with optimistic updates
@@ -403,16 +400,16 @@ export function TpvSettingsForm({ tpvId, compact = false }: TpvSettingsFormProps
                   <Select
                     value={settings.kioskDefaultMerchantId ?? 'none'}
                     onValueChange={handleKioskMerchantChange}
-                    disabled={!canUpdate || updateMutation.isPending || merchantAccounts.length === 0}
+                    disabled={!canUpdate || updateMutation.isPending || terminalMerchants.length === 0}
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder={t('tpvSettings.selectMerchant')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">{t('tpvSettings.showMerchantSelection')}</SelectItem>
-                      {merchantAccounts.map(account => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.displayName || account.alias || account.externalMerchantId}
+                      {terminalMerchants.map(merchant => (
+                        <SelectItem key={merchant.id} value={merchant.id}>
+                          {merchant.displayName}
                         </SelectItem>
                       ))}
                     </SelectContent>

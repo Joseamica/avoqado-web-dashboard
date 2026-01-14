@@ -588,6 +588,7 @@ export interface Venue {
 
   // Features & Settings
   features: VenueFeature[]
+  modules?: VenueModule[] // Module-based access control (e.g., SERIALIZED_INVENTORY)
   settings?: VenueSettings | null
 
   // Otros campos que necesites...
@@ -668,6 +669,40 @@ export interface VenueFeature {
   stripeSubscriptionItemId?: string | null
   stripePriceId?: string | null
   trialEndDate?: string | null
+}
+
+// Modelo de Module (módulos configurables por venue)
+export interface Module {
+  id: string
+  code: string
+  name: string
+  description: string | null
+
+  configSchema?: Record<string, unknown> // JSON Schema for config validation
+  defaultConfig: Record<string, unknown>
+  presets?: Record<string, unknown> // Industry-specific presets (telecom, jewelry, etc.)
+
+  active: boolean
+
+  venues?: VenueModule[]
+}
+
+// Relación entre Venue y Module
+export interface VenueModule {
+  id: string
+  venueId: string
+  venue?: Venue
+  moduleId: string
+  module: Module
+
+  enabled: boolean
+  config?: Record<string, unknown> // Module-specific configuration
+
+  enabledBy: string // Staff ID who enabled
+  enabledAt: string
+
+  createdAt: string
+  updatedAt: string
 }
 
 // ANTERIOR: No existía o era parcial

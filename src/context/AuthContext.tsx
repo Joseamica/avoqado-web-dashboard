@@ -34,7 +34,8 @@ interface AuthContextType {
   switchVenue: (newVenueSlug: string) => Promise<void> // Para cambiar de venue por slug
   authorizeVenue: (venueSlug: string) => boolean
   checkVenueAccess: (venueSlug: string) => boolean
-  checkFeatureAccess: (featureCode: string) => boolean
+  checkFeatureAccess: (featureCode: string) => boolean // VenueFeature (billing)
+  checkModuleAccess: (moduleCode: string) => boolean // VenueModule (configurable modules like SERIALIZED_INVENTORY)
   getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
   allVenues: Venue[]
   staffInfo: any | null
@@ -543,16 +544,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 
   // --- FUNCIÓN 'checkFeatureAccess' ---
+  // Checks VenueFeature (billing features like ADVANCED_ANALYTICS, MULTI_LOCATION)
   const checkFeatureAccess = useCallback(
     (featureCode: string): boolean => {
       if (!activeVenue?.features) {
-        return false // Si no hay 'features' en el venue activo, no hay acceso
+        return false
       }
-      // La estructura es un array de { feature: { code: string }, active: boolean }
       const feature = activeVenue.features.find(f => f.feature.code === featureCode)
-      return feature?.active ?? false // Devuelve true solo si la feature existe Y está activa
+      return feature?.active ?? false
     },
-    [activeVenue],
+    [activeVenue?.features],
+  )
+
+  // --- FUNCIÓN 'checkModuleAccess' ---
+  // Checks VenueModule (configurable modules like SERIALIZED_INVENTORY)
+  const checkModuleAccess = useCallback(
+    (moduleCode: string): boolean => {
+      if (!activeVenue?.modules) {
+        return false
+      }
+      const module = activeVenue.modules.find(m => m.module.code === moduleCode)
+      return module?.enabled ?? false
+    },
+    [activeVenue?.modules],
   )
 
   // Show loading screen with retry info
@@ -591,11 +605,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     activeVenue,
     isLoading:
-      isStatusLoading ||
-      isLiveDemoInitializing ||
-      loginMutation.isPending ||
-      signupMutation.isPending ||
-      switchVenueMutation.isPending,
+      isStatusLoading || isLiveDemoInitializing || loginMutation.isPending || signupMutation.isPending || switchVenueMutation.isPending,
     login: loginMutation.mutate,
     signup: async (data: SignupData) => {
       await signupMutation.mutateAsync(data)
@@ -607,6 +617,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkVenueAccess,
     authorizeVenue,
     checkFeatureAccess,
+    checkModuleAccess,
     getVenueBySlug,
     allVenues,
     staffInfo: { ...user, role: userRole },

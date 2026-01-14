@@ -119,6 +119,16 @@ import {
   SerializedSalesDemo,
   CommissionsPage,
   CommissionConfigDetailPage,
+  // PlayTelecom (Serialized Inventory Dashboard)
+  PlayTelecomLayout,
+  PlayTelecomCommandCenter,
+  PlayTelecomStock,
+  PlayTelecomSales,
+  PlayTelecomStores,
+  PlayTelecomManagers,
+  PlayTelecomPromoters,
+  PlayTelecomUsers,
+  PlayTelecomTpvConfig,
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -134,6 +144,7 @@ import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
+import { ModuleProtectedRoute } from './ModuleProtectedRoute'
 
 const router = createBrowserRouter(
   [
@@ -589,6 +600,81 @@ const router = createBrowserRouter(
                 // Demo: Serialized Inventory Sales (hidden route - temporary)
                 // Access via /venues/:slug/serialized-sales-demo
                 { path: 'serialized-sales-demo', element: <SerializedSalesDemo /> },
+
+                // PlayTelecom Dashboard (requires SERIALIZED_INVENTORY module)
+                // This section provides a custom dashboard for venues selling serialized products (SIMs, etc.)
+                {
+                  path: 'playtelecom',
+                  element: <ModuleProtectedRoute requiredModule="SERIALIZED_INVENTORY" />,
+                  children: [
+                    {
+                      element: <PlayTelecomLayout />,
+                      children: [
+                        // Command Center - Dashboard principal (todos los roles)
+                        { index: true, element: <PlayTelecomCommandCenter /> },
+                        // Stock Control - Inventario serializado (todos los roles, lectura)
+                        { path: 'stock', element: <PlayTelecomStock /> },
+                        // Sales Report - Reporte de ventas (todos los roles)
+                        { path: 'sales', element: <PlayTelecomSales /> },
+                        // Stores Analysis - Solo MANAGER+ (tiendas asignadas)
+                        {
+                          path: 'stores',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomStores /> }],
+                        },
+                        // Promoters Audit - Solo MANAGER+ (promotores asignados)
+                        {
+                          path: 'promoters',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomPromoters /> }],
+                        },
+                        // Managers Dashboard - Solo ADMIN+ (supervisión gerentes)
+                        {
+                          path: 'managers',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomManagers /> }],
+                        },
+                        // Users Management - Solo ADMIN+ (gestión usuarios)
+                        {
+                          path: 'users',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomUsers /> }],
+                        },
+                        // TPV Configuration - Solo ADMIN+ (categorías TPV)
+                        {
+                          path: 'tpv-config',
+                          element: (
+                            <ModuleProtectedRoute
+                              requiredModule="SERIALIZED_INVENTORY"
+                              allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                            />
+                          ),
+                          children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
+                        },
+                      ],
+                    },
+                  ],
+                },
 
                 // Available Balance (requires settlements:read permission + KYC verification)
                 {

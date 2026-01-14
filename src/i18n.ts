@@ -117,6 +117,8 @@ import reportsEn from '@/locales/en/reports.json'
 import reportsEs from '@/locales/es/reports.json'
 import commissionsEn from '@/locales/en/commissions.json'
 import commissionsEs from '@/locales/es/commissions.json'
+import playtelecomEn from '@/locales/en/playtelecom.json'
+import playtelecomEs from '@/locales/es/playtelecom.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -533,6 +535,14 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'commissions', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', playtelecomEn],
+    ['es', playtelecomEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'playtelecom', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

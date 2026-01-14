@@ -8,6 +8,7 @@
   DollarSign,
   FlaskConical,
   Home,
+  LayoutDashboard,
   Package,
   Receipt,
   Settings2,
@@ -34,9 +35,11 @@ import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '@/hooks/usePermissions'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
-  const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
+  const { allVenues, activeVenue, staffInfo, checkFeatureAccess, checkModuleAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
   const { can } = usePermissions()
 
@@ -46,7 +49,129 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   // Check if venue can access operational features (KYC verification)
   const hasKYCAccess = React.useMemo(() => canAccessOperationalFeatures(activeVenue), [activeVenue])
 
+  // Check if PlayTelecom module is enabled for this venue
+  const hasPlayTelecomModule = checkModuleAccess('SERIALIZED_INVENTORY')
+
+  // Dashboard mode switch state with localStorage persistence (per-venue)
+  const storageKey = `playtelecom-dashboard-${activeVenue?.id || 'default'}`
+  const [isPlayTelecomMode, setIsPlayTelecomMode] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const stored = localStorage.getItem(storageKey)
+    return stored === 'true'
+  })
+
+  // Sync with localStorage when value changes
+  React.useEffect(() => {
+    if (activeVenue?.id) {
+      localStorage.setItem(storageKey, String(isPlayTelecomMode))
+    }
+  }, [isPlayTelecomMode, storageKey, activeVenue?.id])
+
+  // Reset mode when switching venues or when module is not available
+  React.useEffect(() => {
+    if (!hasPlayTelecomModule && isPlayTelecomMode) {
+      setIsPlayTelecomMode(false)
+    }
+  }, [hasPlayTelecomModule, isPlayTelecomMode])
+
   const navMain = React.useMemo(() => {
+    // ========== PlayTelecom Mode: Show only PlayTelecom dashboard items ==========
+    if (isPlayTelecomMode && hasPlayTelecomModule) {
+      const playtelecomItems = [
+        {
+          title: t('sidebar:playtelecom.commandCenter', { defaultValue: 'Centro de Comando' }),
+          url: 'playtelecom',
+          icon: LayoutDashboard,
+          isActive: true,
+          locked: false,
+        },
+        {
+          title: t('sidebar:playtelecom.stock', { defaultValue: 'Inventario' }),
+          url: 'playtelecom/stock',
+          icon: Package,
+          isActive: true,
+          locked: false,
+        },
+        {
+          title: t('sidebar:playtelecom.sales', { defaultValue: 'Ventas' }),
+          url: 'playtelecom/sales',
+          icon: Receipt,
+          isActive: true,
+          locked: false,
+        },
+        // MANAGER+ only pages
+        ...(['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [
+              {
+                title: t('sidebar:playtelecom.stores', { defaultValue: 'Tiendas' }),
+                url: 'playtelecom/stores',
+                icon: Store,
+                isActive: true,
+                locked: false,
+              },
+              {
+                title: t('sidebar:playtelecom.promoters', { defaultValue: 'Promotores' }),
+                url: 'playtelecom/promoters',
+                icon: Users,
+                isActive: true,
+                locked: false,
+              },
+            ]
+          : []),
+        // ADMIN+ only pages
+        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [
+              {
+                title: t('sidebar:playtelecom.managers', { defaultValue: 'Gerentes' }),
+                url: 'playtelecom/managers',
+                icon: Shield,
+                isActive: true,
+                locked: false,
+              },
+              {
+                title: t('sidebar:playtelecom.users', { defaultValue: 'Usuarios' }),
+                url: 'playtelecom/users',
+                icon: Users,
+                isActive: true,
+                locked: false,
+              },
+              {
+                title: t('sidebar:playtelecom.tpvConfig', { defaultValue: 'Config TPV' }),
+                url: 'playtelecom/tpv-config',
+                icon: Settings2,
+                isActive: true,
+                locked: false,
+              },
+            ]
+          : []),
+      ]
+
+      // Add Settings for PlayTelecom mode (always need access to venue settings)
+      const settingsSubItems = [
+        { title: t('sidebar:routes.editvenue'), url: 'edit', permission: 'venues:read' },
+        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [{ title: t('sidebar:rolePermissions'), url: 'settings/role-permissions', permission: null }]
+          : []),
+        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [{ title: t('sidebar:routes.billing'), url: 'settings/billing', permission: 'billing:read' }]
+          : []),
+      ].filter(item => !item.permission || can(item.permission))
+
+      if (settingsSubItems.length > 0) {
+        playtelecomItems.push({
+          title: t('sidebar:routes.settings'),
+          url: '#',
+          icon: Settings2,
+          locked: false,
+          items: settingsSubItems,
+          isActive: true,
+        } as any)
+      }
+
+      return playtelecomItems
+    }
+
+    // ========== Normal Avoqado Dashboard Mode ==========
     // Define all possible items with their required permissions and features
     const allItems = [
       { title: t('sidebar:routes.home'), isActive: true, url: 'home', icon: Home, permission: 'home:read', locked: false },
@@ -246,6 +371,72 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       } as any)
     }
 
+    // PlayTelecom Module Section - Only show if SERIALIZED_INVENTORY module is enabled
+    // This provides a custom dashboard for venues with serialized inventory (SIMs, etc.)
+    if (checkModuleAccess('SERIALIZED_INVENTORY')) {
+      const playtelecomSubItems = [
+        {
+          title: t('sidebar:playtelecom.commandCenter', { defaultValue: 'Centro de Comando' }),
+          url: 'playtelecom',
+        },
+        {
+          title: t('sidebar:playtelecom.stock', { defaultValue: 'Inventario' }),
+          url: 'playtelecom/stock',
+        },
+        {
+          title: t('sidebar:playtelecom.sales', { defaultValue: 'Ventas' }),
+          url: 'playtelecom/sales',
+        },
+        // MANAGER+ only pages
+        ...(['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [
+              {
+                title: t('sidebar:playtelecom.stores', { defaultValue: 'Tiendas' }),
+                url: 'playtelecom/stores',
+              },
+            ]
+          : []),
+        // MANAGER+ only - Promoters
+        ...(['MANAGER', 'ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [
+              {
+                title: t('sidebar:playtelecom.promoters', { defaultValue: 'Promotores' }),
+                url: 'playtelecom/promoters',
+              },
+            ]
+          : []),
+        // ADMIN+ only pages
+        ...(['ADMIN', 'OWNER', 'SUPERADMIN'].includes(effectiveRole)
+          ? [
+              {
+                title: t('sidebar:playtelecom.managers', { defaultValue: 'Gerentes' }),
+                url: 'playtelecom/managers',
+              },
+              {
+                title: t('sidebar:playtelecom.users', { defaultValue: 'Usuarios' }),
+                url: 'playtelecom/users',
+              },
+              {
+                title: t('sidebar:playtelecom.tpvConfig', { defaultValue: 'Config TPV' }),
+                url: 'playtelecom/tpv-config',
+              },
+            ]
+          : []),
+      ]
+
+      // Find index after Reports menu to insert PlayTelecom section
+      const reportsIndex = filteredItems.findIndex(item => item.url === '#reports')
+      const playtelecomInsertIndex = reportsIndex !== -1 ? reportsIndex + 1 : filteredItems.length
+      filteredItems.splice(playtelecomInsertIndex, 0, {
+        title: t('sidebar:playtelecom.title', { defaultValue: 'PlayTelecom' }),
+        url: '#playtelecom',
+        icon: LayoutDashboard,
+        locked: !hasKYCAccess,
+        items: playtelecomSubItems,
+        permission: null as any,
+      } as any)
+    }
+
     // Settings submenu - filter subitems based on permissions
     // NOTE: Superadmin-specific items (payment-config, ecommerce-merchants) moved to separate Superadmin dropdown
     const settingsSubItems = [
@@ -293,7 +484,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     return filteredItems
-  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, activeVenue])
+  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, checkModuleAccess, activeVenue])
 
   const superAdminRoutes = React.useMemo(
     () => [

@@ -149,3 +149,14 @@ export const SerializedSalesDemo = lazyWithRetry(() => import('@/pages/Serialize
 // Commissions
 export const CommissionsPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionsPage'))
 export const CommissionConfigDetailPage = lazyWithRetry(() => import('@/pages/Commissions/CommissionConfigDetailPage'))
+
+// PlayTelecom (Serialized Inventory Dashboard)
+export const PlayTelecomLayout = lazyWithRetry(() => import('@/pages/playtelecom/PlayTelecomLayout'))
+export const PlayTelecomCommandCenter = lazyWithRetry(() => import('@/pages/playtelecom/CommandCenter/CommandCenter'))
+export const PlayTelecomStock = lazyWithRetry(() => import('@/pages/playtelecom/Stock/StockControl'))
+export const PlayTelecomSales = lazyWithRetry(() => import('@/pages/playtelecom/Sales/SalesReport'))
+export const PlayTelecomStores = lazyWithRetry(() => import('@/pages/playtelecom/Stores/StoresAnalysis'))
+export const PlayTelecomManagers = lazyWithRetry(() => import('@/pages/playtelecom/Managers/ManagersDashboard'))
+export const PlayTelecomPromoters = lazyWithRetry(() => import('@/pages/playtelecom/Promoters/PromotersAudit'))
+export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/Users/UsersManagement'))
+export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))

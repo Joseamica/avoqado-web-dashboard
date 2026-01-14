@@ -43,6 +43,17 @@
   "modules": "Modules",
   "system": "System Status",
   "webhooks": "Webhooks",
+  "playtelecom": {
+    "title": "PlayTelecom",
+    "commandCenter": "Command Center",
+    "stock": "Inventory",
+    "sales": "Sales",
+    "stores": "Stores",
+    "managers": "Managers",
+    "promoters": "Promoters",
+    "users": "Users",
+    "tpvConfig": "TPV Config"
+  },
   "reports": "Reports",
   "support": "Support",
   "admin": "Administration",

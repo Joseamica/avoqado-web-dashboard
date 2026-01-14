@@ -53,6 +53,17 @@
     "voids": "Anulaciones",
     "modifiers": "Modificadores"
   },
+  "playtelecom": {
+    "title": "PlayTelecom",
+    "commandCenter": "Centro de Comando",
+    "stock": "Inventario",
+    "sales": "Ventas",
+    "stores": "Tiendas",
+    "managers": "Gerentes",
+    "promoters": "Promotores",
+    "users": "Usuarios",
+    "tpvConfig": "Config TPV"
+  },
   "support": "Soporte",
   "admin": "Administración",
   "config": "Configuración",
