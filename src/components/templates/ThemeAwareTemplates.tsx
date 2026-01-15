@@ -34,6 +34,7 @@ export function ThemeAwareCard() {
 // ============================================================================
 export function ThemeAwareForm() {
   const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   return (
     <form className="space-y-6">
       {/* Form Header */}
@@ -68,7 +69,7 @@ export function ThemeAwareForm() {
       {/* Form Actions */}
       <div className="flex justify-end space-x-3">
         <Button variant="outline" className="border-border">{t('cancel')}</Button>
-        <Button type="submit">{t('common.submit')}</Button>
+        <Button type="submit">{tCommon('submit')}</Button>
       </div>
     </form>
   )
@@ -153,6 +154,7 @@ export function ThemeAwareAlerts() {
 // ============================================================================
 export function ThemeAwareModal() {
   const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
@@ -178,7 +180,7 @@ export function ThemeAwareModal() {
           {/* Modal Footer */}
           <div className="flex justify-end space-x-3 p-6 border-t border-border">
             <Button variant="outline">{t('cancel')}</Button>
-            <Button>{t('common.confirm')}</Button>
+            <Button>{tCommon('confirm')}</Button>
           </div>
         </div>
       </div>

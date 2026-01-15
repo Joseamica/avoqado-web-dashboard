@@ -30,6 +30,7 @@ export function NavProjects({
 }) {
   const { isMobile } = useSidebar()
   const { t } = useTranslation(['translation', 'sidebar'])
+  const { t: tCommon } = useTranslation('common')
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -47,7 +48,7 @@ export function NavProjects({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
                   <MoreHorizontal />
-                  <span className="sr-only">{t('common.more')}</span>
+                  <span className="sr-only">{tCommon('more')}</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-48 rounded-lg" side={isMobile ? 'bottom' : 'right'} align={isMobile ? 'end' : 'start'} sideOffset={5}>
@@ -71,7 +72,7 @@ export function NavProjects({
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontal className="text-sidebar-foreground/70" />
-            <span>{t('common.more')}</span>
+            <span>{tCommon('more')}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

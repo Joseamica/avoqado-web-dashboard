@@ -13,7 +13,8 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSuperadminNotificationData, useMarkNotificationAsRead, useSuperadminDashboard } from '@/hooks/use-superadmin-queries'
+import { useSuperadminDashboard } from '@/hooks/use-superadmin-queries'
+import { useNotifications } from '@/context/NotificationContext'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '@/components/language-switcher'
 import { useQuery } from '@tanstack/react-query'
@@ -57,11 +58,19 @@ const SuperadminHeader: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchResultsRef = useRef<HTMLDivElement>(null)
 
-  // Usar TanStack Query para las notificaciones
-  const { notifications, unreadCount, isLoading: isLoadingNotifications, isError, refetch } = useSuperadminNotificationData(5)
+  // Usar NotificationContext (WebSocket-based, no polling)
+  const {
+    notifications: allNotifications,
+    unreadCount,
+    loading: isLoadingNotifications,
+    error: notificationError,
+    markAsRead,
+    refreshNotifications: refetch,
+  } = useNotifications()
 
-  // Mutation para marcar notificación como leída
-  const { mutateAsync: markAsRead } = useMarkNotificationAsRead()
+  // Limitar a 5 notificaciones para el dropdown del header
+  const notifications = allNotifications.slice(0, 5)
+  const isError = !!notificationError
 
   // Fetch all venues for search
   const { data: allVenuesData = [] } = useQuery({

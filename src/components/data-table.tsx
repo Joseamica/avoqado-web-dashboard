@@ -65,6 +65,7 @@ function DataTable<TData>({
 }: DataTableProps<TData>) {
   // MUST call ALL hooks at the very top, before ANY conditional logic or returns
   const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
 
   // Row selection state to prevent React Table errors
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -255,7 +256,7 @@ function DataTable<TData>({
                               : 'bg-border/60 hover:bg-primary/70 hover:h-6 group-hover:bg-border'
                           }
                         `}
-                        title={t('common.doubleClickToReset', 'Double-click to reset')}
+                        title={tCommon('doubleClickToReset', 'Double-click to reset')}
                       />
                     )}
                   </TableHead>

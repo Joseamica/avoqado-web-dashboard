@@ -53,6 +53,8 @@
     "offline": "Offline",
     "inactive": "Inactive",
     "maintenance": "Maintenance",
+    "locked": "Locked",
+    "unlocked": "Unlocked",
     "retired": "Retired",
     "unknown": "Unknown",
     "pendingActivation": "Pending Activation",

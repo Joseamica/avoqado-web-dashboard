@@ -12,7 +12,7 @@
  *
  * Where fullBasePath comes from useCurrentVenue() hook
  */
-module.exports = {
+export default {
   meta: {
     type: 'problem',
     docs: {

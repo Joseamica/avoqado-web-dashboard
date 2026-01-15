@@ -97,6 +97,7 @@ const ReceiptError = ({ error }: { error: string }) => (
 // Receipt Status Badge
 const StatusBadge = ({ status }: { status: string }) => {
   const { t } = useTranslation('payment')
+  const { t: tCommon } = useTranslation('common')
   const configs = {
     VIEWED: {
       className:
@@ -124,7 +125,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   const config = configs[status as keyof typeof configs] || {
     className: 'bg-muted text-muted-foreground border-border',
     icon: ReceiptIcon,
-    text: status || t('common.unknown'),
+    text: status || tCommon('unknown'),
   }
 
   const IconComponent = config.icon

@@ -199,7 +199,9 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
       </TableCell>
       <TableCell>{getStatusBadge(command.status, command.resultStatus)}</TableCell>
       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{translateResultMessage(command.resultMessage)}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{command.requestedByEmail || t('commands.system')}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {command.requestedByName || command.requestedByEmail || t('commands.system')}
+      </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         <TooltipProvider>
           <Tooltip>

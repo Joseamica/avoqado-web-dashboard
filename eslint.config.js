@@ -5,6 +5,18 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import unusedImports from 'eslint-plugin-unused-imports'
 import tseslint from 'typescript-eslint'
 
+// Custom local rules
+import noHardcodedVenuePaths from './eslint-rules/no-hardcoded-venue-paths.js'
+import noMissingTranslationKeys from './eslint-rules/no-missing-translation-keys.js'
+
+// Local plugin for custom rules
+const localPlugin = {
+  rules: {
+    'no-hardcoded-venue-paths': noHardcodedVenuePaths,
+    'no-missing-translation-keys': noMissingTranslationKeys,
+  },
+}
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -18,6 +30,7 @@ export default tseslint.config(
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
       'unused-imports': unusedImports,
+      'local': localPlugin,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -84,7 +97,14 @@ export default tseslint.config(
           selector: 'TemplateElement[value.raw=/venues.*\\$\\{venue/i]',
           message: '🚨 WHITE-LABEL VIOLATION: Use `fullBasePath` from useCurrentVenue() instead of hardcoded /venues/ paths. This breaks white-label mode (/wl/:slug). See CLAUDE.md Rule #14.'
         }
-      ]
+      ],
+
+      // Custom local rules
+      'local/no-hardcoded-venue-paths': 'error',
+      'local/no-missing-translation-keys': ['warn', {
+        validateAgainstJson: false, // Set to true to validate against JSON files
+        ignoredPrefixes: ['zod.', 'error.'],
+      }],
     },
   },
 )

@@ -153,6 +153,7 @@ export interface TpvCommand {
   resultMessage?: string
   resultData?: Record<string, unknown>
   requestedBy?: string
+  requestedByName?: string
   requestedByEmail?: string
   createdAt: string
   sentAt?: string

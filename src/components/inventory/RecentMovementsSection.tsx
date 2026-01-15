@@ -20,6 +20,7 @@ interface RecentMovementsSectionProps {
 
 export function RecentMovementsSection({ movements, isLoading, hasRecentMovements, unit = 'units' }: RecentMovementsSectionProps) {
   const { t, i18n } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { staffInfo } = useAuth()
   const { venueTimezone } = useVenueDateTime()
   const localeCode = getIntlLocale(i18n.language)
@@ -68,7 +69,7 @@ export function RecentMovementsSection({ movements, isLoading, hasRecentMovement
             {movements.map(movement => {
               const isRecent = new Date().getTime() - new Date(movement.createdAt).getTime() < 5 * 60 * 1000 // 5 minutes
               const isCurrentUser = movement.createdBy === staffInfo?.id
-              const displayName = isCurrentUser ? t('common.you') : movement.createdBy || t('common.system')
+              const displayName = isCurrentUser ? tCommon('you') : movement.createdBy || tCommon('system')
               const isIncrease = movement.quantity > 0
 
               return (

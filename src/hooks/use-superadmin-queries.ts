@@ -24,7 +24,11 @@ export function useSuperadminDashboard() {
 }
 
 /**
- * Hook para obtener notificaciones del superadmin
+ * @deprecated Use `useNotifications()` from `@/context/NotificationContext` instead.
+ * This hook uses polling which causes unnecessary server load.
+ * NotificationContext uses WebSocket for real-time updates.
+ *
+ * Hook para obtener notificaciones del superadmin (DEPRECATED)
  */
 export function useSuperadminNotifications(limit = 5) {
   return useQuery({
@@ -41,7 +45,11 @@ export function useSuperadminNotifications(limit = 5) {
 }
 
 /**
- * Hook para obtener el contador de notificaciones sin leer
+ * @deprecated Use `useNotifications()` from `@/context/NotificationContext` instead.
+ * This hook polls every 30 seconds causing log noise.
+ * NotificationContext uses WebSocket for real-time updates.
+ *
+ * Hook para obtener el contador de notificaciones sin leer (DEPRECATED)
  */
 export function useUnreadNotificationsCount() {
   return useQuery({
@@ -56,7 +64,11 @@ export function useUnreadNotificationsCount() {
 }
 
 /**
- * Hook combinado para datos completos de notificaciones
+ * @deprecated Use `useNotifications()` from `@/context/NotificationContext` instead.
+ * This combines deprecated polling hooks.
+ * NotificationContext uses WebSocket for real-time updates.
+ *
+ * Hook combinado para datos completos de notificaciones (DEPRECATED)
  */
 export function useSuperadminNotificationData(limit = 5) {
   const notifications = useSuperadminNotifications(limit)
@@ -76,7 +88,10 @@ export function useSuperadminNotificationData(limit = 5) {
 }
 
 /**
- * Mutation hook para marcar notificación como leída
+ * @deprecated Use `markAsRead()` from `useNotifications()` in `@/context/NotificationContext` instead.
+ * NotificationContext handles state updates automatically via WebSocket.
+ *
+ * Mutation hook para marcar notificación como leída (DEPRECATED)
  */
 export function useMarkNotificationAsRead() {
   const queryClient = useQueryClient()

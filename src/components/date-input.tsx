@@ -13,7 +13,7 @@ interface DateParts {
 }
 
 const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
-  const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   const [date, setDate] = React.useState<DateParts>(() => {
     const d = value ? new Date(value) : new Date()
     return {
@@ -199,7 +199,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('month')}
         className="p-0 outline-none w-6 border-none text-center"
-        placeholder={t('common.date.M')}
+        placeholder={tCommon('date.M')}
       />
       <span className="opacity-20 -mx-px">/</span>
       <input
@@ -217,7 +217,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('day')}
         className="p-0 outline-none w-7 border-none text-center"
-        placeholder={t('common.date.D')}
+        placeholder={tCommon('date.D')}
       />
       <span className="opacity-20 -mx-px">/</span>
       <input
@@ -235,7 +235,7 @@ const DateInput: React.FC<DateInputProps> = ({ value, onChange }) => {
         }}
         onBlur={handleBlur('year')}
         className="p-0 outline-none w-12 border-none text-center"
-        placeholder={t('common.date.YYYY')}
+        placeholder={tCommon('date.YYYY')}
       />
     </div>
   )

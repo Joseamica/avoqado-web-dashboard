@@ -69,6 +69,7 @@ interface VenueFormData {
 
 export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDialogProps) {
   const { t, i18n } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   const localeCode = getIntlLocale(i18n.language)
   const form = useForm<VenueFormData>({
     defaultValues: {
@@ -654,7 +655,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">{t('common.none')}</SelectItem>
+                                  <SelectItem value="">{tCommon('none')}</SelectItem>
                                   {merchantAccounts?.map(account => (
                                     <SelectItem key={account.id} value={account.id}>
                                       {account.alias || account.externalMerchantId} ({account.providerName})
@@ -680,7 +681,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">{t('common.none')}</SelectItem>
+                                  <SelectItem value="">{tCommon('none')}</SelectItem>
                                   {merchantAccounts?.map(account => (
                                     <SelectItem key={account.id} value={account.id}>
                                       {account.alias || account.externalMerchantId} ({account.providerName})
@@ -972,7 +973,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   }}
                   disabled={uploading || isPending}
                 >
-                  {t('common.previous')}
+                  {tCommon('previous')}
                 </Button>
               )}
             </div>
@@ -989,7 +990,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
                   }}
                   disabled={uploading || isPending}
                 >
-                  {t('common.next')}
+                  {tCommon('next')}
                 </Button>
               ) : (
                 <Button type="submit" disabled={uploading || !imageUrl || isPending} className="bg-green-600 hover:bg-green-700">

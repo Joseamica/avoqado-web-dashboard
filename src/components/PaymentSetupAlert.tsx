@@ -21,6 +21,8 @@ import { getVenuePaymentReadiness } from '@/services/paymentProvider.service'
 import { PaymentSetupWizardDialog } from './PaymentSetupWizardDialog'
 import { useTranslation } from 'react-i18next'
 
+const useCommonTranslation = () => useTranslation('common')
+
 interface PaymentSetupAlertProps {
   venueId: string
   className?: string
@@ -35,6 +37,7 @@ interface PaymentSetupAlertProps {
 export function PaymentSetupAlert({ venueId, className = '' }: PaymentSetupAlertProps) {
   const { staffInfo } = useAuth()
   const { t } = useTranslation()
+  const { t: tCommon } = useCommonTranslation()
   const [dismissed, setDismissed] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
 
@@ -81,7 +84,7 @@ export function PaymentSetupAlert({ venueId, className = '' }: PaymentSetupAlert
                 <button
                   onClick={() => setDismissed(true)}
                   className="p-1 hover:bg-background/20 rounded-full transition-colors -mr-1"
-                  aria-label={t('common.dismiss', 'Cerrar')}
+                  aria-label={tCommon('dismiss')}
                 >
                   <X className="h-4 w-4" />
                 </button>

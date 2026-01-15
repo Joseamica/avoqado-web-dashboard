@@ -141,7 +141,7 @@ function SortableBadge({
   onViewOption?: (option: Option) => void
   showViewIcon?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: option.value })
 
   const style: React.CSSProperties = {
@@ -186,7 +186,7 @@ function SortableBadge({
               e.stopPropagation()
               onViewOption(option)
             }}
-            title={t('common.viewDetails')}
+            title={tCommon('viewDetails')}
           >
             <Eye className="m-1 w-4 h-4 text-muted-foreground hover:text-foreground" />
           </button>
@@ -212,7 +212,7 @@ function SortableBadge({
             e.stopPropagation()
             handleUnselect(option)
           }}
-          title={t('common.remove')}
+          title={tCommon('remove')}
         >
           <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
         </button>
@@ -274,7 +274,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
   ) => {
     const inputRef = React.useRef<HTMLInputElement>(null)
     const dropdownRef = React.useRef<HTMLDivElement>(null)
-    const { t } = useTranslation()
+    const { t: tCommon } = useTranslation('common')
 
     const [open, setOpen] = React.useState(false)
     const [onScrollbar, setOnScrollbar] = React.useState(false)
@@ -540,7 +540,7 @@ const DnDMultipleSelector = React.forwardRef<MultipleSelectorRef, DnDMultipleSel
                     (hideClearAllButton || disabled || selected.length < 1 || selected.filter(s => s.fixed).length === selected.length) &&
                       'hidden',
                   )}
-                  title={t('common.clearAll')}
+                  title={tCommon('clearAll')}
                 >
                   <X className="w-4 h-4" />
                 </button>

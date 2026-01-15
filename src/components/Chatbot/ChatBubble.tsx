@@ -157,6 +157,7 @@ function parseMessageText(text: string, isUserMessage: boolean): React.ReactNode
 // Chat interface component inside the same file to avoid TypeScript module errors
 function ChatInterface({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   const { slug } = useParams<{ slug: string }>()
   const venueSlug = slug ?? null
   const [showSidebar, setShowSidebar] = useState(true)
@@ -298,7 +299,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     onError: error => {
       console.error('❌ Error submitting positive feedback:', error)
       toast({
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: t('chat.feedback.sendError'),
         variant: 'destructive',
       })
@@ -351,7 +352,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
     onError: error => {
       console.error('❌ Error submitting negative feedback:', error)
       toast({
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: t('chat.feedback.sendError'),
         variant: 'destructive',
       })
@@ -409,7 +410,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       console.error('❌ Error clearing chat history:', error)
       toast({
         variant: 'destructive',
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: t('chat.errors.clearFailed', { defaultValue: 'Unable to clear history. Please try again.' }),
       })
     } finally {
@@ -472,7 +473,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       console.error('Error saving conversation:', error)
       toast({
         variant: 'destructive',
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: t('chat.errors.saveFailed', { defaultValue: 'Could not save the conversation.' }),
       })
     } finally {
@@ -510,7 +511,7 @@ function ChatInterface({ onClose }: { onClose: () => void }) {
       console.error('Error creating new conversation:', error)
       toast({
         variant: 'destructive',
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error'),
         description: t('chat.errors.createConversation'),
       })
     } finally {

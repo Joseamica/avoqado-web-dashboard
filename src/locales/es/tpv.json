@@ -53,6 +53,8 @@
     "offline": "Sin conexión",
     "inactive": "Inactivo",
     "maintenance": "Mantenimiento",
+    "locked": "Bloqueado",
+    "unlocked": "Desbloqueado",
     "retired": "Retirado",
     "unknown": "Desconocido",
     "pendingActivation": "Pendiente de Activación",
