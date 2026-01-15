@@ -155,7 +155,33 @@
       "requestedBy": "Demandé Par",
       "time": "Heure"
     },
-    "pagination": "Affichage {{start}} - {{end}} de {{total}}"
+    "resultMessages": {
+      "Terminal unlocked successfully": "Terminal déverrouillé avec succès",
+      "Terminal locked successfully": "Terminal verrouillé avec succès",
+      "Terminal is not locked": "Le terminal n'est pas verrouillé",
+      "Maintenance mode enabled": "Mode maintenance activé",
+      "Maintenance mode disabled": "Mode maintenance désactivé",
+      "Terminal already in maintenance mode": "Le terminal est déjà en mode maintenance",
+      "Terminal was not in maintenance mode": "Le terminal n'était pas en mode maintenance",
+      "Restarting application...": "Redémarrage de l'application...",
+      "Application shutting down...": "Fermeture de l'application...",
+      "Cache cleared successfully": "Cache vidé avec succès",
+      "Data sync initiated": "Synchronisation des données lancée",
+      "Menu refresh initiated": "Actualisation du menu lancée",
+      "Factory reset completed": "Réinitialisation usine terminée",
+      "Logs exported successfully": "Logs exportés avec succès",
+      "Config updated": "Configuration mise à jour",
+      "Merchant data updated": "Données du commerçant mises à jour",
+      "Terminal reactivated": "Terminal réactivé",
+      "Command received": "Commande reçue",
+      "Command executed": "Commande exécutée",
+      "Command failed": "Commande échouée",
+      "Unknown command": "Commande inconnue"
+    },
+    "pagination": "Affichage {{start}} - {{end}} de {{total}}",
+    "restarting": "Redémarrage...",
+    "syncing": "Synchronisation...",
+    "awaitingHeartbeat": "En attente de reconnexion du terminal"
   },
   "detail": {
     "terminal": "Terminal",

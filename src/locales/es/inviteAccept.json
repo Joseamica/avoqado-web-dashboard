@@ -23,11 +23,19 @@
     "confirmPassword": "Confirma tu contraseña",
     "pin": "4-10 dígitos para acceso rápido"
   },
-  "pinHelp": "El PIN te permitirá acceder rápidamente desde terminales POS",
+  "passwordRequirements": {
+    "title": "Tu contraseña debe incluir:",
+    "minLength": "Al menos 8 caracteres",
+    "uppercase": "Una letra mayúscula (A-Z)",
+    "lowercase": "Una letra minúscula (a-z)",
+    "number": "Un número (0-9)"
+  },
+  "pinHelp": "El PIN te permitirá acceder rápidamente a las terminales de cobro",
   "nameEditNote": "Tu nombre y apellido podrán ser editados luego en la configuración de tu cuenta.",
   "acceptButton": "Aceptar invitación y crear cuenta",
   "creatingAccount": "Creando cuenta...",
-  "termsText": "Al aceptar esta invitación, aceptas los términos de uso.",
+  "termsText": "Al aceptar esta invitación, aceptas los",
+  "termsLink": "Términos de uso.",
   "haveAccount": "¿Ya tienes una cuenta?",
   "loginHere": "Inicia sesión aquí",
   "validation": {
@@ -36,6 +44,9 @@
     "lastNameRequired": "El apellido es requerido",
     "lastNameMax": "El apellido debe tener como máximo 50 caracteres",
     "passwordMin": "La contraseña debe tener al menos 8 caracteres",
+    "passwordUppercase": "La contraseña debe incluir al menos una letra mayúscula",
+    "passwordLowercase": "La contraseña debe incluir al menos una letra minúscula",
+    "passwordNumber": "La contraseña debe incluir al menos un número",
     "pinFormat": "El PIN debe tener entre 4 y 10 dígitos",
     "passwordMatch": "Las contraseñas no coinciden"
   },

@@ -120,6 +120,19 @@
       "REFRESH_MENU": "Actualiza los datos del menú en el terminal",
       "UPDATE_MERCHANT": "Actualiza la configuración del comercio"
     },
+    "lockTerminal": "Bloquear terminal",
+    "lockTerminalDesc": "Bloquea el terminal \"{{terminal}}\" y muestra un mensaje al personal",
+    "lockReason": "Motivo del bloqueo",
+    "lockReasonPlaceholder": "Ej: Incidente de seguridad, Dispositivo perdido",
+    "lockMessage": "Mensaje a mostrar",
+    "lockMessagePlaceholder": "Mensaje que verá el personal en la pantalla bloqueada",
+    "lockMessageHint": "Este mensaje se mostrará en la pantalla de bloqueo del terminal",
+    "lockNow": "Bloquear ahora",
+    "enterMaintenance": "Entrar en modo mantenimiento",
+    "enterMaintenanceDesc": "Poner el terminal \"{{terminal}}\" en modo mantenimiento",
+    "maintenanceReason": "Motivo de mantenimiento",
+    "maintenanceReasonPlaceholder": "Ej: Actualización de software, Reparación de hardware",
+    "enterMaintenanceNow": "Entrar en mantenimiento",
     "status": {
       "pending": "Pendiente",
       "queued": "En Cola",
@@ -166,7 +179,33 @@
       "requestedBy": "Solicitado Por",
       "time": "Hora"
     },
-    "pagination": "Mostrando {{start}} - {{end}} de {{total}}"
+    "resultMessages": {
+      "Terminal unlocked successfully": "Terminal desbloqueado exitosamente",
+      "Terminal locked successfully": "Terminal bloqueado exitosamente",
+      "Terminal is not locked": "El terminal no está bloqueado",
+      "Maintenance mode enabled": "Modo mantenimiento activado",
+      "Maintenance mode disabled": "Modo mantenimiento desactivado",
+      "Terminal already in maintenance mode": "El terminal ya está en modo mantenimiento",
+      "Terminal was not in maintenance mode": "El terminal no estaba en modo mantenimiento",
+      "Restarting application...": "Reiniciando aplicación...",
+      "Application shutting down...": "Cerrando aplicación...",
+      "Cache cleared successfully": "Caché limpiado exitosamente",
+      "Data sync initiated": "Sincronización de datos iniciada",
+      "Menu refresh initiated": "Actualización del menú iniciada",
+      "Factory reset completed": "Reinicio de fábrica completado",
+      "Logs exported successfully": "Logs exportados exitosamente",
+      "Config updated": "Configuración actualizada",
+      "Merchant data updated": "Datos del comercio actualizados",
+      "Terminal reactivated": "Terminal reactivado",
+      "Command received": "Comando recibido",
+      "Command executed": "Comando ejecutado",
+      "Command failed": "Comando fallido",
+      "Unknown command": "Comando desconocido"
+    },
+    "pagination": "Mostrando {{start}} - {{end}} de {{total}}",
+    "restarting": "Reiniciando...",
+    "syncing": "Sincronizando...",
+    "awaitingHeartbeat": "Esperando que el terminal reconecte"
   },
   "superadmin": {
     "terminalTypes": {

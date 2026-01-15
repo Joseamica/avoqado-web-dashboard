@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -6,6 +6,7 @@ import {
   CreditCard,
   Download,
   FileText,
+  Loader2,
   Lock,
   Menu,
   Play,
@@ -18,6 +19,8 @@ import {
   Unlock,
   Wrench,
 } from 'lucide-react'
+
+import { useSocket } from '@/context/SocketContext'
 
 import {
   AlertDialog,
@@ -64,7 +67,26 @@ const ICON_MAP = {
   Settings,
   Menu,
   CreditCard,
+  Loader2,
 }
+
+// Commands that require waiting for heartbeat after execution (terminal state changes)
+// These commands stay in "loading" state until TPV confirms via heartbeat/status update
+const COMMANDS_AWAITING_HEARTBEAT: TpvCommandType[] = [
+  TpvCommandType.RESTART,
+  TpvCommandType.SYNC_DATA,
+  TpvCommandType.MAINTENANCE_MODE,
+  TpvCommandType.EXIT_MAINTENANCE,
+  TpvCommandType.LOCK,
+  TpvCommandType.UNLOCK,
+]
+
+// Debounce delay for toggle switches (ms)
+const TOGGLE_DEBOUNCE_DELAY = 500
+
+// Timeout for awaiting heartbeat fallback (ms) - if TPV doesn't respond within this time,
+// clear the loading state. This handles cases where backend ACK fails or TPV is offline.
+const HEARTBEAT_TIMEOUT = 60_000 // 60 seconds
 
 interface RemoteCommandPanelProps {
   terminalId: string
@@ -92,6 +114,56 @@ export function RemoteCommandPanel({
   const { t } = useTranslation(['tpv', 'common'])
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { socket } = useSocket()
+
+  // Track pending commands by type (prevents double-clicks)
+  const [pendingCommands, setPendingCommands] = useState<Set<TpvCommandType>>(new Set())
+
+  // Track commands awaiting heartbeat (button stays disabled until TPV reconnects)
+  const [awaitingHeartbeat, setAwaitingHeartbeat] = useState<Set<TpvCommandType>>(new Set())
+
+  // Refs to track heartbeat timeout per command (fallback if heartbeat never arrives)
+  const heartbeatTimeoutsRef = useRef<Map<TpvCommandType, NodeJS.Timeout>>(new Map())
+
+  // Refs for debouncing toggle switches
+  const lockToggleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const maintenanceToggleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Refs to track if dialog submit was clicked (to prevent clearing pendingCommands on onOpenChange)
+  const lockSubmittedRef = useRef(false)
+  const maintenanceSubmittedRef = useRef(false)
+
+  // Socket.IO listener to clear awaiting heartbeat state when TPV reconnects
+  useEffect(() => {
+    if (!socket || !terminalId) return
+
+    const handleStatusUpdate = (data: { terminalId: string }) => {
+      if (data.terminalId === terminalId) {
+        // TPV sent heartbeat, clear all awaiting states
+        setAwaitingHeartbeat(new Set())
+
+        // Clear all pending heartbeat timeouts since heartbeat arrived
+        heartbeatTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+        heartbeatTimeoutsRef.current.clear()
+      }
+    }
+
+    socket.on('tpv_status_update', handleStatusUpdate)
+    return () => {
+      socket.off('tpv_status_update', handleStatusUpdate)
+    }
+  }, [socket, terminalId])
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (lockToggleTimeoutRef.current) clearTimeout(lockToggleTimeoutRef.current)
+      if (maintenanceToggleTimeoutRef.current) clearTimeout(maintenanceToggleTimeoutRef.current)
+      // Clear all heartbeat fallback timeouts
+      heartbeatTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      heartbeatTimeoutsRef.current.clear()
+    }
+  }, [])
 
   // State for confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -113,7 +185,7 @@ export function RemoteCommandPanel({
     reason: string
   }>({ open: false, reason: '' })
 
-  // Command mutation
+  // Command mutation with pending state tracking
   const commandMutation = useMutation({
     mutationFn: async ({
       command,
@@ -124,6 +196,8 @@ export function RemoteCommandPanel({
       payload?: TpvCommandPayload
       priority?: TpvCommandPriority
     }) => {
+      // Mark command as pending
+      setPendingCommands((prev) => new Set(prev).add(command))
       return sendTpvCommand(terminalId, command, payload, priority)
     },
     onSuccess: (_, variables) => {
@@ -131,14 +205,48 @@ export function RemoteCommandPanel({
         title: t('commands.sent'),
         description: t('commands.sentSuccess', { command: t(`commands.types.${variables.command}`) }),
       })
+
+      // For RESTART/SYNC commands, set awaiting heartbeat (button stays disabled until TPV reconnects)
+      if (COMMANDS_AWAITING_HEARTBEAT.includes(variables.command)) {
+        setAwaitingHeartbeat((prev) => new Set(prev).add(variables.command))
+
+        // Set up timeout fallback in case heartbeat never arrives (backend bug, TPV offline, etc.)
+        // This prevents the toggle from being stuck in loading state forever
+        const timeoutId = setTimeout(() => {
+          setAwaitingHeartbeat((prev) => {
+            const next = new Set(prev)
+            next.delete(variables.command)
+            return next
+          })
+          heartbeatTimeoutsRef.current.delete(variables.command)
+        }, HEARTBEAT_TIMEOUT)
+
+        // Store timeout so it can be cleared if heartbeat arrives
+        heartbeatTimeoutsRef.current.set(variables.command, timeoutId)
+      }
+
       // Invalidate TPV data to refresh status
       queryClient.invalidateQueries({ queryKey: ['tpv', venueId, terminalId] })
     },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }, variables) => {
       toast({
         title: t('commands.error'),
         description: error.response?.data?.message || error.message,
         variant: 'destructive',
+      })
+      // Clear pending state on error
+      setPendingCommands((prev) => {
+        const next = new Set(prev)
+        next.delete(variables.command)
+        return next
+      })
+    },
+    onSettled: (_, __, variables) => {
+      // Clear pending state after mutation completes (success or error)
+      setPendingCommands((prev) => {
+        const next = new Set(prev)
+        next.delete(variables.command)
+        return next
       })
     },
   })
@@ -165,33 +273,75 @@ export function RemoteCommandPanel({
     },
   ]
 
-  // Handle toggle for maintenance mode
-  const handleMaintenanceToggle = (checked: boolean) => {
-    if (checked) {
-      // Show dialog for entering maintenance with reason
-      setMaintenanceDialog({ open: true, reason: '' })
-    } else {
-      // Exit maintenance immediately
-      commandMutation.mutate({
-        command: TpvCommandType.EXIT_MAINTENANCE,
-        priority: TpvCommandPriority.NORMAL,
-      })
-    }
-  }
+  // Handle toggle for maintenance mode (debounced to prevent rapid clicking issues)
+  const handleMaintenanceToggle = useCallback(
+    (checked: boolean) => {
+      // Clear any pending debounce
+      if (maintenanceToggleTimeoutRef.current) {
+        clearTimeout(maintenanceToggleTimeoutRef.current)
+      }
 
-  // Handle toggle for lock
-  const handleLockToggle = (checked: boolean) => {
-    if (checked) {
-      // Show dialog for locking with reason
-      setLockDialog({ open: true, reason: '', message: '' })
-    } else {
-      // Unlock immediately
-      commandMutation.mutate({
-        command: TpvCommandType.UNLOCK,
-        priority: TpvCommandPriority.HIGH,
-      })
-    }
-  }
+      // Set pending state IMMEDIATELY for visual feedback (spinner + disabled)
+      const commandToTrack = checked ? TpvCommandType.MAINTENANCE_MODE : TpvCommandType.EXIT_MAINTENANCE
+      setPendingCommands((prev) => new Set(prev).add(commandToTrack))
+
+      // Debounce the toggle action
+      maintenanceToggleTimeoutRef.current = setTimeout(() => {
+        if (checked) {
+          // Show dialog for entering maintenance with reason
+          // Clear pending state since dialog will handle the rest
+          setPendingCommands((prev) => {
+            const next = new Set(prev)
+            next.delete(TpvCommandType.MAINTENANCE_MODE)
+            return next
+          })
+          setMaintenanceDialog({ open: true, reason: '' })
+        } else {
+          // Exit maintenance - mutation will handle clearing pendingCommands in onSettled
+          commandMutation.mutate({
+            command: TpvCommandType.EXIT_MAINTENANCE,
+            priority: TpvCommandPriority.NORMAL,
+          })
+        }
+      }, TOGGLE_DEBOUNCE_DELAY)
+    },
+    [commandMutation],
+  )
+
+  // Handle toggle for lock (debounced to prevent rapid clicking issues)
+  const handleLockToggle = useCallback(
+    (checked: boolean) => {
+      // Clear any pending debounce
+      if (lockToggleTimeoutRef.current) {
+        clearTimeout(lockToggleTimeoutRef.current)
+      }
+
+      // Set pending state IMMEDIATELY for visual feedback (spinner + disabled)
+      const commandToTrack = checked ? TpvCommandType.LOCK : TpvCommandType.UNLOCK
+      setPendingCommands((prev) => new Set(prev).add(commandToTrack))
+
+      // Debounce the toggle action
+      lockToggleTimeoutRef.current = setTimeout(() => {
+        if (checked) {
+          // Show dialog for locking with reason
+          // Clear pending state since dialog will handle the rest
+          setPendingCommands((prev) => {
+            const next = new Set(prev)
+            next.delete(TpvCommandType.LOCK)
+            return next
+          })
+          setLockDialog({ open: true, reason: '', message: '' })
+        } else {
+          // Unlock - mutation will handle clearing pendingCommands in onSettled
+          commandMutation.mutate({
+            command: TpvCommandType.UNLOCK,
+            priority: TpvCommandPriority.HIGH,
+          })
+        }
+      }, TOGGLE_DEBOUNCE_DELAY)
+    },
+    [commandMutation],
+  )
 
   // Handle command execution
   const executeCommand = (command: TpvCommandType, payload?: TpvCommandPayload) => {
@@ -232,6 +382,8 @@ export function RemoteCommandPanel({
 
   // Handle lock with payload
   const handleLock = () => {
+    // Mark as submitted to prevent onOpenChange from clearing pendingCommands
+    lockSubmittedRef.current = true
     commandMutation.mutate({
       command: TpvCommandType.LOCK,
       payload: {
@@ -245,6 +397,8 @@ export function RemoteCommandPanel({
 
   // Handle maintenance with payload
   const handleMaintenance = () => {
+    // Mark as submitted to prevent onOpenChange from clearing pendingCommands
+    maintenanceSubmittedRef.current = true
     commandMutation.mutate({
       command: TpvCommandType.MAINTENANCE_MODE,
       payload: {
@@ -264,6 +418,12 @@ export function RemoteCommandPanel({
   // Check if command should be disabled
   const isCommandDisabled = (command: TpvCommandType): boolean => {
     const def = COMMAND_DEFINITIONS[command]
+
+    // Pending command check (prevents double-clicks)
+    if (pendingCommands.has(command)) return true
+
+    // Awaiting heartbeat check (RESTART/SYNC stay disabled until TPV reconnects)
+    if (awaitingHeartbeat.has(command)) return true
 
     // Offline check
     if (def.requiresOnline && !isOnline) return true
@@ -346,6 +506,10 @@ export function RemoteCommandPanel({
       )
     }
 
+    // Check if awaiting heartbeat for visual feedback
+    const isAwaiting = awaitingHeartbeat.has(command)
+    const isPending = pendingCommands.has(command)
+
     return (
       <TooltipProvider key={command}>
         <Tooltip>
@@ -357,12 +521,28 @@ export function RemoteCommandPanel({
               onClick={() => executeCommand(command)}
               className="flex items-center gap-2"
             >
-              {getIcon(def.icon)}
-              <span>{t(`commands.types.${command}`)}</span>
+              {isAwaiting || isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                getIcon(def.icon)
+              )}
+              <span>
+                {isAwaiting
+                  ? command === TpvCommandType.RESTART
+                    ? t('commands.restarting')
+                    : command === TpvCommandType.SYNC_DATA
+                      ? t('commands.syncing')
+                      : t(`commands.types.${command}`)
+                  : t(`commands.types.${command}`)}
+              </span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{t(`commands.descriptions.${command}`)}</p>
+            <p>
+              {isAwaiting
+                ? t('commands.awaitingHeartbeat')
+                : t(`commands.descriptions.${command}`)}
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -411,76 +591,98 @@ export function RemoteCommandPanel({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Lock Toggle */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      isLocked
-                        ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
-                        : 'bg-muted/50 border-border hover:bg-muted'
-                    }`}>
-                      <div className="flex items-center space-x-3">
-                        {isLocked ? (
-                          <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        ) : (
-                          <Unlock className="w-5 h-5 text-muted-foreground" />
-                        )}
-                        <div>
-                          <p className={`text-sm font-medium ${isLocked ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}>
-                            {isLocked ? t('actions.locked') : t('actions.unlocked')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t(`commands.descriptions.${isLocked ? 'UNLOCK' : 'LOCK'}`)}
-                          </p>
+              {(() => {
+                const isLockProcessing = pendingCommands.has(TpvCommandType.LOCK) || pendingCommands.has(TpvCommandType.UNLOCK) ||
+                  awaitingHeartbeat.has(TpvCommandType.LOCK) || awaitingHeartbeat.has(TpvCommandType.UNLOCK)
+                return (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                          isLocked
+                            ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                            : 'bg-muted/50 border-border hover:bg-muted'
+                        }`}>
+                          <div className="flex items-center space-x-3">
+                            {isLockProcessing ? (
+                              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                            ) : isLocked ? (
+                              <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            ) : (
+                              <Unlock className="w-5 h-5 text-muted-foreground" />
+                            )}
+                            <div>
+                              <p className={`text-sm font-medium ${isLocked ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}>
+                                {isLockProcessing
+                                  ? t('commands.awaitingHeartbeat')
+                                  : isLocked ? t('actions.locked') : t('actions.unlocked')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t(`commands.descriptions.${isLocked ? 'UNLOCK' : 'LOCK'}`)}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isLocked}
+                            onCheckedChange={handleLockToggle}
+                            disabled={!isOnline || commandMutation.isPending || isLockProcessing}
+                            className="data-[state=checked]:bg-red-500"
+                          />
                         </div>
-                      </div>
-                      <Switch
-                        checked={isLocked}
-                        onCheckedChange={handleLockToggle}
-                        disabled={!isOnline || commandMutation.isPending}
-                        className="data-[state=checked]:bg-red-500"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{!isOnline ? t('commands.requiresOnline') : (isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock'))}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{!isOnline ? t('commands.requiresOnline') : (isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock'))}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              })()}
 
               {/* Maintenance Toggle */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      isInMaintenance
-                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
-                        : 'bg-muted/50 border-border hover:bg-muted'
-                    }`}>
-                      <div className="flex items-center space-x-3">
-                        <Wrench className={`w-5 h-5 ${isInMaintenance ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
-                        <div>
-                          <p className={`text-sm font-medium ${isInMaintenance ? 'text-orange-700 dark:text-orange-400' : 'text-foreground'}`}>
-                            {t('actions.maintenance')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {t(`commands.descriptions.${isInMaintenance ? 'EXIT_MAINTENANCE' : 'MAINTENANCE_MODE'}`)}
-                          </p>
+              {(() => {
+                const isMaintenanceProcessing = pendingCommands.has(TpvCommandType.MAINTENANCE_MODE) || pendingCommands.has(TpvCommandType.EXIT_MAINTENANCE) ||
+                  awaitingHeartbeat.has(TpvCommandType.MAINTENANCE_MODE) || awaitingHeartbeat.has(TpvCommandType.EXIT_MAINTENANCE)
+                return (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                          isInMaintenance
+                            ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                            : 'bg-muted/50 border-border hover:bg-muted'
+                        }`}>
+                          <div className="flex items-center space-x-3">
+                            {isMaintenanceProcessing ? (
+                              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+                            ) : (
+                              <Wrench className={`w-5 h-5 ${isInMaintenance ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+                            )}
+                            <div>
+                              <p className={`text-sm font-medium ${isInMaintenance ? 'text-orange-700 dark:text-orange-400' : 'text-foreground'}`}>
+                                {isMaintenanceProcessing
+                                  ? t('commands.awaitingHeartbeat')
+                                  : t('actions.maintenance')}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {t(`commands.descriptions.${isInMaintenance ? 'EXIT_MAINTENANCE' : 'MAINTENANCE_MODE'}`)}
+                              </p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={isInMaintenance}
+                            onCheckedChange={handleMaintenanceToggle}
+                            disabled={(!isOnline && !isInMaintenance) || commandMutation.isPending || isMaintenanceProcessing}
+                            className="data-[state=checked]:bg-orange-500"
+                          />
                         </div>
-                      </div>
-                      <Switch
-                        checked={isInMaintenance}
-                        onCheckedChange={handleMaintenanceToggle}
-                        disabled={(!isOnline && !isInMaintenance) || commandMutation.isPending}
-                        className="data-[state=checked]:bg-orange-500"
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{(!isOnline && !isInMaintenance) ? t('commands.requiresOnline') : (isInMaintenance ? t('detail.tooltips.reactivate') : t('detail.tooltips.maintenanceMode'))}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{(!isOnline && !isInMaintenance) ? t('commands.requiresOnline') : (isInMaintenance ? t('detail.tooltips.reactivate') : t('detail.tooltips.maintenanceMode'))}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              })()}
             </div>
           </div>
 
@@ -540,7 +742,19 @@ export function RemoteCommandPanel({
       </AlertDialog>
 
       {/* Lock Dialog with Payload */}
-      <AlertDialog open={lockDialog.open} onOpenChange={(open) => setLockDialog({ ...lockDialog, open })}>
+      <AlertDialog open={lockDialog.open} onOpenChange={(open) => {
+        setLockDialog({ ...lockDialog, open })
+        // Clear pending state only if dialog was cancelled (not submitted)
+        if (!open && !lockSubmittedRef.current) {
+          setPendingCommands((prev) => {
+            const next = new Set(prev)
+            next.delete(TpvCommandType.LOCK)
+            return next
+          })
+        }
+        // Reset ref for next time
+        lockSubmittedRef.current = false
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -587,7 +801,19 @@ export function RemoteCommandPanel({
       </AlertDialog>
 
       {/* Maintenance Dialog with Payload */}
-      <AlertDialog open={maintenanceDialog.open} onOpenChange={(open) => setMaintenanceDialog({ ...maintenanceDialog, open })}>
+      <AlertDialog open={maintenanceDialog.open} onOpenChange={(open) => {
+        setMaintenanceDialog({ ...maintenanceDialog, open })
+        // Clear pending state only if dialog was cancelled (not submitted)
+        if (!open && !maintenanceSubmittedRef.current) {
+          setPendingCommands((prev) => {
+            const next = new Set(prev)
+            next.delete(TpvCommandType.MAINTENANCE_MODE)
+            return next
+          })
+        }
+        // Reset ref for next time
+        maintenanceSubmittedRef.current = false
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">

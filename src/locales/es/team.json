@@ -68,7 +68,14 @@
       "roleRequired": "El rol es requerido",
       "messageMax": "El mensaje no puede exceder 500 caracteres"
     },
-    "invitationError": "Error al enviar la invitación"
+    "invitationError": "Error al enviar la invitación",
+    "invitationNotFound": "No se encontró la invitación pendiente",
+    "resendDialog": {
+      "title": "Invitación pendiente",
+      "description": "Ya existe una invitación pendiente para {{email}}. ¿Deseas reenviar la invitación?",
+      "resend": "Reenviar invitación",
+      "resending": "Reenviando..."
+    }
   },
   "header": {
     "title": "Miembros del Equipo",
@@ -133,6 +140,11 @@
     "hardDeleting": "Eliminando..."
   },
   "toasts": {
+    "memberActivatedTitle": "Miembro activado",
+    "memberActivatedDesc": "{{firstName}} {{lastName}} ya puede acceder al sistema.",
+    "memberDeactivatedTitle": "Miembro desactivado",
+    "memberDeactivatedDesc": "{{firstName}} {{lastName}} ya no puede acceder al sistema.",
+    "memberStatusError": "Error al actualizar el estado del miembro",
     "memberRemovedTitle": "Miembro desactivado",
     "memberRemovedDesc": "{{firstName}} {{lastName}} ha sido desactivado. Su historial permanece en el sistema.",
     "memberRemoveErrorTitle": "Error al desactivar",

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import LanguageSwitcher from '@/components/language-switcher'
 
 export default function Terms() {
   const { t } = useTranslation('legal')
@@ -9,18 +10,23 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <Button variant="ghost" asChild className="mb-4">
-            <Link to="/login" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t('backToLogin')}
-            </Link>
-          </Button>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <Button variant="ghost" asChild className="mb-4">
+              <Link to="/login" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                {t('backToLogin')}
+              </Link>
+            </Button>
 
-          <h1 className="text-4xl font-bold text-foreground mb-2">{t('terms.title')}</h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            {t('terms.lastUpdated')}: {t('terms.date')}
-          </p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">{t('terms.title')}</h1>
+            <p className="text-slate-600 dark:text-slate-400">
+              {t('terms.lastUpdated')}: {t('terms.date')}
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <LanguageSwitcher />
+          </div>
         </div>
 
         <div className="bg-background rounded-lg shadow-lg p-8 space-y-8">

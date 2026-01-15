@@ -6,16 +6,19 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { useDebounce } from '@/hooks/useDebounce'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useToast } from '@/hooks/use-toast'
-import teamService, { type Invitation } from '@/services/team.service'
+import teamService, { type Invitation, type PaginatedTeamResponse } from '@/services/team.service'
 import { TeamMember, StaffRole } from '@/types'
 import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
 import { Currency } from '@/utils/currency'
+import { canModifyRole } from '@/lib/permissions/roleHierarchy'
 
 import {
   AlertDialog,
@@ -51,6 +54,7 @@ export default function Teams() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const { staffInfo } = useAuth()
+  const { can } = usePermissions()
   const queryClient = useQueryClient()
   const { t, i18n } = useTranslation('team')
   const { t: tCommon } = useTranslation()
@@ -116,6 +120,8 @@ export default function Teams() {
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  const teamMembersQueryKey = ['team-members', venueId, pagination.pageIndex, pagination.pageSize] as const
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<string[]>(['firstName', 'role', 'active', 'totalSales', 'totalTips', 'totalOrders'])
@@ -211,7 +217,7 @@ export default function Teams() {
 
   // Fetch team members
   const { data: teamData, isLoading: isLoadingTeam } = useQuery({
-    queryKey: ['team-members', venueId, pagination.pageIndex, pagination.pageSize],
+    queryKey: teamMembersQueryKey,
     queryFn: () => teamService.getTeamMembers(venueId, pagination.pageIndex + 1, pagination.pageSize),
     refetchOnWindowFocus: true,
   })
@@ -240,7 +246,7 @@ export default function Teams() {
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('toasts.memberRemoveError'),
         variant: 'destructive',
       })
@@ -259,7 +265,7 @@ export default function Teams() {
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('toasts.invitationCancelError'),
         variant: 'destructive',
       })
@@ -278,12 +284,75 @@ export default function Teams() {
     },
     onError: (error: any) => {
       toast({
-        title: tCommon('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('toasts.invitationResendError'),
         variant: 'destructive',
       })
     },
   })
+
+  const toggleMemberStatusMutation = useMutation({
+    mutationFn: async ({ memberId, active }: { memberId: string; active: boolean }) =>
+      teamService.updateTeamMember(venueId, memberId, { active }),
+    onMutate: async ({ memberId, active }) => {
+      await queryClient.cancelQueries({ queryKey: teamMembersQueryKey })
+
+      const previousTeamData = queryClient.getQueryData<PaginatedTeamResponse>(teamMembersQueryKey)
+
+      queryClient.setQueryData<PaginatedTeamResponse>(teamMembersQueryKey, old => {
+        if (!old) return old
+        return {
+          ...old,
+          data: old.data.map(member => (member.id === memberId ? { ...member, active } : member)),
+        }
+      })
+
+      return { previousTeamData }
+    },
+    onError: (error: any, _variables, context) => {
+      if (context?.previousTeamData) {
+        queryClient.setQueryData(teamMembersQueryKey, context.previousTeamData)
+      }
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.message || t('toasts.memberStatusError'),
+        variant: 'destructive',
+      })
+    },
+    onSuccess: (result) => {
+      const updatedMember = result.data
+      queryClient.setQueryData<PaginatedTeamResponse>(teamMembersQueryKey, old => {
+        if (!old) return old
+        return {
+          ...old,
+          data: old.data.map(member => (member.id === updatedMember.id ? { ...member, ...updatedMember } : member)),
+        }
+      })
+
+      toast({
+        title: updatedMember.active ? t('toasts.memberActivatedTitle') : t('toasts.memberDeactivatedTitle'),
+        description: updatedMember.active
+          ? t('toasts.memberActivatedDesc', {
+              firstName: updatedMember.firstName,
+              lastName: updatedMember.lastName,
+            })
+          : t('toasts.memberDeactivatedDesc', {
+              firstName: updatedMember.firstName,
+              lastName: updatedMember.lastName,
+            }),
+      })
+    },
+  })
+
+  const canToggleMember = useCallback(
+    (member: TeamMember) => {
+      if (!staffInfo?.role) return false
+      if (!can('teams:update')) return false
+      if (member.role === StaffRole.OWNER) return false
+      return canModifyRole(staffInfo.role, member.role)
+    },
+    [can, staffInfo?.role],
+  )
 
   // Filter team members to hide superadmins from non-superadmin users
   // CRITICAL: Must be memoized to prevent infinite re-render loop
@@ -423,11 +492,24 @@ export default function Teams() {
       {
         accessorKey: 'active',
         header: t('columns.status'),
-        cell: ({ row }) => (
-          <Badge variant={row.original.active ? 'default' : 'secondary'}>
-            {row.original.active ? t('status.active') : t('status.inactive')}
-          </Badge>
-        ),
+        cell: ({ row }) => {
+          const isActive = row.original.active
+          const canToggle = canToggleMember(row.original)
+          return (
+            <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+              <Switch
+                checked={isActive}
+                onCheckedChange={checked =>
+                  toggleMemberStatusMutation.mutate({ memberId: row.original.id, active: checked })
+                }
+                disabled={!canToggle || toggleMemberStatusMutation.isPending}
+              />
+              <span className="text-sm text-muted-foreground">
+                {isActive ? t('status.active') : t('status.inactive')}
+              </span>
+            </div>
+          )
+        },
       },
       {
         accessorKey: 'totalSales',
@@ -489,7 +571,17 @@ export default function Teams() {
         ),
       },
     ],
-    [t, tCommon, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle],
+    [
+      t,
+      tCommon,
+      i18n.language,
+      staffInfo?.role,
+      getRoleDisplayName,
+      getRoleBadgeColorWithCustom,
+      getRoleBadgeStyle,
+      canToggleMember,
+      toggleMemberStatusMutation,
+    ],
   )
 
   const invitationColumns: ColumnDef<Invitation>[] = useMemo(
@@ -542,8 +634,8 @@ export default function Teams() {
         cell: ({ row }) => {
           const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
 
-          if (isExpired) {
-            return (
+          return (
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -552,18 +644,18 @@ export default function Teams() {
               >
                 {t('actions.resend')}
               </Button>
-            )
-          }
-
-          return (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => cancelInvitationMutation.mutate(row.original.id)}
-              disabled={cancelInvitationMutation.isPending}
-            >
-              {t('actions.cancel')}
-            </Button>
+              {!isExpired && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cancelInvitationMutation.mutate(row.original.id)}
+                  disabled={cancelInvitationMutation.isPending}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {t('actions.cancel')}
+                </Button>
+              )}
+            </div>
           )
         },
       },

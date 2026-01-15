@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CheckCircle, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { CheckCircle, AlertCircle, Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { DateTime } from 'luxon'
 import { getIntlLocale } from '@/utils/i18n-locale'
@@ -26,7 +26,12 @@ const createAcceptInvitationSchema = (t: any) =>
     .object({
       firstName: z.string().min(1, t('validation.firstNameRequired')).max(50, t('validation.firstNameMax')),
       lastName: z.string().min(1, t('validation.lastNameRequired')).max(50, t('validation.lastNameMax')),
-      password: z.string().min(8, t('validation.passwordMin')),
+      password: z
+        .string()
+        .min(8, t('validation.passwordMin'))
+        .regex(/[A-Z]/, t('validation.passwordUppercase'))
+        .regex(/[a-z]/, t('validation.passwordLowercase'))
+        .regex(/[0-9]/, t('validation.passwordNumber')),
       confirmPassword: z.string(),
       pin: z
         .string()
@@ -51,6 +56,7 @@ interface InvitationDetails {
   id: string
   email: string
   role: string
+  roleDisplayName?: string // Custom role name from venue settings (if configured)
   organizationName: string
   venueName: string
   inviterName: string
@@ -83,6 +89,7 @@ export default function InviteAccept() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isValid },
   } = useForm<AcceptInvitationFormData>({
     resolver: zodResolver(createAcceptInvitationSchema(t)),
@@ -95,6 +102,13 @@ export default function InviteAccept() {
       pin: '',
     },
   })
+
+  const passwordValue = watch('password') || ''
+  const hasMinLength = passwordValue.length >= 8
+  const hasUppercase = /[A-Z]/.test(passwordValue)
+  const hasLowercase = /[a-z]/.test(passwordValue)
+  const hasNumber = /[0-9]/.test(passwordValue)
+  const allRequirementsMet = hasMinLength && hasUppercase && hasLowercase && hasNumber
 
   // Fetch invitation details
   useEffect(() => {
@@ -404,7 +418,7 @@ export default function InviteAccept() {
                 {t('at')} <strong>{invitationDetails.venueName}</strong>
               </>
             )}{' '}
-            {t('as')} <strong>{invitationDetails.role}</strong>
+            {t('as')} <strong>{invitationDetails.roleDisplayName || invitationDetails.role}</strong>
           </CardDescription>
         </CardHeader>
 
@@ -474,6 +488,15 @@ export default function InviteAccept() {
                 </button>
               </div>
               {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+              <div className="space-y-2 text-sm">
+                <p className="font-medium text-foreground">{t('passwordRequirements.title')}</p>
+                <div className="space-y-1">
+                  <RequirementItem met={hasMinLength} text={t('passwordRequirements.minLength')} />
+                  <RequirementItem met={hasUppercase} text={t('passwordRequirements.uppercase')} />
+                  <RequirementItem met={hasLowercase} text={t('passwordRequirements.lowercase')} />
+                  <RequirementItem met={hasNumber} text={t('passwordRequirements.number')} />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -506,7 +529,11 @@ export default function InviteAccept() {
               <p className="text-xs text-muted-foreground">{t('pinHelp')}</p>
             </div>
 
-            <Button type="submit" disabled={!isValid || acceptInvitationMutation.isPending} className="w-full">
+            <Button
+              type="submit"
+              disabled={!isValid || acceptInvitationMutation.isPending || !allRequirementsMet}
+              className="w-full"
+            >
               {acceptInvitationMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -519,7 +546,12 @@ export default function InviteAccept() {
           </form>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>{t('termsText')}</p>
+            <p>
+              {t('termsText')}{' '}
+              <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
+                {t('termsLink')}
+              </Link>
+            </p>
             <p className="mt-2">
               {t('haveAccount')}{' '}
               <button onClick={() => navigate('/login')} className="text-blue-600 hover:text-blue-800 underline">
@@ -529,6 +561,24 @@ export default function InviteAccept() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+interface RequirementItemProps {
+  met: boolean
+  text: string
+}
+
+const RequirementItem = ({ met, text }: RequirementItemProps) => {
+  return (
+    <div className="flex items-center gap-2">
+      {met ? (
+        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+      ) : (
+        <X className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={met ? 'text-foreground' : 'text-muted-foreground'}>{text}</span>
     </div>
   )
 }

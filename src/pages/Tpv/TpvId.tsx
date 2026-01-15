@@ -314,7 +314,7 @@ export default function TpvId() {
       return response.data
     },
     enabled: Boolean(venueId && tpvId),
-    refetchInterval: 10000, // Poll every 10 seconds as fallback for Socket.IO
+    refetchInterval: 60000, // 60s fallback polling (Socket.IO handles real-time via tpv_status_update)
     retry: (failureCount, error: any) => {
       // Don't retry if it's a 404 error
       if (error?.response?.status === 404) {

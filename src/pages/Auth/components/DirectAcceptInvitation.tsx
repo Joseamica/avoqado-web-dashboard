@@ -8,6 +8,7 @@ interface InvitationDetails {
   id: string
   email: string
   role: string
+  roleDisplayName?: string | null // Custom role name from venue settings (if configured)
   organizationName: string
   venueName: string
   inviterName: string
@@ -42,7 +43,7 @@ export function DirectAcceptInvitation({
                 {t('at')} <strong>{invitationDetails.venueName}</strong>
               </>
             )}{' '}
-            {t('as')} <strong>{invitationDetails.role}</strong>
+            {t('as')} <strong>{invitationDetails.roleDisplayName || invitationDetails.role}</strong>
           </CardDescription>
         </CardHeader>
 

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState, useRef } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,6 +18,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useRoleConfig } from '@/hooks/use-role-config'
 import { StaffRole } from '@/types'
@@ -53,7 +63,11 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
   const { t } = useTranslation('team')
   const { t: tCommon } = useTranslation()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [selectedRole, setSelectedRole] = useState<StaffRole | undefined>()
+  const [showResendDialog, setShowResendDialog] = useState(false)
+  const [pendingResendEmail, setPendingResendEmail] = useState<string | null>(null)
+  const pendingInvitationIdRef = useRef<string | null>(null)
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 
   const ROLE_OPTIONS = [
@@ -70,6 +84,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     register,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isValid },
     reset,
   } = useForm<InviteTeamMemberFormData>({
@@ -89,12 +104,49 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
       onSuccess()
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || t('invite.invitationError')
+      const errorMessage = error.response?.data?.message || ''
+      const invitationId = error.response?.data?.existingInvitationId
+
+      // Check if it's a "pending invitation exists" error
+      if (errorMessage.includes('pending invitation') || errorMessage.includes('invitación pendiente')) {
+        // Store the invitation ID if provided, otherwise we'll need to look it up
+        pendingInvitationIdRef.current = invitationId || null
+        setPendingResendEmail(error.response?.data?.email || null)
+        setShowResendDialog(true)
+        return
+      }
+
       toast({
-        title: tCommon('common.error'),
-        description: errorMessage,
+        title: tCommon('error'),
+        description: errorMessage || t('invite.invitationError'),
         variant: 'destructive',
       })
+    },
+  })
+
+  // Mutation for resending invitation
+  const resendInvitationMutation = useMutation({
+    mutationFn: (invitationId: string) => teamService.resendInvitation(venueId, invitationId),
+    onSuccess: () => {
+      toast({
+        title: t('toasts.invitationResent'),
+        description: t('toasts.invitationResentDesc'),
+      })
+      queryClient.invalidateQueries({ queryKey: ['team-invitations', venueId] })
+      reset()
+      setSelectedRole(undefined)
+      setShowResendDialog(false)
+      setPendingResendEmail(null)
+      pendingInvitationIdRef.current = null
+      onSuccess()
+    },
+    onError: (error: any) => {
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.message || t('toasts.invitationResendError'),
+        variant: 'destructive',
+      })
+      setShowResendDialog(false)
     },
   })
 
@@ -107,9 +159,42 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
     setValue('role', role, { shouldValidate: true })
   }
 
+  const handleResendConfirm = async () => {
+    if (pendingInvitationIdRef.current) {
+      // We have the invitation ID, resend directly
+      resendInvitationMutation.mutate(pendingInvitationIdRef.current)
+    } else {
+      // Fetch pending invitations to find the one with this email
+      try {
+        const response = await teamService.getPendingInvitations(venueId)
+        const email = pendingResendEmail || getValues('email')
+        const existingInvitation = response.data.find(inv => inv.email === email)
+
+        if (existingInvitation) {
+          resendInvitationMutation.mutate(existingInvitation.id)
+        } else {
+          toast({
+            title: tCommon('error'),
+            description: t('invite.invitationNotFound'),
+            variant: 'destructive',
+          })
+          setShowResendDialog(false)
+        }
+      } catch (error) {
+        toast({
+          title: tCommon('error'),
+          description: t('invite.invitationError'),
+          variant: 'destructive',
+        })
+        setShowResendDialog(false)
+      }
+    }
+  }
+
   const selectedRoleInfo = ROLE_OPTIONS.find(option => option.value === selectedRole)
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Email Field */}
       <div className="space-y-2">
@@ -228,5 +313,27 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
         </Button>
       </div>
     </form>
+
+    {/* Resend Invitation Confirmation Dialog */}
+    <AlertDialog open={showResendDialog} onOpenChange={setShowResendDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('invite.resendDialog.title')}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t('invite.resendDialog.description', { email: pendingResendEmail || getValues('email') })}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleResendConfirm}
+            disabled={resendInvitationMutation.isPending}
+          >
+            {resendInvitationMutation.isPending ? t('invite.resendDialog.resending') : t('invite.resendDialog.resend')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

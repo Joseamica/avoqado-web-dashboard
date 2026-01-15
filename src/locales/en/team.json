@@ -68,7 +68,14 @@
       "roleRequired": "Role is required",
       "messageMax": "Message cannot exceed 500 characters"
     },
-    "invitationError": "Failed to send invitation"
+    "invitationError": "Failed to send invitation",
+    "invitationNotFound": "Pending invitation not found",
+    "resendDialog": {
+      "title": "Pending invitation",
+      "description": "A pending invitation already exists for {{email}}. Would you like to resend the invitation?",
+      "resend": "Resend invitation",
+      "resending": "Resending..."
+    }
   },
   "header": {
     "title": "Team Members",
@@ -133,6 +140,11 @@
     "hardDeleting": "Deleting..."
   },
   "toasts": {
+    "memberActivatedTitle": "Member activated",
+    "memberActivatedDesc": "{{firstName}} {{lastName}} can now access the system.",
+    "memberDeactivatedTitle": "Member deactivated",
+    "memberDeactivatedDesc": "{{firstName}} {{lastName}} can no longer access the system.",
+    "memberStatusError": "Failed to update member status",
     "memberRemovedTitle": "Member deactivated",
     "memberRemovedDesc": "{{firstName}} {{lastName}} has been deactivated. Their history remains in the system.",
     "memberRemoveErrorTitle": "Failed to deactivate",

@@ -167,7 +167,33 @@
       "requestedBy": "Requested By",
       "time": "Time"
     },
-    "pagination": "Showing {{start}} to {{end}} of {{total}} commands"
+    "resultMessages": {
+      "Terminal unlocked successfully": "Terminal unlocked successfully",
+      "Terminal locked successfully": "Terminal locked successfully",
+      "Terminal is not locked": "Terminal is not locked",
+      "Maintenance mode enabled": "Maintenance mode enabled",
+      "Maintenance mode disabled": "Maintenance mode disabled",
+      "Terminal already in maintenance mode": "Terminal already in maintenance mode",
+      "Terminal was not in maintenance mode": "Terminal was not in maintenance mode",
+      "Restarting application...": "Restarting application...",
+      "Application shutting down...": "Application shutting down...",
+      "Cache cleared successfully": "Cache cleared successfully",
+      "Data sync initiated": "Data sync initiated",
+      "Menu refresh initiated": "Menu refresh initiated",
+      "Factory reset completed": "Factory reset completed",
+      "Logs exported successfully": "Logs exported successfully",
+      "Config updated": "Config updated",
+      "Merchant data updated": "Merchant data updated",
+      "Terminal reactivated": "Terminal reactivated",
+      "Command received": "Command received",
+      "Command executed": "Command executed",
+      "Command failed": "Command failed",
+      "Unknown command": "Unknown command"
+    },
+    "pagination": "Showing {{start}} to {{end}} of {{total}} commands",
+    "restarting": "Restarting...",
+    "syncing": "Syncing...",
+    "awaitingHeartbeat": "Waiting for terminal to reconnect"
   },
   "superadmin": {
     "terminalTypes": {

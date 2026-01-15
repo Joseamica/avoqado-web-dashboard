@@ -31,7 +31,8 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   // Fetch command history
-  // Toast/Square pattern: Socket.IO invalidation + polling fallback every 10s
+  // Real-time updates handled by TpvId.tsx Socket.IO listener (invalidates this query)
+  // Polling as fallback only - 60s is enough since Socket.IO handles real-time
   const { data, isLoading, isError } = useQuery({
     queryKey: ['commandHistory', venueId, terminalId, page, pageSize, statusFilter],
     queryFn: () =>
@@ -41,7 +42,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
         status: statusFilter !== 'all' ? statusFilter : undefined,
       }),
     enabled: Boolean(terminalId) && Boolean(venueId),
-    refetchInterval: 10000, // Poll every 10 seconds as fallback for Socket.IO
+    refetchInterval: 60000, // 60s fallback polling (Socket.IO handles real-time updates)
   })
 
   const commands = useMemo(() => data?.commands || [], [data?.commands])
@@ -170,6 +171,16 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
     }
   }
 
+  // Translate result message from TPV (messages come in English from Android app)
+  const translateResultMessage = (message: string | null | undefined): string => {
+    if (!message) return '-'
+    // Try to find a translation for the exact message
+    const translationKey = `commands.resultMessages.${message}`
+    const translated = t(translationKey, { defaultValue: '' })
+    // If translation exists (not empty), return it; otherwise return the original message
+    return translated || message
+  }
+
   // Render command row
   const renderCommandRow = (command: TpvCommand) => (
     <TableRow key={command.id}>
@@ -187,7 +198,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
         </TooltipProvider>
       </TableCell>
       <TableCell>{getStatusBadge(command.status, command.resultStatus)}</TableCell>
-      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{command.resultMessage || '-'}</TableCell>
+      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{translateResultMessage(command.resultMessage)}</TableCell>
       <TableCell className="text-sm text-muted-foreground">{command.requestedByEmail || t('commands.system')}</TableCell>
       <TableCell className="text-sm text-muted-foreground">
         <TooltipProvider>
