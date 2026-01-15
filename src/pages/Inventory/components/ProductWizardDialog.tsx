@@ -75,6 +75,7 @@ interface Step3RecipeFormData {
 
 export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, productId }: ProductWizardDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId, venueSlug } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -247,7 +248,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     },
     onError: (error: any) => {
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('wizard.error'),
         variant: 'destructive',
       })
@@ -352,7 +353,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // For other errors, show error toast
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('wizard.error'),
         variant: 'destructive',
       })
@@ -673,7 +674,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // In edit mode, disable inventory tracking
         if (!productId) {
           toast({
-            title: t('common.error'),
+            title: tCommon('error'),
             description: 'Missing product ID',
             variant: 'destructive',
           })
@@ -702,7 +703,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           })
           .catch((error: any) => {
             toast({
-              title: t('common.error'),
+              title: tCommon('error'),
               description: error.response?.data?.message || 'Failed to disable inventory tracking',
               variant: 'destructive',
             })
@@ -713,7 +714,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // In create mode, submit product without inventory
       if (!step1Data) {
         toast({
-          title: t('common.error'),
+          title: tCommon('error'),
           description: 'Missing product data',
           variant: 'destructive',
         })
@@ -744,7 +745,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (mode === 'edit') {
       if (!selectedInventoryMethod) {
         toast({
-          title: t('common.error'),
+          title: tCommon('error'),
           description: 'Missing inventory method',
           variant: 'destructive',
         })
@@ -763,7 +764,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         // Validate that at least one ingredient is added
         if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
           toast({
-            title: t('common.error'),
+            title: tCommon('error'),
             description: t('recipes.messages.noRecipe'),
             variant: 'destructive',
           })
@@ -782,7 +783,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         if (invalidIngredients.length > 0) {
           toast({
-            title: t('common.error'),
+            title: tCommon('error'),
             description: 'Some ingredients are missing or invalid. Please check your recipe.',
             variant: 'destructive',
           })
@@ -810,7 +811,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     // In create mode, we need all wizard data
     if (!step1Data || !step2Data) {
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: 'Missing wizard data',
         variant: 'destructive',
       })
@@ -830,7 +831,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       // Validate that at least one ingredient is added
       if (!recipeData.ingredients || recipeData.ingredients.length === 0) {
         toast({
-          title: t('common.error'),
+          title: tCommon('error'),
           description: t('recipes.messages.noRecipe'),
           variant: 'destructive',
         })
@@ -849,7 +850,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       if (invalidIngredients.length > 0) {
         toast({
-          title: t('common.error'),
+          title: tCommon('error'),
           description: 'Some ingredients are missing or invalid. Please check your recipe.',
           variant: 'destructive',
         })
@@ -1118,7 +1119,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </Button>
                 <Button type="submit" disabled={isLoading || uploading || !!imageForCrop}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t('common.next')}
+                  {tCommon('next')}
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </DialogFooter>
@@ -1306,7 +1307,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
               <DialogFooter className="flex justify-between">
                 <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
                   <ChevronLeft className="mr-2 h-4 w-4" />
-                  {t('common.back')}
+                  {tCommon('back')}
                 </Button>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
@@ -1314,7 +1315,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   </Button>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {step2Form.watch('useInventory') ? t('common.next') : t('wizard.finish')}
+                    {step2Form.watch('useInventory') ? tCommon('next') : t('wizard.finish')}
                     {step2Form.watch('useInventory') ? <ChevronRight className="ml-2 h-4 w-4" /> : <Check className="ml-2 h-4 w-4" />}
                   </Button>
                 </div>
@@ -1424,7 +1425,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   <DialogFooter className="flex justify-between">
                     <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
                       <ChevronLeft className="mr-2 h-4 w-4" />
-                      {t('common.back')}
+                      {tCommon('back')}
                     </Button>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
@@ -1622,7 +1623,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                   <DialogFooter className="flex justify-between">
                     <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
                       <ChevronLeft className="mr-2 h-4 w-4" />
-                      {t('common.back')}
+                      {tCommon('back')}
                     </Button>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>

@@ -18,6 +18,7 @@ export default function Overview() {
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const { t, i18n } = useTranslation('analytics')
+  const { t: tCommon } = useTranslation('common')
   const { venueId, venue } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
 
@@ -41,7 +42,7 @@ export default function Overview() {
     // Don't fetch if venueId is not available
     if (!venueId) {
       setLoading(false)
-      setErr(t('errorPrefix') + ' ' + t('common.error.noVenue', 'No venue selected'))
+      setErr(t('errorPrefix') + ' ' + tCommon('error.noVenue', 'No venue selected'))
       return
     }
 
@@ -54,7 +55,7 @@ export default function Overview() {
         }
       })
       .catch(e => {
-        if (mounted) setErr(e.message || e.response?.data?.message || t('common.errorUnexpected'))
+        if (mounted) setErr(e.message || e.response?.data?.message || tCommon('errorUnexpected'))
       })
       .finally(() => mounted && setLoading(false))
     return () => {

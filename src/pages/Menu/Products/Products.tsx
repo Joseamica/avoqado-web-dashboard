@@ -165,7 +165,7 @@ export default function Products() {
 
       // Show error toast with more context
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: 'Failed to update product status. Please try again.',
         variant: 'destructive',
       })
@@ -178,7 +178,7 @@ export default function Products() {
       // If current state doesn't match what we expect, show warning
       if (currentProduct && currentProduct.active !== variables.status) {
         toast({
-          title: t('common.warning'),
+          title: tCommon('warning'),
           description: 'Product status may have been modified by another user. Refreshing data...',
           variant: 'default',
         })
@@ -210,7 +210,7 @@ export default function Products() {
     onError: () => {
       setDeleteDialogOpen(false)
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: t('products.detail.toasts.saveErrorDesc'),
         variant: 'destructive',
       })
@@ -247,7 +247,7 @@ export default function Products() {
     },
     onError: (error: any) => {
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || 'Failed to adjust stock',
         variant: 'destructive',
       })
@@ -471,7 +471,7 @@ export default function Products() {
                   className="cursor-pointer"
                 >
                   <Edit className="mr-2 h-4 w-4" />
-                  {t('common.edit')}
+                  {tCommon('edit')}
                 </DropdownMenuItem>
               </PermissionGate>
               {/* ✅ TOAST POS PATTERN: Quick stock adjustment from product list */}
@@ -500,7 +500,7 @@ export default function Products() {
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  {t('common.delete')}
+                  {tCommon('delete')}
                 </DropdownMenuItem>
               </PermissionGate>
             </DropdownMenuContent>

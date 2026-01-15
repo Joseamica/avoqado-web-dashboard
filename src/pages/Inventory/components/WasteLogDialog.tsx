@@ -24,6 +24,7 @@ interface WasteLogDialogProps {
 
 export function WasteLogDialog({ open, onOpenChange, rawMaterial }: WasteLogDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -95,7 +96,7 @@ export function WasteLogDialog({ open, onOpenChange, rawMaterial }: WasteLogDial
     },
     onError: (error: any) => {
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: error.response?.data?.message || t('waste.errorLogging'),
         variant: 'destructive',
       })
@@ -271,7 +272,7 @@ export function WasteLogDialog({ open, onOpenChange, rawMaterial }: WasteLogDial
               onClick={() => onOpenChange(false)}
               disabled={logWasteMutation.isPending}
             >
-              {t('common.cancel')}
+              {tCommon('cancel')}
             </Button>
             <Button
               type="submit"

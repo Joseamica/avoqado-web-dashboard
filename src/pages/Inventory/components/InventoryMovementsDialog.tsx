@@ -18,6 +18,7 @@ interface InventoryMovementsDialogProps {
 
 export function InventoryMovementsDialog({ open, onOpenChange, product }: InventoryMovementsDialogProps) {
   const { t, i18n } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const localeCode = getIntlLocale(i18n.language)
   const { formatUnitWithQuantity } = useUnitTranslation()
@@ -78,7 +79,7 @@ export function InventoryMovementsDialog({ open, onOpenChange, product }: Invent
         ) : !movements || movements.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            <p className="text-sm text-muted-foreground">{tCommon('noData')}</p>
           </div>
         ) : (
           <ScrollArea className="h-[500px] pr-4">

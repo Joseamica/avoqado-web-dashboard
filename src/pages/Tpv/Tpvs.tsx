@@ -56,6 +56,7 @@ export default function Tpvs() {
   const { user } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
+  const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
@@ -281,7 +282,7 @@ export default function Tpvs() {
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || error.message
       toast({
-        title: t('common.error', { defaultValue: 'Error' }),
+        title: tCommon('error', { defaultValue: 'Error' }),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -817,15 +818,15 @@ export default function Tpvs() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>{t('common.cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
+              <AlertDialogCancel>{tCommon('cancel', { defaultValue: 'Cancelar' })}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => terminalToDelete && deleteMutation.mutate(terminalToDelete.id)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 disabled={deleteMutation.isPending}
               >
                 {deleteMutation.isPending
-                  ? t('common.deleting', { defaultValue: 'Eliminando...' })
-                  : t('common.delete', { defaultValue: 'Eliminar' })}
+                  ? tCommon('deleting', { defaultValue: 'Eliminando...' })
+                  : tCommon('delete', { defaultValue: 'Eliminar' })}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -65,6 +65,7 @@ interface AddIngredientForm {
 
 export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTempIngredient }: AddIngredientDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { t: tMenu } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
@@ -328,7 +329,7 @@ export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTe
                   </div>
                 ) : (
                   <div className="flex items-center justify-center py-8">
-                    <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+                    <p className="text-sm text-muted-foreground">{tCommon('noData')}</p>
                   </div>
                 )}
               </ScrollArea>

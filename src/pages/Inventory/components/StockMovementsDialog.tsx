@@ -29,6 +29,7 @@ interface Movement {
 
 export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockMovementsDialogProps) {
   const { t, i18n } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { formatUnitWithQuantity } = useUnitTranslation()
   const localeCode = getIntlLocale(i18n.language)
@@ -86,7 +87,7 @@ export function StockMovementsDialog({ open, onOpenChange, rawMaterial }: StockM
         ) : !movements || movements.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+            <p className="text-sm text-muted-foreground">{tCommon('noData')}</p>
           </div>
         ) : (
           <ScrollArea className="h-[500px] pr-4">

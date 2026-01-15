@@ -127,10 +127,10 @@ const formatDateShort = (dateString: string | undefined, locale: string, timezon
   })
 }
 
-const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
+const copyToClipboard = (text: string, label: string, toast: any, t: any, tCommon: any) => {
   navigator.clipboard.writeText(text)
   toast({
-    title: t('common.copied'),
+    title: tCommon('copied'),
     description: t('detail.copiedToClipboard', { label }),
   })
 }
@@ -1169,7 +1169,7 @@ export default function ShiftId() {
                           variant="ghost"
                           size="sm"
                           className="h-6 w-6 p-0"
-                          onClick={() => copyToClipboard(shift.id || '', 'System ID', toast, t)}
+                          onClick={() => copyToClipboard(shift.id || '', 'System ID', toast, t, tCommon)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>

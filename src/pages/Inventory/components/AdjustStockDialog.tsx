@@ -24,6 +24,7 @@ interface AdjustStockDialogProps {
 
 export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustStockDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -171,7 +172,7 @@ export function AdjustStockDialog({ open, onOpenChange, rawMaterial }: AdjustSto
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''} {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity || 0), rawMaterial.unit)}
+              {quantity > 0 ? tCommon('add') : quantity < 0 ? tCommon('subtract') : ''} {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(Math.abs(quantity || 0), rawMaterial.unit)}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
           </div>

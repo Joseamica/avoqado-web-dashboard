@@ -58,6 +58,7 @@ function ContactImagesSkeleton() {
 
 export default function ContactImages() {
   const { t } = useTranslation(['venue', 'common'])
+  const { t: tCommon } = useTranslation('common')
   const { venueId, venueSlug } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
@@ -426,7 +427,7 @@ export default function ContactImages() {
                           <div className="flex flex-col items-center space-y-2">
                             <img src={imageUrl} alt={t('edit.logoAlt', { defaultValue: 'Logo' })} className="max-w-xs max-h-48 object-cover rounded-md" />
                             <Button type="button" variant="outline" onClick={handleFileRemove} disabled={uploading}>
-                              {t('common.remove', { defaultValue: 'Quitar' })}
+                              {tCommon('remove', { defaultValue: 'Quitar' })}
                             </Button>
                           </div>
                         ) : imageForCrop ? (

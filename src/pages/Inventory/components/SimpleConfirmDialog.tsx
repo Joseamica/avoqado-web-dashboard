@@ -45,9 +45,10 @@ export function SimpleConfirmDialog({
   variant = 'default',
 }: SimpleConfirmDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
 
-  const resolvedConfirmLabel = confirmLabel ?? t('common.continue')
-  const resolvedCancelLabel = cancelLabel ?? t('common.cancel')
+  const resolvedConfirmLabel = confirmLabel ?? tCommon('continue')
+  const resolvedCancelLabel = cancelLabel ?? tCommon('cancel')
   const handleConfirm = async () => {
     await onConfirm()
   }

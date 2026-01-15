@@ -31,8 +31,8 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 // Boolean badge helper
 function BooleanBadge({ value }: { value: boolean }) {
-  const { t } = useTranslation()
-  return <Badge variant={value ? 'default' : 'secondary'}>{value ? t('common.yes') : t('common.no')}</Badge>
+  const { t: tCommon } = useTranslation('common')
+  return <Badge variant={value ? 'default' : 'secondary'}>{value ? tCommon('yes') : tCommon('no')}</Badge>
 }
 
 // Days of week badges

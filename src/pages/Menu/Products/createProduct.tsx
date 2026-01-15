@@ -42,6 +42,7 @@ type CreateProductPayload = {
 
 export default function CreateProduct() {
   const { t } = useTranslation('menu')
+  const { t: tCommon } = useTranslation('common')
   const { venue, venueId, venueSlug } = useCurrentVenue()
   const { checkFeatureAccess } = useAuth()
   // const [selectedCategories, setSelectedCategories] = useState<Option[]>([])
@@ -546,7 +547,7 @@ export default function CreateProduct() {
         mode="create"
         onSuccess={_productId => {
           toast({
-            title: t('products.create.toasts.created', { name: t('common.product') }),
+            title: t('products.create.toasts.created', { name: tCommon('product') }),
             description: t('products.create.toasts.createdDesc'),
           })
           navigate(from)

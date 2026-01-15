@@ -188,10 +188,10 @@ const formatOrderNumber = (orderNumber?: string | null): string => {
   return digits.length > 6 ? digits.slice(-6) : digits
 }
 
-const copyToClipboard = (text: string, label: string, toast: any, t: any) => {
+const copyToClipboard = (text: string, label: string, toast: any, t: any, tCommon: any) => {
   navigator.clipboard.writeText(text)
   toast({
-    title: t('common.copied'),
+    title: tCommon('copied'),
     description: t('detail.copiedToClipboard', { label }),
   })
 }
@@ -383,6 +383,7 @@ const CollapsibleSection = ({
 // ========== MAIN COMPONENT ==========
 export default function OrderId() {
   const { t, i18n } = useTranslation('orders')
+  const { t: tCommon } = useTranslation('common')
   const { orderId } = useParams<{ orderId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
@@ -514,7 +515,7 @@ export default function OrderId() {
               <div className="flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(formatOrderNumber(order.orderNumber), t('detail.orderNumber', { defaultValue: 'Número de orden' }), toast, t)}>
+                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(formatOrderNumber(order.orderNumber), t('detail.orderNumber', { defaultValue: 'Número de orden' }), toast, t, tCommon)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -552,12 +553,12 @@ export default function OrderId() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
+                        <AlertDialogTitle>{tCommon('areYouSure')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('detail.deleteWarning')}</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>{t('common.delete')}</AlertDialogAction>
+                        <AlertDialogCancel>{tCommon('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteOrderMutation.mutate()}>{tCommon('delete')}</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

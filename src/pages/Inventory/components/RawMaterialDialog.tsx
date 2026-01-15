@@ -25,6 +25,7 @@ interface RawMaterialDialogProps {
 
 export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: RawMaterialDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -154,7 +155,7 @@ export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: Raw
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? t('rawMaterials.add') : t('rawMaterials.edit')}</DialogTitle>
           <DialogDescription>
-            {mode === 'create' ? t('rawMaterials.subtitle') : `${t('common.edit')} ${rawMaterial?.name}`}
+            {mode === 'create' ? t('rawMaterials.subtitle') : `${tCommon('edit')} ${rawMaterial?.name}`}
           </DialogDescription>
         </DialogHeader>
 

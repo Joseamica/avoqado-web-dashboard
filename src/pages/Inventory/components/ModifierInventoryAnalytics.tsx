@@ -16,6 +16,7 @@ type DateRange = '7d' | '30d' | '90d'
 
 export function ModifierInventoryAnalytics() {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const [dateRange, setDateRange] = useState<DateRange>('30d')
 
@@ -60,13 +61,13 @@ export function ModifierInventoryAnalytics() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-          <h3 className="text-lg font-medium mb-2">{t('common.error', 'Error Loading Data')}</h3>
+          <h3 className="text-lg font-medium mb-2">{tCommon('error', 'Error Loading Data')}</h3>
           <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
-            {error instanceof Error ? error.message : t('common.errorGeneric', 'An error occurred while loading modifier analytics.')}
+            {error instanceof Error ? error.message : tCommon('errorGeneric', 'An error occurred while loading modifier analytics.')}
           </p>
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            {t('common.retry', 'Retry')}
+            {tCommon('retry', 'Retry')}
           </Button>
         </CardContent>
       </Card>
@@ -91,9 +92,9 @@ export function ModifierInventoryAnalytics() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">{t('common.last7Days', 'Last 7 days')}</SelectItem>
-              <SelectItem value="30d">{t('common.last30Days', 'Last 30 days')}</SelectItem>
-              <SelectItem value="90d">{t('common.last90Days', 'Last 90 days')}</SelectItem>
+              <SelectItem value="7d">{tCommon('last7Days', 'Last 7 days')}</SelectItem>
+              <SelectItem value="30d">{tCommon('last30Days', 'Last 30 days')}</SelectItem>
+              <SelectItem value="90d">{tCommon('last90Days', 'Last 90 days')}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
@@ -124,7 +125,7 @@ export function ModifierInventoryAnalytics() {
               {summary.totalModifiersLowStock}
               {summary.totalModifiersLowStock > 0 && (
                 <Badge variant="destructive" className="text-xs">
-                  {t('common.attention', 'Attention')}
+                  {tCommon('attention', 'Attention')}
                 </Badge>
               )}
             </CardTitle>

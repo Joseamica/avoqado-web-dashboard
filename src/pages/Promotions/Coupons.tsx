@@ -114,20 +114,20 @@ export default function Coupons() {
   const formatValidityPeriod = useCallback(
     (coupon: Coupon) => {
       if (!coupon.validFrom && !coupon.validUntil) {
-        return t('common.validAlways')
+        return tCommon('validAlways')
       }
       if (coupon.validFrom && coupon.validUntil) {
         const from = new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language))
         const to = new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language))
-        return t('common.dateRange', { from, to })
+        return tCommon('dateRange', { from, to })
       }
       if (coupon.validFrom) {
-        return t('common.validFrom', { date: new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
+        return tCommon('validFrom', { date: new Date(coupon.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
       }
       if (coupon.validUntil) {
-        return t('common.validUntil', { date: new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language)) })
+        return tCommon('validUntil', { date: new Date(coupon.validUntil).toLocaleDateString(getIntlLocale(i18n.language)) })
       }
-      return t('common.validAlways')
+      return tCommon('validAlways')
     },
     [i18n.language, t],
   )
@@ -162,13 +162,13 @@ export default function Coupons() {
     (discount?: Discount) => {
       if (!discount) return '—'
       if (discount.type === 'PERCENTAGE') {
-        return `${discount.value}% ${t('common.off')}`
+        return `${discount.value}% ${tCommon('off')}`
       } else if (discount.type === 'FIXED_AMOUNT') {
         return (
           new Intl.NumberFormat(getIntlLocale(i18n.language), {
             style: 'currency',
             currency: 'MXN',
-          }).format(discount.value) + ` ${t('common.off')}`
+          }).format(discount.value) + ` ${tCommon('off')}`
         )
       } else if (discount.type === 'COMP') {
         return '100%'
@@ -217,8 +217,8 @@ export default function Coupons() {
         cell: ({ row }) => (
           <div className="text-center">
             {row.original.maxUses
-              ? t('common.usesFormat', { current: row.original.currentUses, max: row.original.maxUses })
-              : t('common.usesUnlimited', { current: row.original.currentUses })}
+              ? tCommon('usesFormat', { current: row.original.currentUses, max: row.original.maxUses })
+              : tCommon('usesUnlimited', { current: row.original.currentUses })}
           </div>
         ),
       },

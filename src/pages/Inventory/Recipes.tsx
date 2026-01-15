@@ -35,6 +35,7 @@ interface ProductWithRecipe {
 
 export default function Recipes() {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -175,8 +176,8 @@ export default function Recipes() {
       },
       {
         id: 'recipeStatus',
-        meta: { label: t('common.status') },
-        header: t('common.status'),
+        meta: { label: tCommon('status') },
+        header: tCommon('status'),
         cell: ({ row }) => {
           const product = row.original
           const hasRecipe = !!product.recipe
@@ -320,7 +321,7 @@ export default function Recipes() {
                 {hasRecipe ? (
                   <>
                     <Edit className="h-4 w-4 mr-1" />
-                    {t('common.edit')}
+                    {tCommon('edit')}
                   </>
                 ) : (
                   <>
@@ -366,7 +367,7 @@ export default function Recipes() {
             disabled={isLoading}
           >
             <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
+            {tCommon('refresh')}
           </Button>
         </div>
 
@@ -407,7 +408,7 @@ export default function Recipes() {
 
           <Select value={recipeFilter} onValueChange={setRecipeFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('common.filter')} />
+              <SelectValue placeholder={tCommon('filter')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>

@@ -30,6 +30,7 @@ interface PermissionSearchProps {
  */
 export function PermissionSearch({ value, onChange, placeholder, className }: PermissionSearchProps) {
   const { t } = useTranslation('settings')
+  const { t: tCommon } = useTranslation('common')
 
   return (
     <div className={cn('relative', className)}>
@@ -46,7 +47,7 @@ export function PermissionSearch({ value, onChange, placeholder, className }: Pe
           type="button"
           onClick={() => onChange('')}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          aria-label={t('common.clear', 'Clear')}
+          aria-label={tCommon('clear', 'Clear')}
         >
           <X className="h-4 w-4" />
         </button>

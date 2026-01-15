@@ -36,9 +36,50 @@ export default {
 
         // Check for /venues/${venueSlug} or /venues/${venue.slug} patterns
         if (/\/venues\/\$\{venue/.test(text)) {
-          // Exclude files in Organization directory (intentional cross-context navigation)
           const filename = context.getFilename();
+
+          // Exclude files in Organization directory (intentional cross-context navigation)
           if (filename.includes('/Organization/')) {
+            return;
+          }
+
+          // Exclude service files (API endpoints, not navigation)
+          if (filename.includes('/services/')) {
+            return;
+          }
+
+          // Exclude API endpoint paths (they contain /api/)
+          if (/\/api\//.test(text)) {
+            return;
+          }
+
+          // Exclude test files
+          if (filename.includes('.test.') || filename.includes('.spec.') || filename.includes('/test/')) {
+            return;
+          }
+
+          // Exclude superadmin files (Control Plane - intentional cross-context navigation)
+          if (filename.includes('/Superadmin/') || filename.includes('/Admin/') || filename.includes('superadmin')) {
+            return;
+          }
+
+          // Exclude deprecated files
+          if (filename.includes('DEPRECATED')) {
+            return;
+          }
+
+          // Exclude context files (they handle routing at a higher level)
+          if (filename.includes('/context/')) {
+            return;
+          }
+
+          // Exclude Sidebar (venue switcher navigates across venues)
+          if (filename.includes('/Sidebar/')) {
+            return;
+          }
+
+          // Exclude PaymentSetupWizard (used in both superadmin and venue contexts)
+          if (filename.includes('PaymentSetupWizard')) {
             return;
           }
 

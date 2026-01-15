@@ -34,6 +34,7 @@ interface RecipeDialogProps {
 
 export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -318,7 +319,7 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
             <DialogTitle>
               {mode === 'create' ? t('recipes.add') : t('recipes.edit')} - {product.name}
             </DialogTitle>
-            <DialogDescription>{mode === 'create' ? t('recipes.subtitle') : `${t('common.edit')} ${product.name}`}</DialogDescription>
+            <DialogDescription>{mode === 'create' ? t('recipes.subtitle') : `${tCommon('edit')} ${product.name}`}</DialogDescription>
           </DialogHeader>
 
           {recipeLoading && mode === 'edit' ? (
@@ -606,8 +607,8 @@ export function RecipeDialog({ open, onOpenChange, mode, product }: RecipeDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title={t('recipes.delete')}
-        description={`${t('common.confirm')}? ${t('recipes.delete')} "${product.name}"`}
-        confirmText={t('common.delete')}
+        description={`${tCommon('confirm')}? ${t('recipes.delete')} "${product.name}"`}
+        confirmText={tCommon('delete')}
         cancelText={t('cancel')}
         variant="destructive"
         onConfirm={handleDeleteConfirm}

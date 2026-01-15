@@ -39,6 +39,7 @@ export default function RolePermissions() {
   const { slug } = useParams<{ slug: string }>()
   const { activeVenue, staffInfo, user, checkFeatureAccess } = useAuth()
   const { t } = useTranslation('settings')
+  const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
   const { formatDate } = useVenueDateTime()
   const { getDisplayName: getRoleDisplayName } = useRoleConfig()
@@ -161,7 +162,7 @@ export default function RolePermissions() {
     onError: (error: any) => {
       const errorMessage = error.response?.data?.error || t('rolePermissions.updateError')
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -182,7 +183,7 @@ export default function RolePermissions() {
     onError: (error: any) => {
       const errorMessage = error.response?.data?.error || t('rolePermissions.revertError')
       toast({
-        title: t('common.error'),
+        title: tCommon('error'),
         description: errorMessage,
         variant: 'destructive',
       })
@@ -336,8 +337,8 @@ export default function RolePermissions() {
       <div className="p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('common.error')}</AlertTitle>
-          <AlertDescription>{t('common.noVenueSelected')}</AlertDescription>
+          <AlertTitle>{tCommon('error')}</AlertTitle>
+          <AlertDescription>{tCommon('noVenueSelected')}</AlertDescription>
         </Alert>
       </div>
     )
@@ -567,7 +568,7 @@ export default function RolePermissions() {
                         </span>{' '}
                         {currentRolePermission.modifiedAt && (
                           <span>
-                            {t('common.on')} {formatDate(currentRolePermission.modifiedAt)}
+                            {tCommon('on')} {formatDate(currentRolePermission.modifiedAt)}
                           </span>
                         )}
                       </div>

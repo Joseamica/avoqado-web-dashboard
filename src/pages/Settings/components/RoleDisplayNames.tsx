@@ -55,6 +55,7 @@ interface RoleDisplayNamesProps {
 
 export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesProps) {
   const { t } = useTranslation('settings')
+  const { t: tCommon } = useTranslation('common')
   const { toast } = useToast()
 
   const {
@@ -190,7 +191,7 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
       setHasChanges(false)
     } catch (error: any) {
       toast({
-        title: t('common.error', 'Error'),
+        title: tCommon('error', 'Error'),
         description: error.response?.data?.message || t('roleDisplayNames.saveError', 'Failed to save changes.'),
         variant: 'destructive',
       })
@@ -210,7 +211,7 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
       setHasChanges(false)
     } catch (error: any) {
       toast({
-        title: t('common.error', 'Error'),
+        title: tCommon('error', 'Error'),
         description: error.response?.data?.message || t('roleDisplayNames.resetError', 'Failed to reset.'),
         variant: 'destructive',
       })
@@ -323,7 +324,7 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
                 <div className="space-y-2">
                   <Label htmlFor={`${role}-desc`} className="text-sm">
                     {t('roleDisplayNames.description', 'Description')}
-                    <span className="text-muted-foreground ml-1">({t('common.optional', 'optional')})</span>
+                    <span className="text-muted-foreground ml-1">({tCommon('optional', 'optional')})</span>
                   </Label>
                   <Input
                     id={`${role}-desc`}
@@ -339,7 +340,7 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
                   <Label className="text-sm flex items-center gap-2">
                     <Palette className="h-4 w-4" />
                     {t('roleDisplayNames.badgeColor', 'Badge Color')}
-                    <span className="text-muted-foreground">({t('common.optional', 'optional')})</span>
+                    <span className="text-muted-foreground">({tCommon('optional', 'optional')})</span>
                   </Label>
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* No color option */}
@@ -410,7 +411,7 @@ export default function RoleDisplayNames({ onActionsChange }: RoleDisplayNamesPr
           'This will reset all role display names, descriptions, and colors to their defaults. This action cannot be undone.'
         )}
         confirmLabel={t('roleDisplayNames.resetConfirm', 'Reset All')}
-        cancelLabel={t('common.cancel', 'Cancel')}
+        cancelLabel={tCommon('cancel', 'Cancel')}
         onConfirm={handleReset}
         isLoading={isResetting}
         variant="destructive"

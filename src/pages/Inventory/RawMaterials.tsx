@@ -460,7 +460,7 @@ export default function RawMaterials() {
               <div className="flex justify-center">
                 <Badge variant="outline" className="2xl:inline-flex">
                   <span className="2xl:hidden">✖️</span>
-                  <span className="hidden 2xl:inline">{t('common.no')}</span>
+                  <span className="hidden 2xl:inline">{tCommon('no')}</span>
                 </Badge>
               </div>
             )
@@ -469,7 +469,7 @@ export default function RawMaterials() {
             <div className="flex flex-col gap-1 items-center">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Clock className="h-3 w-3 2xl:hidden" />
-                <span className="hidden 2xl:inline">{t('common.yes')}</span>
+                <span className="hidden 2xl:inline">{tCommon('yes')}</span>
               </Badge>
               {material.shelfLifeDays && (
                 <span className="text-xs text-muted-foreground hidden 2xl:inline">
@@ -572,7 +572,7 @@ export default function RawMaterials() {
                     setEditDialogOpen(true)
                   }}
                   className="px-1"
-                  title={t('common.edit')}
+                  title={tCommon('edit')}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -587,7 +587,7 @@ export default function RawMaterials() {
                   }}
                   disabled={deleteMutation.isPending}
                   className="px-1"
-                  title={t('common.delete')}
+                  title={tCommon('delete')}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -654,7 +654,7 @@ export default function RawMaterials() {
 
             <Select value={stockFilter} onValueChange={setStockFilter}>
               <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder={t('common.filter')} />
+                <SelectValue placeholder={tCommon('filter')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
@@ -693,8 +693,8 @@ export default function RawMaterials() {
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
         title={t('rawMaterials.delete')}
-        description={`${t('common.confirm')}? ${t('rawMaterials.delete')} "${selectedMaterial?.name}"`}
-        confirmText={t('common.delete')}
+        description={`${tCommon('confirm')}? ${t('rawMaterials.delete')} "${selectedMaterial?.name}"`}
+        confirmText={tCommon('delete')}
         cancelText={t('cancel')}
         variant="destructive"
         onConfirm={handleDeleteConfirm}

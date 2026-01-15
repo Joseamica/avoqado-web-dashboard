@@ -99,7 +99,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
         window.location.href = notification.actionUrl
       } else {
         // Relative path - prepend venue slug
-        window.location.href = `/venues/${venueSlug}/${notification.actionUrl}`
+        window.location.href = `${fullBasePath}/${notification.actionUrl}`
       }
     }
   }

@@ -18,7 +18,7 @@ const localPlugin = {
 }
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', '**/*.json'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -101,8 +101,23 @@ export default tseslint.config(
 
       // Custom local rules
       'local/no-hardcoded-venue-paths': 'error',
-      'local/no-missing-translation-keys': ['warn', {
+      // Translation key validation: ERROR by default, forces proper i18n patterns
+      'local/no-missing-translation-keys': ['error', {
         validateAgainstJson: false, // Set to true to validate against JSON files
+        ignoredPrefixes: ['zod.', 'error.'],
+      }],
+    },
+  },
+  // Override: Admin/Superadmin files get warnings instead of errors for translation keys
+  // These are Control Plane pages that may have different i18n patterns
+  {
+    files: ['**/Admin/**', '**/Superadmin/**', '**/*superadmin*', '**/*Superadmin*'],
+    plugins: {
+      'local': localPlugin,
+    },
+    rules: {
+      'local/no-missing-translation-keys': ['warn', {
+        validateAgainstJson: false,
         ignoredPrefixes: ['zod.', 'error.'],
       }],
     },

@@ -35,6 +35,7 @@ interface ProductPricingAnalysis {
 
 export default function Pricing() {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -341,8 +342,8 @@ export default function Pricing() {
       },
       {
         id: 'profitability',
-        meta: { label: t('common.status') },
-        header: t('common.status'),
+        meta: { label: tCommon('status') },
+        header: tCommon('status'),
         cell: ({ row }) => {
           const product = row.original
           if (!product.recipe) return null
@@ -390,7 +391,7 @@ export default function Pricing() {
                   }}
                 >
                   <Settings className="h-4 w-4 mr-1" />
-                  {hasPolicy ? t('common.edit') : t('pricing.createPolicy')}
+                  {hasPolicy ? tCommon('edit') : t('pricing.createPolicy')}
                 </Button>
               </PermissionGate>
 
@@ -491,7 +492,7 @@ export default function Pricing() {
 
           <Select value={profitabilityFilter} onValueChange={setProfitabilityFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('common.filter')} />
+              <SelectValue placeholder={tCommon('filter')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>

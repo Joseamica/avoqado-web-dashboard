@@ -155,20 +155,20 @@ export default function Discounts() {
 	const formatValidityPeriod = useCallback(
 		(discount: Discount) => {
 			if (!discount.validFrom && !discount.validUntil) {
-				return t('common.validAlways')
+				return tCommon('validAlways')
 			}
 			if (discount.validFrom && discount.validUntil) {
 				const from = new Date(discount.validFrom).toLocaleDateString(getIntlLocale(i18n.language))
 				const to = new Date(discount.validUntil).toLocaleDateString(getIntlLocale(i18n.language))
-				return t('common.dateRange', { from, to })
+				return tCommon('dateRange', { from, to })
 			}
 			if (discount.validFrom) {
-				return t('common.validFrom', { date: new Date(discount.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
+				return tCommon('validFrom', { date: new Date(discount.validFrom).toLocaleDateString(getIntlLocale(i18n.language)) })
 			}
 			if (discount.validUntil) {
-				return t('common.validUntil', { date: new Date(discount.validUntil).toLocaleDateString(getIntlLocale(i18n.language)) })
+				return tCommon('validUntil', { date: new Date(discount.validUntil).toLocaleDateString(getIntlLocale(i18n.language)) })
 			}
-			return t('common.validAlways')
+			return tCommon('validAlways')
 		},
 		[i18n.language, t]
 	)
@@ -273,8 +273,8 @@ export default function Discounts() {
 				cell: ({ row }) => (
 					<div className="text-center">
 						{row.original.maxTotalUses
-							? t('common.usesFormat', { current: row.original.currentUses, max: row.original.maxTotalUses })
-							: t('common.usesUnlimited', { current: row.original.currentUses })}
+							? tCommon('usesFormat', { current: row.original.currentUses, max: row.original.maxTotalUses })
+							: tCommon('usesUnlimited', { current: row.original.currentUses })}
 					</div>
 				),
 			},

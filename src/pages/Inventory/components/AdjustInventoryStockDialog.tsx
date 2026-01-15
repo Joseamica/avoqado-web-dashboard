@@ -27,6 +27,7 @@ interface AdjustInventoryStockDialogProps {
 
 export function AdjustInventoryStockDialog({ open, onOpenChange, product }: AdjustInventoryStockDialogProps) {
   const { t } = useTranslation('inventory')
+  const { t: tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -209,7 +210,7 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {quantity > 0 ? t('common.add') : quantity < 0 ? t('common.subtract') : ''}{' '}
+              {quantity > 0 ? tCommon('add') : quantity < 0 ? tCommon('subtract') : ''}{' '}
               {Math.abs(quantity || 0).toFixed(2)} {formatUnitWithQuantity(quantity || 0, unitKey)}
             </p>
             {errors.quantity && <p className="text-xs text-destructive">{t('validation.required')}</p>}
@@ -272,9 +273,9 @@ export function AdjustInventoryStockDialog({ open, onOpenChange, product }: Adju
             <Button type="submit" disabled={adjustStockMutation.isPending || isNegativeStock}>
               {adjustStockMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {showLargeAdjustmentConfirm && isLargeAdjustment && !isNegativeStock
-                ? t('common.confirmAndSave')
+                ? tCommon('confirmAndSave')
                 : adjustStockMutation.isPending
-                ? t('common.saving')
+                ? tCommon('saving')
                 : t('save')}
             </Button>
           </DialogFooter>
