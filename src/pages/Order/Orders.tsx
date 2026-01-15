@@ -602,11 +602,13 @@ export default function Orders() {
       },
       {
         // Waiter: use servedBy (who served the table) or fallback to createdBy
+        // Mostramos nombre + inicial del apellido (ej: "Jose Antonio A.")
         accessorFn: row => {
           const waiter = row.servedBy || row.createdBy
           if (!waiter) return '-'
-          const name = [waiter.firstName, waiter.lastName].filter(Boolean).join(' ')
-          return name || '-'
+          const firstName = waiter.firstName || ''
+          const lastInitial = waiter.lastName ? `${waiter.lastName.charAt(0)}.` : ''
+          return `${firstName} ${lastInitial}`.trim() || '-'
         },
         id: 'waiterName',
         meta: { label: t('columns.waiter') },

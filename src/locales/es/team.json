@@ -88,11 +88,16 @@
     "role": "Rol",
     "status": "Estado",
     "totalSales": "Ventas Totales",
+    "totalTips": "Propinas Totales",
     "totalOrders": "Órdenes Totales",
     "email": "Correo",
     "invitedBy": "Invitado por {{name}}",
     "sent": "Fecha de Envío",
     "expires": "Expira"
+  },
+  "filters": {
+    "clearAll": "Limpiar filtros",
+    "showingResults": "Mostrando {{count}} de {{total}} miembros"
   },
   "status": {
     "active": "Activo",
@@ -102,6 +107,8 @@
   "actions": {
     "edit": "Editar",
     "delete": "Eliminar",
+    "deactivate": "Desactivar",
+    "hardDelete": "Eliminar Permanentemente",
     "resend": "Reenviar",
     "cancel": "Cancelar"
   },
@@ -112,18 +119,29 @@
   "dialogs": {
     "editMemberTitle": "Editar Miembro",
     "editMemberDesc": "Actualiza el rol y configuración de {{firstName}} {{lastName}}.",
-    "removeTitle": "¿Eliminar miembro del equipo?",
-    "removeDesc": "¿Estás seguro de que deseas eliminar a {{firstName}} {{lastName}} del equipo? Esta acción no se puede deshacer y el miembro perderá acceso al dashboard.",
+    "removeTitle": "¿Desactivar miembro del equipo?",
+    "removeDesc": "¿Estás seguro de que deseas desactivar a {{firstName}} {{lastName}}? El miembro perderá acceso al dashboard, pero su historial de ventas, propinas y comisiones se conservará para fines contables y legales.",
     "removeConfirm": "Eliminar",
+    "deactivateConfirm": "Desactivar",
     "removeCancel": "Cancelar",
-    "removing": "Eliminando..."
+    "removing": "Eliminando...",
+    "deactivating": "Desactivando...",
+    "hardDeleteTitle": "¿Eliminar permanentemente?",
+    "hardDeleteDesc": "Estás a punto de eliminar permanentemente a {{firstName}} {{lastName}} y TODOS sus datos asociados: comisiones, propinas, ventas, cálculos y registros históricos.",
+    "hardDeleteWarning": "Esta acción es IRREVERSIBLE. Los datos NO podrán ser recuperados.",
+    "hardDeleteConfirm": "Eliminar Permanentemente",
+    "hardDeleting": "Eliminando..."
   },
   "toasts": {
-    "memberRemovedTitle": "Miembro eliminado",
-    "memberRemovedDesc": "{{firstName}} {{lastName}} ha sido eliminado del equipo.",
-    "memberRemoveErrorTitle": "Error al eliminar",
-    "memberRemoveErrorDesc": "No se pudo eliminar al miembro del equipo.",
-    "memberRemoveError": "Error al eliminar miembro",
+    "memberRemovedTitle": "Miembro desactivado",
+    "memberRemovedDesc": "{{firstName}} {{lastName}} ha sido desactivado. Su historial permanece en el sistema.",
+    "memberRemoveErrorTitle": "Error al desactivar",
+    "memberRemoveErrorDesc": "No se pudo desactivar al miembro del equipo.",
+    "memberRemoveError": "Error al desactivar miembro",
+    "memberHardDeletedTitle": "Miembro eliminado permanentemente",
+    "memberHardDeletedDesc": "{{firstName}} {{lastName}} y {{count}} registros asociados han sido eliminados permanentemente.",
+    "memberHardDeleteErrorTitle": "Error al eliminar",
+    "memberHardDeleteErrorDesc": "No se pudo eliminar permanentemente al miembro del equipo.",
     "invitationCancelled": "Invitación cancelada",
     "invitationCancelledDesc": "La invitación a {{email}} ha sido cancelada.",
     "invitationCancelError": "Error al cancelar invitación",

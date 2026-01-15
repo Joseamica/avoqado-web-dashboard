@@ -36,15 +36,15 @@ export function FilterPill({ label, activeValue, isActive, children, onClear, al
           size="sm"
           className={cn(
             'h-8 gap-1.5 rounded-full border-dashed font-normal transition-all',
-            hasValue && 'border-solid border-primary/50 bg-primary/5 pr-1.5'
+            hasValue && 'border-solid border-foreground bg-foreground text-background pr-1.5 hover:bg-foreground/90 hover:text-background'
           )}
         >
           {!hasValue && <Plus className="h-3.5 w-3.5 text-muted-foreground" />}
-          <span className={cn(hasValue && 'text-foreground')}>{label}</span>
+          <span>{label}</span>
           {hasValue && activeValue && (
             <>
-              <span className="text-muted-foreground">:</span>
-              <span className="max-w-[150px] truncate font-medium text-primary">{activeValue}</span>
+              <span className="text-background/70">:</span>
+              <span className="max-w-[150px] truncate font-medium">{activeValue}</span>
             </>
           )}
           {hasValue && onClear && (
@@ -53,9 +53,9 @@ export function FilterPill({ label, activeValue, isActive, children, onClear, al
                 e.stopPropagation()
                 onClear()
               }}
-              className="ml-1 rounded-full p-0.5 hover:bg-muted"
+              className="ml-1 rounded-full p-0.5 hover:bg-background/20"
             >
-              <X className="h-3 w-3 text-muted-foreground" />
+              <X className="h-3 w-3" />
             </button>
           )}
         </Button>

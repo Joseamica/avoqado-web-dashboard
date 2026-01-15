@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Percent, DollarSign, Clock, ArrowUpNarrowWide } from 'lucide-react'
+import { Percent, DollarSign, Clock, ArrowUpNarrowWide, AlertCircle, Lock } from 'lucide-react'
 import {
 	Dialog,
 	DialogContent,
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useUpdateCommissionConfig } from '@/hooks/useCommissions'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -86,6 +87,10 @@ export default function EditConfigDialog({
 
 	const [data, setData] = useState<WizardData>(() => configToWizardData(config))
 	const [advancedOpen, setAdvancedOpen] = useState(false)
+
+	// Check if rate editing is locked due to existing calculations
+	const calculationsCount = config._count?.calculations || 0
+	const isRateLocked = calculationsCount > 0
 
 	// Reset form when config changes
 	useEffect(() => {
@@ -193,6 +198,23 @@ export default function EditConfigDialog({
 				</DialogHeader>
 
 				<div className="space-y-6 py-4">
+					{/* Rate Locked Alert */}
+					{isRateLocked && (
+						<Alert className="border-amber-500/50 bg-amber-500/10">
+							<Lock className="h-4 w-4 text-amber-600" />
+							<AlertTitle className="text-amber-700 dark:text-amber-400">
+								{t('config.rateLockedTitle')}
+							</AlertTitle>
+							<AlertDescription className="text-amber-600 dark:text-amber-300">
+								{t('config.rateLockedDesc', { count: calculationsCount })}
+								<br />
+								<span className="font-medium">
+									{t('config.rateLockedHint')}
+								</span>
+							</AlertDescription>
+						</Alert>
+					)}
+
 					{/* Name Input */}
 					<div className="space-y-2">
 						<Label htmlFor="config-name">{t('config.name')}</Label>
@@ -205,16 +227,27 @@ export default function EditConfigDialog({
 					</div>
 
 					{/* Calc Type Toggle */}
-					<div className="flex justify-center">
-						<div className="inline-flex rounded-lg bg-muted p-1">
+					<div className="flex flex-col items-center gap-2">
+						{isRateLocked && (
+							<div className="flex items-center gap-1 text-xs text-muted-foreground">
+								<Lock className="w-3 h-3" />
+								{t('config.fieldLocked')}
+							</div>
+						)}
+						<div className={cn(
+							'inline-flex rounded-lg bg-muted p-1',
+							isRateLocked && 'opacity-60 cursor-not-allowed'
+						)}>
 							<button
 								type="button"
-								onClick={() => handleCalcTypeChange('PERCENTAGE')}
+								onClick={() => !isRateLocked && handleCalcTypeChange('PERCENTAGE')}
+								disabled={isRateLocked}
 								className={cn(
 									'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
 									data.calcType === 'PERCENTAGE'
 										? 'bg-background text-foreground shadow-sm'
-										: 'text-muted-foreground hover:text-foreground'
+										: 'text-muted-foreground hover:text-foreground',
+									isRateLocked && 'cursor-not-allowed'
 								)}
 							>
 								<Percent className="w-4 h-4" />
@@ -222,12 +255,14 @@ export default function EditConfigDialog({
 							</button>
 							<button
 								type="button"
-								onClick={() => handleCalcTypeChange('FIXED')}
+								onClick={() => !isRateLocked && handleCalcTypeChange('FIXED')}
+								disabled={isRateLocked}
 								className={cn(
 									'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors',
 									data.calcType === 'FIXED'
 										? 'bg-background text-foreground shadow-sm'
-										: 'text-muted-foreground hover:text-foreground'
+										: 'text-muted-foreground hover:text-foreground',
+									isRateLocked && 'cursor-not-allowed'
 								)}
 							>
 								<DollarSign className="w-4 h-4" />
@@ -238,7 +273,10 @@ export default function EditConfigDialog({
 
 					{/* Main Input - Percentage */}
 					{data.calcType === 'PERCENTAGE' && (
-						<div className="flex flex-col items-center py-4">
+						<div className={cn(
+							'flex flex-col items-center py-4',
+							isRateLocked && 'opacity-60'
+						)}>
 							<div className="relative w-40">
 								<Input
 									type="number"
@@ -247,7 +285,11 @@ export default function EditConfigDialog({
 									max="100"
 									value={ratePercentage}
 									onChange={(e) => handleRateChange(e.target.value)}
-									className="text-center text-3xl font-bold h-16 pr-10"
+									disabled={isRateLocked}
+									className={cn(
+										'text-center text-3xl font-bold h-16 pr-10',
+										isRateLocked && 'cursor-not-allowed bg-muted'
+									)}
 								/>
 								<span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">
 									%
@@ -261,7 +303,10 @@ export default function EditConfigDialog({
 
 					{/* Main Input - Fixed Amount */}
 					{data.calcType === 'FIXED' && (
-						<div className="flex flex-col items-center py-4">
+						<div className={cn(
+							'flex flex-col items-center py-4',
+							isRateLocked && 'opacity-60'
+						)}>
 							<div className="relative w-40">
 								<span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground">
 									$
@@ -272,7 +317,11 @@ export default function EditConfigDialog({
 									min="0"
 									value={data.fixedAmount}
 									onChange={(e) => handleFixedAmountChange(e.target.value)}
-									className="text-center text-3xl font-bold h-16 pl-10"
+									disabled={isRateLocked}
+									className={cn(
+										'text-center text-3xl font-bold h-16 pl-10',
+										isRateLocked && 'cursor-not-allowed bg-muted'
+									)}
 								/>
 							</div>
 							<p className="text-sm text-muted-foreground mt-2">

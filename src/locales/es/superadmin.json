@@ -2868,7 +2868,10 @@
       "deletedTitle": "Módulo Eliminado",
       "deleteFailed": "Error al Eliminar Módulo",
       "jsonError": "Error de JSON",
-      "jsonErrorDesc": "La configuración o presets contienen JSON inválido"
+      "jsonErrorDesc": "La configuración o presets contienen JSON inválido",
+      "whiteLabelSavedTitle": "Dashboard Guardado",
+      "whiteLabelSavedDesc": "La configuración del white-label dashboard se ha guardado correctamente",
+      "whiteLabelSaveFailed": "Error al Guardar Dashboard"
     }
   },
   "whiteLabelWizard": {

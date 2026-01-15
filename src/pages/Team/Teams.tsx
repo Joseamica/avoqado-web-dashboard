@@ -1,17 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react'
-import { useState, useCallback, useMemo } from 'react'
+import { ArrowUpDown, Clock, Mail, MoreHorizontal, Pencil, Trash2, UserPlus, Search, X } from 'lucide-react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { FilterPill, CheckboxFilterContent, ColumnCustomizer, AmountFilterContent, type AmountFilter } from '@/components/filters'
 import { useAuth } from '@/context/AuthContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useRoleConfig } from '@/hooks/use-role-config'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useToast } from '@/hooks/use-toast'
 import teamService, { type Invitation } from '@/services/team.service'
 import { TeamMember, StaffRole } from '@/types'
 import { filterSuperadminFromTeam, getRoleBadgeColor, canViewSuperadminInfo } from '@/utils/role-permissions'
+import { Currency } from '@/utils/currency'
 
 import {
   AlertDialog,
@@ -64,7 +68,7 @@ export default function Teams() {
       }
       return getCustomRoleDisplayName(role)
     },
-    [getCustomRoleDisplayName]
+    [getCustomRoleDisplayName],
   )
 
   // Get role badge color with custom color support
@@ -77,7 +81,7 @@ export default function Teams() {
       }
       return getRoleBadgeColor(role, userRole)
     },
-    [getCustomRoleColor]
+    [getCustomRoleColor],
   )
 
   // Get inline style for custom colors
@@ -93,7 +97,7 @@ export default function Teams() {
       }
       return undefined
     },
-    [getCustomRoleColor]
+    [getCustomRoleColor],
   )
 
   const [pagination, setPagination] = useState({
@@ -103,6 +107,107 @@ export default function Teams() {
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [removingMember, setRemovingMember] = useState<TeamMember | null>(null)
+
+  // Stripe-style filter states
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [roleFilter, setRoleFilter] = useState<string[]>([])
+  const [salesFilter, setSalesFilter] = useState<AmountFilter | null>(null)
+  const [tipsFilter, setTipsFilter] = useState<AmountFilter | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['firstName', 'role', 'active', 'totalSales', 'totalTips', 'totalOrders'])
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }))
+  }, [statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
+
+  // Helper function to format amount filter label
+  const getAmountFilterLabel = useCallback(
+    (filter: AmountFilter | null, label: string): string => {
+      if (!filter) return label
+      const formatValue = (val: number) => Currency(val, true, i18n.language)
+      switch (filter.operator) {
+        case 'gt':
+          return `${label}: > ${formatValue(filter.value)}`
+        case 'lt':
+          return `${label}: < ${formatValue(filter.value)}`
+        case 'eq':
+          return `${label}: ${formatValue(filter.value)}`
+        case 'between':
+          return `${label}: ${formatValue(filter.value)} - ${formatValue(filter.value2 || 0)}`
+        default:
+          return label
+      }
+    },
+    [i18n.language],
+  )
+
+  // Get filter display label for checkbox filters
+  const getFilterDisplayLabel = useCallback((values: string[], label: string, optionLabels: Record<string, string>): string => {
+    if (values.length === 0) return label
+    if (values.length === 1) return `${label}: ${optionLabels[values[0]] || values[0]}`
+    return `${label}: ${values.length}`
+  }, [])
+
+  // Reset all filters
+  const resetFilters = useCallback(() => {
+    setStatusFilter([])
+    setRoleFilter([])
+    setSalesFilter(null)
+    setTipsFilter(null)
+    setSearchTerm('')
+  }, [])
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0
+    if (statusFilter.length > 0) count++
+    if (roleFilter.length > 0) count++
+    if (salesFilter) count++
+    if (tipsFilter) count++
+    if (debouncedSearchTerm) count++
+    return count
+  }, [statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
+
+  // Filter options for checkboxes
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active', label: t('status.active') },
+      { value: 'inactive', label: t('status.inactive') },
+    ],
+    [t],
+  )
+
+  const roleOptions = useMemo(
+    () => [
+      { value: StaffRole.ADMIN, label: getRoleDisplayName(StaffRole.ADMIN, staffInfo?.role) },
+      { value: StaffRole.MANAGER, label: getRoleDisplayName(StaffRole.MANAGER, staffInfo?.role) },
+      { value: StaffRole.WAITER, label: getRoleDisplayName(StaffRole.WAITER, staffInfo?.role) },
+      { value: StaffRole.CASHIER, label: getRoleDisplayName(StaffRole.CASHIER, staffInfo?.role) },
+      { value: StaffRole.KITCHEN, label: getRoleDisplayName(StaffRole.KITCHEN, staffInfo?.role) },
+      { value: StaffRole.HOST, label: getRoleDisplayName(StaffRole.HOST, staffInfo?.role) },
+      { value: StaffRole.VIEWER, label: getRoleDisplayName(StaffRole.VIEWER, staffInfo?.role) },
+    ],
+    [getRoleDisplayName, staffInfo?.role],
+  )
+
+  // Create label maps for display
+  const statusLabels = useMemo(
+    () => ({
+      active: t('status.active'),
+      inactive: t('status.inactive'),
+    }),
+    [t],
+  )
+
+  const roleLabels = useMemo(
+    () => roleOptions.reduce((acc, opt) => ({ ...acc, [opt.value]: opt.label }), {} as Record<string, string>),
+    [roleOptions],
+  )
 
   // Fetch team members
   const { data: teamData, isLoading: isLoadingTeam } = useQuery({
@@ -183,14 +288,78 @@ export default function Teams() {
   // Filter team members to hide superadmins from non-superadmin users
   // CRITICAL: Must be memoized to prevent infinite re-render loop
   // filterSuperadminFromTeam() returns new array for non-SUPERADMIN roles
-  const filteredTeamMembers = useMemo(
-    () => filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role),
-    [teamData?.data, staffInfo?.role]
-  )
+  // Also applies client-side filters (status, role, sales, tips, search)
+  const filteredTeamMembers = useMemo(() => {
+    let result = filterSuperadminFromTeam(teamData?.data || [], staffInfo?.role)
+
+    // Apply status filter
+    if (statusFilter.length > 0) {
+      result = result.filter(member => {
+        const status = member.active ? 'active' : 'inactive'
+        return statusFilter.includes(status)
+      })
+    }
+
+    // Apply role filter
+    if (roleFilter.length > 0) {
+      result = result.filter(member => roleFilter.includes(member.role))
+    }
+
+    // Apply sales amount filter
+    if (salesFilter) {
+      result = result.filter(member => {
+        const sales = member.totalSales || 0
+        switch (salesFilter.operator) {
+          case 'gt':
+            return sales > salesFilter.value
+          case 'lt':
+            return sales < salesFilter.value
+          case 'eq':
+            return sales === salesFilter.value
+          case 'between':
+            return sales >= salesFilter.value && sales <= (salesFilter.value2 || salesFilter.value)
+          default:
+            return true
+        }
+      })
+    }
+
+    // Apply tips amount filter
+    if (tipsFilter) {
+      result = result.filter(member => {
+        const tips = member.totalTips || 0
+        switch (tipsFilter.operator) {
+          case 'gt':
+            return tips > tipsFilter.value
+          case 'lt':
+            return tips < tipsFilter.value
+          case 'eq':
+            return tips === tipsFilter.value
+          case 'between':
+            return tips >= tipsFilter.value && tips <= (tipsFilter.value2 || tipsFilter.value)
+          default:
+            return true
+        }
+      })
+    }
+
+    // Apply search filter (using debouncedSearchTerm)
+    if (debouncedSearchTerm) {
+      const q = debouncedSearchTerm.toLowerCase()
+      result = result.filter(member => {
+        const name = `${member.firstName} ${member.lastName}`.toLowerCase()
+        const email = (member.email || '').toLowerCase()
+        const role = (member.role || '').toString().toLowerCase()
+        return name.includes(q) || email.includes(q) || role.includes(q)
+      })
+    }
+
+    return result
+  }, [teamData?.data, staffInfo?.role, statusFilter, roleFilter, salesFilter, tipsFilter, debouncedSearchTerm])
 
   const filteredInvitations = useMemo(
     () => filterSuperadminFromTeam(invitationsData?.data || [], staffInfo?.role),
-    [invitationsData?.data, staffInfo?.role]
+    [invitationsData?.data, staffInfo?.role],
   )
 
   // Client-side search like Payments page - wrapped in useCallback to prevent recreation
@@ -217,174 +386,223 @@ export default function Teams() {
   }, [])
 
   // Memoize column definitions to prevent recreation on every render
-  const teamColumns: ColumnDef<TeamMember>[] = useMemo(() => [
-    {
-      accessorKey: 'firstName',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('columns.name')}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          <div>
-            <div className="font-medium">
-              {row.original.firstName} {row.original.lastName}
+  const teamColumns: ColumnDef<TeamMember>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'firstName',
+        header: ({ column }) => (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('columns.name')}
+            <ArrowUpDown className="w-4 h-4 ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="flex items-center space-x-2">
+            <div>
+              <div className="font-medium">
+                {row.original.firstName} {row.original.lastName}
+              </div>
+              <div className="text-sm text-muted-foreground">{row.original.email}</div>
             </div>
-            <div className="text-sm text-muted-foreground">{row.original.email}</div>
           </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'role',
-      header: t('columns.role'),
-      cell: ({ row }) => (
-        <Badge
-          variant="soft"
-          className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
-          style={getRoleBadgeStyle(row.original.role)}
-        >
-          {getRoleDisplayName(row.original.role, staffInfo?.role)}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'active',
-      header: t('columns.status'),
-      cell: ({ row }) => (
-        <Badge variant={row.original.active ? 'default' : 'secondary'}>
-          {row.original.active ? t('status.active') : t('status.inactive')}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'totalSales',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          {t('columns.totalSales')}
-          <ArrowUpDown className="w-4 h-4 ml-2" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {Number(row.original.totalSales).toLocaleString(getIntlLocale(i18n.language))}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'totalOrders',
-      header: t('columns.totalOrders'),
-      cell: ({ row }) => <div className="text-right">{row.original.totalOrders}</div>,
-    },
-    {
-      id: 'actions',
-      header: tCommon('actions'),
-      cell: ({ row }) => (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={5} className="w-48" onClick={e => e.stopPropagation()}>
-            <PermissionGate permission="teams:update">
-              <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                {t('actions.edit')}
-              </DropdownMenuItem>
-            </PermissionGate>
-            <DropdownMenuSeparator />
-            <PermissionGate permission="teams:delete">
-              <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t('actions.delete')}
-              </DropdownMenuItem>
-            </PermissionGate>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ], [t, tCommon, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle])
-
-  const invitationColumns: ColumnDef<Invitation>[] = useMemo(() => [
-    {
-      accessorKey: 'email',
-      header: t('columns.email'),
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.original.email}</div>
-          <div className="text-sm text-muted-foreground">{t('columns.invitedBy', { name: row.original.invitedBy.name })}</div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'role',
-      header: t('columns.role'),
-      cell: ({ row }) => (
-        <Badge
-          variant="soft"
-          className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
-          style={getRoleBadgeStyle(row.original.role)}
-        >
-          {getRoleDisplayName(row.original.role, staffInfo?.role)}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'createdAt',
-      header: t('columns.sent'),
-      cell: ({ row }) => (
-        <div className="text-sm">{formatDate(row.original.createdAt)}</div>
-      ),
-    },
-    {
-      accessorKey: 'expiresAt',
-      header: t('columns.expires'),
-      cell: ({ row }) => {
-        const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
-        return (
-          <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
-            <Clock className="h-4 w-4 inline mr-1" />
-            {formatDate(row.original.expiresAt)}
-            {isExpired && <span className="ml-1 text-xs">{t('status.expired')}</span>}
-          </div>
-        )
+        ),
       },
-    },
-    {
-      id: 'actions',
-      header: tCommon('actions'),
-      cell: ({ row }) => {
-        const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
+      {
+        accessorKey: 'role',
+        header: t('columns.role'),
+        cell: ({ row }) => (
+          <Badge
+            variant="soft"
+            className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
+            style={getRoleBadgeStyle(row.original.role)}
+          >
+            {getRoleDisplayName(row.original.role, staffInfo?.role)}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'active',
+        header: t('columns.status'),
+        cell: ({ row }) => (
+          <Badge variant={row.original.active ? 'default' : 'secondary'}>
+            {row.original.active ? t('status.active') : t('status.inactive')}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'totalSales',
+        header: ({ column }) => (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('columns.totalSales')}
+            <ArrowUpDown className="w-4 h-4 ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-medium">{Number(row.original.totalSales).toLocaleString(getIntlLocale(i18n.language))}</div>
+        ),
+      },
+      {
+        accessorKey: 'totalTips',
+        header: ({ column }) => (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            {t('columns.totalTips')}
+            <ArrowUpDown className="w-4 h-4 ml-2" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-medium text-green-600 dark:text-green-400">
+            {Currency(row.original.totalTips || 0, false, i18n.language)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'totalOrders',
+        header: t('columns.totalOrders'),
+        cell: ({ row }) => <div className="text-right">{row.original.totalOrders}</div>,
+      },
+      {
+        id: 'actions',
+        header: tCommon('actions'),
+        cell: ({ row }) => (
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={5} className="w-48" onClick={e => e.stopPropagation()}>
+              <PermissionGate permission="teams:update">
+                <DropdownMenuItem onClick={() => setEditingMember(row.original)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  {t('actions.edit')}
+                </DropdownMenuItem>
+              </PermissionGate>
+              <DropdownMenuSeparator />
+              <PermissionGate permission="teams:delete">
+                <DropdownMenuItem onClick={() => setRemovingMember(row.original)} className="text-red-600">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('actions.delete')}
+                </DropdownMenuItem>
+              </PermissionGate>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [t, tCommon, i18n.language, staffInfo?.role, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle],
+  )
 
-        if (isExpired) {
+  const invitationColumns: ColumnDef<Invitation>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'email',
+        header: t('columns.email'),
+        cell: ({ row }) => (
+          <div>
+            <div className="font-medium">{row.original.email}</div>
+            <div className="text-sm text-muted-foreground">{t('columns.invitedBy', { name: row.original.invitedBy.name })}</div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'role',
+        header: t('columns.role'),
+        cell: ({ row }) => (
+          <Badge
+            variant="soft"
+            className={getRoleBadgeColorWithCustom(row.original.role, staffInfo?.role)}
+            style={getRoleBadgeStyle(row.original.role)}
+          >
+            {getRoleDisplayName(row.original.role, staffInfo?.role)}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: t('columns.sent'),
+        cell: ({ row }) => <div className="text-sm">{formatDate(row.original.createdAt)}</div>,
+      },
+      {
+        accessorKey: 'expiresAt',
+        header: t('columns.expires'),
+        cell: ({ row }) => {
+          const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
+          return (
+            <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-amber-600'}`}>
+              <Clock className="h-4 w-4 inline mr-1" />
+              {formatDate(row.original.expiresAt)}
+              {isExpired && <span className="ml-1 text-xs">{t('status.expired')}</span>}
+            </div>
+          )
+        },
+      },
+      {
+        id: 'actions',
+        header: tCommon('actions'),
+        cell: ({ row }) => {
+          const isExpired = row.original.isExpired || row.original.status === 'EXPIRED'
+
+          if (isExpired) {
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => resendInvitationMutation.mutate(row.original.id)}
+                disabled={resendInvitationMutation.isPending}
+              >
+                {t('actions.resend')}
+              </Button>
+            )
+          }
+
           return (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => resendInvitationMutation.mutate(row.original.id)}
-              disabled={resendInvitationMutation.isPending}
+              onClick={() => cancelInvitationMutation.mutate(row.original.id)}
+              disabled={cancelInvitationMutation.isPending}
             >
-              {t('actions.resend')}
+              {t('actions.cancel')}
             </Button>
           )
-        }
-
-        return (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => cancelInvitationMutation.mutate(row.original.id)}
-            disabled={cancelInvitationMutation.isPending}
-          >
-            {t('actions.cancel')}
-          </Button>
-        )
+        },
       },
-    },
-  ], [t, tCommon, staffInfo?.role, formatDate, getRoleDisplayName, getRoleBadgeColorWithCustom, getRoleBadgeStyle, resendInvitationMutation, cancelInvitationMutation])
+    ],
+    [
+      t,
+      tCommon,
+      staffInfo?.role,
+      formatDate,
+      getRoleDisplayName,
+      getRoleBadgeColorWithCustom,
+      getRoleBadgeStyle,
+      resendInvitationMutation,
+      cancelInvitationMutation,
+    ],
+  )
+
+  // Filter columns based on visibility state
+  const filteredTeamColumns = useMemo(() => {
+    return teamColumns.filter(col => {
+      const colId = col.id || (col as { accessorKey?: string }).accessorKey
+      // Always show actions column
+      if (colId === 'actions') return true
+      return visibleColumns.includes(colId as string)
+    })
+  }, [teamColumns, visibleColumns])
+
+  // Column options for the column customizer
+  const columnOptions = useMemo(
+    () => [
+      { id: 'firstName', label: t('columns.name'), visible: visibleColumns.includes('firstName') },
+      { id: 'role', label: t('columns.role'), visible: visibleColumns.includes('role') },
+      { id: 'active', label: t('columns.status'), visible: visibleColumns.includes('active') },
+      { id: 'totalSales', label: t('columns.totalSales'), visible: visibleColumns.includes('totalSales') },
+      { id: 'totalTips', label: t('columns.totalTips'), visible: visibleColumns.includes('totalTips') },
+      { id: 'totalOrders', label: t('columns.totalOrders'), visible: visibleColumns.includes('totalOrders') },
+    ],
+    [t, visibleColumns],
+  )
 
   return (
     <div className={`p-4 bg-background text-foreground`}>
@@ -459,17 +677,117 @@ export default function Teams() {
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
+          {/* Stripe-style Filter Bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Expandable Search */}
+            <div className="relative">
+              {isSearchOpen ? (
+                <div className="flex items-center">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder={tCommon('search')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-9 pr-8 h-9 w-64"
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 h-9 w-9 p-0"
+                    onClick={() => {
+                      setSearchTerm('')
+                      setIsSearchOpen(false)
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" className="h-9 px-3" onClick={() => setIsSearchOpen(true)}>
+                  <Search className="h-4 w-4 mr-2" />
+                  {tCommon('search')}
+                </Button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <FilterPill
+              label={getFilterDisplayLabel(statusFilter, t('columns.status'), statusLabels)}
+              isActive={statusFilter.length > 0}
+              onClear={() => setStatusFilter([])}
+            >
+              <CheckboxFilterContent
+                title={t('columns.status')}
+                options={statusOptions}
+                selectedValues={statusFilter}
+                onApply={setStatusFilter}
+              />
+            </FilterPill>
+
+            {/* Role Filter */}
+            <FilterPill
+              label={getFilterDisplayLabel(roleFilter, t('columns.role'), roleLabels)}
+              isActive={roleFilter.length > 0}
+              onClear={() => setRoleFilter([])}
+            >
+              <CheckboxFilterContent title={t('columns.role')} options={roleOptions} selectedValues={roleFilter} onApply={setRoleFilter} />
+            </FilterPill>
+
+            {/* Sales Amount Filter */}
+            <FilterPill
+              label={getAmountFilterLabel(salesFilter, t('columns.totalSales'))}
+              isActive={!!salesFilter}
+              onClear={() => setSalesFilter(null)}
+            >
+              <AmountFilterContent title={t('columns.totalSales')} currentFilter={salesFilter} onApply={setSalesFilter} currency="$" />
+            </FilterPill>
+
+            {/* Tips Amount Filter */}
+            <FilterPill
+              label={getAmountFilterLabel(tipsFilter, t('columns.totalTips'))}
+              isActive={!!tipsFilter}
+              onClear={() => setTipsFilter(null)}
+            >
+              <AmountFilterContent title={t('columns.totalTips')} currentFilter={tipsFilter} onApply={setTipsFilter} currency="$" />
+            </FilterPill>
+
+            {/* Reset Filters */}
+            {activeFiltersCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-9 text-muted-foreground hover:text-foreground" onClick={resetFilters}>
+                <X className="h-4 w-4 mr-1" />
+                {t('filters.clearAll', { defaultValue: 'Limpiar filtros' })} ({activeFiltersCount})
+              </Button>
+            )}
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Column Customizer */}
+            <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} />
+          </div>
+
+          {/* Results count */}
+          {(activeFiltersCount > 0 || debouncedSearchTerm) && (
+            <div className="text-sm text-muted-foreground">
+              {t('filters.showingResults', {
+                count: filteredTeamMembers.length,
+                total: teamData?.meta.totalCount || 0,
+                defaultValue: 'Mostrando {{count}} de {{total}} miembros',
+              })}
+            </div>
+          )}
+
           <DataTable
             data={filteredTeamMembers}
-            columns={teamColumns}
+            columns={filteredTeamColumns}
             isLoading={isLoadingTeam}
             pagination={pagination}
             setPagination={setPagination}
             tableId="team:members"
-            rowCount={teamData?.meta.totalCount || 0}
-            enableSearch={true}
-            searchPlaceholder={tCommon('search')}
-            onSearch={handleMemberSearch}
+            rowCount={filteredTeamMembers.length}
+            enableSearch={false}
             clickableRow={row => ({ to: row.id })}
           />
         </TabsContent>

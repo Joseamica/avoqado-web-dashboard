@@ -821,9 +821,23 @@ const ModuleManagement: React.FC = () => {
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>}>
             <WhiteLabelWizard
-              onComplete={() => {
-                setIsWhiteLabelWizardOpen(false)
-                queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+              onComplete={async (venueId, config) => {
+                try {
+                  await moduleAPI.updateModuleConfig(venueId, 'WHITE_LABEL_DASHBOARD', config)
+                  toast({
+                    title: t('moduleMgmt.toast.whiteLabelSavedTitle'),
+                    description: t('moduleMgmt.toast.whiteLabelSavedDesc'),
+                  })
+                  setIsWhiteLabelWizardOpen(false)
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
+                } catch (error: any) {
+                  toast({
+                    title: t('moduleMgmt.toast.whiteLabelSaveFailed'),
+                    description: error?.response?.data?.error || error.message,
+                    variant: 'destructive',
+                  })
+                }
               }}
               onCancel={() => setIsWhiteLabelWizardOpen(false)}
             />

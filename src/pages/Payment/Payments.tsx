@@ -27,34 +27,30 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSocketEvents } from '@/hooks/use-socket-events'
 import { useAuth } from '@/context/AuthContext'
+import { commissionKeys } from '@/hooks/useCommissions'
+import { commissionService } from '@/services/commission.service'
+import type { PaymentCommission } from '@/types/commission'
 import { Payment as PaymentType, StaffRole, PaymentMethod, PaymentStatus, PaymentRecordType } from '@/types'
 import { cn } from '@/lib/utils'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
 import { exportToCSV, exportToExcel, generateFilename, formatCurrencyForExport } from '@/utils/export'
 import getIcon from '@/utils/getIcon'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
-  AppWindow,
   ArrowUpDown,
   Banknote,
-  Computer,
   Download,
-  Globe,
   Pencil,
-  QrCode,
   RotateCcw,
   Search,
-  Smartphone,
-  TabletSmartphone,
-  TestTube,
   Trash2,
   X,
 } from 'lucide-react'
 import { useMemo, useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Payments() {
@@ -67,7 +63,6 @@ export default function Payments() {
   const hasChatbot = checkFeatureAccess('CHATBOT')
   const { formatDate } = useVenueDateTime()
   const location = useLocation()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -405,7 +400,45 @@ export default function Payments() {
     }
 
     return payments
-  }, [data?.data, merchantAccountFilter, methodFilter, sourceFilter, waiterFilter, subtotalFilter, tipFilter, totalFilter, debouncedSearchTerm])
+  }, [
+    data?.data,
+    merchantAccountFilter,
+    methodFilter,
+    sourceFilter,
+    waiterFilter,
+    subtotalFilter,
+    tipFilter,
+    totalFilter,
+    debouncedSearchTerm,
+  ])
+
+  // Get unique payment IDs from filtered payments to fetch their commissions
+  const paymentIds = useMemo(() => {
+    return filteredPayments.map((p: PaymentType) => p.id)
+  }, [filteredPayments])
+
+  // Fetch commissions for each payment using useQueries (parallel requests)
+  const commissionQueries = useQueries({
+    queries: paymentIds.map((paymentId: string) => ({
+      queryKey: commissionKeys.paymentCommission(venueId, paymentId),
+      queryFn: () => commissionService.getCommissionByPaymentId(venueId!, paymentId),
+      enabled: !!venueId && !!paymentId,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 30 * 60 * 1000,
+    })),
+  })
+
+  // Create lookup map from paymentId to commission amount
+  const commissionByPaymentId = useMemo(() => {
+    const map = new Map<string, number>()
+    commissionQueries.forEach((query, index) => {
+      const data = query.data as PaymentCommission | null
+      if (data?.netCommission) {
+        map.set(paymentIds[index], data.netCommission)
+      }
+    })
+    return map
+  }, [commissionQueries, paymentIds])
 
   // ==================================================================
   // --- PRINCIPALES CAMBIOS EN LA DEFINICIÓN DE COLUMNAS ---
@@ -449,14 +482,6 @@ export default function Payments() {
           )
         },
       },
-      {
-        // CAMBIO: Accedemos al mesero a través de `processedBy`
-        accessorFn: row => (row.processedBy ? `${row.processedBy.firstName} ${row.processedBy.lastName}` : '-'),
-        id: 'waiterName',
-        meta: { label: t('columns.waiter') },
-        header: () => <span className="text-xs">{t('columns.waiter')}</span>,
-        cell: info => <span className="text-xs text-muted-foreground dark:text-foreground">{info.getValue() as string}</span>,
-      },
 
       {
         // Merchant account information
@@ -480,72 +505,72 @@ export default function Payments() {
           )
         },
       },
+      //Habilitar cuando haya mas metodos de origen, por ejemplo QR
+      // {
+      //   // Source viene directamente del campo `source` del Payment
+      //   accessorKey: 'source',
+      //   id: 'source',
+      //   meta: { label: t('columns.source') },
+      //   header: ({ column }) => (
+      //     <Button
+      //       variant="ghost"
+      //       size="sm"
+      //       className="text-xs h-7 px-2"
+      //       onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+      //     >
+      //       {t('columns.source')}
+      //       <ArrowUpDown className="w-3 h-3 ml-1" />
+      //     </Button>
+      //   ),
+      //   cell: ({ cell }) => {
+      //     // Valores posibles: TPV, QR, WEB, APP, POS, UNKNOWN
+      //     const source = String(cell.getValue() || 'UNKNOWN')
 
-      {
-        // Source viene directamente del campo `source` del Payment
-        accessorKey: 'source',
-        id: 'source',
-        meta: { label: t('columns.source') },
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs h-7 px-2"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            {t('columns.source')}
-            <ArrowUpDown className="w-3 h-3 ml-1" />
-          </Button>
-        ),
-        cell: ({ cell }) => {
-          // Valores posibles: TPV, QR, WEB, APP, POS, UNKNOWN
-          const source = String(cell.getValue() || 'UNKNOWN')
+      //     const iconBox = (icon: JSX.Element, bgColor: string = 'bg-muted') => (
+      //       <div className={`flex items-center justify-center w-6 h-6 rounded-md ${bgColor} border border-border shadow-sm`}>{icon}</div>
+      //     )
 
-          const iconBox = (icon: JSX.Element, bgColor: string = 'bg-muted') => (
-            <div className={`flex items-center justify-center w-6 h-6 rounded-md ${bgColor} border border-border shadow-sm`}>{icon}</div>
-          )
+      //     const map = {
+      //       POS: {
+      //         icon: iconBox(<Computer className="h-3 w-3 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
+      //         label: t('sources.POS'),
+      //       },
+      //       TPV: {
+      //         icon: iconBox(<TabletSmartphone className="h-3 w-3 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
+      //         label: t('sources.TPV'),
+      //       },
+      //       QR: {
+      //         icon: iconBox(<QrCode className="h-3 w-3 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
+      //         label: t('sources.QR'),
+      //       },
+      //       WEB: {
+      //         icon: iconBox(<Globe className="h-3 w-3 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
+      //         label: t('sources.WEB'),
+      //       },
+      //       APP: {
+      //         icon: iconBox(<AppWindow className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+      //         label: t('sources.APP'),
+      //       },
+      //       DASHBOARD_TEST: {
+      //         icon: iconBox(<TestTube className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
+      //         label: t('sources.DASHBOARD_TEST'),
+      //       },
+      //       UNKNOWN: {
+      //         icon: iconBox(<Smartphone className="h-3 w-3 text-muted-foreground" />, 'bg-muted'),
+      //         label: t('sources.UNKNOWN'),
+      //       },
+      //     } as const
 
-          const map = {
-            POS: {
-              icon: iconBox(<Computer className="h-3 w-3 text-blue-600" />, 'bg-blue-50 dark:bg-blue-950/50'),
-              label: t('sources.POS'),
-            },
-            TPV: {
-              icon: iconBox(<TabletSmartphone className="h-3 w-3 text-green-600" />, 'bg-green-50 dark:bg-green-950/50'),
-              label: t('sources.TPV'),
-            },
-            QR: {
-              icon: iconBox(<QrCode className="h-3 w-3 text-purple-600" />, 'bg-purple-50 dark:bg-purple-950/50'),
-              label: t('sources.QR'),
-            },
-            WEB: {
-              icon: iconBox(<Globe className="h-3 w-3 text-orange-600" />, 'bg-orange-50 dark:bg-orange-950/50'),
-              label: t('sources.WEB'),
-            },
-            APP: {
-              icon: iconBox(<AppWindow className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-              label: t('sources.APP'),
-            },
-            DASHBOARD_TEST: {
-              icon: iconBox(<TestTube className="h-3 w-3 text-indigo-600" />, 'bg-indigo-50 dark:bg-indigo-950/50'),
-              label: t('sources.DASHBOARD_TEST'),
-            },
-            UNKNOWN: {
-              icon: iconBox(<Smartphone className="h-3 w-3 text-muted-foreground" />, 'bg-muted'),
-              label: t('sources.UNKNOWN'),
-            },
-          } as const
+      //     const item = map[source as keyof typeof map] || map.UNKNOWN
 
-          const item = map[source as keyof typeof map] || map.UNKNOWN
-
-          return (
-            <div className="flex items-center gap-2">
-              {item.icon}
-              <span className="text-xs text-muted-foreground dark:text-foreground">{item.label}</span>
-            </div>
-          )
-        },
-      },
+      //     return (
+      //       <div className="flex items-center gap-2">
+      //         {item.icon}
+      //         <span className="text-xs text-muted-foreground dark:text-foreground">{item.label}</span>
+      //       </div>
+      //     )
+      //   },
+      // },
       {
         accessorKey: 'method',
         meta: { label: t('columns.method') },
@@ -572,7 +597,8 @@ export default function Payments() {
           // CAMBIO: `last4` y `cardBrand` podrían estar en `processorData`.
           // Simplificamos si no están directamente disponibles.
           const cardBrand = payment.cardBrand || payment.processorData?.cardBrand || null
-          const last4Raw = payment.last4 || (payment as any).maskedPan || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
+          const last4Raw =
+            payment.last4 || (payment as any).maskedPan || payment.processorData?.last4 || payment.processorData?.maskedPan || ''
           const last4Digits = last4Raw ? String(last4Raw).replace(/\D/g, '').slice(-4) : ''
           const maskedLast4 = last4Digits || ''
 
@@ -590,6 +616,37 @@ export default function Payments() {
                   </div>
                   <span className="text-xs text-muted-foreground dark:text-foreground">{methodDisplay}</span>
                 </>
+              )}
+            </div>
+          )
+        },
+      },
+      {
+        // CAMBIO: Accedemos al mesero a través de `processedBy`
+        // Mostramos nombre + inicial del apellido (ej: "Jose Antonio A.")
+        accessorFn: row => {
+          if (!row.processedBy) return '-'
+          const firstName = row.processedBy.firstName || ''
+          const lastInitial = row.processedBy.lastName ? `${row.processedBy.lastName.charAt(0)}.` : ''
+          return `${firstName} ${lastInitial}`.trim()
+        },
+        id: 'waiterName',
+        meta: { label: t('columns.waiter') },
+        header: () => <span className="text-xs">{t('columns.waiter')}</span>,
+        cell: ({ getValue, row }) => {
+          const waiterName = getValue() as string
+          const commissionAmount = commissionByPaymentId.get(row.original.id) || 0
+
+          return (
+            <div className="flex flex-col items-start">
+              <span className="text-xs text-muted-foreground dark:text-foreground">{waiterName}</span>
+              {commissionAmount > 0 && (
+                <Badge
+                  variant="soft"
+                  className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-transparent text-[10px] px-1.5 py-0 h-5 mt-0.5"
+                >
+                  {Currency(commissionAmount)}
+                </Badge>
               )}
             </div>
           )
@@ -813,7 +870,7 @@ export default function Payments() {
           ]
         : []),
     ],
-    [t, isSuperAdmin, hasChatbot],
+    [t, isSuperAdmin, hasChatbot, commissionByPaymentId],
   )
 
   // Filter columns based on visibility settings
@@ -1140,12 +1197,7 @@ export default function Payments() {
 
           {/* Reset filters - white background button with X icon */}
           {activeFiltersCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              className="h-8 gap-1.5 rounded-full"
-            >
+            <Button variant="outline" size="sm" onClick={resetFilters} className="h-8 gap-1.5 rounded-full">
               <X className="h-3.5 w-3.5" />
               {t('filters.reset', { defaultValue: 'Borrar filtros' })}
             </Button>
@@ -1193,7 +1245,7 @@ export default function Payments() {
 
       <DataTable
         data={filteredPayments}
-        rowCount={filteredPayments.length}
+        rowCount={totalPayments}
         columns={filteredColumns}
         isLoading={isLoading}
         tableId="payments:main"

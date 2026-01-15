@@ -54,7 +54,7 @@ function DataTable<TData>({
   onRowClick,
   pagination,
   setPagination,
-  showColumnCustomizer = true,
+  showColumnCustomizer = false,
   tableId,
   enableSearch = false,
   searchPlaceholder,
@@ -189,9 +189,7 @@ function DataTable<TData>({
       {/* Toolbar */}
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Search Bar */}
-        {enableSearch && (
-          <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />
-        )}
+        {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
 
         {/* Column Customizer */}
         {showColumnCustomizer && (
@@ -251,9 +249,10 @@ function DataTable<TData>({
                         className={`
                           absolute right-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full
                           cursor-col-resize select-none touch-none transition-all duration-150
-                          ${header.column.getIsResizing()
-                            ? 'bg-primary h-full rounded-none'
-                            : 'bg-border/60 hover:bg-primary/70 hover:h-6 group-hover:bg-border'
+                          ${
+                            header.column.getIsResizing()
+                              ? 'bg-primary h-full rounded-none'
+                              : 'bg-border/60 hover:bg-primary/70 hover:h-6 group-hover:bg-border'
                           }
                         `}
                         title={t('common.doubleClickToReset', 'Double-click to reset')}
@@ -298,7 +297,9 @@ function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${onRowClick ? 'cursor-pointer' : ''} ${customRowClass}`}
+                  className={`bg-background border-border hover:bg-background data-[state=selected]:bg-background ${
+                    onRowClick ? 'cursor-pointer' : ''
+                  } ${customRowClass}`}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map(cell => (

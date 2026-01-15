@@ -161,10 +161,7 @@ export const PlayTelecomPromoters = lazyWithRetry(() => import('@/pages/playtele
 export const PlayTelecomUsers = lazyWithRetry(() => import('@/pages/playtelecom/Users/UsersManagement'))
 export const PlayTelecomTpvConfig = lazyWithRetry(() => import('@/pages/playtelecom/TpvConfig/TpvConfiguration'))
 
-// White-Label Dashboard
-export const WhiteLabelDashboardLayout = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelDashboardLayout'))
-export const WhiteLabelIndex = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelIndex'))
-export const WhiteLabelFeatureRouter = lazyWithRetry(() => import('@/pages/WhiteLabel/WhiteLabelFeatureRouter'))
-
 // White-Label Builder (Superadmin)
+// Note: WhiteLabelDashboardLayout, WhiteLabelIndex, WhiteLabelFeatureRouter removed
+// White-label now uses direct routes, not a separate /wl/ section
 export const WhiteLabelWizard = lazyWithRetry(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))

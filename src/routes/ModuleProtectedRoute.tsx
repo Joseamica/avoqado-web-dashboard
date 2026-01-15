@@ -40,7 +40,7 @@ export function ModuleProtectedRoute({
   allowedRoles,
   permission,
 }: ModuleProtectedRouteProps) {
-  const { checkModuleAccess, activeVenue, staffInfo, user } = useAuth()
+  const { checkModuleAccess, activeVenue, staffInfo, user, isLoading } = useAuth()
   const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
   const { toast } = useToast()
@@ -55,20 +55,14 @@ export function ModuleProtectedRoute({
   // Check role access if allowedRoles specified
   const hasRoleAccess = !allowedRoles || (effectiveRole && allowedRoles.includes(effectiveRole as StaffRole))
 
-  // Debug logging
-  console.log('[ModuleProtectedRoute]', {
-    requiredModule,
-    hasModuleAccess,
-    allowedRoles,
-    effectiveRole,
-    hasRoleAccess,
-    activeVenueModules: activeVenue?.modules,
-    path: location.pathname,
-  })
+  // Determine if we're waiting for venue to load
+  // This prevents premature redirects when activeVenue hasn't been set yet
+  const isVenueLoading = isLoading || (slug && !activeVenue)
 
   // Show toast when redirecting due to missing module
+  // Only show when we're NOT loading and activeVenue is set
   useEffect(() => {
-    if (!hasModuleAccess && activeVenue) {
+    if (!isVenueLoading && !hasModuleAccess && activeVenue) {
       toast({
         title: t('common:module_not_available', { defaultValue: 'Module not available' }),
         description: t('common:module_not_available_desc', {
@@ -78,11 +72,11 @@ export function ModuleProtectedRoute({
         variant: 'destructive',
       })
     }
-  }, [hasModuleAccess, requiredModule, activeVenue, toast, t])
+  }, [isVenueLoading, hasModuleAccess, requiredModule, activeVenue, toast, t])
 
   // Show toast when redirecting due to insufficient role
   useEffect(() => {
-    if (hasModuleAccess && !hasRoleAccess && activeVenue) {
+    if (!isVenueLoading && hasModuleAccess && !hasRoleAccess && activeVenue) {
       toast({
         title: t('common:access_denied', { defaultValue: 'Access denied' }),
         description: t('common:insufficient_role', {
@@ -91,7 +85,17 @@ export function ModuleProtectedRoute({
         variant: 'destructive',
       })
     }
-  }, [hasModuleAccess, hasRoleAccess, activeVenue, toast, t])
+  }, [isVenueLoading, hasModuleAccess, hasRoleAccess, activeVenue, toast, t])
+
+  // Show loading state while venue is being resolved
+  // This prevents redirecting before we know if the module is enabled
+  if (isVenueLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
 
   // Redirect to venue home if module is not enabled
   if (!hasModuleAccess) {

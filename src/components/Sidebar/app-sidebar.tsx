@@ -29,6 +29,7 @@
   LucideIcon,
 } from 'lucide-react'
 import * as React from 'react'
+import { useLocation } from 'react-router-dom'
 
 import { NavMain } from '@/components/Sidebar/nav-main'
 import { NavUser } from '@/components/Sidebar/nav-user'
@@ -39,7 +40,7 @@ import { SessionVenue, User, Venue } from '@/types'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '@/hooks/usePermissions'
 import { canAccessOperationalFeatures } from '@/lib/kyc-utils'
-import { useWhiteLabelConfig, slugify } from '@/hooks/useWhiteLabelConfig'
+import { useWhiteLabelConfig, getFeatureRoute } from '@/hooks/useWhiteLabelConfig'
 
 // ============================================
 // Icon Mapping for White-Label Navigation
@@ -88,35 +89,24 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
 
   // ========== White-Label Dashboard Mode ==========
   const { isWhiteLabelEnabled, navigation: wlNavigation } = useWhiteLabelConfig()
+  const location = useLocation()
 
-  // White-label mode switch state with localStorage persistence (per-venue)
-  const wlStorageKey = `whitelabel-dashboard-${activeVenue?.id || 'default'}`
-  const [isWhiteLabelMode, setIsWhiteLabelMode] = React.useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    const stored = localStorage.getItem(wlStorageKey)
-    return stored === 'true'
-  })
-
-  // Sync white-label mode with localStorage
-  React.useEffect(() => {
-    if (activeVenue?.id) {
-      localStorage.setItem(wlStorageKey, String(isWhiteLabelMode))
-    }
-  }, [isWhiteLabelMode, wlStorageKey, activeVenue?.id])
-
-  // Reset white-label mode when switching venues or when module is not available
-  React.useEffect(() => {
-    if (!isWhiteLabelEnabled && isWhiteLabelMode) {
-      setIsWhiteLabelMode(false)
-    }
-  }, [isWhiteLabelEnabled, isWhiteLabelMode])
+  // Detect white-label mode from URL: /wl/:slug/* activates white-label mode
+  // This replaces localStorage-based toggle - now the URL determines the mode
+  const isWhiteLabelMode = React.useMemo(() => {
+    // Check if we're in /wl/ route
+    const isWlRoute = location.pathname.startsWith('/wl/')
+    // Only enable white-label mode if the venue has the module enabled AND we're in /wl/ route
+    return isWlRoute && isWhiteLabelEnabled
+  }, [location.pathname, isWhiteLabelEnabled])
 
   const navMain = React.useMemo(() => {
-    // ========== White-Label Mode: Show only white-label dashboard items ==========
+    // ========== White-Label Mode: Show only configured dashboard items ==========
+    // Uses direct routes (not /wl/) - white-label just filters the sidebar
     if (isWhiteLabelMode && isWhiteLabelEnabled && wlNavigation.length > 0) {
       const whiteLabelItems = wlNavigation.map(navItem => ({
         title: navItem.label || navItem.featureCode || 'Untitled',
-        url: `wl/${slugify(navItem.featureCode || '')}`,
+        url: getFeatureRoute(navItem.featureCode || ''),
         icon: getIconComponent(navItem.icon),
         isActive: true,
         locked: false,

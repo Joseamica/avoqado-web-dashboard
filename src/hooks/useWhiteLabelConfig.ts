@@ -163,6 +163,49 @@ export function slugify(text: string): string {
 }
 
 /**
+ * Feature code to route mapping
+ * Maps feature codes to their actual dashboard routes (not /wl/ routes)
+ *
+ * Avoqado core features use existing routes
+ * Module-specific features use direct routes (command-center, stock, etc.)
+ */
+export const FEATURE_ROUTE_MAP: Record<string, string> = {
+  // Avoqado Core Features → Existing Routes
+  'AVOQADO_DASHBOARD': 'home',
+  'AVOQADO_ORDERS': 'orders',
+  'AVOQADO_PAYMENTS': 'payments',
+  'AVOQADO_MENU': 'menumaker/overview',
+  'AVOQADO_INVENTORY': 'inventory/raw-materials',
+  'AVOQADO_TEAM': 'team',
+  'AVOQADO_CUSTOMERS': 'customers',
+  'AVOQADO_TPVS': 'tpv',
+  'AVOQADO_BALANCE': 'available-balance',
+  'AVOQADO_PROMOTIONS': 'promotions/discounts',
+  'AVOQADO_ANALYTICS': 'analytics',
+  'AVOQADO_SHIFTS': 'shifts',
+  'AVOQADO_COMMISSIONS': 'commissions',
+  'AVOQADO_LOYALTY': 'loyalty',
+  'AVOQADO_REVIEWS': 'reviews',
+  'AVOQADO_REPORTS': 'reports/sales-summary',
+
+  // Module Specific Features → Direct Routes (protected by WHITE_LABEL_DASHBOARD)
+  'COMMAND_CENTER': 'command-center',
+  'SERIALIZED_STOCK': 'stock',
+  'PROMOTERS_AUDIT': 'promoters',
+  'STORES_ANALYSIS': 'stores',
+  'APPRAISALS': 'appraisals',
+  'CONSIGNMENT': 'consignment',
+}
+
+/**
+ * Get the actual route for a feature code
+ * Returns the route path relative to /venues/:slug/
+ */
+export function getFeatureRoute(featureCode: string): string {
+  return FEATURE_ROUTE_MAP[featureCode] || slugify(featureCode)
+}
+
+/**
  * Convert slug back to feature code
  */
 export function unslugify(slug: string): string {

@@ -130,9 +130,20 @@ export const teamService = {
     return response.data
   },
 
-  // Remove team member
+  // Remove team member (soft delete - deactivate)
   async removeTeamMember(venueId: string, teamMemberId: string): Promise<{ message: string }> {
     const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/team/${teamMemberId}`)
+    return response.data
+  },
+
+  // Hard delete team member (SUPERADMIN only - permanently deletes all data)
+  async hardDeleteTeamMember(
+    venueId: string,
+    teamMemberId: string,
+  ): Promise<{ message: string; deletedRecords: Record<string, number> }> {
+    const response = await api.delete(`/api/v1/dashboard/venues/${venueId}/team/${teamMemberId}/hard-delete`, {
+      data: { confirmDeletion: true },
+    })
     return response.data
   },
 

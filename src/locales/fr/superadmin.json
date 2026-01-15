@@ -2932,7 +2932,10 @@
       "deletedDesc": "Le module {{name}} a été supprimé avec succès",
       "deleteFailed": "Échec de la Suppression",
       "jsonError": "JSON Invalide",
-      "jsonErrorDesc": "Vérifiez que defaultConfig et presets sont du JSON valide"
+      "jsonErrorDesc": "Vérifiez que defaultConfig et presets sont du JSON valide",
+      "whiteLabelSavedTitle": "Dashboard Sauvegardé",
+      "whiteLabelSavedDesc": "La configuration du dashboard white-label a été sauvegardée avec succès",
+      "whiteLabelSaveFailed": "Échec de la Sauvegarde"
     }
   }
 }

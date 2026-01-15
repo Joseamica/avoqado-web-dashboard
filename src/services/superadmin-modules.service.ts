@@ -141,7 +141,7 @@ export async function disableModule(
  * Update module configuration for a venue
  *
  * @param venueId Venue ID
- * @param moduleCode Module code
+ * @param moduleCode Module code (e.g., 'WHITE_LABEL_DASHBOARD')
  * @param config Configuration object to merge
  * @returns Success response with updated venueModule
  */

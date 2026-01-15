@@ -53,7 +53,7 @@ export interface WizardState {
 }
 
 interface WhiteLabelWizardProps {
-  onComplete: (config: WhiteLabelConfig) => void
+  onComplete: (venueId: string, config: WhiteLabelConfig) => void | Promise<void>
   onCancel: () => void
   initialVenueId?: string
   initialVenueName?: string
@@ -322,11 +322,11 @@ export default function WhiteLabelWizard({
     setIsSubmitting(true)
     try {
       const config = buildFinalConfig()
-      await onComplete(config)
+      await onComplete(state.venueId, config)
     } finally {
       setIsSubmitting(false)
     }
-  }, [buildFinalConfig, onComplete, validateCurrentStep])
+  }, [buildFinalConfig, onComplete, validateCurrentStep, state.venueId])
 
   // ============================================
   // Step Completion Status

@@ -88,11 +88,16 @@
     "role": "Role",
     "status": "Status",
     "totalSales": "Total Sales",
+    "totalTips": "Total Tips",
     "totalOrders": "Total Orders",
     "email": "Email",
     "invitedBy": "Invited by {{name}}",
     "sent": "Sent Date",
     "expires": "Expires"
+  },
+  "filters": {
+    "clearAll": "Clear filters",
+    "showingResults": "Showing {{count}} of {{total}} members"
   },
   "status": {
     "active": "Active",
@@ -102,6 +107,8 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
+    "deactivate": "Deactivate",
+    "hardDelete": "Delete Permanently",
     "resend": "Resend",
     "cancel": "Cancel"
   },
@@ -112,18 +119,29 @@
   "dialogs": {
     "editMemberTitle": "Edit Member",
     "editMemberDesc": "Update the role and settings for {{firstName}} {{lastName}}.",
-    "removeTitle": "Remove team member?",
-    "removeDesc": "Are you sure you want to remove {{firstName}} {{lastName}} from the team? This action cannot be undone and the member will lose access to the dashboard.",
+    "removeTitle": "Deactivate team member?",
+    "removeDesc": "Are you sure you want to deactivate {{firstName}} {{lastName}}? The member will lose access to the dashboard, but their sales history, tips, and commissions will be preserved for accounting and legal purposes.",
     "removeConfirm": "Delete",
+    "deactivateConfirm": "Deactivate",
     "removeCancel": "Cancel",
-    "removing": "Deleting..."
+    "removing": "Deleting...",
+    "deactivating": "Deactivating...",
+    "hardDeleteTitle": "Delete permanently?",
+    "hardDeleteDesc": "You are about to permanently delete {{firstName}} {{lastName}} and ALL their associated data: commissions, tips, sales, calculations, and historical records.",
+    "hardDeleteWarning": "This action is IRREVERSIBLE. Data CANNOT be recovered.",
+    "hardDeleteConfirm": "Delete Permanently",
+    "hardDeleting": "Deleting..."
   },
   "toasts": {
-    "memberRemovedTitle": "Member removed",
-    "memberRemovedDesc": "{{firstName}} {{lastName}} has been removed from the team.",
-    "memberRemoveErrorTitle": "Failed to remove",
-    "memberRemoveErrorDesc": "Could not remove the team member.",
-    "memberRemoveError": "Failed to remove member",
+    "memberRemovedTitle": "Member deactivated",
+    "memberRemovedDesc": "{{firstName}} {{lastName}} has been deactivated. Their history remains in the system.",
+    "memberRemoveErrorTitle": "Failed to deactivate",
+    "memberRemoveErrorDesc": "Could not deactivate the team member.",
+    "memberRemoveError": "Failed to deactivate member",
+    "memberHardDeletedTitle": "Member permanently deleted",
+    "memberHardDeletedDesc": "{{firstName}} {{lastName}} and {{count}} associated records have been permanently deleted.",
+    "memberHardDeleteErrorTitle": "Failed to delete",
+    "memberHardDeleteErrorDesc": "Could not permanently delete the team member.",
     "invitationCancelled": "Invitation cancelled",
     "invitationCancelledDesc": "The invitation to {{email}} has been cancelled.",
     "invitationCancelError": "Failed to cancel invitation",

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, Trash2, Shield, Clock, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Mail, Calendar, DollarSign, ShoppingCart, Star, Edit3, UserMinus, Trash2, Shield, Clock, TrendingUp } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,6 +48,10 @@ export default function TeamId() {
 
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
+  const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false)
+
+  // SUPERADMIN check for hard delete
+  const isSuperadmin = staffInfo?.role === StaffRole.SUPERADMIN
 
   // Fetch team member details
   const { data: memberDetails, isLoading } = useQuery({
@@ -69,7 +73,7 @@ export default function TeamId() {
     }
   }, [memberDetails, memberId, setCustomSegment, clearCustomSegment])
 
-  // Remove team member mutation
+  // Remove team member mutation (soft delete)
   const removeTeamMemberMutation = useMutation({
     mutationFn: () => teamService.removeTeamMember(venueId, memberId!),
     onSuccess: () => {
@@ -91,6 +95,30 @@ export default function TeamId() {
     },
   })
 
+  // Hard delete team member mutation (SUPERADMIN only)
+  const hardDeleteMutation = useMutation({
+    mutationFn: () => teamService.hardDeleteTeamMember(venueId, memberId!),
+    onSuccess: result => {
+      toast({
+        title: t('toasts.memberHardDeletedTitle'),
+        description: t('toasts.memberHardDeletedDesc', {
+          firstName: memberDetails?.firstName || '',
+          lastName: memberDetails?.lastName || '',
+          count: Object.values(result.deletedRecords).reduce((a, b) => a + b, 0),
+        }),
+      })
+      queryClient.invalidateQueries({ queryKey: ['team-members', venueId] })
+      navigate(-1)
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('toasts.memberHardDeleteErrorTitle'),
+        description: error.response?.data?.message || t('toasts.memberHardDeleteErrorDesc'),
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleGoBack = () => {
     navigate(-1)
   }
@@ -104,6 +132,11 @@ export default function TeamId() {
   const handleRemoveConfirm = () => {
     removeTeamMemberMutation.mutate()
     setShowRemoveDialog(false)
+  }
+
+  const handleHardDeleteConfirm = () => {
+    hardDeleteMutation.mutate()
+    setShowHardDeleteDialog(false)
   }
 
   if (isLoading) {
@@ -185,12 +218,23 @@ export default function TeamId() {
           </PermissionGate>
           <PermissionGate permission="teams:delete">
             {canRemove && (
-              <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-destructive hover:text-destructive/80">
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t('actions.delete')}
+              <Button variant="outline" onClick={() => setShowRemoveDialog(true)} className="text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400">
+                <UserMinus className="h-4 w-4 mr-2" />
+                {t('actions.deactivate')}
               </Button>
             )}
           </PermissionGate>
+          {/* SUPERADMIN-only hard delete button */}
+          {isSuperadmin && canRemove && (
+            <Button
+              variant="outline"
+              onClick={() => setShowHardDeleteDialog(true)}
+              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground border-0"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t('actions.hardDelete')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -414,9 +458,36 @@ export default function TeamId() {
               <AlertDialogAction
                 onClick={handleRemoveConfirm}
                 disabled={removeTeamMemberMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {removeTeamMemberMutation.isPending ? t('dialogs.deactivating') : t('dialogs.deactivateConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {/* Hard Delete Confirmation Dialog (SUPERADMIN only) */}
+      {showHardDeleteDialog && (
+        <AlertDialog open={showHardDeleteDialog} onOpenChange={setShowHardDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">{t('dialogs.hardDeleteTitle')}</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <span className="block">
+                  {t('dialogs.hardDeleteDesc', { firstName: memberDetails.firstName, lastName: memberDetails.lastName })}
+                </span>
+                <span className="block font-semibold text-destructive">{t('dialogs.hardDeleteWarning')}</span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('dialogs.removeCancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleHardDeleteConfirm}
+                disabled={hardDeleteMutation.isPending}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {removeTeamMemberMutation.isPending ? t('dialogs.removing') : t('dialogs.removeConfirm')}
+                {hardDeleteMutation.isPending ? t('dialogs.hardDeleting') : t('dialogs.hardDeleteConfirm')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -241,10 +241,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (!slug && activeVenue) {
         // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
         const currentPath = location.pathname
-        // Don't redirect if user is on superadmin, admin, or organization routes
+        // Don't redirect if user is on superadmin, admin, organization, or white-label routes
         const isOnAdminRoute = currentPath.startsWith('/superadmin') || currentPath.startsWith('/admin')
         const isOnOrgRoute = currentPath.startsWith('/organizations')
-        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute) {
+        const isOnWhiteLabelRoute = currentPath.startsWith('/wl/')
+        if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute) {
           navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
         }
       }

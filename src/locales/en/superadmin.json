@@ -3278,7 +3278,10 @@
       "deletedTitle": "Module Deleted",
       "deleteFailed": "Failed to Delete Module",
       "jsonError": "JSON Error",
-      "jsonErrorDesc": "Configuration or presets contain invalid JSON"
+      "jsonErrorDesc": "Configuration or presets contain invalid JSON",
+      "whiteLabelSavedTitle": "Dashboard Saved",
+      "whiteLabelSavedDesc": "The white-label dashboard configuration has been saved successfully",
+      "whiteLabelSaveFailed": "Failed to Save Dashboard"
     }
   },
   "whiteLabelWizard": {
