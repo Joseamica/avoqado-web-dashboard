@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { History, ChevronLeft, ChevronRight, Building2, Vault, Banknote, ArrowRight } from 'lucide-react'
-import { getCloseoutHistory, type CashCloseout, type DepositMethod } from '@/services/cashCloseout.service'
+import { getCloseoutHistory, type DepositMethod } from '@/services/cashCloseout.service'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
 import { cn } from '@/lib/utils'

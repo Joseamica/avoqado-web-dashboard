@@ -28,10 +28,8 @@ import type {
   WizardStep,
   PresetName,
 } from '@/types/white-label'
-import { DEFAULT_WHITE_LABEL_CONFIG } from '@/types/white-label'
-import { WHITE_LABEL_PRESETS, getPreset } from '@/config/white-label-presets'
+import { getPreset } from '@/config/white-label-presets'
 import { FEATURE_REGISTRY } from '@/config/feature-registry'
-import { slugify } from '@/hooks/useWhiteLabelConfig'
 
 import Step1Setup from './steps/Step1Setup'
 import Step2Features from './steps/Step2Features'

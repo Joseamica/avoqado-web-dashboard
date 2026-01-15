@@ -23,8 +23,6 @@ import type {
 	CommissionFilters,
 	SummaryFilters,
 	PayoutFilters,
-	CommissionSummaryStatus,
-	CommissionPayoutStatus,
 	PaymentCommission,
 } from '@/types/commission'
 

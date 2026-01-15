@@ -10,13 +10,13 @@
  * Access: ADMIN+ only
  */
 
-import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/context/AuthContext'
-import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Settings, Plus, Package, DollarSign, Percent, Pencil, Trash2 } from 'lucide-react'
+import { GlassCard } from '@/components/ui/glass-card'
+import { useAuth } from '@/context/AuthContext'
+import { Package, Pencil, Percent, Plus, Settings, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Placeholder data - will be replaced with real API calls
 const MOCK_CATEGORIES = [
@@ -24,9 +24,9 @@ const MOCK_CATEGORIES = [
     id: '1',
     name: 'Chip Telcel Negra',
     sku: 'CHIP-NEG-001',
-    price: 150.00,
-    cost: 100.00,
-    commission: 10.00,
+    price: 150.0,
+    cost: 100.0,
+    commission: 10.0,
     isActive: true,
     color: '#1a1a1a',
   },
@@ -34,9 +34,9 @@ const MOCK_CATEGORIES = [
     id: '2',
     name: 'Chip Telcel Blanca',
     sku: 'CHIP-BLA-001',
-    price: 120.00,
-    cost: 80.00,
-    commission: 8.00,
+    price: 120.0,
+    cost: 80.0,
+    commission: 8.0,
     isActive: true,
     color: '#ffffff',
   },
@@ -44,9 +44,9 @@ const MOCK_CATEGORIES = [
     id: '3',
     name: 'Chip Telcel Roja',
     sku: 'CHIP-ROJ-001',
-    price: 180.00,
-    cost: 120.00,
-    commission: 12.00,
+    price: 180.0,
+    cost: 120.0,
+    commission: 12.0,
     isActive: true,
     color: '#ef4444',
   },
@@ -54,9 +54,9 @@ const MOCK_CATEGORIES = [
     id: '4',
     name: 'Recarga Telcel $50',
     sku: 'REC-050',
-    price: 50.00,
-    cost: 47.50,
-    commission: 2.50,
+    price: 50.0,
+    cost: 47.5,
+    commission: 2.5,
     isActive: true,
     color: '#3b82f6',
   },
@@ -64,9 +64,9 @@ const MOCK_CATEGORIES = [
     id: '5',
     name: 'Recarga Telcel $100',
     sku: 'REC-100',
-    price: 100.00,
-    cost: 95.00,
-    commission: 5.00,
+    price: 100.0,
+    cost: 95.0,
+    commission: 5.0,
     isActive: true,
     color: '#3b82f6',
   },
@@ -74,9 +74,9 @@ const MOCK_CATEGORIES = [
     id: '6',
     name: 'Recarga Telcel $200',
     sku: 'REC-200',
-    price: 200.00,
-    cost: 190.00,
-    commission: 10.00,
+    price: 200.0,
+    cost: 190.0,
+    commission: 10.0,
     isActive: false,
     color: '#3b82f6',
   },
@@ -88,22 +88,24 @@ export function TpvConfiguration() {
 
   // Format currency
   const formatCurrency = useMemo(
-    () =>
-      (value: number) =>
-        new Intl.NumberFormat('es-MX', {
-          style: 'currency',
-          currency: activeVenue?.currency || 'MXN',
-          minimumFractionDigits: 2,
-        }).format(value),
-    [activeVenue?.currency]
+    () => (value: number) =>
+      new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: activeVenue?.currency || 'MXN',
+        minimumFractionDigits: 2,
+      }).format(value),
+    [activeVenue?.currency],
   )
 
   // Calculate totals
-  const stats = useMemo(() => ({
-    totalCategories: MOCK_CATEGORIES.length,
-    activeCategories: MOCK_CATEGORIES.filter(c => c.isActive).length,
-    avgMargin: MOCK_CATEGORIES.reduce((acc, c) => acc + ((c.price - c.cost) / c.price * 100), 0) / MOCK_CATEGORIES.length,
-  }), [])
+  const stats = useMemo(
+    () => ({
+      totalCategories: MOCK_CATEGORIES.length,
+      activeCategories: MOCK_CATEGORIES.filter(c => c.isActive).length,
+      avgMargin: MOCK_CATEGORIES.reduce((acc, c) => acc + ((c.price - c.cost) / c.price) * 100, 0) / MOCK_CATEGORIES.length,
+    }),
+    [],
+  )
 
   return (
     <div className="space-y-6">
@@ -114,9 +116,7 @@ export function TpvConfiguration() {
             <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">
-              {t('playtelecom:tpvConfig.title', { defaultValue: 'Configuración TPV' })}
-            </h2>
+            <h2 className="text-lg font-semibold">{t('playtelecom:tpvConfig.title', { defaultValue: 'Configuración TPV' })}</h2>
             <p className="text-sm text-muted-foreground">
               {t('playtelecom:tpvConfig.subtitle', { defaultValue: 'Administra categorías y precios' })}
             </p>
@@ -164,9 +164,7 @@ export function TpvConfiguration() {
               <Percent className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">
-                {t('playtelecom:tpvConfig.avgMargin', { defaultValue: 'Margen Promedio' })}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('playtelecom:tpvConfig.avgMargin', { defaultValue: 'Margen Promedio' })}</p>
               <p className="text-xl font-semibold">{stats.avgMargin.toFixed(1)}%</p>
             </div>
           </div>
@@ -175,9 +173,7 @@ export function TpvConfiguration() {
 
       {/* Categories Table */}
       <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:tpvConfig.categories', { defaultValue: 'Categorías de Productos' })}
-        </h3>
+        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:tpvConfig.categories', { defaultValue: 'Categorías de Productos' })}</h3>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -208,37 +204,26 @@ export function TpvConfiguration() {
             </thead>
             <tbody>
               {MOCK_CATEGORIES.map(category => {
-                const margin = ((category.price - category.cost) / category.price * 100).toFixed(1)
+                const margin = (((category.price - category.cost) / category.price) * 100).toFixed(1)
                 return (
                   <tr key={category.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded-full border border-border"
-                          style={{ backgroundColor: category.color }}
-                        />
+                        <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: category.color }} />
                         <span className="font-medium">{category.name}</span>
                       </div>
                     </td>
                     <td className="py-3 px-2">
                       <code className="text-xs bg-muted/50 px-2 py-1 rounded">{category.sku}</code>
                     </td>
-                    <td className="py-3 px-2 text-right font-medium">
-                      {formatCurrency(category.price)}
-                    </td>
-                    <td className="py-3 px-2 text-right text-muted-foreground">
-                      {formatCurrency(category.cost)}
-                    </td>
+                    <td className="py-3 px-2 text-right font-medium">{formatCurrency(category.price)}</td>
+                    <td className="py-3 px-2 text-right text-muted-foreground">{formatCurrency(category.cost)}</td>
                     <td className="py-3 px-2 text-right">
                       <span className="text-green-600 dark:text-green-400">{margin}%</span>
                     </td>
-                    <td className="py-3 px-2 text-right text-muted-foreground">
-                      {formatCurrency(category.commission)}
-                    </td>
+                    <td className="py-3 px-2 text-right text-muted-foreground">{formatCurrency(category.commission)}</td>
                     <td className="py-3 px-2 text-center">
-                      <Badge variant={category.isActive ? 'default' : 'secondary'}>
-                        {category.isActive ? 'Activo' : 'Inactivo'}
-                      </Badge>
+                      <Badge variant={category.isActive ? 'default' : 'secondary'}>{category.isActive ? 'Activo' : 'Inactivo'}</Badge>
                     </td>
                     <td className="py-3 px-2">
                       <div className="flex items-center justify-end gap-1">
@@ -260,9 +245,7 @@ export function TpvConfiguration() {
 
       {/* TPV Preview */}
       <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:tpvConfig.preview', { defaultValue: 'Vista Previa TPV' })}
-        </h3>
+        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:tpvConfig.preview', { defaultValue: 'Vista Previa TPV' })}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {MOCK_CATEGORIES.filter(c => c.isActive).map(category => (
             <button

@@ -55,7 +55,7 @@ const FEATURE_PRICING: Record<string, number> = {
   // RESERVATIONS: 399,
 }
 
-export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue }: ConversionWizardProps) {
+export function ConversionWizard({ open, onOpenChange, venueId, venueSlug, venueName, venue: _venue }: ConversionWizardProps) {
   const { t } = useTranslation()
   const { t: tOnboarding } = useTranslation('onboarding')
   const { toast } = useToast()

@@ -2,11 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentVenue } from './use-current-venue'
 import { commissionService } from '@/services/commission.service'
 import type {
-	CommissionConfig,
-	CommissionTier,
-	CommissionOverride,
-	CommissionSummary,
-	CommissionPayout,
 	CreateCommissionConfigInput,
 	UpdateCommissionConfigInput,
 	CreateCommissionTierInput,
@@ -20,7 +15,6 @@ import type {
 	SummaryFilters,
 	PayoutFilters,
 } from '@/types/commission'
-import { useCallback } from 'react'
 
 // ============================================
 // Query Key Factory

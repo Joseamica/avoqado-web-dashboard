@@ -52,7 +52,7 @@ interface DocumentConfig {
 
 export default function VenueDocuments() {
   const { t } = useTranslation('venue')
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { setActions } = useVenueEditActions()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -444,7 +444,7 @@ export default function VenueDocuments() {
               <strong>{t('edit.documents.rejectionReason', { defaultValue: 'Razón del rechazo:' })}</strong> {venue.kycRejectionReason}
             </p>
             <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
-              <Link to={`/venues/${venueSlug}/edit/documents`}>
+              <Link to={`${fullBasePath}/edit/documents`}>
                 <FileText className="mr-2 h-4 w-4" />
                 {t('edit.documents.resubmit', { defaultValue: 'Reenviar Documentos' })}
               </Link>

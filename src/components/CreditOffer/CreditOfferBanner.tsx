@@ -27,7 +27,6 @@ import {
   getPendingCreditOffer,
   expressInterestInOffer,
   declineCreditOffer,
-  type CreditOffer,
 } from '@/services/creditOffer.service'
 import { Currency } from '@/utils/currency'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -43,7 +42,6 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface CreditOfferBannerProps {
   venueId: string

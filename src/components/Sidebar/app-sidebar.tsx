@@ -3,8 +3,6 @@
   BarChart3,
   BookOpen,
   Building,
-  Clock,
-  CreditCard,
   DollarSign,
   FlaskConical,
   Gem,

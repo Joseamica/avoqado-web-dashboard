@@ -20,7 +20,6 @@ import {
   salesByItemKeys,
   type ReportType,
   type GroupByOption,
-  type ItemSalesMetrics,
 } from '@/services/reports/salesByItem.service'
 import {
   ChevronDown,
@@ -32,7 +31,6 @@ import {
   Package,
   Settings2,
   ArrowUpDown,
-  Clock,
 } from 'lucide-react'
 import { SalesByItemChart } from './components/SalesByItemChart'
 

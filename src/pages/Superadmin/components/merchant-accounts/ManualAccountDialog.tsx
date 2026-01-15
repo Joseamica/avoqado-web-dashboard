@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { ChevronRight, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { paymentProviderAPI, type MerchantAccount, type MerchantAccountCredentials } from '@/services/paymentProvider.service'
+import { useQuery } from '@tanstack/react-query'
+import { AlertCircle, ChevronRight, Eye, EyeOff, Loader2 } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  paymentProviderAPI,
-  type MerchantAccount,
-  type MerchantAccountCredentials,
-} from '@/services/paymentProvider.service'
 
 interface ManualAccountDialogProps {
   open: boolean
@@ -316,7 +312,9 @@ export const ManualAccountDialog: React.FC<ManualAccountDialogProps> = ({ open, 
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={loading || !formData.providerId || !formData.externalMerchantId || (!account && (!formData.merchantId || !formData.apiKey))}
+              disabled={
+                loading || !formData.providerId || !formData.externalMerchantId || (!account && (!formData.merchantId || !formData.apiKey))
+              }
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {account ? 'Guardar Cambios' : 'Crear Cuenta'}

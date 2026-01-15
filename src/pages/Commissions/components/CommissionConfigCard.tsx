@@ -75,7 +75,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const navigate = useNavigate()
-	const { venueSlug } = useCurrentVenue()
+	const { venueSlug, fullBasePath } = useCurrentVenue()
 	const { getDisplayName: getRoleDisplayName } = useRoleConfig()
 	const { toast } = useToast()
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -127,7 +127,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 	}
 
 	const handleCardClick = () => {
-		navigate(`/venues/${venueSlug}/commissions/config/${config.id}`)
+		navigate(`${fullBasePath}/commissions/config/${config.id}`)
 	}
 
 	return (
@@ -273,7 +273,7 @@ export default function CommissionConfigCard({ config }: CommissionConfigCardPro
 											className="h-8 w-8 cursor-pointer"
 											onClick={(e) => {
 												e.stopPropagation()
-												navigate(`/venues/${venueSlug}/commissions/config/${config.id}?edit=true`)
+												navigate(`${fullBasePath}/commissions/config/${config.id}?edit=true`)
 											}}
 										>
 											<Pencil className="h-4 w-4" />

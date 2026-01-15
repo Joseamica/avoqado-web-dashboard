@@ -1,44 +1,19 @@
-import React, { useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
-import {
-  getOrganizationVenues,
-  type TimeRange,
-} from '@/services/organization.service'
-import { getIntlLocale } from '@/utils/i18n-locale'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Store,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  ExternalLink,
-  LayoutGrid,
-  List,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useDebounce } from '@/hooks/useDebounce'
+import { getOrganizationVenues, type TimeRange } from '@/services/organization.service'
+import { getIntlLocale } from '@/utils/i18n-locale'
+import { useQuery } from '@tanstack/react-query'
+import { ExternalLink, LayoutGrid, List, Search, Store, TrendingDown, TrendingUp } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const OrganizationVenues: React.FC = () => {
   const { t, i18n } = useTranslation('organization')
@@ -61,10 +36,10 @@ const OrganizationVenues: React.FC = () => {
     if (!debouncedSearch) return venues
     const search = debouncedSearch.toLowerCase()
     return venues.filter(
-      (venue) =>
+      venue =>
         venue.name.toLowerCase().includes(search) ||
         venue.city?.toLowerCase().includes(search) ||
-        venue.slug.toLowerCase().includes(search)
+        venue.slug.toLowerCase().includes(search),
     )
   }, [venues, debouncedSearch])
 
@@ -100,12 +75,10 @@ const OrganizationVenues: React.FC = () => {
               defaultValue: 'Analiticas y rendimiento por venue dentro de la organizacion.',
             })}
           />
-          <p className="text-muted-foreground mt-1">
-            {t('venues.subtitle', { count: venues?.length || 0 })}
-          </p>
+          <p className="text-muted-foreground mt-1">{t('venues.subtitle', { count: venues?.length || 0 })}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+          <Select value={timeRange} onValueChange={v => setTimeRange(v as TimeRange)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={t('dashboard.selectPeriod')} />
             </SelectTrigger>
@@ -127,23 +100,15 @@ const OrganizationVenues: React.FC = () => {
           <Input
             placeholder={t('venues.searchPlaceholder')}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-          >
+          <Button variant={viewMode === 'grid' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('grid')}>
             <LayoutGrid className="h-4 w-4" />
           </Button>
-          <Button
-            variant={viewMode === 'table' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('table')}
-          >
+          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="icon" onClick={() => setViewMode('table')}>
             <List className="h-4 w-4" />
           </Button>
         </div>
@@ -153,14 +118,12 @@ const OrganizationVenues: React.FC = () => {
       {filteredVenues.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            {searchTerm
-              ? t('venues.noResults')
-              : t('venues.noVenues')}
+            {searchTerm ? t('venues.noResults') : t('venues.noVenues')}
           </CardContent>
         </Card>
       ) : viewMode === 'grid' ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredVenues.map((venue) => (
+          {filteredVenues.map(venue => (
             <Card
               key={venue.id}
               className="cursor-pointer hover:shadow-md transition-shadow"
@@ -170,46 +133,28 @@ const OrganizationVenues: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <Avatar className="h-12 w-12 rounded-lg">
                     <AvatarImage src={venue.logo || undefined} alt={venue.name} />
-                    <AvatarFallback className="rounded-lg text-lg">
-                      {venue.name.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback className="rounded-lg text-lg">{venue.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold truncate">{venue.name}</h3>
-                      <Badge
-                        variant={venue.status === 'ACTIVE' ? 'default' : 'secondary'}
-                        className="shrink-0"
-                      >
+                      <Badge variant={venue.status === 'ACTIVE' ? 'default' : 'secondary'} className="shrink-0">
                         {venue.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {[venue.city, venue.state].filter(Boolean).join(', ')}
-                    </p>
+                    <p className="text-sm text-muted-foreground truncate">{[venue.city, venue.state].filter(Boolean).join(', ')}</p>
                   </div>
                 </div>
 
                 <div className="mt-4 space-y-3">
                   {/* Revenue with Growth */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {t('venues.revenue')}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{t('venues.revenue')}</span>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        {formatCurrency(venue.metrics.revenue)}
-                      </span>
+                      <span className="font-semibold">{formatCurrency(venue.metrics.revenue)}</span>
                       {venue.metrics.growth !== 0 && (
-                        <Badge
-                          variant={venue.metrics.growth > 0 ? 'default' : 'destructive'}
-                          className="flex items-center gap-1"
-                        >
-                          {venue.metrics.growth > 0 ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
+                        <Badge variant={venue.metrics.growth > 0 ? 'default' : 'destructive'} className="flex items-center gap-1">
+                          {venue.metrics.growth > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                           {Math.abs(venue.metrics.growth).toFixed(1)}%
                         </Badge>
                       )}
@@ -218,21 +163,15 @@ const OrganizationVenues: React.FC = () => {
 
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-muted/50 rounded-lg p-2">
-                      <p className="text-xs text-muted-foreground">
-                        {t('venues.orders')}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{t('venues.orders')}</p>
                       <p className="font-semibold">{venue.metrics.orderCount}</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-2">
-                      <p className="text-xs text-muted-foreground">
-                        {t('venues.payments')}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{t('venues.payments')}</p>
                       <p className="font-semibold">{venue.metrics.paymentCount}</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-2">
-                      <p className="text-xs text-muted-foreground">
-                        {t('venues.staff')}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{t('venues.staff')}</p>
                       <p className="font-semibold">{venue.metrics.staffCount}</p>
                     </div>
                   </div>
@@ -256,48 +195,30 @@ const OrganizationVenues: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVenues.map((venue) => (
-                <TableRow
-                  key={venue.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/venues/${venue.slug}/home`)}
-                >
+              {filteredVenues.map(venue => (
+                <TableRow key={venue.id} className="cursor-pointer" onClick={() => navigate(`/venues/${venue.slug}/home`)}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 rounded">
                         <AvatarImage src={venue.logo || undefined} alt={venue.name} />
-                        <AvatarFallback className="text-sm">
-                          {venue.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
+                        <AvatarFallback className="text-sm">{venue.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <span className="font-medium">{venue.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {[venue.city, venue.state].filter(Boolean).join(', ') || '-'}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{[venue.city, venue.state].filter(Boolean).join(', ') || '-'}</TableCell>
                   <TableCell>
-                    <Badge variant={venue.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {venue.status}
-                    </Badge>
+                    <Badge variant={venue.status === 'ACTIVE' ? 'default' : 'secondary'}>{venue.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(venue.metrics.revenue)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {venue.metrics.orderCount.toLocaleString()}
-                  </TableCell>
+                  <TableCell className="text-right font-medium">{formatCurrency(venue.metrics.revenue)}</TableCell>
+                  <TableCell className="text-right">{venue.metrics.orderCount.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     {venue.metrics.growth !== 0 ? (
                       <Badge
                         variant={venue.metrics.growth > 0 ? 'default' : 'destructive'}
                         className="flex items-center gap-1 w-fit ml-auto"
                       >
-                        {venue.metrics.growth > 0 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" />
-                        )}
+                        {venue.metrics.growth > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                         {Math.abs(venue.metrics.growth).toFixed(1)}%
                       </Badge>
                     ) : (

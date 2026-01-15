@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
-import { Package, Box, CheckCircle2, XCircle } from 'lucide-react'
+import { Package, Box, CheckCircle2 } from 'lucide-react'
 import { useMemo } from 'react'
 
 // Placeholder data - will be replaced with real API calls

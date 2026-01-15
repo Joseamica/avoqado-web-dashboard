@@ -1,6 +1,6 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, TrendingUp, CreditCard, Percent, Info } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { paymentProviderAPI } from '@/services/paymentProvider.service'

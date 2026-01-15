@@ -1,34 +1,37 @@
-import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import {
-  Zap,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  ArrowRight,
-  Info,
-  AlertTriangle,
-  Calculator,
-  Terminal,
-  Building2,
-  Clock,
-} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { paymentProviderAPI, type MccLookupResult } from '@/services/paymentProvider.service'
-import { bulkCreateSettlementConfigurations, CARD_TYPES, DEFAULT_SETTLEMENT_DAYS, type SettlementDayType } from '@/services/settlementConfiguration.service'
-import { getAllVenues } from '@/services/superadmin.service'
 import { cn } from '@/lib/utils'
-import { StepIndicator } from './shared-components'
+import { paymentProviderAPI, type MccLookupResult } from '@/services/paymentProvider.service'
+import {
+  bulkCreateSettlementConfigurations,
+  DEFAULT_SETTLEMENT_DAYS,
+  type SettlementDayType,
+} from '@/services/settlementConfiguration.service'
+import { getAllVenues } from '@/services/superadmin.service'
+import { useQuery } from '@tanstack/react-query'
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  Calculator,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Info,
+  Loader2,
+  Terminal,
+  Zap,
+} from 'lucide-react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { StepIndicator } from './shared-components'
 
 interface BlumonAutoFetchWizardProps {
   open: boolean
@@ -37,12 +40,7 @@ interface BlumonAutoFetchWizardProps {
   onSuccess: () => void
 }
 
-export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
-  open,
-  onOpenChange,
-  venueId: initialVenueId,
-  onSuccess
-}) => {
+export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({ open, onOpenChange, venueId: initialVenueId, onSuccess }) => {
   const { toast } = useToast()
   const { t } = useTranslation('superadmin')
   const [step, setStep] = useState(initialVenueId ? 1 : 0) // Skip venue step if venueId provided
@@ -183,11 +181,41 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
           await bulkCreateSettlementConfigurations({
             merchantAccountId: response.id,
             configs: [
-              { cardType: 'DEBIT', settlementDays: settlementTerms.debitDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
-              { cardType: 'CREDIT', settlementDays: settlementTerms.creditDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
-              { cardType: 'AMEX', settlementDays: settlementTerms.amexDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
-              { cardType: 'INTERNATIONAL', settlementDays: settlementTerms.internationalDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
-              { cardType: 'OTHER', settlementDays: settlementTerms.otherDays, settlementDayType: settlementTerms.dayType, cutoffTime: settlementTerms.cutoffTime, cutoffTimezone: 'America/Mexico_City' },
+              {
+                cardType: 'DEBIT',
+                settlementDays: settlementTerms.debitDays,
+                settlementDayType: settlementTerms.dayType,
+                cutoffTime: settlementTerms.cutoffTime,
+                cutoffTimezone: 'America/Mexico_City',
+              },
+              {
+                cardType: 'CREDIT',
+                settlementDays: settlementTerms.creditDays,
+                settlementDayType: settlementTerms.dayType,
+                cutoffTime: settlementTerms.cutoffTime,
+                cutoffTimezone: 'America/Mexico_City',
+              },
+              {
+                cardType: 'AMEX',
+                settlementDays: settlementTerms.amexDays,
+                settlementDayType: settlementTerms.dayType,
+                cutoffTime: settlementTerms.cutoffTime,
+                cutoffTimezone: 'America/Mexico_City',
+              },
+              {
+                cardType: 'INTERNATIONAL',
+                settlementDays: settlementTerms.internationalDays,
+                settlementDayType: settlementTerms.dayType,
+                cutoffTime: settlementTerms.cutoffTime,
+                cutoffTimezone: 'America/Mexico_City',
+              },
+              {
+                cardType: 'OTHER',
+                settlementDays: settlementTerms.otherDays,
+                settlementDayType: settlementTerms.dayType,
+                cutoffTime: settlementTerms.cutoffTime,
+                cutoffTimezone: 'America/Mexico_City',
+              },
             ],
             effectiveFrom: new Date().toISOString(),
           })
@@ -252,9 +280,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
             <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-700 dark:text-blue-300">
               <p className="font-medium mb-1">Selecciona un Venue</p>
-              <p>
-                La cuenta de procesamiento se asociará automáticamente a este venue a través de su VenuePaymentConfig.
-              </p>
+              <p>La cuenta de procesamiento se asociará automáticamente a este venue a través de su VenuePaymentConfig.</p>
             </div>
           </div>
 
@@ -459,14 +485,9 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
                   <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 )}
                 <div
-                  className={cn(
-                    'text-sm',
-                    mccPreview?.found ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300',
-                  )}
+                  className={cn('text-sm', mccPreview?.found ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300')}
                 >
-                  <p className="font-medium mb-1">
-                    {mccPreview?.found ? 'Tasas detectadas automáticamente' : 'Usando tasas por defecto'}
-                  </p>
+                  <p className="font-medium mb-1">{mccPreview?.found ? 'Tasas detectadas automáticamente' : 'Usando tasas por defecto'}</p>
                   <p className="text-xs">
                     {mccPreview?.found
                       ? `Basado en: ${mccPreview.familia} (MCC ${mccPreview.mcc}) - Confianza: ${mccPreview.confidence}%`
@@ -699,9 +720,15 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-muted-foreground">{t('settlementConfigurations.wizard.title')}</span>
                 <div className="flex items-center gap-1.5">
-                  <Badge variant="outline" className="text-blue-600">{t('settlementConfigurations.cardTypes.DEBIT')}: {settlementTerms.debitDays}d</Badge>
-                  <Badge variant="outline" className="text-green-600">{t('settlementConfigurations.cardTypes.CREDIT')}: {settlementTerms.creditDays}d</Badge>
-                  <Badge variant="outline" className="text-purple-600">AMEX: {settlementTerms.amexDays}d</Badge>
+                  <Badge variant="outline" className="text-blue-600">
+                    {t('settlementConfigurations.cardTypes.DEBIT')}: {settlementTerms.debitDays}d
+                  </Badge>
+                  <Badge variant="outline" className="text-green-600">
+                    {t('settlementConfigurations.cardTypes.CREDIT')}: {settlementTerms.creditDays}d
+                  </Badge>
+                  <Badge variant="outline" className="text-purple-600">
+                    AMEX: {settlementTerms.amexDays}d
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -747,9 +774,7 @@ export const BlumonAutoFetchWizard: React.FC<BlumonAutoFetchWizardProps> = ({
           {step <= lastStep && <StepIndicator steps={steps} currentStep={step} />}
         </div>
 
-        <div className="p-6">
-          {renderStepContent()}
-        </div>
+        <div className="p-6">{renderStepContent()}</div>
 
         {/* Footer */}
         <DialogFooter className="p-6 pt-0">

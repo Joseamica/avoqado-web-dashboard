@@ -11,7 +11,6 @@ import { Suspense, lazy, useMemo, ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   AlertCircle,
-  Loader2,
   LayoutDashboard,
   DollarSign,
   HandCoins,

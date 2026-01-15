@@ -93,7 +93,7 @@ export function EnhancedAddVenueDialog({ onClose, navigate }: EnhancedAddVenueDi
     },
   })
 
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueSlug } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 

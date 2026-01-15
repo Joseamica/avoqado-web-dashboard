@@ -17,7 +17,7 @@ interface StripePaymentFormProps {
   buttonText?: string
 }
 
-function StripePaymentForm({ venueId, clientSecret, onPaymentMethodCreated, buttonText = 'Comenzar trial gratuito' }: StripePaymentFormProps) {
+function StripePaymentForm({ venueId: _venueId, clientSecret, onPaymentMethodCreated, buttonText = 'Comenzar trial gratuito' }: StripePaymentFormProps) {
   const { t } = useTranslation('payment')
   const stripe = useStripe()
   const elements = useElements()

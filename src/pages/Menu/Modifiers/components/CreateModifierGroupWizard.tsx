@@ -109,7 +109,7 @@ type WizardStep = 1 | 2 | 3 | 4 | 5
 export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifierGroupWizardProps) {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -708,9 +708,9 @@ export function CreateModifierGroupWizard({ onCancel, onSuccess }: CreateModifie
                                 itemName={t('modifiers.detail.productItem')}
                                 onViewOption={option => {
                                   if (option.value === '_new') {
-                                    navigate(`/venues/${venueId}/menumaker/products/create`)
+                                    navigate(`${fullBasePath}/menumaker/products/create`)
                                   } else {
-                                    navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
+                                    navigate(`${fullBasePath}/menumaker/products/${option.value}`)
                                   }
                                 }}
                                 placeholder={t('modifiers.detail.selectProductsPlaceholder')}

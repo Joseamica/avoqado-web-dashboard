@@ -15,7 +15,7 @@ import type {
   UseWhiteLabelConfigReturn,
 } from '@/types/white-label'
 import { isWhiteLabelConfig } from '@/types/white-label'
-import { DEFAULT_WHITE_LABEL_CONFIG, DEFAULT_THEME } from '@/types/white-label'
+import { DEFAULT_WHITE_LABEL_CONFIG } from '@/types/white-label'
 
 const WHITE_LABEL_MODULE_CODE = 'WHITE_LABEL_DASHBOARD'
 

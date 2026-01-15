@@ -19,14 +19,17 @@ import {
   BillingTokens,
   Categories,
   CategoryId,
+  CommissionConfigDetailPage,
+  CommissionsPage,
   ContactImages,
   CostStructures,
+  CouponForm,
+  Coupons,
   CreateCategory,
   CreateMenu,
   CreateModifierGroup,
   CreateProduct,
-  CouponForm,
-  Coupons,
+  CreditAssessment,
   CustomerDetail,
   CustomerGroups,
   Customers,
@@ -34,6 +37,7 @@ import {
   DiscountDetail,
   DiscountForm,
   Discounts,
+  EcommerceMerchants,
   EmailVerification,
   ErrorPage,
   ForgotPassword,
@@ -54,6 +58,7 @@ import {
   ModifierGroupId,
   ModifierGroups,
   ModifierInventory,
+  ModuleManagement,
   NotificationPreferences,
   Notifications,
   OnboardingWizard,
@@ -64,10 +69,21 @@ import {
   OrganizationSettings,
   OrganizationTeam,
   OrganizationVenues,
+  PayLaterAging,
   PaymentAnalytics,
   PaymentId,
   PaymentProviders,
   Payments,
+  PlayTelecomCommandCenter,
+  // PlayTelecom (Serialized Inventory Dashboard)
+  PlayTelecomLayout,
+  PlayTelecomManagers,
+  PlayTelecomPromoters,
+  PlayTelecomSales,
+  PlayTelecomStock,
+  PlayTelecomStores,
+  PlayTelecomTpvConfig,
+  PlayTelecomUsers,
   Pricing,
   Privacy,
   ProductId,
@@ -81,6 +97,9 @@ import {
   RevenueDashboard,
   Reviews,
   RolePermissions,
+  SalesByItem,
+  SalesSummary,
+  SerializedSalesDemo,
   SettlementConfigurations,
   // WaiterId,
   ShiftId,
@@ -95,6 +114,7 @@ import {
   SystemSettings,
   TeamId,
   Teams,
+  Terminals,
   Terms,
   TestingPayments,
   Tpv,
@@ -104,32 +124,11 @@ import {
   VenueEditLayout,
   VenueIntegrations,
   VenueManagement,
-  VenuePaymentConfig,
   VenueMerchantAccounts,
-  EcommerceMerchants,
+  VenuePaymentConfig,
   VenuePricing,
   Venues,
   Webhooks,
-  Terminals,
-  CreditAssessment,
-  ModuleManagement,
-  PayLaterAging,
-  SalesByItem,
-  SalesSummary,
-  SerializedSalesDemo,
-  CommissionsPage,
-  CommissionConfigDetailPage,
-  // PlayTelecom (Serialized Inventory Dashboard)
-  PlayTelecomLayout,
-  PlayTelecomCommandCenter,
-  PlayTelecomStock,
-  PlayTelecomSales,
-  PlayTelecomStores,
-  PlayTelecomManagers,
-  PlayTelecomPromoters,
-  PlayTelecomUsers,
-  PlayTelecomTpvConfig,
-  // White-Label Dashboard imports removed - using direct routes instead
 } from './lazyComponents'
 
 import Root from '@/root'
@@ -139,14 +138,12 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { Layout } from '@/Layout'
 import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
-import { FeatureProtectedRoute } from './FeatureProtectedRoute'
 import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
+import { ModuleProtectedRoute } from './ModuleProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
 import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
-import { ModuleProtectedRoute } from './ModuleProtectedRoute'
-import { WhiteLabelWizard } from './lazyComponents'
 
 const router = createBrowserRouter(
   [

@@ -191,7 +191,7 @@ function PeriodFilterContent({ value, onChange, onClose, t }: PeriodFilterConten
 export default function TeamCommissionRanking() {
   const { t, i18n } = useTranslation('commissions')
   const navigate = useNavigate()
-  const { venueSlug } = useCurrentVenue()
+  const { venueSlug, fullBasePath } = useCurrentVenue()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 20,
@@ -348,7 +348,7 @@ export default function TeamCommissionRanking() {
   // Handle row click to navigate to staff profile
   const handleRowClick = (staffVenueId: string | null) => {
     if (staffVenueId && venueSlug) {
-      navigate(`/venues/${venueSlug}/team/${staffVenueId}`)
+      navigate(`${fullBasePath}/team/${staffVenueId}`)
     }
   }
 

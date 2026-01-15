@@ -1,8 +1,7 @@
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useState } from 'react'
-import { FilterPopoverHeader, FilterPopoverFooter } from './FilterPill'
+import { FilterPopoverFooter, FilterPopoverHeader } from './FilterPill'
 
 type AmountOperator = 'gt' | 'lt' | 'eq' | 'between'
 
@@ -100,9 +99,7 @@ export function AmountFilterContent({
         {/* Value input(s) */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-              {currency}
-            </span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currency}</span>
             <Input
               type="number"
               placeholder="0.00"
@@ -118,9 +115,7 @@ export function AmountFilterContent({
             <>
               <span className="text-sm text-muted-foreground">{labels.and}</span>
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                  {currency}
-                </span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{currency}</span>
                 <Input
                   type="number"
                   placeholder="0.00"

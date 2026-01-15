@@ -1,8 +1,7 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { PermissionGate } from '@/components/PermissionGate'
 import { Calendar, MessageSquare, Star, Trash2, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SentimentBadge, getSentimentFromRating } from './SentimentBadge'
@@ -17,7 +16,7 @@ interface ReviewCardProps {
   isSuperAdmin?: boolean
 }
 
-export function ReviewCard({ review, onRespond, onDelete, isSuperAdmin }: ReviewCardProps) {
+export function ReviewCard({ review, onRespond: _onRespond, onDelete, isSuperAdmin }: ReviewCardProps) {
   const { t } = useTranslation('reviews')
   const { formatDateTime } = useVenueDateTime()
   const sentiment = getSentimentFromRating(review.overallRating)

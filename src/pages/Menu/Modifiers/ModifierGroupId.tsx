@@ -23,7 +23,7 @@ import EditModifier from './EditModifier'
 export default function ModifierGroupId() {
   const { t } = useTranslation('menu')
   const { modifierGroupId } = useParams()
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
   const location = useLocation()
   const { toast } = useToast()
@@ -31,7 +31,7 @@ export default function ModifierGroupId() {
   const [editingModifierId, setEditingModifierId] = useState<string | null>(null)
   const [isCreateModifierSheetOpen, setIsCreateModifierSheetOpen] = useState(false)
 
-  const from = (location.state as any)?.from || `/venues/${venueId}/menumaker/modifier-groups`
+  const from = (location.state as any)?.from || `${fullBasePath}/menumaker/modifier-groups`
 
   // Fetch modifier group data
   const { data, isLoading, isError, error } = useQuery({
@@ -703,10 +703,10 @@ export default function ModifierGroupId() {
                     onViewOption={option => {
                       if (option.value === '_new') {
                         // Handle "Add new product" click
-                        navigate(`/venues/${venueId}/menumaker/products/create`)
+                        navigate(`${fullBasePath}/menumaker/products/create`)
                       } else {
                         // Handle view existing product click
-                        navigate(`/venues/${venueId}/menumaker/products/${option.value}`)
+                        navigate(`${fullBasePath}/menumaker/products/${option.value}`)
                       }
                     }}
                     placeholder={t('modifiers.detail.selectProductsPlaceholder')}

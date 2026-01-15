@@ -185,7 +185,7 @@ function SortableProduct({
 export default function Overview() {
   const { t } = useTranslation('menu')
   const navigate = useNavigate()
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { can } = usePermissions()
 
@@ -530,13 +530,13 @@ export default function Overview() {
                 <Button>{t('overview.create')}</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent sideOffset={5} className="w-56">
-                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/menus/create`)}>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/menus/create`)}>
                   {t('overview.newMenu')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/categories/create`)}>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/categories/create`)}>
                   {t('overview.newCategory')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/menumaker/products/create`)}>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/menumaker/products/create`)}>
                   {t('overview.createNewProduct')}
                 </DropdownMenuItem>
               </DropdownMenuContent>

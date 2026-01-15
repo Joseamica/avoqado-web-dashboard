@@ -75,7 +75,7 @@ export default function AvailableBalance() {
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { formatDate, formatDateISO, venueTimezoneShort } = useVenueDateTime()
+  const { formatDate } = useVenueDateTime()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

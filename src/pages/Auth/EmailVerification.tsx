@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { Mail, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,7 +55,7 @@ export default function EmailVerification() {
       try {
         const response = await api.get(`/api/v1/onboarding/email-status?email=${encodeURIComponent(effectiveEmail)}`)
         return response.data
-      } catch (error) {
+      } catch {
         return null
       }
     },

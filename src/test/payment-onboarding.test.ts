@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mockStore, createMockMerchantAccount, createMockTerminal, createMockCostStructure } from './mocks/handlers'
+import { mockStore } from './mocks/handlers'
 
 // Direct API simulation (since we're testing service layer logic, not React components)
 const BASE_URL = 'http://localhost:3000'

@@ -20,7 +20,7 @@ const Login: React.FC = () => {
   const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const [isRedirecting, setIsRedirecting] = useState(false)
-  const { isAuthenticated, loginWithOneTap } = useAuth()
+  const { loginWithOneTap } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {

@@ -27,7 +27,6 @@ import { paymentProviderAPI } from '@/services/paymentProvider.service'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/use-toast'
 import { useVenueDateTime } from '@/utils/datetime'
-import { cn } from '@/lib/utils'
 
 const SettlementConfigurations: React.FC = () => {
   const { t } = useTranslation('superadmin')

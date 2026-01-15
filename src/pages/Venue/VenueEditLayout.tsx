@@ -42,7 +42,7 @@ export const useVenueEditActions = () => {
 }
 
 export default function VenueEditLayout() {
-  const { venueSlug } = useCurrentVenue()
+  const { venueSlug, fullBasePath } = useCurrentVenue()
   const navigate = useNavigate()
   const { t } = useTranslation('venue')
 
@@ -73,7 +73,7 @@ export default function VenueEditLayout() {
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 flex flex-row justify-between w-full px-4 py-3 bg-background/95 border-b shadow-md backdrop-blur-sm">
           <div className="space-x-3 flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/venues/${venueSlug}`)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(fullBasePath)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <PageTitleWithInfo
@@ -147,12 +147,12 @@ export default function VenueEditLayout() {
 
 export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
   const { t } = useTranslation('venue')
-  const { venueSlug } = useCurrentVenue()
+  const { fullBasePath } = useCurrentVenue()
 
   return (
     <nav className={cn('flex items-center space-x-6 lg:space-x-8 border-b border-border px-6', className)} {...props}>
       <NavLink
-        to={`/venues/${venueSlug}/edit/basic-info`}
+        to={`${fullBasePath}/edit/basic-info`}
         className={({ isActive }) =>
           `text-sm font-medium transition-colors py-4 border-b-2 ${
             isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
@@ -162,7 +162,7 @@ export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLE
         {t('edit.nav.basicInfo', { defaultValue: 'Información Básica' })}
       </NavLink>
       <NavLink
-        to={`/venues/${venueSlug}/edit/contact-images`}
+        to={`${fullBasePath}/edit/contact-images`}
         className={({ isActive }) =>
           `text-sm font-medium transition-colors py-4 border-b-2 ${
             isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
@@ -172,7 +172,7 @@ export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLE
         {t('edit.nav.contactImages', { defaultValue: 'Contacto e Imágenes' })}
       </NavLink>
       <NavLink
-        to={`/venues/${venueSlug}/edit/documents`}
+        to={`${fullBasePath}/edit/documents`}
         className={({ isActive }) =>
           `text-sm font-medium transition-colors py-4 border-b-2 ${
             isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'
@@ -182,7 +182,7 @@ export function VenueEditNav({ className, ...props }: React.HTMLAttributes<HTMLE
         {t('edit.nav.documents', { defaultValue: 'Documentación' })}
       </NavLink>
       <NavLink
-        to={`/venues/${venueSlug}/edit/integrations`}
+        to={`${fullBasePath}/edit/integrations`}
         className={({ isActive }) =>
           `text-sm font-medium transition-colors py-4 border-b-2 ${
             isActive ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-primary'

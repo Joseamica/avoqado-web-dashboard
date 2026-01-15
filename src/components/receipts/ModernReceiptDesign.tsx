@@ -22,7 +22,6 @@ import {
   User,
   CreditCard,
   Receipt as ReceiptIcon,
-  Building2,
   Sparkles,
   Check,
   AlertCircle,

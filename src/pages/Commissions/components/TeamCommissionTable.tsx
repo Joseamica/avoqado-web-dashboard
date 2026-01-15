@@ -27,7 +27,7 @@ export default function TeamCommissionTable() {
   const { t, i18n } = useTranslation('commissions')
   const { t: tCommon } = useTranslation()
   const navigate = useNavigate()
-  const { venueSlug } = useCurrentVenue()
+  const { venueSlug, fullBasePath } = useCurrentVenue()
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 20,
@@ -111,7 +111,7 @@ export default function TeamCommissionTable() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(`/venues/${venueSlug}/team/${row.original.staff.staffVenueId}`)}>
+                <DropdownMenuItem onClick={() => navigate(`${fullBasePath}/team/${row.original.staff.staffVenueId}`)}>
                   <Eye className="h-4 w-4 mr-2" />
                   {t('table.viewDetails')}
                 </DropdownMenuItem>
@@ -121,7 +121,7 @@ export default function TeamCommissionTable() {
         },
       },
     ],
-    [t, i18n.language, formatCurrency, formatPeriod, navigate, venueSlug],
+    [t, i18n.language, formatCurrency, formatPeriod, navigate, venueSlug, fullBasePath],
   )
 
   if (isLoading) {

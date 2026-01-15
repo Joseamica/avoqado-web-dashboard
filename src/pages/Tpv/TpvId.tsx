@@ -126,7 +126,7 @@ export default function TpvId() {
   const { t, i18n } = useTranslation(['tpv', 'common'])
   const { tpvId } = useParams()
   const location = useLocation()
-  const { venueId, venueSlug, venue } = useCurrentVenue()
+  const { venueId, venueSlug, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -560,7 +560,7 @@ export default function TpvId() {
     setIsEditing(false)
   }
 
-  const from = (location.state as any)?.from || `/venues/${venueId}/tpv`
+  const from = (location.state as any)?.from || `${fullBasePath}/tpv`
 
   if (isLoading) {
     return (
@@ -591,7 +591,7 @@ export default function TpvId() {
                 <ArrowLeft className="h-4 w-4" />
                 {t('common:goBack')}
               </Button>
-              <Button onClick={() => navigate(`/venues/${venueId}/tpv`)} className="flex items-center gap-2">
+              <Button onClick={() => navigate(`${fullBasePath}/tpv`)} className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 {t('detail.goToTerminals')}
               </Button>
@@ -626,7 +626,7 @@ export default function TpvId() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <p className="text-muted-foreground">{t('detail.noData')}</p>
-        <Button onClick={() => navigate(`/venues/${venueId}/tpv`)}>
+        <Button onClick={() => navigate(`${fullBasePath}/tpv`)}>
           <Home className="h-4 w-4 mr-2" />
           {t('detail.goToTerminals')}
         </Button>
@@ -1366,7 +1366,7 @@ export default function TpvId() {
                           {merchantAccounts.length === 0 && (
                             <p className="text-xs text-muted-foreground text-center">
                               <Link
-                                to={`/venues/${venueSlug}/merchant-accounts`}
+                                to={`${fullBasePath}/merchant-accounts`}
                                 className="text-amber-600 dark:text-amber-400 underline hover:text-amber-700"
                               >
                                 Crear cuenta de comercio

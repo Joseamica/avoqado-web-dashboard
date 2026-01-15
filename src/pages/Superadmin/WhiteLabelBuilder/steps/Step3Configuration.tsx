@@ -6,31 +6,19 @@
  * 2. Forms are generated from configSchema in the Feature Registry
  */
 
-import { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
-import {
-  AlertCircle,
-  Settings,
-  Check,
-  Info,
-} from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FEATURE_CATEGORIES, FEATURE_REGISTRY } from '@/config/feature-registry'
 import type { EnabledFeature, FeatureInstanceConfig } from '@/types/white-label'
-import { FEATURE_REGISTRY, FEATURE_CATEGORIES } from '@/config/feature-registry'
+import { AlertCircle, Check, Info, Settings } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // ============================================
 // Types
@@ -47,24 +35,15 @@ interface Step3ConfigurationProps {
 // Component
 // ============================================
 
-export default function Step3Configuration({
-  enabledFeatures,
-  featureConfigs,
-  onConfigChange,
-  errors,
-}: Step3ConfigurationProps) {
+export default function Step3Configuration({ enabledFeatures, featureConfigs, onConfigChange, errors }: Step3ConfigurationProps) {
   const { t } = useTranslation('superadmin')
 
   // Selected feature tab
-  const [selectedFeature, setSelectedFeature] = useState<string>(
-    enabledFeatures[0]?.code || ''
-  )
+  const [selectedFeature, setSelectedFeature] = useState<string>(enabledFeatures[0]?.code || '')
 
   // Get feature definitions for enabled features
   const enabledFeatureDefinitions = useMemo(() => {
-    return enabledFeatures
-      .map(ef => FEATURE_REGISTRY[ef.code])
-      .filter(Boolean)
+    return enabledFeatures.map(ef => FEATURE_REGISTRY[ef.code]).filter(Boolean)
   }, [enabledFeatures])
 
   // Handle config field change
@@ -105,9 +84,7 @@ export default function Step3Configuration({
       {/* Header */}
       <div>
         <h2 className="text-lg font-semibold">{t('whiteLabelWizard.configuration.title')}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t('whiteLabelWizard.configuration.description')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('whiteLabelWizard.configuration.description')}</p>
       </div>
 
       {/* Feature Tabs with Configuration */}
@@ -140,9 +117,7 @@ export default function Step3Configuration({
                       </CardTitle>
                       <CardDescription className="mt-1">{feature.description}</CardDescription>
                     </div>
-                    <Badge variant="outline">
-                      {FEATURE_CATEGORIES[feature.category]?.label || feature.category}
-                    </Badge>
+                    <Badge variant="outline">{FEATURE_CATEGORIES[feature.category]?.label || feature.category}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -153,9 +128,7 @@ export default function Step3Configuration({
                         fieldName={fieldName}
                         schema={fieldSchema}
                         value={config[fieldName]}
-                        onChange={value =>
-                          handleFieldChange(feature.code, fieldName, value)
-                        }
+                        onChange={value => handleFieldChange(feature.code, fieldName, value)}
                       />
                     ))
                   ) : (
@@ -186,10 +159,7 @@ export default function Step3Configuration({
               const configCount = Object.keys(config).length
 
               return (
-                <div
-                  key={feature.code}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
-                >
+                <div key={feature.code} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="text-sm font-medium">{feature.name}</span>
@@ -241,15 +211,9 @@ function SchemaField({ fieldName, schema, value, onChange }: SchemaFieldProps) {
             <Label htmlFor={fieldName} className="font-medium">
               {schema.title || fieldName}
             </Label>
-            {schema.description && (
-              <p className="text-xs text-muted-foreground">{schema.description}</p>
-            )}
+            {schema.description && <p className="text-xs text-muted-foreground">{schema.description}</p>}
           </div>
-          <Switch
-            id={fieldName}
-            checked={currentValue as boolean}
-            onCheckedChange={onChange}
-          />
+          <Switch id={fieldName} checked={currentValue as boolean} onCheckedChange={onChange} />
         </div>
       )
 
@@ -260,13 +224,8 @@ function SchemaField({ fieldName, schema, value, onChange }: SchemaFieldProps) {
             <Label htmlFor={fieldName} className="font-medium">
               {schema.title || fieldName}
             </Label>
-            {schema.description && (
-              <p className="text-xs text-muted-foreground">{schema.description}</p>
-            )}
-            <Select
-              value={(currentValue as string) || schema.enum[0]}
-              onValueChange={onChange}
-            >
+            {schema.description && <p className="text-xs text-muted-foreground">{schema.description}</p>}
+            <Select value={(currentValue as string) || schema.enum[0]} onValueChange={onChange}>
               <SelectTrigger id={fieldName}>
                 <SelectValue />
               </SelectTrigger>
@@ -286,9 +245,7 @@ function SchemaField({ fieldName, schema, value, onChange }: SchemaFieldProps) {
           <Label htmlFor={fieldName} className="font-medium">
             {schema.title || fieldName}
           </Label>
-          {schema.description && (
-            <p className="text-xs text-muted-foreground">{schema.description}</p>
-          )}
+          {schema.description && <p className="text-xs text-muted-foreground">{schema.description}</p>}
           <Input
             id={fieldName}
             value={(currentValue as string) || ''}
@@ -308,9 +265,7 @@ function SchemaField({ fieldName, schema, value, onChange }: SchemaFieldProps) {
           <Label htmlFor={fieldName} className="font-medium">
             {schema.title || fieldName}
           </Label>
-          {schema.description && (
-            <p className="text-xs text-muted-foreground">{schema.description}</p>
-          )}
+          {schema.description && <p className="text-xs text-muted-foreground">{schema.description}</p>}
           <div className="flex items-center gap-2">
             <Input
               id={fieldName}
@@ -340,9 +295,7 @@ function SchemaField({ fieldName, schema, value, onChange }: SchemaFieldProps) {
           <Label htmlFor={fieldName} className="font-medium">
             {schema.title || fieldName}
           </Label>
-          {schema.description && (
-            <p className="text-xs text-muted-foreground">{schema.description}</p>
-          )}
+          {schema.description && <p className="text-xs text-muted-foreground">{schema.description}</p>}
           <div className="flex items-center gap-2 text-sm text-muted-foreground p-4 border rounded-lg bg-muted/30">
             <Info className="w-4 h-4" />
             {t('whiteLabelWizard.configuration.arrayNotSupported')}

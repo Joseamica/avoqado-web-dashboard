@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Venue } from '@/types'
 
@@ -8,10 +8,17 @@ interface UseCurrentVenueReturn {
   venueSlug: string | null
   isLoading: boolean
   hasVenueAccess: boolean
+  /** Whether we're in white-label mode (/wl/ routes) */
+  isWhiteLabelMode: boolean
+  /** Base path for venue routes: '/wl' or '/venues' depending on current URL */
+  venueBasePath: string
+  /** Full base path including slug: '/wl/{slug}' or '/venues/{slug}' */
+  fullBasePath: string
 }
 
 export const useCurrentVenue = (): UseCurrentVenueReturn => {
   const params = useParams<{ slug?: string; venueSlug?: string }>()
+  const location = useLocation()
   const venueSlugParam = params.venueSlug ?? params.slug ?? null
   const { activeVenue, getVenueBySlug, checkVenueAccess, isAuthenticated } = useAuth()
 
@@ -21,11 +28,24 @@ export const useCurrentVenue = (): UseCurrentVenueReturn => {
   // Verificar si el usuario tiene acceso al venue actual
   const hasVenueAccess = !!venueSlugParam && isAuthenticated ? checkVenueAccess(venueSlugParam) : false
 
+  // Detect white-label mode based on URL
+  const isWhiteLabelMode = location.pathname.startsWith('/wl/')
+
+  // Base path for venue routes (without slug)
+  const venueBasePath = isWhiteLabelMode ? '/wl' : '/venues'
+
+  // Full base path including the venue slug
+  const slug = venue?.slug || venueSlugParam
+  const fullBasePath = slug ? `${venueBasePath}/${slug}` : venueBasePath
+
   return {
     venue,
     venueId: venue?.id || null,
     venueSlug: venue?.slug || null,
     isLoading: !venue && !!venueSlugParam, // Está cargando si hay slug pero no venue
     hasVenueAccess,
+    isWhiteLabelMode,
+    venueBasePath,
+    fullBasePath,
   }
 }

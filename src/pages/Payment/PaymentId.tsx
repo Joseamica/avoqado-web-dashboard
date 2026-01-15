@@ -33,7 +33,6 @@ import {
   Wallet,
   XCircle,
   Star,
-  Users,
   QrCode,
   TestTube2,
   Split,
@@ -475,7 +474,7 @@ export default function PaymentId() {
     commission: true,
   })
   const { toast } = useToast()
-  const { venueId, venue } = useCurrentVenue()
+  const { venueId, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { can } = usePermissions()
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
@@ -523,7 +522,7 @@ export default function PaymentId() {
   // Fetch commission info for this payment
   const { data: commission, isLoading: isLoadingCommission } = useCommissionByPayment(paymentId)
 
-  const from = (location.state as any)?.from || `/venues/${venueId}/payments`
+  const from = (location.state as any)?.from || `${fullBasePath}/payments`
 
   const sendReceiptMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
@@ -1658,7 +1657,7 @@ export default function PaymentId() {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">{t('detail.sidebar.order')}:</span>
                         <Link
-                          to={`/venues/${venue.slug}/orders/${payment.order.id}`}
+                          to={`${fullBasePath}/orders/${payment.order.id}`}
                           className="font-mono text-xs text-primary hover:underline flex items-center gap-1 transition-colors"
                         >
                           {formatOrderNumber(payment.order.orderNumber)}
@@ -1666,7 +1665,7 @@ export default function PaymentId() {
                         </Link>
                       </div>
                       <div className="pt-3 mt-1 border-t border-border/50">
-                        <Link to={`/venues/${venue.slug}/orders/${payment.order.id}`}>
+                        <Link to={`${fullBasePath}/orders/${payment.order.id}`}>
                           <Button variant="outline" size="sm" className="w-full gap-2">
                             <ShoppingBag className="h-4 w-4" />
                             {t('detail.sidebar.viewOrder', { defaultValue: 'Ver Orden' })}

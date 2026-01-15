@@ -24,14 +24,14 @@ interface ReviewFiltersProps {
 }
 
 // TODO: Habilitar fuentes externas cuando tengamos verificado el negocio (Google, TripAdvisor, Facebook, Yelp)
-const sources = ['AVOQADO' /*, 'GOOGLE', 'TRIPADVISOR', 'FACEBOOK', 'YELP'*/]
+const _sources = ['AVOQADO' /*, 'GOOGLE', 'TRIPADVISOR', 'FACEBOOK', 'YELP'*/]
 const sentiments = ['positive', 'neutral', 'negative']
 
 export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCount }: ReviewFiltersProps) {
   const { t } = useTranslation('reviews')
   const [isExpanded, setIsExpanded] = useState(true)
 
-  const handleSourceToggle = (source: string) => {
+  const _handleSourceToggle = (source: string) => {
     const newSources = filters.sources.includes(source) ? filters.sources.filter(s => s !== source) : [...filters.sources, source]
     onFiltersChange({ ...filters, sources: newSources })
   }
@@ -46,7 +46,7 @@ export function ReviewFilters({ filters, onFiltersChange, totalCount, filteredCo
     onFiltersChange({ ...filters, sentiment })
   }
 
-  const handleResponseStatusChange = (value: 'all' | 'responded' | 'unresponded') => {
+  const _handleResponseStatusChange = (value: 'all' | 'responded' | 'unresponded') => {
     onFiltersChange({ ...filters, responseStatus: value })
   }
 

@@ -29,7 +29,7 @@ interface NotificationsPageProps {
 export function NotificationsPage({ className }: NotificationsPageProps) {
   const { t } = useTranslation(['notifications', 'common'])
   const navigate = useNavigate()
-  const { venueSlug } = useCurrentVenue()
+  const { venueSlug, fullBasePath } = useCurrentVenue()
   const {
     notifications,
     unreadCount,
@@ -134,7 +134,7 @@ export function NotificationsPage({ className }: NotificationsPageProps) {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('common:refresh')}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/venues/${venueSlug}/notifications/preferences`)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`${fullBasePath}/notifications/preferences`)}>
             <Settings className="h-4 w-4 mr-2" />
             {t('common:settings')}
           </Button>

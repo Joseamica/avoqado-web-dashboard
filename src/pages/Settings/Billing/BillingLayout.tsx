@@ -33,8 +33,8 @@ export default function BillingLayout() {
 
 function BillingNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
   const { t } = useTranslation('billing')
-  const { venueSlug } = useCurrentVenue()
-  const basePath = `/venues/${venueSlug}/settings/billing`
+  const { fullBasePath } = useCurrentVenue()
+  const basePath = `${fullBasePath}/settings/billing`
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `text-sm font-medium transition-colors py-4 border-b-2 cursor-pointer ${

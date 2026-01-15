@@ -1,46 +1,19 @@
-import { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
-import {
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  History,
-  Loader2,
-  Send,
-  XCircle,
-} from 'lucide-react'
-import { DateTime } from 'luxon'
 import { useVenueDateTime } from '@/utils/datetime'
 import { getIntlLocale } from '@/utils/i18n-locale'
+import { useQuery } from '@tanstack/react-query'
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, History, Loader2, Send, XCircle } from 'lucide-react'
+import { DateTime } from 'luxon'
+import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getCommandHistory } from '@/services/tpv.service'
-import {
-  TpvCommand,
-  TpvCommandStatus,
-  TpvCommandResultStatus,
-  TpvCommandType,
-} from '@/types/tpv-commands'
+import { TpvCommand, TpvCommandResultStatus, TpvCommandStatus } from '@/types/tpv-commands'
 
 interface CommandHistoryTableProps {
   terminalId: string
@@ -191,10 +164,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   // Format time ago
   const formatTimeAgo = (date: string) => {
     try {
-      return DateTime.fromISO(date, { zone: 'utc' })
-        .setZone(venueTimezone)
-        .setLocale(localeCode)
-        .toRelative()
+      return DateTime.fromISO(date, { zone: 'utc' }).setZone(venueTimezone).setLocale(localeCode).toRelative()
     } catch {
       return '-'
     }
@@ -203,16 +173,12 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
   // Render command row
   const renderCommandRow = (command: TpvCommand) => (
     <TableRow key={command.id}>
-      <TableCell className="font-mono text-xs">
-        {command.id.slice(-8)}
-      </TableCell>
+      <TableCell className="font-mono text-xs">{command.id.slice(-8)}</TableCell>
       <TableCell>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <Badge variant="outline">
-                {t(`commands.types.${command.commandType}`, command.commandType)}
-              </Badge>
+              <Badge variant="outline">{t(`commands.types.${command.commandType}`, command.commandType)}</Badge>
             </TooltipTrigger>
             <TooltipContent>
               <p>{t(`commands.descriptions.${command.commandType}`, '')}</p>
@@ -220,21 +186,13 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
           </Tooltip>
         </TooltipProvider>
       </TableCell>
-      <TableCell>
-        {getStatusBadge(command.status, command.resultStatus)}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-        {command.resultMessage || '-'}
-      </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
-        {command.requestedByEmail || t('commands.system')}
-      </TableCell>
+      <TableCell>{getStatusBadge(command.status, command.resultStatus)}</TableCell>
+      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{command.resultMessage || '-'}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{command.requestedByEmail || t('commands.system')}</TableCell>
       <TableCell className="text-sm text-muted-foreground">
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
-              {formatTimeAgo(command.createdAt)}
-            </TooltipTrigger>
+            <TooltipTrigger>{formatTimeAgo(command.createdAt)}</TooltipTrigger>
             <TooltipContent>
               <p>{formatDateTime(command.createdAt)}</p>
             </TooltipContent>
@@ -273,9 +231,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
               <History className="h-5 w-5 text-primary" />
               {t('commands.history')}
             </CardTitle>
-            <CardDescription>
-              {t('commands.historyDesc', { total })}
-            </CardDescription>
+            <CardDescription>{t('commands.historyDesc', { total })}</CardDescription>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -310,9 +266,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
                   <TableHead>{t('commands.table.time')}</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {commands.map(renderCommandRow)}
-              </TableBody>
+              <TableBody>{commands.map(renderCommandRow)}</TableBody>
             </Table>
 
             {/* Pagination */}
@@ -326,12 +280,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
                   })}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm">
@@ -340,7 +289,7 @@ export function CommandHistoryTable({ terminalId, venueId }: CommandHistoryTable
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />

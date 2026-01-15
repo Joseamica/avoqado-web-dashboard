@@ -868,6 +868,36 @@ FRONTEND → useVenueDateTime() hook
 
 **Reference:** `src/utils/datetime.ts` | `src/utils/i18n-locale.ts`
 
+### 14. White-Label Navigation Paths (MANDATORY)
+
+**NEVER hardcode `/venues/` in navigation paths.** Use `fullBasePath` from `useCurrentVenue()` hook.
+
+This ensures components work correctly in both regular mode (`/venues/:slug`) and white-label mode (`/wl/:slug`).
+
+```typescript
+// ❌ WRONG - Breaks white-label mode
+navigate(`/venues/${venueSlug}/settings`)
+<Link to={`/venues/${venueSlug}/orders`}>Orders</Link>
+
+// ✅ CORRECT - Works in both modes
+const { fullBasePath } = useCurrentVenue()
+navigate(`${fullBasePath}/settings`)
+<Link to={`${fullBasePath}/orders`}>Orders</Link>
+```
+
+**What `fullBasePath` returns:**
+- In `/venues/my-venue/*` routes → `/venues/my-venue`
+- In `/wl/my-venue/*` routes → `/wl/my-venue`
+
+**When to use `/venues/` directly (exceptions):**
+- ✅ Organization pages navigating TO a venue (cross-context navigation)
+- ✅ API calls using `venueId` (e.g., `/api/v1/dashboard/venues/${venueId}/...`)
+- ❌ Any navigation WITHIN a venue's pages
+
+**ESLint Rule:** `eslint-rules/no-hardcoded-venue-paths.js` catches violations.
+
+**Reference:** `src/hooks/use-current-venue.tsx`
+
 ## Tech Stack
 
 - **Framework**: React 18 + TypeScript + Vite

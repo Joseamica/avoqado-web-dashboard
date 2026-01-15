@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, Clock, MessageSquare, Star, TrendingUp, ThumbsUp, ThumbsDown, Meh } from 'lucide-react'
+import { BarChart3, Star, TrendingUp, ThumbsUp, ThumbsDown, Meh } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useMemo } from 'react'
 

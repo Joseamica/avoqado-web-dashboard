@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/context/AuthContext'
@@ -391,7 +390,7 @@ export default function OrderId() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  const { venueId, venueSlug, venue } = useCurrentVenue()
+  const { venueId, venueSlug, venue, fullBasePath } = useCurrentVenue()
   const venueTimezone = venue?.timezone || 'America/Mexico_City'
   const { setCustomSegment, clearCustomSegment } = useBreadcrumb()
 
@@ -417,7 +416,7 @@ export default function OrderId() {
         description: t('detail.toast.deletedDesc'),
       })
       queryClient.invalidateQueries({ queryKey: ['orders', venueId] })
-      navigate(`/venues/${venueSlug}/orders`)
+      navigate(`${fullBasePath}/orders`)
     },
     onError: (error: any) => {
       toast({
@@ -445,7 +444,7 @@ export default function OrderId() {
     setSectionsOpen(prev => ({ ...prev, [section]: !prev[section] }))
   }
 
-  const from = (location.state as any)?.from || `/venues/${venueSlug}/orders`
+  const from = (location.state as any)?.from || `${fullBasePath}/orders`
 
   // Loading state
   if (isLoading) {
@@ -704,7 +703,7 @@ export default function OrderId() {
                               variant="ghost"
                               size="sm"
                               className="mt-1 h-auto p-0 text-xs"
-                              onClick={() => navigate(`/venues/${venueSlug}/payments/${payment.id}`)}
+                              onClick={() => navigate(`${fullBasePath}/payments/${payment.id}`)}
                             >
                               <Eye className="h-3 w-3 mr-1" />
                               {t('detail.payments.view')}

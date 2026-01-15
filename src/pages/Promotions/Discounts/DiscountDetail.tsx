@@ -1,21 +1,21 @@
-import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, Pencil } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, Pencil, Trash2 } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/components/PermissionGate'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PermissionGate } from '@/components/PermissionGate'
 import { useBreadcrumb } from '@/context/BreadcrumbContext'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { cn } from '@/lib/utils'
 import discountService from '@/services/discount.service'
-import type { Discount, DiscountType, DiscountScope } from '@/types/discount'
-import { useDiscountFormData } from '../hooks/useDiscountFormData'
+import type { Discount } from '@/types/discount'
 import { DiscountWizard } from '../components/DiscountWizard'
+import { useDiscountFormData } from '../hooks/useDiscountFormData'
 
 type TabId = 'general' | 'scope' | 'rules' | 'config'
 
@@ -32,11 +32,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 // Boolean badge helper
 function BooleanBadge({ value }: { value: boolean }) {
   const { t } = useTranslation()
-  return (
-    <Badge variant={value ? 'default' : 'secondary'}>
-      {value ? t('common.yes') : t('common.no')}
-    </Badge>
-  )
+  return <Badge variant={value ? 'default' : 'secondary'}>{value ? t('common.yes') : t('common.no')}</Badge>
 }
 
 // Days of week badges
@@ -189,9 +185,7 @@ export default function DiscountDetail() {
             <Badge variant={discount.active ? 'default' : 'secondary'}>
               {discount.active ? t('discounts.status.active') : t('discounts.status.inactive')}
             </Badge>
-            <Badge variant="outline">
-              {t(`discounts.form.types.${discount.type}`)}
-            </Badge>
+            <Badge variant="outline">{t(`discounts.form.types.${discount.type}`)}</Badge>
           </div>
           <PermissionGate permission="discounts:update">
             <Button onClick={() => setIsEditWizardOpen(true)}>
@@ -210,9 +204,7 @@ export default function DiscountDetail() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   'px-4 py-2 text-sm font-medium rounded-md transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                  activeTab === tab.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {tab.label}
@@ -224,9 +216,7 @@ export default function DiscountDetail() {
 
       {/* Tab Content */}
       <div className="p-4 space-y-4">
-        {activeTab === 'general' && (
-          <GeneralTab discount={discount} t={t} />
-        )}
+        {activeTab === 'general' && <GeneralTab discount={discount} t={t} />}
         {activeTab === 'scope' && (
           <ScopeTab
             discount={discount}
@@ -236,12 +226,8 @@ export default function DiscountDetail() {
             customerGroupNamesMap={customerGroupNamesMap}
           />
         )}
-        {activeTab === 'rules' && (
-          <RulesTab discount={discount} t={t} />
-        )}
-        {activeTab === 'config' && (
-          <ConfigTab discount={discount} t={t} />
-        )}
+        {activeTab === 'rules' && <RulesTab discount={discount} t={t} />}
+        {activeTab === 'config' && <ConfigTab discount={discount} t={t} />}
       </div>
 
       {/* Edit Wizard Dialog */}
@@ -270,26 +256,13 @@ function GeneralTab({ discount, t }: TabProps) {
         <CardTitle>{t('discounts.detail.sections.basicInfo')}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-6">
-        <InfoRow
-          label={t('discounts.form.fields.name')}
-          value={discount.name}
-        />
-        <InfoRow
-          label={t('discounts.form.fields.description')}
-          value={discount.description || '-'}
-        />
+        <InfoRow label={t('discounts.form.fields.name')} value={discount.name} />
+        <InfoRow label={t('discounts.form.fields.description')} value={discount.description || '-'} />
         <InfoRow
           label={t('discounts.form.fields.type')}
-          value={
-            <Badge variant="outline">
-              {t(`discounts.form.types.${discount.type}`)}
-            </Badge>
-          }
+          value={<Badge variant="outline">{t(`discounts.form.types.${discount.type}`)}</Badge>}
         />
-        <InfoRow
-          label={t('discounts.form.fields.value')}
-          value={formatDiscountValue(discount)}
-        />
+        <InfoRow label={t('discounts.form.fields.value')} value={formatDiscountValue(discount)} />
       </CardContent>
     </Card>
   )
@@ -311,11 +284,7 @@ function ScopeTab({ discount, t, productNamesMap, categoryNamesMap, customerGrou
         <CardContent className="space-y-6">
           <InfoRow
             label={t('discounts.form.fields.scope')}
-            value={
-              <Badge variant="outline">
-                {t(`discounts.form.scopes.${discount.scope}`)}
-              </Badge>
-            }
+            value={<Badge variant="outline">{t(`discounts.form.scopes.${discount.scope}`)}</Badge>}
           />
 
           {/* Target Products */}
@@ -350,11 +319,7 @@ function ScopeTab({ discount, t, productNamesMap, categoryNamesMap, customerGrou
           {discount.scope === 'CUSTOMER_GROUP' && discount.customerGroupId && (
             <InfoRow
               label={t('discounts.form.fields.customerGroup')}
-              value={
-                <Badge variant="secondary">
-                  {customerGroupNamesMap.get(discount.customerGroupId) || discount.customerGroupId}
-                </Badge>
-              }
+              value={<Badge variant="secondary">{customerGroupNamesMap.get(discount.customerGroupId) || discount.customerGroupId}</Badge>}
             />
           )}
 
@@ -363,14 +328,8 @@ function ScopeTab({ discount, t, productNamesMap, categoryNamesMap, customerGrou
             <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
               <p className="font-medium">{t('discounts.bogo.title')}</p>
               <div className="grid grid-cols-2 gap-4">
-                <InfoRow
-                  label={t('discounts.bogo.buyQuantity')}
-                  value={discount.buyQuantity}
-                />
-                <InfoRow
-                  label={t('discounts.bogo.getQuantity')}
-                  value={discount.getQuantity}
-                />
+                <InfoRow label={t('discounts.bogo.buyQuantity')} value={discount.buyQuantity} />
+                <InfoRow label={t('discounts.bogo.getQuantity')} value={discount.getQuantity} />
                 <InfoRow
                   label={t('discounts.bogo.getDiscount')}
                   value={`${discount.getDiscountPercent}%${discount.getDiscountPercent === 100 ? ' (GRATIS)' : ''}`}
@@ -427,11 +386,7 @@ function RulesTab({ discount, t }: TabProps) {
           />
           <InfoRow
             label={t('discounts.form.fields.maxTotalUses')}
-            value={
-              discount.maxTotalUses
-                ? `${discount.currentUses} / ${discount.maxTotalUses}`
-                : `${discount.currentUses} / ∞`
-            }
+            value={discount.maxTotalUses ? `${discount.currentUses} / ${discount.maxTotalUses}` : `${discount.currentUses} / ∞`}
           />
           <InfoRow
             label={t('discounts.form.fields.maxUsesPerCustomer')}
@@ -446,22 +401,10 @@ function RulesTab({ discount, t }: TabProps) {
           <CardTitle>{t('discounts.detail.sections.timeRestrictions')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-6">
-          <InfoRow
-            label={t('discounts.form.fields.validFrom')}
-            value={formatDate(discount.validFrom, t)}
-          />
-          <InfoRow
-            label={t('discounts.form.fields.validUntil')}
-            value={formatDate(discount.validUntil, t)}
-          />
-          <InfoRow
-            label={t('discounts.form.fields.daysOfWeek')}
-            value={<DaysOfWeekBadges days={discount.daysOfWeek} />}
-          />
-          <InfoRow
-            label={t('discounts.detail.fields.timeRange')}
-            value={formatTimeRange(discount.timeFrom, discount.timeUntil, t)}
-          />
+          <InfoRow label={t('discounts.form.fields.validFrom')} value={formatDate(discount.validFrom, t)} />
+          <InfoRow label={t('discounts.form.fields.validUntil')} value={formatDate(discount.validUntil, t)} />
+          <InfoRow label={t('discounts.form.fields.daysOfWeek')} value={<DaysOfWeekBadges days={discount.daysOfWeek} />} />
+          <InfoRow label={t('discounts.detail.fields.timeRange')} value={formatTimeRange(discount.timeFrom, discount.timeUntil, t)} />
         </CardContent>
       </Card>
     </div>
@@ -477,32 +420,17 @@ function ConfigTab({ discount, t }: TabProps) {
         <CardTitle>{t('discounts.detail.sections.advanced')}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-6">
-        <InfoRow
-          label={t('discounts.form.fields.isAutomatic')}
-          value={<BooleanBadge value={discount.isAutomatic} />}
-        />
-        <InfoRow
-          label={t('discounts.form.fields.priority')}
-          value={discount.priority}
-        />
-        <InfoRow
-          label={t('discounts.form.fields.isStackable')}
-          value={<BooleanBadge value={discount.isStackable} />}
-        />
-        <InfoRow
-          label={t('discounts.form.fields.applyBeforeTax')}
-          value={<BooleanBadge value={discount.applyBeforeTax} />}
-        />
+        <InfoRow label={t('discounts.form.fields.isAutomatic')} value={<BooleanBadge value={discount.isAutomatic} />} />
+        <InfoRow label={t('discounts.form.fields.priority')} value={discount.priority} />
+        <InfoRow label={t('discounts.form.fields.isStackable')} value={<BooleanBadge value={discount.isStackable} />} />
+        <InfoRow label={t('discounts.form.fields.applyBeforeTax')} value={<BooleanBadge value={discount.applyBeforeTax} />} />
         {discount.type === 'COMP' && (
           <>
             <InfoRow
               label={t('discounts.form.fields.requiresApproval')}
               value={<BooleanBadge value={discount.requiresApproval || false} />}
             />
-            <InfoRow
-              label={t('discounts.form.fields.compReason')}
-              value={discount.compReason || '-'}
-            />
+            <InfoRow label={t('discounts.form.fields.compReason')} value={discount.compReason || '-'} />
           </>
         )}
       </CardContent>

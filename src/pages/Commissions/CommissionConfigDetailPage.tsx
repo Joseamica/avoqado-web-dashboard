@@ -80,7 +80,7 @@ export default function CommissionConfigDetailPage() {
 	const { configId } = useParams<{ configId: string }>()
 	const navigate = useNavigate()
 	const [searchParams, setSearchParams] = useSearchParams()
-	const { venueSlug } = useCurrentVenue()
+	const { venueSlug, fullBasePath } = useCurrentVenue()
 	const { t, i18n } = useTranslation('commissions')
 	const { t: tCommon } = useTranslation()
 	const { toast } = useToast()
@@ -135,7 +135,7 @@ export default function CommissionConfigDetailPage() {
 			toast({
 				title: t('success.configDeleted'),
 			})
-			navigate(`/venues/${venueSlug}/commissions`)
+			navigate(`${fullBasePath}/commissions`)
 		} catch (error: any) {
 			toast({
 				title: t('errors.deleteError'),
@@ -146,7 +146,7 @@ export default function CommissionConfigDetailPage() {
 	}
 
 	const handleBack = () => {
-		navigate(`/venues/${venueSlug}/commissions`)
+		navigate(`${fullBasePath}/commissions`)
 	}
 
 	if (isLoadingConfig) {

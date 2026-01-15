@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import testingEn from '@/locales/en/testing.json'

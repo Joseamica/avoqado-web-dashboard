@@ -77,7 +77,7 @@ function BasicInfoSkeleton() {
 
 export default function BasicInfo() {
   const { t } = useTranslation(['venue', 'common'])
-  const { venueId, venueSlug } = useCurrentVenue()
+  const { venueId, venueSlug, fullBasePath } = useCurrentVenue()
   const { user } = useAuth()
   const canEdit = [StaffRole.OWNER, StaffRole.ADMIN, StaffRole.SUPERADMIN].includes((user?.role as StaffRole) || ('' as any))
   const { setActions } = useVenueEditActions()
@@ -471,7 +471,7 @@ export default function BasicInfo() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowActiveShiftBlockedDialog(false)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction asChild>
-              <Link to={`/venues/${venueSlug}/shifts`}>
+              <Link to={`${fullBasePath}/shifts`}>
                 <Clock className="mr-2 h-4 w-4" />
                 Ir a Turnos
               </Link>
@@ -494,7 +494,7 @@ export default function BasicInfo() {
                 </p>
               )}
               <Button asChild variant="outline" size="sm" className="border-destructive/50 hover:bg-destructive/10">
-                <Link to={`/venues/${venueSlug}/edit/documents`}>
+                <Link to={`${fullBasePath}/edit/documents`}>
                   <FileText className="mr-2 h-4 w-4" />
                   {t('edit.kycRejected.resubmitButton')}
                 </Link>

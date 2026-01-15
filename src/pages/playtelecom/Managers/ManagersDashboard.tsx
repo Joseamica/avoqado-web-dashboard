@@ -10,12 +10,12 @@
  * Access: ADMIN+ only
  */
 
-import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/context/AuthContext'
-import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
-import { UserCog, Store, Users, Target, TrendingUp } from 'lucide-react'
+import { GlassCard } from '@/components/ui/glass-card'
+import { useAuth } from '@/context/AuthContext'
+import { Store, Target, UserCog } from 'lucide-react'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 // Placeholder data - will be replaced with real API calls
 const MOCK_MANAGERS = [
@@ -24,8 +24,8 @@ const MOCK_MANAGERS = [
     name: 'Roberto Sánchez',
     stores: ['Plaza Centro', 'Sucursal Este'],
     promoters: 8,
-    monthlySales: 125000.00,
-    target: 150000.00,
+    monthlySales: 125000.0,
+    target: 150000.0,
     achievement: 83.3,
   },
   {
@@ -33,8 +33,8 @@ const MOCK_MANAGERS = [
     name: 'Ana Martínez',
     stores: ['Sucursal Norte'],
     promoters: 4,
-    monthlySales: 68000.00,
-    target: 75000.00,
+    monthlySales: 68000.0,
+    target: 75000.0,
     achievement: 90.7,
   },
   {
@@ -42,8 +42,8 @@ const MOCK_MANAGERS = [
     name: 'Carlos López',
     stores: ['Sucursal Sur', 'Kiosko Mall'],
     promoters: 6,
-    monthlySales: 95000.00,
-    target: 100000.00,
+    monthlySales: 95000.0,
+    target: 100000.0,
     achievement: 95.0,
   },
 ]
@@ -54,14 +54,13 @@ export function ManagersDashboard() {
 
   // Format currency
   const formatCurrency = useMemo(
-    () =>
-      (value: number) =>
-        new Intl.NumberFormat('es-MX', {
-          style: 'currency',
-          currency: activeVenue?.currency || 'MXN',
-          minimumFractionDigits: 0,
-        }).format(value),
-    [activeVenue?.currency]
+    () => (value: number) =>
+      new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: activeVenue?.currency || 'MXN',
+        minimumFractionDigits: 0,
+      }).format(value),
+    [activeVenue?.currency],
   )
 
   return (
@@ -91,9 +90,7 @@ export function ManagersDashboard() {
               <p className="text-sm text-muted-foreground">
                 {t('playtelecom:managers.totalStores', { defaultValue: 'Tiendas Supervisadas' })}
               </p>
-              <p className="text-2xl font-semibold">
-                {MOCK_MANAGERS.reduce((acc, m) => acc + m.stores.length, 0)}
-              </p>
+              <p className="text-2xl font-semibold">{MOCK_MANAGERS.reduce((acc, m) => acc + m.stores.length, 0)}</p>
             </div>
           </div>
         </GlassCard>
@@ -117,15 +114,10 @@ export function ManagersDashboard() {
 
       {/* Managers List */}
       <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:managers.performance', { defaultValue: 'Rendimiento de Gerentes' })}
-        </h3>
+        <h3 className="text-lg font-semibold mb-4">{t('playtelecom:managers.performance', { defaultValue: 'Rendimiento de Gerentes' })}</h3>
         <div className="space-y-4">
           {MOCK_MANAGERS.map(manager => (
-            <div
-              key={manager.id}
-              className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
+            <div key={manager.id} className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -138,9 +130,7 @@ export function ManagersDashboard() {
                     </p>
                   </div>
                 </div>
-                <Badge
-                  variant={manager.achievement >= 90 ? 'default' : manager.achievement >= 75 ? 'secondary' : 'outline'}
-                >
+                <Badge variant={manager.achievement >= 90 ? 'default' : manager.achievement >= 75 ? 'secondary' : 'outline'}>
                   {manager.achievement.toFixed(1)}%
                 </Badge>
               </div>
@@ -153,9 +143,7 @@ export function ManagersDashboard() {
                   <span className="font-medium">{formatCurrency(manager.monthlySales)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {t('playtelecom:managers.target', { defaultValue: 'Meta' })}
-                  </span>
+                  <span className="text-muted-foreground">{t('playtelecom:managers.target', { defaultValue: 'Meta' })}</span>
                   <span className="text-muted-foreground">{formatCurrency(manager.target)}</span>
                 </div>
                 <div className="relative h-2 bg-muted rounded-full overflow-hidden">

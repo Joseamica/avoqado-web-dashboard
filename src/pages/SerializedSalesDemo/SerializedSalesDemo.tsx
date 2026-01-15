@@ -22,10 +22,8 @@ import {
   RefreshCw,
   Smartphone,
   ChevronRight,
-  Loader2,
   AlertCircle,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,8 +39,6 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import {
   getSerializedInventorySummary,
   getRecentSales,
-  type SerializedInventorySummary,
-  type RecentSalesResponse,
 } from '@/services/serializedInventory.service'
 
 function formatTimeAgo(dateString: string | null): string {

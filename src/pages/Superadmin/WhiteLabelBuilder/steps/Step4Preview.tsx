@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import type { NavigationItem } from '@/types/white-label'
 import type { WizardState } from '../WhiteLabelWizard'
-import { FEATURE_REGISTRY, FEATURE_CATEGORIES } from '@/config/feature-registry'
+import { FEATURE_REGISTRY } from '@/config/feature-registry'
 import { getIconComponent } from '@/components/WhiteLabel/DynamicFeatureLoader'
 
 // ============================================

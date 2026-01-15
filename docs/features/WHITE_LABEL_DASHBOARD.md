@@ -306,14 +306,36 @@ El sidebar ahora usa el hook `useWhiteLabelConfig()` para detectar si hay un whi
 
 ### Rutas White-Label
 
+El sistema soporta **dos patrones de URL** para máxima flexibilidad:
+
+| Patrón | Uso | Ejemplo |
+|--------|-----|---------|
+| `/wl/:slug/*` | Modo white-label puro (sin branding Avoqado) | `/wl/playtelecom/stock` |
+| `/venues/:slug/wl/*` | Modo híbrido (dentro del dashboard Avoqado) | `/venues/playtelecom/wl/stock` |
+
 ```
-/venues/:slug/wl                  → WhiteLabelDashboardLayout
+/wl/:slug                         → WhiteLabelDashboardLayout (standalone)
+/wl/:slug/:featureSlug/*          → WhiteLabelFeatureRouter → DynamicFeatureLoader
+
+/venues/:slug/wl                  → WhiteLabelDashboardLayout (nested)
 /venues/:slug/wl/:featureSlug/*   → WhiteLabelFeatureRouter → DynamicFeatureLoader
 ```
 
 ### Protección de Rutas
 
 ```typescript
+// Rutas standalone /wl/:slug
+<Route
+  path="wl/:slug"
+  element={<WhiteLabelRouteGuard />}
+>
+  <Route element={<WhiteLabelDashboardLayout />}>
+    <Route index element={<WhiteLabelIndex />} />
+    <Route path=":featureSlug/*" element={<WhiteLabelFeatureRouter />} />
+  </Route>
+</Route>
+
+// Rutas nested /venues/:slug/wl
 <Route
   path="wl"
   element={<ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />}
@@ -324,6 +346,59 @@ El sidebar ahora usa el hook `useWhiteLabelConfig()` para detectar si hay un whi
   </Route>
 </Route>
 ```
+
+---
+
+## Navegación sin Hardcoding (CRÍTICO)
+
+### Hook `useCurrentVenue()` y `fullBasePath`
+
+**NUNCA usar `/venues/` hardcodeado en navegación.** El hook `useCurrentVenue()` proporciona `fullBasePath` que funciona en ambos modos:
+
+```typescript
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+
+function MyComponent() {
+  const { fullBasePath, venueSlug } = useCurrentVenue()
+  const navigate = useNavigate()
+
+  // ❌ INCORRECTO - Rompe modo white-label
+  navigate(`/venues/${venueSlug}/settings`)
+  <Link to={`/venues/${venueSlug}/orders`}>Órdenes</Link>
+
+  // ✅ CORRECTO - Funciona en ambos modos
+  navigate(`${fullBasePath}/settings`)
+  <Link to={`${fullBasePath}/orders`}>Órdenes</Link>
+}
+```
+
+**¿Qué retorna `fullBasePath`?**
+- En `/venues/my-venue/*` → `/venues/my-venue`
+- En `/wl/my-venue/*` → `/wl/my-venue`
+
+### Regla ESLint
+
+El proyecto incluye una regla ESLint que detecta violaciones automáticamente:
+
+```javascript
+// eslint.config.js
+{
+  selector: 'TemplateElement[value.raw=/venues.*\\$\\{venue/i]',
+  message: '🚨 WHITE-LABEL VIOLATION: Use `fullBasePath` from useCurrentVenue()...'
+}
+```
+
+Ejecutar `npm run lint` mostrará warnings si hay paths hardcodeados.
+
+### Excepciones (cuándo SÍ usar `/venues/`)
+
+- ✅ **API calls**: `/api/v1/dashboard/venues/${venueId}/...` (usan `venueId`, no `venueSlug`)
+- ✅ **Navegación entre contextos**: Desde Organization pages hacia venues
+- ❌ **Navegación DENTRO del venue**: Siempre usar `fullBasePath`
+
+---
+
+**Ver también:** CLAUDE.md Regla #14 (White-Label Navigation Paths)
 
 ---
 
