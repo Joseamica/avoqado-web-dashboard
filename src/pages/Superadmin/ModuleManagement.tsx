@@ -60,6 +60,7 @@ const ModuleManagement: React.FC = () => {
 
   // White-Label Wizard state
   const [isWhiteLabelWizardOpen, setIsWhiteLabelWizardOpen] = useState(false)
+  const [selectedVenueForWizard, setSelectedVenueForWizard] = useState<{ id: string; name: string } | null>(null)
 
   // Form state for create/edit
   const [formData, setFormData] = useState<{
@@ -370,12 +371,6 @@ const ModuleManagement: React.FC = () => {
               <Pencil className="mr-2 h-4 w-4" />
               {t('moduleMgmt.dropdown.editModule')}
             </DropdownMenuItem>
-            {row.original.code === 'WHITE_LABEL_DASHBOARD' && (
-              <DropdownMenuItem onClick={() => setIsWhiteLabelWizardOpen(true)}>
-                <Palette className="mr-2 h-4 w-4" />
-                {t('moduleMgmt.dropdown.configureWhiteLabel')}
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => handleOpenDeleteDialog(row.original)}
@@ -436,15 +431,32 @@ const ModuleManagement: React.FC = () => {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {row.original.moduleEnabled ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDisableModule(row.original)}
-              disabled={disableMutation.isPending}
-            >
-              <PowerOff className="w-3 h-3 mr-1" />
-              {t('moduleMgmt.actions.disable')}
-            </Button>
+            <>
+              {/* Configure Dashboard button - only for WHITE_LABEL_DASHBOARD */}
+              {selectedModule?.code === 'WHITE_LABEL_DASHBOARD' && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600"
+                  onClick={() => {
+                    setSelectedVenueForWizard({ id: row.original.id, name: row.original.name })
+                    setIsWhiteLabelWizardOpen(true)
+                  }}
+                >
+                  <Palette className="w-3 h-3 mr-1" />
+                  {t('moduleMgmt.actions.configure')}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDisableModule(row.original)}
+                disabled={disableMutation.isPending}
+              >
+                <PowerOff className="w-3 h-3 mr-1" />
+                {t('moduleMgmt.actions.disable')}
+              </Button>
+            </>
           ) : (
             <Button
               variant="default"
@@ -817,31 +829,49 @@ const ModuleManagement: React.FC = () => {
       </Dialog>
 
       {/* White-Label Wizard Dialog */}
-      <Dialog open={isWhiteLabelWizardOpen} onOpenChange={setIsWhiteLabelWizardOpen}>
+      <Dialog
+        open={isWhiteLabelWizardOpen}
+        onOpenChange={(open) => {
+          setIsWhiteLabelWizardOpen(open)
+          if (!open) setSelectedVenueForWizard(null)
+        }}
+      >
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>}>
-            <WhiteLabelWizard
-              onComplete={async (venueId, config) => {
-                try {
-                  await moduleAPI.updateModuleConfig(venueId, 'WHITE_LABEL_DASHBOARD', config)
-                  toast({
-                    title: t('moduleMgmt.toast.whiteLabelSavedTitle'),
-                    description: t('moduleMgmt.toast.whiteLabelSavedDesc'),
-                  })
+          {selectedVenueForWizard ? (
+            <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>}>
+              {/* Key forces re-mount when venue changes, ensuring fresh state and config load */}
+              <WhiteLabelWizard
+                key={selectedVenueForWizard.id}
+                initialVenueId={selectedVenueForWizard.id}
+                initialVenueName={selectedVenueForWizard.name}
+                onComplete={async (venueId, config) => {
+                  try {
+                    await moduleAPI.updateModuleConfig(venueId, 'WHITE_LABEL_DASHBOARD', config)
+                    toast({
+                      title: t('moduleMgmt.toast.whiteLabelSavedTitle'),
+                      description: t('moduleMgmt.toast.whiteLabelSavedDesc'),
+                    })
+                    setIsWhiteLabelWizardOpen(false)
+                    setSelectedVenueForWizard(null)
+                    queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
+                    queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
+                  } catch (error: any) {
+                    toast({
+                      title: t('moduleMgmt.toast.whiteLabelSaveFailed'),
+                      description: error?.response?.data?.error || error.message,
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+                onCancel={() => {
                   setIsWhiteLabelWizardOpen(false)
-                  queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
-                  queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
-                } catch (error: any) {
-                  toast({
-                    title: t('moduleMgmt.toast.whiteLabelSaveFailed'),
-                    description: error?.response?.data?.error || error.message,
-                    variant: 'destructive',
-                  })
-                }
-              }}
-              onCancel={() => setIsWhiteLabelWizardOpen(false)}
-            />
-          </Suspense>
+                  setSelectedVenueForWizard(null)
+                }}
+              />
+            </Suspense>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

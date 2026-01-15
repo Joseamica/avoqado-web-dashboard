@@ -2801,7 +2801,8 @@
     },
     "actions": {
       "enable": "Activar",
-      "disable": "Desactivar"
+      "disable": "Desactivar",
+      "configure": "Configurar"
     },
     "stats": {
       "totalModules": "Total de Módulos",
@@ -2894,10 +2895,13 @@
     "setup": {
       "venueTitle": "Seleccionar Sucursal",
       "venueDescription": "Elige la sucursal que usará este dashboard personalizado",
+      "venueDescriptionEdit": "Estás editando la configuración de esta sucursal",
       "selectVenue": "Sucursal",
       "venuePlaceholder": "Selecciona una sucursal...",
       "noVenues": "No hay sucursales disponibles",
       "selectedVenue": "Sucursal Seleccionada",
+      "editingVenue": "Editando Sucursal",
+      "locked": "Bloqueado",
       "presetTitle": "Elegir un Preset",
       "presetDescription": "Comienza con una plantilla preconfigurada o construye desde cero",
       "brandingTitle": "Marca",
@@ -2911,7 +2915,8 @@
       "uploadLogo": "Subir Logo",
       "logoComingSoon": "Subida de logo próximamente",
       "quickPreview": "Vista Previa Rápida",
-      "previewHint": "Así es como se verá el encabezado"
+      "previewHint": "Así es como se verá el encabezado",
+      "loadingConfig": "Cargando configuración..."
     },
     "features": {
       "title": "Seleccionar Funcionalidades",

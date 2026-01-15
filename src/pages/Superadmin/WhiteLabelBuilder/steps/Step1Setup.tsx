@@ -33,6 +33,7 @@ import {
   Check,
   Upload,
   Palette,
+  Loader2,
 } from 'lucide-react'
 import type { WhiteLabelTheme, PresetName } from '@/types/white-label'
 import { getAllPresets } from '@/config/white-label-presets'
@@ -47,10 +48,12 @@ interface Step1SetupProps {
   venueName: string
   preset: PresetName | null
   theme: WhiteLabelTheme
-  onVenueChange: (id: string, name: string) => void
+  onVenueChange: (id: string, name: string) => void | Promise<void>
   onPresetChange: (preset: PresetName) => void
   onThemeChange: (theme: WhiteLabelTheme) => void
   errors: string[]
+  isLoadingConfig?: boolean
+  isEditMode?: boolean // True when editing existing config (venue is locked)
 }
 
 interface VenueOption {
@@ -83,6 +86,8 @@ export default function Step1Setup({
   onPresetChange,
   onThemeChange,
   errors,
+  isLoadingConfig = false,
+  isEditMode = false,
 }: Step1SetupProps) {
   const { t } = useTranslation('superadmin')
   const presets = useMemo(() => getAllPresets(), [])
@@ -103,18 +108,12 @@ export default function Step1Setup({
   // Color picker state
   const [showColorPicker, setShowColorPicker] = useState(false)
 
-  // Handle venue selection
+  // Handle venue selection - loads existing config if available
   const handleVenueSelect = (selectedVenueId: string) => {
     const venue = venues.find(v => v.id === selectedVenueId)
     if (venue) {
+      // onVenueChange (loadExistingConfig) handles loading existing config and setting brand name
       onVenueChange(venue.id, venue.name)
-      // Update brand name if not already set
-      if (!theme.brandName || theme.brandName === 'Dashboard') {
-        onThemeChange({
-          ...theme,
-          brandName: venue.name,
-        })
-      }
     }
   }
 
@@ -139,50 +138,75 @@ export default function Step1Setup({
         <div>
           <h2 className="text-lg font-semibold">{t('whiteLabelWizard.setup.venueTitle')}</h2>
           <p className="text-sm text-muted-foreground">
-            {t('whiteLabelWizard.setup.venueDescription')}
+            {isEditMode
+              ? t('whiteLabelWizard.setup.venueDescriptionEdit')
+              : t('whiteLabelWizard.setup.venueDescription')}
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="venue-select">{t('whiteLabelWizard.setup.selectVenue')}</Label>
-            <Select value={venueId || '__none__'} onValueChange={(val) => val !== '__none__' && handleVenueSelect(val)}>
-              <SelectTrigger id="venue-select">
-                <SelectValue placeholder={t('whiteLabelWizard.setup.venuePlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__" disabled>
-                  {t('whiteLabelWizard.setup.venuePlaceholder')}
-                </SelectItem>
-                {isLoadingVenues ? (
-                  <SelectItem value="loading" disabled>
-                    {t('common.loading')}
-                  </SelectItem>
-                ) : venues.length === 0 ? (
-                  <SelectItem value="empty" disabled>
-                    {t('whiteLabelWizard.setup.noVenues')}
-                  </SelectItem>
-                ) : (
-                  venues.map(venue => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                        <span>{venue.name}</span>
-                        <span className="text-muted-foreground text-xs">({venue.slug})</span>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {venueId && (
+          {/* Show dropdown only in create mode */}
+          {!isEditMode && (
             <div className="space-y-2">
-              <Label>{t('whiteLabelWizard.setup.selectedVenue')}</Label>
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <Building2 className="w-5 h-5 text-primary" />
-                <span className="font-medium">{venueName}</span>
+              <Label htmlFor="venue-select">{t('whiteLabelWizard.setup.selectVenue')}</Label>
+              <Select value={venueId || '__none__'} onValueChange={(val) => val !== '__none__' && handleVenueSelect(val)}>
+                <SelectTrigger id="venue-select">
+                  <SelectValue placeholder={t('whiteLabelWizard.setup.venuePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__" disabled>
+                    {t('whiteLabelWizard.setup.venuePlaceholder')}
+                  </SelectItem>
+                  {isLoadingVenues ? (
+                    <SelectItem value="loading" disabled>
+                      {t('common.loading')}
+                    </SelectItem>
+                  ) : venues.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      {t('whiteLabelWizard.setup.noVenues')}
+                    </SelectItem>
+                  ) : (
+                    venues.map(venue => (
+                      <SelectItem key={venue.id} value={venue.id}>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-muted-foreground" />
+                          <span>{venue.name}</span>
+                          <span className="text-muted-foreground text-xs">({venue.slug})</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Show selected venue in both modes */}
+          {venueId && (
+            <div className={cn('space-y-2', isEditMode && 'sm:col-span-2')}>
+              <Label>{isEditMode ? t('whiteLabelWizard.setup.editingVenue') : t('whiteLabelWizard.setup.selectedVenue')}</Label>
+              <div className={cn(
+                'flex items-center gap-2 p-3 rounded-lg border',
+                isEditMode
+                  ? 'bg-gradient-to-r from-amber-400/10 to-pink-500/10 border-amber-400/30'
+                  : 'bg-primary/5 border-primary/20'
+              )}>
+                {isLoadingConfig ? (
+                  <>
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <span className="font-medium text-muted-foreground">{t('whiteLabelWizard.setup.loadingConfig')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Building2 className={cn('w-5 h-5', isEditMode ? 'text-amber-500' : 'text-primary')} />
+                    <span className="font-medium">{venueName}</span>
+                    {isEditMode && (
+                      <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                        {t('whiteLabelWizard.setup.locked')}
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           )}

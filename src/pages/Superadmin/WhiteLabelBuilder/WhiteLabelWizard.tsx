@@ -5,8 +5,9 @@
  * without writing JSON. Uses form-based UI.
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -30,6 +31,7 @@ import type {
 } from '@/types/white-label'
 import { getPreset } from '@/config/white-label-presets'
 import { FEATURE_REGISTRY } from '@/config/feature-registry'
+import { getModulesForVenue } from '@/services/superadmin-modules.service'
 
 import Step1Setup from './steps/Step1Setup'
 import Step2Features from './steps/Step2Features'
@@ -79,6 +81,7 @@ export default function WhiteLabelWizard({
   initialVenueName = '',
 }: WhiteLabelWizardProps) {
   const { t } = useTranslation('superadmin')
+  const queryClient = useQueryClient()
 
   // Current step
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -101,6 +104,9 @@ export default function WhiteLabelWizard({
   // Loading state for final submission
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Loading state for existing config
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false)
+
   // Validation errors
   const [errors, setErrors] = useState<Record<WizardStep, string[]>>({
     setup: [],
@@ -116,6 +122,67 @@ export default function WhiteLabelWizard({
   const updateState = useCallback((updates: Partial<WizardState>) => {
     setState(prev => ({ ...prev, ...updates }))
   }, [])
+
+  // Load existing WHITE_LABEL_DASHBOARD config when venue is selected
+  const loadExistingConfig = useCallback(async (venueId: string, venueName: string) => {
+    setIsLoadingConfig(true)
+    try {
+      const { modules } = await getModulesForVenue(venueId)
+      const whiteLabelModule = modules.find(m => m.code === 'WHITE_LABEL_DASHBOARD')
+
+      if (whiteLabelModule?.enabled && whiteLabelModule.config) {
+        // Parse existing config
+        const existingConfig = whiteLabelModule.config as WhiteLabelConfig
+
+        // Restore state from existing config
+        setState(prev => ({
+          ...prev,
+          venueId,
+          venueName,
+          theme: existingConfig.theme || prev.theme,
+          enabledFeatures: existingConfig.enabledFeatures || [],
+          featureConfigs: existingConfig.featureConfigs || {},
+          navigation: existingConfig.navigation?.items || [],
+        }))
+      } else {
+        // No existing config, just update venue info and reset to defaults
+        setState(prev => ({
+          ...prev,
+          venueId,
+          venueName,
+          preset: null,
+          theme: {
+            primaryColor: '#000000',
+            brandName: venueName || 'Dashboard',
+          },
+          enabledFeatures: [],
+          featureConfigs: {},
+          navigation: [],
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to load existing config:', error)
+      // On error, just update venue info
+      setState(prev => ({
+        ...prev,
+        venueId,
+        venueName,
+        theme: {
+          ...prev.theme,
+          brandName: venueName || prev.theme.brandName,
+        },
+      }))
+    } finally {
+      setIsLoadingConfig(false)
+    }
+  }, [])
+
+  // Auto-load existing config when initialVenueId is provided (editing mode)
+  useEffect(() => {
+    if (initialVenueId && initialVenueName) {
+      loadExistingConfig(initialVenueId, initialVenueName)
+    }
+  }, [initialVenueId, initialVenueName, loadExistingConfig])
 
   const handlePresetChange = useCallback((presetName: PresetName) => {
     const preset = getPreset(presetName)
@@ -410,10 +477,12 @@ export default function WhiteLabelWizard({
             venueName={state.venueName}
             preset={state.preset}
             theme={state.theme}
-            onVenueChange={(id, name) => updateState({ venueId: id, venueName: name })}
+            onVenueChange={loadExistingConfig}
             onPresetChange={handlePresetChange}
             onThemeChange={theme => updateState({ theme })}
             errors={errors.setup}
+            isLoadingConfig={isLoadingConfig}
+            isEditMode={!!initialVenueId}
           />
         )}
 

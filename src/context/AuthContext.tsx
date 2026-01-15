@@ -37,6 +37,7 @@ interface AuthContextType {
   checkFeatureAccess: (featureCode: string) => boolean // VenueFeature (billing)
   checkModuleAccess: (moduleCode: string) => boolean // VenueModule (configurable modules like SERIALIZED_INVENTORY)
   getVenueBySlug: (slug: string) => Venue | null // Nueva función para obtener venue por slug
+  getVenueBasePath: (venue: Venue) => string // Returns /wl/:slug or /venues/:slug based on WHITE_LABEL_DASHBOARD module
   allVenues: Venue[]
   staffInfo: any | null
   loginError: string | null // Error message for login failures
@@ -192,6 +193,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [allVenues],
   )
 
+  // --- FUNCIÓN 'getVenueBasePath' ---
+  // Returns /wl/:slug if WHITE_LABEL_DASHBOARD module is enabled, otherwise /venues/:slug
+  // This ensures venue switcher and login redirect to the correct dashboard
+  const getVenueBasePath = useCallback((venue: Venue): string => {
+    // Check if venue has WHITE_LABEL_DASHBOARD module enabled
+    if (venue?.modules) {
+      const whiteLabelModule = venue.modules.find(m => m.module.code === 'WHITE_LABEL_DASHBOARD')
+      if (whiteLabelModule?.enabled) {
+        return `/wl/${venue.slug}`
+      }
+    }
+    return `/venues/${venue.slug}`
+  }, [])
+
   // Efecto para sincronizar el venue activo y manejar redirecciones
   useEffect(() => {
     if (isStatusLoading || !isAuthenticated || !user) return
@@ -220,7 +235,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (user.role === 'SUPERADMIN') {
           navigate('/superadmin', { replace: true })
         } else {
-          navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+          // Use getVenueBasePath to redirect to /wl/:slug if WHITE_LABEL_DASHBOARD is enabled
+          const basePath = getVenueBasePath(defaultVenue)
+          navigate(`${basePath}/home`, { replace: true })
         }
         return
       }
@@ -236,7 +253,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } else {
           // Si el slug no corresponde a ningún venue del usuario, redirigir al default
-          navigate(`/venues/${defaultVenue.slug}/home`, { replace: true })
+          const basePath = getVenueBasePath(defaultVenue)
+          navigate(`${basePath}/home`, { replace: true })
         }
       } else if (!slug && activeVenue) {
         // Si no hay slug en la URL pero hay venue activo, usar el activo para la navegación
@@ -246,7 +264,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isOnOrgRoute = currentPath.startsWith('/organizations')
         const isOnWhiteLabelRoute = currentPath.startsWith('/wl/')
         if (!currentPath.includes('/venues/') && !isOnAdminRoute && !isOnOrgRoute && !isOnWhiteLabelRoute) {
-          navigate(`/venues/${activeVenue.slug}/home`, { replace: true })
+          const basePath = getVenueBasePath(activeVenue)
+          navigate(`${basePath}/home`, { replace: true })
         }
       }
     } else if (userRole !== StaffRole.OWNER && location.pathname !== '/venues/new') {
@@ -267,6 +286,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate,
     activeVenue?.id,
     getVenueBySlug,
+    getVenueBasePath,
     activeVenue,
     allVenues,
     userRole,
@@ -438,9 +458,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setActiveVenue(newVenue)
         toast({ title: t('toast.switched_to_venue', { name: newVenue.name }) })
 
-        // Navegar a la página correspondiente del nuevo venue
+        // Smart navigation: Handle switching between /venues/ and /wl/ routes
         const currentPath = location.pathname
-        const newPath = currentPath.replace(/venues\/[^/]+/, `venues/${newVenueSlug}`)
+        const basePath = getVenueBasePath(newVenue)
+
+        // Extract the page part (after /venues/:slug/ or /wl/:slug/)
+        // This regex matches both /venues/slug/ and /wl/slug/ and captures the rest
+        const pageMatch = currentPath.match(/^\/(?:venues|wl)\/[^/]+\/(.*)$/)
+        const pagePart = pageMatch?.[1] || 'home'
+
+        const newPath = `${basePath}/${pagePart}`
         navigate(newPath, { replace: true })
       }
     },
@@ -620,6 +647,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkFeatureAccess,
     checkModuleAccess,
     getVenueBySlug,
+    getVenueBasePath,
     allVenues,
     staffInfo: { ...user, role: userRole },
     loginError,

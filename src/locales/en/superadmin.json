@@ -3211,7 +3211,8 @@
     },
     "actions": {
       "enable": "Enable",
-      "disable": "Disable"
+      "disable": "Disable",
+      "configure": "Configure"
     },
     "stats": {
       "totalModules": "Total Modules",
@@ -3304,10 +3305,13 @@
     "setup": {
       "venueTitle": "Select Venue",
       "venueDescription": "Choose the venue that will use this white-label dashboard",
+      "venueDescriptionEdit": "You are editing the configuration for this venue",
       "selectVenue": "Venue",
       "venuePlaceholder": "Select a venue...",
       "noVenues": "No venues available",
       "selectedVenue": "Selected Venue",
+      "editingVenue": "Editing Venue",
+      "locked": "Locked",
       "presetTitle": "Choose a Preset",
       "presetDescription": "Start with a pre-configured template or build from scratch",
       "brandingTitle": "Branding",
@@ -3321,7 +3325,8 @@
       "uploadLogo": "Upload Logo",
       "logoComingSoon": "Logo upload coming soon",
       "quickPreview": "Quick Preview",
-      "previewHint": "This is a preview of how the header will look"
+      "previewHint": "This is a preview of how the header will look",
+      "loadingConfig": "Loading configuration..."
     },
     "features": {
       "title": "Select Features",
