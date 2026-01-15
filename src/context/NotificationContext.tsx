@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import * as notificationService from '@/services/notification.service'
 import { Notification, NotificationFilters, PaginationOptions } from '@/services/notification.service'
@@ -95,6 +95,11 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       }
 
     case 'ADD_NOTIFICATION':
+      // BUG #7 FIX: Deduplication - prevents duplicate notifications if socket re-emits
+      // This follows Square's idempotency pattern where event_id prevents duplicates
+      if (state.notifications.some(n => n.id === action.payload.id)) {
+        return state
+      }
       return {
         ...state,
         notifications: [action.payload, ...state.notifications],
@@ -199,29 +204,45 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   })
 
   // Actions
-  const markAsRead = async (id: string) => {
-    await markAsReadMutation.mutateAsync(id)
-  }
+  // BUG #2 FIX: Add try/catch to prevent unhandled promise rejections
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await markAsReadMutation.mutateAsync(id)
+    } catch (error) {
+      // Error is already handled by onError in mutation config
+      console.error('Failed to mark notification as read:', error)
+    }
+  }, [markAsReadMutation])
 
-  const markAllAsRead = async () => {
-    await markAllAsReadMutation.mutateAsync()
-  }
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await markAllAsReadMutation.mutateAsync()
+    } catch (error) {
+      // Error is already handled by onError in mutation config
+      console.error('Failed to mark all notifications as read:', error)
+    }
+  }, [markAllAsReadMutation])
 
-  const deleteNotification = async (id: string) => {
-    await deleteNotificationMutation.mutateAsync(id)
-  }
+  const deleteNotification = useCallback(async (id: string) => {
+    try {
+      await deleteNotificationMutation.mutateAsync(id)
+    } catch (error) {
+      // Error is already handled by onError in mutation config
+      console.error('Failed to delete notification:', error)
+    }
+  }, [deleteNotificationMutation])
 
-  const setFilters = (filters: NotificationFilters) => {
+  const setFilters = useCallback((filters: NotificationFilters) => {
     dispatch({ type: 'SET_FILTERS', payload: filters })
-  }
+  }, [])
 
-  const setPagination = (pagination: PaginationOptions) => {
+  const setPagination = useCallback((pagination: PaginationOptions) => {
     dispatch({ type: 'SET_PAGINATION', payload: pagination })
-  }
+  }, [])
 
-  const refreshNotifications = () => {
+  const refreshNotifications = useCallback(() => {
     notificationsQuery.refetch()
-  }
+  }, [notificationsQuery])
 
   // (Real-time additions are handled via socket effect below)
 
@@ -236,39 +257,52 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     refreshNotifications
   }
 
-  // Listen for real-time notifications (Socket.IO integration)
-  useEffect(() => {
-    if (!socket || !isConnected) return
+  // BUG #1 FIX: Use useCallback for socket handlers to prevent memory leaks
+  // Handlers are memoized with stable references, preventing duplicate registrations
+  const handleNewNotification = useCallback((notification: any) => {
+    console.log('Received new notification:', notification)
 
-    // Listen for new notifications
-    const handleNewNotification = (notification: any) => {
-      console.log('Received new notification:', notification)
+    // BUG #3 FIX: Normalize ID field name consistently
+    // Backend may send: { notificationId, ... } or { id, ... }
+    const notificationId = notification.notificationId || notification.id
+    if (!notificationId) {
+      console.error('Notification received without ID:', notification)
+      return
+    }
 
-      // Transform backend field names to frontend format
-      // Backend sends: { notificationId, ... }
-      // Frontend expects: { id, ... }
-      const transformedNotification: Notification = {
-        ...notification,
-        id: notification.notificationId || notification.id,
-      }
+    // Transform backend field names to frontend format
+    const transformedNotification: Notification = {
+      ...notification,
+      id: notificationId,
+    }
 
-      dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })
+    dispatch({ type: 'ADD_NOTIFICATION', payload: transformedNotification })
 
-      // Show browser notification with appropriate options based on priority
+    // BUG #4 FIX: Wrap browser notification in try/catch
+    // If permissions are denied or API fails, don't crash the handler
+    try {
       const options = getNotificationOptions(notification.priority)
       showBrowserNotification(notification.title, {
         ...options,
         body: notification.message,
         tag: transformedNotification.id
       })
+    } catch (error) {
+      // Browser notification failed (permissions denied, API unavailable, etc.)
+      // Real-time in-app notification still works
+      console.warn('Browser notification failed:', error)
     }
+  }, [])
 
-    // Listen for notification updates (e.g., marked as read)
-    const handleNotificationUpdate = (data: { id: string; isRead: boolean }) => {
-      if (data.isRead) {
-        dispatch({ type: 'MARK_AS_READ', payload: data.id })
-      }
+  const handleNotificationUpdate = useCallback((data: { id: string; isRead: boolean }) => {
+    if (data.isRead) {
+      dispatch({ type: 'MARK_AS_READ', payload: data.id })
     }
+  }, [])
+
+  // Listen for real-time notifications (Socket.IO integration)
+  useEffect(() => {
+    if (!socket || !isConnected) return
 
     // Register socket listeners
     socket.on('notification_new', handleNewNotification)
@@ -279,7 +313,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       socket.off('notification_new', handleNewNotification)
       socket.off('notification:updated', handleNotificationUpdate)
     }
-  }, [socket, isConnected])
+  }, [socket, isConnected, handleNewNotification, handleNotificationUpdate])
 
   return (
     <NotificationContext.Provider value={contextValue}>

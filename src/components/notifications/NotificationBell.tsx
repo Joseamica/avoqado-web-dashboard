@@ -16,7 +16,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount, hasUnread } = useNotificationBadge()
   const { notifications, markAsRead, markAllAsRead, loading } = useNotifications()
   const { t } = useTranslation('notifications')
-  const { venueSlug } = useCurrentVenue()
+  // BUG #6 FIX: Use fullBasePath for white-label compatibility
+  // fullBasePath returns /venues/:slug in normal mode, /wl/:slug in white-label mode
+  // venueSlug is used to verify we're in a valid venue context
+  const { fullBasePath, venueSlug } = useCurrentVenue()
 
   const [isOpen, setIsOpen] = useState(false)
 
@@ -28,9 +31,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
       if (actionUrl.startsWith('http') || actionUrl.startsWith('/')) {
         // Absolute URL or absolute path - use as is
         window.location.href = actionUrl
+      } else if (venueSlug) {
+        // Relative path WITH valid venue context - prepend fullBasePath
+        // This works in both /venues/ and /wl/ modes
+        window.location.href = `${fullBasePath}/${actionUrl}`
       } else {
-        // Relative path - prepend venue slug
-        window.location.href = `/venues/${venueSlug}/${actionUrl}`
+        // Relative path WITHOUT venue context (e.g., in OrganizationLayout)
+        // Treat as absolute path to avoid malformed URLs like "/venues/orders"
+        window.location.href = `/${actionUrl}`
       }
     }
   }
@@ -123,16 +131,13 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
         {/* Footer */}
         <div className="p-3 border-t border-border">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full text-sm text-muted-foreground hover:text-foreground"
             onClick={() => {
               setIsOpen(false)
-              // Navigate to full notifications page - use current venue slug
-              const currentPath = window.location.pathname
-              const venueSlugMatch = currentPath.match(/\/venues\/([^/]+)/)
-              const venueSlug = venueSlugMatch ? venueSlugMatch[1] : ''
-              window.location.href = venueSlug ? `/venues/${venueSlug}/notifications` : '/notifications'
+              // Navigate to full notifications page using fullBasePath (white-label compatible)
+              window.location.href = fullBasePath ? `${fullBasePath}/notifications` : '/notifications'
             }}
           >
             {t('view_all')}
