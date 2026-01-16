@@ -80,7 +80,7 @@ export async function getSettlementConfigurations(filters?: {
   if (filters?.cardType) params.append('cardType', filters.cardType)
   if (filters?.includeExpired) params.append('includeExpired', 'true')
 
-  const response = await api.get(`/api/v1/superadmin/settlement-configurations?${params.toString()}`)
+  const response = await api.get(`/api/v1/dashboard/superadmin/settlement-configurations?${params.toString()}`)
   return response.data.data
 }
 
@@ -88,7 +88,7 @@ export async function getSettlementConfigurations(filters?: {
  * Get a single settlement configuration by ID
  */
 export async function getSettlementConfigurationById(id: string): Promise<SettlementConfiguration> {
-  const response = await api.get(`/api/v1/superadmin/settlement-configurations/${id}`)
+  const response = await api.get(`/api/v1/dashboard/superadmin/settlement-configurations/${id}`)
   return response.data.data
 }
 
@@ -99,7 +99,7 @@ export async function getActiveConfiguration(
   merchantAccountId: string,
   cardType: TransactionCardType,
 ): Promise<SettlementConfiguration | null> {
-  const response = await api.get(`/api/v1/superadmin/settlement-configurations/active/${merchantAccountId}/${cardType}`)
+  const response = await api.get(`/api/v1/dashboard/superadmin/settlement-configurations/active/${merchantAccountId}/${cardType}`)
   return response.data.data
 }
 
@@ -109,7 +109,7 @@ export async function getActiveConfiguration(
 export async function createSettlementConfiguration(
   input: CreateSettlementConfigInput,
 ): Promise<SettlementConfiguration> {
-  const response = await api.post('/api/v1/superadmin/settlement-configurations', input)
+  const response = await api.post('/api/v1/dashboard/superadmin/settlement-configurations', input)
   return response.data.data
 }
 
@@ -120,7 +120,7 @@ export async function updateSettlementConfiguration(
   id: string,
   input: UpdateSettlementConfigInput,
 ): Promise<SettlementConfiguration> {
-  const response = await api.put(`/api/v1/superadmin/settlement-configurations/${id}`, input)
+  const response = await api.put(`/api/v1/dashboard/superadmin/settlement-configurations/${id}`, input)
   return response.data.data
 }
 
@@ -128,7 +128,7 @@ export async function updateSettlementConfiguration(
  * Delete a settlement configuration
  */
 export async function deleteSettlementConfiguration(id: string): Promise<void> {
-  await api.delete(`/api/v1/superadmin/settlement-configurations/${id}`)
+  await api.delete(`/api/v1/dashboard/superadmin/settlement-configurations/${id}`)
 }
 
 /**
@@ -137,7 +137,7 @@ export async function deleteSettlementConfiguration(id: string): Promise<void> {
 export async function bulkCreateSettlementConfigurations(
   input: BulkCreateSettlementConfigInput,
 ): Promise<SettlementConfiguration[]> {
-  const response = await api.post('/api/v1/superadmin/settlement-configurations/bulk', input)
+  const response = await api.post('/api/v1/dashboard/superadmin/settlement-configurations/bulk', input)
   return response.data.data
 }
 

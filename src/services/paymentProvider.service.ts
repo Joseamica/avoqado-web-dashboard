@@ -324,6 +324,9 @@ export async function getMerchantAccountCredentials(id: string): Promise<Merchan
 
 /**
  * Create merchant account
+ *
+ * For Blumon providers: credentials are optional if blumonSerialNumber is provided.
+ * This allows creating "pending" accounts before Blumon affiliation is complete.
  */
 export async function createMerchantAccount(data: {
   providerId: string
@@ -332,8 +335,13 @@ export async function createMerchantAccount(data: {
   displayName?: string
   active?: boolean
   displayOrder?: number
-  credentials: MerchantAccountCredentials
+  // Credentials are optional for Blumon pending accounts (serial number required instead)
+  credentials?: MerchantAccountCredentials
   providerConfig?: any
+  // Blumon-specific fields (for creating pending accounts before affiliation)
+  blumonSerialNumber?: string
+  blumonEnvironment?: 'SANDBOX' | 'PRODUCTION'
+  blumonMerchantId?: string
 }): Promise<MerchantAccount> {
   const response = await api.post('/api/v1/dashboard/superadmin/merchant-accounts', data)
   return response.data.data
@@ -396,6 +404,58 @@ export async function autoFetchBlumonCredentials(data: {
   } | null
 }> {
   const response = await api.post('/api/v1/superadmin/merchant-accounts/blumon/auto-fetch', data)
+  return response.data.data
+}
+
+/**
+ * Batch auto-fetch Blumon credentials for multiple terminals
+ *
+ * This is a SEPARATE endpoint that processes multiple serials in parallel.
+ * Each serial gets its own MerchantAccount with unique OAuth/DUKPT credentials.
+ *
+ * Use case: 10 terminals shipped to Cancún, all need MerchantAccounts created at once.
+ *
+ * @param data Batch of terminals to process
+ * @returns Results for each terminal (success/failure)
+ */
+export async function batchAutoFetchBlumonCredentials(data: {
+  terminals: Array<{
+    serialNumber: string
+    brand: string
+    model: string
+  }>
+  environment?: 'SANDBOX' | 'PRODUCTION'
+  displayNamePrefix?: string
+  skipCostStructure?: boolean
+  settlementConfig?: {
+    enabled: boolean
+    dayType: 'BUSINESS_DAYS' | 'CALENDAR_DAYS'
+    cutoffTime: string
+    cutoffTimezone: string
+    debitDays: number
+    creditDays: number
+    amexDays: number
+    internationalDays: number
+    otherDays: number
+  }
+}): Promise<{
+  total: number
+  successful: number
+  failed: number
+  alreadyExisted: number
+  results: Array<{
+    serialNumber: string
+    success: boolean
+    accountId?: string
+    displayName?: string | null
+    posId?: string | null
+    terminalsAttached?: number
+    settlementConfigsCreated?: number
+    alreadyExists?: boolean
+    error?: string
+  }>
+}> {
+  const response = await api.post('/api/v1/superadmin/merchant-accounts/blumon/batch-auto-fetch', data)
   return response.data.data
 }
 
@@ -996,7 +1056,8 @@ export const paymentProviderAPI = {
   getMerchantAccount,
   getMerchantAccountCredentials,
   createMerchantAccount,
-  autoFetchBlumonCredentials, // Blumon-specific auto-fetch
+  autoFetchBlumonCredentials, // Blumon-specific auto-fetch (single terminal)
+  batchAutoFetchBlumonCredentials, // Blumon batch auto-fetch (multiple terminals)
   updateMerchantAccount,
   toggleMerchantAccountStatus,
   deleteMerchantAccount,
