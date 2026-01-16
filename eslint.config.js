@@ -108,18 +108,42 @@ export default tseslint.config(
       }],
     },
   },
-  // Override: Admin/Superadmin files get warnings instead of errors for translation keys
-  // These are Control Plane pages that may have different i18n patterns
+  // Override: Superadmin files are excluded from i18n requirements
+  // These are Control Plane pages hardcoded in Spanish (only used by internal team)
   {
     files: ['**/Admin/**', '**/Superadmin/**', '**/*superadmin*', '**/*Superadmin*'],
     plugins: {
       'local': localPlugin,
     },
     rules: {
-      'local/no-missing-translation-keys': ['warn', {
-        validateAgainstJson: false,
-        ignoredPrefixes: ['zod.', 'error.'],
-      }],
+      // Disable translation key validation - Superadmin pages are hardcoded in Spanish
+      'local/no-missing-translation-keys': 'off',
+    },
+  },
+  // Override: PlayTelecom pages are excluded from theme/i18n rules
+  // This is a separate/legacy module that doesn't follow Avoqado design system
+  {
+    files: ['**/playtelecom/**'],
+    plugins: {
+      'local': localPlugin,
+    },
+    rules: {
+      // Disable theme violation checks
+      'no-restricted-syntax': 'off',
+      // Disable translation key validation
+      'local/no-missing-translation-keys': 'off',
+    },
+  },
+  // Override: Organization pages navigate TO venues (cross-context navigation)
+  // These files are in organization context and navigate to venue context, so they can't use useCurrentVenue()
+  {
+    files: ['**/organizations/**'],
+    plugins: {
+      'local': localPlugin,
+    },
+    rules: {
+      // Allow hardcoded /venues/ paths when navigating FROM organization TO venue
+      'local/no-hardcoded-venue-paths': 'off',
     },
   },
 )
