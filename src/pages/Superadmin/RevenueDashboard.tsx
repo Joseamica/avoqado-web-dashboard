@@ -27,21 +27,6 @@ const GlassCard: React.FC<{
   </div>
 )
 
-// StatusPulse component
-const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral' }> = ({ status }) => {
-  const colors = {
-    success: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    error: 'bg-red-500',
-    neutral: 'bg-gray-400',
-  }
-  return (
-    <span className="relative flex h-3 w-3">
-      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])} />
-      <span className={cn('relative inline-flex rounded-full h-3 w-3', colors[status])} />
-    </span>
-  )
-}
 
 const RevenueDashboard: React.FC = () => {
   const [dateRange, setDateRange] = useState({
