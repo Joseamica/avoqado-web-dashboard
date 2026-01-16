@@ -11,6 +11,8 @@
   "error": "Error",
   "errorOops": "Oops!",
   "errorUnexpected": "Something unexpected happened. Please try again later.",
+  "module_not_available": "Module not available",
+  "module_not_available_desc": "This module is not enabled for your venue. Please contact support to activate it.",
   "back_to_home": "Back to Home",
   "error.notFound.title": "Page not found",
   "error.notFound.description": "The page you're looking for doesn't exist or has been moved.",

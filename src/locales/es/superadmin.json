@@ -2840,6 +2840,8 @@
       "title": "Eliminar Módulo",
       "description": "¿Estás seguro que deseas eliminar el módulo {{module}}?",
       "warningEnabled": "Este módulo está activo en {{count}} sucursales. Debes desactivarlo de todas las sucursales antes de eliminarlo.",
+      "manageVenuesHelp": "Abre la lista de sucursales para desactivar este módulo.",
+      "manageVenues": "Gestionar Sucursales",
       "confirmText": "Esta acción no se puede deshacer. El módulo será eliminado permanentemente.",
       "confirm": "Eliminar Módulo"
     },
@@ -2874,6 +2876,106 @@
       "whiteLabelSavedDesc": "La configuración del white-label dashboard se ha guardado correctamente",
       "whiteLabelSaveFailed": "Error al Guardar Dashboard"
     }
+  },
+  "organizations": {
+    "title": "Gestión de Organizaciones",
+    "subtitle": "Administra organizaciones y sus módulos habilitados",
+    "createButton": "Nueva Organización",
+    "stats": {
+      "total": "Total Organizaciones",
+      "totalDesc": "Empresas registradas",
+      "venues": "Total Sucursales",
+      "venuesDesc": "Ubicaciones activas",
+      "staff": "Total Usuarios",
+      "staffDesc": "Miembros del equipo",
+      "withModules": "Con Módulos",
+      "withModulesDesc": "Organizaciones con módulos activos"
+    },
+    "card": {
+      "venues": "sucursales",
+      "staff": "usuarios",
+      "noModules": "Sin módulos activos"
+    },
+    "fields": {
+      "name": "Nombre",
+      "namePlaceholder": "Ingresa el nombre de la organización",
+      "slug": "Slug (URL)",
+      "slugPlaceholder": "mi-organizacion",
+      "slugHelp": "Identificador único para URLs (opcional, se genera automáticamente)",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "contacto@empresa.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "+52 55 1234 5678",
+      "type": "Tipo de Negocio",
+      "typePlaceholder": "Selecciona un tipo",
+      "taxId": "RFC / ID Fiscal",
+      "taxIdPlaceholder": "XAXX010101000"
+    },
+    "businessTypes": {
+      "RESTAURANT": "Restaurante",
+      "RETAIL": "Retail / Comercio",
+      "SERVICE": "Servicios",
+      "ENTERTAINMENT": "Entretenimiento",
+      "HOSPITALITY": "Hospitalidad",
+      "HEALTHCARE": "Salud",
+      "OTHER": "Otro"
+    },
+    "actions": {
+      "edit": "Editar",
+      "manageModules": "Gestionar Módulos",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Nueva Organización",
+      "editTitle": "Editar Organización",
+      "createDescription": "Crea una nueva organización para agrupar sucursales",
+      "editDescription": "Modifica los datos de la organización",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "cancel": "Cancelar"
+    },
+    "deleteDialog": {
+      "title": "Eliminar Organización",
+      "confirmMessage": "¿Estás seguro de que deseas eliminar la organización \"{{name}}\"?",
+      "cannotDelete": "No se puede eliminar",
+      "deleteVenuesFirst": "Esta organización tiene {{count}} sucursales. Debes eliminar todas las sucursales antes de poder eliminar la organización.",
+      "confirm": "Eliminar",
+      "deleting": "Eliminando..."
+    },
+    "modules": {
+      "title": "Módulos de {{name}}",
+      "description": "Activa o desactiva módulos a nivel organizacional. Los módulos activos aquí se heredan a todas las sucursales.",
+      "enabledTitle": "Módulos Activos",
+      "disabledTitle": "Módulos Disponibles",
+      "enableFailed": "Error al activar módulo",
+      "disableFailed": "Error al desactivar módulo",
+      "noModules": "No hay módulos configurados en el sistema",
+      "enabledSince": "Activo desde {{date}}",
+      "inheritanceNote": "Los módulos activos a nivel organización se heredan automáticamente a todas las sucursales. Cada sucursal puede tener módulos adicionales activados individualmente."
+    },
+    "toast": {
+      "created": "Organización creada exitosamente",
+      "updated": "Organización actualizada exitosamente",
+      "deleted": "Organización eliminada exitosamente",
+      "createFailed": "Error al crear organización",
+      "updateFailed": "Error al actualizar organización",
+      "deleteFailed": "Error al eliminar organización",
+      "moduleEnabled": "Módulo activado exitosamente",
+      "moduleDisabled": "Módulo desactivado exitosamente"
+    },
+    "search": "Buscar organizaciones...",
+    "filter": {
+      "all": "Todas",
+      "withModules": "Con Módulos",
+      "withoutModules": "Sin Módulos"
+    },
+    "empty": {
+      "title": "Sin organizaciones",
+      "description": "No se encontraron organizaciones. Crea una para comenzar."
+    },
+    "showing": "Mostrando {{count}} de {{total}} organizaciones",
+    "loading": "Cargando organizaciones...",
+    "results": "resultados"
   },
   "whiteLabelWizard": {
     "steps": {

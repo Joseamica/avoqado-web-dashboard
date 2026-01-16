@@ -3250,6 +3250,8 @@
       "title": "Delete Module",
       "description": "Are you sure you want to delete the module {{module}}?",
       "warningEnabled": "This module is enabled for {{count}} venues. You must disable it for all venues before deleting.",
+      "manageVenuesHelp": "Open the venues list to disable this module.",
+      "manageVenues": "Manage Venues",
       "confirmText": "This action cannot be undone. The module will be permanently deleted.",
       "confirm": "Delete Module"
     },

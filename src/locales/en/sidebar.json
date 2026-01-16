@@ -41,18 +41,19 @@
   "platform": "Platform",
   "features": "Features",
   "modules": "Modules",
+  "organizations": "Organizations",
   "system": "System Status",
   "webhooks": "Webhooks",
   "playtelecom": {
     "title": "PlayTelecom",
-    "commandCenter": "Command Center",
-    "stock": "Inventory",
+    "commandCenter": "Global Overview",
+    "stock": "Stock Control",
     "sales": "Sales",
     "stores": "Stores",
     "managers": "Managers",
-    "promoters": "Promoters",
+    "promoters": "Sales Force",
     "users": "Users",
-    "tpvConfig": "TPV Config"
+    "tpvConfig": "TPV Configuration"
   },
   "reports": "Reports",
   "support": "Support",

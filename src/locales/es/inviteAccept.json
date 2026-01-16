@@ -81,5 +81,15 @@
     "accepting": "Aceptando invitación...",
     "note": "Esto agregará el equipo a tu cuenta existente",
     "successDescription": "Invitación aceptada. Redirigiendo al nuevo local..."
+  },
+  "existsInDifferentOrg": {
+    "title": "Cuenta ya registrada",
+    "description": "Este email ya está registrado en otra organización. Por favor, contacta a soporte si necesitas acceso a múltiples organizaciones."
+  },
+  "existingAccount": {
+    "title": "¡Ya tienes cuenta!",
+    "description": "Ya tienes una cuenta en esta organización. Inicia sesión para aceptar la invitación y unirte al nuevo venue.",
+    "loginMessage": "Inicia sesión para aceptar la invitación",
+    "loginButton": "Iniciar sesión y aceptar"
   }
 }

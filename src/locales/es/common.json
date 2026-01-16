@@ -11,6 +11,8 @@
   "error": "Error",
   "errorOops": "¡Ups!",
   "errorUnexpected": "Algo inesperado sucedió. Por favor intenta de nuevo más tarde.",
+  "module_not_available": "Módulo no disponible",
+  "module_not_available_desc": "Este módulo no está habilitado para tu local. Por favor contacta a soporte para activarlo.",
   "back_to_home": "Volver al inicio",
   "error.notFound.title": "Página no encontrada",
   "error.notFound.description": "La página que buscas no existe o ha sido movida.",

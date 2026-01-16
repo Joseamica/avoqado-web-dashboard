@@ -79,6 +79,17 @@
     "alreadyLoggedIn": "You're already logged in as",
     "description": "Since you're already logged in with the invited email, you can accept this invitation directly without creating a new account.",
     "accepting": "Accepting invitation...",
-    "note": "This will add the team to your existing account"
+    "note": "This will add the team to your existing account",
+    "successDescription": "Invitation accepted. Redirecting to new venue..."
+  },
+  "existsInDifferentOrg": {
+    "title": "Account Already Registered",
+    "description": "This email is already registered in another organization. Please contact support if you need access to multiple organizations."
+  },
+  "existingAccount": {
+    "title": "You Already Have an Account!",
+    "description": "You already have an account in this organization. Log in to accept the invitation and join the new venue.",
+    "loginMessage": "Log in to accept the invitation",
+    "loginButton": "Log in and accept"
   }
 }

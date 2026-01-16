@@ -22,7 +22,9 @@
   "status": {
     "online": "En línea",
     "offline": "Fuera de línea",
-    "retired": "Retirado"
+    "retired": "Retirado",
+    "preregistered": "Pre-registrada",
+    "pendingActivation": "Pendiente"
   },
   "assigned": "asignados",
   "never": "Nunca",
@@ -41,7 +43,10 @@
     "codeFailed": "Error al generar código",
     "copied": "¡Copiado!",
     "copiedDesc": "Código de activación copiado al portapapeles",
-    "codeGenerated": "Código de Activación Generado"
+    "codeGenerated": "Código de Activación Generado",
+    "remoteActivateSent": "Comando de Activación Enviado",
+    "remoteActivateSentDesc": "La terminal se activará cuando reciba el comando",
+    "remoteActivateFailed": "Error al enviar activación remota"
   },
   "activationCode": {
     "title": "Código de Activación",
@@ -51,7 +56,13 @@
     "copyCode": "Copiar Código"
   },
   "confirm": {
-    "delete": "¿Estás seguro de que deseas eliminar esta terminal?"
+    "delete": "¿Estás seguro de que deseas eliminar esta terminal?",
+    "remoteActivate": "¿Activar remotamente esta terminal? La terminal debe estar encendida y conectada para recibir el comando."
+  },
+  "remoteActivate": {
+    "button": "Activar Remotamente",
+    "tooltip": "Enviar comando de activación (sin código)",
+    "tooltipDisabled": "La terminal debe estar encendida y haber enviado al menos un heartbeat"
   },
   "dialog": {
     "createTitle": "Crear Nueva Terminal",

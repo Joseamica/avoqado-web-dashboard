@@ -64,6 +64,9 @@ interface InvitationDetails {
   status: string
   firstName?: string | null
   lastName?: string | null
+  // Multi-venue support fields
+  userAlreadyHasPassword?: boolean // If true, skip password form (user already has account)
+  existsInDifferentOrg?: boolean // If true, show "contact support" message
 }
 
 export default function InviteAccept() {
@@ -395,6 +398,82 @@ export default function InviteAccept() {
           <CardContent>
             <Button onClick={() => navigate('/login')} className="w-full">
               {t('goToLogin')}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // User exists in a different organization - they need to contact support
+  if (invitationDetails.existsInDifferentOrg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+              <AlertCircle className="h-6 w-6 text-amber-600" />
+            </div>
+            <CardTitle>{t('existsInDifferentOrg.title', 'Cuenta ya registrada')}</CardTitle>
+            <CardDescription>
+              {t('existsInDifferentOrg.description', 'Este email ya está registrado en otra organización. Por favor, contacta a soporte si necesitas acceso a múltiples organizaciones.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {t('emailLabel')}: <strong>{invitationDetails.email}</strong>
+              </AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate('/login')} className="w-full">
+              {t('goToLogin')}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // User already has an account in the same organization - prompt to login first
+  // This is a better UX than asking them to create a new password
+  if (invitationDetails.userAlreadyHasPassword && !sessionStatus.hasSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <CheckCircle className="h-6 w-6 text-blue-600" />
+            </div>
+            <CardTitle>{t('existingAccount.title', '¡Ya tienes cuenta!')}</CardTitle>
+            <CardDescription>
+              {t('existingAccount.description', 'Ya tienes una cuenta en esta organización. Inicia sesión para aceptar la invitación y unirte al nuevo venue.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="bg-blue-50 border-blue-200">
+              <CheckCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription>
+                {t('invitedTo')} <strong>{invitationDetails.organizationName}</strong>
+                {invitationDetails.venueName && (
+                  <>
+                    {' '}{t('at')} <strong>{invitationDetails.venueName}</strong>
+                  </>
+                )}{' '}
+                {t('as')} <strong>{invitationDetails.roleDisplayName || invitationDetails.role}</strong>
+              </AlertDescription>
+            </Alert>
+            <Button
+              onClick={() => navigate('/login', {
+                state: {
+                  email: invitationDetails.email,
+                  returnTo: window.location.pathname,
+                  message: t('existingAccount.loginMessage', 'Inicia sesión para aceptar la invitación')
+                }
+              })}
+              className="w-full"
+            >
+              {t('existingAccount.loginButton', 'Iniciar sesión y aceptar')}
             </Button>
           </CardContent>
         </Card>

@@ -2893,10 +2893,14 @@
     },
     "deleteDialog": {
       "title": "Supprimer Module",
-      "description": "Êtes-vous sûr de vouloir supprimer le module {{name}} ? Cette action ne peut pas être annulée.",
+      "description": "Êtes-vous sûr de vouloir supprimer le module {{module}} ?",
+      "warningEnabled": "Ce module est activé pour {{count}} établissements. Vous devez le désactiver pour tous les établissements avant de le supprimer.",
+      "manageVenuesHelp": "Ouvrez la liste des établissements pour désactiver ce module.",
+      "manageVenues": "Gérer les établissements",
       "cannotDelete": "Impossible de supprimer un module actuellement activé sur des établissements. Désactivez d'abord le module sur tous les établissements.",
       "cancel": "Annuler",
       "deleting": "Suppression...",
+      "confirmText": "Cette action est irréversible. Le module sera définitivement supprimé.",
       "confirm": "Supprimer Module"
     },
     "form": {
