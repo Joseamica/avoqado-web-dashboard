@@ -95,8 +95,8 @@ export default function MasterTotpSetup() {
               <Skeleton className="w-[200px] h-[200px]" />
             ) : totpData ? (
               <>
-                <div className="p-4 bg-white rounded-xl">
-                  <QRCodeSVG value={totpData.uri} size={200} level="M" bgColor="#ffffff" fgColor="#000000" />
+                <div className="p-4 bg-background rounded-xl border border-border">
+                  <QRCodeSVG value={totpData.uri} size={200} level="M" />
                 </div>
                 <Button variant="outline" size="sm" className="gap-2" onClick={handleCopyUri}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
