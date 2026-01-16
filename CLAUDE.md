@@ -236,7 +236,9 @@ avoqado-tpv/docs/              ← Android-specific ONLY
 
 ### 1. Internationalization (i18n)
 
-**ALL user-facing text MUST use `t('...')` - ZERO exceptions.**
+**ALL user-facing text MUST use `t('...')` - EXCEPT Superadmin screens.**
+
+**Superadmin exception:** In `src/pages/Superadmin/**`, do NOT use i18n. Keep text hardcoded (Spanish) and do not add translations for superadmin UI.
 
 ```typescript
 // ❌ WRONG
@@ -251,6 +253,7 @@ const { t } = useTranslation()
 - Add translations for BOTH `en` and `es` (and `fr` if applicable)
 - Use interpolation: `t('greeting', { name })`
 - No hardcoded strings in JSX
+ - Superadmin UI is the only exception (see note above)
 
 **See:** [Complete i18n guide](docs/features/i18n.md)
 
