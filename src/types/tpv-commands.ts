@@ -16,6 +16,7 @@ export enum TpvCommandType {
   MAINTENANCE_MODE = 'MAINTENANCE_MODE',
   EXIT_MAINTENANCE = 'EXIT_MAINTENANCE',
   REACTIVATE = 'REACTIVATE',
+  REMOTE_ACTIVATE = 'REMOTE_ACTIVATE', // SUPERADMIN: Remote activation for pre-registered terminals
 
   // App Lifecycle Commands
   RESTART = 'RESTART',
@@ -237,6 +238,16 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     isDangerous: false,
     defaultPriority: TpvCommandPriority.NORMAL,
     hasPayload: false,
+  },
+  [TpvCommandType.REMOTE_ACTIVATE]: {
+    type: TpvCommandType.REMOTE_ACTIVATE,
+    category: 'device_state',
+    icon: 'Zap',
+    requiresOnline: true, // Terminal must have sent at least one heartbeat
+    requiresConfirmation: true,
+    isDangerous: false,
+    defaultPriority: TpvCommandPriority.HIGH,
+    hasPayload: true, // Contains venue info for activation
   },
 
   // App Lifecycle Commands

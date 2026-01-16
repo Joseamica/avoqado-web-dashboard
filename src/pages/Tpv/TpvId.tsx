@@ -207,6 +207,8 @@ export default function TpvId() {
     expiresIn: number
     serialNumber: string
     venueName: string
+    venueId?: string
+    terminalId?: string
   } | null>(null)
 
   const tpvFormSchema = z.object({
@@ -492,6 +494,8 @@ export default function TpvId() {
         expiresIn: data.expiresIn,
         serialNumber: tpv?.serialNumber || '',
         venueName: data.venueName || '',
+        venueId: venueId,
+        terminalId: tpvId,
       })
       setActivationDialogOpen(true)
       toast({
@@ -1476,6 +1480,8 @@ export default function TpvId() {
                   isOnline={terminalOnline}
                   isLocked={tpv?.isLocked ?? false}
                   isInMaintenance={isInMaintenance}
+                  isActivated={!!tpv?.activatedAt}
+                  isSuperadmin={isSuperAdmin}
                   venueId={venueId!}
                 />
                 <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />

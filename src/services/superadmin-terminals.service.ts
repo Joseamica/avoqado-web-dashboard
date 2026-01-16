@@ -155,6 +155,32 @@ export async function deleteTerminal(terminalId: string): Promise<void> {
 }
 
 /**
+ * Send remote activation command to a pre-registered terminal
+ *
+ * The terminal must:
+ * - Not be already activated (no activatedAt)
+ * - Have a serialNumber
+ * - Have sent at least one heartbeat (proof of physical device)
+ *
+ * @param terminalId Terminal ID
+ * @returns Command queue result with terminal info
+ */
+export async function sendRemoteActivation(terminalId: string): Promise<{
+  commandId: string
+  correlationId: string
+  status: string
+  terminal: {
+    id: string
+    name: string
+    serialNumber: string
+    venue: { id: string; name: string; slug: string }
+  }
+}> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/terminals/${terminalId}/remote-activate`)
+  return response.data.data
+}
+
+/**
  * Check if terminal is online based on last heartbeat
  *
  * @param lastHeartbeat Last heartbeat timestamp
@@ -182,5 +208,6 @@ export const terminalAPI = {
   updateTerminal,
   generateActivationCode,
   deleteTerminal,
+  sendRemoteActivation,
   isTerminalOnline,
 }

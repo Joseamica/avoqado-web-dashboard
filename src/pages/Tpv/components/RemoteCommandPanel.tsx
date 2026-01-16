@@ -18,6 +18,7 @@ import {
   Trash2,
   Unlock,
   Wrench,
+  Zap,
 } from 'lucide-react'
 
 import { useSocket } from '@/context/SocketContext'
@@ -43,6 +44,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast'
 import { PermissionGate } from '@/components/PermissionGate'
 import { sendTpvCommand } from '@/services/tpv.service'
+import { terminalAPI } from '@/services/superadmin-terminals.service'
 import {
   COMMAND_DEFINITIONS,
   TpvCommandPayload,
@@ -68,6 +70,7 @@ const ICON_MAP = {
   Menu,
   CreditCard,
   Loader2,
+  Zap,
 }
 
 // Commands that require waiting for heartbeat after execution (terminal state changes)
@@ -94,6 +97,8 @@ interface RemoteCommandPanelProps {
   isOnline: boolean
   isLocked?: boolean
   isInMaintenance?: boolean
+  isActivated?: boolean // true if terminal has activatedAt set
+  isSuperadmin?: boolean // true if current user is SUPERADMIN
   venueId: string
 }
 
@@ -109,6 +114,8 @@ export function RemoteCommandPanel({
   isOnline,
   isLocked = false,
   isInMaintenance = false,
+  isActivated = true,
+  isSuperadmin = false,
   venueId,
 }: RemoteCommandPanelProps) {
   const { t } = useTranslation(['tpv', 'common'])
@@ -184,6 +191,30 @@ export function RemoteCommandPanel({
     open: boolean
     reason: string
   }>({ open: false, reason: '' })
+
+  // State for remote activate dialog (SUPERADMIN only)
+  const [remoteActivateDialog, setRemoteActivateDialog] = useState<{ open: boolean }>({ open: false })
+
+  // Remote Activate mutation (SUPERADMIN only - uses dedicated endpoint)
+  const remoteActivateMutation = useMutation({
+    mutationFn: () => terminalAPI.sendRemoteActivation(terminalId),
+    onSuccess: () => {
+      toast({
+        title: t('commands.remoteActivateSent'),
+        description: t('commands.remoteActivateSentDesc'),
+      })
+      // Invalidate TPV data to refresh activation status
+      queryClient.invalidateQueries({ queryKey: ['tpv', venueId, terminalId] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-terminal', terminalId] })
+    },
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+      toast({
+        title: t('commands.error'),
+        description: error.response?.data?.message || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
 
   // Command mutation with pending state tracking
   const commandMutation = useMutation({
@@ -683,6 +714,45 @@ export function RemoteCommandPanel({
                   </TooltipProvider>
                 )
               })()}
+
+              {/* Remote Activate Button - SUPERADMIN only, for pre-registered terminals */}
+              {isSuperadmin && !isActivated && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start p-3 h-auto ${
+                          isOnline
+                            ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 dark:text-amber-400'
+                            : 'border-border bg-muted/50 text-muted-foreground'
+                        }`}
+                        onClick={() => setRemoteActivateDialog({ open: true })}
+                        disabled={!isOnline || remoteActivateMutation.isPending}
+                      >
+                        <div className="flex items-center space-x-3 w-full">
+                          {remoteActivateMutation.isPending ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Zap className="w-5 h-5" />
+                          )}
+                          <div className="text-left">
+                            <p className="text-sm font-medium">
+                              {remoteActivateMutation.isPending ? t('commands.sending') : t('commands.remoteActivate')}
+                            </p>
+                            <p className="text-xs opacity-80">
+                              {isOnline ? t('commands.remoteActivateDesc') : t('commands.remoteActivateRequiresOnline')}
+                            </p>
+                          </div>
+                        </div>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isOnline ? t('commands.remoteActivateTooltip') : t('commands.remoteActivateRequiresOnline')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
 
@@ -843,6 +913,34 @@ export function RemoteCommandPanel({
             >
               <Wrench className="h-4 w-4 mr-2" />
               {t('commands.enterMaintenanceNow')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remote Activate Confirmation Dialog - SUPERADMIN only */}
+      <AlertDialog open={remoteActivateDialog.open} onOpenChange={(open) => setRemoteActivateDialog({ open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-600" />
+              {t('commands.remoteActivateConfirmTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('commands.remoteActivateConfirmDesc', { terminal: terminalName || terminalId })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                remoteActivateMutation.mutate()
+                setRemoteActivateDialog({ open: false })
+              }}
+              className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 text-primary-foreground"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              {t('commands.remoteActivateNow')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
