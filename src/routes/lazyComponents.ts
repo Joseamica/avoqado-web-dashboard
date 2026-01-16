@@ -89,6 +89,7 @@ export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
 export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment'
 export { default as ModuleManagement } from '@/pages/Superadmin/ModuleManagement'
 export { default as OrganizationManagement } from '@/pages/Superadmin/OrganizationManagement'
+export { default as MasterTotpSetup } from '@/pages/Superadmin/MasterTotpSetup'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))

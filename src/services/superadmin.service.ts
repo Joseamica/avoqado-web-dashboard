@@ -294,6 +294,26 @@ export async function approveKYC(venueId: string): Promise<void> {
   await api.post(`/api/v1/superadmin/kyc/${venueId}/approve`)
 }
 
+// ===== MASTER TOTP SETUP =====
+
+export interface MasterTotpSetup {
+  uri: string
+  issuer: string
+  label: string
+  digits: number
+  period: number
+  algorithm: string
+}
+
+/**
+ * Get Master TOTP setup data for Google Authenticator QR code
+ * Used by superadmins to configure emergency access to any TPV terminal
+ */
+export async function getMasterTotpSetup(): Promise<MasterTotpSetup> {
+  const response = await api.get('/api/v1/dashboard/superadmin/master-totp/setup')
+  return response.data.data
+}
+
 /**
  * Reject KYC for a venue
  */
@@ -687,5 +707,9 @@ export const superadminAPI = {
   },
   updateVenueModuleConfig: async (venueId: string, moduleCode: string, config: Record<string, any>): Promise<void> => {
     await updateVenueModuleConfig(venueId, moduleCode, config)
+  },
+  // Master TOTP Setup
+  getMasterTotpSetup: async (): Promise<MasterTotpSetup> => {
+    return await getMasterTotpSetup()
   },
 }

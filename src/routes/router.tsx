@@ -21,6 +21,7 @@ import {
   InviteAccept,
   KYCReview,
   Login,
+  MasterTotpSetup,
   MerchantAccounts,
   ModuleManagement,
   OrganizationManagement,
@@ -348,6 +349,10 @@ const router = createBrowserRouter(
                     {
                       path: 'organizations',
                       element: <OrganizationManagement />,
+                    },
+                    {
+                      path: 'master-totp',
+                      element: <MasterTotpSetup />,
                     },
                   ],
                 },

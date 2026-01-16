@@ -635,7 +635,10 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setCurrentStep((prev) => (prev - 1) as Step)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setCurrentStep((prev) => (prev - 1) as Step)
+                  }}
                   disabled={loading}
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
@@ -655,7 +658,10 @@ export const VenuePricingStructureDialog: React.FC<VenuePricingStructureDialogPr
               {currentStep < 3 ? (
                 <Button
                   type="button"
-                  onClick={() => setCurrentStep((prev) => (prev + 1) as Step)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setCurrentStep((prev) => (prev + 1) as Step)
+                  }}
                   disabled={
                     (currentStep === 1 && !canProceedToStep2) ||
                     (currentStep === 2 && !canProceedToStep3)

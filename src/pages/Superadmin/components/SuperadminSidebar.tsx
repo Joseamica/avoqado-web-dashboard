@@ -25,6 +25,7 @@ import {
   Banknote,
   Boxes,
   Landmark,
+  KeyRound,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -73,7 +74,10 @@ const SuperadminSidebar: React.FC = () => {
     },
     {
       title: tSidebar('admin'),
-      items: [{ name: tSidebar('config'), href: '/superadmin/settings', icon: Settings }],
+      items: [
+        { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings },
+        { name: 'Master TOTP', href: '/superadmin/master-totp', icon: KeyRound },
+      ],
     },
   ]
 
