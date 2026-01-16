@@ -18,7 +18,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { useAuth } from '@/context/AuthContext'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
 
 // Map route paths to translation keys
 const ROUTE_TITLE_MAP: Record<string, string> = {
@@ -35,7 +35,7 @@ const ROUTE_TITLE_MAP: Record<string, string> = {
 export default function PlayTelecomLayout() {
   const { t } = useTranslation(['playtelecom', 'sidebar'])
   const location = useLocation()
-  const { activeVenue } = useAuth()
+  const { venue, fullBasePath } = useCurrentVenue()
 
   // Parse current path to determine breadcrumb
   const currentSection = useMemo(() => {
@@ -59,13 +59,13 @@ export default function PlayTelecomLayout() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/venues/${activeVenue?.slug}/home`}>
-                  {activeVenue?.name || 'Venue'}
+                <BreadcrumbLink href={`${fullBasePath}/home`}>
+                  {venue?.name || 'Venue'}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/venues/${activeVenue?.slug}/playtelecom`}>
+                <BreadcrumbLink href={`${fullBasePath}/playtelecom`}>
                   {t('sidebar:playtelecom.title', { defaultValue: 'PlayTelecom' })}
                 </BreadcrumbLink>
               </BreadcrumbItem>

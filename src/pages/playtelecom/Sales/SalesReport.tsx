@@ -1,24 +1,76 @@
 /**
- * SalesReport - Serialized Sales Transactions
+ * SalesReport - Sales Dashboard with charts and breakdowns
  *
- * Displays:
- * - Date range filters
- * - Sales by seller/store
- * - Transaction history with serial numbers
- * - Export functionality
+ * Layout:
+ * - Header with period selector and export
+ * - Summary metrics row
+ * - Charts row: By Period, By Category, By Channel
+ * - Detailed transactions table
  *
- * Based on mockup: transacciones.html
+ * Based on mockup: ventas.html
  */
 
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Receipt, Download, Calendar, DollarSign, TrendingUp, Package } from 'lucide-react'
-import { useMemo } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Receipt,
+  Download,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Package,
+  Hash,
+  ChevronDown,
+} from 'lucide-react'
+import {
+  SalesByPeriodChart,
+  SalesByCategoryChart,
+  SalesByChannelChart,
+} from './components'
 
-// Placeholder data - will be replaced with real API calls
+// Period options
+type Period = 'today' | 'yesterday' | 'week' | 'month' | 'custom'
+
+// Mock period data
+const MOCK_PERIOD_DATA = [
+  { period: 'Lun', sales: 18500, units: 52 },
+  { period: 'Mar', sales: 22000, units: 61 },
+  { period: 'Mié', sales: 19800, units: 55 },
+  { period: 'Jue', sales: 25400, units: 70 },
+  { period: 'Vie', sales: 31200, units: 85 },
+  { period: 'Sáb', sales: 28500, units: 78 },
+  { period: 'Dom', sales: 15600, units: 43 },
+]
+
+// Mock category data
+const MOCK_CATEGORY_DATA = [
+  { name: 'Chip Telcel Negra', value: 45000, units: 300, color: '#22c55e' },
+  { name: 'Chip Telcel Blanca', value: 32000, units: 267, color: '#3b82f6' },
+  { name: 'Chip Telcel Roja', value: 28500, units: 158, color: '#ef4444' },
+  { name: 'Recarga Telcel', value: 18000, units: 90, color: '#f59e0b' },
+  { name: 'Otros', value: 8500, units: 42, color: '#8b5cf6' },
+]
+
+// Mock channel data
+const MOCK_CHANNEL_DATA = [
+  { name: 'Efectivo', value: 65000, transactions: 420 },
+  { name: 'Tarjeta', value: 38000, transactions: 180 },
+  { name: 'Transferencia', value: 22000, transactions: 95 },
+  { name: 'Deposito', value: 7000, transactions: 28 },
+]
+
+// Mock sales transactions
 const MOCK_SALES = [
   {
     id: '1',
@@ -60,18 +112,41 @@ const MOCK_SALES = [
     soldAt: '2024-01-15T14:00:00Z',
     paymentMethod: 'Transferencia',
   },
+  {
+    id: '5',
+    serial: '8952140063000008901',
+    category: 'Chip Telcel Negra',
+    price: 150.00,
+    seller: 'Roberto Sánchez',
+    store: 'Plaza Centro',
+    soldAt: '2024-01-15T15:30:00Z',
+    paymentMethod: 'Tarjeta',
+  },
+  {
+    id: '6',
+    serial: '8952140063000008902',
+    category: 'Chip Telcel Blanca',
+    price: 120.00,
+    seller: 'Laura Hernández',
+    store: 'Sucursal Norte',
+    soldAt: '2024-01-15T16:00:00Z',
+    paymentMethod: 'Efectivo',
+  },
 ]
 
+// Mock summary
 const MOCK_SUMMARY = {
-  totalSales: 12450.00,
-  totalUnits: 35,
-  avgTicket: 355.71,
-  topCategory: 'Chip Telcel Negra',
+  totalSales: 132000,
+  totalUnits: 857,
+  avgTicket: 154.02,
+  transactions: 723,
+  trend: 12.5,
 }
 
 export function SalesReport() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('week')
 
   // Format currency
   const formatCurrency = useMemo(
@@ -80,7 +155,7 @@ export function SalesReport() {
         new Intl.NumberFormat('es-MX', {
           style: 'currency',
           currency: activeVenue?.currency || 'MXN',
-          minimumFractionDigits: 2,
+          minimumFractionDigits: 0,
         }).format(value),
     [activeVenue?.currency]
   )
@@ -95,15 +170,41 @@ export function SalesReport() {
 
   return (
     <div className="space-y-6">
-      {/* Filters Bar */}
+      {/* Header with Period Selector */}
       <GlassCard className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Calendar className="w-4 h-4" />
-              {t('playtelecom:sales.dateRange', { defaultValue: 'Rango de fechas' })}
-            </Button>
-            {/* Placeholder for filters - will implement FilterPill later */}
+            <Select
+              value={selectedPeriod}
+              onValueChange={value => setSelectedPeriod(value as Period)}
+            >
+              <SelectTrigger className="w-40">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">
+                  {t('playtelecom:sales.today', { defaultValue: 'Hoy' })}
+                </SelectItem>
+                <SelectItem value="yesterday">
+                  {t('playtelecom:sales.yesterday', { defaultValue: 'Ayer' })}
+                </SelectItem>
+                <SelectItem value="week">
+                  {t('playtelecom:sales.thisWeek', { defaultValue: 'Esta Semana' })}
+                </SelectItem>
+                <SelectItem value="month">
+                  {t('playtelecom:sales.thisMonth', { defaultValue: 'Este Mes' })}
+                </SelectItem>
+                <SelectItem value="custom">
+                  {t('playtelecom:sales.custom', { defaultValue: 'Personalizado' })}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Badge variant="secondary" className="gap-1">
+              <Hash className="w-3 h-3" />
+              {MOCK_SUMMARY.transactions} {t('playtelecom:sales.transactions', { defaultValue: 'transacciones' })}
+            </Badge>
           </div>
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="w-4 h-4" />
@@ -112,7 +213,7 @@ export function SalesReport() {
         </div>
       </GlassCard>
 
-      {/* Summary Cards */}
+      {/* Summary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <GlassCard className="p-4">
           <div className="flex items-center gap-3">
@@ -123,7 +224,15 @@ export function SalesReport() {
               <p className="text-sm text-muted-foreground">
                 {t('playtelecom:sales.totalSales', { defaultValue: 'Ventas Totales' })}
               </p>
-              <p className="text-xl font-semibold">{formatCurrency(MOCK_SUMMARY.totalSales)}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-semibold">{formatCurrency(MOCK_SUMMARY.totalSales)}</p>
+                {MOCK_SUMMARY.trend > 0 && (
+                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
+                    <TrendingUp className="w-3 h-3 mr-0.5" />
+                    +{MOCK_SUMMARY.trend}%
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </GlassCard>
@@ -137,7 +246,7 @@ export function SalesReport() {
               <p className="text-sm text-muted-foreground">
                 {t('playtelecom:sales.unitsSold', { defaultValue: 'Unidades Vendidas' })}
               </p>
-              <p className="text-xl font-semibold">{MOCK_SUMMARY.totalUnits}</p>
+              <p className="text-xl font-semibold">{MOCK_SUMMARY.totalUnits.toLocaleString()}</p>
             </div>
           </div>
         </GlassCard>
@@ -163,19 +272,36 @@ export function SalesReport() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                {t('playtelecom:sales.topCategory', { defaultValue: 'Top Categoría' })}
+                {t('playtelecom:sales.transactionCount', { defaultValue: 'Transacciones' })}
               </p>
-              <p className="text-xl font-semibold truncate">{MOCK_SUMMARY.topCategory}</p>
+              <p className="text-xl font-semibold">{MOCK_SUMMARY.transactions}</p>
             </div>
           </div>
         </GlassCard>
       </div>
 
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <SalesByPeriodChart
+          data={MOCK_PERIOD_DATA}
+          periodType={selectedPeriod === 'month' ? 'month' : selectedPeriod === 'week' ? 'day' : 'day'}
+          trend={MOCK_SUMMARY.trend}
+        />
+        <SalesByCategoryChart data={MOCK_CATEGORY_DATA} />
+        <SalesByChannelChart data={MOCK_CHANNEL_DATA} />
+      </div>
+
       {/* Sales Table */}
       <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:sales.transactions', { defaultValue: 'Transacciones' })}
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">
+            {t('playtelecom:sales.recentTransactions', { defaultValue: 'Transacciones Recientes' })}
+          </h3>
+          <Button variant="ghost" size="sm" className="gap-1">
+            {t('common:viewAll', { defaultValue: 'Ver todas' })}
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -208,7 +334,9 @@ export function SalesReport() {
                 <tr key={sale.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-2 text-sm">{formatDate(sale.soldAt)}</td>
                   <td className="py-3 px-2">
-                    <code className="text-xs bg-muted/50 px-2 py-1 rounded">{sale.serial.slice(-8)}</code>
+                    <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">
+                      {sale.serial.slice(-8)}
+                    </code>
                   </td>
                   <td className="py-3 px-2 text-sm">{sale.category}</td>
                   <td className="py-3 px-2 text-sm">{sale.seller}</td>

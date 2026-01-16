@@ -3,7 +3,10 @@
  *
  * Displays:
  * - Summary cards by category (Chip Negra, Blanca, Roja, Recargas)
+ * - Stock vs Sales chart with coverage estimation
+ * - Low stock alerts with action buttons
  * - Filterable table of serialized items with serial numbers
+ * - Bulk CSV upload for inventory
  * - Status indicators (available, sold, assigned)
  * - Batch management
  *
@@ -11,27 +14,39 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/context/AuthContext'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { GlassCard } from '@/components/ui/glass-card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Package, Box, CheckCircle2 } from 'lucide-react'
 import { useMemo } from 'react'
+import { StockVsSalesChart, LowStockAlerts, BulkUploadSection } from './components'
+import { useCurrentVenue } from '@/hooks/use-current-venue'
+import {
+  getStockMetrics,
+  getCategoryStock,
+  getStockMovements,
+  processBulkUpload,
+  type StockMovement,
+} from '@/services/stockDashboard.service'
 
-// Placeholder data - will be replaced with real API calls
-const MOCK_CATEGORIES = [
-  { id: '1', name: 'Chip Telcel Negra', available: 120, sold: 45, total: 165 },
-  { id: '2', name: 'Chip Telcel Blanca', available: 85, sold: 38, total: 123 },
-  { id: '3', name: 'Chip Telcel Roja', available: 67, sold: 28, total: 95 },
-  { id: '4', name: 'Recarga Telcel', available: 200, sold: 16, total: 216 },
-]
+// Map API status to UI status
+type UIStatus = 'available' | 'sold' | 'assigned'
 
-const MOCK_ITEMS = [
-  { id: '1', serial: '8952140063000001234', category: 'Chip Telcel Negra', status: 'available', assignedTo: null, batchId: 'BATCH-001' },
-  { id: '2', serial: '8952140063000001235', category: 'Chip Telcel Negra', status: 'sold', assignedTo: 'Juan Pérez', batchId: 'BATCH-001' },
-  { id: '3', serial: '8952140063000005678', category: 'Chip Telcel Blanca', status: 'assigned', assignedTo: 'María García', batchId: 'BATCH-002' },
-  { id: '4', serial: '8952140063000005679', category: 'Chip Telcel Blanca', status: 'available', assignedTo: null, batchId: 'BATCH-002' },
-  { id: '5', serial: '8952140063000009012', category: 'Chip Telcel Roja', status: 'available', assignedTo: null, batchId: 'BATCH-003' },
-]
+const mapMovementTypeToStatus = (type: StockMovement['type']): UIStatus => {
+  switch (type) {
+    case 'SOLD':
+      return 'sold'
+    case 'REGISTERED':
+      return 'available'
+    case 'RETURNED':
+      return 'available'
+    case 'DAMAGED':
+      return 'sold' // Consider damaged as not available
+    default:
+      return 'available'
+  }
+}
 
 const STATUS_CONFIG = {
   available: { label: 'Disponible', variant: 'default' as const, className: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle2 },
@@ -41,47 +56,133 @@ const STATUS_CONFIG = {
 
 export function StockControl() {
   const { t } = useTranslation(['playtelecom', 'common'])
-  const { activeVenue } = useAuth()
+  const { venueId, venue } = useCurrentVenue()
+  const queryClient = useQueryClient()
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    return MOCK_CATEGORIES.reduce(
-      (acc, cat) => ({
-        available: acc.available + cat.available,
-        sold: acc.sold + cat.sold,
-        total: acc.total + cat.total,
-      }),
-      { available: 0, sold: 0, total: 0 }
+  // Fetch stock metrics
+  const { data: metricsData, isLoading: isLoadingMetrics } = useQuery({
+    queryKey: ['stock', 'metrics', venueId],
+    queryFn: () => getStockMetrics(venueId!),
+    enabled: !!venueId,
+  })
+
+  // Fetch category stock
+  const { data: categoryData, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['stock', 'categories', venueId],
+    queryFn: () => getCategoryStock(venueId!),
+    enabled: !!venueId,
+  })
+
+  // Fetch recent movements for the table
+  const { data: movementsData, isLoading: isLoadingMovements } = useQuery({
+    queryKey: ['stock', 'movements', venueId],
+    queryFn: () => getStockMovements(venueId!, { limit: 20 }),
+    enabled: !!venueId,
+  })
+
+  const isLoading = isLoadingMetrics || isLoadingCategories || isLoadingMovements
+  const categories = categoryData?.categories || []
+  const movements = movementsData?.movements || []
+
+  // Calculate totals from metrics
+  const totals = useMemo(() => ({
+    available: metricsData?.availablePieces || 0,
+    sold: metricsData?.soldToday || 0,
+    total: metricsData?.totalPieces || 0,
+  }), [metricsData])
+
+  // Bulk upload mutation
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const csvContent = await file.text()
+      // Get first category as default (in real implementation, user would select)
+      const categoryId = categories[0]?.id || ''
+      return processBulkUpload(venueId!, { categoryId, csvContent })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock', venueId] })
+    },
+  })
+
+  // Handle stock request from low stock alerts
+  const handleRequestStock = (productId: string) => {
+    console.log('Requesting stock for product:', productId)
+    // TODO: Implement stock request API
+  }
+
+  // Handle bulk upload
+  const handleUpload = async (file: File) => {
+    const result = await bulkUploadMutation.mutateAsync(file)
+    return {
+      total: result.created + result.duplicates.length + result.errors.length,
+      success: result.created,
+      errors: result.errors.length,
+      errorDetails: result.errors.map((err, idx) => ({ row: idx + 1, error: err })),
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-20 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-xl" />
+        </div>
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     )
-  }, [])
+  }
 
   return (
     <div className="space-y-6">
       {/* Category Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {MOCK_CATEGORIES.map(category => (
-          <GlassCard key={category.id} className="p-4" hover>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-sm">{category.name}</h3>
-              <Package className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t('playtelecom:stock.available', { defaultValue: 'Disponible' })}</span>
-                <span className="font-semibold text-green-600 dark:text-green-400">{category.available}</span>
+        {categories.length > 0 ? (
+          categories.slice(0, 4).map(category => (
+            <GlassCard key={category.id} className="p-4" hover>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">{category.name}</h3>
+                <Package className="w-4 h-4 text-muted-foreground" />
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t('playtelecom:stock.sold', { defaultValue: 'Vendidos' })}</span>
-                <span className="font-medium">{category.sold}</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('playtelecom:stock.available', { defaultValue: 'Disponible' })}</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">{category.available}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('playtelecom:stock.sold7d', { defaultValue: 'Vendidos 7d' })}</span>
+                  <span className="font-medium">{category.sold7d}</span>
+                </div>
+                <div className="h-px bg-border/50" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('playtelecom:stock.coverage', { defaultValue: 'Cobertura' })}</span>
+                  <span className={`font-bold ${
+                    (category.coverage || 0) < 7
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-green-600 dark:text-green-400'
+                  }`}>
+                    {category.coverage !== null ? `${category.coverage} días` : '-'}
+                  </span>
+                </div>
               </div>
-              <div className="h-px bg-border/50" />
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{t('playtelecom:stock.total', { defaultValue: 'Total' })}</span>
-                <span className="font-bold">{category.total}</span>
-              </div>
-            </div>
+            </GlassCard>
+          ))
+        ) : (
+          <GlassCard className="col-span-full p-8 text-center">
+            <Package className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">
+              {t('playtelecom:stock.noCategories', { defaultValue: 'No hay categorías de stock configuradas' })}
+            </p>
           </GlassCard>
-        ))}
+        )}
       </div>
 
       {/* Summary Bar */}
@@ -101,7 +202,7 @@ export function StockControl() {
               <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">{t('playtelecom:stock.totalSold', { defaultValue: 'Total Vendido' })}</p>
+              <p className="text-xs text-muted-foreground">{t('playtelecom:stock.soldToday', { defaultValue: 'Vendido Hoy' })}</p>
               <p className="text-lg font-semibold">{totals.sold}</p>
             </div>
           </div>
@@ -117,10 +218,19 @@ export function StockControl() {
         </div>
       </GlassCard>
 
-      {/* Inventory Table */}
+      {/* Stock vs Sales Chart & Low Stock Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <StockVsSalesChart />
+        <LowStockAlerts onRequestStock={handleRequestStock} />
+      </div>
+
+      {/* Bulk Upload Section */}
+      <BulkUploadSection onUpload={handleUpload} />
+
+      {/* Recent Movements Table */}
       <GlassCard className="p-6">
         <h3 className="text-lg font-semibold mb-4">
-          {t('playtelecom:stock.inventoryList', { defaultValue: 'Lista de Inventario' })}
+          {t('playtelecom:stock.recentMovements', { defaultValue: 'Movimientos Recientes' })}
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -133,37 +243,45 @@ export function StockControl() {
                   {t('playtelecom:stock.category', { defaultValue: 'Categoría' })}
                 </th>
                 <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:stock.status', { defaultValue: 'Estado' })}
+                  {t('playtelecom:stock.type', { defaultValue: 'Tipo' })}
                 </th>
                 <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:stock.assignedTo', { defaultValue: 'Asignado a' })}
-                </th>
-                <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">
-                  {t('playtelecom:stock.batch', { defaultValue: 'Lote' })}
+                  {t('playtelecom:stock.timestamp', { defaultValue: 'Fecha' })}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {MOCK_ITEMS.map(item => {
-                const statusConfig = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG]
-                return (
-                  <tr key={item.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-2">
-                      <code className="text-xs bg-muted/50 px-2 py-1 rounded">{item.serial}</code>
-                    </td>
-                    <td className="py-3 px-2 text-sm">{item.category}</td>
-                    <td className="py-3 px-2">
-                      <Badge variant={statusConfig.variant} className={`text-xs ${statusConfig.className}`}>
-                        {statusConfig.label}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-2 text-sm text-muted-foreground">
-                      {item.assignedTo || '-'}
-                    </td>
-                    <td className="py-3 px-2 text-sm text-muted-foreground">{item.batchId}</td>
-                  </tr>
-                )
-              })}
+              {movements.length > 0 ? (
+                movements.map(movement => {
+                  const status = mapMovementTypeToStatus(movement.type)
+                  const statusConfig = STATUS_CONFIG[status]
+                  return (
+                    <tr key={movement.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-2">
+                        <code className="text-xs bg-muted/50 px-2 py-1 rounded">{movement.serialNumber}</code>
+                      </td>
+                      <td className="py-3 px-2 text-sm">{movement.categoryName}</td>
+                      <td className="py-3 px-2">
+                        <Badge variant={statusConfig.variant} className={`text-xs ${statusConfig.className}`}>
+                          {movement.type}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-muted-foreground">
+                        {new Date(movement.timestamp).toLocaleString('es-MX', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })}
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                    {t('playtelecom:stock.noMovements', { defaultValue: 'No hay movimientos recientes' })}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
