@@ -1,7 +1,6 @@
 import DataTable from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import { moduleAPI, type Module, type VenueModuleStatus, type CreateModuleData, type UpdateModuleData } from '@/services/superadmin-modules.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -26,15 +26,66 @@ import {
   PowerOff,
   Trash2,
   XCircle,
+  Sparkles,
+  Settings2,
 } from 'lucide-react'
 import React, { Suspense, lazy, useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 
 // Lazy load WhiteLabelWizard to avoid loading it for all users
 const WhiteLabelWizard = lazy(() => import('@/pages/Superadmin/WhiteLabelBuilder/WhiteLabelWizard'))
+// Lazy load ModuleCreationWizard (v2 interactive wizard)
+const ModuleCreationWizard = lazy(() => import('@/pages/Superadmin/components/ModuleCreationWizard'))
+
+// ===========================================
+// GLASS CARD COMPONENT
+// ===========================================
+
+interface GlassCardProps {
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  onClick?: () => void
+}
+
+const GlassCard: React.FC<GlassCardProps> = ({ children, className, hover = false, onClick }) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
+      'shadow-sm transition-all duration-300',
+      hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
+      onClick && 'cursor-pointer',
+      className
+    )}
+  >
+    {children}
+  </div>
+)
+
+// ===========================================
+// STATUS PULSE COMPONENT
+// ===========================================
+
+const StatusPulse: React.FC<{ status: 'success' | 'warning' | 'error' | 'neutral' }> = ({ status }) => {
+  const colors = {
+    success: 'bg-green-500',
+    warning: 'bg-yellow-500',
+    error: 'bg-red-500',
+    neutral: 'bg-muted',
+  }
+  return (
+    <span className="relative flex h-2.5 w-2.5">
+      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', colors[status])} />
+      <span className={cn('relative inline-flex rounded-full h-2.5 w-2.5', colors[status])} />
+    </span>
+  )
+}
+
+// ===========================================
+// MODULE MANAGEMENT PAGE
+// ===========================================
 
 const ModuleManagement: React.FC = () => {
-  const { t } = useTranslation('superadmin')
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -61,6 +112,9 @@ const ModuleManagement: React.FC = () => {
   // White-Label Wizard state
   const [isWhiteLabelWizardOpen, setIsWhiteLabelWizardOpen] = useState(false)
   const [selectedVenueForWizard, setSelectedVenueForWizard] = useState<{ id: string; name: string } | null>(null)
+
+  // Module Creation Wizard v2 state
+  const [isModuleWizardOpen, setIsModuleWizardOpen] = useState(false)
 
   // Form state for create/edit
   const [formData, setFormData] = useState<{
@@ -100,7 +154,7 @@ const ModuleManagement: React.FC = () => {
     mutationFn: ({ venueId, moduleCode, preset }: { venueId: string; moduleCode: string; preset?: string }) =>
       moduleAPI.enableModule(venueId, moduleCode, preset),
     onSuccess: data => {
-      toast({ title: t('moduleMgmt.toast.enabledTitle'), description: data.message })
+      toast({ title: 'Módulo activado', description: data.message })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
       setIsEnableDialogOpen(false)
@@ -108,7 +162,7 @@ const ModuleManagement: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: t('moduleMgmt.toast.enableFailed'),
+        title: 'Error al activar módulo',
         description: error?.response?.data?.error || error.message,
         variant: 'destructive',
       })
@@ -120,13 +174,13 @@ const ModuleManagement: React.FC = () => {
     mutationFn: ({ venueId, moduleCode }: { venueId: string; moduleCode: string }) =>
       moduleAPI.disableModule(venueId, moduleCode),
     onSuccess: data => {
-      toast({ title: t('moduleMgmt.toast.disabledTitle'), description: data.message })
+      toast({ title: 'Módulo desactivado', description: data.message })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
       queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
     },
     onError: (error: any) => {
       toast({
-        title: t('moduleMgmt.toast.disableFailed'),
+        title: 'Error al desactivar módulo',
         description: error?.response?.data?.error || error.message,
         variant: 'destructive',
       })
@@ -137,14 +191,14 @@ const ModuleManagement: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (data: CreateModuleData) => moduleAPI.createModule(data),
     onSuccess: data => {
-      toast({ title: t('moduleMgmt.toast.createdTitle'), description: t('moduleMgmt.toast.createdDesc', { name: data.module.name }) })
+      toast({ title: 'Módulo creado', description: `El módulo "${data.module.name}" ha sido creado exitosamente.` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
       setIsCreateDialogOpen(false)
       resetFormData()
     },
     onError: (error: any) => {
       toast({
-        title: t('moduleMgmt.toast.createFailed'),
+        title: 'Error al crear módulo',
         description: error?.response?.data?.error || error.message,
         variant: 'destructive',
       })
@@ -156,7 +210,7 @@ const ModuleManagement: React.FC = () => {
     mutationFn: ({ moduleId, data }: { moduleId: string; data: UpdateModuleData }) =>
       moduleAPI.updateModule(moduleId, data),
     onSuccess: data => {
-      toast({ title: t('moduleMgmt.toast.updatedTitle'), description: t('moduleMgmt.toast.updatedDesc', { name: data.module.name }) })
+      toast({ title: 'Módulo actualizado', description: `El módulo "${data.module.name}" ha sido actualizado.` })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
       setIsEditDialogOpen(false)
       setModuleToEdit(null)
@@ -164,7 +218,7 @@ const ModuleManagement: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: t('moduleMgmt.toast.updateFailed'),
+        title: 'Error al actualizar módulo',
         description: error?.response?.data?.error || error.message,
         variant: 'destructive',
       })
@@ -175,14 +229,14 @@ const ModuleManagement: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (moduleId: string) => moduleAPI.deleteModule(moduleId),
     onSuccess: data => {
-      toast({ title: t('moduleMgmt.toast.deletedTitle'), description: data.message })
+      toast({ title: 'Módulo eliminado', description: data.message })
       queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
       setIsDeleteDialogOpen(false)
       setModuleToDelete(null)
     },
     onError: (error: any) => {
       toast({
-        title: t('moduleMgmt.toast.deleteFailed'),
+        title: 'Error al eliminar módulo',
         description: error?.response?.data?.error || error.message,
         variant: 'destructive',
       })
@@ -245,6 +299,7 @@ const ModuleManagement: React.FC = () => {
 
   const handleOpenDeleteDialog = (module: Module) => {
     setModuleToDelete(module)
+    setSelectedModule(module)
     setIsDeleteDialogOpen(true)
   }
 
@@ -262,8 +317,8 @@ const ModuleManagement: React.FC = () => {
       })
     } catch (e) {
       toast({
-        title: t('moduleMgmt.toast.jsonError'),
-        description: t('moduleMgmt.toast.jsonErrorDesc'),
+        title: 'Error de JSON',
+        description: 'Verifica que la configuración y presets sean JSON válido.',
         variant: 'destructive',
       })
     }
@@ -287,8 +342,8 @@ const ModuleManagement: React.FC = () => {
       })
     } catch (e) {
       toast({
-        title: t('moduleMgmt.toast.jsonError'),
-        description: t('moduleMgmt.toast.jsonErrorDesc'),
+        title: 'Error de JSON',
+        description: 'Verifica que la configuración y presets sean JSON válido.',
         variant: 'destructive',
       })
     }
@@ -308,77 +363,82 @@ const ModuleManagement: React.FC = () => {
   const columns: ColumnDef<Module>[] = [
     {
       accessorKey: 'name',
-      header: t('moduleMgmt.columns.module'),
+      header: 'Módulo',
       cell: ({ row }) => (
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-lg bg-muted">
-            <Package className="w-4 h-4" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+            <Package className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
             <div className="font-medium">{row.original.name}</div>
-            <div className="text-sm text-muted-foreground">{row.original.code}</div>
+            <Badge variant="outline" className="font-mono text-xs mt-0.5">
+              {row.original.code}
+            </Badge>
           </div>
         </div>
       ),
     },
     {
       accessorKey: 'description',
-      header: t('moduleMgmt.columns.description'),
+      header: 'Descripción',
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground line-clamp-2">
+        <span className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
           {row.original.description || '-'}
         </span>
       ),
     },
     {
       accessorKey: 'enabledVenueCount',
-      header: t('moduleMgmt.columns.enabledVenues'),
+      header: 'Sucursales',
       cell: ({ row }) => (
-        <Badge variant={row.original.enabledVenueCount > 0 ? 'default' : 'secondary'}>
-          <Building2 className="w-3 h-3 mr-1" />
-          {row.original.enabledVenueCount}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <StatusPulse status={row.original.enabledVenueCount > 0 ? 'success' : 'neutral'} />
+          <Badge variant={row.original.enabledVenueCount > 0 ? 'default' : 'secondary'}>
+            <Building2 className="w-3 h-3 mr-1" />
+            {row.original.enabledVenueCount}
+          </Badge>
+        </div>
       ),
     },
     {
       accessorKey: 'presets',
-      header: t('moduleMgmt.columns.presets'),
+      header: 'Presets',
       cell: ({ row }) => {
         const presetCount = row.original.presets ? Object.keys(row.original.presets).length : 0
         return (
-          <Badge variant="outline">
-            {presetCount} {t('moduleMgmt.presetsCount')}
+          <Badge variant="outline" className="text-xs">
+            <Settings2 className="w-3 h-3 mr-1" />
+            {presetCount} {presetCount === 1 ? 'preset' : 'presets'}
           </Badge>
         )
       },
     },
     {
       id: 'actions',
-      header: t('moduleMgmt.columns.actions'),
+      header: 'Acciones',
       cell: ({ row }) => (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button variant="ghost" className="h-8 w-8 p-0 cursor-pointer">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={5} className="w-48">
-            <DropdownMenuItem onClick={() => handleViewVenues(row.original)}>
+            <DropdownMenuItem onClick={() => handleViewVenues(row.original)} className="cursor-pointer">
               <Eye className="mr-2 h-4 w-4" />
-              {t('moduleMgmt.dropdown.viewVenues')}
+              Ver sucursales
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleOpenEditDialog(row.original)}>
+            <DropdownMenuItem onClick={() => handleOpenEditDialog(row.original)} className="cursor-pointer">
               <Pencil className="mr-2 h-4 w-4" />
-              {t('moduleMgmt.dropdown.editModule')}
+              Editar módulo
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => handleOpenDeleteDialog(row.original)}
-              className="text-destructive focus:text-destructive"
-              disabled={row.original.enabledVenueCount > 0}
+              className="text-destructive focus:text-destructive cursor-pointer"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              {t('moduleMgmt.dropdown.deleteModule')}
+              Eliminar módulo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -389,7 +449,7 @@ const ModuleManagement: React.FC = () => {
   const venueColumns: ColumnDef<VenueModuleStatus>[] = [
     {
       accessorKey: 'name',
-      header: t('moduleMgmt.venueColumns.venue'),
+      header: 'Sucursal',
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.name}</div>
@@ -399,35 +459,42 @@ const ModuleManagement: React.FC = () => {
     },
     {
       accessorKey: 'moduleEnabled',
-      header: t('moduleMgmt.venueColumns.status'),
+      header: 'Estado',
       cell: ({ row }) => (
-        <Badge variant={row.original.moduleEnabled ? 'default' : 'secondary'}>
-          {row.original.moduleEnabled ? (
-            <>
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              {t('moduleMgmt.status.enabled')}
-            </>
-          ) : (
-            <>
-              <XCircle className="w-3 h-3 mr-1" />
-              {t('moduleMgmt.status.disabled')}
-            </>
-          )}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <StatusPulse status={row.original.moduleEnabled ? 'success' : 'neutral'} />
+          <Badge variant={row.original.moduleEnabled ? 'default' : 'secondary'}>
+            {row.original.moduleEnabled ? (
+              <>
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Activo
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3 h-3 mr-1" />
+                Inactivo
+              </>
+            )}
+          </Badge>
+        </div>
       ),
     },
     {
       accessorKey: 'enabledAt',
-      header: t('moduleMgmt.venueColumns.enabledAt'),
+      header: 'Activado',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.enabledAt ? new Date(row.original.enabledAt).toLocaleDateString() : '-'}
+          {row.original.enabledAt ? new Date(row.original.enabledAt).toLocaleDateString('es-MX', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          }) : '-'}
         </span>
       ),
     },
     {
       id: 'actions',
-      header: t('moduleMgmt.venueColumns.actions'),
+      header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {row.original.moduleEnabled ? (
@@ -437,14 +504,14 @@ const ModuleManagement: React.FC = () => {
                 <Button
                   variant="default"
                   size="sm"
-                  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600"
+                  className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 cursor-pointer"
                   onClick={() => {
                     setSelectedVenueForWizard({ id: row.original.id, name: row.original.name })
                     setIsWhiteLabelWizardOpen(true)
                   }}
                 >
                   <Palette className="w-3 h-3 mr-1" />
-                  {t('moduleMgmt.actions.configure')}
+                  Configurar
                 </Button>
               )}
               <Button
@@ -452,9 +519,10 @@ const ModuleManagement: React.FC = () => {
                 size="sm"
                 onClick={() => handleDisableModule(row.original)}
                 disabled={disableMutation.isPending}
+                className="cursor-pointer"
               >
                 <PowerOff className="w-3 h-3 mr-1" />
-                {t('moduleMgmt.actions.disable')}
+                Desactivar
               </Button>
             </>
           ) : (
@@ -462,9 +530,10 @@ const ModuleManagement: React.FC = () => {
               variant="default"
               size="sm"
               onClick={() => handleEnableModule(row.original)}
+              className="cursor-pointer"
             >
               <Power className="w-3 h-3 mr-1" />
-              {t('moduleMgmt.actions.enable')}
+              Activar
             </Button>
           )}
         </div>
@@ -472,85 +541,109 @@ const ModuleManagement: React.FC = () => {
     },
   ]
 
+  // Calculate stats
+  const totalEnabledCount = useMemo(() => modules.reduce((sum, m) => sum + m.enabledVenueCount, 0), [modules])
+  const mostPopularModule = useMemo(() => {
+    if (modules.length === 0) return null
+    return modules.reduce((max, m) => (m.enabledVenueCount > max.enabledVenueCount ? m : max), modules[0])
+  }, [modules])
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('moduleMgmt.title')}</h1>
-          <p className="text-muted-foreground">{t('moduleMgmt.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">Gestión de Módulos</h1>
+          <p className="text-muted-foreground">Administra los módulos del sistema y su disponibilidad por sucursal.</p>
         </div>
-        <Button onClick={handleOpenCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('moduleMgmt.createModule')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleOpenCreateDialog} variant="outline" className="cursor-pointer">
+            <Plus className="w-4 h-4 mr-2" />
+            Crear módulo
+          </Button>
+          <Button
+            onClick={() => setIsModuleWizardOpen(true)}
+            className="bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-500 hover:to-pink-600 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Wizard interactivo
+          </Button>
+        </div>
       </div>
 
-      {/* Module Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('moduleMgmt.stats.totalModules')}</CardTitle>
-            <Boxes className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{modules.length}</div>
-            <p className="text-xs text-muted-foreground">{t('moduleMgmt.stats.availableForVenues')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('moduleMgmt.stats.totalEnabledCount')}</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {modules.reduce((sum, m) => sum + m.enabledVenueCount, 0)}
+      {/* Module Statistics - Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <GlassCard className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total de Módulos</p>
+              <p className="text-3xl font-bold tracking-tight mt-1">{modules.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">Disponibles para sucursales</p>
             </div>
-            <p className="text-xs text-muted-foreground">{t('moduleMgmt.stats.acrossAllVenues')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('moduleMgmt.stats.mostPopular')}</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {modules.length > 0
-                ? modules.reduce((max, m) => (m.enabledVenueCount > max.enabledVenueCount ? m : max), modules[0]).name
-                : '-'}
+            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Boxes className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {modules.length > 0
-                ? `${modules.reduce((max, m) => (m.enabledVenueCount > max.enabledVenueCount ? m : max), modules[0]).enabledVenueCount} ${t('moduleMgmt.stats.venues')}`
-                : '-'}
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Activaciones Totales</p>
+              <p className="text-3xl font-bold tracking-tight mt-1">{totalEnabledCount}</p>
+              <p className="text-xs text-muted-foreground mt-1">En todas las sucursales</p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5">
+              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Módulo Más Popular</p>
+              <p className="text-xl font-bold tracking-tight mt-1 truncate max-w-[180px]">
+                {mostPopularModule?.name || '-'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {mostPopularModule ? `${mostPopularModule.enabledVenueCount} sucursales` : '-'}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </GlassCard>
       </div>
 
       {/* Modules Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('moduleMgmt.tableTitle')}</CardTitle>
-          <CardDescription>{t('moduleMgmt.tableDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <GlassCard className="overflow-hidden">
+        <div className="p-5 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Package className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Catálogo de Módulos</h2>
+              <p className="text-sm text-muted-foreground">Módulos disponibles en la plataforma.</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-5">
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex-1">
               <Input
-                placeholder={t('moduleMgmt.searchPlaceholder')}
+                placeholder="Buscar por nombre, código o descripción..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                className="max-w-md"
               />
             </div>
           </div>
 
           {isLoading ? (
-            <div className="py-8 text-sm text-muted-foreground">{t('common.loading')}</div>
+            <div className="py-8 text-sm text-muted-foreground text-center">Cargando módulos...</div>
           ) : (
             <DataTable
               columns={columns}
@@ -560,23 +653,26 @@ const ModuleManagement: React.FC = () => {
               rowCount={filteredModules.length}
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
 
       {/* Venue Dialog */}
       <Dialog open={isVenueDialogOpen} onOpenChange={setIsVenueDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>
-              {t('moduleMgmt.venueDialog.title', { module: selectedModule?.name })}
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              Sucursales - {selectedModule?.name}
             </DialogTitle>
             <DialogDescription>
-              {t('moduleMgmt.venueDialog.description')}
+              Gestiona qué sucursales tienen acceso a este módulo.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="flex-1 overflow-y-auto py-4">
             {isLoadingVenues ? (
-              <div className="py-8 text-sm text-muted-foreground text-center">{t('common.loading')}</div>
+              <div className="py-8 text-sm text-muted-foreground text-center">Cargando sucursales...</div>
             ) : (
               <DataTable
                 columns={venueColumns}
@@ -594,24 +690,26 @@ const ModuleManagement: React.FC = () => {
       <Dialog open={isEnableDialogOpen} onOpenChange={setIsEnableDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t('moduleMgmt.enableDialog.title')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5">
+                <Power className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              Activar Módulo
+            </DialogTitle>
             <DialogDescription>
-              {t('moduleMgmt.enableDialog.description', {
-                module: selectedModule?.name,
-                venue: selectedVenueForEnable?.name,
-              })}
+              Activar <strong>{selectedModule?.name}</strong> para <strong>{selectedVenueForEnable?.name}</strong>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             {availablePresets.length > 0 && (
               <div>
-                <Label htmlFor="preset">{t('moduleMgmt.enableDialog.presetLabel')}</Label>
+                <Label htmlFor="preset">Preset de configuración (opcional)</Label>
                 <Select value={selectedPreset || '__none__'} onValueChange={(val) => setSelectedPreset(val === '__none__' ? '' : val)}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t('moduleMgmt.enableDialog.presetPlaceholder')} />
+                    <SelectValue placeholder="Seleccionar preset..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">{t('moduleMgmt.enableDialog.noPreset')}</SelectItem>
+                    <SelectItem value="__none__">Sin preset (usar defaults)</SelectItem>
                     {availablePresets.map(preset => (
                       <SelectItem key={preset} value={preset}>
                         {preset.charAt(0).toUpperCase() + preset.slice(1)}
@@ -620,17 +718,17 @@ const ModuleManagement: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('moduleMgmt.enableDialog.presetHelp')}
+                  Los presets aplican configuraciones predefinidas para diferentes industrias.
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEnableDialogOpen(false)}>
-              {t('moduleMgmt.enableDialog.cancel')}
+            <Button variant="outline" onClick={() => setIsEnableDialogOpen(false)} className="cursor-pointer">
+              Cancelar
             </Button>
-            <Button onClick={handleConfirmEnable} disabled={enableMutation.isPending}>
-              {enableMutation.isPending ? t('moduleMgmt.enableDialog.enabling') : t('moduleMgmt.enableDialog.confirm')}
+            <Button onClick={handleConfirmEnable} disabled={enableMutation.isPending} className="cursor-pointer">
+              {enableMutation.isPending ? 'Activando...' : 'Activar módulo'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -638,17 +736,22 @@ const ModuleManagement: React.FC = () => {
 
       {/* Create Module Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('moduleMgmt.createDialog.title')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <Plus className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              Crear Nuevo Módulo
+            </DialogTitle>
             <DialogDescription>
-              {t('moduleMgmt.createDialog.description')}
+              Define un nuevo módulo para el sistema. Los módulos controlan funcionalidades que pueden activarse por sucursal.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="code">{t('moduleMgmt.form.code')}</Label>
+                <Label htmlFor="code">Código</Label>
                 <Input
                   id="code"
                   value={formData.code}
@@ -656,31 +759,31 @@ const ModuleManagement: React.FC = () => {
                   placeholder="SERIALIZED_INVENTORY"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('moduleMgmt.form.codeHelp')}
+                  Solo mayúsculas y guiones bajos. Ej: FEATURE_NAME
                 </p>
               </div>
               <div>
-                <Label htmlFor="name">{t('moduleMgmt.form.name')}</Label>
+                <Label htmlFor="name">Nombre</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Serialized Inventory"
+                  placeholder="Inventario Serializado"
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="description">{t('moduleMgmt.form.description')}</Label>
+              <Label htmlFor="description">Descripción</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t('moduleMgmt.form.descriptionPlaceholder')}
+                placeholder="Describe qué hace este módulo..."
                 rows={2}
               />
             </div>
             <div>
-              <Label htmlFor="defaultConfig">{t('moduleMgmt.form.defaultConfig')}</Label>
+              <Label htmlFor="defaultConfig">Configuración por defecto (JSON)</Label>
               <Textarea
                 id="defaultConfig"
                 value={formData.defaultConfig}
@@ -690,11 +793,11 @@ const ModuleManagement: React.FC = () => {
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {t('moduleMgmt.form.defaultConfigHelp')}
+                Configuración inicial que se aplica al activar el módulo.
               </p>
             </div>
             <div>
-              <Label htmlFor="presets">{t('moduleMgmt.form.presets')}</Label>
+              <Label htmlFor="presets">Presets por industria (JSON)</Label>
               <Textarea
                 id="presets"
                 value={formData.presets}
@@ -704,16 +807,16 @@ const ModuleManagement: React.FC = () => {
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {t('moduleMgmt.form.presetsHelp')}
+                Configuraciones predefinidas para diferentes tipos de negocio.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              {t('common.cancel')}
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="cursor-pointer">
+              Cancelar
             </Button>
-            <Button onClick={handleCreateModule} disabled={createMutation.isPending || !formData.code || !formData.name}>
-              {createMutation.isPending ? t('common.creating') : t('moduleMgmt.createDialog.confirm')}
+            <Button onClick={handleCreateModule} disabled={createMutation.isPending || !formData.code || !formData.name} className="cursor-pointer">
+              {createMutation.isPending ? 'Creando...' : 'Crear módulo'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -721,17 +824,22 @@ const ModuleManagement: React.FC = () => {
 
       {/* Edit Module Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('moduleMgmt.editDialog.title')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              Editar Módulo
+            </DialogTitle>
             <DialogDescription>
-              {t('moduleMgmt.editDialog.description', { module: moduleToEdit?.code })}
+              Modificando el módulo <Badge variant="outline" className="font-mono">{moduleToEdit?.code}</Badge>
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-code">{t('moduleMgmt.form.code')}</Label>
+                <Label htmlFor="edit-code">Código</Label>
                 <Input
                   id="edit-code"
                   value={formData.code}
@@ -739,11 +847,11 @@ const ModuleManagement: React.FC = () => {
                   className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('moduleMgmt.form.codeNotEditable')}
+                  El código no puede modificarse.
                 </p>
               </div>
               <div>
-                <Label htmlFor="edit-name">{t('moduleMgmt.form.name')}</Label>
+                <Label htmlFor="edit-name">Nombre</Label>
                 <Input
                   id="edit-name"
                   value={formData.name}
@@ -752,7 +860,7 @@ const ModuleManagement: React.FC = () => {
               </div>
             </div>
             <div>
-              <Label htmlFor="edit-description">{t('moduleMgmt.form.description')}</Label>
+              <Label htmlFor="edit-description">Descripción</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}
@@ -761,7 +869,7 @@ const ModuleManagement: React.FC = () => {
               />
             </div>
             <div>
-              <Label htmlFor="edit-defaultConfig">{t('moduleMgmt.form.defaultConfig')}</Label>
+              <Label htmlFor="edit-defaultConfig">Configuración por defecto (JSON)</Label>
               <Textarea
                 id="edit-defaultConfig"
                 value={formData.defaultConfig}
@@ -771,7 +879,7 @@ const ModuleManagement: React.FC = () => {
               />
             </div>
             <div>
-              <Label htmlFor="edit-presets">{t('moduleMgmt.form.presets')}</Label>
+              <Label htmlFor="edit-presets">Presets por industria (JSON)</Label>
               <Textarea
                 id="edit-presets"
                 value={formData.presets}
@@ -782,11 +890,11 @@ const ModuleManagement: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              {t('common.cancel')}
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="cursor-pointer">
+              Cancelar
             </Button>
-            <Button onClick={handleUpdateModule} disabled={updateMutation.isPending || !formData.name}>
-              {updateMutation.isPending ? t('common.saving') : t('common.save')}
+            <Button onClick={handleUpdateModule} disabled={updateMutation.isPending || !formData.name} className="cursor-pointer">
+              {updateMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -796,33 +904,57 @@ const ModuleManagement: React.FC = () => {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>{t('moduleMgmt.deleteDialog.title')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-red-500/20 to-red-500/5">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              Eliminar Módulo
+            </DialogTitle>
             <DialogDescription>
-              {t('moduleMgmt.deleteDialog.description', { module: moduleToDelete?.name })}
+              ¿Estás seguro que deseas eliminar <strong>{moduleToDelete?.name}</strong>?
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {moduleToDelete && moduleToDelete.enabledVenueCount > 0 && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                {t('moduleMgmt.deleteDialog.warningEnabled', { count: moduleToDelete.enabledVenueCount })}
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                  Este módulo está activo en <strong>{moduleToDelete.enabledVenueCount}</strong> sucursal(es). Debes desactivarlo en todas antes de eliminarlo.
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Abre el panel de sucursales para desactivar el módulo.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsDeleteDialogOpen(false)
+                      setIsVenueDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    Ver sucursales
+                  </Button>
+                </div>
               </div>
             )}
             {moduleToDelete && moduleToDelete.enabledVenueCount === 0 && (
               <p className="text-sm text-muted-foreground">
-                {t('moduleMgmt.deleteDialog.confirmText')}
+                Esta acción no se puede deshacer. El módulo será eliminado permanentemente.
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              {t('common.cancel')}
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
+              Cancelar
             </Button>
             <Button
               variant="destructive"
               onClick={handleDeleteModule}
               disabled={deleteMutation.isPending || (moduleToDelete?.enabledVenueCount ?? 0) > 0}
+              className="cursor-pointer"
             >
-              {deleteMutation.isPending ? t('common.deleting') : t('moduleMgmt.deleteDialog.confirm')}
+              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar módulo'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -838,7 +970,7 @@ const ModuleManagement: React.FC = () => {
       >
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           {selectedVenueForWizard ? (
-            <Suspense fallback={<div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>}>
+            <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
               {/* Key forces re-mount when venue changes, ensuring fresh state and config load */}
               <WhiteLabelWizard
                 key={selectedVenueForWizard.id}
@@ -846,18 +978,65 @@ const ModuleManagement: React.FC = () => {
                 initialVenueName={selectedVenueForWizard.name}
                 onComplete={async (venueId, config) => {
                   try {
-                    await moduleAPI.updateModuleConfig(venueId, 'WHITE_LABEL_DASHBOARD', config)
+                    // Save config and get updated venueModule from API
+                    const { venueModule: updatedModule } = await moduleAPI.updateModuleConfig(
+                      venueId,
+                      'WHITE_LABEL_DASHBOARD',
+                      config
+                    )
+
+                    // ============================================
+                    // WORLD-CLASS PATTERN: Optimistic Cache Update
+                    // Instead of refetching ALL data, surgically update only what changed.
+                    // This is how Stripe, Linear, and Vercel handle cache updates.
+                    // Benefits:
+                    // - Instant UI update (no loading state)
+                    // - No unnecessary network requests
+                    // - Reduced server load
+                    // - Better UX
+                    // ============================================
+                    queryClient.setQueryData(['status'], (oldData: any) => {
+                      if (!oldData) return oldData
+
+                      // Helper to update a venue's modules array
+                      const updateVenueModules = (venue: any) => {
+                        if (venue.id !== venueId) return venue
+
+                        // Find and update the WHITE_LABEL_DASHBOARD module
+                        const updatedModules = venue.modules?.map((m: any) =>
+                          m.module.code === 'WHITE_LABEL_DASHBOARD'
+                            ? { ...m, config: updatedModule.config }
+                            : m
+                        ) ?? []
+
+                        return { ...venue, modules: updatedModules }
+                      }
+
+                      return {
+                        ...oldData,
+                        // Update in user.venues (for non-SUPERADMIN users)
+                        user: oldData.user ? {
+                          ...oldData.user,
+                          venues: oldData.user.venues?.map(updateVenueModules) ?? []
+                        } : null,
+                        // Update in allVenues (for SUPERADMIN users)
+                        allVenues: oldData.allVenues?.map(updateVenueModules) ?? []
+                      }
+                    })
+
                     toast({
-                      title: t('moduleMgmt.toast.whiteLabelSavedTitle'),
-                      description: t('moduleMgmt.toast.whiteLabelSavedDesc'),
+                      title: 'Configuración guardada',
+                      description: 'La configuración white-label ha sido actualizada.',
                     })
                     setIsWhiteLabelWizardOpen(false)
                     setSelectedVenueForWizard(null)
+
+                    // Invalidate superadmin-specific queries (these are only for the management UI)
                     queryClient.invalidateQueries({ queryKey: ['superadmin-modules'] })
                     queryClient.invalidateQueries({ queryKey: ['superadmin-module-venues'] })
                   } catch (error: any) {
                     toast({
-                      title: t('moduleMgmt.toast.whiteLabelSaveFailed'),
+                      title: 'Error al guardar',
                       description: error?.response?.data?.error || error.message,
                       variant: 'destructive',
                     })
@@ -870,8 +1049,30 @@ const ModuleManagement: React.FC = () => {
               />
             </Suspense>
           ) : (
-            <div className="py-8 text-center text-muted-foreground">{t('common.loading')}</div>
+            <div className="py-8 text-center text-muted-foreground">Cargando...</div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Module Creation Wizard v2 Dialog */}
+      <Dialog open={isModuleWizardOpen} onOpenChange={setIsModuleWizardOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <Suspense fallback={<div className="py-8 text-center text-muted-foreground">Cargando wizard...</div>}>
+            <ModuleCreationWizard
+              onComplete={(wizardData) => {
+                createMutation.mutate({
+                  code: wizardData.code,
+                  name: wizardData.name,
+                  description: wizardData.description,
+                  defaultConfig: wizardData.defaultConfig,
+                  presets: wizardData.presets,
+                })
+                setIsModuleWizardOpen(false)
+              }}
+              onCancel={() => setIsModuleWizardOpen(false)}
+              isSubmitting={createMutation.isPending}
+            />
+          </Suspense>
         </DialogContent>
       </Dialog>
     </div>

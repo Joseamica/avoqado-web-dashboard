@@ -1,20 +1,50 @@
-import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { SubscriptionPlanBadge, type SubscriptionPlanType } from '@/components/ui/plan-badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { VenueStatusBadge, type VenueStatusType } from '@/components/ui/status-badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { superadminAPI } from '@/services/superadmin.service'
 import { SubscriptionPlan, VenueStatus, type SuperadminVenue } from '@/types/superadmin'
 import { Currency } from '@/utils/currency'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type ColumnDef } from '@tanstack/react-table'
 import {
   AlertCircle,
   AlertTriangle,
@@ -25,81 +55,413 @@ import {
   Eye,
   FileText,
   MoreHorizontal,
+  Package,
   Search,
   Settings,
   TrendingUp,
   XCircle,
   Zap,
+  Users,
+  Store,
+  Ban,
+  Crown,
+  Sparkles,
+  BadgeCheck,
 } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import VenueModuleManagementDialog from './components/VenueModuleManagementDialog'
+import { cn } from '@/lib/utils'
 
-// Data now fetched from API via React Query
+// ============================================================================
+// MODERN UI COMPONENTS (2025/2026 Design System)
+// ============================================================================
+
+interface GlassCardProps {
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  onClick?: () => void
+}
+
+const GlassCard: React.FC<GlassCardProps> = ({ children, className, hover = false, onClick }) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
+      'shadow-sm transition-all duration-300',
+      hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
+      onClick && 'cursor-pointer',
+      className
+    )}
+  >
+    {children}
+  </div>
+)
+
+interface StatusPulseProps {
+  status: 'success' | 'warning' | 'error' | 'neutral' | 'info'
+}
+
+const StatusPulse: React.FC<StatusPulseProps> = ({ status }) => {
+  const colors = {
+    success: 'bg-green-500',
+    warning: 'bg-yellow-500',
+    error: 'bg-red-500',
+    neutral: 'bg-muted',
+    info: 'bg-blue-500',
+  }
+  return (
+    <span className="relative flex h-3 w-3">
+      <span
+        className={cn(
+          'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
+          colors[status]
+        )}
+      />
+      <span className={cn('relative inline-flex rounded-full h-3 w-3', colors[status])} />
+    </span>
+  )
+}
+
+interface MetricCardProps {
+  icon: React.ReactNode
+  label: string
+  value: string | number
+  subtitle?: string
+  gradient: string
+}
+
+const MetricCard: React.FC<MetricCardProps> = ({ icon, label, value, subtitle, gradient }) => (
+  <GlassCard className="p-5">
+    <div className="flex items-start justify-between">
+      <div className={cn('p-2.5 rounded-xl bg-gradient-to-br', gradient)}>{icon}</div>
+    </div>
+    <div className="mt-4">
+      <p className="text-2xl font-bold tracking-tight">{value}</p>
+      <p className="text-sm text-muted-foreground mt-0.5">{label}</p>
+      {subtitle && <p className="text-xs text-muted-foreground/70 mt-1">{subtitle}</p>}
+    </div>
+  </GlassCard>
+)
+
+// ============================================================================
+// VENUE STATUS HELPERS
+// ============================================================================
+
+const STATUS_CONFIG: Record<
+  VenueStatus,
+  { label: string; pulseStatus: StatusPulseProps['status']; badgeClass: string }
+> = {
+  [VenueStatus.LIVE_DEMO]: {
+    label: 'Demo en Vivo',
+    pulseStatus: 'info',
+    badgeClass: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  },
+  [VenueStatus.ACTIVE]: {
+    label: 'Activo',
+    pulseStatus: 'success',
+    badgeClass: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+  },
+  [VenueStatus.ONBOARDING]: {
+    label: 'Onboarding',
+    pulseStatus: 'info',
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  },
+  [VenueStatus.TRIAL]: {
+    label: 'Prueba',
+    pulseStatus: 'info',
+    badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+  },
+  [VenueStatus.PENDING_ACTIVATION]: {
+    label: 'Pendiente',
+    pulseStatus: 'warning',
+    badgeClass: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
+  },
+  [VenueStatus.SUSPENDED]: {
+    label: 'Suspendido',
+    pulseStatus: 'error',
+    badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  },
+  [VenueStatus.ADMIN_SUSPENDED]: {
+    label: 'Suspendido (Admin)',
+    pulseStatus: 'error',
+    badgeClass: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
+  },
+  [VenueStatus.CLOSED]: {
+    label: 'Cerrado',
+    pulseStatus: 'neutral',
+    badgeClass: 'bg-muted/10 text-muted-foreground border-muted/20',
+  },
+}
+
+const PLAN_CONFIG: Record<SubscriptionPlan, { label: string; icon: React.ReactNode; gradient: string }> = {
+  [SubscriptionPlan.STARTER]: {
+    label: 'Starter',
+    icon: <Sparkles className="w-3.5 h-3.5" />,
+    gradient: 'from-green-500/20 to-green-500/5',
+  },
+  [SubscriptionPlan.PROFESSIONAL]: {
+    label: 'Professional',
+    icon: <Zap className="w-3.5 h-3.5" />,
+    gradient: 'from-blue-500/20 to-blue-500/5',
+  },
+  [SubscriptionPlan.ENTERPRISE]: {
+    label: 'Enterprise',
+    icon: <Crown className="w-3.5 h-3.5" />,
+    gradient: 'from-amber-500/20 to-amber-500/5',
+  },
+  [SubscriptionPlan.CUSTOM]: {
+    label: 'Personalizado',
+    icon: <BadgeCheck className="w-3.5 h-3.5" />,
+    gradient: 'from-purple-500/20 to-purple-500/5',
+  },
+}
+
+const PAYMENT_STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  PAID: {
+    label: 'Pagado',
+    icon: <CheckCircle className="w-4 h-4" />,
+    color: 'text-green-600 dark:text-green-400',
+  },
+  PENDING: {
+    label: 'Pendiente',
+    icon: <Clock className="w-4 h-4" />,
+    color: 'text-yellow-600 dark:text-yellow-400',
+  },
+  OVERDUE: {
+    label: 'Vencido',
+    icon: <AlertTriangle className="w-4 h-4" />,
+    color: 'text-red-600 dark:text-red-400',
+  },
+}
+
+// ============================================================================
+// VENUE CARD COMPONENT
+// ============================================================================
+
+interface VenueCardProps {
+  venue: SuperadminVenue
+  onViewDetails: () => void
+  onManageModules: () => void
+  onApprove: () => void
+  onSuspend: () => void
+  onNavigateKYC: () => void
+  onNavigateAdmin: () => void
+}
+
+const VenueCard: React.FC<VenueCardProps> = ({
+  venue,
+  onViewDetails,
+  onManageModules,
+  onApprove,
+  onSuspend,
+  onNavigateKYC,
+  onNavigateAdmin,
+}) => {
+  const statusConfig = STATUS_CONFIG[venue.status]
+  const planConfig = PLAN_CONFIG[venue.subscriptionPlan] || {
+    label: venue.subscriptionPlan || 'Desconocido',
+    icon: <Store className="w-3.5 h-3.5" />,
+    gradient: 'from-gray-500/20 to-gray-500/5',
+  }
+  const paymentConfig = PAYMENT_STATUS_CONFIG[venue.billing.paymentStatus] || {
+    label: venue.billing.paymentStatus,
+    icon: <XCircle className="w-4 h-4" />,
+    color: 'text-muted-foreground',
+  }
+  const hasKYCPending =
+    venue.kycStatus === 'PENDING_REVIEW' || venue.kycStatus === 'IN_REVIEW'
+  const canApprove = venue.status === VenueStatus.PENDING_ACTIVATION
+  const canSuspend = venue.status === VenueStatus.ACTIVE
+
+  return (
+    <GlassCard hover className="overflow-hidden">
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm truncate">{venue.name}</h3>
+                {hasKYCPending && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>KYC pendiente de revisión</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{venue.owner.email}</p>
+              <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                {venue.organization.name}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions Dropdown */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 cursor-pointer">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={5} className="w-52">
+              <DropdownMenuItem onClick={onViewDetails} className="cursor-pointer">
+                <Eye className="mr-2 h-4 w-4" />
+                Ver Detalles
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onManageModules} className="cursor-pointer">
+                <Package className="mr-2 h-4 w-4" />
+                Gestionar Módulos
+              </DropdownMenuItem>
+              {hasKYCPending && (
+                <DropdownMenuItem onClick={onNavigateKYC} className="cursor-pointer">
+                  <FileText className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                  Revisar KYC
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {canApprove && (
+                <DropdownMenuItem onClick={onApprove} className="cursor-pointer">
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                  Aprobar Venue
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={onNavigateAdmin} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Administrar Features
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
+                <Zap className="mr-2 h-4 w-4" />
+                Ver Analíticas
+              </DropdownMenuItem>
+              {canSuspend && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={onSuspend}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <Ban className="mr-2 h-4 w-4" />
+                    Suspender Venue
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Status & Plan Row */}
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <div
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border',
+              statusConfig.badgeClass
+            )}
+          >
+            <StatusPulse status={statusConfig.pulseStatus} />
+            {statusConfig.label}
+          </div>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+              'bg-muted/50 text-muted-foreground'
+            )}
+          >
+            <div className={cn('p-0.5 rounded', planConfig.gradient)}>{planConfig.icon}</div>
+            {planConfig.label}
+          </div>
+        </div>
+
+        {/* Metrics Row */}
+        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-border/50">
+          <div>
+            <p className="text-xs text-muted-foreground">Ingresos</p>
+            <p className="text-sm font-semibold mt-0.5">{Currency(venue.monthlyRevenue)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Usuarios</p>
+            <p className="text-sm font-semibold mt-0.5">{venue.analytics.activeUsers}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Pago</p>
+            <div className={cn('flex items-center gap-1 mt-0.5', paymentConfig.color)}>
+              {paymentConfig.icon}
+              <span className="text-xs font-medium">{paymentConfig.label}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+  )
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 const VenueManagement: React.FC = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { t } = useTranslation('venue')
+
   const { data: venues = [], isLoading } = useQuery({
     queryKey: ['superadmin-venues'],
     queryFn: superadminAPI.getAllVenues,
   })
+
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedVenue, setSelectedVenue] = useState<SuperadminVenue | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
+  const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
   const [reason, setReason] = useState('')
 
   // Filter venues
-  const filteredVenues = venues.filter(venue => {
-    const matchesSearch =
-      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || venue.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredVenues = useMemo(() => {
+    return venues.filter(venue => {
+      const matchesSearch =
+        venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.owner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        venue.organization.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || venue.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [venues, searchTerm, statusFilter])
 
-  const getStatusLabel = (status: VenueStatus) => t(`venueMgmt.statuses.${status}`)
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalRevenue = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
+    const totalCommission = venues.reduce(
+      (sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate) / 100,
+      0
+    )
+    const pendingApprovals = venues.filter(
+      v => v.status === VenueStatus.PENDING_ACTIVATION
+    ).length
+    const activeVenues = venues.filter(v => v.status === VenueStatus.ACTIVE).length
+    const avgRevenue = activeVenues > 0 ? totalRevenue / activeVenues : 0
+    return { totalRevenue, totalCommission, pendingApprovals, activeVenues, avgRevenue }
+  }, [venues])
 
-  // ✅ Theme-aware payment status icons following THEME-GUIDELINES.md
-  const getPaymentStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-      case 'PENDING':
-        return <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-      case 'OVERDUE':
-        return <AlertTriangle className="w-4 h-4 text-destructive" />
-      default:
-        return <XCircle className="w-4 h-4 text-muted-foreground" />
-    }
-  }
-
-  const getPaymentStatusLabel = (status: string) => t(`venueMgmt.paymentStatuses.${status}`)
-
-  const getPlanLabel = (plan: SubscriptionPlan) => t(`venueMgmt.planLabels.${plan}`)
-
-  const handleApproveVenue = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsApprovalDialogOpen(true)
-  }
-
-  const handleViewDetails = (venue: SuperadminVenue) => {
-    setSelectedVenue(venue)
-    setIsDetailsOpen(true)
-  }
-
+  // Mutations
   const approveMutation = useMutation({
     mutationFn: (venueId: string) => superadminAPI.approveVenue(venueId, reason || undefined),
     onSuccess: () => {
       toast({
-        title: t('venueMgmt.toasts.approveSuccessTitle'),
-        description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.approved')}`,
+        title: 'Venue aprobado',
+        description: `${selectedVenue?.name} ha sido aprobado exitosamente.`,
       })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsApprovalDialogOpen(false)
@@ -107,7 +469,7 @@ const VenueManagement: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: t('venueMgmt.toasts.approveFailedTitle'),
+        title: 'Error al aprobar',
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
@@ -115,11 +477,12 @@ const VenueManagement: React.FC = () => {
   })
 
   const suspendMutation = useMutation({
-    mutationFn: (venueId: string) => superadminAPI.suspendVenue(venueId, reason || t('venueMgmt.dialogs.suspendReasonPlaceholder')),
+    mutationFn: (venueId: string) =>
+      superadminAPI.suspendVenue(venueId, reason || 'Suspendido por administrador'),
     onSuccess: () => {
       toast({
-        title: t('venueMgmt.toasts.suspendSuccessTitle'),
-        description: `${selectedVenue?.name} ${t('venueMgmt.toasts.successDescSuffix')} ${t('venueMgmt.toasts.suspended')}`,
+        title: 'Venue suspendido',
+        description: `${selectedVenue?.name} ha sido suspendido.`,
       })
       queryClient.invalidateQueries({ queryKey: ['superadmin-venues'] })
       setIsSuspendDialogOpen(false)
@@ -127,262 +490,179 @@ const VenueManagement: React.FC = () => {
     },
     onError: (error: any) => {
       toast({
-        title: t('venueMgmt.toasts.suspendFailedTitle'),
+        title: 'Error al suspender',
         description: error?.response?.data?.message || error.message,
         variant: 'destructive',
       })
     },
   })
 
-  const columns: ColumnDef<SuperadminVenue>[] = [
-    {
-      accessorKey: 'name',
-      meta: { label: t('venueMgmt.columns.venue') },
-      header: t('venueMgmt.columns.venue'),
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-3">
-          {/* ✅ Theme-aware gradient using primary colors */}
-          <div className="w-10 h-10 bg-linear-to-r from-primary to-primary/60 rounded-lg flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <div>
-            <div className="font-medium flex items-center gap-2">
-              {row.original.name}
-              {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
-                <span title={t('venueMgmt.kycPendingReview', { defaultValue: 'KYC Pending Review' })}>
-                  {/* ✅ Theme-aware warning icon */}
-                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                </span>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">{row.original.owner.email}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      meta: { label: t('venueMgmt.columns.status') },
-      header: t('venueMgmt.columns.status'),
-      cell: ({ row }) => <VenueStatusBadge status={row.original.status as VenueStatusType} label={getStatusLabel(row.original.status)} />,
-    },
-    {
-      accessorKey: 'subscriptionPlan',
-      meta: { label: t('venueMgmt.columns.subscriptionPlan') },
-      header: t('venueMgmt.columns.subscriptionPlan'),
-      cell: ({ row }) => (
-        <SubscriptionPlanBadge
-          plan={row.original.subscriptionPlan as SubscriptionPlanType}
-          label={getPlanLabel(row.original.subscriptionPlan)}
-        />
-      ),
-    },
-    {
-      accessorKey: 'monthlyRevenue',
-      meta: { label: t('venueMgmt.columns.monthlyRevenue') },
-      header: t('venueMgmt.columns.monthlyRevenue'),
-      cell: ({ row }) => <div className="font-medium">{Currency(row.original.monthlyRevenue)}</div>,
-    },
-    {
-      accessorKey: 'billing.paymentStatus',
-      meta: { label: t('venueMgmt.columns.payment') },
-      header: t('venueMgmt.columns.payment'),
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          {getPaymentStatusIcon(row.original.billing.paymentStatus)}
-          <span className="text-sm">{getPaymentStatusLabel(row.original.billing.paymentStatus)}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'analytics.activeUsers',
-      meta: { label: t('venueMgmt.columns.users') },
-      header: t('venueMgmt.columns.users'),
-      cell: ({ row }) => <span className="text-sm">{row.original.analytics.activeUsers}</span>,
-    },
-    {
-      id: 'actions',
-      meta: { label: t('venueMgmt.columns.actions') },
-      header: t('venueMgmt.columns.actions'),
-      cell: ({ row }) => (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={5} className="w-48">
-            <DropdownMenuItem onClick={() => handleViewDetails(row.original)}>
-              <Eye className="mr-2 h-4 w-4" />
-              {t('venueMgmt.dropdown.viewDetails')}
-            </DropdownMenuItem>
-            {(row.original.kycStatus === 'PENDING_REVIEW' || row.original.kycStatus === 'IN_REVIEW') && (
-              <DropdownMenuItem onClick={() => navigate(`/superadmin/kyc/${row.original.id}`)}>
-                {/* ✅ Theme-aware warning icon */}
-                <FileText className="mr-2 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                Review KYC
-              </DropdownMenuItem>
-            )}
-            {row.original.status === VenueStatus.PENDING_ACTIVATION && (
-              <DropdownMenuItem onClick={() => handleApproveVenue(row.original)}>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                {t('venueMgmt.dropdown.approve')}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => navigate(`/admin/venues/${row.original.id}`)}>
-              <Settings className="mr-2 h-4 w-4" />
-              {t('venueMgmt.dropdown.manageFeatures')}
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Zap className="mr-2 h-4 w-4" />
-              {t('venueMgmt.dropdown.viewAnalytics')}
-            </DropdownMenuItem>
-            {row.original.status === VenueStatus.ACTIVE && (
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => {
-                  setSelectedVenue(row.original)
-                  setIsSuspendDialogOpen(true)
-                }}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                {t('venueMgmt.dropdown.suspend')}
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ]
+  // Handlers
+  const handleViewDetails = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setIsDetailsOpen(true)
+  }
 
-  // Calculate stats
-  const { totalRevenue, totalCommission, pendingApprovals, activeVenues } = useMemo(() => {
-    const tr = venues.reduce((sum, venue) => sum + venue.monthlyRevenue, 0)
-    const tc = venues.reduce((sum, venue) => sum + (venue.monthlyRevenue * venue.commissionRate) / 100, 0)
-    const pa = venues.filter(v => v.status === VenueStatus.PENDING_ACTIVATION).length
-    const av = venues.filter(v => v.status === VenueStatus.ACTIVE).length
-    return { totalRevenue: tr, totalCommission: tc, pendingApprovals: pa, activeVenues: av }
-  }, [venues])
+  const handleManageModules = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setIsModuleDialogOpen(true)
+  }
+
+  const handleApproveVenue = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setIsApprovalDialogOpen(true)
+  }
+
+  const handleSuspendVenue = (venue: SuperadminVenue) => {
+    setSelectedVenue(venue)
+    setIsSuspendDialogOpen(true)
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{t('venueMgmt.title')}</h1>
-          <p className="text-muted-foreground">{t('venueMgmt.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">Gestión de Venues</h1>
+          <p className="text-muted-foreground mt-1">
+            Administra y supervisa todos los venues de la plataforma
+          </p>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.totalRevenue')}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Currency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
-              {t('venueMgmt.stats.commissionPrefix')} {Currency(totalCommission)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.activeVenues')}</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeVenues}</div>
-            <p className="text-xs text-muted-foreground">
-              {venues.length} {t('venueMgmt.stats.totalVenuesSuffix')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.pendingApprovals')}</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingApprovals}</div>
-            <p className="text-xs text-muted-foreground">{t('venueMgmt.stats.requireAction')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('venueMgmt.stats.avgRevenue')}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Currency(totalRevenue / (activeVenues || 1))}</div>
-            <p className="text-xs text-muted-foreground">{t('venueMgmt.stats.perActiveVenue')}</p>
-          </CardContent>
-        </Card>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          icon={<DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
+          label="Ingresos Totales"
+          value={Currency(stats.totalRevenue)}
+          subtitle={`Comisión: ${Currency(stats.totalCommission)}`}
+          gradient="from-green-500/20 to-green-500/5"
+        />
+        <MetricCard
+          icon={<Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+          label="Venues Activos"
+          value={stats.activeVenues}
+          subtitle={`${venues.length} venues totales`}
+          gradient="from-blue-500/20 to-blue-500/5"
+        />
+        <MetricCard
+          icon={<Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />}
+          label="Pendientes de Aprobación"
+          value={stats.pendingApprovals}
+          subtitle="Requieren acción"
+          gradient="from-yellow-500/20 to-yellow-500/5"
+        />
+        <MetricCard
+          icon={<TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+          label="Ingreso Promedio"
+          value={Currency(stats.avgRevenue)}
+          subtitle="Por venue activo"
+          gradient="from-purple-500/20 to-purple-500/5"
+        />
       </div>
 
-      {/* Venues Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('venueMgmt.tableTitle')}</CardTitle>
-          <CardDescription>{t('venueMgmt.tableDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="relative flex-1">
+      {/* Filters & List */}
+      <GlassCard className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
+              <Store className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Todos los Venues</h2>
+              <p className="text-xs text-muted-foreground">
+                {filteredVenues.length} de {venues.length} venues
+              </p>
+            </div>
+          </div>
+          <div className="flex-1" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none sm:w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder={t('venueMgmt.searchPlaceholder')}
+                placeholder="Buscar por nombre, email u organización..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-background cursor-text"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('venueMgmt.filterByStatus')} />
+              <SelectTrigger className="w-full sm:w-48 bg-background cursor-pointer">
+                <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('venueMgmt.allStatuses')}</SelectItem>
-                <SelectItem value={VenueStatus.ACTIVE}>{t('venueMgmt.statuses.ACTIVE')}</SelectItem>
-                <SelectItem value={VenueStatus.ONBOARDING}>{t('venueMgmt.statuses.ONBOARDING')}</SelectItem>
-                <SelectItem value={VenueStatus.TRIAL}>{t('venueMgmt.statuses.TRIAL')}</SelectItem>
-                <SelectItem value={VenueStatus.PENDING_ACTIVATION}>{t('venueMgmt.statuses.PENDING_ACTIVATION')}</SelectItem>
-                <SelectItem value={VenueStatus.SUSPENDED}>{t('venueMgmt.statuses.SUSPENDED')}</SelectItem>
-                <SelectItem value={VenueStatus.ADMIN_SUSPENDED}>{t('venueMgmt.statuses.ADMIN_SUSPENDED')}</SelectItem>
-                <SelectItem value={VenueStatus.CLOSED}>{t('venueMgmt.statuses.CLOSED')}</SelectItem>
+                <SelectItem value="all" className="cursor-pointer">
+                  Todos los estados
+                </SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+                  <SelectItem key={status} value={status} className="cursor-pointer">
+                    {config.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="py-8 text-sm text-muted-foreground">{t('venueMgmt.loadingVenues')}</div>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredVenues}
-              pagination={{ pageIndex: 0, pageSize: 20 }}
-              setPagination={() => {}}
-              tableId="superadmin:venues"
-              rowCount={filteredVenues.length}
-            />
-          )}
-        </CardContent>
-      </Card>
+        {/* Venues Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+              <p className="text-sm text-muted-foreground mt-3">Cargando venues...</p>
+            </div>
+          </div>
+        ) : filteredVenues.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="p-3 rounded-full bg-muted/50 mb-3">
+              <Building2 className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">No se encontraron venues</p>
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 cursor-pointer"
+                onClick={() => setSearchTerm('')}
+              >
+                Limpiar búsqueda
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredVenues.map(venue => (
+              <VenueCard
+                key={venue.id}
+                venue={venue}
+                onViewDetails={() => handleViewDetails(venue)}
+                onManageModules={() => handleManageModules(venue)}
+                onApprove={() => handleApproveVenue(venue)}
+                onSuspend={() => handleSuspendVenue(venue)}
+                onNavigateKYC={() => navigate(`/superadmin/kyc/${venue.id}`)}
+                onNavigateAdmin={() => navigate(`/admin/venues/${venue.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </GlassCard>
 
       {/* Venue Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{t('venueMgmt.dialogs.detailsTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('venueMgmt.dialogs.detailsDescPrefix')} {selectedVenue?.name}
-            </DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
+                <Building2 className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle>Detalles del Venue</DialogTitle>
+                <DialogDescription>
+                  Información completa de {selectedVenue?.name}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           {selectedVenue && <VenueDetailsView venue={selectedVenue} />}
         </DialogContent>
@@ -392,192 +672,341 @@ const VenueManagement: React.FC = () => {
       <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('venueMgmt.dialogs.approveTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('venueMgmt.dialogs.approveDescPrefix')} {selectedVenue?.name}?
-            </DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <DialogTitle>Aprobar Venue</DialogTitle>
+                <DialogDescription>
+                  ¿Estás seguro de que deseas aprobar {selectedVenue?.name}?
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="approve-reason">{t('venueMgmt.dialogs.approveReasonLabel')}</Label>
+            <Label htmlFor="approve-reason">Notas de aprobación (opcional)</Label>
             <Input
               id="approve-reason"
-              placeholder={t('venueMgmt.dialogs.approveReasonPlaceholder')}
+              placeholder="Ej: Documentación verificada..."
               value={reason}
               onChange={e => setReason(e.target.value)}
+              className="bg-background"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
-              {t('venueMgmt.dialogs.cancel')}
+            <Button
+              variant="outline"
+              onClick={() => setIsApprovalDialogOpen(false)}
+              disabled={approveMutation.isPending}
+              className="cursor-pointer"
+            >
+              Cancelar
             </Button>
-            <Button onClick={() => selectedVenue && approveMutation.mutate(selectedVenue.id)} disabled={approveMutation.isPending}>
-              {approveMutation.isPending ? t('venueMgmt.dialogs.approving') : t('venueMgmt.dialogs.approve')}
+            <Button
+              onClick={() => selectedVenue && approveMutation.mutate(selectedVenue.id)}
+              disabled={approveMutation.isPending}
+              className="cursor-pointer"
+            >
+              {approveMutation.isPending ? 'Aprobando...' : 'Aprobar Venue'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Suspend Dialog */}
-      <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('venueMgmt.dialogs.suspendTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('venueMgmt.dialogs.suspendDescPrefix')} {selectedVenue?.name}.
-            </DialogDescription>
-          </DialogHeader>
+      <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-red-500/20 to-red-500/5">
+                <Ban className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <AlertDialogTitle>Suspender Venue</AlertDialogTitle>
+              </div>
+            </div>
+            <AlertDialogDescription>
+              Estás a punto de suspender <strong>{selectedVenue?.name}</strong>. El venue no podrá
+              operar mientras esté suspendido. Esta acción puede ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="suspend-reason">{t('venueMgmt.dialogs.suspendReasonLabel')}</Label>
+            <Label htmlFor="suspend-reason">
+              Razón de suspensión <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="suspend-reason"
-              placeholder={t('venueMgmt.dialogs.suspendReasonPlaceholder')}
+              placeholder="Ej: Falta de pago, violación de términos..."
               value={reason}
               onChange={e => setReason(e.target.value)}
+              className="bg-background"
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSuspendDialogOpen(false)}>
-              {t('venueMgmt.dialogs.cancel')}
-            </Button>
-            <Button
-              variant="destructive"
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={suspendMutation.isPending}
+              className="cursor-pointer"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={() => selectedVenue && suspendMutation.mutate(selectedVenue.id)}
               disabled={suspendMutation.isPending || !reason}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 cursor-pointer"
             >
-              {suspendMutation.isPending ? t('venueMgmt.dialogs.suspending') : t('venueMgmt.dialogs.suspend')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {suspendMutation.isPending ? 'Suspendiendo...' : 'Suspender Venue'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Venue Module Management Dialog */}
+      <VenueModuleManagementDialog
+        open={isModuleDialogOpen}
+        onOpenChange={setIsModuleDialogOpen}
+        venue={
+          selectedVenue
+            ? {
+                id: selectedVenue.id,
+                name: selectedVenue.name,
+                organization: selectedVenue.organization,
+              }
+            : null
+        }
+      />
     </div>
   )
 }
 
-// Venue Details Component
+// ============================================================================
+// VENUE DETAILS VIEW COMPONENT
+// ============================================================================
+
 const VenueDetailsView: React.FC<{ venue: SuperadminVenue }> = ({ venue }) => {
-  const { t, i18n } = useTranslation('venue')
-  const numberFormat = new Intl.NumberFormat(i18n.language)
-
-  function getStatusLabelLocal(status: VenueStatus) {
-    return t(`venueMgmt.statuses.${status}`)
+  const numberFormat = new Intl.NumberFormat('es-MX')
+  const statusConfig = STATUS_CONFIG[venue.status]
+  const planConfig = PLAN_CONFIG[venue.subscriptionPlan] || {
+    label: venue.subscriptionPlan || 'Desconocido',
+    icon: <Store className="w-3.5 h-3.5" />,
+    gradient: 'from-gray-500/20 to-gray-500/5',
+  }
+  const paymentConfig = PAYMENT_STATUS_CONFIG[venue.billing.paymentStatus] || {
+    label: venue.billing.paymentStatus,
+    icon: <XCircle className="w-4 h-4" />,
+    color: 'text-muted-foreground',
   }
 
-  function getPlanLabelLocal(plan: SubscriptionPlan) {
-    return t(`venueMgmt.planLabels.${plan}`)
-  }
-
-  function getPaymentStatusLabelLocal(status: string) {
-    return t(`venueMgmt.paymentStatuses.${status}`)
-  }
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="overview">{t('detailsView.tabs.overview')}</TabsTrigger>
-        <TabsTrigger value="billing">{t('detailsView.tabs.billing')}</TabsTrigger>
-        <TabsTrigger value="features">{t('detailsView.tabs.features')}</TabsTrigger>
-        <TabsTrigger value="analytics">{t('detailsView.tabs.analytics')}</TabsTrigger>
+      <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4">
+        <TabsTrigger
+          value="overview"
+          className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+        >
+          Resumen
+        </TabsTrigger>
+        <TabsTrigger
+          value="billing"
+          className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+        >
+          Facturación
+        </TabsTrigger>
+        <TabsTrigger
+          value="features"
+          className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+        >
+          Features
+        </TabsTrigger>
+        <TabsTrigger
+          value="analytics"
+          className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+        >
+          Analíticas
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-medium mb-2">{t('detailsView.venueInfo.title')}</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>{t('detailsView.venueInfo.name')}:</strong> {venue.name}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Venue Info */}
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
+                <Building2 className="w-4 h-4 text-primary" />
               </div>
-              <div>
-                <strong>{t('detailsView.venueInfo.slug')}:</strong> {venue.slug}
+              <h3 className="font-semibold text-sm">Información del Venue</h3>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Nombre:</span>
+                <span className="font-medium">{venue.name}</span>
               </div>
-              <div>
-                <strong>{t('detailsView.venueInfo.status')}:</strong> {getStatusLabelLocal(venue.status)}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Slug:</span>
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{venue.slug}</code>
               </div>
-              <div>
-                <strong>{t('detailsView.venueInfo.plan')}:</strong> {getPlanLabelLocal(venue.subscriptionPlan)}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Estado:</span>
+                <div
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border',
+                    statusConfig.badgeClass
+                  )}
+                >
+                  <StatusPulse status={statusConfig.pulseStatus} />
+                  {statusConfig.label}
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Plan:</span>
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-muted/50">
+                  <div className={cn('p-0.5 rounded', planConfig.gradient)}>
+                    {planConfig.icon}
+                  </div>
+                  {planConfig.label}
+                </div>
               </div>
             </div>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">{t('detailsView.ownerInfo.title')}</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>{t('detailsView.ownerInfo.name')}:</strong> {venue.owner.firstName} {venue.owner.lastName}
+          </GlassCard>
+
+          {/* Owner Info */}
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <strong>{t('detailsView.ownerInfo.email')}:</strong> {venue.owner.email}
+              <h3 className="font-semibold text-sm">Propietario</h3>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Nombre:</span>
+                <span className="font-medium">
+                  {venue.owner.firstName} {venue.owner.lastName}
+                </span>
               </div>
-              <div>
-                <strong>{t('detailsView.ownerInfo.phone')}:</strong> {venue.owner.phone || t('detailsView.ownerInfo.na')}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-medium truncate max-w-[180px]">{venue.owner.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Teléfono:</span>
+                <span className="font-medium">{venue.owner.phone || 'N/A'}</span>
               </div>
             </div>
-          </div>
+          </GlassCard>
         </div>
       </TabsContent>
 
       <TabsContent value="billing" className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-medium mb-2">{t('detailsView.billingInfo.title')}</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>{t('detailsView.billingInfo.subscriptionFee')}:</strong> {Currency(venue.billing.monthlySubscriptionFee)}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Billing Info */}
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5">
+                <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
-              <div>
-                <strong>{t('detailsView.billingInfo.featuresCost')}:</strong> {Currency(venue.billing.additionalFeaturesCost)}
+              <h3 className="font-semibold text-sm">Facturación</h3>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Suscripción mensual:</span>
+                <span className="font-medium">
+                  {Currency(venue.billing.monthlySubscriptionFee)}
+                </span>
               </div>
-              <div>
-                <strong>{t('detailsView.billingInfo.totalMonthly')}:</strong> {Currency(venue.billing.totalMonthlyBill)}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Features adicionales:</span>
+                <span className="font-medium">
+                  {Currency(venue.billing.additionalFeaturesCost)}
+                </span>
               </div>
-              <div>
-                <strong>{t('detailsView.billingInfo.paymentStatus')}:</strong> {getPaymentStatusLabelLocal(venue.billing.paymentStatus)}
+              <div className="flex justify-between border-t border-border/50 pt-2 mt-2">
+                <span className="text-muted-foreground font-medium">Total mensual:</span>
+                <span className="font-bold">{Currency(venue.billing.totalMonthlyBill)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Estado de pago:</span>
+                <div className={cn('flex items-center gap-1', paymentConfig.color)}>
+                  {paymentConfig.icon}
+                  <span className="text-xs font-medium">{paymentConfig.label}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">{t('detailsView.revenueInfo.title')}</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>{t('detailsView.revenueInfo.monthlyRevenue')}:</strong> {Currency(venue.monthlyRevenue)}
+          </GlassCard>
+
+          {/* Revenue Info */}
+          <GlassCard className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+                <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
-              <div>
-                <strong>{t('detailsView.revenueInfo.totalRevenue')}:</strong> {Currency(venue.totalRevenue)}
+              <h3 className="font-semibold text-sm">Ingresos</h3>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ingresos mensuales:</span>
+                <span className="font-medium">{Currency(venue.monthlyRevenue)}</span>
               </div>
-              <div>
-                <strong>{t('detailsView.revenueInfo.commissionRate')}:</strong> {venue.commissionRate}%
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Ingresos totales:</span>
+                <span className="font-medium">{Currency(venue.totalRevenue)}</span>
               </div>
-              <div>
-                <strong>{t('detailsView.revenueInfo.commissionEarned')}:</strong>{' '}
-                {Currency((venue.monthlyRevenue * venue.commissionRate) / 100)}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tasa de comisión:</span>
+                <span className="font-medium">{venue.commissionRate}%</span>
+              </div>
+              <div className="flex justify-between border-t border-border/50 pt-2 mt-2">
+                <span className="text-muted-foreground font-medium">Comisión ganada:</span>
+                <span className="font-bold text-green-600 dark:text-green-400">
+                  {Currency((venue.monthlyRevenue * venue.commissionRate) / 100)}
+                </span>
               </div>
             </div>
-          </div>
+          </GlassCard>
         </div>
       </TabsContent>
 
       <TabsContent value="features">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{t('detailsView.featuresComingSoon')}</p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="p-3 rounded-full bg-muted/50 mb-3">
+            <Package className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm">Próximamente</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            La gestión de features estará disponible pronto
+          </p>
         </div>
       </TabsContent>
 
       <TabsContent value="analytics">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-medium mb-2">{t('detailsView.analytics.title')}</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>{t('detailsView.analytics.monthlyTransactions')}:</strong>{' '}
+        <GlassCard className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+              <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            </div>
+            <h3 className="font-semibold text-sm">Métricas de Uso</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-3 rounded-xl bg-muted/30">
+              <p className="text-2xl font-bold">
                 {numberFormat.format(venue.analytics.monthlyTransactions)}
-              </div>
-              <div>
-                <strong>{t('detailsView.analytics.avgOrderValue')}:</strong> {Currency(venue.analytics.averageOrderValue)}
-              </div>
-              <div>
-                <strong>{t('detailsView.analytics.activeUsers')}:</strong> {numberFormat.format(venue.analytics.activeUsers)}
-              </div>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Transacciones mensuales</p>
+            </div>
+            <div className="text-center p-3 rounded-xl bg-muted/30">
+              <p className="text-2xl font-bold">
+                {Currency(venue.analytics.averageOrderValue)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Ticket promedio</p>
+            </div>
+            <div className="text-center p-3 rounded-xl bg-muted/30">
+              <p className="text-2xl font-bold">
+                {numberFormat.format(venue.analytics.activeUsers)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Usuarios activos</p>
             </div>
           </div>
-        </div>
+        </GlassCard>
       </TabsContent>
     </Tabs>
   )
