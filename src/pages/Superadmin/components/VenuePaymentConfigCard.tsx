@@ -328,26 +328,26 @@ export const VenuePaymentConfigCard: React.FC<VenuePaymentConfigCardProps> = ({
         {(!hasConfig || isEditing) && (
           <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="primary" className="gap-2">
-                  <Badge
-                    variant={activeTab === 'primary' ? 'default' : 'outline'}
-                    className="h-5"
-                  >
-                    {t('paymentConfiguration.accountTypes.primary.label')}
-                  </Badge>
+              <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4">
+                <TabsTrigger
+                  value="primary"
+                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground gap-2"
+                >
+                  <span>{t('paymentConfiguration.accountTypes.primary.label')}</span>
                   {formData.primaryAccountId && <CheckCircle className="w-3 h-3" />}
                 </TabsTrigger>
-                <TabsTrigger value="secondary" className="gap-2">
-                  <Badge variant={activeTab === 'secondary' ? 'secondary' : 'outline'} className="h-5">
-                    {t('paymentConfiguration.accountTypes.secondary.label')}
-                  </Badge>
+                <TabsTrigger
+                  value="secondary"
+                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground gap-2"
+                >
+                  <span>{t('paymentConfiguration.accountTypes.secondary.label')}</span>
                   {formData.secondaryAccountId && <CheckCircle className="w-3 h-3" />}
                 </TabsTrigger>
-                <TabsTrigger value="tertiary" className="gap-2">
-                  <Badge variant="outline" className="h-5">
-                    {t('paymentConfiguration.accountTypes.tertiary.label')}
-                  </Badge>
+                <TabsTrigger
+                  value="tertiary"
+                  className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground gap-2"
+                >
+                  <span>{t('paymentConfiguration.accountTypes.tertiary.label')}</span>
                   {formData.tertiaryAccountId && <CheckCircle className="w-3 h-3" />}
                 </TabsTrigger>
               </TabsList>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertTriangle, Building2, CheckCircle2, CreditCard, Loader2, Plus, Search, Shield, Zap } from 'lucide-react'
+import { AlertTriangle, Building2, CheckCircle2, CreditCard, Layers, Loader2, Plus, Search, Shield, Zap } from 'lucide-react'
 import { paymentProviderAPI, type MerchantAccount } from '@/services/paymentProvider.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +16,7 @@ import {
   ManualAccountDialog,
   DeleteConfirmDialog,
   BlumonAutoFetchWizard,
+  BatchAutoFetchDialog,
   TerminalAssignmentsDialog,
   CostStructureDialog,
   MerchantAccountCard,
@@ -35,6 +36,7 @@ const MerchantAccounts: React.FC = () => {
 
   // Dialog states
   const [blumonWizardOpen, setBlumonWizardOpen] = useState(false)
+  const [batchAutoFetchOpen, setBatchAutoFetchOpen] = useState(false)
   const [manualDialogOpen, setManualDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [terminalsDialogOpen, setTerminalsDialogOpen] = useState(false)
@@ -274,6 +276,14 @@ const MerchantAccounts: React.FC = () => {
             <Zap className="w-4 h-4 mr-2" />
             Blumon Auto-Fetch
           </Button>
+          <Button
+            onClick={() => setBatchAutoFetchOpen(true)}
+            variant="outline"
+            className="border-yellow-500/50 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/10"
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            Batch (x10+)
+          </Button>
         </div>
       </div>
 
@@ -496,6 +506,15 @@ const MerchantAccounts: React.FC = () => {
       <BlumonAutoFetchWizard
         open={blumonWizardOpen}
         onOpenChange={setBlumonWizardOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
+          queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })
+        }}
+      />
+
+      <BatchAutoFetchDialog
+        open={batchAutoFetchOpen}
+        onOpenChange={setBatchAutoFetchOpen}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts-all'] })
           queryClient.invalidateQueries({ queryKey: ['merchant-accounts'] })

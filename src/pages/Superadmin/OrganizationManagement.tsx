@@ -1,0 +1,872 @@
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
+import {
+  organizationAPI,
+  type Organization,
+  type BusinessType,
+  type CreateOrganizationData,
+  type UpdateOrganizationData,
+  type ModuleForOrganization,
+} from '@/services/superadmin-organizations.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Building2,
+  Loader2,
+  Mail,
+  MoreHorizontal,
+  Package,
+  Phone,
+  Plus,
+  Power,
+  PowerOff,
+  Search,
+  Settings2,
+  Store,
+  Trash2,
+  Users,
+  Edit3,
+} from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+
+// ===========================================
+// SHARED COMPONENTS - Modern 2025/2026 Design
+// ===========================================
+
+const GlassCard: React.FC<{
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  onClick?: () => void
+}> = ({ children, className, hover = false, onClick }) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      'relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm',
+      'shadow-sm transition-all duration-300',
+      hover && 'cursor-pointer hover:shadow-md hover:border-border hover:bg-card/90 hover:-translate-y-0.5',
+      onClick && 'cursor-pointer',
+      className,
+    )}
+  >
+    {children}
+  </div>
+)
+
+// ===========================================
+// BUSINESS TYPE OPTIONS
+// ===========================================
+
+const BUSINESS_TYPES: { value: BusinessType; label: string; icon: React.ReactNode }[] = [
+  { value: 'RESTAURANT', label: 'Restaurante', icon: <Store className="w-4 h-4" /> },
+  { value: 'RETAIL', label: 'Retail', icon: <Package className="w-4 h-4" /> },
+  { value: 'SERVICE', label: 'Servicios', icon: <Settings2 className="w-4 h-4" /> },
+  { value: 'ENTERTAINMENT', label: 'Entretenimiento', icon: <Building2 className="w-4 h-4" /> },
+  { value: 'HOSPITALITY', label: 'Hospitalidad', icon: <Building2 className="w-4 h-4" /> },
+  { value: 'HEALTHCARE', label: 'Salud', icon: <Building2 className="w-4 h-4" /> },
+  { value: 'OTHER', label: 'Otro', icon: <Building2 className="w-4 h-4" /> },
+]
+
+// ===========================================
+// ORGANIZATION CARD COMPONENT
+// ===========================================
+
+interface OrganizationCardProps {
+  organization: Organization
+  onEdit: (org: Organization) => void
+  onDelete: (org: Organization) => void
+  onManageModules: (org: Organization) => void
+}
+
+const OrganizationCard: React.FC<OrganizationCardProps> = ({ organization, onEdit, onDelete, onManageModules }) => {
+  const businessTypeLabel = BUSINESS_TYPES.find(bt => bt.value === organization.type)?.label || organization.type
+
+  return (
+    <GlassCard className="p-0 overflow-hidden" hover>
+      {/* Header with gradient accent */}
+      <div className="relative">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+        <div className="p-4 pt-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
+                <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">{organization.name}</h3>
+                {organization.slug && (
+                  <p className="text-xs text-muted-foreground font-mono">{organization.slug}</p>
+                )}
+              </div>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(organization)} className="cursor-pointer">
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onManageModules(organization)} className="cursor-pointer">
+                  <Package className="w-4 h-4 mr-2" />
+                  Gestionar Módulos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(organization)}
+                  className="cursor-pointer text-red-600 dark:text-red-400"
+                  disabled={organization.venueCount > 0}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="px-4 pb-4 space-y-3">
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Store className="w-3.5 h-3.5" />
+            <span>{organization.venueCount} sucursales</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Users className="w-3.5 h-3.5" />
+            <span>{organization.staffCount} usuarios</span>
+          </div>
+        </div>
+
+        {/* Contact info */}
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Mail className="w-3 h-3" />
+            <span className="truncate max-w-[150px]">{organization.email}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Phone className="w-3 h-3" />
+            <span>{organization.phone}</span>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="outline" className="text-xs">
+            {businessTypeLabel}
+          </Badge>
+          {organization.enabledModules.slice(0, 2).map(mod => (
+            <Badge key={mod.code} variant="secondary" className="text-xs">
+              {mod.name}
+            </Badge>
+          ))}
+          {organization.enabledModules.length > 2 && (
+            <Badge variant="secondary" className="text-xs">
+              +{organization.enabledModules.length - 2}
+            </Badge>
+          )}
+        </div>
+      </div>
+    </GlassCard>
+  )
+}
+
+// ===========================================
+// CREATE/EDIT DIALOG
+// ===========================================
+
+interface OrganizationDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization?: Organization | null
+  onSave: (data: CreateOrganizationData | UpdateOrganizationData) => void
+  isLoading: boolean
+}
+
+const OrganizationDialog: React.FC<OrganizationDialogProps> = ({ open, onOpenChange, organization, onSave, isLoading }) => {
+  const isEdit = !!organization
+
+  const [formData, setFormData] = useState<CreateOrganizationData>({
+    name: '',
+    slug: '',
+    email: '',
+    phone: '',
+    taxId: '',
+    type: 'RESTAURANT',
+  })
+
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      if (organization) {
+        setFormData({
+          name: organization.name,
+          slug: organization.slug || '',
+          email: organization.email,
+          phone: organization.phone,
+          taxId: organization.taxId || '',
+          type: organization.type,
+        })
+      } else {
+        setFormData({
+          name: '',
+          slug: '',
+          email: '',
+          phone: '',
+          taxId: '',
+          type: 'RESTAURANT',
+        })
+      }
+    }
+  }, [open, organization])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const dataToSend = {
+      ...formData,
+      slug: formData.slug || undefined,
+      taxId: formData.taxId || undefined,
+    }
+    onSave(dataToSend)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
+              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            {isEdit ? 'Editar Organización' : 'Nueva Organización'}
+          </DialogTitle>
+          <DialogDescription>
+            {isEdit ? 'Modifica los datos de la organización' : 'Crea una nueva organización para agrupar sucursales'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Mi Organización"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (URL)</Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={e => setFormData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                  placeholder="mi-organizacion"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo Electrónico *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="contacto@empresa.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="+52 55 1234 5678"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo de Negocio</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={value => setFormData(prev => ({ ...prev, type: value as BusinessType }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_TYPES.map(bt => (
+                      <SelectItem key={bt.value} value={bt.value}>
+                        <div className="flex items-center gap-2">
+                          {bt.icon}
+                          {bt.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="taxId">RFC / ID Fiscal</Label>
+                <Input
+                  id="taxId"
+                  value={formData.taxId}
+                  onChange={e => setFormData(prev => ({ ...prev, taxId: e.target.value }))}
+                  placeholder="XAXX010101000"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isEdit ? 'Guardar' : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ===========================================
+// DELETE CONFIRMATION DIALOG
+// ===========================================
+
+interface DeleteDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization: Organization | null
+  onConfirm: () => void
+  isLoading: boolean
+}
+
+const DeleteDialog: React.FC<DeleteDialogProps> = ({ open, onOpenChange, organization, onConfirm, isLoading }) => {
+  if (!organization) return null
+
+  const canDelete = organization.venueCount === 0
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <Trash2 className="w-5 h-5" />
+            Eliminar Organización
+          </DialogTitle>
+          <DialogDescription>
+            {canDelete
+              ? `¿Estás seguro de que deseas eliminar la organización "${organization.name}"?`
+              : `No se puede eliminar porque tiene ${organization.venueCount} sucursales.`}
+          </DialogDescription>
+        </DialogHeader>
+
+        {!canDelete && (
+          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              Debes eliminar todas las sucursales antes de poder eliminar la organización.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={!canDelete || isLoading}
+          >
+            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Eliminar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ===========================================
+// MODULE MANAGEMENT DIALOG
+// ===========================================
+
+interface ModuleManagementDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization: Organization | null
+}
+
+const ModuleManagementDialog: React.FC<ModuleManagementDialogProps> = ({ open, onOpenChange, organization }) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Fetch modules for this organization
+  const { data: modulesData, isLoading } = useQuery({
+    queryKey: ['organization-modules', organization?.id],
+    queryFn: () => organizationAPI.getModulesForOrganization(organization!.id),
+    enabled: !!organization && open,
+  })
+
+  // Enable mutation
+  const enableMutation = useMutation({
+    mutationFn: ({ moduleCode, preset }: { moduleCode: string; preset?: string }) =>
+      organizationAPI.enableModuleForOrganization(organization!.id, moduleCode, preset),
+    onSuccess: data => {
+      toast({ title: 'Módulo Activado', description: data.message })
+      queryClient.invalidateQueries({ queryKey: ['organization-modules', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al activar módulo',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Disable mutation
+  const disableMutation = useMutation({
+    mutationFn: (moduleCode: string) =>
+      organizationAPI.disableModuleForOrganization(organization!.id, moduleCode),
+    onSuccess: data => {
+      toast({ title: 'Módulo Desactivado', description: data.message })
+      queryClient.invalidateQueries({ queryKey: ['organization-modules', organization?.id] })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al desactivar módulo',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const handleToggleModule = (module: ModuleForOrganization) => {
+    if (module.enabled) {
+      disableMutation.mutate(module.code)
+    } else {
+      enableMutation.mutate({ moduleCode: module.code })
+    }
+  }
+
+  if (!organization) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Package className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            Módulos de {organization.name}
+          </DialogTitle>
+          <DialogDescription>
+            Activa o desactiva módulos a nivel organizacional. Los módulos activos aquí se heredan a todas las sucursales.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto py-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : modulesData?.modules.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No hay módulos configurados en el sistema
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {modulesData?.modules.map(module => (
+                <GlassCard key={module.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        'p-2 rounded-lg',
+                        module.enabled
+                          ? 'bg-gradient-to-br from-green-500/20 to-green-500/5'
+                          : 'bg-muted',
+                      )}>
+                        {module.enabled ? (
+                          <Power className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <PowerOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-sm">{module.name}</h4>
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {module.code}
+                          </Badge>
+                        </div>
+                        {module.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{module.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Switch
+                      checked={module.enabled}
+                      onCheckedChange={() => handleToggleModule(module)}
+                      disabled={enableMutation.isPending || disableMutation.isPending}
+                    />
+                  </div>
+                  {module.enabled && module.enabledAt && (
+                    <p className="text-xs text-muted-foreground mt-2 ml-11">
+                      Activo desde {new Date(module.enabledAt).toLocaleDateString('es-MX')}
+                    </p>
+                  )}
+                </GlassCard>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t">
+          <p className="text-xs text-muted-foreground">
+            Los módulos activos a nivel organización se heredan automáticamente a todas las sucursales. Cada sucursal puede tener módulos adicionales activados individualmente.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ===========================================
+// MAIN COMPONENT
+// ===========================================
+
+const OrganizationManagement: React.FC = () => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Fetch all organizations
+  const { data: organizations = [], isLoading } = useQuery({
+    queryKey: ['superadmin-organizations'],
+    queryFn: organizationAPI.getAllOrganizations,
+  })
+
+  // State
+  const [searchTerm, setSearchTerm] = useState('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false)
+
+  // Filtered organizations
+  const filteredOrganizations = useMemo(() => {
+    return organizations.filter(org => {
+      const matchesSearch =
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (org.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        org.email.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesType = typeFilter === 'all' || org.type === typeFilter
+      return matchesSearch && matchesType
+    })
+  }, [organizations, searchTerm, typeFilter])
+
+  // Stats
+  const stats = useMemo(() => ({
+    total: organizations.length,
+    totalVenues: organizations.reduce((acc, org) => acc + org.venueCount, 0),
+    totalStaff: organizations.reduce((acc, org) => acc + org.staffCount, 0),
+    withModules: organizations.filter(org => org.enabledModules.length > 0).length,
+  }), [organizations])
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: (data: CreateOrganizationData) => organizationAPI.createOrganization(data),
+    onSuccess: () => {
+      toast({ title: 'Organización creada exitosamente' })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+      setIsCreateDialogOpen(false)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al crear organización',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateOrganizationData }) =>
+      organizationAPI.updateOrganization(id, data),
+    onSuccess: () => {
+      toast({ title: 'Organización actualizada exitosamente' })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+      setIsEditDialogOpen(false)
+      setSelectedOrganization(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al actualizar organización',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => organizationAPI.deleteOrganization(id),
+    onSuccess: () => {
+      toast({ title: 'Organización eliminada exitosamente' })
+      queryClient.invalidateQueries({ queryKey: ['superadmin-organizations'] })
+      setIsDeleteDialogOpen(false)
+      setSelectedOrganization(null)
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error al eliminar organización',
+        description: error?.response?.data?.error || error.message,
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Handlers
+  const handleEdit = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDelete = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleManageModules = (org: Organization) => {
+    setSelectedOrganization(org)
+    setIsModuleDialogOpen(true)
+  }
+
+  const handleSaveCreate = (data: CreateOrganizationData | UpdateOrganizationData) => {
+    createMutation.mutate(data as CreateOrganizationData)
+  }
+
+  const handleSaveEdit = (data: CreateOrganizationData | UpdateOrganizationData) => {
+    if (selectedOrganization) {
+      updateMutation.mutate({ id: selectedOrganization.id, data })
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    if (selectedOrganization) {
+      deleteMutation.mutate(selectedOrganization.id)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Gestión de Organizaciones</h1>
+          <p className="text-muted-foreground">Administra organizaciones y sus módulos habilitados</p>
+        </div>
+        <Button
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nueva Organización
+        </Button>
+      </div>
+
+      {/* Statistics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <GlassCard className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5">
+              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total Organizaciones</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+              <Store className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.totalVenues}</p>
+              <p className="text-xs text-muted-foreground">Total Sucursales</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5">
+              <Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.totalStaff}</p>
+              <p className="text-xs text-muted-foreground">Total Usuarios</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5">
+              <Package className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.withModules}</p>
+              <p className="text-xs text-muted-foreground">Con Módulos Activos</p>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Filters */}
+      <GlassCard className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar organizaciones..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Tipo de negocio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los tipos</SelectItem>
+              {BUSINESS_TYPES.map(bt => (
+                <SelectItem key={bt.value} value={bt.value}>
+                  <div className="flex items-center gap-2">
+                    {bt.icon}
+                    {bt.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </GlassCard>
+
+      {/* Organizations Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <span className="ml-3 text-muted-foreground">Cargando organizaciones...</span>
+        </div>
+      ) : filteredOrganizations.length === 0 ? (
+        <GlassCard className="p-12 text-center">
+          <div className="p-4 rounded-full bg-muted/50 w-fit mx-auto mb-4">
+            <Building2 className="w-10 h-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">Sin organizaciones</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            {searchTerm || typeFilter !== 'all'
+              ? 'No se encontraron resultados con los filtros aplicados'
+              : 'No hay organizaciones registradas. Crea una para comenzar.'}
+          </p>
+          {!searchTerm && typeFilter === 'all' && (
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Organización
+            </Button>
+          )}
+        </GlassCard>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {filteredOrganizations.length} de {organizations.length} organizaciones
+            </p>
+            <Badge variant="outline">{filteredOrganizations.length} resultados</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredOrganizations.map(org => (
+              <OrganizationCard
+                key={org.id}
+                organization={org}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onManageModules={handleManageModules}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Dialogs */}
+      <OrganizationDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        organization={null}
+        onSave={handleSaveCreate}
+        isLoading={createMutation.isPending}
+      />
+
+      <OrganizationDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        organization={selectedOrganization}
+        onSave={handleSaveEdit}
+        isLoading={updateMutation.isPending}
+      />
+
+      <DeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        organization={selectedOrganization}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
+
+      <ModuleManagementDialog
+        open={isModuleDialogOpen}
+        onOpenChange={setIsModuleDialogOpen}
+        organization={selectedOrganization}
+      />
+    </div>
+  )
+}
+
+export default OrganizationManagement

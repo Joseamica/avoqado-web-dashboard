@@ -226,11 +226,31 @@ const RevenueDashboard: React.FC = () => {
 
       {/* Detailed Breakdown */}
       <Tabs defaultValue="venues" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="venues">{t('revenue.tabs.venues')}</TabsTrigger>
-          <TabsTrigger value="features">{t('revenue.tabs.features')}</TabsTrigger>
-          <TabsTrigger value="timeline">{t('revenue.tabs.timeline')}</TabsTrigger>
-          <TabsTrigger value="commissions">{t('revenue.tabs.commissions')}</TabsTrigger>
+        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4">
+          <TabsTrigger
+            value="venues"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('revenue.tabs.venues')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="features"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('revenue.tabs.features')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="timeline"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('revenue.tabs.timeline')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="commissions"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('revenue.tabs.commissions')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="venues" className="space-y-4">

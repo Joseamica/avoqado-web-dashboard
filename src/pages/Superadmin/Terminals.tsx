@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DataTable from '@/components/data-table'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Smartphone, Plus, Pencil, Trash2, Key, Copy } from 'lucide-react'
+import { Smartphone, Plus, Pencil, Trash2, Key, Copy, Zap } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { terminalAPI, Terminal, isTerminalOnline } from '@/services/superadmin-terminals.service'
 import { getAllVenues } from '@/services/superadmin.service'
 import { useToast } from '@/hooks/use-toast'
@@ -134,6 +135,22 @@ const Terminals: React.FC = () => {
     },
   })
 
+  const remoteActivateMutation = useMutation({
+    mutationFn: terminalAPI.sendRemoteActivation,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['terminals'] })
+      toast({
+        title: `⚡ ${t('toast.remoteActivateSent')}`,
+        description: t('toast.remoteActivateSentDesc'),
+        duration: 5000,
+      })
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || error.message || t('toast.remoteActivateFailed')
+      toast({ title: t('toast.error'), description: message, variant: 'destructive' })
+    },
+  })
+
   const handleSave = async (data: any) => {
     if (selectedTerminal) {
       await updateMutation.mutateAsync({ id: selectedTerminal.id, data })
@@ -161,6 +178,17 @@ const Terminals: React.FC = () => {
   const handleGenerateCode = useCallback(async (terminal: Terminal) => {
     await generateCodeMutation.mutateAsync(terminal.id)
   }, [generateCodeMutation])
+
+  const handleRemoteActivate = useCallback(async (terminal: Terminal) => {
+    if (confirm(t('confirm.remoteActivate'))) {
+      await remoteActivateMutation.mutateAsync(terminal.id)
+    }
+  }, [remoteActivateMutation, t])
+
+  // Helper to check if terminal can be remotely activated
+  const canRemoteActivate = useCallback((terminal: Terminal) => {
+    return !terminal.activatedAt && terminal.serialNumber && terminal.lastHeartbeat
+  }, [])
 
   const filteredTerminals = useMemo(() => terminals.filter(terminal =>
     (terminal.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
@@ -196,12 +224,24 @@ const Terminals: React.FC = () => {
         const terminal = row.original
         const online = isTerminalOnline(terminal.lastHeartbeat)
         const isActive = terminal.status === 'ACTIVE'
+        const isPreregistered = !terminal.activatedAt && terminal.serialNumber && terminal.lastHeartbeat
+        const isPending = !terminal.activatedAt && !terminal.lastHeartbeat
         return (
           <div className="flex items-center gap-2">
-            <Badge variant={isActive && online ? 'default' : 'secondary'}
-                   className={isActive && online ? 'bg-green-500 hover:bg-green-600' : ''}>
-              {isActive && online ? t('status.online') : t('status.offline')}
-            </Badge>
+            {isPreregistered ? (
+              <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-900/20">
+                {t('status.preregistered')}
+              </Badge>
+            ) : isPending ? (
+              <Badge variant="secondary">
+                {t('status.pendingActivation')}
+              </Badge>
+            ) : (
+              <Badge variant={isActive && online ? 'default' : 'secondary'}
+                     className={isActive && online ? 'bg-green-500 hover:bg-green-600' : ''}>
+                {isActive && online ? t('status.online') : t('status.offline')}
+              </Badge>
+            )}
             {terminal.status === 'RETIRED' && <Badge variant="destructive">{t('status.retired')}</Badge>}
           </div>
         )
@@ -227,21 +267,61 @@ const Terminals: React.FC = () => {
     {
       id: 'actions',
       header: t('columns.actions'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => handleEdit(row.original)}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleGenerateCode(row.original)}>
-            <Key className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleDelete(row.original.id)}>
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const terminal = row.original
+        const canActivate = canRemoteActivate(terminal)
+        return (
+          <TooltipProvider>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleEdit(terminal)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Editar</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleGenerateCode(terminal)}>
+                    <Key className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('activationCode.title')}</TooltipContent>
+              </Tooltip>
+              {/* Remote Activate - Only show for pre-registered terminals */}
+              {!terminal.activatedAt && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={canActivate ? 'cursor-pointer text-amber-600 hover:text-amber-700 hover:bg-amber-50' : 'cursor-not-allowed opacity-50'}
+                      onClick={() => canActivate && handleRemoteActivate(terminal)}
+                      disabled={!canActivate}
+                    >
+                      <Zap className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {canActivate ? t('remoteActivate.tooltip') : t('remoteActivate.tooltipDisabled')}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => handleDelete(terminal.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Eliminar</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )
+      },
     },
-  ], [t, venueTimezone, localeCode, handleEdit, handleDelete, handleGenerateCode])
+  ], [t, venueTimezone, localeCode, handleEdit, handleDelete, handleGenerateCode, handleRemoteActivate, canRemoteActivate])
 
   const onlineCount = terminals.filter(t => isTerminalOnline(t.lastHeartbeat)).length
 

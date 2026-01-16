@@ -333,28 +333,28 @@ const ProfitAnalyticsDashboard: React.FC = () => {
 
       {/* Detailed Analysis */}
       <Tabs defaultValue="venues" className="space-y-4">
-        <TabsList className="flex w-full flex-wrap items-center gap-2 rounded-full bg-muted/70 p-1 sm:w-auto">
+        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4 flex-wrap gap-1">
           <TabsTrigger
             value="venues"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-all border-b-0 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/70 data-[state=active]:bg-emerald-600 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
             {t('profitAnalytics.tabs.venues', 'Venue Profitability')}
           </TabsTrigger>
           <TabsTrigger
             value="providers"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-all border-b-0 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/70 data-[state=active]:bg-emerald-600 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
             {t('profitAnalytics.tabs.providers', 'Provider Costs')}
           </TabsTrigger>
           <TabsTrigger
             value="monthly"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-all border-b-0 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/70 data-[state=active]:bg-emerald-600 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
             {t('profitAnalytics.tabs.monthly', 'Monthly Analysis')}
           </TabsTrigger>
           <TabsTrigger
             value="cost-structures"
-            className="rounded-full px-4 py-2 text-sm font-medium transition-all border-b-0 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/70 data-[state=active]:bg-emerald-600 data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm data-[state=active]:border-transparent"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
           >
             {t('profitAnalytics.tabs.costStructures', 'Cost Structures')}
           </TabsTrigger>

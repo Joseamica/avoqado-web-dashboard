@@ -503,6 +503,127 @@ export async function withdrawCreditOffer(offerId: string): Promise<CreditOffer>
   return response.data.data
 }
 
+// ===== VENUE MODULE MANAGEMENT TYPES =====
+
+/**
+ * Backend response type for module status
+ */
+interface ModuleFromBackend {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  defaultConfig: Record<string, any> | null
+  presets: Record<string, any> | null
+  enabled: boolean
+  config: Record<string, any> | null
+  enabledAt: string | null
+}
+
+/**
+ * Frontend type for module display (with inheritance support)
+ */
+export interface ModuleForVenue {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  category: string
+  isCore: boolean
+  // Module status for this venue
+  isEnabled: boolean
+  isInherited: boolean // true if enabled at org level, inherited by venue
+  inheritedFrom: 'organization' | 'venue' | null
+  // Configuration
+  config: Record<string, any> | null
+  organizationConfig: Record<string, any> | null // Config at org level (if inherited)
+  defaultConfig: Record<string, any> | null // Default config from Module definition
+  // Venue-specific override (for display purposes)
+  venueModule: {
+    id: string
+    isEnabled: boolean
+    config: Record<string, any> | null
+    enabledAt: string
+  } | null
+}
+
+// ===== VENUE MODULE MANAGEMENT API FUNCTIONS =====
+
+/**
+ * Get all modules for a venue with their status (enabled/disabled, inherited)
+ * Transforms backend response to frontend expected format
+ */
+export async function getModulesForVenue(venueId: string): Promise<ModuleForVenue[]> {
+  const response = await api.get(`/api/v1/dashboard/superadmin/modules/venues/${venueId}`)
+  const backendModules: ModuleFromBackend[] = response.data.modules
+
+  // Transform backend response to frontend format
+  // Note: Organization-level inheritance not yet implemented in backend
+  // Once implemented, this transformation can be enhanced
+  return backendModules.map((module): ModuleForVenue => ({
+    id: module.id,
+    code: module.code,
+    name: module.name,
+    description: module.description,
+    category: 'custom', // TODO: Add category to backend Module model
+    isCore: false, // TODO: Add isCore to backend Module model
+    isEnabled: module.enabled,
+    isInherited: false, // TODO: Backend should return this based on OrganizationModule
+    inheritedFrom: module.enabled ? 'venue' : null,
+    config: module.config,
+    organizationConfig: null, // TODO: Backend should return OrganizationModule.config
+    defaultConfig: module.defaultConfig,
+    venueModule: module.enabled
+      ? {
+          id: module.id, // VenueModule ID would be different, but we use module ID for now
+          isEnabled: module.enabled,
+          config: module.config,
+          enabledAt: module.enabledAt || new Date().toISOString(),
+        }
+      : null,
+  }))
+}
+
+/**
+ * Enable a module for a venue
+ */
+export async function enableModuleForVenue(
+  venueId: string,
+  moduleCode: string,
+  preset?: string
+): Promise<void> {
+  await api.post('/api/v1/dashboard/superadmin/modules/enable', {
+    venueId,
+    moduleCode,
+    preset,
+  })
+}
+
+/**
+ * Disable a module for a venue
+ */
+export async function disableModuleForVenue(venueId: string, moduleCode: string): Promise<void> {
+  await api.post('/api/v1/dashboard/superadmin/modules/disable', {
+    venueId,
+    moduleCode,
+  })
+}
+
+/**
+ * Update module config for a venue
+ */
+export async function updateVenueModuleConfig(
+  venueId: string,
+  moduleCode: string,
+  config: Record<string, any>
+): Promise<void> {
+  await api.patch('/api/v1/dashboard/superadmin/modules/config', {
+    venueId,
+    moduleCode,
+    config,
+  })
+}
+
 // Convenience API object (canonical import target for components expecting superadminAPI)
 export const superadminAPI = {
   getDashboardData: async (): Promise<SASuperadminDashboardData> => {
@@ -553,5 +674,18 @@ export const superadminAPI = {
   },
   rejectKYC: async (venueId: string, reason: string, rejectedDocuments?: string[]): Promise<void> => {
     await rejectKYC(venueId, reason, rejectedDocuments)
+  },
+  // Venue Module Management
+  getModulesForVenue: async (venueId: string): Promise<ModuleForVenue[]> => {
+    return await getModulesForVenue(venueId)
+  },
+  enableModuleForVenue: async (venueId: string, moduleCode: string, preset?: string): Promise<void> => {
+    await enableModuleForVenue(venueId, moduleCode, preset)
+  },
+  disableModuleForVenue: async (venueId: string, moduleCode: string): Promise<void> => {
+    await disableModuleForVenue(venueId, moduleCode)
+  },
+  updateVenueModuleConfig: async (venueId: string, moduleCode: string, config: Record<string, any>): Promise<void> => {
+    await updateVenueModuleConfig(venueId, moduleCode, config)
   },
 }

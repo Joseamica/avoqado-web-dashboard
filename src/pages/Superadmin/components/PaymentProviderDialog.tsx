@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -19,8 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { type PaymentProvider } from '@/services/paymentProvider.service'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CreditCard, Globe, Wallet, Building2, Store } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PaymentProviderDialogProps {
   open: boolean
@@ -30,22 +31,22 @@ interface PaymentProviderDialogProps {
 }
 
 const PROVIDER_TYPES = [
-  { value: 'PAYMENT_PROCESSOR', label: 'Payment Processor' },
-  { value: 'GATEWAY', label: 'Gateway' },
-  { value: 'WALLET', label: 'Digital Wallet' },
-  { value: 'BANK_DIRECT', label: 'Bank Direct' },
-  { value: 'AGGREGATOR', label: 'Aggregator' },
+  { value: 'PAYMENT_PROCESSOR', label: 'Procesador de Pagos', icon: CreditCard },
+  { value: 'GATEWAY', label: 'Gateway', icon: Globe },
+  { value: 'WALLET', label: 'Billetera Digital', icon: Wallet },
+  { value: 'BANK_DIRECT', label: 'Banco Directo', icon: Building2 },
+  { value: 'AGGREGATOR', label: 'Agregador', icon: Store },
 ]
 
 const COUNTRIES = [
-  { value: 'MX', label: 'Mexico' },
-  { value: 'US', label: 'United States' },
-  { value: 'CA', label: 'Canada' },
-  { value: 'BR', label: 'Brazil' },
-  { value: 'AR', label: 'Argentina' },
-  { value: 'CL', label: 'Chile' },
-  { value: 'CO', label: 'Colombia' },
-  { value: 'PE', label: 'Peru' },
+  { value: 'MX', label: 'México', flag: '🇲🇽' },
+  { value: 'US', label: 'Estados Unidos', flag: '🇺🇸' },
+  { value: 'CA', label: 'Canadá', flag: '🇨🇦' },
+  { value: 'BR', label: 'Brasil', flag: '🇧🇷' },
+  { value: 'AR', label: 'Argentina', flag: '🇦🇷' },
+  { value: 'CL', label: 'Chile', flag: '🇨🇱' },
+  { value: 'CO', label: 'Colombia', flag: '🇨🇴' },
+  { value: 'PE', label: 'Perú', flag: '🇵🇪' },
 ]
 
 export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
@@ -54,8 +55,6 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
   provider,
   onSave,
 }) => {
-  const { t: _t } = useTranslation('superadmin')
-  const { t } = useTranslation('venuePricing')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     code: '',
@@ -107,57 +106,71 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
     }))
   }
 
+  const isEditing = !!provider
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px] bg-background">
+      <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>
-              {provider ? 'Edit Payment Provider' : 'Add Payment Provider'}
-            </DialogTitle>
-            <DialogDescription>
-              {provider
-                ? 'Update payment provider information'
-                : 'Add a new payment provider to the system'}
-            </DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5">
+                <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <DialogTitle>
+                  {isEditing ? 'Editar Proveedor' : 'Nuevo Proveedor de Pago'}
+                </DialogTitle>
+                <DialogDescription>
+                  {isEditing
+                    ? 'Actualiza la información del proveedor de pagos'
+                    : 'Agrega un nuevo proveedor de pagos al sistema'}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-5 py-5">
             {/* Code */}
             <div className="grid gap-2">
               <Label htmlFor="code">
-                Provider Code <span className="text-destructive">*</span>
+                Código del Proveedor <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="code"
                 value={formData.code}
                 onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder={t('providerDialog.codePlaceholder')}
+                placeholder="BLUMON, STRIPE, etc."
                 required
-                disabled={!!provider} // Can't change code after creation
-                className="bg-background border-input"
+                disabled={isEditing}
+                className="bg-background font-mono"
               />
+              {isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  El código no puede ser modificado después de la creación
+                </p>
+              )}
             </div>
 
             {/* Name */}
             <div className="grid gap-2">
               <Label htmlFor="name">
-                Provider Name <span className="text-destructive">*</span>
+                Nombre del Proveedor <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder={t('providerDialog.namePlaceholder')}
+                placeholder="Blumon Payments, Stripe, etc."
                 required
-                className="bg-background border-input"
+                className="bg-background"
               />
             </div>
 
             {/* Type */}
             <div className="grid gap-2">
               <Label htmlFor="type">
-                Provider Type <span className="text-destructive">*</span>
+                Tipo de Proveedor <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={formData.type}
@@ -165,54 +178,81 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
                   setFormData({ ...formData, type: value })
                 }
               >
-                <SelectTrigger className="bg-background border-input">
+                <SelectTrigger className="bg-background cursor-pointer">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVIDER_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
+                  {PROVIDER_TYPES.map(type => {
+                    const Icon = type.icon
+                    return (
+                      <SelectItem key={type.value} value={type.value} className="cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          <span>{type.label}</span>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
 
             {/* Countries */}
             <div className="grid gap-2">
-              <Label>{t('providerDialog.supportedCountries')}</Label>
-              <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-md bg-muted/50">
+              <Label>Países Soportados</Label>
+              <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-muted/30">
                 {COUNTRIES.map(country => (
-                  <div key={country.value} className="flex items-center space-x-2">
+                  <div
+                    key={country.value}
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors',
+                      'hover:bg-muted/50',
+                      formData.countryCode.includes(country.value) && 'bg-primary/10'
+                    )}
+                    onClick={() => toggleCountry(country.value)}
+                  >
                     <Checkbox
                       id={`country-${country.value}`}
                       checked={formData.countryCode.includes(country.value)}
                       onCheckedChange={() => toggleCountry(country.value)}
+                      onClick={e => e.stopPropagation()}
+                      className="cursor-pointer"
                     />
                     <label
                       htmlFor={`country-${country.value}`}
-                      className="text-sm font-medium leading-none cursor-pointer"
+                      className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1.5 flex-1"
                     >
-                      {country.label}
+                      <span>{country.flag}</span>
+                      <span>{country.label}</span>
                     </label>
                   </div>
                 ))}
               </div>
+              {formData.countryCode.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Selecciona al menos un país donde opera este proveedor
+                </p>
+              )}
             </div>
 
             {/* Active */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
+            <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+              <div className="flex-1">
+                <Label htmlFor="active" className="cursor-pointer">
+                  Estado del Proveedor
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formData.active
+                    ? 'El proveedor está disponible para nuevas integraciones'
+                    : 'El proveedor no aparecerá como opción disponible'}
+                </p>
+              </div>
+              <Switch
                 id="active"
                 checked={formData.active}
                 onCheckedChange={(checked: boolean) => setFormData({ ...formData, active: checked })}
+                className="cursor-pointer"
               />
-              <label
-                htmlFor="active"
-                className="text-sm font-medium leading-none cursor-pointer"
-              >
-                Active
-              </label>
             </div>
           </div>
 
@@ -222,12 +262,13 @@ export const PaymentProviderDialog: React.FC<PaymentProviderDialogProps> = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="cursor-pointer"
             >
-              Cancel
+              Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="cursor-pointer">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {provider ? 'Update Provider' : 'Create Provider'}
+              {isEditing ? 'Guardar Cambios' : 'Crear Proveedor'}
             </Button>
           </DialogFooter>
         </form>

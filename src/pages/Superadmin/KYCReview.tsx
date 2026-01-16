@@ -322,11 +322,31 @@ const KYCReview: React.FC = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="documents" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="documents">{t('review.tabs.documents')}</TabsTrigger>
-          <TabsTrigger value="venue">{t('review.tabs.venue')}</TabsTrigger>
-          <TabsTrigger value="owner">{t('review.tabs.owner')}</TabsTrigger>
-          <TabsTrigger value="banking">{t('review.tabs.banking')}</TabsTrigger>
+        <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border mb-4">
+          <TabsTrigger
+            value="documents"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('review.tabs.documents')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="venue"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('review.tabs.venue')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="owner"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('review.tabs.owner')}
+          </TabsTrigger>
+          <TabsTrigger
+            value="banking"
+            className="group rounded-full px-4 py-2 text-sm font-medium transition-colors border border-transparent cursor-pointer hover:bg-muted/80 hover:text-foreground data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:border-foreground"
+          >
+            {t('review.tabs.banking')}
+          </TabsTrigger>
         </TabsList>
 
         {/* Documents Tab */}
