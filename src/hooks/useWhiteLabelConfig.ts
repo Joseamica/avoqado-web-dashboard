@@ -193,6 +193,7 @@ export const FEATURE_ROUTE_MAP: Record<string, string> = {
   'SERIALIZED_STOCK': 'stock',
   'PROMOTERS_AUDIT': 'promoters',
   'STORES_ANALYSIS': 'stores',
+  'MANAGERS_DASHBOARD': 'managers',
   'APPRAISALS': 'appraisals',
   'CONSIGNMENT': 'consignment',
 }

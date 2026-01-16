@@ -74,6 +74,22 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
   return ICON_MAP[iconName] || LayoutDashboard
 }
 
+/**
+ * Map feature codes to sidebar translation keys
+ * This ensures white-label navigation uses translated labels from sidebar.json
+ * instead of hardcoded database labels
+ */
+const FEATURE_CODE_TO_TRANSLATION_KEY: Record<string, string> = {
+  COMMAND_CENTER: 'playtelecom.commandCenter',
+  SERIALIZED_STOCK: 'playtelecom.stock',
+  PROMOTERS_AUDIT: 'playtelecom.promoters',
+  STORES_ANALYSIS: 'playtelecom.stores',
+  MANAGERS_DASHBOARD: 'playtelecom.managers',
+  USERS_MANAGEMENT: 'playtelecom.users',
+  TPV_CONFIGURATION: 'playtelecom.tpvConfig',
+  SALES_DASHBOARD: 'playtelecom.sales',
+}
+
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
   const { allVenues, activeVenue, staffInfo, checkFeatureAccess } = useAuth()
   const { t } = useTranslation(['translation', 'sidebar'])
@@ -86,7 +102,8 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
   const hasKYCAccess = React.useMemo(() => canAccessOperationalFeatures(activeVenue), [activeVenue])
 
   // ========== White-Label Dashboard Mode ==========
-  const { isWhiteLabelEnabled, navigation: wlNavigation } = useWhiteLabelConfig()
+  const { isWhiteLabelEnabled, navigation: wlNavigation, isFeatureEnabled } = useWhiteLabelConfig()
+
   const location = useLocation()
 
   // Detect white-label mode from URL: /wl/:slug/* activates white-label mode
@@ -102,13 +119,32 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     // ========== White-Label Mode: Show only configured dashboard items ==========
     // Uses direct routes (not /wl/) - white-label just filters the sidebar
     if (isWhiteLabelMode && isWhiteLabelEnabled && wlNavigation.length > 0) {
-      const whiteLabelItems = wlNavigation.map(navItem => ({
-        title: navItem.label || navItem.featureCode || 'Untitled',
-        url: getFeatureRoute(navItem.featureCode || ''),
-        icon: getIconComponent(navItem.icon),
-        isActive: true,
-        locked: false,
-      }))
+      // Filter navigation to only show enabled features
+      // Also filter out items without featureCode (legacy data)
+      const enabledNavItems = wlNavigation.filter(navItem => {
+        const featureCode = navItem.featureCode || ''
+
+        // If no featureCode, we can't verify - filter it out
+        if (!featureCode) return false
+
+        return isFeatureEnabled(featureCode)
+      })
+
+      const whiteLabelItems = enabledNavItems.map(navItem => {
+        // Use translation if available for PlayTelecom features, otherwise use database label
+        const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[navItem.featureCode || '']
+        const title = translationKey
+          ? t(`sidebar:${translationKey}`)
+          : (navItem.label || navItem.featureCode || 'Untitled')
+
+        return {
+          title,
+          url: getFeatureRoute(navItem.featureCode || ''),
+          icon: getIconComponent(navItem.icon),
+          isActive: true,
+          locked: false,
+        }
+      })
 
       // Add Settings for white-label mode (always need access to venue settings)
       const settingsSubItems = [
@@ -382,7 +418,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     return filteredItems
-  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, activeVenue, isWhiteLabelMode, isWhiteLabelEnabled, wlNavigation])
+  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, activeVenue, isWhiteLabelMode, isWhiteLabelEnabled, wlNavigation, isFeatureEnabled])
 
   const superAdminRoutes = React.useMemo(
     () => [

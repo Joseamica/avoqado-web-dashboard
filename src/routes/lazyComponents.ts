@@ -88,6 +88,7 @@ export { default as VenuePricing } from '@/pages/Superadmin/VenuePricing'
 export { default as Webhooks } from '@/pages/Superadmin/Webhooks'
 export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment'
 export { default as ModuleManagement } from '@/pages/Superadmin/ModuleManagement'
+export { default as OrganizationManagement } from '@/pages/Superadmin/OrganizationManagement'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))
@@ -137,6 +138,12 @@ export const OrganizationDashboard = lazyWithRetry(() => import('@/pages/Organiz
 export const OrganizationVenues = lazyWithRetry(() => import('@/pages/Organization/OrganizationVenues'))
 export const OrganizationTeam = lazyWithRetry(() => import('@/pages/Organization/OrganizationTeam'))
 export const OrganizationSettings = lazyWithRetry(() => import('@/pages/Organization/OrganizationSettings'))
+
+// White-Label Organization (multi-venue dashboard using orgSlug)
+export const WLOrganizationLayout = lazyWithRetry(() => import('@/pages/organizations/WLOrganizationLayout'))
+export const WLVisionGlobal = lazyWithRetry(() => import('@/pages/organizations/VisionGlobal/VisionGlobal'))
+export const WLTiendasList = lazyWithRetry(() => import('@/pages/organizations/TiendasList/TiendasList'))
+export const WLManagersDashboard = lazyWithRetry(() => import('@/pages/organizations/ManagersDashboard/ManagersDashboard'))
 
 // Reports
 export const PayLaterAging = lazyWithRetry(() => import('@/pages/Reports/PayLaterAging'))

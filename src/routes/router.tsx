@@ -2,78 +2,36 @@
 
 import { ComingSoon } from '@/components/ComingSoon'
 import { StaffRole } from '@/types'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 
 import {
   AcceptAdminInvitation,
-  Account,
   AdminDashboard,
   AnalyticsLayout,
   AnalyticsOverview,
-  AvailableBalance,
-  BasicInfo,
-  BillingHistory,
-  BillingLayout,
-  BillingPaymentMethods,
-  BillingSubscriptions,
-  BillingTokens,
-  Categories,
-  CategoryId,
-  CommissionConfigDetailPage,
-  CommissionsPage,
-  ContactImages,
   CostStructures,
-  CouponForm,
-  Coupons,
-  CreateCategory,
-  CreateMenu,
-  CreateModifierGroup,
-  CreateProduct,
   CreditAssessment,
-  CustomerDetail,
-  CustomerGroups,
-  Customers,
   Dashboard,
-  DiscountDetail,
-  DiscountForm,
-  Discounts,
   EcommerceMerchants,
   EmailVerification,
   ErrorPage,
   ForgotPassword,
   GlobalConfig,
-  GoogleIntegration,
   GoogleOAuthCallback,
-  Home,
-  InventoryLayout,
   InviteAccept,
   KYCReview,
   Login,
-  LoyaltySettings,
-  MenuId,
-  MenuMakerLayout,
-  MenuOverview,
-  Menus,
   MerchantAccounts,
-  ModifierGroupId,
-  ModifierGroups,
-  ModifierInventory,
   ModuleManagement,
-  NotificationPreferences,
-  Notifications,
+  OrganizationManagement,
   OnboardingWizard,
-  OrderId,
-  Orders,
   OrganizationDashboard,
   OrganizationLayout,
   OrganizationSettings,
   OrganizationTeam,
   OrganizationVenues,
-  PayLaterAging,
   PaymentAnalytics,
-  PaymentId,
   PaymentProviders,
-  Payments,
   PlayTelecomCommandCenter,
   // PlayTelecom (Serialized Inventory Dashboard)
   PlayTelecomLayout,
@@ -84,26 +42,13 @@ import {
   PlayTelecomStores,
   PlayTelecomTpvConfig,
   PlayTelecomUsers,
-  Pricing,
   Privacy,
-  ProductId,
-  Products,
-  ProductStock,
   ProfitAnalyticsDashboard,
-  RawMaterials,
   ReceiptViewer,
-  Recipes,
   ResetPassword,
   RevenueDashboard,
-  Reviews,
-  RolePermissions,
-  SalesByItem,
-  SalesSummary,
   SerializedSalesDemo,
   SettlementConfigurations,
-  // WaiterId,
-  ShiftId,
-  Shifts,
   Signup,
   SuperadminDashboard,
   SuperadminFeatureManagement,
@@ -112,37 +57,34 @@ import {
   SuperAdminVenueEdit,
   SuperadminVenueManagement,
   SystemSettings,
-  TeamId,
-  Teams,
   Terminals,
   Terms,
   TestingPayments,
-  Tpv,
-  TpvId,
   UserManagement,
-  VenueDocuments,
-  VenueEditLayout,
-  VenueIntegrations,
   VenueManagement,
   VenueMerchantAccounts,
   VenuePaymentConfig,
   VenuePricing,
   Venues,
   Webhooks,
+  // White-Label Organization pages
+  WLOrganizationLayout,
+  WLVisionGlobal,
+  WLTiendasList,
+  WLManagersDashboard,
 } from './lazyComponents'
 
 import Root from '@/root'
 import { EmailVerifiedRoute } from './EmailVerifiedRoute'
 import { ProtectedRoute } from './ProtectedRoute'
+import { createVenueRoutes } from './venueRoutes'
 
 import { Layout } from '@/Layout'
 import { KYCSetupRequired } from '@/pages/KYCSetupRequired'
 import { AdminAccessLevel, AdminProtectedRoute } from './AdminProtectedRoute'
-import { KYCProtectedRoute } from './KYCProtectedRoute'
 import { ManagerProtectedRoute } from './ManagerProtectedRoute'
 import { ModuleProtectedRoute } from './ModuleProtectedRoute'
 import { OwnerProtectedRoute } from './OwnerProtectedRoute'
-import { PermissionProtectedRoute } from './PermissionProtectedRoute'
 import { SuperProtectedRoute } from './SuperProtectedRoute'
 
 const router = createBrowserRouter(
@@ -403,6 +345,10 @@ const router = createBrowserRouter(
                       path: 'modules',
                       element: <ModuleManagement />,
                     },
+                    {
+                      path: 'organizations',
+                      element: <OrganizationManagement />,
+                    },
                   ],
                 },
               ],
@@ -433,175 +379,21 @@ const router = createBrowserRouter(
               errorElement: <ErrorPage />,
               children: [
                 // KYC Setup Required Page (shown when KYC verification is needed)
-                {
-                  path: 'kyc-required',
-                  element: <KYCSetupRequired />,
-                },
+                { path: 'kyc-required', element: <KYCSetupRequired /> },
 
-                // Home Dashboard (requires home:read permission)
-                {
-                  element: <PermissionProtectedRoute permission="home:read" />,
-                  children: [
-                    { index: true, element: <Home /> },
-                    { path: 'home', element: <Home /> },
-                  ],
-                },
-                { path: 'account', element: <Account /> },
+                // ========== SHARED ROUTES (from createVenueRoutes) ==========
+                // These routes are shared with /wl/:slug
+                ...createVenueRoutes(),
 
-                // Menu Management (requires menu:read permission)
-                {
-                  path: 'menumaker',
-                  element: <PermissionProtectedRoute permission="menu:read" />,
-                  children: [
-                    {
-                      element: <MenuMakerLayout />,
-                      children: [
-                        {
-                          index: true,
-                          element: <MenuOverview />,
-                        },
-                        {
-                          path: 'overview',
-                          element: <MenuOverview />,
-                        },
-                        {
-                          path: 'menus',
-                          element: <Menus />,
-                        },
-                        {
-                          path: 'menus/:menuId',
-                          element: <MenuId />,
-                        },
-                        {
-                          path: 'menus/create',
-                          element: <CreateMenu />,
-                        },
-                        {
-                          path: 'categories',
-                          element: <Categories />,
-                        },
-                        {
-                          path: 'categories/:categoryId',
-                          element: <CategoryId />,
-                        },
-                        {
-                          path: 'categories/create',
-                          element: <CreateCategory />,
-                        },
-                        { path: 'products', element: <Products /> },
-                        {
-                          path: 'products/:productId',
-                          element: <ProductId />,
-                        },
-                        {
-                          path: 'products/create',
-                          element: <CreateProduct />,
-                        },
-                        { path: 'modifier-groups', element: <ModifierGroups /> },
-                        {
-                          path: 'modifier-groups/:modifierGroupId',
-                          element: <ModifierGroupId />,
-                        },
-                        {
-                          path: 'modifier-groups/create',
-                          element: <CreateModifierGroup />,
-                        },
-                      ],
-                    },
-                  ],
-                },
-
-                // Shifts Management (requires shifts:read permission + KYC verification)
-                {
-                  element: <PermissionProtectedRoute permission="shifts:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        { path: 'shifts', element: <Shifts /> },
-                        { path: 'shifts/:shiftId', element: <ShiftId /> },
-                      ],
-                    },
-                  ],
-                },
-
-                // Payments (requires payments:read permission + KYC verification)
-                {
-                  element: <PermissionProtectedRoute permission="payments:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        { path: 'payments', element: <Payments /> },
-                        { path: 'payments/:paymentId', element: <PaymentId /> },
-                      ],
-                    },
-                  ],
-                },
-
+                // ========== VENUE-ONLY ROUTES ==========
                 // Public receipts (no permission required)
                 { path: 'receipts/:receiptId', element: <ReceiptViewer /> },
 
-                // Orders (requires orders:read permission + KYC verification)
-                {
-                  element: <PermissionProtectedRoute permission="orders:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        { path: 'orders', element: <Orders /> },
-                        { path: 'orders/:orderId', element: <OrderId /> },
-                      ],
-                    },
-                  ],
-                },
-                // Analytics nested under venue for dashboard context
-                // Requires MANAGER+ or VIEWER role + KYC verification
-                {
-                  path: 'analytics',
-                  element: <ManagerProtectedRoute allowViewer={true} />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        {
-                          element: <AnalyticsLayout />,
-                          children: [{ index: true, element: <AnalyticsOverview /> }],
-                        },
-                      ],
-                    },
-                  ],
-                },
-                // Reports (requires specific report permissions + KYC verification)
-                {
-                  path: 'reports/pay-later-aging',
-                  element: <PermissionProtectedRoute permission="tpv-reports:pay-later-aging" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [{ index: true, element: <PayLaterAging /> }],
-                    },
-                  ],
-                },
-                // Sales Summary Report (requires KYC verification)
-                {
-                  path: 'reports/sales-summary',
-                  element: <KYCProtectedRoute />,
-                  children: [{ index: true, element: <SalesSummary /> }],
-                },
-                // Sales by Item Report (requires KYC verification)
-                {
-                  path: 'reports/sales-by-item',
-                  element: <KYCProtectedRoute />,
-                  children: [{ index: true, element: <SalesByItem /> }],
-                },
-
                 // Demo: Serialized Inventory Sales (hidden route - temporary)
-                // Access via /venues/:slug/serialized-sales-demo
                 { path: 'serialized-sales-demo', element: <SerializedSalesDemo /> },
 
                 // PlayTelecom Dashboard (requires SERIALIZED_INVENTORY module)
-                // This section provides a custom dashboard for venues selling serialized products (SIMs, etc.)
+                // Custom dashboard for venues selling serialized products (SIMs, etc.)
                 {
                   path: 'playtelecom',
                   element: <ModuleProtectedRoute requiredModule="SERIALIZED_INVENTORY" />,
@@ -609,13 +401,9 @@ const router = createBrowserRouter(
                     {
                       element: <PlayTelecomLayout />,
                       children: [
-                        // Command Center - Dashboard principal (todos los roles)
                         { index: true, element: <PlayTelecomCommandCenter /> },
-                        // Stock Control - Inventario serializado (todos los roles, lectura)
                         { path: 'stock', element: <PlayTelecomStock /> },
-                        // Sales Report - Reporte de ventas (todos los roles)
                         { path: 'sales', element: <PlayTelecomSales /> },
-                        // Stores Analysis - Solo MANAGER+ (tiendas asignadas)
                         {
                           path: 'stores',
                           element: (
@@ -626,7 +414,6 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomStores /> }],
                         },
-                        // Promoters Audit - Solo MANAGER+ (promotores asignados)
                         {
                           path: 'promoters',
                           element: (
@@ -637,7 +424,6 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomPromoters /> }],
                         },
-                        // Managers Dashboard - Solo ADMIN+ (supervisión gerentes)
                         {
                           path: 'managers',
                           element: (
@@ -648,7 +434,6 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomManagers /> }],
                         },
-                        // Users Management - Solo ADMIN+ (gestión usuarios)
                         {
                           path: 'users',
                           element: (
@@ -659,7 +444,6 @@ const router = createBrowserRouter(
                           ),
                           children: [{ index: true, element: <PlayTelecomUsers /> }],
                         },
-                        // TPV Configuration - Solo ADMIN+ (categorías TPV)
                         {
                           path: 'tpv-config',
                           element: (
@@ -675,9 +459,7 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // White-Label Module-Specific Features
-                // Direct routes for features enabled via WHITE_LABEL_DASHBOARD module
-                // These use existing components but are accessed via direct routes (not /wl/)
+                // White-Label Module-Specific Features (accessed via /venues/:slug)
                 {
                   path: 'command-center',
                   element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
@@ -709,39 +491,7 @@ const router = createBrowserRouter(
                   children: [{ index: true, element: <PlayTelecomStores /> }],
                 },
 
-                // Available Balance (requires settlements:read permission + KYC verification)
-                {
-                  element: <PermissionProtectedRoute permission="settlements:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [{ path: 'available-balance', element: <AvailableBalance /> }],
-                    },
-                  ],
-                },
-                {
-                  path: 'edit',
-                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [
-                    {
-                      element: <VenueEditLayout />,
-                      children: [
-                        { index: true, element: <Navigate to="basic-info" replace /> }, // Redirect to basic-info by default
-                        { path: 'basic-info', element: <BasicInfo /> }, // New: Information básica
-                        { path: 'contact-images', element: <ContactImages /> }, // New: Contacto e imágenes
-                        { path: 'general', element: <Navigate to="../basic-info" replace /> }, // Legacy redirect
-                        { path: 'documents', element: <VenueDocuments /> },
-                        {
-                          path: 'integrations',
-                          children: [
-                            { index: true, element: <VenueIntegrations /> },
-                            { path: 'google', element: <GoogleIntegration /> },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
+                // Superadmin-only routes
                 {
                   element: <AdminProtectedRoute requiredRole={AdminAccessLevel.SUPERADMIN} />,
                   children: [
@@ -751,177 +501,7 @@ const router = createBrowserRouter(
                   ],
                 },
 
-                // TPV Management (requires tpv:read permission + KYC verification)
-                {
-                  element: <PermissionProtectedRoute permission="tpv:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        { path: 'tpv', element: <Tpv /> },
-                        { path: 'tpv/:tpvId', element: <TpvId /> },
-                      ],
-                    },
-                  ],
-                },
-
-                // Reviews (requires reviews:read permission)
-                {
-                  element: <PermissionProtectedRoute permission="reviews:read" />,
-                  children: [{ path: 'reviews', element: <Reviews /> }],
-                },
-
-                // { path: 'waiters', element: <Waiters /> },
-                // { path: 'waiters/:waiterId', element: <WaiterId /> },
-
-                // Team Management (requires teams:read permission)
-                {
-                  path: 'team',
-                  element: <PermissionProtectedRoute permission="teams:read" />,
-                  children: [
-                    { index: true, element: <Teams /> },
-                    { path: ':memberId', element: <TeamId /> },
-                  ],
-                },
-
-                // Commission Management (requires commissions:read permission)
-                {
-                  path: 'commissions',
-                  element: <PermissionProtectedRoute permission="commissions:read" />,
-                  children: [
-                    {
-                      element: <KYCProtectedRoute />,
-                      children: [
-                        { index: true, element: <CommissionsPage /> },
-                        { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
-                      ],
-                    },
-                  ],
-                },
-
-                // Customer Management (requires customers:read permission)
-                {
-                  path: 'customers',
-                  element: <PermissionProtectedRoute permission="customers:read" />,
-                  children: [
-                    { index: true, element: <Customers /> },
-                    { path: 'groups', element: <CustomerGroups /> },
-                    { path: ':customerId', element: <CustomerDetail /> },
-                  ],
-                },
-
-                // Loyalty Settings (requires loyalty:read permission)
-                {
-                  path: 'loyalty',
-                  element: <PermissionProtectedRoute permission="loyalty:read" />,
-                  children: [{ index: true, element: <LoyaltySettings /> }],
-                },
-
-                // Promotions - Discounts (requires discounts:read permission)
-                {
-                  path: 'promotions/discounts',
-                  element: <PermissionProtectedRoute permission="discounts:read" />,
-                  children: [
-                    { index: true, element: <Discounts /> },
-                    { path: 'create', element: <DiscountForm /> },
-                    { path: ':discountId', element: <DiscountDetail /> },
-                  ],
-                },
-
-                // Promotions - Coupons (requires coupons:read permission)
-                {
-                  path: 'promotions/coupons',
-                  element: <PermissionProtectedRoute permission="coupons:read" />,
-                  children: [
-                    { index: true, element: <Coupons /> },
-                    { path: 'create', element: <CouponForm /> },
-                    { path: ':couponId', element: <CouponForm /> },
-                  ],
-                },
-
-                { path: 'notifications', element: <Notifications /> },
-                { path: 'notifications/preferences', element: <NotificationPreferences /> },
-
-                // Role Permissions Management (OWNER and ADMIN only)
-                {
-                  path: 'settings/role-permissions',
-                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [
-                    {
-                      index: true,
-                      element: <RolePermissions />,
-                    },
-                  ],
-                },
-
-                // Billing Management (requires billing:read permission + ADMIN role)
-                {
-                  path: 'settings/billing',
-                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [
-                    {
-                      element: <PermissionProtectedRoute permission="billing:read" />,
-                      children: [
-                        {
-                          element: <BillingLayout />,
-                          children: [
-                            { index: true, element: <Navigate to="subscriptions" replace /> },
-                            {
-                              path: 'subscriptions',
-                              element: <PermissionProtectedRoute permission="billing:subscriptions:read" />,
-                              children: [{ index: true, element: <BillingSubscriptions /> }],
-                            },
-                            {
-                              path: 'history',
-                              element: <PermissionProtectedRoute permission="billing:history:read" />,
-                              children: [{ index: true, element: <BillingHistory /> }],
-                            },
-                            {
-                              path: 'payment-methods',
-                              element: <PermissionProtectedRoute permission="billing:payment-methods:read" />,
-                              children: [{ index: true, element: <BillingPaymentMethods /> }],
-                            },
-                            {
-                              path: 'tokens',
-                              element: <PermissionProtectedRoute permission="billing:tokens:read" />,
-                              children: [{ index: true, element: <BillingTokens /> }],
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-
-                // Inventory Management (ADMIN access + inventory:read permission + KYC verification)
-                {
-                  path: 'inventory',
-                  element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                  children: [
-                    {
-                      element: <PermissionProtectedRoute permission="inventory:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            {
-                              element: <InventoryLayout />,
-                              children: [
-                                { path: 'raw-materials', element: <RawMaterials /> },
-                                { path: 'product-stock', element: <ProductStock /> },
-                                { path: 'recipes', element: <Recipes /> },
-                                { path: 'pricing', element: <Pricing /> },
-                                { path: 'modifiers', element: <ModifierInventory /> },
-                              ],
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-
-                // Esta sección pasa a ser parte del nuevo panel de administración
+                // Legacy superadmin route
                 {
                   path: 'superadmin',
                   element: <SuperProtectedRoute allowedRoles={[StaffRole.OWNER]} />,
@@ -936,140 +516,48 @@ const router = createBrowserRouter(
             },
 
             // ========================================================
-            // WHITE-LABEL DASHBOARD ROUTES (/wl/:slug)
-            // These routes mirror /venues/:slug but with white-label mode active
-            // The sidebar detects /wl/ in URL and shows only configured features
-            // All child routes work the same as /venues/:slug
+            // WHITE-LABEL ORGANIZATION ROUTES (/wl/organizations/:orgSlug)
+            // Organization-level dashboard for multi-venue management
+            // Uses orgSlug for URL-friendly routing
             // ========================================================
             {
-              path: '/wl/:slug',
+              path: '/wl/organizations/:orgSlug',
+              element: <OwnerProtectedRoute />,
+              errorElement: <ErrorPage />,
+              children: [
+                {
+                  element: <WLOrganizationLayout />,
+                  children: [
+                    { index: true, element: <WLVisionGlobal /> },
+                    { path: 'venues', element: <WLTiendasList /> },
+                    { path: 'managers', element: <WLManagersDashboard /> },
+                    { path: 'reports', element: <ComingSoon feature="Cross-Store Reports" /> },
+                  ],
+                },
+              ],
+            },
+
+            // ========================================================
+            // WHITE-LABEL VENUE ROUTES (/wl/venues/:slug)
+            // Venue-level dashboard with white-label mode active
+            // Uses venue slug for URL routing
+            // ========================================================
+            {
+              path: '/wl/venues/:slug',
               element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
               errorElement: <ErrorPage />,
               children: [
                 {
                   element: <Dashboard />,
                   children: [
-                    // Home Dashboard (requires home:read permission)
-                    {
-                      element: <PermissionProtectedRoute permission="home:read" />,
-                      children: [
-                        { index: true, element: <Home /> },
-                        { path: 'home', element: <Home /> },
-                      ],
-                    },
-                    { path: 'account', element: <Account /> },
+                    // ========== SHARED ROUTES (from createVenueRoutes) ==========
+                    ...createVenueRoutes(),
 
-                    // Menu Management
-                    {
-                      path: 'menumaker',
-                      element: <PermissionProtectedRoute permission="menu:read" />,
-                      children: [
-                        {
-                          element: <MenuMakerLayout />,
-                          children: [
-                            { index: true, element: <MenuOverview /> },
-                            { path: 'overview', element: <MenuOverview /> },
-                            { path: 'menus', element: <Menus /> },
-                            { path: 'menus/:menuId', element: <MenuId /> },
-                            { path: 'menus/create', element: <CreateMenu /> },
-                            { path: 'categories', element: <Categories /> },
-                            { path: 'categories/:categoryId', element: <CategoryId /> },
-                            { path: 'categories/create', element: <CreateCategory /> },
-                            { path: 'products', element: <Products /> },
-                            { path: 'products/:productId', element: <ProductId /> },
-                            { path: 'products/create', element: <CreateProduct /> },
-                            { path: 'modifier-groups', element: <ModifierGroups /> },
-                            { path: 'modifier-groups/:modifierGroupId', element: <ModifierGroupId /> },
-                            { path: 'modifier-groups/create', element: <CreateModifierGroup /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Shifts Management
-                    {
-                      element: <PermissionProtectedRoute permission="shifts:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { path: 'shifts', element: <Shifts /> },
-                            { path: 'shifts/:shiftId', element: <ShiftId /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Payments
-                    {
-                      element: <PermissionProtectedRoute permission="payments:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { path: 'payments', element: <Payments /> },
-                            { path: 'payments/:paymentId', element: <PaymentId /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Orders
-                    {
-                      element: <PermissionProtectedRoute permission="orders:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { path: 'orders', element: <Orders /> },
-                            { path: 'orders/:orderId', element: <OrderId /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Analytics
-                    {
-                      path: 'analytics',
-                      element: <ManagerProtectedRoute allowViewer={true} />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            {
-                              element: <AnalyticsLayout />,
-                              children: [{ index: true, element: <AnalyticsOverview /> }],
-                            },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Reports
-                    {
-                      path: 'reports/pay-later-aging',
-                      element: <PermissionProtectedRoute permission="tpv-reports:pay-later-aging" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [{ index: true, element: <PayLaterAging /> }],
-                        },
-                      ],
-                    },
-                    {
-                      path: 'reports/sales-summary',
-                      element: <KYCProtectedRoute />,
-                      children: [{ index: true, element: <SalesSummary /> }],
-                    },
-                    {
-                      path: 'reports/sales-by-item',
-                      element: <KYCProtectedRoute />,
-                      children: [{ index: true, element: <SalesByItem /> }],
-                    },
-
-                    // Module-Specific Features (Command Center, Stock, etc.)
+                    // ========== WHITE-LABEL SPECIFIC ROUTES ==========
+                    // Parent already requires WHITE_LABEL_DASHBOARD module
                     { path: 'command-center', element: <PlayTelecomCommandCenter /> },
                     { path: 'stock', element: <PlayTelecomStock /> },
+                    { path: 'sales', element: <PlayTelecomSales /> },
                     {
                       path: 'promoters',
                       element: (
@@ -1090,200 +578,111 @@ const router = createBrowserRouter(
                       ),
                       children: [{ index: true, element: <PlayTelecomStores /> }],
                     },
-
-                    // Available Balance
                     {
-                      element: <PermissionProtectedRoute permission="settlements:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [{ path: 'available-balance', element: <AvailableBalance /> }],
-                        },
-                      ],
-                    },
-
-                    // Venue Edit
-                    {
-                      path: 'edit',
-                      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                      children: [
-                        {
-                          element: <VenueEditLayout />,
-                          children: [
-                            { index: true, element: <Navigate to="basic-info" replace /> },
-                            { path: 'basic-info', element: <BasicInfo /> },
-                            { path: 'contact-images', element: <ContactImages /> },
-                            { path: 'general', element: <Navigate to="../basic-info" replace /> },
-                            { path: 'documents', element: <VenueDocuments /> },
-                            {
-                              path: 'integrations',
-                              children: [
-                                { index: true, element: <VenueIntegrations /> },
-                                { path: 'google', element: <GoogleIntegration /> },
-                              ],
-                            },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // TPV Management
-                    {
-                      element: <PermissionProtectedRoute permission="tpv:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { path: 'tpv', element: <Tpv /> },
-                            { path: 'tpv/:tpvId', element: <TpvId /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Reviews
-                    {
-                      element: <PermissionProtectedRoute permission="reviews:read" />,
-                      children: [{ path: 'reviews', element: <Reviews /> }],
-                    },
-
-                    // Team Management
-                    {
-                      path: 'team',
-                      element: <PermissionProtectedRoute permission="teams:read" />,
-                      children: [
-                        { index: true, element: <Teams /> },
-                        { path: ':memberId', element: <TeamId /> },
-                      ],
-                    },
-
-                    // Commissions
-                    {
-                      path: 'commissions',
-                      element: <PermissionProtectedRoute permission="commissions:read" />,
-                      children: [
-                        {
-                          element: <KYCProtectedRoute />,
-                          children: [
-                            { index: true, element: <CommissionsPage /> },
-                            { path: 'config/:configId', element: <CommissionConfigDetailPage /> },
-                          ],
-                        },
-                      ],
-                    },
-
-                    // Customer Management
-                    {
-                      path: 'customers',
-                      element: <PermissionProtectedRoute permission="customers:read" />,
-                      children: [
-                        { index: true, element: <Customers /> },
-                        { path: 'groups', element: <CustomerGroups /> },
-                        { path: ':customerId', element: <CustomerDetail /> },
-                      ],
-                    },
-
-                    // Loyalty
-                    {
-                      path: 'loyalty',
-                      element: <PermissionProtectedRoute permission="loyalty:read" />,
-                      children: [{ index: true, element: <LoyaltySettings /> }],
-                    },
-
-                    // Promotions
-                    {
-                      path: 'promotions/discounts',
-                      element: <PermissionProtectedRoute permission="discounts:read" />,
-                      children: [
-                        { index: true, element: <Discounts /> },
-                        { path: 'create', element: <DiscountForm /> },
-                        { path: ':discountId', element: <DiscountDetail /> },
-                      ],
+                      path: 'managers',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomManagers /> }],
                     },
                     {
-                      path: 'promotions/coupons',
-                      element: <PermissionProtectedRoute permission="coupons:read" />,
-                      children: [
-                        { index: true, element: <Coupons /> },
-                        { path: 'create', element: <CouponForm /> },
-                        { path: ':couponId', element: <CouponForm /> },
-                      ],
-                    },
-
-                    // Notifications
-                    { path: 'notifications', element: <Notifications /> },
-                    { path: 'notifications/preferences', element: <NotificationPreferences /> },
-
-                    // Settings
-                    {
-                      path: 'settings/role-permissions',
-                      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                      children: [{ index: true, element: <RolePermissions /> }],
+                      path: 'users',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomUsers /> }],
                     },
                     {
-                      path: 'settings/billing',
-                      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                      children: [
-                        {
-                          element: <PermissionProtectedRoute permission="billing:read" />,
-                          children: [
-                            {
-                              element: <BillingLayout />,
-                              children: [
-                                { index: true, element: <Navigate to="subscriptions" replace /> },
-                                {
-                                  path: 'subscriptions',
-                                  element: <PermissionProtectedRoute permission="billing:subscriptions:read" />,
-                                  children: [{ index: true, element: <BillingSubscriptions /> }],
-                                },
-                                {
-                                  path: 'history',
-                                  element: <PermissionProtectedRoute permission="billing:history:read" />,
-                                  children: [{ index: true, element: <BillingHistory /> }],
-                                },
-                                {
-                                  path: 'payment-methods',
-                                  element: <PermissionProtectedRoute permission="billing:payment-methods:read" />,
-                                  children: [{ index: true, element: <BillingPaymentMethods /> }],
-                                },
-                                {
-                                  path: 'tokens',
-                                  element: <PermissionProtectedRoute permission="billing:tokens:read" />,
-                                  children: [{ index: true, element: <BillingTokens /> }],
-                                },
-                              ],
-                            },
-                          ],
-                        },
-                      ],
+                      path: 'tpv-config',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
                     },
+                  ],
+                },
+              ],
+            },
 
-                    // Inventory
+            // ========================================================
+            // LEGACY WHITE-LABEL ROUTES (/wl/:slug)
+            // DEPRECATED: Use /wl/venues/:slug instead
+            // Kept for backwards compatibility
+            // ========================================================
+            {
+              path: '/wl/:slug',
+              element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
+              errorElement: <ErrorPage />,
+              children: [
+                {
+                  element: <Dashboard />,
+                  children: [
+                    // ========== SHARED ROUTES (from createVenueRoutes) ==========
+                    ...createVenueRoutes(),
+
+                    // ========== WHITE-LABEL SPECIFIC ROUTES ==========
+                    // Parent already requires WHITE_LABEL_DASHBOARD module
+                    { path: 'command-center', element: <PlayTelecomCommandCenter /> },
+                    { path: 'stock', element: <PlayTelecomStock /> },
+                    { path: 'sales', element: <PlayTelecomSales /> },
                     {
-                      path: 'inventory',
-                      element: <AdminProtectedRoute requiredRole={AdminAccessLevel.ADMIN} />,
-                      children: [
-                        {
-                          element: <PermissionProtectedRoute permission="inventory:read" />,
-                          children: [
-                            {
-                              element: <KYCProtectedRoute />,
-                              children: [
-                                {
-                                  element: <InventoryLayout />,
-                                  children: [
-                                    { path: 'raw-materials', element: <RawMaterials /> },
-                                    { path: 'product-stock', element: <ProductStock /> },
-                                    { path: 'recipes', element: <Recipes /> },
-                                    { path: 'pricing', element: <Pricing /> },
-                                    { path: 'modifiers', element: <ModifierInventory /> },
-                                  ],
-                                },
-                              ],
-                            },
-                          ],
-                        },
-                      ],
+                      path: 'promoters',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomPromoters /> }],
+                    },
+                    {
+                      path: 'stores',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomStores /> }],
+                    },
+                    {
+                      path: 'managers',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomManagers /> }],
+                    },
+                    {
+                      path: 'users',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomUsers /> }],
+                    },
+                    {
+                      path: 'tpv-config',
+                      element: (
+                        <ModuleProtectedRoute
+                          requiredModule="WHITE_LABEL_DASHBOARD"
+                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
+                        />
+                      ),
+                      children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
                     },
                   ],
                 },

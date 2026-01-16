@@ -162,7 +162,10 @@ function DashboardContent() {
       // Redirigir al último venue válido en 500ms para dar tiempo de procesamiento
       setTimeout(() => {
         const currentPath = location.pathname
-        const newPath = currentPath.replace(/venues\/[^/]+/, `venues/${lastAccessibleVenueSlug}`)
+        // Handle both /venues/:slug and /wl/:slug routes
+        const newPath = currentPath.startsWith('/wl/')
+          ? currentPath.replace(/wl\/[^/]+/, `wl/${lastAccessibleVenueSlug}`)
+          : currentPath.replace(/venues\/[^/]+/, `venues/${lastAccessibleVenueSlug}`)
         navigate(newPath, { replace: true })
       }, 100)
 
@@ -190,10 +193,14 @@ function DashboardContent() {
     )
   }
 
+  // Determine the route prefix based on current location
+  const isWhiteLabelRoute = location.pathname.startsWith('/wl/')
+  const routePrefix = isWhiteLabelRoute ? '/wl' : '/venues'
+
   const pathSegments = location.pathname
     .split('/')
     .filter(segment => segment)
-    .slice(1) // Remover 'venues' del inicio
+    .slice(1) // Remover 'venues' o 'wl' del inicio
 
   // Get the display name for a path segment
   const getDisplayName = (segment: string, index: number): string => {
@@ -250,7 +257,7 @@ function DashboardContent() {
               <BreadcrumbList>
                 {pathSegments.map((segment, index) => {
                   const isLast = index === pathSegments.length - 1
-                  const linkPath = `/venues/${pathSegments.slice(0, index + 1).join('/')}`
+                  const linkPath = `${routePrefix}/${pathSegments.slice(0, index + 1).join('/')}`
                   const displayName = getDisplayName(segment, index)
 
                   return (
@@ -292,7 +299,7 @@ function DashboardContent() {
         {/* Trial Status Banner - show for non-demo venues with active feature trials */}
         {venue?.status !== 'TRIAL' && venue?.status !== 'LIVE_DEMO' && <TrialStatusBanner />}
 
-        <div className="flex flex-col flex-1 gap-4">
+        <div className="flex flex-col flex-1 gap-4 p-4">
           {/* Main Content */}
           <div className={`flex-1 rounded-xl bg-background transition-colors duration-200`}>
             <Outlet />

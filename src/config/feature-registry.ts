@@ -893,6 +893,51 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     },
   },
 
+  MANAGERS_DASHBOARD: {
+    code: 'MANAGERS_DASHBOARD',
+    name: 'Gerentes',
+    description: 'Dashboard de gerentes con métricas de desempeño, metas y equipos supervisados',
+    category: 'team',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Managers/ManagersDashboard',
+    },
+
+    routes: [
+      { path: 'managers', element: 'ManagersDashboard', roles: [StaffRole.ADMIN, StaffRole.OWNER] },
+    ],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        showGoalProgress: {
+          type: 'boolean',
+          default: true,
+          title: 'Mostrar progreso de metas',
+          description: 'Mostrar barras de progreso hacia metas mensuales',
+        },
+        showTeamHealth: {
+          type: 'boolean',
+          default: true,
+          title: 'Mostrar salud del equipo',
+          description: 'Mostrar métricas de productividad del equipo',
+        },
+        enableGoalSetting: {
+          type: 'boolean',
+          default: true,
+          title: 'Permitir establecer metas',
+          description: 'Permitir a administradores establecer metas para gerentes',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Gerentes',
+      icon: 'UserCog',
+    },
+  },
+
   // ============================================
   // MODULE SPECIFIC: JEWELRY
   // Features for jewelry businesses
