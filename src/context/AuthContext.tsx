@@ -295,11 +295,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // --- MUTACIONES ---
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginData) => authService.login(credentials),
-    onSuccess: () => {
+    onSuccess: async () => {
+      console.log('[AUTH] ✅ Login successful - showing toast')
       toast({ title: t('toast.login_success') })
-      // Use refetchQueries instead of invalidateQueries to force immediate data fetch
-      // This helps prevent race conditions on mobile where redirect fires before new auth state arrives
-      queryClient.refetchQueries({ queryKey: ['status'] })
+      console.log('[AUTH] 🔄 Refetching auth status...')
+      // CRITICAL FIX: AWAIT refetchQueries to ensure auth state updates before redirect
+      // This prevents race conditions on mobile where redirect fires before new auth state arrives
+      // Without await, isLoading stays true in mobile and blocks navigation
+      await queryClient.refetchQueries({ queryKey: ['status'] })
+      console.log('[AUTH] ✅ Auth status refetch complete')
       setLoginError(null) // Clear any previous login errors
     },
     onError: (error: any, variables) => {
@@ -369,6 +373,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoginError(errorMessage || t('toast.login_error_desc'))
     },
   })
+
+  // Debug logging for mobile troubleshooting
+  useEffect(() => {
+    console.log('[AUTH] State update:', {
+      isAuthenticated,
+      isStatusLoading,
+      hasUser: !!user,
+      loginPending: loginMutation.isPending,
+    })
+  }, [isAuthenticated, isStatusLoading, user, loginMutation.isPending])
 
   const signupMutation = useMutation({
     mutationFn: (signupData: SignupData) => authService.signup(signupData),
