@@ -37,7 +37,22 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
     // This prevents race conditions on slower mobile devices where the redirect
     // would fire before the status query returned the new auth state
     if (isAuthenticated && !isLoading) {
+      console.log('[LOGIN] ✅ Redirecting to:', from)
       navigate(from, { replace: true })
+    }
+  }, [isAuthenticated, isLoading, navigate, from])
+
+  // MOBILE FALLBACK: If isLoading stays true for >5s after authentication,
+  // force redirect anyway (network timeout, race condition, etc.)
+  useEffect(() => {
+    if (isAuthenticated && isLoading) {
+      console.log('[LOGIN] ⚠️ Authenticated but still loading, setting 5s fallback timeout')
+      const timeoutId = setTimeout(() => {
+        console.log('[LOGIN] ⏰ Fallback timeout triggered - forcing redirect')
+        navigate(from, { replace: true })
+      }, 5000)
+
+      return () => clearTimeout(timeoutId)
     }
   }, [isAuthenticated, isLoading, navigate, from])
 
@@ -96,6 +111,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       ...formData,
       rememberMe,
     }
+    console.log('[LOGIN] 🚀 Submitting login form')
     // No need for try/catch here since login is handled by React Query mutation
     // which has its own error handling in the AuthContext
     login(loginData)
