@@ -106,6 +106,85 @@ export function parseCSV(file: File): Promise<{ data: AdvancedCSVRow[]; isAdvanc
 }
 
 /**
+ * Parse CSV strictly for preview/mapping purposes
+ */
+export function previewCSV(file: File): Promise<{ headers: string[]; data: any[] }> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      preview: 5, // Only read first 5 rows for preview
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim(),
+      complete: results => {
+        if (results.errors.length > 0) {
+          reject(new Error(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`))
+          return
+        }
+        if (!results.meta.fields) {
+          reject(new Error('Could not parse CSV headers'))
+          return
+        }
+        resolve({ headers: results.meta.fields, data: results.data })
+      },
+      error: error => {
+        reject(new Error(`Failed to parse CSV: ${error.message}`))
+      },
+    })
+  })
+}
+
+/**
+ * Full parse of raw CSV data
+ */
+export function parseRawCSV(file: File): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim(),
+      complete: results => {
+        if (results.errors.length > 0) {
+          reject(new Error(`CSV parsing errors: ${results.errors.map(e => e.message).join(', ')}`))
+          return
+        }
+        resolve(results.data)
+      },
+      error: error => {
+        reject(new Error(`Failed to parse CSV: ${error.message}`))
+      },
+    })
+  })
+}
+
+export const SYSTEM_FIELDS = [
+  { key: 'name', label: 'Product Name', required: true, description: 'The name of the item' },
+  { key: 'sku', label: 'SKU', required: true, description: 'Unique identifier code' },
+  { key: 'price', label: 'Price', required: true, description: 'Selling price' },
+  { key: 'category', label: 'Category', required: true, description: 'Menu category' },
+  { key: 'description', label: 'Description', required: false, description: 'Item details' },
+  { key: 'type', label: 'Type', required: false, description: 'FOOD, BEVERAGE, etc.' },
+  { key: 'cost', label: 'Cost', required: false, description: 'Item cost' },
+  { key: 'tags', label: 'Tags', required: false, description: 'Pipe separated tags' },
+  { key: 'modifier_groups', label: 'Modifier Groups', required: false, description: 'Complex modifier string' },
+  { key: 'modifiers', label: 'Modifiers', required: false, description: 'Complex modifiers string' },
+] as const
+
+/**
+ * Remap raw CSV data to System format based on user mapping
+ */
+export function remapData(rawData: any[], mapping: Record<string, string>): AdvancedCSVRow[] {
+  return rawData.map(row => {
+    const newRow: any = {}
+    Object.entries(mapping).forEach(([systemKey, csvHeader]) => {
+      if (csvHeader && row[csvHeader] !== undefined) {
+        newRow[systemKey] = row[csvHeader]
+      }
+    })
+    return newRow as AdvancedCSVRow
+  })
+}
+
+/**
  * Validate CSV structure
  */
 export function validateCSV(data: AdvancedCSVRow[]): { valid: boolean; errors: string[] } {

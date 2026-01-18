@@ -1,6 +1,7 @@
 # UI Patterns Guide
 
-This guide documents common UI patterns used throughout the Avoqado Dashboard. These patterns ensure consistency, improve user experience, and maintain visual coherence across the application.
+This guide documents common UI patterns used throughout the Avoqado Dashboard. These patterns ensure consistency, improve user experience,
+and maintain visual coherence across the application.
 
 ## Table of Contents
 
@@ -11,6 +12,8 @@ This guide documents common UI patterns used throughout the Avoqado Dashboard. T
 - [Multi-Step Wizard Dialog](#multi-step-wizard-dialog)
 - [Form Input Patterns](#form-input-patterns)
 - [Select/MultipleSelector Patterns](#selectmultipleselector-with-empty-state-and-create-button-mandatory)
+- [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
+- [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
 
 ---
 
@@ -34,8 +37,7 @@ This guide documents common UI patterns used throughout the Avoqado Dashboard. T
 
 ```typescript
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-
-<Tabs defaultValue="items" className="space-y-4">
+;<Tabs defaultValue="items" className="space-y-4">
   <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
     <TabsTrigger
       value="items"
@@ -57,23 +59,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
     </TabsTrigger>
   </TabsList>
 
-  <TabsContent value="items">
-    {/* Content */}
-  </TabsContent>
-  <TabsContent value="history">
-    {/* Content */}
-  </TabsContent>
+  <TabsContent value="items">{/* Content */}</TabsContent>
+  <TabsContent value="history">{/* Content */}</TabsContent>
 </Tabs>
 ```
 
 ### Key Classes Breakdown
 
-| Element | Classes | Purpose |
-|---------|---------|---------|
-| `TabsList` | `rounded-full bg-muted/60 border border-border` | Pill-shaped container |
-| `TabsTrigger` | `rounded-full px-4 py-2` | Pill-shaped buttons |
-| `TabsTrigger` active | `data-[state=active]:bg-foreground data-[state=active]:text-background` | Inverted colors when active |
-| Count badge | `bg-foreground/10 group-data-[state=active]:bg-background/20` | Subtle badge that adapts to state |
+| Element              | Classes                                                                 | Purpose                           |
+| -------------------- | ----------------------------------------------------------------------- | --------------------------------- |
+| `TabsList`           | `rounded-full bg-muted/60 border border-border`                         | Pill-shaped container             |
+| `TabsTrigger`        | `rounded-full px-4 py-2`                                                | Pill-shaped buttons               |
+| `TabsTrigger` active | `data-[state=active]:bg-foreground data-[state=active]:text-background` | Inverted colors when active       |
+| Count badge          | `bg-foreground/10 group-data-[state=active]:bg-background/20`           | Subtle badge that adapts to state |
 
 ### Without Count Badge
 
@@ -91,10 +89,12 @@ If you don't need count badges, simplify the trigger:
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Team/Teams.tsx` (lines 372-392) - **Reference implementation**
 - `/src/pages/Customers/CustomerDetail.tsx` (lines 417-437)
 
 **Where to apply:**
+
 - ✅ ALL tab interfaces in the application
 - ✅ Page sections (Orders/History, Members/Invitations)
 - ✅ Detail views with multiple content sections
@@ -141,12 +141,12 @@ NARROW SCREEN (action buttons wrap to new line, LEFT-aligned):
 
 ### Key Styling Rules
 
-| Element | Style | Example Classes |
-|---------|-------|-----------------|
-| **Filter Pills** | Rounded-full (pill shape) | `rounded-full border-dashed` |
+| Element                  | Style                               | Example Classes                                                    |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------------ |
+| **Filter Pills**         | Rounded-full (pill shape)           | `rounded-full border-dashed`                                       |
 | **Reset Filters Button** | Rounded-full, white bg in dark mode | `rounded-full dark:bg-white dark:text-black dark:hover:text-black` |
-| **Action Buttons** | Default rounded (squared) | `rounded-md` (default, NO `rounded-full`) |
-| **ColumnCustomizer** | Squared like other actions | No `rounded-full` class |
+| **Action Buttons**       | Default rounded (squared)           | `rounded-md` (default, NO `rounded-full`)                          |
+| **ColumnCustomizer**     | Squared like other actions          | No `rounded-full` class                                            |
 
 ### Single-Row Layout with Responsive Wrap
 
@@ -215,6 +215,7 @@ NARROW SCREEN (action buttons wrap to new line, LEFT-aligned):
 ```
 
 **Key points:**
+
 - **Single row** with `flex-wrap` and `gap-x-2 gap-y-3` (different horizontal/vertical gaps)
 - **Filter pills** on the left with `rounded-full` style
 - **"Borrar filtros"** button with X icon, white background, and `rounded-full`
@@ -226,20 +227,23 @@ NARROW SCREEN (action buttons wrap to new line, LEFT-aligned):
 The "Borrar filtros" button has special styling to stand out in dark mode with a white background:
 
 ```typescript
-{activeFiltersCount > 0 && (
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={resetFilters}
-    className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
-  >
-    <X className="h-3.5 w-3.5" />
-    {t('filters.reset', { defaultValue: 'Borrar filtros' })}
-  </Button>
-)}
+{
+  activeFiltersCount > 0 && (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={resetFilters}
+      className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+    >
+      <X className="h-3.5 w-3.5" />
+      {t('filters.reset', { defaultValue: 'Borrar filtros' })}
+    </Button>
+  )
+}
 ```
 
 **Key classes:**
+
 - `rounded-full` - Pill shape to match other filter pills
 - `gap-1.5` - Space between X icon and text
 - `dark:bg-white` - White background in dark mode
@@ -255,11 +259,11 @@ The "Borrar filtros" button has special styling to stand out in dark mode with a
 
 ### Components
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `FilterPill` | `@/components/filters/FilterPill` | Pill button with popover trigger |
-| `CheckboxFilterContent` | `@/components/filters/CheckboxFilterContent` | Multi-select checkbox list |
-| `ColumnCustomizer` | `@/components/filters/ColumnCustomizer` | Column visibility toggles |
+| Component               | Location                                     | Purpose                          |
+| ----------------------- | -------------------------------------------- | -------------------------------- |
+| `FilterPill`            | `@/components/filters/FilterPill`            | Pill button with popover trigger |
+| `CheckboxFilterContent` | `@/components/filters/CheckboxFilterContent` | Multi-select checkbox list       |
+| `ColumnCustomizer`      | `@/components/filters/ColumnCustomizer`      | Column visibility toggles        |
 
 ### Code Example - Filter State
 
@@ -271,8 +275,16 @@ const [paymentMethodFilter, setPaymentMethodFilter] = useState<string[]>([])
 
 // ✅ CORRECT - Column visibility state
 const [visibleColumns, setVisibleColumns] = useState<string[]>([
-  'select', 'orderNumber', 'customer', 'date', 'type', 'items',
-  'paymentMethod', 'total', 'status', 'actions'
+  'select',
+  'orderNumber',
+  'customer',
+  'date',
+  'type',
+  'items',
+  'paymentMethod',
+  'total',
+  'status',
+  'actions',
 ])
 
 // ❌ WRONG - Single value filters
@@ -287,7 +299,7 @@ const statusOptions = useMemo(() => {
   const uniqueStatuses = [...new Set(orders.map(o => o.status))]
   return uniqueStatuses.map(status => ({
     value: status,
-    label: t(`statuses.${status}`)
+    label: t(`statuses.${status}`),
   }))
 }, [orders, t])
 
@@ -357,10 +369,7 @@ const filteredColumns = useMemo(() => {
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
 
 // Helper to format filter display label
-const getFilterDisplayLabel = (
-  selectedValues: string[],
-  options: { value: string; label: string }[]
-): string | undefined => {
+const getFilterDisplayLabel = (selectedValues: string[], options: { value: string; label: string }[]): string | undefined => {
   if (selectedValues.length === 0) return undefined
   if (selectedValues.length === 1) {
     return options.find(o => o.value === selectedValues[0])?.label
@@ -369,7 +378,7 @@ const getFilterDisplayLabel = (
 }
 
 // Filter Pills Row
-<div className="flex flex-wrap items-center gap-2">
+;<div className="flex flex-wrap items-center gap-2">
   {/* Status Filter */}
   <FilterPill
     label={t('columns.status')}
@@ -377,12 +386,7 @@ const getFilterDisplayLabel = (
     isActive={statusFilter.length > 0}
     onClear={() => setStatusFilter([])}
   >
-    <CheckboxFilterContent
-      title={t('columns.status')}
-      options={statusOptions}
-      selectedValues={statusFilter}
-      onApply={setStatusFilter}
-    />
+    <CheckboxFilterContent title={t('columns.status')} options={statusOptions} selectedValues={statusFilter} onApply={setStatusFilter} />
   </FilterPill>
 
   {/* Type Filter */}
@@ -392,10 +396,11 @@ const getFilterDisplayLabel = (
       typeFilter,
       saleTypes.map(st => ({
         value: st,
-        label: st === 'FAST'
-          ? t('types.FAST', { defaultValue: 'Venta sin productos' })
-          : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
-      }))
+        label:
+          st === 'FAST'
+            ? t('types.FAST', { defaultValue: 'Venta sin productos' })
+            : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
+      })),
     )}
     isActive={typeFilter.length > 0}
     onClear={() => setTypeFilter([])}
@@ -404,9 +409,10 @@ const getFilterDisplayLabel = (
       title={t('columns.type')}
       options={saleTypes.map(st => ({
         value: st,
-        label: st === 'FAST'
-          ? t('types.FAST', { defaultValue: 'Venta sin productos' })
-          : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
+        label:
+          st === 'FAST'
+            ? t('types.FAST', { defaultValue: 'Venta sin productos' })
+            : t('types.REGULAR', { defaultValue: 'Venta con productos' }),
       }))}
       selectedValues={typeFilter}
       onApply={setTypeFilter}
@@ -414,11 +420,7 @@ const getFilterDisplayLabel = (
   </FilterPill>
 
   {/* Column Customizer */}
-  <ColumnCustomizer
-    columns={columnOptions}
-    onApply={setVisibleColumns}
-    label={t('columns.customize', { defaultValue: 'Columnas' })}
-  />
+  <ColumnCustomizer columns={columnOptions} onApply={setVisibleColumns} label={t('columns.customize', { defaultValue: 'Columnas' })} />
 </div>
 ```
 
@@ -445,14 +447,17 @@ const getFilterDisplayLabel = (
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Order/Orders.tsx` - **Reference implementation**
 
 **Where to apply (needs migration):**
+
 - ❌ `/src/pages/Payment/Payments.tsx` - Still uses old filter pattern
 - ❌ `/src/pages/Customers/Customers.tsx` - Still uses old filter pattern
 - ❌ `/src/pages/Inventory/Inventory.tsx` - Still uses old filter pattern
 
 **Checklist for implementing:**
+
 - [ ] Import filter components from `@/components/filters`
 - [ ] Change filter state from single value to array (`useState<string[]>([])`)
 - [ ] Create `filteredColumns` useMemo based on `visibleColumns`
@@ -472,11 +477,13 @@ const getFilterDisplayLabel = (
 ## Icon-Based Radio Group Selection
 
 **When to use:** Selection interfaces where users choose between 2-4 mutually exclusive options, especially for:
+
 - Progressive disclosure scenarios (different form fields based on selection)
 - Feature configuration (tracking methods, settings)
 - Mode selection (view modes, filtering options)
 
-**Why this pattern:** Provides visual hierarchy and makes options more scannable than plain text radio buttons. Icons serve as visual anchors that help users quickly identify and remember options.
+**Why this pattern:** Provides visual hierarchy and makes options more scannable than plain text radio buttons. Icons serve as visual
+anchors that help users quickly identify and remember options.
 
 ### Visual Specifications
 
@@ -491,13 +498,13 @@ const getFilterDisplayLabel = (
 
 Use semantic color coding to reinforce option meanings:
 
-| Color | Use Case | Example | Classes |
-|-------|----------|---------|---------|
-| **Gray/Muted** | Neutral, disabled, or "none" options | No tracking, Default view | `bg-muted` + `text-muted-foreground` |
-| **Green** | Positive, simple, or standard actions | Quantity tracking, Basic mode | `bg-green-100 dark:bg-green-950/50` + `text-green-600 dark:text-green-400` |
-| **Orange** | Advanced, complex, or warning states | Recipe tracking, Advanced mode | `bg-orange-100 dark:bg-orange-950/50` + `text-orange-600 dark:text-orange-400` |
-| **Blue** | Information, primary actions | Report generation, Export | `bg-blue-100 dark:bg-blue-950/50` + `text-blue-600 dark:text-blue-400` |
-| **Red** | Destructive, critical states | Delete mode, Critical alerts | `bg-red-100 dark:bg-red-950/50` + `text-red-600 dark:text-red-400` |
+| Color          | Use Case                              | Example                        | Classes                                                                        |
+| -------------- | ------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| **Gray/Muted** | Neutral, disabled, or "none" options  | No tracking, Default view      | `bg-muted` + `text-muted-foreground`                                           |
+| **Green**      | Positive, simple, or standard actions | Quantity tracking, Basic mode  | `bg-green-100 dark:bg-green-950/50` + `text-green-600 dark:text-green-400`     |
+| **Orange**     | Advanced, complex, or warning states  | Recipe tracking, Advanced mode | `bg-orange-100 dark:bg-orange-950/50` + `text-orange-600 dark:text-orange-400` |
+| **Blue**       | Information, primary actions          | Report generation, Export      | `bg-blue-100 dark:bg-blue-950/50` + `text-blue-600 dark:text-blue-400`         |
+| **Red**        | Destructive, critical states          | Delete mode, Critical alerts   | `bg-red-100 dark:bg-red-950/50` + `text-red-600 dark:text-red-400`             |
 
 ### Code Example
 
@@ -505,8 +512,7 @@ Use semantic color coding to reinforce option meanings:
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Store, Package, Beef } from 'lucide-react'
-
-<RadioGroup value={selectedValue} onValueChange={setSelectedValue}>
+;<RadioGroup value={selectedValue} onValueChange={setSelectedValue}>
   {/* Option 1: No Tracking (Gray/Neutral) */}
   <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
     <RadioGroupItem value="none" id="no-tracking" />
@@ -579,10 +585,12 @@ Choose icons that clearly represent the option:
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Inventory/components/ProductWizardDialog.tsx` (lines 1273-1302)
 - `/src/pages/Menu/Products/productId.tsx` (lines 765-812)
 
 **Where to apply:**
+
 - ✅ Inventory tracking method selection
 - ✅ View mode selection (grid/list/calendar)
 - ✅ Report type selection
@@ -597,6 +605,7 @@ Choose icons that clearly represent the option:
 **When to use:** Multi-section pages where users need to navigate between related content areas (tabs/subpages).
 
 **Pattern characteristics:**
+
 - Sticky horizontal navigation bar
 - Border-bottom indicator for active tab
 - Hash-based routing (`#details`, `#inventory`) or nested routes
@@ -661,12 +670,14 @@ const currentTab = location.hash.replace('#', '') || 'details'
 ### When to Use Hash-Based vs Nested Routes
 
 **Hash-based (`#details`):**
+
 - ✅ Single-page forms with multiple sections
 - ✅ All data loaded at once
 - ✅ No separate API calls per section
 - ✅ Example: Product detail page, settings page
 
 **Nested routes (`/edit/basic-info`):**
+
 - ✅ Each section has distinct data requirements
 - ✅ Separate API calls per section
 - ✅ Deep linking to specific sections required
@@ -675,10 +686,12 @@ const currentTab = location.hash.replace('#', '') || 'details'
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Venue/VenueEditLayout.tsx` (nested routes version)
 - `/src/pages/Menu/Products/productId.tsx` (hash-based version)
 
 **Sticky positioning stack:**
+
 1. Main header: `top-0` (z-10)
 2. Navigation: `top-14` (56px, z-10)
 3. Content: scrollable below navigation
@@ -695,9 +708,11 @@ const currentTab = location.hash.replace('#', '') || 'details'
 
 ## Multi-Step Wizard Dialog
 
-**When to use:** Complex forms with many fields that need to be broken into logical steps to reduce cognitive load and guide users through the process.
+**When to use:** Complex forms with many fields that need to be broken into logical steps to reduce cognitive load and guide users through
+the process.
 
 **Pattern characteristics:**
+
 - Dialog-based wizard with step counter and progress bar
 - Each step has its own form with validation
 - Rich tooltips on complex fields to explain what the user is configuring
@@ -821,8 +836,7 @@ Use colored backgrounds in tooltips to explain complex fields:
 ```typescript
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Info } from 'lucide-react'
-
-<div className="flex items-center gap-2">
+;<div className="flex items-center gap-2">
   <Label>{t('form.fields.complexField')}</Label>
   <TooltipProvider>
     <Tooltip>
@@ -839,9 +853,7 @@ import { Info } from 'lucide-react'
             <p className="text-xs text-blue-900 dark:text-blue-100">
               <strong>{t('wizard.hints.field.example')}</strong>
             </p>
-            <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">
-              {t('wizard.hints.field.exampleText')}
-            </p>
+            <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">{t('wizard.hints.field.exampleText')}</p>
           </div>
         </div>
       </TooltipContent>
@@ -852,13 +864,13 @@ import { Info } from 'lucide-react'
 
 ### Tooltip Color Conventions
 
-| Color | Use Case | Classes |
-|-------|----------|---------|
-| **Blue** | General information, examples | `bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800` |
-| **Green** | Positive effects, enabled states | `bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800` |
-| **Yellow** | Warnings, important notes | `bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800` |
-| **Orange** | Advanced features, special cases | `bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800` |
-| **Red** | Disabled states, destructive effects | `bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800` |
+| Color      | Use Case                             | Classes                                                                       |
+| ---------- | ------------------------------------ | ----------------------------------------------------------------------------- |
+| **Blue**   | General information, examples        | `bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800`         |
+| **Green**  | Positive effects, enabled states     | `bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800`     |
+| **Yellow** | Warnings, important notes            | `bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800` |
+| **Orange** | Advanced features, special cases     | `bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800` |
+| **Red**    | Disabled states, destructive effects | `bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800`             |
 
 ### Wizard Step File Organization
 
@@ -910,11 +922,13 @@ src/pages/Feature/
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Promotions/components/DiscountWizard.tsx` - **Reference implementation**
 - `/src/pages/Inventory/components/ProductWizardDialog.tsx` - Product creation wizard
 - `/src/components/ConversionWizard.tsx` - Onboarding conversion wizard
 
 **Where to apply:**
+
 - ✅ Complex form creation with 5+ fields
 - ✅ Forms with conditional sections based on selections
 - ✅ Multi-step processes (onboarding, setup)
@@ -970,19 +984,20 @@ src/pages/Feature/
 // ❌ WRONG
 const form = useForm({
   defaultValues: {
-    value: 0,  // Input starts with "0" that user can't clear
+    value: 0, // Input starts with "0" that user can't clear
   },
 })
 
 // ✅ CORRECT
 const form = useForm({
   defaultValues: {
-    value: undefined,  // Input starts empty
+    value: undefined, // Input starts empty
   },
 })
 ```
 
 **Why this matters:**
+
 - `{...field}` spreads `field.value` which shows `0` even when you want empty
 - `value ?? ''` converts `undefined`/`null` to empty string for display
 - `defaultValue: 0` means the input always has a value the user can't fully clear
@@ -1020,11 +1035,9 @@ const schema = z.object({
   <SelectContent>
     {/* Show "No results" if empty */}
     {options.length === 0 ? (
-      <div className="py-6 text-center text-sm text-muted-foreground">
-        {tCommon('no_results')}
-      </div>
+      <div className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</div>
     ) : (
-      options.map((option) => (
+      options.map(option => (
         <SelectItem key={option.value} value={option.value}>
           {option.label}
         </SelectItem>
@@ -1052,11 +1065,7 @@ const schema = z.object({
   onChange={field.onChange}
   options={options}
   placeholder={t('selectPlaceholder')}
-  emptyIndicator={
-    <p className="py-6 text-center text-sm text-muted-foreground">
-      {tCommon('no_results')}
-    </p>
-  }
+  emptyIndicator={<p className="py-6 text-center text-sm text-muted-foreground">{tCommon('no_results')}</p>}
   footer={
     <Button variant="ghost" className="w-full justify-start" asChild>
       <Link to="/path/to/create">
@@ -1069,12 +1078,14 @@ const schema = z.object({
 ```
 
 **Key points:**
+
 - **Empty state**: Always show `{tCommon('no_results')}` when no options available
 - **Create button**: Always add `+ Create [Entity]` at the bottom that links to the create page
 - **Link destination**: Use the actual create route (e.g., `/menu/products/create`, `/customers/groups/create`)
 - **Styling**: Use `border-t p-1` for separator, `variant="ghost"` and `justify-start` for button
 
 **Common create routes:**
+
 - Products: `/menu/products/create`
 - Categories: `/menu/categories/create`
 - Customer Groups: `/customers/groups/create`
@@ -1096,7 +1107,7 @@ const schema = z.object({
       // Hover and selected states
       'hover:border-primary/50',
       'peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary/20',
-      '[&:has([data-state=checked])]:border-primary'
+      '[&:has([data-state=checked])]:border-primary',
     )}
   >
     {/* Card content */}
@@ -1105,6 +1116,7 @@ const schema = z.object({
 ```
 
 **Key points:**
+
 - Use `h-full` on both wrapper div and Label for equal heights
 - Apply same gradient as inputs: `bg-linear-to-b from-muted to-muted/70 dark:from-zinc-900 dark:to-zinc-950`
 - Use `border-input` for consistent border color
@@ -1114,16 +1126,19 @@ const schema = z.object({
 
 ## Consistent Card Actions Layout (MANDATORY)
 
-**When to use:** Any card grid where cards may have variable content height but action buttons need to stay visually aligned across the grid.
+**When to use:** Any card grid where cards may have variable content height but action buttons need to stay visually aligned across the
+grid.
 
 **Pattern characteristics:**
+
 - Cards use `flex flex-col` to enable vertical layout control
 - Dynamic/optional content (like messages, notes, or expandable sections) goes in a `flex-1` container
 - Action buttons use `mt-auto` to always stick to the bottom
 
 ### Why This Pattern
 
-When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra content (like a dispute message) and another doesn't, the action buttons will be at different vertical positions. This creates visual inconsistency and makes the UI feel broken.
+When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra content (like a dispute message) and another doesn't, the
+action buttons will be at different vertical positions. This creates visual inconsistency and makes the UI feel broken.
 
 **The fix:** Use flexbox to push actions to the bottom regardless of content height.
 
@@ -1159,7 +1174,7 @@ When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra con
 
 ```typescript
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-  {items.map((item) => (
+  {items.map(item => (
     <Card key={item.id} className="p-5 flex flex-col">
       {/* Fixed content - Always in same position */}
       <div className="flex items-start justify-between mb-4">
@@ -1199,18 +1214,20 @@ When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra con
 
 ### Key Classes Breakdown
 
-| Element | Classes | Purpose |
-|---------|---------|---------|
-| Card container | `flex flex-col` | Enable vertical flex layout |
-| Dynamic content wrapper | `flex-1` | Takes remaining space, pushes actions down |
-| Actions container | `mt-auto` | Sticks to bottom of card |
+| Element                 | Classes         | Purpose                                    |
+| ----------------------- | --------------- | ------------------------------------------ |
+| Card container          | `flex flex-col` | Enable vertical flex layout                |
+| Dynamic content wrapper | `flex-1`        | Takes remaining space, pushes actions down |
+| Actions container       | `mt-auto`       | Sticks to bottom of card                   |
 
 ### Real-World Usage
 
 **Examples in codebase:**
+
 - `/src/pages/Commissions/components/SummaryApprovalList.tsx` - Approval cards with optional dispute messages
 
 **Where to apply:**
+
 - ✅ Card grids where some cards have conditional content
 - ✅ Approval/review interfaces with notes or messages
 - ✅ Product cards with variable descriptions
@@ -1226,6 +1243,90 @@ When displaying cards in a grid (e.g., `grid-cols-2`), if one card has extra con
 
 ---
 
+---
+
+## Live Preview Layout (Bento Grid)
+
+**When to use:** Creation or editing forms for entities where visual feedback is valuable (e.g., Categories, Menus, Modifier Groups,
+Promotions). It helps the user understand how the configuration will look in the final interface.
+
+**Pattern characteristics:**
+
+- **Responsive Grid**: Stacks vertically on smaller screens and uses a 2-column bento layout on desktop (`xl` breakpoint+).
+- **Proportions**: Left column (form) is wider than the right column (preview) - usually `1.35fr` vs `1fr`.
+- **Live Sync**: Changes in the form are reflected instantly in the preview card on the right.
+- **ExampleCard**: Uses a specialized wrapper with a dashed border and a "PREVIEW" indicator.
+
+### Visual Specifications
+
+- **Desktop Layout**: `grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6` (use `xl` to prevent overlap).
+- **Preview Card**: `ExampleCard` component with a dashed border (`border-dashed`).
+- **Indicator**: A subtle "VISTA PREVIA" or "EJEMPLO" label at the top with a `Sparkles` icon.
+
+### Code Example
+
+```typescript
+import { ExampleCard } from '@/components/example-card'
+import { Card, CardContent } from '@/components/ui/card'
+
+{
+  /* Grid starts stacking as column and becomes grid at xl */
+}
+;<div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
+  {/* Left: Input Form */}
+  <Card className="border-border/60">
+    <CardContent className="space-y-4 pt-6">
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('forms.name')}</FormLabel>
+            <FormControl>
+              <Input placeholder={t('labels.placeholder')} {...field} />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+      {/* ... other fields */}
+    </CardContent>
+  </Card>
+
+  {/* Right: Live Preview */}
+  <ExampleCard title={t('preview.label')}>
+    <div className="space-y-3">
+      <p className="text-sm font-semibold">{form.watch('name') || t('placeholder.name')}</p>
+      {/* Visualization of other fields */}
+    </div>
+  </ExampleCard>
+</div>
+```
+
+### Key Practices
+
+1. **Responsive First**: Always use `xl:` for the grid layout. Using `lg:` often leads to overlap on medium/tablet screens if labels are
+   long (e.g., "Disponible hasta").
+2. **Watch Values**: Use `form.watch()` to get real-time data for the preview.
+3. **Fallbacks**: Provide meaningful fallback text in the preview if the form fields are empty.
+4. **Consistency**: Use the `ExampleCard` component to maintain the same dashed border and sparkles icon across the app.
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `src/pages/Menu/Modifiers/components/CreateModifierGroupWizard.tsx` - **Original Pattern**
+- `src/pages/Menu/Categories/components/CategoryWizardDialog.tsx`
+- `src/components/example-card.tsx` - **Reference Component**
+
+**Where to apply:**
+
+- ✅ Entity creation wizards (Step-by-step)
+- ✅ Entity edit pages (Main configuration section)
+- ✅ Promotion creation (Previewing the discount banner)
+- ✅ Ticket/Invoice design configuration
+
+---
+
 ## Contributing
 
 When adding new UI patterns:
@@ -1233,4 +1334,59 @@ When adding new UI patterns:
 1. **Document thoroughly**: Include "when to use", code examples, and accessibility notes
 2. **Provide real examples**: Link to existing implementations in the codebase
 3. **Show variations**: Cover light/dark mode, responsive design
-4. **Add to CLAUDE.md**: Reference the pattern in the main documentation file
+
+---
+
+## Searchable Multi-Select (Long Lists)
+
+**When to use:** Multi-select inputs where the list of options is long (10+) and requires searching/filtering for better usability.
+
+**Why this pattern:** The standard `MultipleSelector` can be overwhelming with too many options. This pattern uses a `Popover` + `Command`
+combination to keep the interface clean while offering powerful search capabilities.
+
+### Visual Specifications
+
+- **Trigger**: Looks like a standard input/button, displays selected items as badges.
+- **Dropdown**: Searchable command list inside a popover.
+- **Badges**: Removable tags directly in the trigger area.
+
+### Code Example
+
+```typescript
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
+;<FormField
+  control={form.control}
+  name="categories"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>{t('fields.categories')}</FormLabel>
+      <FormControl>
+        <MultiSelectCombobox
+          options={categories.map(c => ({ label: c.name, value: c.id }))}
+          selected={(field.value || []).map((c: any) => ({ label: c.label, value: c.value }))}
+          onChange={value => field.onChange(value)}
+          placeholder={t('placeholders.selectCategories')}
+          emptyText={t('empty.noCategories')}
+          isLoading={isLoading}
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+```
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `src/components/multi-select-combobox.tsx` - **Reference Component**
+- `CategoryWizardDialog.tsx`
+- `createMenu.tsx`
+- `menuId.tsx`
+
+**Where to apply:**
+
+- ✅ Selecting items from a large catalog (Products, Ingredients)
+- ✅ Selecting categories or tags when there are many options
+- ✅ Any multi-select scenario where search is crucial

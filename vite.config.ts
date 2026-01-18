@@ -12,6 +12,12 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0', // Allow access from other devices on the network (iPhone, etc.)
+    allowedHosts: [
+      'localhost',
+      '.ngrok-free.dev', // Allow all ngrok subdomains
+      'patchiest-noncommemorational-willia.ngrok-free.dev', // Specific ngrok URL for mobile testing
+    ],
   },
   // Strip console.log/warn in production builds (P1 audit fix 2025-12-01)
   esbuild: {

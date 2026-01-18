@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -39,6 +40,8 @@ export default function Recipes() {
   const { venueId } = useCurrentVenue()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const highlightProductId = searchParams.get('productId')
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -80,9 +83,7 @@ export default function Recipes() {
       if (debouncedSearchTerm) {
         const lowerSearch = debouncedSearchTerm.toLowerCase()
         productsData = productsData.filter(
-          p =>
-            p.name.toLowerCase().includes(lowerSearch) ||
-            p.category.name.toLowerCase().includes(lowerSearch),
+          p => p.name.toLowerCase().includes(lowerSearch) || p.category.name.toLowerCase().includes(lowerSearch),
         )
       }
 
@@ -90,6 +91,21 @@ export default function Recipes() {
     },
     enabled: !!venueId,
   })
+
+  // ✅ Auto-open dialog if productId is active in URL
+  useEffect(() => {
+    if (highlightProductId && products && !isLoading) {
+      const product = products.find(p => p.id === highlightProductId)
+      if (product) {
+        setSelectedProduct(product)
+        if (product.recipe) {
+          setEditDialogOpen(true)
+        } else {
+          setCreateDialogOpen(true)
+        }
+      }
+    }
+  }, [highlightProductId, products, isLoading])
 
   // Fetch categories for filter
   const { data: categories } = useQuery({
@@ -146,9 +162,7 @@ export default function Recipes() {
             <div className="flex items-center gap-3">
               <div
                 className={`flex items-center justify-center w-10 h-10 rounded-lg border border-border shadow-sm ${
-                  hasRecipe
-                    ? 'bg-green-50 dark:bg-green-950/50'
-                    : 'bg-muted'
+                  hasRecipe ? 'bg-green-50 dark:bg-green-950/50' : 'bg-muted'
                 }`}
               >
                 <ChefHat className={`h-5 w-5 ${hasRecipe ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
@@ -167,11 +181,7 @@ export default function Recipes() {
         header: t('recipes.fields.currentPrice'),
         cell: ({ cell }) => {
           const price = cell.getValue() as number
-          return (
-            <div className="text-sm font-medium text-foreground">
-              {Currency(Number(price))}
-            </div>
-          )
+          return <div className="text-sm font-medium text-foreground">{Currency(Number(price))}</div>
         },
       },
       {
@@ -184,14 +194,20 @@ export default function Recipes() {
 
           if (!hasRecipe) {
             return (
-              <Badge variant="secondary" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 truncate max-w-[150px]">
+              <Badge
+                variant="secondary"
+                className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 truncate max-w-[150px]"
+              >
                 {t('recipes.messages.noRecipeShort')}
               </Badge>
             )
           }
 
           return (
-            <Badge variant="default" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800">
+            <Badge
+              variant="default"
+              className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800"
+            >
               {product.recipe.lines.length} {t('recipes.ingredients.title')}
             </Badge>
           )
@@ -272,19 +288,13 @@ export default function Recipes() {
           return (
             <div className="flex items-center gap-2">
               <DollarSign className={`h-4 w-4 ${colorClass}`} />
-              <span className={`text-sm font-semibold ${colorClass}`}>
-                {foodCostPercentage.toFixed(1)}%
-              </span>
+              <span className={`text-sm font-semibold ${colorClass}`}>{foodCostPercentage.toFixed(1)}%</span>
             </div>
           )
         },
         sortingFn: (rowA, rowB) => {
-          const costA = rowA.original.recipe
-            ? (Number(rowA.original.recipe.totalCost) / Number(rowA.original.price)) * 100
-            : 0
-          const costB = rowB.original.recipe
-            ? (Number(rowB.original.recipe.totalCost) / Number(rowB.original.price)) * 100
-            : 0
+          const costA = rowA.original.recipe ? (Number(rowA.original.recipe.totalCost) / Number(rowA.original.price)) * 100 : 0
+          const costB = rowB.original.recipe ? (Number(rowB.original.recipe.totalCost) / Number(rowB.original.price)) * 100 : 0
           return costA - costB
         },
       },
@@ -296,7 +306,7 @@ export default function Recipes() {
           const hasQuantityTracking = product.inventoryMethod === 'QUANTITY'
 
           return (
-            <PermissionGate permission={hasRecipe ? "inventory:update" : "inventory:create"}>
+            <PermissionGate permission={hasRecipe ? 'inventory:update' : 'inventory:create'}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -361,7 +371,7 @@ export default function Recipes() {
             onClick={() => {
               queryClient.invalidateQueries({
                 queryKey: ['products-with-recipes'],
-                refetchType: 'active'
+                refetchType: 'active',
               })
             }}
             disabled={isLoading}
@@ -384,12 +394,7 @@ export default function Recipes() {
         {/* Filters */}
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <Input
-              placeholder={t('common:search')}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
+            <Input placeholder={t('common:search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-md" />
           </div>
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -432,19 +437,9 @@ export default function Recipes() {
       />
 
       {/* Dialogs */}
-      <RecipeDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        mode="create"
-        product={selectedProduct}
-      />
+      <RecipeDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} mode="create" product={selectedProduct} />
 
-      <RecipeDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        mode="edit"
-        product={selectedProduct}
-      />
+      <RecipeDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} mode="edit" product={selectedProduct} />
 
       {/* Conversion Dialog */}
       <SimpleConfirmDialog

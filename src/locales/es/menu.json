@@ -157,6 +157,10 @@
       "selectEndTime": "Seleccionar hora de cierre",
       "selectDays": "Selecciona los días",
       "noMoreDays": "No se han encontrado más días"
+    },
+    "sections": {
+      "availability": "Disponibilidad",
+      "assignments": "Asignaciones"
     }
   },
   "modifiers": {
@@ -355,9 +359,9 @@
       "modeAdditionDesc": "Agrega ingredientes extra al pedido (ej: \"Extra Tocino\")",
       "modeSubstitution": "Sustitución",
       "modeSubstitutionDesc": "Reemplaza un ingrediente de la receta (ej: \"Leche de Almendra\" en vez de leche regular)",
-      "rawMaterial": "Materia Prima",
+      "rawMaterial": "Ingrediente",
       "quantityPerUnit": "Cantidad por modificador",
-      "quantityPerUnitDesc": "Cuánta materia prima se usa por cada modificador",
+      "quantityPerUnitDesc": "Cuánta Ingrediente se usa por cada modificador",
       "unit": "Unidad",
       "selectUnit": "Seleccionar unidad"
     }
@@ -410,31 +414,6 @@
         "warning": "Advertencia:",
         "largeAdjustmentWarning": "Este es un ajuste grande ({{percentage}}% del stock actual). Por favor verifica que la cantidad sea correcta.",
         "cannotReduceBelowZero": "No se puede reducir el stock por debajo de 0. Stock actual es {{amount}} {{unit}}. Ajuste mínimo: {{minimum}}"
-      }
-    },
-    "actions": {
-      "adjustStock": "Ajustar Stock",
-      "adjustStockDialog": {
-        "title": "Ajustar Stock - {{productName}}",
-        "currentStock": "Stock Actual",
-        "adjustment": "Ajuste",
-        "adjustmentPlaceholder": "Ingresa cantidad (+ agregar, - quitar)",
-        "reason": "Razón",
-        "reasonPlaceholder": "¿Por qué ajustas el stock?",
-        "reasons": {
-          "recount": "Reconteo físico",
-          "damage": "Dañado/Echado a perder",
-          "theft": "Robo/Pérdida",
-          "correction": "Corrección",
-          "receiving": "Recepción de entrega",
-          "other": "Otro"
-        },
-        "newStock": "Nuevo Stock",
-        "notes": "Notas (opcional)",
-        "notesPlaceholder": "Detalles adicionales...",
-        "cancel": "Cancelar",
-        "save": "Guardar Ajuste",
-        "saving": "Guardando..."
       }
     },
     "toasts": {
@@ -497,6 +476,7 @@
       "modifierGroups": "Grupos Modificadores",
       "selectGroups": "Selecciona los grupos",
       "useWizard": "Usar Asistente Guiado",
+      "useManual": "Usar formulario manual",
       "toasts": {
         "created": "Producto {{name}} creado",
         "createdDesc": "El producto se ha creado correctamente.",
@@ -572,12 +552,15 @@
     }
   },
   "createMenu": {
+    "title": "Crear Menú",
     "loading": "Cargando formulario de menú...",
     "buttons": {
       "save": "Guardar menú",
       "saving": "Guardando..."
     },
     "toast": {
+      "menuCreated": "Menú {{name}} creado",
+      "menuCreatedDesc": "El menú se ha creado correctamente.",
       "categoryCreated": "Menú {{name}} creado",
       "categoryCreatedDesc": "El menú se creó correctamente.",
       "errorSaving": "Error al guardar",
@@ -600,6 +583,7 @@
     "fields": {
       "menuActive": "Menú activo",
       "menuActiveDesc": "Activa este menú para que sea visible para tu personal y clientes.",
+      "availableDays": "Días disponibles",
       "menuName": "Nombre del menú",
       "menuNamePlaceholder": "Introduce un nombre para el menú",
       "startTime": "Hora de inicio",
@@ -694,5 +678,16 @@
     "delete": "Eliminar",
     "search": "Buscar",
     "error": "Error"
+  },
+  "wizard": {
+    "title": "Asistente de Creación",
+    "subtitle": "Sigue los pasos para configurar tu nuevo elemento",
+    "progress": "Paso {{current}} de {{total}}",
+    "finish": "Finalizar",
+    "step1": {
+      "basicInfo": "Información Básica",
+      "name": "Nombre",
+      "nameDescription": "El nombre que verán tus clientes"
+    }
   }
 }

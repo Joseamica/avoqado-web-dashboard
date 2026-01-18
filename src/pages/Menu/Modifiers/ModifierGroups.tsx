@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Link2, MoreHorizontal, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -68,9 +68,7 @@ export default function ModifierGroups() {
   })
 
   const allModifierOptions = useMemo(
-    () =>
-      (modifierGroups || [])
-        .flatMap(group => group.modifiers?.map(m => ({ label: m.name, value: m.id, disabled: false })) || []),
+    () => (modifierGroups || []).flatMap(group => group.modifiers?.map(m => ({ label: m.name, value: m.id, disabled: false })) || []),
     [modifierGroups],
   )
 
@@ -94,9 +92,7 @@ export default function ModifierGroups() {
       const selectedProductIds = (formValues.avoqadoProduct || []).map(p => p.value)
 
       // Derive current assignments from products that include this group
-      const currentAssignedIds = (allProducts || [])
-        .filter(p => p.modifierGroups?.some(mg => mg.groupId === groupId))
-        .map(p => p.id)
+      const currentAssignedIds = (allProducts || []).filter(p => p.modifierGroups?.some(mg => mg.groupId === groupId)).map(p => p.id)
 
       const toAssign = selectedProductIds.filter(id => !currentAssignedIds.includes(id))
       const toRemove = currentAssignedIds.filter(id => !selectedProductIds.includes(id))
@@ -272,13 +268,14 @@ export default function ModifierGroups() {
           }
         }),
         // Selected products are those currently assigned to this modifier group
-        avoqadoProduct: (allProducts
-          .filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroup.id))
-          .map(product => ({
-            label: typeof product?.name === 'string' ? product.name : '',
-            value: product?.id || '',
-            disabled: false,
-          })) || []),
+        avoqadoProduct:
+          allProducts
+            .filter(p => p.modifierGroups?.some(mg => mg.groupId === modifierGroup.id))
+            .map(product => ({
+              label: typeof product?.name === 'string' ? product.name : '',
+              value: product?.id || '',
+              disabled: false,
+            })) || [],
       })
     }
   }, [isModifierGroupSuccess, modifierGroup, allProducts, form])
@@ -301,6 +298,7 @@ export default function ModifierGroups() {
 
         <PermissionGate permission="menu:create">
           <Button type="button" onClick={() => setCreateDialogOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
             <span>{t('modifiers.newModifierGroup')}</span>
           </Button>
         </PermissionGate>
@@ -310,9 +308,7 @@ export default function ModifierGroups() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{t('modifiers.dialogs.delete.title')}</DialogTitle>
-              <DialogDescription>
-                {t('modifiers.dialogs.delete.description')}
-              </DialogDescription>
+              <DialogDescription>{t('modifiers.dialogs.delete.description')}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>

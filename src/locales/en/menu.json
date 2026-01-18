@@ -157,6 +157,10 @@
       "selectEndTime": "Select end time",
       "selectDays": "Select days",
       "noMoreDays": "No more days found"
+    },
+    "sections": {
+      "availability": "Availability",
+      "assignments": "Assignments"
     }
   },
   "modifiers": {
@@ -508,6 +512,7 @@
       "modifierGroups": "Modifier Groups",
       "selectGroups": "Select the groups",
       "useWizard": "Use Guided Wizard",
+      "useManual": "Use manual form",
       "toasts": {
         "created": "Product {{name}} created",
         "createdDesc": "The product has been created successfully.",
@@ -584,12 +589,15 @@
     }
   },
   "createMenu": {
+    "title": "Create Menu",
     "loading": "Loading menu form...",
     "buttons": {
       "save": "Save menu",
       "saving": "Saving..."
     },
     "toast": {
+      "menuCreated": "Menu {{name}} created",
+      "menuCreatedDesc": "The menu has been created successfully.",
       "categoryCreated": "Menu {{name}} created",
       "categoryCreatedDesc": "The menu has been created successfully.",
       "errorSaving": "Error saving",
@@ -612,6 +620,7 @@
     "fields": {
       "menuActive": "Menu active",
       "menuActiveDesc": "Enable this menu to make it visible to your staff and customers.",
+      "availableDays": "Available days",
       "menuName": "Menu name",
       "menuNamePlaceholder": "Enter a menu name",
       "startTime": "Start time",
@@ -706,5 +715,16 @@
     "delete": "Delete",
     "search": "Search",
     "error": "Error"
+  },
+  "wizard": {
+    "title": "Creation Assistant",
+    "subtitle": "Follow the steps to configure your new item",
+    "progress": "Step {{current}} of {{total}}",
+    "finish": "Finish",
+    "step1": {
+      "basicInfo": "Basic Information",
+      "name": "Name",
+      "nameDescription": "The name your customers will see"
+    }
   }
 }
