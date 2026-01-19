@@ -143,6 +143,8 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "view": "View",
+  "full_dashboard": "Full Dashboard",
   "superadmin": {
     "delete": {
       "title": "Confirm Deletion",

@@ -3304,6 +3304,8 @@
     "next": "Next",
     "saving": "Saving...",
     "saveAndEnable": "Save & Enable",
+    "showPreview": "Show Preview",
+    "hidePreview": "Hide Preview",
     "setup": {
       "venueTitle": "Select Venue",
       "venueDescription": "Choose the venue that will use this white-label dashboard",
@@ -3367,7 +3369,9 @@
       "title": "Preview & Finalize",
       "description": "Review your configuration and reorder navigation items",
       "navigation": "Navigation",
-      "navigationHelp": "Use the arrows to reorder navigation items",
+      "navigationHelp": "Click the pencil icon to rename, use arrows to reorder",
+      "editLabel": "Edit name",
+      "saveLabel": "Save name",
       "noNavItems": "No navigation items",
       "visualPreview": "Visual Preview",
       "contentPlaceholder": "Content",
@@ -3384,7 +3388,19 @@
       "configuration": "Configuration",
       "totalFeatures": "Total Features",
       "navItems": "Navigation Items",
-      "venue": "Venue"
+      "venue": "Venue",
+      "themePreview": "Theme Preview",
+      "themeDescription": "How your branding will look",
+      "featuresPreview": "Features Preview",
+      "featuresDescription": "Navigation and enabled features",
+      "configPreview": "Configuration Preview",
+      "configDescription": "Custom settings applied",
+      "finalPreview": "Final Preview",
+      "finalDescription": "Your complete custom dashboard",
+      "noFeatures": "Select features to see them here",
+      "themeColor": "Theme color",
+      "primaryColor": "Primary color",
+      "liveUpdates": "Changes are reflected here in real-time"
     }
   }
 }

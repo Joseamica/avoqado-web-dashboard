@@ -201,7 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (venue?.modules) {
       const whiteLabelModule = venue.modules.find(m => m.module.code === 'WHITE_LABEL_DASHBOARD')
       if (whiteLabelModule?.enabled) {
-        return `/wl/${venue.slug}`
+        return `/wl/venues/${venue.slug}` // Consistent pattern: /wl/venues/:slug
       }
     }
     return `/venues/${venue.slug}`
@@ -472,13 +472,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setActiveVenue(newVenue)
         toast({ title: t('toast.switched_to_venue', { name: newVenue.name }) })
 
-        // Smart navigation: Handle switching between /venues/ and /wl/ routes
+        // Smart navigation: Respect current mode when switching venues
         const currentPath = location.pathname
-        const basePath = getVenueBasePath(newVenue)
 
-        // Extract the page part (after /venues/:slug/ or /wl/:slug/)
-        // This regex matches both /venues/slug/ and /wl/slug/ and captures the rest
-        const pageMatch = currentPath.match(/^\/(?:venues|wl)\/[^/]+\/(.*)$/)
+        // Detect if we're currently in white-label mode
+        const isCurrentlyInWLMode = currentPath.startsWith('/wl/venues/') || currentPath.startsWith('/wl/organizations/')
+
+        // Check if new venue has white-label enabled
+        const newVenueHasWL = newVenue.modules?.some(m => m.module.code === 'WHITE_LABEL_DASHBOARD' && m.enabled) ?? false
+
+        // Determine target base path based on current mode and new venue capabilities
+        let basePath: string
+        if (isCurrentlyInWLMode && newVenueHasWL) {
+          // Case: In WL mode + new venue has WL → Stay in WL mode
+          basePath = `/wl/venues/${newVenue.slug}`
+        } else if (isCurrentlyInWLMode && !newVenueHasWL) {
+          // Case: In WL mode + new venue has NO WL → Switch to traditional
+          basePath = `/venues/${newVenue.slug}`
+        } else {
+          // Case: In traditional mode → Always stay traditional (even if new venue has WL)
+          basePath = `/venues/${newVenue.slug}`
+        }
+
+        // Extract the page part (after /venues/:slug/ or /wl/venues/:slug/)
+        // This regex matches /venues/slug/, /wl/venues/slug/, and /organizations/:id/ patterns
+        const pageMatch = currentPath.match(/^\/(?:venues|wl\/venues|organizations)\/[^/]+\/(.*)$/)
         const pagePart = pageMatch?.[1] || 'home'
 
         const newPath = `${basePath}/${pagePart}`

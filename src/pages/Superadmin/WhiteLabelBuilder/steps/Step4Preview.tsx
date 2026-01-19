@@ -7,12 +7,13 @@
  * 3. Review the final configuration before saving
  */
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import {
   AlertCircle,
@@ -25,6 +26,9 @@ import {
   ChevronDown,
   LayoutDashboard,
   Check,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react'
 import type { NavigationItem } from '@/types/white-label'
 import type { WizardState } from '../WhiteLabelWizard'
@@ -51,6 +55,35 @@ export default function Step4Preview({
   errors,
 }: Step4PreviewProps) {
   const { t } = useTranslation('superadmin')
+
+  // State for editing labels
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingLabel, setEditingLabel] = useState('')
+
+  // Start editing a label
+  const startEditingLabel = useCallback((item: NavigationItem) => {
+    setEditingItemId(item.id)
+    setEditingLabel(item.label || '')
+  }, [])
+
+  // Save edited label
+  const saveLabel = useCallback(() => {
+    if (!editingItemId) return
+    const newItems = state.navigation.map(item =>
+      item.id === editingItemId
+        ? { ...item, label: editingLabel.trim() || item.label }
+        : item
+    )
+    onNavigationChange(newItems)
+    setEditingItemId(null)
+    setEditingLabel('')
+  }, [editingItemId, editingLabel, state.navigation, onNavigationChange])
+
+  // Cancel editing
+  const cancelEditing = useCallback(() => {
+    setEditingItemId(null)
+    setEditingLabel('')
+  }, [])
 
   // Move item up
   const moveUp = useCallback(
@@ -123,6 +156,7 @@ export default function Step4Preview({
               {state.navigation.map((item, index) => {
                 const feature = item.featureCode ? FEATURE_REGISTRY[item.featureCode] : null
                 const IconComponent = item.icon ? getIconComponent(item.icon) : null
+                const isEditing = editingItemId === item.id
 
                 return (
                   <div
@@ -131,35 +165,90 @@ export default function Step4Preview({
                   >
                     <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {IconComponent && (
-                        <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      )}
-                      <span className="text-sm font-medium truncate">
-                        {item.label || feature?.name || item.featureCode}
-                      </span>
-                    </div>
+                    {isEditing ? (
+                      // Editing mode
+                      <>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {IconComponent && (
+                            <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <Input
+                            value={editingLabel}
+                            onChange={e => setEditingLabel(e.target.value)}
+                            placeholder={feature?.name || item.featureCode || ''}
+                            className="h-8 text-sm"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveLabel()
+                              if (e.key === 'Escape') cancelEditing()
+                            }}
+                            autoFocus
+                          />
+                        </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => moveUp(index)}
-                        disabled={index === 0}
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => moveDown(index)}
-                        disabled={index === state.navigation.length - 1}
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                            onClick={saveLabel}
+                            title={t('whiteLabelWizard.preview.saveLabel')}
+                          >
+                            <Save className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={cancelEditing}
+                            title={t('common.cancel')}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      // Display mode
+                      <>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {IconComponent && (
+                            <IconComponent className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <span className="text-sm font-medium truncate">
+                            {item.label || feature?.name || item.featureCode}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer"
+                            onClick={() => startEditingLabel(item)}
+                            title={t('whiteLabelWizard.preview.editLabel')}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => moveUp(index)}
+                            disabled={index === 0}
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => moveDown(index)}
+                            disabled={index === state.navigation.length - 1}
+                          >
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}

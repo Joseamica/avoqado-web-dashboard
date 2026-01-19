@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import {
   Check,
@@ -37,6 +38,7 @@ import Step1Setup from './steps/Step1Setup'
 import Step2Features from './steps/Step2Features'
 import Step3Configuration from './steps/Step3Configuration'
 import Step4Preview from './steps/Step4Preview'
+import PreviewPanel from './components/PreviewPanel'
 
 // ============================================
 // Types
@@ -86,6 +88,9 @@ export default function WhiteLabelWizard({
   // Current step
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const currentStep = STEPS[currentStepIndex]
+
+  // Preview panel visibility
+  const [showPreview, setShowPreview] = useState(false)
 
   // Wizard state
   const [state, setState] = useState<WizardState>({
@@ -139,6 +144,7 @@ export default function WhiteLabelWizard({
           ...prev,
           venueId,
           venueName,
+          preset: existingConfig.preset || null, // Restore preset if available
           theme: existingConfig.theme || prev.theme,
           enabledFeatures: existingConfig.enabledFeatures || [],
           featureConfigs: existingConfig.featureConfigs || {},
@@ -213,8 +219,8 @@ export default function WhiteLabelWizard({
       }
     })
 
-    // Generate navigation items
-    const navigation = generateNavigationFromFeatures(enabledFeatures)
+    // Generate navigation items (preserving existing custom labels)
+    const navigation = generateNavigationFromFeatures(enabledFeatures, [])
 
     setState(prev => ({
       ...prev,
@@ -262,8 +268,8 @@ export default function WhiteLabelWizard({
         }
       })
 
-      // Regenerate navigation
-      const navigation = generateNavigationFromFeatures(features)
+      // Regenerate navigation (preserving existing custom labels)
+      const navigation = generateNavigationFromFeatures(features, prev.navigation)
 
       return {
         ...prev,
@@ -371,6 +377,7 @@ export default function WhiteLabelWizard({
   const buildFinalConfig = useCallback((): WhiteLabelConfig => {
     return {
       version: '1.0',
+      preset: state.preset, // Save preset for reference
       theme: state.theme,
       enabledFeatures: state.enabledFeatures,
       navigation: {
@@ -414,104 +421,134 @@ export default function WhiteLabelWizard({
     <div className="flex flex-col h-full">
       {/* Step Indicator */}
       <div className="px-6 py-4 border-b">
-        <nav className="flex items-center justify-center">
-          <ol className="flex items-center space-x-2 sm:space-x-4">
-            {STEPS.map((step, index) => {
-              const Icon = step.icon
-              const isActive = index === currentStepIndex
-              const isCompleted = index < currentStepIndex || isStepComplete[step.id]
-              const isClickable = index <= currentStepIndex
+        <div className="flex items-center justify-between">
+          <nav className="flex items-center justify-center flex-1">
+            <ol className="flex items-center space-x-2 sm:space-x-4">
+              {STEPS.map((step, index) => {
+                const Icon = step.icon
+                const isActive = index === currentStepIndex
+                const isCompleted = index < currentStepIndex || isStepComplete[step.id]
+                const isClickable = index <= currentStepIndex
 
-              return (
-                <li key={step.id} className="flex items-center">
-                  {index > 0 && (
-                    <div
-                      className={cn(
-                        'w-8 sm:w-12 h-0.5 mx-1 sm:mx-2',
-                        index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
-                      )}
-                    />
-                  )}
-                  <button
-                    onClick={() => goToStep(index)}
-                    disabled={!isClickable}
-                    className={cn(
-                      'flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors',
-                      isActive && 'bg-primary/10 text-primary',
-                      !isActive && isCompleted && 'text-primary',
-                      !isActive && !isCompleted && 'text-muted-foreground',
-                      isClickable && 'cursor-pointer hover:bg-muted',
-                      !isClickable && 'cursor-not-allowed'
+                return (
+                  <li key={step.id} className="flex items-center">
+                    {index > 0 && (
+                      <div
+                        className={cn(
+                          'w-8 sm:w-12 h-0.5 mx-1 sm:mx-2',
+                          index <= currentStepIndex ? 'bg-primary' : 'bg-muted'
+                        )}
+                      />
                     )}
-                  >
-                    <div
+                    <button
+                      onClick={() => goToStep(index)}
+                      disabled={!isClickable}
                       className={cn(
-                        'flex items-center justify-center w-8 h-8 rounded-full',
-                        isActive && 'bg-primary text-primary-foreground',
-                        !isActive && isCompleted && 'bg-primary/20 text-primary',
-                        !isActive && !isCompleted && 'bg-muted text-muted-foreground'
+                        'flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors',
+                        isActive && 'bg-primary/10 text-primary',
+                        !isActive && isCompleted && 'text-primary',
+                        !isActive && !isCompleted && 'text-muted-foreground',
+                        isClickable && 'cursor-pointer hover:bg-muted',
+                        !isClickable && 'cursor-not-allowed'
                       )}
                     >
-                      {isCompleted && !isActive ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <Icon className="w-4 h-4" />
-                      )}
-                    </div>
-                    <span className="hidden sm:inline text-sm font-medium">
-                      {t(step.labelKey)}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
-        </nav>
+                      <div
+                        className={cn(
+                          'flex items-center justify-center w-8 h-8 rounded-full',
+                          isActive && 'bg-primary text-primary-foreground',
+                          !isActive && isCompleted && 'bg-primary/20 text-primary',
+                          !isActive && !isCompleted && 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {isCompleted && !isActive ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Icon className="w-4 h-4" />
+                        )}
+                      </div>
+                      <span className="hidden sm:inline text-sm font-medium">
+                        {t(step.labelKey)}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+          </nav>
+
+          {/* Preview Toggle Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(true)}
+            className="gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            {t('whiteLabelWizard.showPreview')}
+          </Button>
+        </div>
       </div>
 
-      {/* Step Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {currentStep.id === 'setup' && (
-          <Step1Setup
-            venueId={state.venueId}
-            venueName={state.venueName}
-            preset={state.preset}
-            theme={state.theme}
-            onVenueChange={loadExistingConfig}
-            onPresetChange={handlePresetChange}
-            onThemeChange={theme => updateState({ theme })}
-            errors={errors.setup}
-            isLoadingConfig={isLoadingConfig}
-            isEditMode={!!initialVenueId}
-          />
-        )}
+      {/* Full-Width Layout: Step Content */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full p-6">
+          <div className="max-w-6xl mx-auto overflow-y-auto h-full">
+            {currentStep.id === 'setup' && (
+              <Step1Setup
+                venueId={state.venueId}
+                venueName={state.venueName}
+                preset={state.preset}
+                theme={state.theme}
+                onVenueChange={loadExistingConfig}
+                onPresetChange={handlePresetChange}
+                onThemeChange={theme => updateState({ theme })}
+                errors={errors.setup}
+                isLoadingConfig={isLoadingConfig}
+                isEditMode={!!initialVenueId}
+              />
+            )}
 
-        {currentStep.id === 'features' && (
-          <Step2Features
-            enabledFeatures={state.enabledFeatures}
-            preset={state.preset}
-            onFeaturesChange={handleFeaturesChange}
-            errors={errors.features}
-          />
-        )}
+            {currentStep.id === 'features' && (
+              <Step2Features
+                enabledFeatures={state.enabledFeatures}
+                preset={state.preset}
+                onFeaturesChange={handleFeaturesChange}
+                errors={errors.features}
+              />
+            )}
 
-        {currentStep.id === 'configuration' && (
-          <Step3Configuration
-            enabledFeatures={state.enabledFeatures}
-            featureConfigs={state.featureConfigs}
-            onConfigChange={handleFeatureConfigChange}
-            errors={errors.configuration}
-          />
-        )}
+            {currentStep.id === 'configuration' && (
+              <Step3Configuration
+                enabledFeatures={state.enabledFeatures}
+                featureConfigs={state.featureConfigs}
+                onConfigChange={handleFeatureConfigChange}
+                errors={errors.configuration}
+              />
+            )}
 
-        {currentStep.id === 'preview' && (
-          <Step4Preview
-            state={state}
-            onNavigationChange={handleNavigationChange}
-            errors={errors.preview}
-          />
-        )}
+            {currentStep.id === 'preview' && (
+              <Step4Preview
+                state={state}
+                onNavigationChange={handleNavigationChange}
+                errors={errors.preview}
+              />
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              {t('whiteLabelWizard.preview.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <PreviewPanel state={state} currentStep={currentStep.id} />
+        </DialogContent>
+      </Dialog>
 
       {/* Footer Navigation */}
       <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between">
@@ -562,18 +599,30 @@ export default function WhiteLabelWizard({
 // Helpers
 // ============================================
 
-function generateNavigationFromFeatures(features: EnabledFeature[]): NavigationItem[] {
+/**
+ * Generate navigation items from enabled features.
+ * Preserves custom labels from existing navigation when features are toggled.
+ */
+function generateNavigationFromFeatures(
+  features: EnabledFeature[],
+  existingNavigation: NavigationItem[] = []
+): NavigationItem[] {
   return features
     .map((feature, index) => {
       const def = FEATURE_REGISTRY[feature.code]
       if (!def) return null
 
+      // Check if this feature already has a nav item with a custom label
+      const existingItem = existingNavigation.find(
+        nav => nav.featureCode === feature.code
+      )
+
       const navItem: NavigationItem = {
-        id: `nav-${feature.code}`,
+        id: existingItem?.id || `nav-${feature.code}`,
         type: 'feature',
         featureCode: feature.code,
-        label: def.defaultNavItem.label,
-        icon: def.defaultNavItem.icon,
+        label: existingItem?.label || def.defaultNavItem.label, // Preserve custom label
+        icon: existingItem?.icon || def.defaultNavItem.icon,
         order: index,
       }
       return navItem

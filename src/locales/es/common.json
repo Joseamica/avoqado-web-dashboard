@@ -143,6 +143,8 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "view": "Vista",
+  "full_dashboard": "Dashboard Completo",
   "superadmin": {
     "delete": {
       "title": "Confirmar Eliminación",

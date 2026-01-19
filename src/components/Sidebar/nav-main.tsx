@@ -19,6 +19,7 @@ import {
 import { ChevronRight, Lock, type LucideIcon } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ViewModeSwitcher } from './view-mode-switcher'
 
 export function NavMain({
   items,
@@ -88,6 +89,7 @@ export function NavMain({
   }
   return (
     <>
+      <ViewModeSwitcher />
       <SidebarGroup>
         <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
         <SidebarMenu>

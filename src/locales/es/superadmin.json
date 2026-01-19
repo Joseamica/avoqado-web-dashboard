@@ -2994,6 +2994,11 @@
     "next": "Siguiente",
     "saving": "Guardando...",
     "saveAndEnable": "Guardar y Activar",
+    "showPreview": "Mostrar Vista Previa",
+    "hidePreview": "Ocultar Vista Previa",
+    "preview": {
+      "title": "Vista Previa del Dashboard"
+    },
     "setup": {
       "venueTitle": "Seleccionar Sucursal",
       "venueDescription": "Elige la sucursal que usará este dashboard personalizado",
@@ -3057,7 +3062,9 @@
       "title": "Vista Previa y Finalizar",
       "description": "Revisa tu configuración y reordena los elementos de navegación",
       "navigation": "Navegación",
-      "navigationHelp": "Usa las flechas para reordenar los elementos de navegación",
+      "navigationHelp": "Haz clic en el ícono de lápiz para renombrar, usa las flechas para reordenar",
+      "editLabel": "Editar nombre",
+      "saveLabel": "Guardar nombre",
       "noNavItems": "Sin elementos de navegación",
       "visualPreview": "Vista Previa Visual",
       "contentPlaceholder": "Contenido",
@@ -3074,7 +3081,19 @@
       "configuration": "Configuración",
       "totalFeatures": "Total de Funcionalidades",
       "navItems": "Elementos de Navegación",
-      "venue": "Sucursal"
+      "venue": "Sucursal",
+      "themePreview": "Vista Previa del Tema",
+      "themeDescription": "Cómo se verá tu marca",
+      "featuresPreview": "Vista Previa de Funcionalidades",
+      "featuresDescription": "Navegación y características habilitadas",
+      "configPreview": "Vista Previa de Configuración",
+      "configDescription": "Ajustes personalizados aplicados",
+      "finalPreview": "Vista Previa Final",
+      "finalDescription": "Tu dashboard personalizado completo",
+      "noFeatures": "Selecciona funcionalidades para verlas aquí",
+      "themeColor": "Color del tema",
+      "primaryColor": "Color principal",
+      "liveUpdates": "Los cambios se reflejan aquí en tiempo real"
     }
   }
 }
