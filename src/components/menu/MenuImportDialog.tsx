@@ -12,24 +12,31 @@ import { Separator } from '@/components/ui/separator'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import {
-  parseCSV,
   validateCSV,
   transformCSVData,
   importMenu,
   downloadTemplate,
   exportCurrentMenu,
+  previewCSV,
+  parseRawCSV,
+  remapData,
+  SYSTEM_FIELDS,
   type ParsedCategory,
 } from '@/services/menuImport.service'
 import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown } from 'lucide-react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import * as menuService from '@/services/menu.service'
 
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 interface MenuImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-type ImportStep = 'select' | 'upload' | 'preview' | 'import'
+type ImportStep = 'select' | 'mapping' | 'upload' | 'preview' | 'import'
 
 export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) {
   const { t } = useTranslation('menuImport')
@@ -67,6 +74,11 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
   const [isImporting, setIsImporting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  
+  // Mapping State
+  const [rawHeaders, setRawHeaders] = useState<string[]>([])
+  const [previewRows, setPreviewRows] = useState<any[]>([])
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -80,6 +92,9 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         setValidationErrors([])
         setIsValidating(false)
         setIsImporting(false)
+        setRawHeaders([])
+        setPreviewRows([])
+        setColumnMapping({})
       }, 300) // Wait for dialog close animation
     }
   }, [open])
@@ -140,19 +155,29 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
     setValidationErrors([])
 
     try {
-      // Parse CSV
-      const { data, isAdvanced: isAdvancedTemplate } = await parseCSV(selectedFile)
+      // Parse CSV headers only
+      const { headers, data } = await previewCSV(selectedFile)
+      
+      setRawHeaders(headers)
+      setPreviewRows(data)
 
-      // Validate CSV structure
-      const validation = validateCSV(data)
-      setValidationErrors(validation.errors)
+      // Auto-guess mapping
+      const initialMapping: Record<string, string> = {}
+      SYSTEM_FIELDS.forEach(field => {
+        // Try exact match
+        let match = headers.find(h => h.toLowerCase() === field.key.toLowerCase())
+        // Try label match
+        if (!match) match = headers.find(h => h.toLowerCase() === field.label.toLowerCase())
+        // Try partial match
+        if (!match) match = headers.find(h => h.toLowerCase().includes(field.key.toLowerCase()))
 
-      if (validation.valid) {
-        // Transform data for preview
-        const categories = transformCSVData(data, isAdvancedTemplate)
-        setParsedData(categories)
-        setStep('preview')
-      }
+        if (match) {
+          initialMapping[field.key] = match
+        }
+      })
+      setColumnMapping(initialMapping)
+      setStep('mapping')
+
     } catch (error: any) {
       toast({
         title: t('errors.parseError'),
@@ -164,6 +189,48 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
       setIsValidating(false)
     }
   }, [t, toast])
+
+  // Process Mapping
+  const handleMappingComplete = useCallback(async () => {
+    if (!file) return
+
+    setIsValidating(true)
+    try {
+      // 1. Get all raw data
+      const rawData = await parseRawCSV(file)
+
+      // 2. Remap data to our system fields
+      const remappedData = remapData(rawData, columnMapping)
+
+      // 3. Detect if advanced based on mapped fields
+      const isAdvanced = !!(columnMapping['modifier_groups'] || columnMapping['modifiers'] || columnMapping['cost'])
+
+      // 4. Validate
+      const validation = validateCSV(remappedData)
+      setValidationErrors(validation.errors)
+
+      // 5. Transform
+      if (validation.valid) {
+        const categories = transformCSVData(remappedData, isAdvanced)
+        setParsedData(categories)
+        setStep('preview')
+      } else {
+        // Even if invalid, show errors in preview step
+        setParsedData([])
+        setStep('preview')
+      }
+
+    } catch (error: any) {
+       toast({
+        title: t('errors.parseError'),
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsValidating(false)
+    }
+  }, [file, columnMapping, toast, t])
+
 
   // Handle drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -239,13 +306,61 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            {t('title')}
-          </DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background">
+        <DialogHeader className="flex flex-row items-start justify-between space-y-0 pr-8">
+          <div className="space-y-1.5 text-center sm:text-left">
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              {step === 'mapping' ? t('mapping.title', 'Map Columns') : t('title')}
+            </DialogTitle>
+            <DialogDescription>
+               {step === 'mapping' 
+                ? t('mapping.description', 'Confirm that the columns in your CSV match the required fields.') 
+                : t('description')}
+            </DialogDescription>
+          </div>
+          {step === 'select' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                  <Download className="h-4 w-4" />
+                  {t('download.button')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">{t('templates.title')}</h4>
+                    <p className="text-sm text-muted-foreground">{t('templates.empty')}</p>
+                  </div>
+                  <RadioGroup value={templateType} onValueChange={(value: any) => setTemplateType(value)}>
+                    <div className="flex items-start space-x-3 space-y-0">
+                      <RadioGroupItem value="basic" id="popover-basic" />
+                      <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="popover-basic" className="cursor-pointer font-medium">
+                          {t('templates.basic')}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">{t('templates.basicDesc')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3 space-y-0">
+                      <RadioGroupItem value="advanced" id="popover-advanced" />
+                      <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="popover-advanced" className="cursor-pointer font-medium">
+                          {t('templates.advanced')}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">{t('templates.advancedDesc')}</p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                  <Button size="sm" className="w-full gap-2" onClick={() => handleDownloadTemplate(templateType)}>
+                    <Download className="h-4 w-4" />
+                    {t('download.button')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -300,49 +415,6 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
                 </>
               )}
 
-              {/* Download Template Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Download className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-base font-semibold">{t('templates.title')}</Label>
-                  <Badge variant="outline" className="ml-auto">
-                    {t('templates.empty')}
-                  </Badge>
-                </div>
-                <RadioGroup value={templateType} onValueChange={(value: any) => setTemplateType(value)}>
-                  <div
-                    className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => setTemplateType('basic')}
-                  >
-                    <RadioGroupItem value="basic" id="basic" className="mt-1" />
-                    <div className="flex-1">
-                      <Label htmlFor="basic" className="cursor-pointer font-semibold">
-                        {t('templates.basic')}
-                      </Label>
-                      <p className="text-sm text-muted-foreground mt-1">{t('templates.basicDesc')}</p>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => setTemplateType('advanced')}
-                  >
-                    <RadioGroupItem value="advanced" id="advanced" className="mt-1" />
-                    <div className="flex-1">
-                      <Label htmlFor="advanced" className="cursor-pointer font-semibold">
-                        {t('templates.advanced')}
-                      </Label>
-                      <p className="text-sm text-muted-foreground mt-1">{t('templates.advancedDesc')}</p>
-                    </div>
-                  </div>
-                </RadioGroup>
-
-                <Button variant="outline" className="w-full gap-2" onClick={() => handleDownloadTemplate(templateType)}>
-                  <Download className="h-4 w-4" />
-                  {t('download.button')}
-                </Button>
-              </div>
-
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
@@ -351,6 +423,7 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
+
                 <input
                   type="file"
                   accept=".csv"
@@ -372,6 +445,86 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
             </>
           )}
 
+          {/* Step: Mapping */}
+          {step === 'mapping' && (
+            <div className="space-y-4">
+               <Alert className="bg-muted">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {t('mapping.info', 'Review the mapping below. We tried to match your columns automatically.')}
+                </AlertDescription>
+              </Alert>
+
+              <div className="rounded-md border">
+                <div className="grid grid-cols-[1fr_1.5fr] gap-4 bg-muted p-3 text-sm font-medium">
+                   <div>{t('mapping.systemField', 'Avoqado Field')}</div>
+                   <div>{t('mapping.csvColumn', 'CSV Column')}</div>
+                </div>
+                <div className="max-h-[50vh] overflow-y-auto">
+                  {SYSTEM_FIELDS.map((field) => (
+                    <div key={field.key} className="grid grid-cols-[1fr_1.5fr] gap-4 border-b p-4 last:border-0 items-start hover:bg-muted/5 transition-colors">
+                      <div className="space-y-1 mt-1.5">
+                        <div className="flex items-center gap-2">
+                           <Label className={field.required ? 'font-bold' : 'font-normal'}>
+                              {t(`mapping.fields.${field.key}.label`, field.label)}
+                           </Label>
+                           {field.required && <span className="text-red-500">*</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                           {t(`mapping.fields.${field.key}.description`, field.description)}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Select 
+                          value={columnMapping[field.key] || 'ignore'} 
+                          onValueChange={(val) => {
+                            setColumnMapping(prev => {
+                               const next = { ...prev }
+                               if (val === 'ignore') {
+                                 delete next[field.key]
+                               } else {
+                                 next[field.key] = val
+                               }
+                               return next
+                            })
+                          }}
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder={t('mapping.select', 'Select column...')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ignore" className="text-muted-foreground italic">
+                              {t('mapping.ignore', 'Don\'t import')}
+                            </SelectItem>
+                             {rawHeaders.map(header => (
+                               <SelectItem key={header} value={header}>{header}</SelectItem>
+                             ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Sample Values Preview */}
+                        <div className="text-xs text-muted-foreground pl-1">
+                           {columnMapping[field.key] ? (
+                              <div className="space-y-1">
+                                {previewRows.slice(0, 3).map((row, i) => (
+                                   <div key={i} className="truncate text-muted-foreground/80" title={row[columnMapping[field.key]]}>
+                                      {row[columnMapping[field.key]] || <span className="italic opacity-50">Empty</span>}
+                                   </div>
+                                ))}
+                              </div>
+                           ) : (
+                             <span className="italic opacity-40 pl-1">{t('mapping.noMapping', 'No column selected')}</span>
+                           )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step 2: Preview & Validation */}
           {step === 'preview' && file && (
             <>
@@ -386,16 +539,27 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setFile(null)
-                    setStep('select')
-                  }}
-                >
-                  {t('upload.changeFile')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setStep('mapping')
+                    }}
+                  >
+                     {t('actions.backToMapping', 'Check Columns')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFile(null)
+                      setStep('select')
+                    }}
+                  >
+                    {t('upload.changeFile')}
+                  </Button>
+                </div>
               </div>
 
               {/* Validation results */}
@@ -445,34 +609,18 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
 
                   {/* Import mode selection */}
                   <div className="space-y-4">
-                    <Label>{t('mode.title')}</Label>
-                    <RadioGroup value={importMode} onValueChange={(value: any) => setImportMode(value)}>
-                      <div
-                        className="flex items-start space-x-3 rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
-                        onClick={() => setImportMode('merge')}
-                      >
-                        <RadioGroupItem value="merge" id="merge" className="mt-1" />
-                        <div className="flex-1">
-                          <Label htmlFor="merge" className="cursor-pointer font-semibold">
-                            {t('mode.merge')}
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">{t('mode.mergeDesc')}</p>
-                        </div>
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                      <div className="space-y-0.5">
+                        <Label className="text-base font-semibold">{t('mode.replace')}</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {importMode === 'replace' ? t('mode.replaceDesc') : t('mode.mergeDesc')}
+                        </p>
                       </div>
-
-                      <div
-                        className="flex items-start space-x-3 rounded-lg border border-orange-200 p-4 hover:bg-orange-50 dark:hover:bg-orange-950/20 cursor-pointer"
-                        onClick={() => setImportMode('replace')}
-                      >
-                        <RadioGroupItem value="replace" id="replace" className="mt-1" />
-                        <div className="flex-1">
-                          <Label htmlFor="replace" className="cursor-pointer font-semibold text-orange-700 dark:text-orange-400">
-                            {t('mode.replace')}
-                          </Label>
-                          <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">{t('mode.replaceDesc')}</p>
-                        </div>
-                      </div>
-                    </RadioGroup>
+                      <Switch
+                        checked={importMode === 'replace'}
+                        onCheckedChange={checked => setImportMode(checked ? 'replace' : 'merge')}
+                      />
+                    </div>
 
                     {importMode === 'replace' && (
                       <Alert variant="destructive">
@@ -488,15 +636,32 @@ export function MenuImportDialog({ open, onOpenChange }: MenuImportDialogProps) 
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
-            {t('actions.cancel')}
-          </Button>
+          {step === 'mapping' ? (
+             <>
+               <Button variant="outline" onClick={() => {
+                 setFile(null)
+                 setStep('select')
+               }}>
+                 {t('actions.back', 'Back')}
+               </Button>
+               <Button onClick={handleMappingComplete} disabled={isValidating}>
+                 {isValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                 {t('actions.next', 'Next')}
+               </Button>
+             </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
+                {t('actions.cancel')}
+              </Button>
 
-          {step === 'preview' && validationErrors.length === 0 && (
-            <Button onClick={handleImport} disabled={isImporting} className="gap-2">
-              {isImporting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isImporting ? t('actions.importing') : t('actions.import')}
-            </Button>
+              {step === 'preview' && validationErrors.length === 0 && (
+                <Button onClick={handleImport} disabled={isImporting} className="gap-2">
+                  {isImporting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isImporting ? t('actions.importing') : t('actions.import')}
+                </Button>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>

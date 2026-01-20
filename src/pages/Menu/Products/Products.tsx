@@ -3,7 +3,18 @@ import { productInventoryApi, type AdjustInventoryStockDto } from '@/services/in
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, UploadCloud, ImageIcon, MoreHorizontal, Edit, Trash2, Package2, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import {
+  ArrowUpDown,
+  UploadCloud,
+  ImageIcon,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Package2,
+  AlertTriangle,
+  CheckCircle2,
+  ChefHat,
+} from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
@@ -44,10 +55,13 @@ import { AdjustStockDialog } from '@/components/AdjustStockDialog'
 import { useMenuSocketEvents } from '@/hooks/use-menu-socket-events'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 
+import { ProductWizardDialog } from '@/pages/Inventory/components/ProductWizardDialog'
+import { Sparkles } from 'lucide-react'
+
 export default function Products() {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDate } = useVenueDateTime()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
@@ -69,6 +83,7 @@ export default function Products() {
   const [adjustStockDialogOpen, setAdjustStockDialogOpen] = useState(false)
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null)
   const [showLowStockOnly, setShowLowStockOnly] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   // ✅ WORLD-CLASS: Fetch products sorted alphabetically by name
   const {
@@ -339,6 +354,23 @@ export default function Products() {
       },
     },
     {
+      id: 'recipe',
+      meta: { label: 'Receta' },
+      header: 'Costo / Receta',
+      enableColumnFilter: false,
+      cell: ({ row }) => {
+        const product = row.original
+        return (
+          <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-muted-foreground hover:text-primary">
+            <Link to={`${fullBasePath}/inventory/recipes?productId=${product.id}`}>
+              <ChefHat className="mr-2 h-4 w-4" />
+              <span className="text-xs decoration-dashed underline">Ver Costo</span>
+            </Link>
+          </Button>
+        )
+      },
+    },
+    {
       id: 'stock',
       accessorKey: 'availableQuantity',
       meta: { label: t('products.columns.stock') },
@@ -536,16 +568,9 @@ export default function Products() {
           })}
         />
         <PermissionGate permission="menu:create">
-          <Button asChild>
-            <Link
-              to={`create`}
-              state={{
-                from: location.pathname,
-              }}
-              className="flex items-center space-x-2"
-            >
-              <span>{t('products.new')}</span>
-            </Link>
+          <Button onClick={() => setWizardOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            <span>{t('products.new')}</span>
           </Button>
         </PermissionGate>
       </div>
@@ -637,6 +662,15 @@ export default function Products() {
           }
         }}
         isLoading={adjustStockMutation.isPending}
+      />
+
+      <ProductWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        mode="create"
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        }}
       />
     </div>
   )

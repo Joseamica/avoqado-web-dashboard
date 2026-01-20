@@ -25,6 +25,7 @@ import { AddIngredientDialog } from './AddIngredientDialog'
 import MultipleSelector from '@/components/multi-selector'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import api from '@/api'
+import { Link, useLocation } from 'react-router-dom'
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -77,6 +78,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   const { t } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
   const { venueId, venueSlug } = useCurrentVenue()
+  const location = useLocation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -257,7 +259,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Mutation for configuring inventory on existing product (edit mode)
   const configureInventoryMutation = useMutation({
-    mutationFn: async (data: { inventoryMethod: InventoryMethod; simpleStock?: Step3SimpleStockFormData; recipe?: Step3RecipeFormData }) => {
+    mutationFn: async (data: {
+      inventoryMethod: InventoryMethod
+      simpleStock?: Step3SimpleStockFormData
+      recipe?: Step3RecipeFormData
+    }) => {
       if (!createdProductId) {
         throw new Error('Product ID is required')
       }
@@ -578,9 +584,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     const validIngredients = recipeData.ingredients
       .filter(ingredient => {
         // Only include ingredients with valid rawMaterialId
-        const isValid = ingredient.rawMaterialId &&
-               typeof ingredient.rawMaterialId === 'string' &&
-               ingredient.rawMaterialId.trim().length > 0
+        const isValid =
+          ingredient.rawMaterialId && typeof ingredient.rawMaterialId === 'string' && ingredient.rawMaterialId.trim().length > 0
 
         if (!isValid) {
           console.log('🔍 DEBUG [CLEAN FUNCTION] - Invalid ingredient filtered out:', ingredient)
@@ -778,7 +783,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
         // ✅ FIX: Validate that all ingredients have valid rawMaterialId
         const invalidIngredients = recipeData.ingredients.filter(
-          ingredient => !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0
+          ingredient =>
+            !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0,
         )
 
         if (invalidIngredients.length > 0) {
@@ -845,7 +851,8 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // ✅ FIX: Validate that all ingredients have valid rawMaterialId
       const invalidIngredients = recipeData.ingredients.filter(
-        ingredient => !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0
+        ingredient =>
+          !ingredient.rawMaterialId || typeof ingredient.rawMaterialId !== 'string' || ingredient.rawMaterialId.trim().length === 0,
       )
 
       if (invalidIngredients.length > 0) {
@@ -891,9 +898,20 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory')}</DialogTitle>
-            <DialogDescription>{mode === 'create' ? t('wizard.subtitle') : t('products.detail.configureInventoryDesc')}</DialogDescription>
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <DialogTitle>{mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory')}</DialogTitle>
+              <DialogDescription>
+                {mode === 'create' ? t('wizard.subtitle') : t('products.detail.configureInventoryDesc')}
+              </DialogDescription>
+            </div>
+            {mode === 'create' && (
+              <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-primary">
+                <Link to="create" state={{ from: location.pathname }}>
+                  {t('products.create.useManual')} &rarr;
+                </Link>
+              </Button>
+            )}
           </DialogHeader>
 
           {/* Progress Bar */}
@@ -1241,7 +1259,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                   <li>{t('wizard.step2.inventoryMethodHelp.quantity.example2')}</li>
                                   <li>{t('wizard.step2.inventoryMethodHelp.quantity.example3')}</li>
                                 </ul>
-                                <p className="text-xs italic mt-1 text-muted-foreground">{t('wizard.step2.inventoryMethodHelp.quantity.note')}</p>
+                                <p className="text-xs italic mt-1 text-muted-foreground">
+                                  {t('wizard.step2.inventoryMethodHelp.quantity.note')}
+                                </p>
                               </div>
 
                               <div className="bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md border border-orange-200 dark:border-orange-800">
@@ -1255,7 +1275,9 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                                   <li>{t('wizard.step2.inventoryMethodHelp.recipe.example2')}</li>
                                   <li>{t('wizard.step2.inventoryMethodHelp.recipe.example3')}</li>
                                 </ul>
-                                <p className="text-xs italic mt-1 text-muted-foreground">{t('wizard.step2.inventoryMethodHelp.recipe.note')}</p>
+                                <p className="text-xs italic mt-1 text-muted-foreground">
+                                  {t('wizard.step2.inventoryMethodHelp.recipe.note')}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -1400,9 +1422,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <div className="space-y-2">
                               <p className="font-semibold">{t('lowStockThreshold.title')}</p>
                               <p className="text-sm">{t('lowStockThreshold.description')}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {t('lowStockThreshold.defaultNote', { value: 10 })}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{t('lowStockThreshold.defaultNote', { value: 10 })}</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -1417,9 +1437,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       defaultValue={10}
                       {...step3SimpleForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t('lowStockThreshold.separateFromReorder')}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t('lowStockThreshold.separateFromReorder')}</p>
                   </div>
 
                   <DialogFooter className="flex justify-between">
@@ -1511,9 +1529,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                             <div className="space-y-2">
                               <p className="font-semibold">{t('lowStockThreshold.title')}</p>
                               <p className="text-sm">{t('lowStockThreshold.descriptionPortions')}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {t('lowStockThreshold.defaultNotePortions', { value: 5 })}
-                              </p>
+                              <p className="text-sm text-muted-foreground">{t('lowStockThreshold.defaultNotePortions', { value: 5 })}</p>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -1528,9 +1544,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                       defaultValue={5}
                       {...step3RecipeForm.register('lowStockThreshold', { valueAsNumber: true, min: 0 })}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t('lowStockThreshold.alertWhenBelow')}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t('lowStockThreshold.alertWhenBelow')}</p>
                   </div>
 
                   {/* Ingredients List */}

@@ -97,6 +97,8 @@
     "noPermission": "No tienes permiso para realizar esta acción",
     "offline": "Sin conexión a internet",
     "offlineDescription": "Por favor revisa tu conexión a internet e intenta de nuevo.",
+    "connectionIssue": "Problema de conexión",
+    "checkConnection": "Por favor revisa tu conexión e intenta de nuevo.",
     "serverUnavailable": "Servidor no disponible",
     "serverUnavailableDescription": "Estamos teniendo problemas para conectar con el servidor. Reintentaremos automáticamente.",
     "serverUnavailableHint": "Reintentaremos la conexión automáticamente en unos segundos.",
@@ -143,6 +145,8 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "view": "Vista",
+  "full_dashboard": "Dashboard Completo",
   "superadmin": {
     "delete": {
       "title": "Confirmar Eliminación",

@@ -34,6 +34,28 @@
     "changeFile": "Change file",
     "fileSize": "{{size}} KB"
   },
+  "mapping": {
+    "title": "Map Columns",
+    "description": "Confirm that the columns in your CSV match the required fields.",
+    "info": "Review the mapping below. We tried to match your columns automatically.",
+    "systemField": "Avoqado Field",
+    "csvColumn": "CSV Column",
+    "select": "Select column...",
+    "ignore": "Don't import",
+    "noMapping": "No column selected",
+    "fields": {
+      "name": { "label": "Product Name", "description": "The name of the item" },
+      "sku": { "label": "SKU", "description": "Unique identifier code" },
+      "price": { "label": "Price", "description": "Selling price" },
+      "category": { "label": "Category", "description": "Menu category" },
+      "description": { "label": "Description", "description": "Item details" },
+      "type": { "label": "Type", "description": "FOOD, BEVERAGE, etc." },
+      "cost": { "label": "Cost", "description": "Item cost" },
+      "tags": { "label": "Tags", "description": "Pipe separated tags (|)" },
+      "modifier_groups": { "label": "Modifier Groups", "description": "Modifier groups configuration" },
+      "modifiers": { "label": "Modifiers", "description": "Individual modifiers configuration" }
+    }
+  },
   "mode": {
     "title": "Import Mode",
     "merge": "Add / Update",
@@ -60,7 +82,10 @@
     "cancel": "Cancel",
     "import": "Import Menu",
     "importing": "Importing...",
-    "close": "Close"
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "backToMapping": "Review Columns"
   },
   "success": {
     "title": "Menu imported successfully!",

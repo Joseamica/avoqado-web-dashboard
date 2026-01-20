@@ -2,11 +2,12 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { Plus, X } from 'lucide-react'
-import { useState } from 'react'
+import { cloneElement, isValidElement, useState } from 'react'
 
 interface FilterPillProps {
   label: string
   activeValue?: string | null
+  activeLabel?: string | null // Alias for activeValue
   isActive?: boolean
   children: React.ReactNode
   onClear?: () => void
@@ -22,10 +23,18 @@ interface FilterPillProps {
  *
  * Note: Uses flex-shrink-0 by default to prevent shrinking in scrollable filter bars.
  */
-export function FilterPill({ label, activeValue, isActive, children, onClear, align = 'start', className }: FilterPillProps) {
+export function FilterPill({ label, activeValue, activeLabel, isActive, children, onClear, align = 'start', className }: FilterPillProps) {
   const [open, setOpen] = useState(false)
 
-  const hasValue = isActive || !!activeValue
+  const displayValue = activeLabel || activeValue
+  const hasValue = isActive || !!displayValue
+
+  // Clone children and inject onClose handler
+  const childrenWithClose = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<any>, {
+        onClose: () => setOpen(false),
+      })
+    : children
 
   return (
     <div className={cn('flex-shrink-0', className)}>
@@ -41,10 +50,10 @@ export function FilterPill({ label, activeValue, isActive, children, onClear, al
         >
           {!hasValue && <Plus className="h-3.5 w-3.5 text-muted-foreground" />}
           <span>{label}</span>
-          {hasValue && activeValue && (
+          {hasValue && displayValue && (
             <>
               <span className="text-background/70">:</span>
-              <span className="max-w-[150px] truncate font-medium">{activeValue}</span>
+              <span className="max-w-[150px] truncate font-medium">{displayValue}</span>
             </>
           )}
           {hasValue && onClear && (
@@ -61,7 +70,7 @@ export function FilterPill({ label, activeValue, isActive, children, onClear, al
         </Button>
       </PopoverTrigger>
       <PopoverContent align={align} className="w-[280px] p-0" sideOffset={8}>
-        {children}
+        {childrenWithClose}
       </PopoverContent>
     </Popover>
     </div>

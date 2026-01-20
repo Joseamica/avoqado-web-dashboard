@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  Archive,
   CreditCard,
   Download,
   FileText,
@@ -38,13 +39,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { PermissionGate } from '@/components/PermissionGate'
 import { sendTpvCommand } from '@/services/tpv.service'
-import { terminalAPI } from '@/services/superadmin-terminals.service'
+import { terminalAPI, AppUpdate } from '@/services/superadmin-terminals.service'
 import {
   COMMAND_DEFINITIONS,
   TpvCommandPayload,
@@ -71,6 +73,7 @@ const ICON_MAP = {
   CreditCard,
   Loader2,
   Zap,
+  Archive,
 }
 
 // Commands that require waiting for heartbeat after execution (terminal state changes)
@@ -100,6 +103,8 @@ interface RemoteCommandPanelProps {
   isActivated?: boolean // true if terminal has activatedAt set
   isSuperadmin?: boolean // true if current user is SUPERADMIN
   venueId: string
+  currentVersion?: string // Current TPV version (e.g., "1.3.1") for downgrade detection
+  currentVersionCode?: number // Current TPV versionCode (e.g., 45) for downgrade detection
 }
 
 interface CommandGroup {
@@ -117,6 +122,8 @@ export function RemoteCommandPanel({
   isActivated = true,
   isSuperadmin = false,
   venueId,
+  currentVersion,
+  currentVersionCode,
 }: RemoteCommandPanelProps) {
   const { t } = useTranslation(['tpv', 'common'])
   const { toast } = useToast()
@@ -194,6 +201,19 @@ export function RemoteCommandPanel({
 
   // State for remote activate dialog (SUPERADMIN only)
   const [remoteActivateDialog, setRemoteActivateDialog] = useState<{ open: boolean }>({ open: false })
+
+  // State for install version dialog (SUPERADMIN only)
+  const [installVersionDialog, setInstallVersionDialog] = useState<{
+    open: boolean
+    selectedVersionCode: number | null
+  }>({ open: false, selectedVersionCode: null })
+
+  // Query for available app versions (SUPERADMIN only, for INSTALL_VERSION)
+  const { data: appVersions, isLoading: isLoadingVersions } = useQuery({
+    queryKey: ['app-updates'],
+    queryFn: () => terminalAPI.getAppUpdates(),
+    enabled: isSuperadmin && installVersionDialog.open,
+  })
 
   // Remote Activate mutation (SUPERADMIN only - uses dedicated endpoint)
   const remoteActivateMutation = useMutation({
@@ -291,6 +311,7 @@ export function RemoteCommandPanel({
         TpvCommandType.RESTART,
         TpvCommandType.CLEAR_CACHE,
         TpvCommandType.FORCE_UPDATE,
+        TpvCommandType.REQUEST_UPDATE,
       ],
     },
     {
@@ -753,6 +774,47 @@ export function RemoteCommandPanel({
                   </Tooltip>
                 </TooltipProvider>
               )}
+
+              {/* Install Version Button - SUPERADMIN only, for rollback/upgrade */}
+              {isSuperadmin && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start p-3 h-auto ${
+                          isOnline
+                            ? 'border-purple-300 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:hover:bg-purple-900/30 dark:text-purple-400'
+                            : 'border-border bg-muted/50 text-muted-foreground'
+                        }`}
+                        onClick={() => setInstallVersionDialog({ open: true, selectedVersionCode: null })}
+                        disabled={!isOnline || pendingCommands.has(TpvCommandType.INSTALL_VERSION)}
+                      >
+                        <div className="flex items-center space-x-3 w-full">
+                          {pendingCommands.has(TpvCommandType.INSTALL_VERSION) ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Archive className="w-5 h-5" />
+                          )}
+                          <div className="text-left">
+                            <p className="text-sm font-medium">
+                              {pendingCommands.has(TpvCommandType.INSTALL_VERSION)
+                                ? t('commands.sending')
+                                : t('commands.types.INSTALL_VERSION')}
+                            </p>
+                            <p className="text-xs opacity-80">
+                              {isOnline ? t('commands.descriptions.INSTALL_VERSION') : t('commands.requiresOnline')}
+                            </p>
+                          </div>
+                        </div>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isOnline ? t('commands.installVersionTooltip') : t('commands.requiresOnline')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
 
@@ -941,6 +1003,128 @@ export function RemoteCommandPanel({
             >
               <Zap className="h-4 w-4 mr-2" />
               {t('commands.remoteActivateNow')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Install Version Dialog - SUPERADMIN only */}
+      <AlertDialog
+        open={installVersionDialog.open}
+        onOpenChange={(open) => setInstallVersionDialog({ ...installVersionDialog, open, selectedVersionCode: open ? installVersionDialog.selectedVersionCode : null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-purple-600" />
+              {t('commands.installVersionTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('commands.installVersionDesc', { terminal: terminalName || terminalId })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="versionSelect">{t('commands.selectVersion')}</Label>
+              {isLoadingVersions ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('common:loading')}
+                </div>
+              ) : (
+                <Select
+                  value={installVersionDialog.selectedVersionCode?.toString() ?? ''}
+                  onValueChange={(value) => setInstallVersionDialog({ ...installVersionDialog, selectedVersionCode: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('commands.selectVersionPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(appVersions ?? [])
+                      .filter((v: AppUpdate) => v.isActive)
+                      .sort((a: AppUpdate, b: AppUpdate) => b.versionCode - a.versionCode)
+                      .map((version: AppUpdate) => (
+                        <SelectItem key={version.id} value={version.versionCode.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{version.versionName}</span>
+                            <span className="text-muted-foreground">
+                              (v{version.versionCode} - {version.environment})
+                            </span>
+                            {version.isRequired && (
+                              <Badge variant="secondary" className="text-xs">
+                                {t('commands.required')}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {installVersionDialog.selectedVersionCode && (
+                <div className="text-sm text-muted-foreground">
+                  {(() => {
+                    const selectedVersion = (appVersions ?? []).find(
+                      (v: AppUpdate) => v.versionCode === installVersionDialog.selectedVersionCode
+                    )
+                    return selectedVersion?.releaseNotes ? (
+                      <div className="mt-2 p-2 rounded bg-muted">
+                        <p className="font-medium text-xs">{t('commands.releaseNotes')}:</p>
+                        <p className="text-xs">{selectedVersion.releaseNotes}</p>
+                      </div>
+                    ) : null
+                  })()}
+                </div>
+              )}
+            </div>
+            {/* Downgrade Warning - Red/Critical */}
+            {installVersionDialog.selectedVersionCode && currentVersionCode && installVersionDialog.selectedVersionCode < currentVersionCode && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-300 dark:bg-red-900/30 dark:border-red-700">
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                    {t('commands.downgradeWarningTitle')}
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {t('commands.downgradeWarningDesc', {
+                      currentVersion: currentVersion || `v${currentVersionCode}`,
+                      targetVersion: (appVersions ?? []).find((v: AppUpdate) => v.versionCode === installVersionDialog.selectedVersionCode)?.versionName || `v${installVersionDialog.selectedVersionCode}`
+                    })}
+                  </p>
+                  <ul className="text-xs text-red-600 dark:text-red-400 list-disc ml-4 mt-2 space-y-0.5">
+                    <li>{t('commands.downgradeDataLoss1')}</li>
+                    <li>{t('commands.downgradeDataLoss2')}</li>
+                    <li>{t('commands.downgradeDataLoss3')}</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+            {/* Standard Warning - Orange */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <p className="text-sm text-orange-700 dark:text-orange-400">
+                {t('commands.installVersionWarning')}
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common:cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (installVersionDialog.selectedVersionCode) {
+                  commandMutation.mutate({
+                    command: TpvCommandType.INSTALL_VERSION,
+                    payload: { versionCode: installVersionDialog.selectedVersionCode },
+                    priority: TpvCommandPriority.HIGH,
+                  })
+                }
+                setInstallVersionDialog({ open: false, selectedVersionCode: null })
+              }}
+              disabled={!installVersionDialog.selectedVersionCode}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              {t('commands.installVersionNow')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

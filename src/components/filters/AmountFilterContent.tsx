@@ -12,8 +12,9 @@ export interface AmountFilter {
 }
 
 interface AmountFilterContentProps {
-  title: string
-  currentFilter: AmountFilter | null
+  title?: string
+  value?: AmountFilter | null // Alias for currentFilter
+  currentFilter?: AmountFilter | null
   onApply: (filter: AmountFilter | null) => void
   onClose?: () => void
   currency?: string
@@ -44,6 +45,7 @@ const defaultLabels = {
  */
 export function AmountFilterContent({
   title,
+  value: valueProp,
   currentFilter,
   onApply,
   onClose,
@@ -51,10 +53,11 @@ export function AmountFilterContent({
   labels: customLabels,
 }: AmountFilterContentProps) {
   const labels = { ...defaultLabels, ...customLabels }
+  const filter = valueProp || currentFilter
 
-  const [operator, setOperator] = useState<AmountOperator>(currentFilter?.operator || 'gt')
-  const [value, setValue] = useState<string>(currentFilter?.value?.toString() || '')
-  const [value2, setValue2] = useState<string>(currentFilter?.value2?.toString() || '')
+  const [operator, setOperator] = useState<AmountOperator>(filter?.operator || 'gt')
+  const [value, setValue] = useState<string>(filter?.value?.toString() || '')
+  const [value2, setValue2] = useState<string>(filter?.value2?.toString() || '')
 
   const handleApply = () => {
     const numValue = value ? parseFloat(value) : null
@@ -76,6 +79,12 @@ export function AmountFilterContent({
     setOperator('gt')
     setValue('')
     setValue2('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleApply()
+    }
   }
 
   return (
@@ -105,6 +114,7 @@ export function AmountFilterContent({
               placeholder="0.00"
               value={value}
               onChange={e => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="pl-7 h-9"
               min={0}
               step="0.01"
@@ -121,6 +131,7 @@ export function AmountFilterContent({
                   placeholder="0.00"
                   value={value2}
                   onChange={e => setValue2(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   className="pl-7 h-9"
                   min={0}
                   step="0.01"

@@ -349,7 +349,7 @@ function FeatureSection({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {features.map(feature => {
           const isEnabled = isFeatureEnabled(feature.code)
           const isFromPreset = presetFeatureCodes.has(feature.code)
@@ -364,49 +364,49 @@ function FeatureSection({
               )}
               onClick={() => onToggle(feature.code)}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+              <CardHeader className="pb-1 pt-3 px-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     <div
                       className={cn(
-                        'p-1.5 rounded-md',
+                        'p-1 rounded-md flex-shrink-0',
                         isEnabled ? 'bg-primary/20' : 'bg-muted'
                       )}
                     >
                       <CategoryIcon
                         className={cn(
-                          'w-4 h-4',
+                          'w-3 h-3',
                           isEnabled ? 'text-primary' : 'text-muted-foreground'
                         )}
                       />
                     </div>
-                    <CardTitle className="text-sm font-medium">{feature.name}</CardTitle>
+                    <CardTitle className="text-xs font-medium truncate">{feature.name}</CardTitle>
                   </div>
                   <Checkbox
                     checked={isEnabled}
                     onClick={e => e.stopPropagation()}
-                    className="cursor-pointer"
+                    className="cursor-pointer flex-shrink-0"
                   />
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <CardDescription className="text-xs line-clamp-2">
+              <CardContent className="pt-0 pb-3 px-3">
+                <CardDescription className="text-[10px] line-clamp-1 leading-tight mb-1.5">
                   {feature.description}
                 </CardDescription>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-1">
                   <Badge
                     variant="outline"
                     className={cn(
-                      'text-xs',
+                      'text-[9px] px-1 py-0 h-4',
                       feature.source === 'avoqado_core'
-                        ? 'border-purple-200 text-purple-700 bg-purple-50'
-                        : 'border-orange-200 text-orange-700 bg-orange-50'
+                        ? 'border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:bg-purple-950'
+                        : 'border-orange-200 text-orange-700 bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:bg-orange-950'
                     )}
                   >
                     {feature.source === 'avoqado_core' ? 'Avoqado' : 'Module'}
                   </Badge>
                   {isFromPreset && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
                       {t('whiteLabelWizard.features.fromPreset')}
                     </Badge>
                   )}

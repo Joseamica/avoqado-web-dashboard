@@ -34,6 +34,29 @@
     "changeFile": "Cambiar archivo",
     "fileSize": "{{size}} KB"
   },
+  "mapping": {
+    "title": "Asignar Columnas",
+    "description": "Confirma que las columnas de tu CSV coincidan con los campos requeridos.",
+    "info": "Revisa la asignación a continuación. Intentamos emparejar tus columnas automáticamente.",
+    "systemField": "Campo Avoqado",
+    "csvColumn": "Columna CSV",
+    "preview": "Valores de Muestra",
+    "select": "Seleccionar columna...",
+    "ignore": "No importar",
+    "noMapping": "Ninguna columna seleccionada",
+    "fields": {
+      "name": { "label": "Nombre del Producto", "description": "El nombre del artículo" },
+      "sku": { "label": "SKU", "description": "Código identificador único" },
+      "price": { "label": "Precio", "description": "Precio de venta" },
+      "category": { "label": "Categoría", "description": "Categoría del menú" },
+      "description": { "label": "Descripción", "description": "Detalles del artículo" },
+      "type": { "label": "Tipo", "description": "FOOD, BEVERAGE, etc." },
+      "cost": { "label": "Costo", "description": "Costo del artículo" },
+      "tags": { "label": "Etiquetas", "description": "Etiquetas separadas por pipe (|)" },
+      "modifier_groups": { "label": "Grupos de Modificadores", "description": "Configuración de grupos de modificadores" },
+      "modifiers": { "label": "Modificadores", "description": "Configuración de modificadores individuales" }
+    }
+  },
   "mode": {
     "title": "Modo de Importación",
     "merge": "Agregar / Actualizar",
@@ -60,7 +83,10 @@
     "cancel": "Cancelar",
     "import": "Importar Menú",
     "importing": "Importando...",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "backToMapping": "Revisar Columnas"
   },
   "success": {
     "title": "¡Menú importado exitosamente!",

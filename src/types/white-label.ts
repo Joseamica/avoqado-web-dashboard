@@ -101,6 +101,9 @@ export interface WhiteLabelConfig {
   /** Schema version for migrations */
   version: string
 
+  /** Preset name used to initialize this config (optional, for reference) */
+  preset?: PresetName | null
+
   /** Theme/branding configuration */
   theme: WhiteLabelTheme
 

@@ -1,6 +1,6 @@
 import { createMenu, getMenuCategories } from '@/services/menu.service'
 import { LoadingButton } from '@/components/loading-button'
-import MultipleSelector from '@/components/multi-selector'
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { LoadingScreen } from '@/components/spinner'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -234,9 +234,11 @@ export default function MenuScheduleWithMenuDayModel() {
       endTime: isAllDay ? null : endTime,
     }))
 
+    const categoryIds = avoqadoMenus.map((m: any) => m.value)
+
     const payload = {
       name,
-      avoqadoMenus,
+      categoryIds,
       avoqadoProducts,
       menuDays,
       active: isActive,
@@ -284,7 +286,12 @@ export default function MenuScheduleWithMenuDayModel() {
           {/* Campo "name" */}
           <div>
             <label className="block mb-1 text-sm font-medium">{t('createMenu.fields.menuName')}</label>
-            <input type="text" placeholder={t('createMenu.fields.menuNamePlaceholder')} className="w-full p-2 border rounded-sm" {...register('name')} />
+            <input
+              type="text"
+              placeholder={t('createMenu.fields.menuNamePlaceholder')}
+              className="w-full p-2 border rounded-sm"
+              {...register('name')}
+            />
             {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>}
           </div>
           {/* Botones de días */}
@@ -295,7 +302,8 @@ export default function MenuScheduleWithMenuDayModel() {
                 key={day.value}
                 onClick={() => toggleDay(day.value)}
                 className={
-                  'px-3 py-1 cursor-pointer transition-colors w-full ' + (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
+                  'px-3 py-1 cursor-pointer transition-colors w-full ' +
+                  (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
                 }
               >
                 {day.label}
@@ -399,16 +407,16 @@ export default function MenuScheduleWithMenuDayModel() {
           </div>
         </div>
         <h2 className="mt-4 mb-2 text-lg font-semibold">{t('createMenu.fields.categories')}</h2>
-
-        <MultipleSelector
+        <MultiSelectCombobox
           options={(categories ?? []).map(category => ({
             label: category.name,
             value: category.id,
             disabled: false,
           }))}
-          hidePlaceholderWhenSelected
+          selected={(form.watch('avoqadoMenus') || []).map((m: any) => ({ label: m.label, value: m.value }))}
+          onChange={value => form.setValue('avoqadoMenus', value)}
           placeholder={t('createMenu.fields.selectCategories')}
-          emptyIndicator={t('createMenu.fields.noCategoriesFound')}
+          emptyText={t('createMenu.fields.noCategoriesFound')}
         />
       </div>
     </div>

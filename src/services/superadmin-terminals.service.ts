@@ -199,6 +199,37 @@ export function isTerminalOnline(lastHeartbeat?: string, thresholdMinutes = 5): 
 }
 
 /**
+ * App Update Types (for INSTALL_VERSION command)
+ */
+export interface AppUpdate {
+  id: string
+  versionName: string
+  versionCode: number
+  environment: 'SANDBOX' | 'PRODUCTION'
+  downloadUrl: string
+  fileSize: string
+  checksum: string
+  releaseNotes?: string
+  isRequired: boolean
+  isActive: boolean
+  minAndroidSdk: number
+  createdAt: string
+}
+
+/**
+ * Get all app updates (for INSTALL_VERSION version selector)
+ *
+ * @param environment Optional filter by environment
+ * @returns List of app updates
+ */
+export async function getAppUpdates(environment?: 'SANDBOX' | 'PRODUCTION'): Promise<AppUpdate[]> {
+  const response = await api.get('/api/v1/superadmin/app-updates', {
+    params: environment ? { environment } : undefined,
+  })
+  return response.data.data
+}
+
+/**
  * Convenience export
  */
 export const terminalAPI = {
@@ -210,4 +241,5 @@ export const terminalAPI = {
   deleteTerminal,
   sendRemoteActivation,
   isTerminalOnline,
+  getAppUpdates,
 }

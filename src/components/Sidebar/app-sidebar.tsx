@@ -75,19 +75,20 @@ function getIconComponent(iconName: string | undefined): LucideIcon {
 }
 
 /**
- * Map feature codes to sidebar translation keys
- * This ensures white-label navigation uses translated labels from sidebar.json
- * instead of hardcoded database labels
+ * DEPRECATED: This mapping overrides database labels with hardcoded translations.
+ * We now prioritize the database label (set via White-Label Wizard) over translations.
+ * Only use translations as fallback if no custom label is set.
  */
 const FEATURE_CODE_TO_TRANSLATION_KEY: Record<string, string> = {
-  COMMAND_CENTER: 'playtelecom.commandCenter',
-  SERIALIZED_STOCK: 'playtelecom.stock',
-  PROMOTERS_AUDIT: 'playtelecom.promoters',
-  STORES_ANALYSIS: 'playtelecom.stores',
-  MANAGERS_DASHBOARD: 'playtelecom.managers',
-  USERS_MANAGEMENT: 'playtelecom.users',
-  TPV_CONFIGURATION: 'playtelecom.tpvConfig',
-  SALES_DASHBOARD: 'playtelecom.sales',
+  // Commented out - we now use database labels first
+  // COMMAND_CENTER: 'playtelecom.commandCenter',
+  // SERIALIZED_STOCK: 'playtelecom.stock',
+  // PROMOTERS_AUDIT: 'playtelecom.promoters',
+  // STORES_ANALYSIS: 'playtelecom.stores',
+  // MANAGERS_DASHBOARD: 'playtelecom.managers',
+  // USERS_MANAGEMENT: 'playtelecom.users',
+  // TPV_CONFIGURATION: 'playtelecom.tpvConfig',
+  // SALES_DASHBOARD: 'playtelecom.sales',
 }
 
 export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sidebar> & { user: User }) {
@@ -133,9 +134,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       const whiteLabelItems = enabledNavItems.map(navItem => {
         // Use translation if available for PlayTelecom features, otherwise use database label
         const translationKey = FEATURE_CODE_TO_TRANSLATION_KEY[navItem.featureCode || '']
-        const title = translationKey
-          ? t(`sidebar:${translationKey}`)
-          : (navItem.label || navItem.featureCode || 'Untitled')
+        const title = translationKey ? t(`sidebar:${translationKey}`) : navItem.label || navItem.featureCode || 'Untitled'
 
         return {
           title,
@@ -201,12 +200,24 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       },
       {
         title: t('sidebar:routes.inventory'),
-        isActive: true,
-        url: 'inventory/raw-materials',
+        isActive: location.pathname.startsWith('/inventory'),
+        url: 'inventory/raw-materials', // Keep base URL active for parent match
         icon: Package,
         permission: 'inventory:read',
         locked: !hasKYCAccess,
-        requiredFeature: 'INVENTORY_TRACKING', // Only show if feature is active
+        requiredFeature: 'INVENTORY_TRACKING',
+        items: [
+          { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read' },
+          { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
+          { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read' },
+          { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
+          { title: 'Proveedores', url: 'inventory/vendors', permission: 'inventory:read' },
+          { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read' },
+          { title: 'Seguimiento de ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
+          { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
+          { title: 'Precios', url: 'inventory/pricing', permission: 'inventory:read' },
+          { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
+        ],
       },
       // NOTE: Payments and Orders moved to "Ventas" collapsible section below
       {
@@ -418,7 +429,18 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
     }
 
     return filteredItems
-  }, [t, effectiveRole, can, hasKYCAccess, checkFeatureAccess, activeVenue, isWhiteLabelMode, isWhiteLabelEnabled, wlNavigation, isFeatureEnabled])
+  }, [
+    t,
+    effectiveRole,
+    can,
+    hasKYCAccess,
+    checkFeatureAccess,
+    activeVenue,
+    isWhiteLabelMode,
+    isWhiteLabelEnabled,
+    wlNavigation,
+    isFeatureEnabled,
+  ])
 
   const superAdminRoutes = React.useMemo(
     () => [

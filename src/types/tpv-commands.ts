@@ -23,6 +23,8 @@ export enum TpvCommandType {
   SHUTDOWN = 'SHUTDOWN',
   CLEAR_CACHE = 'CLEAR_CACHE',
   FORCE_UPDATE = 'FORCE_UPDATE',
+  REQUEST_UPDATE = 'REQUEST_UPDATE', // Shows dialog on TPV, user can accept/dismiss
+  INSTALL_VERSION = 'INSTALL_VERSION', // Install specific version (SUPERADMIN rollback/upgrade)
 
   // Data Management Commands
   SYNC_DATA = 'SYNC_DATA',
@@ -104,6 +106,10 @@ export interface ForceUpdatePayload {
   force?: boolean
 }
 
+export interface InstallVersionPayload {
+  versionCode: number // Target version code to install
+}
+
 export interface UpdateConfigPayload {
   config: Record<string, unknown>
 }
@@ -124,6 +130,7 @@ export type TpvCommandPayload =
   | MaintenanceModePayload
   | ClearCachePayload
   | ForceUpdatePayload
+  | InstallVersionPayload
   | UpdateConfigPayload
   | UpdateMerchantPayload
   | SchedulePayload
@@ -290,6 +297,26 @@ export const COMMAND_DEFINITIONS: Record<TpvCommandType, CommandDefinition> = {
     isDangerous: false,
     defaultPriority: TpvCommandPriority.HIGH,
     hasPayload: true,
+  },
+  [TpvCommandType.REQUEST_UPDATE]: {
+    type: TpvCommandType.REQUEST_UPDATE,
+    category: 'app_lifecycle',
+    icon: 'Download',
+    requiresOnline: true,
+    requiresConfirmation: false, // Just sends request, user decides on TPV
+    isDangerous: false,
+    defaultPriority: TpvCommandPriority.NORMAL,
+    hasPayload: false,
+  },
+  [TpvCommandType.INSTALL_VERSION]: {
+    type: TpvCommandType.INSTALL_VERSION,
+    category: 'app_lifecycle',
+    icon: 'Archive',
+    requiresOnline: true,
+    requiresConfirmation: true, // SUPERADMIN must confirm version selection
+    isDangerous: true, // Can rollback to older version
+    defaultPriority: TpvCommandPriority.HIGH,
+    hasPayload: true, // Contains versionCode
   },
 
   // Data Management Commands

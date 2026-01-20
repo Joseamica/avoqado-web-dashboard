@@ -97,6 +97,8 @@
     "noPermission": "You don't have permission to perform this action",
     "offline": "No Internet Connection",
     "offlineDescription": "Please check your internet connection and try again.",
+    "connectionIssue": "Connection Issue",
+    "checkConnection": "Please check your connection and try again.",
     "serverUnavailable": "Server Unavailable",
     "serverUnavailableDescription": "We're having trouble connecting to the server. We'll retry automatically.",
     "serverUnavailableHint": "We'll automatically retry the connection in a few seconds.",
@@ -143,6 +145,8 @@
   "header": {
     "superadmin": "Superadmin"
   },
+  "view": "View",
+  "full_dashboard": "Full Dashboard",
   "superadmin": {
     "delete": {
       "title": "Confirm Deletion",

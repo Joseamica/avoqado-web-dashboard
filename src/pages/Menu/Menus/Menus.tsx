@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
 import { useCallback } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import DataTable from '@/components/data-table'
@@ -10,6 +10,8 @@ import { ItemsCell } from '@/components/multiple-cell-values'
 import { Button } from '@/components/ui/button'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
 import { getMenus } from '@/services/menu.service'
+import { MenuWizardDialog } from './components/MenuWizardDialog'
+import { useState } from 'react'
 
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { Menu, MenuCategory } from '@/types'
@@ -21,11 +23,13 @@ export default function Menus() {
 
   const location = useLocation()
 
-
   const { data, isLoading } = useQuery({
     queryKey: ['menus', venueId],
     queryFn: () => getMenus(venueId),
   })
+
+  const [wizardOpen, setWizardOpen] = useState(false)
+
   const columns: ColumnDef<Menu, unknown>[] = [
     {
       id: 'name',
@@ -67,7 +71,7 @@ export default function Menus() {
     },
     {
       id: 'categories',
-      accessorFn: (menu) =>
+      accessorFn: menu =>
         (menu.categories || [])
           .map(assignment => assignment.category)
           .filter((category): category is MenuCategory => Boolean(category?.name)),
@@ -101,18 +105,12 @@ export default function Menus() {
             defaultValue: 'Gestiona los menus del venue, horarios y categorias asignadas.',
           })}
         />
-        <Button asChild>
-          <Link
-            to={`create`}
-            state={{
-              from: location.pathname,
-            }}
-            className="flex items-center space-x-2"
-          >
-            <span>{t('menus.newMenu')}</span>
-          </Link>
+        <Button onClick={() => setWizardOpen(true)} className="flex items-center space-x-2">
+          <span>{t('menus.newMenu')}</span>
         </Button>
       </div>
+
+      <MenuWizardDialog open={wizardOpen} onOpenChange={setWizardOpen} />
 
       <DataTable
         data={data || []}

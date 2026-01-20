@@ -61,6 +61,7 @@ import {
   Terminals,
   Terms,
   TestingPayments,
+  TpvUpdates,
   UserManagement,
   VenueManagement,
   VenueMerchantAccounts,
@@ -354,6 +355,10 @@ const router = createBrowserRouter(
                       path: 'master-totp',
                       element: <MasterTotpSetup />,
                     },
+                    {
+                      path: 'tpv-updates',
+                      element: <TpvUpdates />,
+                    },
                   ],
                 },
               ],
@@ -549,82 +554,6 @@ const router = createBrowserRouter(
             // ========================================================
             {
               path: '/wl/venues/:slug',
-              element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
-              errorElement: <ErrorPage />,
-              children: [
-                {
-                  element: <Dashboard />,
-                  children: [
-                    // ========== SHARED ROUTES (from createVenueRoutes) ==========
-                    ...createVenueRoutes(),
-
-                    // ========== WHITE-LABEL SPECIFIC ROUTES ==========
-                    // Parent already requires WHITE_LABEL_DASHBOARD module
-                    { path: 'command-center', element: <PlayTelecomCommandCenter /> },
-                    { path: 'stock', element: <PlayTelecomStock /> },
-                    { path: 'sales', element: <PlayTelecomSales /> },
-                    {
-                      path: 'promoters',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
-                        />
-                      ),
-                      children: [{ index: true, element: <PlayTelecomPromoters /> }],
-                    },
-                    {
-                      path: 'stores',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.MANAGER, StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
-                        />
-                      ),
-                      children: [{ index: true, element: <PlayTelecomStores /> }],
-                    },
-                    {
-                      path: 'managers',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
-                        />
-                      ),
-                      children: [{ index: true, element: <PlayTelecomManagers /> }],
-                    },
-                    {
-                      path: 'users',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
-                        />
-                      ),
-                      children: [{ index: true, element: <PlayTelecomUsers /> }],
-                    },
-                    {
-                      path: 'tpv-config',
-                      element: (
-                        <ModuleProtectedRoute
-                          requiredModule="WHITE_LABEL_DASHBOARD"
-                          allowedRoles={[StaffRole.ADMIN, StaffRole.OWNER, StaffRole.SUPERADMIN]}
-                        />
-                      ),
-                      children: [{ index: true, element: <PlayTelecomTpvConfig /> }],
-                    },
-                  ],
-                },
-              ],
-            },
-
-            // ========================================================
-            // LEGACY WHITE-LABEL ROUTES (/wl/:slug)
-            // DEPRECATED: Use /wl/venues/:slug instead
-            // Kept for backwards compatibility
-            // ========================================================
-            {
-              path: '/wl/:slug',
               element: <ModuleProtectedRoute requiredModule="WHITE_LABEL_DASHBOARD" />,
               errorElement: <ErrorPage />,
               children: [

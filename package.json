@@ -37,6 +37,7 @@
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
+    "@radix-ui/react-hover-card": "^1.1.15",
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-popover": "^1.1.6",
     "@radix-ui/react-progress": "^1.1.7",
@@ -63,6 +64,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "dompurify": "^3.3.0",
+    "exceljs": "^4.4.0",
     "firebase": "^12.4.0",
     "i18next": "^25.6.0",
     "i18next-browser-languagedetector": "^7.2.0",
@@ -88,7 +90,6 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uuidv4": "^6.2.13",
-    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -102,7 +103,6 @@
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.38.0",

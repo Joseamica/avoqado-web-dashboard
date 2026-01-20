@@ -34,9 +34,9 @@
   },
 
   "tabs": {
-    "rawMaterials": "Raw Materials",
-    "recipes": "Recipes",
-    "pricing": "Pricing",
+    "rawMaterials": "Ingredients",
+    "recipes": "Recipes & Costing",
+    "pricing": "Cost Analysis",
     "suppliers": "Suppliers",
     "purchaseOrders": "Purchase Orders",
     "alerts": "Alerts",
@@ -44,15 +44,20 @@
   },
 
   "nav": {
-    "rawMaterials": "Raw Materials",
+    "rawMaterials": "Ingredients",
     "productStock": "Product Stock",
-    "recipes": "Recipes",
-    "pricing": "Pricing",
+    "recipes": "Recipes & Costing",
+    "pricing": "Cost Analysis",
     "modifiers": "Modifiers"
   },
 
+  "onboarding": {
+    "title": "Getting Started",
+    "description": "Start by adding your base ingredients (flour, eggs, etc). Then go to Recipes & Costing to define what goes into each product."
+  },
+
   "rawMaterials": {
-    "title": "Raw Materials",
+    "title": "Ingredients",
     "subtitle": "Manage ingredients and supplies",
     "add": "Add Raw Material",
     "edit": "Edit Raw Material",
@@ -136,12 +141,18 @@
       "updated": "Raw material updated successfully",
       "deleted": "Raw material deleted successfully",
       "deleteFailed": "Failed to delete raw material",
+      "createFailed": "Failed to create raw material",
       "cannotDelete": "Cannot Delete Raw Material",
       "usedInRecipes": "This raw material is used in {{count}} recipe(s). Please remove it from all recipes before deleting.",
       "activated": "Raw material activated successfully",
       "deactivated": "Raw material deactivated successfully",
       "stockAdjusted": "Stock adjusted successfully"
     },
+    "notFound": "No raw materials found",
+    "quickCreate": "Create \"{{name}}\"",
+    "quickCreateTitle": "Quick Create Raw Material",
+    "quickCreateDesc": "Add minimum required info. You can edit details later.",
+    "quickCreateButton": "Create & Select",
     "usage": {
       "column": "Usage",
       "title": "Recipe Usage",
@@ -488,6 +499,9 @@
     "detail": {
       "configureInventory": "Configure Inventory",
       "configureInventoryDesc": "Set up inventory tracking for this product"
+    },
+    "create": {
+      "useManual": "Use manual form"
     }
   },
 

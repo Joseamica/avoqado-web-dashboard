@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -11,6 +12,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Code2,
   FileJson,
   HelpCircle,
@@ -644,7 +646,11 @@ const Step3PresetsBuilder: React.FC<{
 }
 
 // Step 4: Review & Create
-const Step4Review: React.FC<{ data: WizardData }> = ({ data }) => {
+const Step4Review: React.FC<{
+  data: WizardData
+  showJsonPreview: boolean
+  setShowJsonPreview: (show: boolean) => void
+}> = ({ data, showJsonPreview, setShowJsonPreview }) => {
 
   // Build the final JSON objects
   const defaultConfig: Record<string, any> = {}
@@ -755,40 +761,57 @@ const Step4Review: React.FC<{ data: WizardData }> = ({ data }) => {
         </Card>
       </div>
 
-      {/* JSON Preview */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <FileJson className="w-4 h-4" />
-            Vista Previa del JSON
-          </CardTitle>
-          <CardDescription>
-            Este es el JSON que se guardará en la base de datos. El código del módulo leerá estos valores.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs mb-2 block flex items-center gap-2">
-                <span className="bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded text-xs">defaultConfig</span>
-                <span className="text-muted-foreground">- Valores por defecto</span>
-              </Label>
-              <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-auto max-h-48">
-                {JSON.stringify(defaultConfig, null, 2) || '{}'}
-              </pre>
+      {/* JSON Preview - Collapsible */}
+      <Collapsible open={showJsonPreview} onOpenChange={setShowJsonPreview}>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileJson className="w-4 h-4" />
+                  Vista Previa del JSON
+                  <Badge variant="outline" className="text-xs font-normal">
+                    Avanzado
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Este es el JSON que se guardará en la base de datos. El código del módulo leerá estos valores.
+                </CardDescription>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  {showJsonPreview ? 'Ocultar' : 'Mostrar'}
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', showJsonPreview && 'rotate-180')} />
+                </Button>
+              </CollapsibleTrigger>
             </div>
-            <div>
-              <Label className="text-xs mb-2 block flex items-center gap-2">
-                <span className="bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded text-xs">presets</span>
-                <span className="text-muted-foreground">- Configuraciones rápidas</span>
-              </Label>
-              <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-auto max-h-48">
-                {JSON.stringify(presets, null, 2) || '{}'}
-              </pre>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs mb-2 block flex items-center gap-2">
+                    <span className="bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded text-xs">defaultConfig</span>
+                    <span className="text-muted-foreground">- Valores por defecto</span>
+                  </Label>
+                  <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-auto max-h-48">
+                    {JSON.stringify(defaultConfig, null, 2) || '{}'}
+                  </pre>
+                </div>
+                <div>
+                  <Label className="text-xs mb-2 block flex items-center gap-2">
+                    <span className="bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded text-xs">presets</span>
+                    <span className="text-muted-foreground">- Configuraciones rápidas</span>
+                  </Label>
+                  <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-auto max-h-48">
+                    {JSON.stringify(presets, null, 2) || '{}'}
+                  </pre>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <HelpText>
         <strong>¿Qué sigue?</strong> Después de crear el módulo:
@@ -820,6 +843,7 @@ const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
     configFields: [],
     presets: [],
   })
+  const [showJsonPreview, setShowJsonPreview] = useState(false)
 
   const totalSteps = 4
   const stepTitles = ['Información', 'Configuración', 'Presets', 'Revisar']
@@ -920,7 +944,13 @@ const ModuleCreationWizard: React.FC<ModuleCreationWizardProps> = ({
         {currentStep === 1 && <Step1BasicInfo data={data} onChange={updateData} />}
         {currentStep === 2 && <Step2ConfigBuilder data={data} onChange={updateData} />}
         {currentStep === 3 && <Step3PresetsBuilder data={data} onChange={updateData} />}
-        {currentStep === 4 && <Step4Review data={data} />}
+        {currentStep === 4 && (
+          <Step4Review
+            data={data}
+            showJsonPreview={showJsonPreview}
+            setShowJsonPreview={setShowJsonPreview}
+          />
+        )}
       </div>
 
       {/* Navigation */}

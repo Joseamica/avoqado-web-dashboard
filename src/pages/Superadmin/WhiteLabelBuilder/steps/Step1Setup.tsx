@@ -222,7 +222,7 @@ export default function Step1Setup({
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {presets.map(presetOption => {
             const Icon = PRESET_ICONS[presetOption.name]
             const isSelected = preset === presetOption.name
@@ -236,31 +236,31 @@ export default function Step1Setup({
                 )}
                 onClick={() => onPresetChange(presetOption.name)}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1 pt-3 px-3">
                   <div className="flex items-center justify-between">
                     <div
                       className={cn(
-                        'p-2 rounded-lg',
+                        'p-1.5 rounded-lg',
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground'
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
                     {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-3 h-3 text-primary-foreground" />
+                      <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
                       </div>
                     )}
                   </div>
-                  <CardTitle className="text-base mt-2">{presetOption.displayName}</CardTitle>
+                  <CardTitle className="text-sm mt-1.5">{presetOption.displayName}</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-xs line-clamp-3">
+                <CardContent className="pt-0 pb-3 px-3">
+                  <CardDescription className="text-[10px] line-clamp-1 leading-tight mb-1">
                     {presetOption.description}
                   </CardDescription>
-                  <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="text-[10px] text-muted-foreground">
                     {presetOption.enabledFeatures.length} features
                   </div>
                 </CardContent>
@@ -365,34 +365,6 @@ export default function Step1Setup({
           </CardContent>
         </Card>
       </section>
-
-      {/* Preview */}
-      {preset && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">{t('whiteLabelWizard.setup.quickPreview')}</h2>
-          </div>
-
-          <Card className="overflow-hidden">
-            <div
-              className="h-16 flex items-center px-6 gap-3"
-              style={{ backgroundColor: theme.primaryColor }}
-            >
-              {theme.logo ? (
-                <img src={theme.logo} alt="Logo" className="h-8" />
-              ) : (
-                <div className="w-8 h-8 rounded bg-primary-foreground/20" />
-              )}
-              <span className="font-bold text-primary-foreground text-lg">{theme.brandName || 'Dashboard'}</span>
-            </div>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
-                {t('whiteLabelWizard.setup.previewHint')}
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-      )}
     </div>
   )
 }

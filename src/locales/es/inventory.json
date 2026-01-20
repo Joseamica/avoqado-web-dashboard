@@ -34,9 +34,9 @@
   },
 
   "tabs": {
-    "rawMaterials": "Materias Primas",
-    "recipes": "Recetas",
-    "pricing": "Precios",
+    "rawMaterials": "Ingredientes",
+    "recipes": "Recetas y Costos",
+    "pricing": "Análisis de Costos",
     "suppliers": "Proveedores",
     "purchaseOrders": "Órdenes de Compra",
     "alerts": "Alertas",
@@ -44,19 +44,24 @@
   },
 
   "nav": {
-    "rawMaterials": "Materias Primas",
+    "rawMaterials": "Ingredientes",
     "productStock": "Stock de Productos",
-    "recipes": "Recetas",
-    "pricing": "Precios",
+    "recipes": "Recetas y Costos",
+    "pricing": "Análisis de Costos",
     "modifiers": "Modificadores"
   },
 
+  "onboarding": {
+    "title": "Comenzando",
+    "description": "Empieza agregando tus ingredientes base (harina, huevos, etc). Luego ve a Recetas y Costos para definir qué lleva cada producto."
+  },
+
   "rawMaterials": {
-    "title": "Materias Primas",
+    "title": "Ingredientes",
     "subtitle": "Administra ingredientes y suministros",
-    "add": "Agregar Materia Prima",
-    "edit": "Editar Materia Prima",
-    "delete": "Eliminar Materia Prima",
+    "add": "Agregar Ingrediente",
+    "edit": "Editar Ingrediente",
+    "delete": "Eliminar Ingrediente",
     "activate": "Activar",
     "deactivate": "Desactivar",
     "adjustStock": "Ajustar Stock",
@@ -132,23 +137,29 @@
       }
     },
     "messages": {
-      "created": "Materia prima creada exitosamente",
-      "updated": "Materia prima actualizada exitosamente",
-      "deleted": "Materia prima eliminada exitosamente",
-      "deleteFailed": "Error al eliminar materia prima",
-      "cannotDelete": "No se Puede Eliminar Materia Prima",
-      "usedInRecipes": "Esta materia prima está siendo usada en {{count}} receta(s). Por favor elimínala de todas las recetas antes de eliminarla.",
-      "activated": "Materia prima activada exitosamente",
-      "deactivated": "Materia prima desactivada exitosamente",
+      "created": "Ingrediente creada exitosamente",
+      "updated": "Ingrediente actualizada exitosamente",
+      "deleted": "Ingrediente eliminada exitosamente",
+      "deleteFailed": "Error al eliminar Ingrediente",
+      "createFailed": "Error al crear Ingrediente",
+      "cannotDelete": "No se Puede Eliminar Ingrediente",
+      "usedInRecipes": "Esta Ingrediente está siendo usada en {{count}} receta(s). Por favor elimínala de todas las recetas antes de eliminarla.",
+      "activated": "Ingrediente activada exitosamente",
+      "deactivated": "Ingrediente desactivada exitosamente",
       "stockAdjusted": "Stock ajustado exitosamente"
     },
+    "notFound": "No se encontraron materias primas",
+    "quickCreate": "Crear \"{{name}}\"",
+    "quickCreateTitle": "Creación Rápida de Ingrediente",
+    "quickCreateDesc": "Agrega la información mínima requerida. Puedes editar los detalles después.",
+    "quickCreateButton": "Crear y Seleccionar",
     "usage": {
       "column": "Uso",
       "title": "Uso en Recetas",
       "usedIn": "Usada en {{count}} receta(s)",
       "inRecipes": "En {{count}} receta(s)",
       "notUsed": "No usada",
-      "noRecipes": "Esta materia prima no está siendo usada en ninguna receta aún."
+      "noRecipes": "Esta Ingrediente no está siendo usada en ninguna receta aún."
     },
     "fieldHelp": {
       "sku": "Unidad de Mantenimiento de Inventario - Un código único para identificar y rastrear este ingrediente en tu sistema. Ejemplo: TOM-001, CARNE-500G",
@@ -174,9 +185,9 @@
       "configError": "Error de Configuración"
     },
     "errors": {
-      "missingRawMaterial": "Materia prima no encontrada",
-      "cannotAdjustMissingRawMaterial": "No se puede ajustar: materia prima no existe",
-      "cannotViewMissingRawMaterial": "No se pueden ver movimientos: materia prima no existe"
+      "missingRawMaterial": "Ingrediente no encontrada",
+      "cannotAdjustMissingRawMaterial": "No se puede ajustar: Ingrediente no existe",
+      "cannotViewMissingRawMaterial": "No se pueden ver movimientos: Ingrediente no existe"
     },
     "table": {
       "columns": {
@@ -379,7 +390,7 @@
     },
     "items": {
       "title": "Artículos de la Orden",
-      "rawMaterial": "Materia Prima",
+      "rawMaterial": "Ingrediente",
       "quantityOrdered": "Cant. Ordenada",
       "quantityReceived": "Cant. Recibida",
       "unit": "Unidad",
@@ -403,7 +414,7 @@
     "dismiss": "Descartar",
     "createManual": "Crear Alerta Manual",
     "fields": {
-      "rawMaterial": "Materia Prima",
+      "rawMaterial": "Ingrediente",
       "alertType": "Tipo de Alerta",
       "status": "Estado",
       "threshold": "Umbral",
@@ -488,6 +499,9 @@
     "detail": {
       "configureInventory": "Configurar Inventario",
       "configureInventoryDesc": "Configurar el seguimiento de inventario para este producto"
+    },
+    "create": {
+      "useManual": "Usar formulario manual"
     }
   },
 

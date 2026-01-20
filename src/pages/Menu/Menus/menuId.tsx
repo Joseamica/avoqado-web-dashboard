@@ -1,5 +1,5 @@
 import AlertDialogWrapper from '@/components/alert-dialog'
-import MultipleSelector from '@/components/multi-selector'
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils'
 import { deleteMenu, getMenu, getMenuCategories, updateMenu } from '@/services/menu.service'
 import { MenuType } from '@/types'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { ExampleCard } from '@/components/example-card'
+import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 import { format } from 'date-fns'
 import { enUS, es } from 'date-fns/locale'
 import { ArrowLeft, Calendar as CalendarIcon, Trash2 } from 'lucide-react'
@@ -373,292 +375,381 @@ export default function MenuId() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="p-4 space-y-6">
-          <div className="max-w-2xl p-4 space-y-4 border rounded-md">
-            <div className="flex items-center justify-between mb-4">
-              <span className="mr-2 font-bold">{t('menuId.fields.menuActive')}</span>
-              <Switch checked={isActive} onCheckedChange={handleToggle} disabled={toggleActiveMutation.isPending} />
-            </div>
-            <p className="mb-3 text-sm">
-              {isActive ? t('menuId.fields.menuActiveDesc') : t('menuId.fields.menuInactiveDesc')}
-            </p>
+          <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
+            <CardShadcn className="border-border/60">
+              <CardContentShadcn className="space-y-6 pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">{t('menuId.fields.menuActive')}</span>
+                  <Switch checked={isActive} onCheckedChange={handleToggle} disabled={toggleActiveMutation.isPending} />
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {isActive ? t('menuId.fields.menuActiveDesc') : t('menuId.fields.menuInactiveDesc')}
+                </p>
 
-            <FormField
-              control={form.control}
-              name="name"
-              rules={{
-                required: { value: true, message: t('menuId.validation.nameRequired') },
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('menuId.fields.menuName')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('menuId.fields.menuNamePlaceholder')} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  rules={{
+                    required: { value: true, message: t('menuId.validation.nameRequired') },
+                  }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('menuId.fields.menuName')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('menuId.fields.menuNamePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('menuId.fields.menuType')}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('menuId.fields.selectType')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="REGULAR">{t('menuId.types.regular')}</SelectItem>
-                      <SelectItem value="BREAKFAST">{t('menuId.types.breakfast')}</SelectItem>
-                      <SelectItem value="LUNCH">{t('menuId.types.lunch')}</SelectItem>
-                      <SelectItem value="DINNER">{t('menuId.types.dinner')}</SelectItem>
-                      <SelectItem value="SEASONAL">{t('menuId.types.seasonal')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('menuId.fields.menuType')}</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('menuId.fields.selectType')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="REGULAR">{t('menuId.types.regular')}</SelectItem>
+                          <SelectItem value="BREAKFAST">{t('menuId.types.breakfast')}</SelectItem>
+                          <SelectItem value="LUNCH">{t('menuId.types.lunch')}</SelectItem>
+                          <SelectItem value="DINNER">{t('menuId.types.dinner')}</SelectItem>
+                          <SelectItem value="SEASONAL">{t('menuId.types.seasonal')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {menuType === 'SEASONAL' && (
-              <div className="p-4 border border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-950/50 dark:border-blue-800">
-                <h3 className="font-medium mb-3 text-blue-900 dark:text-blue-200">{t('menuId.seasonal.title')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>{t('menuId.seasonal.startDate')}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                              >
-                                {field.value ? format(field.value, 'PPP', { locale: dateLocale }) : <span>{t('menuId.seasonal.selectDate')}</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              locale={dateLocale}
-                              disabled={date => {
-                                const today = new Date()
-                                today.setHours(0, 0, 0, 0)
-                                return date < today
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
+                {menuType === 'SEASONAL' && (
+                  <div className="p-4 border border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-950/50 dark:border-blue-800">
+                    <h3 className="font-medium mb-3 text-blue-900 dark:text-blue-200 text-sm">{t('menuId.seasonal.title')}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-xs">{t('menuId.seasonal.startDate')}</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    className={cn('w-full pl-3 text-left font-normal text-sm', !field.value && 'text-muted-foreground')}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, 'PPP', { locale: dateLocale })
+                                    ) : (
+                                      <span>{t('menuId.seasonal.selectDate')}</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  locale={dateLocale}
+                                  disabled={date => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    return date < today
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-xs">{t('menuId.seasonal.endDate')}</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    className={cn('w-full pl-3 text-left font-normal text-sm', !field.value && 'text-muted-foreground')}
+                                  >
+                                    {field.value ? (
+                                      format(field.value, 'PPP', { locale: dateLocale })
+                                    ) : (
+                                      <span>{t('menuId.seasonal.selectDate')}</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  locale={dateLocale}
+                                  disabled={date => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    const startDateValue = form.getValues('startDate')
+                                    return date < today || (startDateValue && date <= startDateValue)
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <FormLabel>{t('menuId.fields.availableDays')}</FormLabel>
+                    <div className="flex w-full mb-2 gap-2 flex-wrap mt-2">
+                      {DAY_ORDER.map(dayCode => {
+                        const isSelected = days.find(d => d.value === dayCode)?.selected
+                        return (
+                          <button
+                            type="button"
+                            key={dayCode}
+                            onClick={() => toggleDay(dayCode)}
+                            className={cn(
+                              'px-3 py-1 cursor-pointer transition-colors rounded-full border text-xs',
+                              isSelected
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background text-foreground border-input hover:bg-muted',
+                            )}
+                          >
+                            {getDayLabel(t, dayCode)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {form.formState.errors.days && (
+                      <p className="text-xs text-destructive mt-1">{form.formState.errors.days.message?.toString()}</p>
                     )}
-                  />
+                  </div>
 
+                  <div className="space-y-3">
+                    <div className="relative w-full h-8 overflow-hidden bg-muted rounded-lg">
+                      {!isAllDay && (
+                        <div
+                          className="absolute top-0 bottom-0 bg-primary/20"
+                          style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }}
+                        />
+                      )}
+                      {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-primary/20" />}
+                      <div className="absolute inset-0 flex justify-between px-2 items-center pointer-events-none">
+                        {[0, 6, 12, 18, 24].map(h => (
+                          <span key={h} className="text-[10px] text-muted-foreground font-medium">
+                            {h.toString().padStart(2, '0')}:00
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <FormField
+                        control={form.control}
+                        name="startTime"
+                        render={({ field }) => (
+                          <FormItem className="flex-1 w-full">
+                            <FormLabel className="text-xs">{t('menuId.fields.startTime')}</FormLabel>
+                            <Select
+                              disabled={isAllDay}
+                              value={field.value}
+                              onValueChange={value => {
+                                field.onChange(value)
+                                if (form.formState.errors.startTime) form.clearErrors('startTime')
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="text-sm">
+                                  <SelectValue placeholder={t('menuId.fields.selectTime')} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
+                                  {hourOptions.map(time => (
+                                    <SelectItem key={time} value={time}>
+                                      {formatTimeOption(time, localeCode)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                          <FormItem className="flex-1 w-full">
+                            <FormLabel className="text-xs">{t('menuId.fields.endTime')}</FormLabel>
+                            <Select
+                              disabled={isAllDay}
+                              value={field.value}
+                              onValueChange={value => {
+                                field.onChange(value)
+                                if (form.formState.errors.endTime) form.clearErrors('endTime')
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="text-sm">
+                                  <SelectValue placeholder={t('menuId.fields.selectTime')} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
+                                  {hourOptions.map(time => (
+                                    <SelectItem key={time} value={time}>
+                                      {formatTimeOption(time, localeCode)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                      <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
+                      <label htmlFor="allDay" className="text-sm font-medium cursor-pointer">
+                        {t('menuId.fields.allDay')}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                  <h2 className="text-sm font-semibold">{t('menuId.fields.categories')}</h2>
                   <FormField
                     control={form.control}
-                    name="endDate"
+                    name="categories"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>{t('menuId.seasonal.endDate')}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                              >
-                                {field.value ? format(field.value, 'PPP', { locale: dateLocale }) : <span>{t('menuId.seasonal.selectDate')}</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              locale={dateLocale}
-                              disabled={date => {
-                                const today = new Date()
-                                today.setHours(0, 0, 0, 0)
-                                const startDate = form.getValues('startDate')
-                                return date < today || (startDate && date <= startDate)
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                      <FormItem>
+                        <FormControl>
+                          <MultiSelectCombobox
+                            options={(categories ?? []).map((category: any) => ({
+                              label: category.name,
+                              value: category.id,
+                              disabled: false,
+                            }))}
+                            selected={(field.value || []).map((c: any) => ({ label: c.label, value: c.value }))}
+                            onChange={value => field.onChange(value)}
+                            placeholder={t('menuId.fields.selectCategories')}
+                            emptyText={t('menuId.fields.noCategoriesFound')}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+              </CardContentShadcn>
+            </CardShadcn>
 
-                {startDate && endDate && (
-                  <div className="mt-3 p-2 bg-blue-100 dark:bg-blue-900/50 rounded text-sm text-blue-800 dark:text-blue-200">
-                    <strong>{t('menuId.seasonal.preview')}:</strong> {t('menuId.seasonal.previewText', {
-                      startDate: format(startDate, 'PPP', { locale: dateLocale }),
-                      endDate: format(endDate, 'PPP', { locale: dateLocale })
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <FormLabel>{t('menuId.fields.availableDays')}</FormLabel>
-              <div className="flex w-full mb-2">
-                {days.map((day: DayItem) => (
-                  <button
-                    type="button"
-                    key={day.value}
-                    onClick={() => toggleDay(day.value)}
-                    className={
-                      'px-3 py-1 cursor-pointer transition-colors w-full ' +
-                      (day.selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground')
-                    }
+            <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">{form.watch('name') || t('createMenu.title')}</p>
+                  <span
+                    className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-full font-medium',
+                      isActive ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground',
+                    )}
                   >
-                    {getDayLabel(t, day.value)}
-                  </button>
-                ))}
+                    {isActive ? t('forms.labels.active') : t('forms.labels.inactive')}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-primary/10">
+                      <CalendarIcon className="w-3 h-3 text-primary" />
+                    </div>
+                    <p className="text-xs font-medium">{t('categoryDetail.sections.availability')}</p>
+                  </div>
+
+                  {isAllDay ? (
+                    <p className="text-xs text-muted-foreground italic px-6">{t('menuId.fields.allDay')}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground px-6">
+                      {formatTimeOption(startTime, localeCode)} - {formatTimeOption(endTime, localeCode)}
+                    </p>
+                  )}
+
+                  {days.some(d => d.selected) && (
+                    <div className="flex flex-wrap gap-1 px-6">
+                      {days
+                        .filter(d => d.selected)
+                        .map(day => (
+                          <span
+                            key={day.value}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50"
+                          >
+                            {getDayLabel(t, day.value)}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+
+                  {menuType === 'SEASONAL' && startDate && endDate && (
+                    <div className="px-6 pt-2">
+                      <p className="text-[10px] text-primary font-medium">
+                        {format(startDate, 'PP', { locale: dateLocale })} - {format(endDate, 'PP', { locale: dateLocale })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-dashed">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded bg-primary/10">
+                      <Trash2 className="w-3 h-3 text-primary rotate-45" /> {/* Using Trash2 as placeholder categories icon */}
+                    </div>
+                    <p className="text-xs font-medium">{t('menuId.fields.categories')}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-1 px-6">
+                    {form.watch('categories').length > 0 ? (
+                      form.watch('categories').map((cat: any) => (
+                        <span key={cat.value} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {cat.label}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">{t('menuId.fields.noCategoriesFound')}</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              {form.formState.errors.days && <p className="text-sm text-red-500">{form.formState.errors.days.message?.toString()}</p>}
-            </div>
-
-            <div className="relative w-full h-6 overflow-hidden bg-muted rounded-sm">
-              {!isAllDay && (
-                <div className="absolute top-0 bottom-0 bg-green-500" style={{ left: `${barLeft}%`, width: `${barRight - barLeft}%` }} />
-              )}
-              {isAllDay && <div className="absolute top-0 bottom-0 w-full bg-green-500" />}
-            </div>
-
-            <div className="flex justify-between w-full text-xs text-muted-foreground">
-              <span>00:00</span>
-              <span>03:00</span>
-              <span>06:00</span>
-              <span>09:00</span>
-              <span>12:00</span>
-              <span>15:00</span>
-              <span>18:00</span>
-              <span>21:00</span>
-              <span>24:00</span>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('menuId.fields.startTime')}</FormLabel>
-                    <Select
-                      disabled={isAllDay}
-                      value={field.value}
-                      onValueChange={value => {
-                        field.onChange(value)
-                        if (form.formState.errors.startTime) form.clearErrors('startTime')
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder={t('menuId.fields.selectTime')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
-                          {hourOptions.map(time => (
-                            <SelectItem key={time} value={time}>
-                              {formatTimeOption(time, localeCode)}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('menuId.fields.endTime')}</FormLabel>
-                    <Select
-                      disabled={isAllDay}
-                      value={field.value}
-                      onValueChange={value => {
-                        field.onChange(value)
-                        if (form.formState.errors.endTime) form.clearErrors('endTime')
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder={t('menuId.fields.selectTime')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>{t('menuId.fields.selectTime')}</SelectLabel>
-                          {hourOptions.map(time => (
-                            <SelectItem key={time} value={time}>
-                              {formatTimeOption(time, localeCode)}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input id="allDay" type="checkbox" className="w-4 h-4" checked={isAllDay} onChange={handleAllDayChange} />
-              <label htmlFor="allDay" className="text-sm font-semibold">
-                {t('menuId.fields.allDay')}
-              </label>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">{t('menuId.fields.categories')}</h2>
-            <FormField
-              control={form.control}
-              name="categories"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <MultipleSelector
-                      {...field}
-                      options={(categories ?? []).map((category: any) => ({
-                        label: category.name,
-                        value: category.id,
-                        disabled: false,
-                      }))}
-                      hidePlaceholderWhenSelected
-                      placeholder={t('menuId.fields.selectCategories')}
-                      emptyIndicator={t('menuId.fields.noCategoriesFound')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            </ExampleCard>
           </div>
         </form>
       </Form>

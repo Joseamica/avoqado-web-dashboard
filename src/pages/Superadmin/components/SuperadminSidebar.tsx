@@ -26,6 +26,7 @@ import {
   Boxes,
   Landmark,
   KeyRound,
+  Upload,
 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -77,6 +78,7 @@ const SuperadminSidebar: React.FC = () => {
       items: [
         { name: tSidebar('config'), href: '/superadmin/settings', icon: Settings },
         { name: 'Master TOTP', href: '/superadmin/master-totp', icon: KeyRound },
+        { name: 'TPV Updates', href: '/superadmin/tpv-updates', icon: Upload },
       ],
     },
   ]

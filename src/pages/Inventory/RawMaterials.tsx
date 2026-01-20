@@ -3,11 +3,25 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, Package, Plus, Edit, History, TrendingDown, AlertTriangle, Trash2, ChefHat, DollarSign, Clock } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Package,
+  Plus,
+  Edit,
+  History,
+  TrendingDown,
+  AlertTriangle,
+  Trash2,
+  ChefHat,
+  DollarSign,
+  Clock,
+  Info,
+} from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -53,7 +67,7 @@ export default function RawMaterials() {
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -239,6 +253,28 @@ export default function RawMaterials() {
     }
   }, [highlightId, rawMaterials, isLoading, searchParams, setSearchParams, categoryFilter, stockFilter, searchTerm, pagination])
 
+  // Handle openRestock param
+  const openRestock = searchParams.get('openRestock') === 'true'
+  useEffect(() => {
+    if (openRestock && rawMaterials && !isLoading && rawMaterials.length > 0) {
+        // Try to find exact match if search term exists, otherwise take first
+        const search = searchParams.get('search')
+        const targetMaterial = search 
+            ? rawMaterials.find(m => m.name.toLowerCase() === search.toLowerCase()) || rawMaterials[0]
+            : rawMaterials[0]
+            
+        if (targetMaterial) {
+            setSelectedMaterial(targetMaterial)
+            setAdjustStockDialogOpen(true)
+            
+            // Clean up param
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('openRestock')
+            setSearchParams(newParams, { replace: true })
+        }
+    }
+  }, [openRestock, rawMaterials, isLoading, searchParams, setSearchParams])
+
   // Toggle active mutation
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => rawMaterialsApi.update(venueId, id, { active }),
@@ -359,7 +395,9 @@ export default function RawMaterials() {
         meta: { label: t('rawMaterials.fields.category') },
         header: () => (
           <div className="flex items-center justify-center">
-            <span className="2xl:hidden text-base" title={t('rawMaterials.fields.category')}>🏷️</span>
+            <span className="2xl:hidden text-base" title={t('rawMaterials.fields.category')}>
+              🏷️
+            </span>
             <span className="hidden 2xl:inline">{t('rawMaterials.fields.category')}</span>
           </div>
         ),
@@ -448,12 +486,13 @@ export default function RawMaterials() {
       {
         accessorKey: 'perishable',
         meta: { label: t('rawMaterials.fields.perishable') },
-              header: () => (
-                <div className="flex items-center justify-center">
-                  <Clock className="h-4 w-4 2xl:hidden" />
-                  <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
-                </div>
-              ),        cell: ({ row }) => {
+        header: () => (
+          <div className="flex items-center justify-center">
+            <Clock className="h-4 w-4 2xl:hidden" />
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.perishable')}</span>
+          </div>
+        ),
+        cell: ({ row }) => {
           const material = row.original
           if (!material.perishable) {
             return (
@@ -622,6 +661,15 @@ export default function RawMaterials() {
             </Button>
           </PermissionGate>
         </div>
+
+        {/* Onboarding Banner */}
+        {!isLoading && rawMaterials?.length === 0 && categoryFilter === 'all' && stockFilter === 'all' && searchTerm === '' && (
+          <Alert className="mb-2 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-800 dark:text-blue-300">{t('onboarding.title')}</AlertTitle>
+            <AlertDescription className="text-blue-700 dark:text-blue-400">{t('onboarding.description')}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">

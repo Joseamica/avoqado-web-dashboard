@@ -1,11 +1,12 @@
 import { getMenuCategory, updateMenuCategory, deleteMenuCategory, getMenus, getProducts } from '@/services/menu.service'
 import AlertDialogWrapper from '@/components/alert-dialog'
 import { LoadingButton } from '@/components/loading-button'
-import MultipleSelector from '@/components/multi-selector'
+import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Skeleton } from '@/components/ui/skeleton'
 import TimePicker from '@/components/time-picker'
+import { ExampleCard } from '@/components/example-card'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -15,6 +16,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Card as CardShadcn, CardContent as CardContentShadcn } from '@/components/ui/card'
 
 export default function CategoryId() {
   const { t } = useTranslation('menu')
@@ -262,158 +264,193 @@ export default function CategoryId() {
         </div>
       </div>
       <Separator marginBottom="4" marginTop="2" />
-      <div>
+      <div className="mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="avoqadoMenus"
-              defaultValue={
-                data.menus?.map(m => ({
-                  label: m.menu.name,
-                  value: m.menu.id,
-                  disabled: false,
-                })) || []
-              }
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('forms.labels.menusForCategory')}</FormLabel>
-                  <FormControl>
-                    <MultipleSelector
-                      {...field}
-                      options={(menus ?? []).map(menu => ({
-                        label: menu.name,
-                        value: menu.id,
+            <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
+              <CardShadcn className="border-border/60">
+                <CardContentShadcn className="space-y-6 pt-6">
+                  <FormField
+                    control={form.control}
+                    name="avoqadoMenus"
+                    defaultValue={
+                      data.menus?.map(m => ({
+                        label: m.menu.name,
+                        value: m.menu.id,
                         disabled: false,
-                      }))}
-                      hidePlaceholderWhenSelected
-                      placeholder={t('forms.labels.selectMenus')}
-                      emptyIndicator={t('forms.labels.noMoreMenus')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="avoqadoProducts"
-              defaultValue={
-                data.products?.map(product => ({
-                  label: product.name,
-                  value: product.id,
-                  disabled: false,
-                })) || []
-              }
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
-                  <FormControl>
-                    <MultipleSelector
-                      {...field}
-                      options={(products ?? []).map(product => ({
+                      })) || []
+                    }
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.labels.menusForCategory')}</FormLabel>
+                        <FormControl>
+                          <MultiSelectCombobox
+                            options={(menus ?? []).map((menu: any) => ({
+                              label: menu.name,
+                              value: menu.id,
+                            }))}
+                            selected={(field.value || []).map((m: any) => ({ label: m.label, value: m.value }))}
+                            onChange={value => field.onChange(value)}
+                            placeholder={t('forms.labels.selectMenus')}
+                            emptyText={t('forms.labels.noMoreMenus')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="avoqadoProducts"
+                    defaultValue={
+                      data.products?.map(product => ({
                         label: product.name,
                         value: product.id,
                         disabled: false,
-                      }))}
-                      hidePlaceholderWhenSelected
-                      placeholder={t('forms.labels.selectProducts')}
-                      emptyIndicator={t('forms.labels.noMoreProducts')}
+                      })) || []
+                    }
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('forms.labels.addProductsToCategory')}</FormLabel>
+                        <FormControl>
+                          <MultiSelectCombobox
+                            options={(products ?? []).map((product: any) => ({
+                              label: product.name,
+                              value: product.id,
+                            }))}
+                            selected={(field.value || []).map((p: any) => ({ label: p.label, value: p.value }))}
+                            onChange={value => field.onChange(value)}
+                            placeholder={t('forms.labels.selectProducts')}
+                            emptyText={t('forms.labels.noMoreProducts')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="availableFrom"
+                      defaultValue={data.availableFrom || ''}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('forms.availableFrom')}</FormLabel>
+                          <FormControl>
+                            <TimePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder={t('categoryDetail.placeholders.selectStartTime')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="availableFrom"
-                defaultValue={data.availableFrom || ''}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.availableFrom')}</FormLabel>
-                    <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectStartTime')} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <FormField
+                      control={form.control}
+                      name="availableUntil"
+                      defaultValue={data.availableUntil || ''}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('forms.availableUntil')}</FormLabel>
+                          <FormControl>
+                            <TimePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder={t('categoryDetail.placeholders.selectEndTime')}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <FormField
-                control={form.control}
-                name="availableUntil"
-                defaultValue={data.availableUntil || ''}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('forms.availableUntil')}</FormLabel>
-                    <FormControl>
-                      <TimePicker value={field.value} onChange={field.onChange} placeholder={t('categoryDetail.placeholders.selectEndTime')} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Time range validation message */}
+                  {(() => {
+                    const fromValue = form.watch('availableFrom')
+                    const untilValue = form.watch('availableUntil')
+
+                    if (fromValue && untilValue) {
+                      const fromTime = fromValue.split(':').map(Number)
+                      const untilTime = untilValue.split(':').map(Number)
+                      const fromMinutes = fromTime[0] * 60 + fromTime[1]
+                      const untilMinutes = untilTime[0] * 60 + untilTime[1]
+
+                      if (fromMinutes >= untilMinutes) {
+                        return (
+                          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
+                            ⚠️ {t('forms.messages.invalidScheduleDesc')}
+                          </div>
+                        )
+                      }
+                    }
+                    return null
+                  })()}
+
+                  <FormField
+                    control={form.control}
+                    name="availableDays"
+                    defaultValue={
+                      data.availableDays?.map(day => ({
+                        label: getDayLabel(day),
+                        value: day,
+                        disabled: false,
+                      })) || []
+                    }
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('categoryDetail.labels.availableDays')}</FormLabel>
+                        <FormControl>
+                          <MultiSelectCombobox
+                            options={[
+                              { label: t('forms.daysOfWeek.monday'), value: 'MON' },
+                              { label: t('forms.daysOfWeek.tuesday'), value: 'TUE' },
+                              { label: t('forms.daysOfWeek.wednesday'), value: 'WED' },
+                              { label: t('forms.daysOfWeek.thursday'), value: 'THU' },
+                              { label: t('forms.daysOfWeek.friday'), value: 'FRI' },
+                              { label: t('forms.daysOfWeek.saturday'), value: 'SAT' },
+                              { label: t('forms.daysOfWeek.sunday'), value: 'SUN' },
+                            ]}
+                            selected={(field.value || []).map((d: any) => ({ label: d.label, value: d.value }))}
+                            onChange={value => field.onChange(value)}
+                            placeholder={t('categoryDetail.placeholders.selectDays')}
+                            emptyText={t('categoryDetail.placeholders.noMoreDays')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContentShadcn>
+              </CardShadcn>
+
+              <ExampleCard title={t('modifiers.createGroup.examples.previewTitle')}>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold">{data.name}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium">{t('categoryDetail.sections.availability')}</p>
+                    {form.watch('availableFrom') && form.watch('availableUntil') && (
+                      <p className="text-xs text-muted-foreground">
+                        {form.watch('availableFrom')} - {form.watch('availableUntil')}
+                      </p>
+                    )}
+                    {form.watch('availableDays') && form.watch('availableDays').length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {form.watch('availableDays').map((day: any) => (
+                          <span key={day.value} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {day.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ExampleCard>
             </div>
-
-            {/* Time range validation message */}
-            {(() => {
-              const fromValue = form.watch('availableFrom')
-              const untilValue = form.watch('availableUntil')
-
-              if (fromValue && untilValue) {
-                const fromTime = fromValue.split(':').map(Number)
-                const untilTime = untilValue.split(':').map(Number)
-                const fromMinutes = fromTime[0] * 60 + fromTime[1]
-                const untilMinutes = untilTime[0] * 60 + untilTime[1]
-
-                if (fromMinutes >= untilMinutes) {
-                  return (
-                    <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-2">
-                      ⚠️ {t('forms.messages.invalidScheduleDesc')}
-                    </div>
-                  )
-                }
-              }
-              return null
-            })()}
-
-            <FormField
-              control={form.control}
-              name="availableDays"
-              defaultValue={
-                data.availableDays?.map(day => ({
-                  label: getDayLabel(day),
-                  value: day,
-                  disabled: false,
-                })) || []
-              }
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('categoryDetail.labels.availableDays')}</FormLabel>
-                  <FormControl>
-                    <MultipleSelector
-                      {...field}
-                      options={[
-                        { label: t('forms.daysOfWeek.monday'), value: 'MON', disabled: false },
-                        { label: t('forms.daysOfWeek.tuesday'), value: 'TUE', disabled: false },
-                        { label: t('forms.daysOfWeek.wednesday'), value: 'WED', disabled: false },
-                        { label: t('forms.daysOfWeek.thursday'), value: 'THU', disabled: false },
-                        { label: t('forms.daysOfWeek.friday'), value: 'FRI', disabled: false },
-                        { label: t('forms.daysOfWeek.saturday'), value: 'SAT', disabled: false },
-                        { label: t('forms.daysOfWeek.sunday'), value: 'SUN', disabled: false },
-                      ]}
-                      hidePlaceholderWhenSelected
-                      placeholder={t('categoryDetail.placeholders.selectDays')}
-                      emptyIndicator={t('categoryDetail.placeholders.noMoreDays')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </form>
         </Form>
       </div>

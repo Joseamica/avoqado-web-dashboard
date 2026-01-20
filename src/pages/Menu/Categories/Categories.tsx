@@ -3,10 +3,10 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import { ArrowUpDown } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { MenuCategory } from '@/types'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { CategoryWizardDialog } from './components/CategoryWizardDialog'
+import { Sparkles } from 'lucide-react'
 
 export default function Categories() {
   const { t } = useTranslation('menu')
@@ -23,6 +25,7 @@ export default function Categories() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ['categories', venueId],
@@ -83,7 +86,7 @@ export default function Categories() {
     },
     {
       id: 'productsCount',
-      accessorFn: (category) => {
+      accessorFn: category => {
         const withCount = category as MenuCategory & { _count?: { products?: number } }
         return withCount.products?.length ?? withCount._count?.products ?? 0
       },
@@ -103,11 +106,7 @@ export default function Categories() {
       enableColumnFilter: false,
       cell: ({ cell }) => {
         const updatedAt = cell.getValue() as string
-        return (
-          <span>
-            {formatDate(updatedAt)}
-          </span>
-        )
+        return <span>{formatDate(updatedAt)}</span>
       },
     },
     {
@@ -161,17 +160,12 @@ export default function Categories() {
           })}
         />
         <PermissionGate permission="menu:create">
-          <Button asChild>
-            <Link
-              to={`create`}
-              state={{
-                from: location.pathname,
-              }}
-              className="flex items-center space-x-2"
-            >
+          <PermissionGate permission="menu:create">
+            <Button onClick={() => setWizardOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
               <span>{t('categories.newCategory')}</span>
-            </Link>
-          </Button>
+            </Button>
+          </PermissionGate>
         </PermissionGate>
       </div>
 
@@ -189,6 +183,8 @@ export default function Categories() {
           state: { from: location.pathname },
         })}
       />
+
+      <CategoryWizardDialog open={wizardOpen} onOpenChange={setWizardOpen} />
     </div>
   )
 }
