@@ -1483,6 +1483,8 @@ export default function TpvId() {
                   isActivated={!!tpv?.activatedAt}
                   isSuperadmin={isSuperAdmin}
                   venueId={venueId!}
+                  currentVersion={tpv?.version}
+                  currentVersionCode={tpv?.systemInfo?.versionCode as number | undefined}
                 />
                 <CommandHistoryTable terminalId={tpvId!} venueId={venueId!} />
               </PermissionGate>

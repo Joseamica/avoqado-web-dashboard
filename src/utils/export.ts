@@ -1,7 +1,20 @@
 // src/utils/export.ts
 
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import Papa from 'papaparse'
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+
+  link.setAttribute('href', url)
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 /**
  * Export data to CSV format
@@ -26,16 +39,7 @@ export function exportToCSV(data: Record<string, any>[], filename: string): void
 
   // Create blob and download
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  triggerDownload(blob, `${filename}.csv`)
 }
 
 /**
@@ -44,38 +48,50 @@ export function exportToCSV(data: Record<string, any>[], filename: string): void
  * @param filename Name of the file (without extension)
  * @param sheetName Name of the worksheet
  */
-export function exportToExcel(data: Record<string, any>[], filename: string, sheetName: string = 'Data'): void {
+export async function exportToExcel(
+  data: Record<string, any>[],
+  filename: string,
+  sheetName: string = 'Data',
+): Promise<void> {
   if (!data || data.length === 0) {
     console.warn('No data to export')
     return
   }
 
   // Create a new workbook and worksheet
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet(sheetName)
 
   // Auto-size columns
   const maxWidth = 50
-  const colWidths: { wch: number }[] = []
 
   // Get headers from first row
   const headers = Object.keys(data[0])
 
-  headers.forEach((header, colIndex) => {
-    // Calculate max width for this column
+  const colWidths = headers.map(header => {
     let maxLen = header.length
     data.forEach(row => {
-      const cellValue = String(row[header] || '')
+      const cellValue = String(row[header] ?? '')
       maxLen = Math.max(maxLen, cellValue.length)
     })
-    colWidths[colIndex] = { wch: Math.min(maxLen + 2, maxWidth) }
+    return Math.min(maxLen + 2, maxWidth)
   })
 
-  worksheet['!cols'] = colWidths
+  worksheet.columns = headers.map((header, index) => ({
+    header,
+    width: colWidths[index],
+  }))
+
+  data.forEach(row => {
+    worksheet.addRow(headers.map(header => row[header]))
+  })
 
   // Generate Excel file and download
-  XLSX.writeFile(workbook, `${filename}.xlsx`)
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  triggerDownload(blob, `${filename}.xlsx`)
 }
 
 /**

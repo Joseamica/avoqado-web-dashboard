@@ -889,7 +889,7 @@ export default function Payments() {
 
   // Export functionality
   const handleExport = useCallback(
-    (format: 'csv' | 'excel') => {
+    async (format: 'csv' | 'excel') => {
       if (!filteredPayments || filteredPayments.length === 0) {
         toast({
           title: t('export.noData'),
@@ -949,7 +949,7 @@ export default function Payments() {
             title: t('export.success', { count: filteredPayments.length }),
           })
         } else {
-          exportToExcel(exportData, filename, 'Payments')
+          await exportToExcel(exportData, filename, 'Payments')
           toast({
             title: t('export.success', { count: filteredPayments.length }),
           })

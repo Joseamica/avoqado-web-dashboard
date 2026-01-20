@@ -138,6 +138,7 @@ const SidebarProvider = React.forwardRef<
               {
                 "--sidebar-width": SIDEBAR_WIDTH,
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                paddingTop: "var(--offline-banner-height, 0)",
                 ...style,
               } as React.CSSProperties
             }
@@ -245,6 +246,7 @@ const Sidebar = React.forwardRef<
               : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-sidebar-border dark:border-transparent group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className
           )}
+          style={{ top: "var(--offline-banner-height, 0)" }}
           {...props}
         >
           <div

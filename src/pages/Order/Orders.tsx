@@ -902,7 +902,7 @@ export default function Orders() {
 
   // Export functionality
   const handleExport = useCallback(
-    (format: 'csv' | 'excel') => {
+    async (format: 'csv' | 'excel') => {
       const orders = data?.data || []
 
       if (!orders || orders.length === 0) {
@@ -951,7 +951,7 @@ export default function Orders() {
             title: t('export.success', { count: orders.length }),
           })
         } else {
-          exportToExcel(exportData, filename, 'Orders')
+          await exportToExcel(exportData, filename, 'Orders')
           toast({
             title: t('export.success', { count: orders.length }),
           })

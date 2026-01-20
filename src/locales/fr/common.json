@@ -396,6 +396,8 @@
     "noPermission": "Vous n'avez pas la permission d'effectuer cette action",
     "offline": "Pas de connexion",
     "offlineDescription": "Vérifiez votre connexion internet",
+    "connectionIssue": "Problème de connexion",
+    "checkConnection": "Veuillez vérifier votre connexion et réessayer.",
     "serverUnavailable": "Serveur non disponible",
     "serverUnavailableDescription": "Tentative de reconnexion...",
     "retry": "Réessayer"
