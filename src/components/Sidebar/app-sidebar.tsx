@@ -1,6 +1,5 @@
 ﻿import {
   AlertTriangle,
-  ArrowLeft,
   BarChart3,
   BookOpen,
   Building,
@@ -201,12 +200,24 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
       },
       {
         title: t('sidebar:routes.inventory'),
-        isActive: true,
-        url: 'inventory/raw-materials',
+        isActive: location.pathname.startsWith('/inventory'),
+        url: 'inventory/raw-materials', // Keep base URL active for parent match
         icon: Package,
         permission: 'inventory:read',
         locked: !hasKYCAccess,
-        requiredFeature: 'INVENTORY_TRACKING', // Only show if feature is active
+        requiredFeature: 'INVENTORY_TRACKING',
+        items: [
+          { title: 'Resumen de existencias', url: 'inventory/stock-overview', permission: 'inventory:read' },
+          { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
+          { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read' },
+          { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
+          { title: 'Proveedores', url: 'inventory/vendors', permission: 'inventory:read' },
+          { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read' },
+          { title: 'Seguimiento de ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
+          { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
+          { title: 'Precios', url: 'inventory/pricing', permission: 'inventory:read' },
+          { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
+        ],
       },
       // NOTE: Payments and Orders moved to "Ventas" collapsible section below
       {

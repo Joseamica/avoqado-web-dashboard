@@ -6,7 +6,7 @@ import { ArrowUpDown } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'

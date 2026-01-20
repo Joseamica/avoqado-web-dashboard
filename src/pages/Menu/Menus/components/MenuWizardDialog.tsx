@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { createMenu, getMenuCategories } from '@/services/menu.service'
 import { MenuType } from '@/types'
 
-import { Loader2, ChevronRight, ChevronLeft, Check, CalendarClock, List, Link as LinkIcon, AlertCircle } from 'lucide-react'
+import { Loader2, ChevronRight, ChevronLeft, Check, CalendarClock, List, AlertCircle } from 'lucide-react'
 import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { ExampleCard } from '@/components/example-card'

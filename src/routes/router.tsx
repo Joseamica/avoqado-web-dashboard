@@ -61,6 +61,7 @@ import {
   Terminals,
   Terms,
   TestingPayments,
+  TpvUpdates,
   UserManagement,
   VenueManagement,
   VenueMerchantAccounts,
@@ -353,6 +354,10 @@ const router = createBrowserRouter(
                     {
                       path: 'master-totp',
                       element: <MasterTotpSetup />,
+                    },
+                    {
+                      path: 'tpv-updates',
+                      element: <TpvUpdates />,
                     },
                   ],
                 },

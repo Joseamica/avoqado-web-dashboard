@@ -94,7 +94,7 @@ export default function PreviewPanel({ state, currentStep }: PreviewPanelProps) 
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
                     style={{ backgroundColor: state.theme.primaryColor }}
                   >
-                    <Sparkles className="w-4 h-4 text-white" />
+                    <Sparkles className="w-4 h-4 text-primary-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">

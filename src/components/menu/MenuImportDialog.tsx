@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import {
-  parseCSV,
   validateCSV,
   transformCSVData,
   importMenu,
@@ -24,7 +23,7 @@ import {
   SYSTEM_FIELDS,
   type ParsedCategory,
 } from '@/services/menuImport.service'
-import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown, ArrowRight } from 'lucide-react'
+import { Upload, Download, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown } from 'lucide-react'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import * as menuService from '@/services/menu.service'
 

@@ -48,6 +48,8 @@ import {
   GoogleIntegration,
   Home,
   InventoryLayout,
+  InventorySummary,
+  InventoryHistory,
   LoyaltySettings,
   MenuId,
   MenuMakerLayout,
@@ -56,6 +58,7 @@ import {
   ModifierGroupId,
   ModifierGroups,
   ModifierInventory,
+  ModifierAnalytics,
   NotificationPreferences,
   Notifications,
   OrderId,
@@ -395,11 +398,20 @@ export function createVenueRoutes(): RouteObject[] {
                 {
                   element: <InventoryLayout />,
                   children: [
+                    { index: true, element: <Navigate to="stock-overview" replace /> },
+                    { path: 'stock-overview', element: <InventorySummary /> },
                     { path: 'raw-materials', element: <RawMaterials /> },
+                    { path: 'history', element: <InventoryHistory /> },
+                    { path: 'counts', element: <ProductStock /> }, // Placeholder
+                    { path: 'purchase-orders', element: <ProductStock /> }, // Placeholder
+                    { path: 'vendors', element: <ProductStock /> }, // Placeholder
+                    { path: 'restocks', element: <ProductStock /> }, // Placeholder
+                    { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
                     { path: 'product-stock', element: <ProductStock /> },
                     { path: 'recipes', element: <Recipes /> },
                     { path: 'pricing', element: <Pricing /> },
                     { path: 'modifiers', element: <ModifierInventory /> },
+                    { path: 'modifier-analytics', element: <ModifierAnalytics /> },
                   ],
                 },
               ],

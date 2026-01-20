@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { type Recipe, productInventoryApi } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { RecipeDialog } from './components/RecipeDialog'
+import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
 import { SimpleConfirmDialog } from './components/SimpleConfirmDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
@@ -204,12 +205,10 @@ export default function Recipes() {
           }
 
           return (
-            <Badge
-              variant="default"
-              className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800"
-            >
-              {product.recipe.lines.length} {t('recipes.ingredients.title')}
-            </Badge>
+            <div className="flex items-center gap-2">
+               <YieldStatusHoverCard productId={product.id} />
+               <span className="text-xs text-muted-foreground ml-2">({product.recipe.lines.length} Ing.)</span>
+            </div>
           )
         },
       },

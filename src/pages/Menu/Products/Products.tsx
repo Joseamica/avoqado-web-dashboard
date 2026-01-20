@@ -61,7 +61,7 @@ import { Sparkles } from 'lucide-react'
 export default function Products() {
   const { t } = useTranslation('menu')
   const { t: tCommon } = useTranslation('common')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
   const { formatDate } = useVenueDateTime()
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
@@ -362,7 +362,7 @@ export default function Products() {
         const product = row.original
         return (
           <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-muted-foreground hover:text-primary">
-            <Link to={`/venues/${venueId}/inventory/recipes?productId=${product.id}`}>
+            <Link to={`${fullBasePath}/inventory/recipes?productId=${product.id}`}>
               <ChefHat className="mr-2 h-4 w-4" />
               <span className="text-xs decoration-dashed underline">Ver Costo</span>
             </Link>

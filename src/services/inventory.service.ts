@@ -567,6 +567,14 @@ export interface ProductInventoryStatus {
     available: number
     unit: string
   }>
+  limitingIngredient?: {
+    rawMaterialId: string
+    name: string
+    required: number
+    available: number
+    unit: string
+    maxPortions: number
+  } | null
   recipeCost?: number
   message: string
 }
@@ -576,6 +584,8 @@ export interface AdjustInventoryStockDto {
   quantity: number // Positive for additions, negative for reductions
   reason?: string
   reference?: string
+  unitCost?: number // Cost per unit for this movement (for PURCHASE)
+  supplier?: string // Supplier name for this movement (for PURCHASE)
 }
 
 export interface InventoryMovement {
@@ -586,6 +596,8 @@ export interface InventoryMovement {
   newStock: number
   reason: string | null
   reference: string | null
+  unitCost: number | null
+  supplier: string | null
   createdBy: string | null
   createdAt: string
 }
@@ -612,6 +624,34 @@ export const productInventoryApi = {
   // Get movements for QUANTITY product
   getMovements: (venueId: string, productId: string) =>
     api.get<InventoryMovement[]>(`/api/v1/dashboard/venues/${venueId}/inventory/products/${productId}/movements`),
+}
+
+// ===========================================
+// INVENTORY HISTORY API (Global Movements)
+// ===========================================
+
+export interface GlobalInventoryMovement extends InventoryMovement {
+  itemName: string
+  sku: string
+  category: 'PRODUCT' | 'INGREDIENT'
+  unit: string
+  cost: number
+  totalCost: number
+  supplierName?: string
+}
+
+export const inventoryHistoryApi = {
+  getGlobalMovements: (
+    venueId: string,
+    filters?: {
+      startDate?: string
+      endDate?: string
+      type?: string
+      search?: string
+      limit?: number
+      offset?: number
+    },
+  ) => api.get<{ data: GlobalInventoryMovement[]; meta: { total: number; page: number; limit: number } }>(`/api/v1/dashboard/venues/${venueId}/inventory/movements`, { params: filters }),
 }
 
 // ===========================================

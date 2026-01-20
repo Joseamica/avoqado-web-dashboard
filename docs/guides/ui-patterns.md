@@ -110,6 +110,65 @@ If you don't need count badges, simplify the trigger:
 
 **Reference implementation:** `/src/pages/Order/Orders.tsx`
 
+### Filter Order Rule (MANDATORY)
+
+**⚠️ CRITICAL: Filter pills MUST be ordered in the same sequence as the table columns.**
+
+This creates visual consistency and predictability for users - filters appear in the same order as the columns they filter.
+
+**Example from Orders.tsx:**
+
+```
+Table Columns:          Filter Pills (same order):
+1. Date                 1. Date filter
+2. Order Number         (no filter - ID field)
+3. Customer             (no filter - text field)
+4. Type                 2. Type filter
+5. Table                3. Table filter
+6. Waiter               4. Waiter filter
+7. Status               5. Status filter
+8. Tip                  6. Tip filter
+9. Total                7. Total filter
+```
+
+**Example from InventoryHistory.tsx:**
+
+```
+Table Columns:          Filter Pills (same order):
+1. Date                 1. Date filter
+2. Name                 (no filter - text search)
+3. SKU                  2. SKU filter
+4. Provider             3. Provider filter
+5. Total Cost           4. Total Cost filter
+6. Adjustment           5. Type filter (filters adjustment types)
+```
+
+**How to implement:**
+
+```typescript
+// ✅ CORRECT - Filter state ordered by column position
+const [dateFilter, setDateFilter] = useState<DateFilter | null>(null)      // Column 1
+const [typeFilter, setTypeFilter] = useState<string[]>([])                 // Column 2
+const [tableFilter, setTableFilter] = useState<string[]>([])               // Column 3
+const [statusFilter, setStatusFilter] = useState<string[]>([])             // Column 4
+
+// ✅ CORRECT - Filter pills in same order as columns
+<FilterPill label="Date" ... />      {/* Column 1 */}
+<FilterPill label="Type" ... />      {/* Column 2 */}
+<FilterPill label="Table" ... />     {/* Column 3 */}
+<FilterPill label="Status" ... />    {/* Column 4 */}
+
+// ❌ WRONG - Random order, unrelated to columns
+<FilterPill label="Status" ... />
+<FilterPill label="Date" ... />
+<FilterPill label="Type" ... />
+```
+
+**Benefits:**
+- **Predictability**: Users can mentally map filters to columns
+- **Visual scanning**: Left-to-right reading matches filter order
+- **Consistency**: Same pattern across all pages
+
 ### Visual Specifications - Single-Row with Responsive Wrap
 
 Inspired by Stripe's filter bar: filters on the left, action buttons on the right (wrap to new line when space runs out).

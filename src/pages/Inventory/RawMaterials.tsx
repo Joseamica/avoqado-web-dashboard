@@ -67,7 +67,7 @@ export default function RawMaterials() {
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [stockFilter, setStockFilter] = useState<string>('all')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
@@ -252,6 +252,28 @@ export default function RawMaterials() {
       }
     }
   }, [highlightId, rawMaterials, isLoading, searchParams, setSearchParams, categoryFilter, stockFilter, searchTerm, pagination])
+
+  // Handle openRestock param
+  const openRestock = searchParams.get('openRestock') === 'true'
+  useEffect(() => {
+    if (openRestock && rawMaterials && !isLoading && rawMaterials.length > 0) {
+        // Try to find exact match if search term exists, otherwise take first
+        const search = searchParams.get('search')
+        const targetMaterial = search 
+            ? rawMaterials.find(m => m.name.toLowerCase() === search.toLowerCase()) || rawMaterials[0]
+            : rawMaterials[0]
+            
+        if (targetMaterial) {
+            setSelectedMaterial(targetMaterial)
+            setAdjustStockDialogOpen(true)
+            
+            // Clean up param
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete('openRestock')
+            setSearchParams(newParams, { replace: true })
+        }
+    }
+  }, [openRestock, rawMaterials, isLoading, searchParams, setSearchParams])
 
   // Toggle active mutation
   const toggleActiveMutation = useMutation({

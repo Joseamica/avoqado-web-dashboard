@@ -16,8 +16,9 @@ export interface DateFilter {
 }
 
 interface DateFilterContentProps {
-  title: string
-  currentFilter: DateFilter | null
+  title?: string
+  value?: DateFilter | null // Alias for currentFilter
+  currentFilter?: DateFilter | null
   onApply: (filter: DateFilter | null) => void
   onClose?: () => void
   timezone?: string
@@ -61,6 +62,7 @@ const defaultLabels = {
  */
 export function DateFilterContent({
   title,
+  value: valueProp,
   currentFilter,
   onApply,
   onClose,
@@ -69,11 +71,12 @@ export function DateFilterContent({
   labels: customLabels,
 }: DateFilterContentProps) {
   const labels = { ...defaultLabels, ...customLabels }
+  const filter = valueProp || currentFilter
 
-  const [operator, setOperator] = useState<DateOperator>(currentFilter?.operator || 'last')
-  const [value, setValue] = useState<string>(currentFilter?.value?.toString() || '7')
-  const [value2, setValue2] = useState<string>(currentFilter?.value2 || '')
-  const [unit, setUnit] = useState<DateUnit>(currentFilter?.unit || 'days')
+  const [operator, setOperator] = useState<DateOperator>(filter?.operator || 'last')
+  const [value, setValue] = useState<string>(filter?.value?.toString() || '7')
+  const [value2, setValue2] = useState<string>(filter?.value2 || '')
+  const [unit, setUnit] = useState<DateUnit>(filter?.unit || 'days')
   const [useLocalTimezone, setUseLocalTimezone] = useState(true)
 
   // Get timezone abbreviation
@@ -132,6 +135,12 @@ export function DateFilterContent({
     setUnit('days')
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleApply()
+    }
+  }
+
   return (
     <div className="flex flex-col">
       <FilterPopoverHeader title={title} />
@@ -160,6 +169,7 @@ export function DateFilterContent({
                 type="number"
                 value={value}
                 onChange={e => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="h-9 w-20"
                 min={1}
               />
@@ -184,6 +194,7 @@ export function DateFilterContent({
                 type="date"
                 value={value}
                 onChange={e => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="h-9 flex-1"
               />
             </div>
@@ -193,6 +204,7 @@ export function DateFilterContent({
                 type="date"
                 value={value2}
                 onChange={e => setValue2(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="h-9 flex-1"
               />
             </div>
@@ -204,6 +216,7 @@ export function DateFilterContent({
               type="date"
               value={value}
               onChange={e => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="h-9 flex-1"
             />
           </div>

@@ -90,6 +90,7 @@ export { default as CreditAssessment } from '@/pages/Superadmin/CreditAssessment
 export { default as ModuleManagement } from '@/pages/Superadmin/ModuleManagement'
 export { default as OrganizationManagement } from '@/pages/Superadmin/OrganizationManagement'
 export { default as MasterTotpSetup } from '@/pages/Superadmin/MasterTotpSetup'
+export { default as TpvUpdates } from '@/pages/Superadmin/TpvUpdates'
 
 // Legal components
 export const Terms = lazyWithRetry(() => import('@/pages/Legal/Terms'))
@@ -101,11 +102,15 @@ export const AnalyticsOverview = lazyWithRetry(() => import('@/pages/Analytics/A
 
 // Inventory
 export const InventoryLayout = lazyWithRetry(() => import('@/pages/Inventory/InventoryLayout'))
+export const InventorySummary = lazyWithRetry(() => import('@/pages/Inventory/InventorySummary'))
 export const RawMaterials = lazyWithRetry(() => import('@/pages/Inventory/RawMaterials'))
 export const ProductStock = lazyWithRetry(() => import('@/pages/Inventory/ProductStock'))
+export const InventoryHistory = lazyWithRetry(() => import('@/pages/Inventory/InventoryHistory'))
 export const Recipes = lazyWithRetry(() => import('@/pages/Inventory/Recipes'))
 export const Pricing = lazyWithRetry(() => import('@/pages/Inventory/Pricing'))
 export const ModifierInventory = lazyWithRetry(() => import('@/pages/Inventory/ModifierInventory'))
+export const ModifierAnalytics = lazyWithRetry(() => import('@/pages/Inventory/ModifierAnalytics'))
+
 
 // Settings
 export const RolePermissions = lazyWithRetry(() => import('@/pages/Settings/RolePermissions'))

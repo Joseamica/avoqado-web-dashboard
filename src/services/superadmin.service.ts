@@ -251,15 +251,8 @@ export async function disableFeatureForVenue(venueId: string, featureCode: strin
  * Grant a DB-only trial for a venue (no Stripe subscription)
  * The trial will automatically expire after the specified number of days
  */
-export async function grantTrialForVenue(
-  venueId: string,
-  featureCode: string,
-  trialDays: number
-): Promise<{ endDate: string }> {
-  const response = await api.post(
-    `/api/v1/dashboard/superadmin/venues/${venueId}/features/${featureCode}/grant-trial`,
-    { trialDays }
-  )
+export async function grantTrialForVenue(venueId: string, featureCode: string, trialDays: number): Promise<{ endDate: string }> {
+  const response = await api.post(`/api/v1/dashboard/superadmin/venues/${venueId}/features/${featureCode}/grant-trial`, { trialDays })
   return response.data.data
 }
 
@@ -320,7 +313,7 @@ export async function getMasterTotpSetup(): Promise<MasterTotpSetup> {
 export async function rejectKYC(venueId: string, reason: string, rejectedDocuments?: string[]): Promise<void> {
   await api.post(`/api/v1/superadmin/kyc/${venueId}/reject`, {
     rejectionReason: reason,
-    rejectedDocuments: rejectedDocuments
+    rejectedDocuments: rejectedDocuments,
   })
 }
 
@@ -497,7 +490,7 @@ export async function createCreditOffer(
     repaymentPercent: number
     expiresInDays?: number
     notes?: string
-  }
+  },
 ): Promise<CreditOffer> {
   const response = await api.post(`/api/v1/superadmin/credit/venues/${venueId}/offers`, offerData)
   return response.data.data
@@ -580,38 +573,36 @@ export async function getModulesForVenue(venueId: string): Promise<ModuleForVenu
   // Transform backend response to frontend format
   // Note: Organization-level inheritance not yet implemented in backend
   // Once implemented, this transformation can be enhanced
-  return backendModules.map((module): ModuleForVenue => ({
-    id: module.id,
-    code: module.code,
-    name: module.name,
-    description: module.description,
-    category: 'custom', // TODO: Add category to backend Module model
-    isCore: false, // TODO: Add isCore to backend Module model
-    isEnabled: module.enabled,
-    isInherited: false, // TODO: Backend should return this based on OrganizationModule
-    inheritedFrom: module.enabled ? 'venue' : null,
-    config: module.config,
-    organizationConfig: null, // TODO: Backend should return OrganizationModule.config
-    defaultConfig: module.defaultConfig,
-    venueModule: module.enabled
-      ? {
-          id: module.id, // VenueModule ID would be different, but we use module ID for now
-          isEnabled: module.enabled,
-          config: module.config,
-          enabledAt: module.enabledAt || new Date().toISOString(),
-        }
-      : null,
-  }))
+  return backendModules.map(
+    (module): ModuleForVenue => ({
+      id: module.id,
+      code: module.code,
+      name: module.name,
+      description: module.description,
+      category: 'custom', // TODO: Add category to backend Module model
+      isCore: false, // TODO: Add isCore to backend Module model
+      isEnabled: module.enabled,
+      isInherited: false, // TODO: Backend should return this based on OrganizationModule
+      inheritedFrom: module.enabled ? 'venue' : null,
+      config: module.config,
+      organizationConfig: null, // TODO: Backend should return OrganizationModule.config
+      defaultConfig: module.defaultConfig,
+      venueModule: module.enabled
+        ? {
+            id: module.id, // VenueModule ID would be different, but we use module ID for now
+            isEnabled: module.enabled,
+            config: module.config,
+            enabledAt: module.enabledAt || new Date().toISOString(),
+          }
+        : null,
+    }),
+  )
 }
 
 /**
  * Enable a module for a venue
  */
-export async function enableModuleForVenue(
-  venueId: string,
-  moduleCode: string,
-  preset?: string
-): Promise<void> {
+export async function enableModuleForVenue(venueId: string, moduleCode: string, preset?: string): Promise<void> {
   await api.post('/api/v1/dashboard/superadmin/modules/enable', {
     venueId,
     moduleCode,
@@ -632,16 +623,155 @@ export async function disableModuleForVenue(venueId: string, moduleCode: string)
 /**
  * Update module config for a venue
  */
-export async function updateVenueModuleConfig(
-  venueId: string,
-  moduleCode: string,
-  config: Record<string, any>
-): Promise<void> {
+export async function updateVenueModuleConfig(venueId: string, moduleCode: string, config: Record<string, any>): Promise<void> {
   await api.patch('/api/v1/dashboard/superadmin/modules/config', {
     venueId,
     moduleCode,
     config,
   })
+}
+
+// ===== APP UPDATES TYPES =====
+
+export type AppEnvironment = 'SANDBOX' | 'PRODUCTION'
+
+export interface AppUpdate {
+  id: string
+  versionName: string
+  versionCode: number
+  environment: AppEnvironment
+  releaseNotes: string | null
+  isRequired: boolean
+  downloadUrl: string
+  fileSize: string // BigInt as string
+  checksum: string
+  minAndroidSdk: number
+  isActive: boolean
+  uploadedById: string
+  uploadedBy: {
+    firstName: string
+    lastName: string
+    email: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AppUpdateCreateInput {
+  versionName?: string // Optional - auto-detected from APK if not provided
+  versionCode?: number // Optional - auto-detected from APK if not provided
+  environment: AppEnvironment
+  releaseNotes?: string
+  isRequired?: boolean
+  minAndroidSdk?: number // Optional - auto-detected from APK if not provided
+  apkBase64: string
+}
+
+// Response includes auto-detection info
+export interface AppUpdateCreateResponse {
+  data: AppUpdate
+  autoDetected: {
+    versionCode: boolean
+    versionName: boolean
+    minAndroidSdk: boolean
+    apkMetadata: {
+      versionCode: number
+      versionName: string
+      packageName: string
+      minSdkVersion: number
+    }
+  }
+  warnings?: string[]
+}
+
+export interface AppUpdateUpdateInput {
+  releaseNotes?: string
+  isRequired?: boolean
+  isActive?: boolean
+  minAndroidSdk?: number
+}
+
+// ===== APP UPDATES API FUNCTIONS =====
+
+/**
+ * Get all app updates
+ */
+export async function getAppUpdates(params?: { environment?: AppEnvironment; isActive?: boolean }): Promise<AppUpdate[]> {
+  const response = await api.get('/api/v1/superadmin/app-updates', { params })
+  return response.data.data
+}
+
+/**
+ * Get app update by ID
+ */
+export async function getAppUpdateById(id: string): Promise<AppUpdate> {
+  const response = await api.get(`/api/v1/superadmin/app-updates/${id}`)
+  return response.data.data
+}
+
+/**
+ * Get latest app update for an environment
+ */
+export async function getLatestAppUpdate(environment: AppEnvironment): Promise<AppUpdate | null> {
+  const response = await api.get(`/api/v1/superadmin/app-updates/latest/${environment}`)
+  return response.data.data
+}
+
+/**
+ * Create a new app update (upload APK)
+ * versionName and versionCode are optional - they will be auto-detected from the APK if not provided
+ */
+export async function createAppUpdate(data: AppUpdateCreateInput): Promise<AppUpdateCreateResponse> {
+  const payload: Record<string, unknown> = {
+    environment: data.environment,
+    apkBase64: data.apkBase64,
+  }
+
+  // Only include optional fields if provided
+  if (data.versionName !== undefined) payload.versionName = data.versionName
+  if (data.versionCode !== undefined) payload.versionCode = data.versionCode
+  if (data.releaseNotes !== undefined) payload.releaseNotes = data.releaseNotes
+  if (data.isRequired !== undefined) payload.isRequired = data.isRequired
+  if (data.minAndroidSdk !== undefined) payload.minAndroidSdk = data.minAndroidSdk
+
+  const response = await api.post('/api/v1/superadmin/app-updates', payload)
+  return {
+    data: response.data.data,
+    autoDetected: response.data.autoDetected,
+    warnings: response.data.warnings,
+  }
+}
+
+/**
+ * Preview APK metadata without uploading
+ * Returns version info extracted from AndroidManifest.xml
+ */
+export interface ApkPreviewResponse {
+  versionCode: number
+  versionName: string
+  packageName: string
+  minSdkVersion: number
+  detectedEnvironment: 'SANDBOX' | 'PRODUCTION' | null
+}
+
+export async function previewApkMetadata(apkBase64: string): Promise<ApkPreviewResponse> {
+  const response = await api.post('/api/v1/superadmin/app-updates/preview', { apkBase64 })
+  return response.data.data
+}
+
+/**
+ * Update an app update
+ */
+export async function updateAppUpdate(id: string, data: AppUpdateUpdateInput): Promise<AppUpdate> {
+  const response = await api.patch(`/api/v1/superadmin/app-updates/${id}`, data)
+  return response.data.data
+}
+
+/**
+ * Delete an app update
+ */
+export async function deleteAppUpdate(id: string): Promise<void> {
+  await api.delete(`/api/v1/superadmin/app-updates/${id}`)
 }
 
 // Convenience API object (canonical import target for components expecting superadminAPI)
@@ -711,5 +841,27 @@ export const superadminAPI = {
   // Master TOTP Setup
   getMasterTotpSetup: async (): Promise<MasterTotpSetup> => {
     return await getMasterTotpSetup()
+  },
+  // App Updates
+  getAppUpdates: async (params?: { environment?: AppEnvironment; isActive?: boolean }): Promise<AppUpdate[]> => {
+    return await getAppUpdates(params)
+  },
+  getAppUpdateById: async (id: string): Promise<AppUpdate> => {
+    return await getAppUpdateById(id)
+  },
+  getLatestAppUpdate: async (environment: AppEnvironment): Promise<AppUpdate | null> => {
+    return await getLatestAppUpdate(environment)
+  },
+  previewApkMetadata: async (apkBase64: string): Promise<ApkPreviewResponse> => {
+    return await previewApkMetadata(apkBase64)
+  },
+  createAppUpdate: async (data: AppUpdateCreateInput): Promise<AppUpdateCreateResponse> => {
+    return await createAppUpdate(data)
+  },
+  updateAppUpdate: async (id: string, data: AppUpdateUpdateInput): Promise<AppUpdate> => {
+    return await updateAppUpdate(id, data)
+  },
+  deleteAppUpdate: async (id: string): Promise<void> => {
+    await deleteAppUpdate(id)
   },
 }
