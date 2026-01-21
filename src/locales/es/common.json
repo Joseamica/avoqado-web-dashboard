@@ -70,7 +70,12 @@
   "logout": "Cerrar sesión",
   "compare": "Comparar",
   "apply": "Aplicar",
+  "clear": "Limpiar",
   "selectPlaceholder": "Selecciona una opción",
+  "filters": {
+    "min": "Mínimo",
+    "max": "Máximo"
+  },
   "descending": "Descendente",
   "ascending": "Ascendente",
   "actions": "Acciones",

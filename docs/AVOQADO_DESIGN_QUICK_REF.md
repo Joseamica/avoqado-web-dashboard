@@ -323,7 +323,7 @@ bg-background text-foreground    // ✅ Just works
 ```
 Components:      src/components/ui/
 Pages:           src/pages/
-Translations:    src/locales/{en,es,fr}/
+Translations:    src/locales/{en,es}/
 i18n config:     src/i18n.ts
 Theme:           src/index.css (@theme directive)
 Theme guide:     THEME-GUIDELINES.md
@@ -377,7 +377,7 @@ import { useMemo, useCallback } from 'react'
 
 **Quick fixes**:
 - Hardcoded color → Check THEME-GUIDELINES.md for mapping
-- Missing translation → Add to src/locales/{en,es,fr}/[namespace].json
+- Missing translation → Add to src/locales/{en,es}/[namespace].json
 - Performance issue → Add useMemo/useCallback
 - Accessibility issue → Add ARIA label or semantic HTML
 

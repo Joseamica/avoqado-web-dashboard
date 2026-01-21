@@ -1528,7 +1528,7 @@ When converting hardcoded TypeScript translations to JSON files:
 4. **Update base namespace** - Ensure `resources.translation` uses `common` (not feature-specific)
 5. **Register namespaces** - Add `addResourceBundle()` for each feature namespace
 6. **Update components** - Change `useTranslation()` to use correct namespace
-7. **Verify completeness** - Ensure all languages (en, es, fr) have matching keys
+7. **Verify completeness** - Ensure required languages (en, es) have matching keys
 8. **Test language switching** - Verify UI updates correctly when language changes
 9. **Build verification** - Run `npm run build` to catch missing translation errors
 

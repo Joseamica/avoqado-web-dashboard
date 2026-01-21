@@ -70,7 +70,12 @@
   "logout": "Logout",
   "compare": "Compare",
   "apply": "Apply",
+  "clear": "Clear",
   "selectPlaceholder": "Select an option",
+  "filters": {
+    "min": "Minimum",
+    "max": "Maximum"
+  },
   "descending": "Descending",
   "ascending": "Ascending",
   "actions": "Actions",

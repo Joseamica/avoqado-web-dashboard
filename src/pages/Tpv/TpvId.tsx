@@ -833,7 +833,6 @@ export default function TpvId() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <div className="px-4 pb-4 space-y-4">
-                            <div className="h-px bg-border/50" />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {tpv.systemInfo.platform && (
                                 <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
@@ -915,7 +914,6 @@ export default function TpvId() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="px-4 pb-4 space-y-4">
-                          <div className="h-px bg-border/50" />
                           <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                               {/* Basic Information */}
@@ -1194,8 +1192,8 @@ export default function TpvId() {
                                 {pendingCommand === 'LOCK' || pendingCommand === 'UNLOCK'
                                   ? t('common:loading')
                                   : tpv?.isLocked
-                                  ? t('actions.locked')
-                                  : t('actions.unlocked')}
+                                    ? t('actions.locked')
+                                    : t('actions.unlocked')}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {tpv?.isLocked ? t('detail.tooltips.unlock') : t('detail.tooltips.lock')}
@@ -1230,7 +1228,7 @@ export default function TpvId() {
                       )}
 
                       {/* Separator before secondary actions */}
-                      <div className="border-t border-border/50 pt-4 space-y-3">
+                      <div className="pt-4 space-y-3">
                         <PermissionGate permission="tpv:update">
                           <TooltipProvider>
                             <Tooltip>
@@ -1335,8 +1333,8 @@ export default function TpvId() {
                                   merchantAccounts.length === 0
                                     ? 'No hay cuentas en el venue'
                                     : availableMerchantAccounts.length === 0
-                                    ? 'Todas las cuentas ya están asignadas'
-                                    : 'Seleccionar cuenta...'
+                                      ? 'Todas las cuentas ya están asignadas'
+                                      : 'Seleccionar cuenta...'
                                 }
                               />
                             </SelectTrigger>
@@ -1404,7 +1402,6 @@ export default function TpvId() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="px-4 pb-4 space-y-4">
-                          <div className="h-px bg-border/50" />
                           <div className="grid grid-cols-1 gap-3">
                             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                               <span className="text-sm text-muted-foreground">{t('detail.created')}</span>

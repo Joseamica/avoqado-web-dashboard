@@ -14,6 +14,7 @@ and maintain visual coherence across the application.
 - [Select/MultipleSelector Patterns](#selectmultipleselector-with-empty-state-and-create-button-mandatory)
 - [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
+- [Unit Translation (MANDATORY)](#unit-translation-mandatory)
 
 ---
 
@@ -1007,6 +1008,36 @@ src/pages/Feature/
 
 ## Form Input Patterns
 
+### Number Input Styling - Hide Spinners (MANDATORY)
+
+**⚠️ ALWAYS hide the spinner arrows on number inputs for a cleaner, more modern appearance.**
+
+Number inputs show increment/decrement arrows by default in most browsers. These should be hidden using Tailwind's arbitrary variant syntax.
+
+```typescript
+// ❌ WRONG - Shows spinner arrows
+<Input type="number" className="w-16" />
+
+// ✅ CORRECT - Hides spinner arrows
+<Input
+  type="number"
+  className="w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+/>
+```
+
+**Classes breakdown:**
+- `[appearance:textfield]` - Hides spinners in Firefox
+- `[&::-webkit-outer-spin-button]:appearance-none` - Hides outer spinner in Chrome/Safari
+- `[&::-webkit-inner-spin-button]:appearance-none` - Hides inner spinner in Chrome/Safari
+
+**When to use:**
+- ✅ ALL number inputs in forms, tables, and dialogs
+- ✅ Quantity inputs in purchase orders, inventory
+- ✅ Price and numeric configuration fields
+- ❌ Never show spinner arrows (no exceptions)
+
+**Reference:** `/src/pages/Inventory/PurchaseOrders/components/LabelPrintDialog.tsx`
+
 ### Number Input with React Hook Form (CRITICAL)
 
 **⚠️ NEVER use `|| 0` or `{...field}` spread for number inputs** - this prevents users from clearing the field with backspace.
@@ -1449,3 +1480,408 @@ import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 - ✅ Selecting items from a large catalog (Products, Ingredients)
 - ✅ Selecting categories or tags when there are many options
 - ✅ Any multi-select scenario where search is crucial
+
+---
+
+## Scrollable Select/Combobox with Mouse Wheel (CRITICAL)
+
+**⚠️ CRITICAL: When creating a Select or Combobox with scrollable options, you MUST use `ScrollArea` and `modal={true}` for mouse wheel scrolling to work.**
+
+### The Problem
+
+Radix UI's Popover component blocks mouse wheel scrolling when:
+1. The Popover is **inside a Dialog** (modal context)
+2. Using native CSS overflow (`overflow-y-auto`) instead of ScrollArea
+3. Using `modal={false}` (incorrect for nested modals)
+
+This is a known issue in Radix UI primitives that affects Command components inside Popovers within Dialogs.
+
+**User impact:** Users can only scroll by dragging the scrollbar, not with mouse wheel - very frustrating UX.
+
+### The Solution
+
+Use **two key fixes together**:
+
+1. **`modal={true}`** on the Popover (when inside Dialog)
+2. **`ScrollArea`** component from Radix UI (not CSS overflow)
+
+### Code Example - Material Combobox (Correct Pattern)
+
+```typescript
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Check, Search } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface ComboboxProps {
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ id: string; name: string; unit: string }>
+  placeholder: string
+  emptyText: string
+}
+
+export function MaterialCombobox({ value, onChange, options, placeholder, emptyText }: ComboboxProps) {
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+
+  const filteredOptions = useMemo(() => {
+    return options.filter((option) =>
+      option.name.toLowerCase().includes(searchValue.toLowerCase())
+    )
+  }, [options, searchValue])
+
+  const selectedOption = options.find((o) => o.id === value)
+
+  return (
+    {/* ✅ CRITICAL: modal={true} when Popover is inside Dialog */}
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            'w-full justify-between',
+            !value && 'text-muted-foreground'
+          )}
+        >
+          {selectedOption ? selectedOption.name : placeholder}
+          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={placeholder}
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            {/* ✅ CRITICAL: Use ScrollArea instead of overflow-y-auto div */}
+            <ScrollArea className="h-[300px]">
+              <CommandGroup>
+                {filteredOptions.map((option) => (
+                  <CommandItem
+                    key={option.id}
+                    value={option.id}
+                    onSelect={() => {
+                      onChange(option.id)
+                      setOpen(false)
+                      setSearchValue('')
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        option.id === value ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">{option.name}</p>
+                      <p className="text-xs text-muted-foreground">{option.unit}</p>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </ScrollArea>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+```
+
+### ❌ Common Mistakes
+
+```typescript
+// ❌ WRONG - modal={false} doesn't work inside Dialog
+<Popover open={open} onOpenChange={setOpen} modal={false}>
+  <PopoverContent>
+    <Command>
+      <CommandList>
+        {/* ❌ WRONG - CSS overflow doesn't enable mouse wheel */}
+        <div className="max-h-[300px] overflow-y-auto">
+          <CommandGroup>
+            {/* items */}
+          </CommandGroup>
+        </div>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+
+// ❌ WRONG - No scrolling at all
+<Popover open={open} onOpenChange={setOpen}>
+  <PopoverContent>
+    <Command>
+      <CommandList className="max-h-[300px] overflow-y-auto">
+        {/* CommandList with overflow classes doesn't work */}
+        <CommandGroup>
+          {/* items */}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+```
+
+### Why This Works
+
+According to [Radix UI documentation](https://github.com/radix-ui/primitives/issues/1159):
+
+1. **`modal={true}`**: When a Popover is inside a Dialog (which is modal), it needs to be modal too. This creates a new layer of modal interaction that maintains accessibility and allows proper event handling.
+
+2. **`ScrollArea`**: Radix UI's ScrollArea component properly handles wheel events, while native CSS `overflow` can be blocked by the portal system.
+
+3. **Portal behavior**: The combination prevents the Dialog's modal overlay from blocking scroll events on the nested Popover content.
+
+### Key Rules
+
+| Scenario | Popover modal prop | Scroll solution |
+|----------|-------------------|-----------------|
+| Popover inside Dialog | `modal={true}` ✅ | `ScrollArea` ✅ |
+| Popover standalone (not in Dialog) | `modal={false}` or omit | `ScrollArea` or CSS overflow |
+| Any long list in Command | N/A | Always use `ScrollArea` |
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/PurchaseOrders/components/PurchaseOrderWizard.tsx` - **Reference implementation** (Material combobox with mouse wheel scroll)
+
+**Where to apply:**
+
+- ✅ **ALWAYS** when creating Select/Combobox inside Dialog
+- ✅ **ALWAYS** when using Command component with long lists
+- ✅ Multi-select dropdowns in modal forms
+- ✅ Searchable selects in wizards
+
+**Checklist:**
+
+- [ ] Popover has `modal={true}` when inside Dialog
+- [ ] Long lists use `<ScrollArea className="h-[300px]">` wrapper
+- [ ] ScrollArea wraps CommandGroup, not CommandList
+- [ ] Tested mouse wheel scrolling works
+- [ ] No `overflow-y-auto` on divs inside Command
+
+### Related Issues & Sources
+
+This is a documented issue in the Radix UI ecosystem:
+
+- [CommandInput + scroll not working when inside a popover within a dialog](https://github.com/radix-ui/primitives/issues/3423) - Radix UI Primitives issue
+- [Dialog/Popover Scrolling issue when Popover inside Dialog](https://github.com/radix-ui/primitives/issues/1159) - Popover modal solution
+- [Can't scroll commandList inside a Dialog using mouse wheel](https://github.com/dip/cmdk/issues/272) - cmdk library issue
+- [Popover scrolling issue with mouse wheel](https://github.com/shadcn-ui/ui/discussions/4175) - shadcn/ui discussion
+- [Radix Popover + ScrollArea - CodeSandbox](https://codesandbox.io/s/radix-popover-scrollarea-fm9qyz) - Working example
+
+### Accessibility
+
+- Mouse wheel scrolling improves accessibility for users who can't easily drag scrollbars
+- ScrollArea component includes proper ARIA attributes
+- Keyboard navigation (Arrow keys) works independently of scroll method
+- Focus management works correctly with `modal={true}`
+
+---
+
+## Unit Translation (MANDATORY)
+
+**⚠️ ALWAYS translate unit enum values using `useUnitTranslation()` hook. NEVER display raw enum values (e.g., "KILOGRAM", "LITER") to users.**
+
+**When to use:** Any interface displaying measurement units from inventory raw materials, purchase orders, recipes, or stock movements.
+
+**Reference implementation:** `/src/pages/Inventory/RawMaterials.tsx` (line 55)
+
+### Why This Matters
+
+Users should see "kilogramos" or "kilograms" instead of "KILOGRAM". This improves UX by:
+- **Localized units**: Shows units in the user's language (Spanish/English)
+- **Professional appearance**: Avoids technical enum values in the UI
+- **Proper pluralization**: "1 kilogramo" vs "2 kilogramos"
+
+### The Hook
+
+```typescript
+import { useUnitTranslation } from '@/hooks/use-unit-translation'
+
+const { formatUnit, getShortLabel, getFullName, formatUnitWithQuantity } = useUnitTranslation()
+```
+
+### Available Functions
+
+| Function | Input | Output Example (ES) | Output Example (EN) | Use Case |
+|----------|-------|---------------------|---------------------|----------|
+| `formatUnit(unitEnum)` | `"KILOGRAM"` | `"kg (Kilogramo)"` | `"kg (Kilogram)"` | Labels with abbreviation |
+| `getShortLabel(unitEnum)` | `"KILOGRAM"` | `"kg"` | `"kg"` | Short form only |
+| `getFullName(unitEnum)` | `"KILOGRAM"` | `"kilogramo"` | `"kilogram"` | Full name only |
+| `formatUnitWithQuantity(qty, enum)` | `2, "KILOGRAM"` | `"kilogramos"` | `"kilograms"` | Full name with pluralization |
+| `formatUnitWithQuantity(qty, enum, true)` | `2, "KILOGRAM", true` | `"kgs"` | `"kgs"` | **Abbreviated** form with pluralization |
+
+### Code Examples
+
+#### ❌ WRONG - Raw enum displayed
+
+```typescript
+<TableCell>{item.quantityOrdered} {item.rawMaterial.unit}</TableCell>
+// Output: "2 KILOGRAM" ❌
+```
+
+#### ✅ CORRECT - With automatic pluralization (RECOMMENDED)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+
+<TableCell>{item.quantityOrdered} {formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit)}</TableCell>
+// Output: "1 kilogramo" ✅ or "2 kilogramos" ✅
+// Output: "1 kilogram" ✅ or "2 kilograms" ✅
+```
+
+#### ✅ CORRECT - Full name only (no pluralization)
+
+```typescript
+const { getFullName } = useUnitTranslation()
+
+<TableCell>{getFullName(item.rawMaterial.unit)}</TableCell>
+// Output: "kilogramo" ✅ (Spanish) or "kilogram" ✅ (English)
+// Use when displaying unit without quantity
+```
+
+#### ✅ CORRECT - Dialog with unit label (reactive pluralization)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+const [quantity, setQuantity] = useState(0)
+
+<div className="flex items-center gap-2">
+  <Input
+    type="number"
+    value={quantity}
+    onChange={(e) => setQuantity(Number(e.target.value))}
+  />
+  <span className="text-sm text-muted-foreground uppercase">
+    {rawMaterial.unit ? formatUnitWithQuantity(quantity, rawMaterial.unit) : ''}
+  </span>
+</div>
+// Shows "1 KILOGRAMO" or "2 KILOGRAMOS" reactively as user types ✅
+// Shows "1 KILOGRAM" or "2 KILOGRAMS" in English ✅
+```
+
+#### ✅ CORRECT - Abbreviated form for compact views (RECOMMENDED for tables)
+
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+
+// In table "Cantidad" column
+<TableCell className="text-right">
+  {item.quantityOrdered} {formatUnitWithQuantity(item.quantityOrdered, item.rawMaterial.unit, true)}
+</TableCell>
+// Output: "2 kgs" ✅ or "1 kg" ✅ (Spanish)
+// Output: "2 kgs" ✅ or "1 kg" ✅ (English)
+
+// In dialog label next to input
+<div className="flex items-center gap-2">
+  <Input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
+  <span className="text-sm text-muted-foreground uppercase">
+    {formatUnitWithQuantity(quantity, rawMaterial.unit, true)}
+  </span>
+</div>
+// Output: "1 kg" or "2 kgs" reactively ✅
+```
+
+**When to use abbreviated form:**
+- ✅ Table columns with limited space (e.g., "Cantidad" column)
+- ✅ Dialog labels next to input fields
+- ✅ Compact views where full name would be too verbose
+- ❌ First-time user onboarding or configuration (use full name for clarity)
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/RawMaterials.tsx` (lines 482, 521) - **Reference implementation**
+- `/src/pages/Inventory/PurchaseOrders/PurchaseOrderDetailPage.tsx` (lines 449, 623, 627) - Purchase order receive dialog
+
+**Where to apply:**
+
+- ✅ Raw materials table (current stock, confirmed stock)
+- ✅ Purchase order items (quantity ordered/received)
+- ✅ Recipe ingredient lists
+- ✅ Stock adjustment dialogs
+- ✅ Stock movement history
+- ✅ Any UI displaying measurement units
+
+### Translation File Structure
+
+Units are translated in `/src/locales/[en|es]/inventory.json`:
+
+```json
+{
+  "units": {
+    "KILOGRAM": "kilogramo",
+    "KILOGRAM_plural": "kilogramos",
+    "KILOGRAM_abbr": "kg",
+    "KILOGRAM_abbr_plural": "kgs",
+    "LITER": "litro",
+    "LITER_plural": "litros",
+    "LITER_abbr": "L",
+    "LITER_abbr_plural": "L",
+    "UNIT": "unidad",
+    "UNIT_plural": "unidades",
+    "UNIT_abbr": "ud",
+    "UNIT_abbr_plural": "uds",
+    "GRAM": "gramo",
+    "GRAM_plural": "gramos",
+    "GRAM_abbr": "g",
+    "GRAM_abbr_plural": "gs"
+  }
+}
+```
+
+**Translation key patterns:**
+- `{UNIT}`: Full singular name (e.g., "kilogramo")
+- `{UNIT}_plural`: Full plural name (e.g., "kilogramos")
+- `{UNIT}_abbr`: Abbreviated singular (e.g., "kg")
+- `{UNIT}_abbr_plural`: Abbreviated plural (e.g., "kgs")
+
+### Checklist
+
+When displaying units in your component:
+
+- [ ] Import `useUnitTranslation()` hook
+- [ ] Use `formatUnitWithQuantity(qty, unit)` when displaying units WITH quantity (recommended)
+- [ ] Use `formatUnitWithQuantity(qty, unit, true)` for abbreviated form in compact views (tables, labels)
+- [ ] Use `getFullName(unit)` only when displaying unit WITHOUT quantity
+- [ ] Never display raw enum values like "KILOGRAM"
+- [ ] Test in both Spanish and English
+- [ ] Verify singular/plural forms work correctly:
+  - Full: "1 kilogramo" vs "2 kilogramos"
+  - Abbreviated: "1 kg" vs "2 kgs"
+
+### Common Mistakes
+
+❌ **Displaying enum directly**
+```typescript
+<span>{item.unit}</span> // Shows "KILOGRAM"
+```
+
+❌ **Hardcoding units**
+```typescript
+<span>kg</span> // Not localized
+```
+
+❌ **Wrong pluralization**
+```typescript
+<span>{qty} {unit}s</span> // "2 KILOGRAMs"
+```
+
+✅ **Correct approach (with pluralization)**
+```typescript
+const { formatUnitWithQuantity } = useUnitTranslation()
+<span>{qty} {formatUnitWithQuantity(qty, unit)}</span>
+// "1 kilogramo" or "2 kilogramos" ✅
+```

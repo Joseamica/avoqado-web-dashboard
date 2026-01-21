@@ -233,7 +233,7 @@ const { t } = useTranslation()
 
 **Requirements:**
 
-- Add translations for BOTH `en` and `es` (and `fr` if applicable)
+- Add translations for BOTH `en` and `es`
 - Use interpolation: `t('greeting', { name })`
 - No hardcoded strings in JSX
 
@@ -958,7 +958,7 @@ gh workflow run ci-cd.yml --field environment=demo
 **Before deploying:**
 
 - [ ] All user-facing text uses `t('...')`
-- [ ] Translations added for en, es, fr
+- [ ] Translations added for en, es
 - [ ] Arrays/objects memoized with `useMemo`/`useCallback`
 - [ ] Theme-aware colors used (no hardcoded grays)
 - [ ] Permissions synced between frontend and backend
