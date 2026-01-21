@@ -29,6 +29,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useUnitTranslation } from '@/hooks/use-unit-translation'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
+import { purchaseOrderService, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
 import { AddToAIButton } from '@/components/AddToAIButton'
 import { Currency } from '@/utils/currency'
 import { RawMaterialDialog } from './components/RawMaterialDialog'
@@ -41,6 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function RawMaterials() {
   const { t } = useTranslation('inventory')
@@ -87,6 +89,37 @@ export default function RawMaterials() {
       }
       const response = await rawMaterialsApi.getAll(venueId, filters)
       return response.data.data as RawMaterial[]
+    },
+    enabled: !!venueId,
+  })
+
+  // Fetch purchase orders for confirmed stock calculation
+  const { data: confirmedStockData } = useQuery({
+    queryKey: ['purchase-orders-confirmed-stock', venueId],
+    queryFn: async () => {
+      const response = await purchaseOrderService.getPurchaseOrders(venueId!, {
+        status: [
+          PurchaseOrderStatus.SENT,
+          PurchaseOrderStatus.CONFIRMED,
+          PurchaseOrderStatus.SHIPPED,
+          PurchaseOrderStatus.PARTIAL,
+        ],
+      })
+
+      // Calculate confirmed stock per raw material
+      const confirmedStockMap = new Map<string, number>()
+
+      if (response.data?.data) {
+        for (const po of response.data.data) {
+          for (const item of po.items) {
+            const currentConfirmed = confirmedStockMap.get(item.rawMaterialId) || 0
+            const pendingQuantity = item.quantityOrdered - item.quantityReceived
+            confirmedStockMap.set(item.rawMaterialId, currentConfirmed + pendingQuantity)
+          }
+        }
+      }
+
+      return confirmedStockMap
     },
     enabled: !!venueId,
   })
@@ -460,6 +493,43 @@ export default function RawMaterials() {
         sortingFn: 'basic',
       },
       {
+        id: 'confirmedStock',
+        accessorFn: (row) => confirmedStockData?.get(row.id) || 0,
+        meta: { label: t('rawMaterials.fields.confirmedStock') },
+        header: () => (
+          <div className="flex items-center justify-center">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 2xl:hidden cursor-pointer" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('rawMaterials.fields.confirmedStockTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <span className="hidden 2xl:inline">{t('rawMaterials.fields.confirmedStock')}</span>
+          </div>
+        ),
+        cell: ({ row }) => {
+          const material = row.original
+          const confirmed = confirmedStockData?.get(material.id) || 0
+
+          return (
+            <div className="flex flex-col items-center">
+              <Badge variant="secondary" className="min-w-[60px] justify-center bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                {confirmed.toFixed(2)} <span className="hidden xl:inline ml-1">{formatUnitWithQuantity(confirmed, material.unit)}</span>
+              </Badge>
+              {confirmed > 0 && (
+                <span className="text-xs text-muted-foreground mt-0.5 hidden 2xl:inline">{t('rawMaterials.inTransit')}</span>
+              )}
+            </div>
+          )
+        },
+        enableSorting: true,
+        sortingFn: 'basic',
+      },
+      {
         accessorKey: 'costPerUnit',
         meta: { label: t('rawMaterials.fields.costPerUnit') },
         header: () => (
@@ -636,7 +706,7 @@ export default function RawMaterials() {
         },
       },
     ],
-    [t, formatUnit, formatUnitWithQuantity, deleteMutation.isPending, toggleActiveMutation, hasChatbot],
+    [t, formatUnit, formatUnitWithQuantity, deleteMutation.isPending, toggleActiveMutation, hasChatbot, confirmedStockData],
   )
 
   return (

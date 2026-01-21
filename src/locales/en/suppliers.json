@@ -1,0 +1,62 @@
+{
+  "title": "Suppliers",
+  "subtitle": "Manage your suppliers and their contact information",
+  "create": "Create Supplier",
+  "edit": "Edit Supplier",
+  "save": "Save",
+  "cancel": "Cancel",
+  "columns": {
+    "name": "Name",
+    "contact": "Contact",
+    "phone": "Phone",
+    "email": "Email",
+    "status": "Status"
+  },
+  "statuses": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "fields": {
+    "name": "Supplier Name",
+    "namePlaceholder": "Enter supplier name",
+    "contactName": "Contact Person",
+    "contactNamePlaceholder": "Enter contact person name",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+1 555-1234",
+    "email": "Email",
+    "emailPlaceholder": "contact@supplier.com",
+    "zipCode": "ZIP Code",
+    "zipCodePlaceholder": "12345",
+    "notes": "Notes",
+    "notesPlaceholder": "Additional notes about this supplier"
+  },
+  "validation": {
+    "nameRequired": "Supplier name is required",
+    "emailInvalid": "Invalid email address"
+  },
+  "search": {
+    "placeholder": "Search by name..."
+  },
+  "filters": {
+    "status": "Status",
+    "selected": "selected",
+    "clearAll": "Clear all filters"
+  },
+  "delete": {
+    "success": "Supplier deleted successfully",
+    "error": "Failed to delete supplier",
+    "confirm": {
+      "title": "Delete Supplier",
+      "description": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "action": "Delete"
+    }
+  },
+  "create": {
+    "success": "Supplier created successfully",
+    "error": "Failed to create supplier"
+  },
+  "update": {
+    "success": "Supplier updated successfully",
+    "error": "Failed to update supplier"
+  }
+}

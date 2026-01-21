@@ -211,7 +211,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
           { title: 'Historial', url: 'inventory/history', permission: 'inventory:read' },
           { title: 'Recuentos de existencias', url: 'inventory/counts', permission: 'inventory:read' },
           { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
-          { title: 'Proveedores', url: 'inventory/vendors', permission: 'inventory:read' },
+          { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read' },
           { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read' },
           { title: 'Seguimiento de ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
           { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },

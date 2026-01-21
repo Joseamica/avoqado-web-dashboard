@@ -78,6 +78,9 @@ import {
   SalesSummary,
   ShiftId,
   Shifts,
+  SuppliersPage,
+  PurchaseOrdersPage,
+  PurchaseOrderDetailPage,
   TeamId,
   Teams,
   Tpv,
@@ -403,8 +406,10 @@ export function createVenueRoutes(): RouteObject[] {
                     { path: 'raw-materials', element: <RawMaterials /> },
                     { path: 'history', element: <InventoryHistory /> },
                     { path: 'counts', element: <ProductStock /> }, // Placeholder
-                    { path: 'purchase-orders', element: <ProductStock /> }, // Placeholder
+                    { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
+                    { path: 'purchase-orders/:poId', element: <PurchaseOrderDetailPage /> },
                     { path: 'vendors', element: <ProductStock /> }, // Placeholder
+                    { path: 'suppliers', element: <SuppliersPage /> },
                     { path: 'restocks', element: <ProductStock /> }, // Placeholder
                     { path: 'ingredients', element: <RawMaterials /> }, // Ingredients = Raw Materials
                     { path: 'product-stock', element: <ProductStock /> },

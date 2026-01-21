@@ -22,8 +22,15 @@ import { Currency } from '@/utils/currency'
  * Translate common inventory adjustment reasons from English to Spanish
  * Handles both seed data and user-generated reasons
  */
-function translateReason(reason: string | null | undefined): string {
+function translateReason(reason: string | null | undefined, quantity?: number): string {
   if (!reason) return ''
+
+  // Collapse sale reasons into a short, localized label.
+  if (/^sold\s+\d+x\s+/i.test(reason)) {
+    if (quantity === 1) return 'vendido'
+    if (typeof quantity === 'number') return 'vendidos'
+    return 'vendido'
+  }
   
   // Common translations mapping (short, concise labels)
   const translations: Record<string, string> = {
@@ -398,7 +405,7 @@ export default function InventoryHistory() {
             else reasonLabel = type.toLowerCase()
           } else {
             // Translate the reason to Spanish
-            reasonLabel = translateReason(reasonLabel)
+            reasonLabel = translateReason(reasonLabel, qty)
           }
 
           return (

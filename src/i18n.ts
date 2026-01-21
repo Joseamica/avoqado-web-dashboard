@@ -120,6 +120,11 @@ import commissionsEs from '@/locales/es/commissions.json'
 import playtelecomEn from '@/locales/en/playtelecom.json'
 import playtelecomEs from '@/locales/es/playtelecom.json'
 import playtelecomFr from '@/locales/fr/playtelecom.json'
+import suppliersEn from '@/locales/en/suppliers.json'
+import suppliersEs from '@/locales/es/suppliers.json'
+import purchaseOrdersEn from '@/locales/en/purchaseOrders.json'
+import purchaseOrdersEs from '@/locales/es/purchaseOrders.json'
+import purchaseOrdersFr from '@/locales/fr/purchaseOrders.json'
 // Lightweight language detector (avoids external dependency)
 const simpleDetector = {
   type: 'languageDetector' as const,
@@ -545,6 +550,23 @@ i18n
   ] as const
 ).forEach(([lng, bundle]) => {
   i18n.addResourceBundle(lng, 'playtelecom', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', suppliersEn],
+    ['es', suppliersEs],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'suppliers', bundle as Record<string, unknown>, true, true)
+})
+;(
+  [
+    ['en', purchaseOrdersEn],
+    ['es', purchaseOrdersEs],
+    ['fr', purchaseOrdersFr],
+  ] as const
+).forEach(([lng, bundle]) => {
+  i18n.addResourceBundle(lng, 'purchaseOrders', bundle as Record<string, unknown>, true, true)
 })
 
 export default i18n

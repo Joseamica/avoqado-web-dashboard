@@ -148,7 +148,7 @@ export default function InventorySummary() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            Stock confirmado en órdenes de compra (en tránsito, aún no recibido físicamente). Próximamente.
+                            Función disponible para Ingredientes (no productos terminados). Los productos terminados no se compran directamente - solo se compran sus ingredientes.
                           </p>
                         </TooltipContent>
                       </Tooltip>

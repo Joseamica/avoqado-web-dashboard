@@ -187,8 +187,8 @@ export default function ProductStock() {
                   status.className.includes('destructive')
                     ? 'text-destructive'
                     : status.className.includes('yellow')
-                    ? 'text-yellow-600 dark:text-yellow-500'
-                    : 'text-green-600 dark:text-green-500'
+                      ? 'text-yellow-600 dark:text-yellow-500'
+                      : 'text-green-600 dark:text-green-500'
                 }`}
               >
                 {row.original.currentStock} {formatUnitWithQuantity(row.original.currentStock, row.original.unit)}
