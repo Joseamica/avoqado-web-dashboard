@@ -30,9 +30,21 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
     return localStorage.getItem('rememberMe') === 'true'
   })
 
+  // Check for URL-based returnTo (Stripe/GitHub pattern) - AuthContext handles this redirect
+  const searchParams = new URLSearchParams(location.search)
+  const hasReturnTo = searchParams.has('returnTo')
+
+  // Fallback to React Router's state.from pattern for protected routes
   const from = (location.state as any)?.from?.pathname || '/'
 
   useEffect(() => {
+    // Skip redirect if returnTo is in URL - AuthContext handles that case
+    // This prevents race condition where UserAuthForm redirects to '/' overriding AuthContext's redirect
+    if (hasReturnTo) {
+      console.log('[LOGIN] ⏩ Skipping redirect - returnTo in URL, AuthContext will handle')
+      return
+    }
+
     // Wait for both authentication AND loading to complete before redirecting
     // This prevents race conditions on slower mobile devices where the redirect
     // would fire before the status query returned the new auth state
@@ -40,11 +52,14 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
       console.log('[LOGIN] ✅ Redirecting to:', from)
       navigate(from, { replace: true })
     }
-  }, [isAuthenticated, isLoading, navigate, from])
+  }, [isAuthenticated, isLoading, navigate, from, hasReturnTo])
 
   // MOBILE FALLBACK: If isLoading stays true for >5s after authentication,
   // force redirect anyway (network timeout, race condition, etc.)
   useEffect(() => {
+    // Skip if returnTo is in URL - AuthContext handles that case
+    if (hasReturnTo) return
+
     if (isAuthenticated && isLoading) {
       console.log('[LOGIN] ⚠️ Authenticated but still loading, setting 5s fallback timeout')
       const timeoutId = setTimeout(() => {
@@ -54,7 +69,7 @@ export function UserAuthForm({ className, ...props }: React.ComponentProps<'form
 
       return () => clearTimeout(timeoutId)
     }
-  }, [isAuthenticated, isLoading, navigate, from])
+  }, [isAuthenticated, isLoading, navigate, from, hasReturnTo])
 
   // Increment error count when login error occurs (triggers shake even for same error message)
   useEffect(() => {

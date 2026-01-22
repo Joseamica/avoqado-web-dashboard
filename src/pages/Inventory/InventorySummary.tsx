@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -42,7 +41,7 @@ interface InventoryProduct {
 }
 
 export default function InventorySummary() {
-  const { t } = useTranslation()
+  const { t: _t } = useTranslation() // Prefixed with _ to mark as intentionally unused (will be used for i18n later)
   const navigate = useNavigate()
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
@@ -575,7 +574,7 @@ export default function InventorySummary() {
               setPriceFilter(null)
               setIsSearchOpen(false)
             }}
-            className="h-8 gap-1.5 rounded-full bg-background dark:bg-white dark:text-black dark:hover:bg-gray-100 dark:hover:text-black"
+            className="h-8 gap-1.5 rounded-full"
           >
             <X className="h-3.5 w-3.5" />
             Borrar filtros
@@ -635,9 +634,11 @@ function StockEditPopover({
   })
 
   // Extract suppliers array from response (API returns { data: [...] })
-  const suppliers: Supplier[] = Array.isArray(suppliersResponse)
-    ? suppliersResponse
-    : (suppliersResponse?.data || [])
+  // Memoized to prevent dependency changes on every render
+  const suppliers: Supplier[] = useMemo(
+    () => Array.isArray(suppliersResponse) ? suppliersResponse : (suppliersResponse?.data || []),
+    [suppliersResponse]
+  )
 
   // Convert suppliers to SearchableSelect options
   const supplierOptions = useMemo(

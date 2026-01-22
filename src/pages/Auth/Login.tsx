@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast'
 import { useGoogleOneTap } from '@/hooks/useGoogleOneTap'
 import { useAuth } from '@/context/AuthContext'
 import { liveDemoAutoLogin, isLiveDemoEnvironment } from '@/services/liveDemo.service'
-import { useNavigate } from 'react-router-dom'
 
 const Login: React.FC = () => {
   const { t } = useTranslation('auth')
@@ -21,7 +20,6 @@ const Login: React.FC = () => {
   const [searchParams] = useSearchParams()
   const [isRedirecting, setIsRedirecting] = useState(false)
   const { loginWithOneTap } = useAuth()
-  const navigate = useNavigate()
 
   useEffect(() => {
     clearAllChatStorage()
@@ -55,16 +53,11 @@ const Login: React.FC = () => {
       })
     }
 
-    // Check if there's a pending invitation URL after logout
-    const pendingInvitationUrl = localStorage.getItem('pendingInvitationUrl')
-    if (pendingInvitationUrl) {
-      setIsRedirecting(true)
-      // Clear the stored URL
-      localStorage.removeItem('pendingInvitationUrl')
-      // Redirect to the invitation page
-      window.location.href = pendingInvitationUrl
-    }
-  }, [searchParams, toast, t, navigate])
+    // Note: Invitation redirect is now handled via URL params (Stripe/GitHub pattern)
+    // After logout with returnTo, user lands on /login?returnTo=/invite/xxx
+    // After successful login, AuthContext reads returnTo and redirects
+    // This replaces the old localStorage/sessionStorage approach
+  }, [searchParams, toast, t])
 
   // Initialize Google One Tap - DISABLED: bubble was intrusive
   useGoogleOneTap({
