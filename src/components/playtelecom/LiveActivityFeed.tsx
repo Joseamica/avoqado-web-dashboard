@@ -9,12 +9,13 @@
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { DollarSign, BadgeCheck, MapPinOff, AlertTriangle, Clock } from 'lucide-react'
+import { DollarSign, BadgeCheck, LogOut, MapPinOff, AlertTriangle, Clock } from 'lucide-react'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { getDateFnsLocale } from '@/utils/i18n-locale'
 
-export type ActivityType = 'sale' | 'checkin' | 'gps_error' | 'alert' | 'other'
+export type ActivityType = 'sale' | 'checkin' | 'checkout' | 'gps_error' | 'alert' | 'other'
 export type ActivitySeverity = 'normal' | 'warning' | 'error'
 
 export interface ActivityItem {
@@ -32,6 +33,8 @@ export interface LiveActivityFeedProps {
   maxHeight?: string // Tailwind height class (e.g., "h-64")
   showTimestamps?: boolean
   onViewAll?: () => void
+  hideHeader?: boolean
+  viewAllLabel?: string
 }
 
 /**
@@ -51,7 +54,12 @@ export function LiveActivityFeed({
   maxHeight = 'h-80',
   showTimestamps = false,
   onViewAll,
+  hideHeader = false,
+  viewAllLabel,
 }: LiveActivityFeedProps) {
+  const { t, i18n } = useTranslation('playtelecom')
+  const locale = getDateFnsLocale(i18n.language)
+  const resolvedViewAllLabel = viewAllLabel ?? t('commandCenter.activity.viewMore', { defaultValue: 'Ver mas' })
   // Icon and color mapping
   const getActivityStyle = (
     type: ActivityType,
@@ -60,16 +68,16 @@ export function LiveActivityFeed({
     if (severity === 'error') {
       return {
         icon: MapPinOff,
-        bgColor: 'bg-red-100',
-        textColor: 'text-red-600',
+        bgColor: 'bg-red-500/10',
+        textColor: 'text-red-600 dark:text-red-400',
       }
     }
 
     if (severity === 'warning') {
       return {
         icon: AlertTriangle,
-        bgColor: 'bg-orange-100',
-        textColor: 'text-orange-600',
+        bgColor: 'bg-orange-500/10',
+        textColor: 'text-orange-600 dark:text-orange-400',
       }
     }
 
@@ -77,32 +85,38 @@ export function LiveActivityFeed({
       case 'sale':
         return {
           icon: DollarSign,
-          bgColor: 'bg-green-100',
-          textColor: 'text-green-600',
+          bgColor: 'bg-green-500/10',
+          textColor: 'text-green-600 dark:text-green-400',
         }
       case 'checkin':
         return {
           icon: BadgeCheck,
-          bgColor: 'bg-blue-100',
-          textColor: 'text-blue-600',
+          bgColor: 'bg-blue-500/10',
+          textColor: 'text-blue-600 dark:text-blue-400',
+        }
+      case 'checkout':
+        return {
+          icon: LogOut,
+          bgColor: 'bg-purple-500/10',
+          textColor: 'text-purple-600 dark:text-purple-400',
         }
       case 'gps_error':
         return {
           icon: MapPinOff,
-          bgColor: 'bg-red-100',
-          textColor: 'text-red-600',
+          bgColor: 'bg-red-500/10',
+          textColor: 'text-red-600 dark:text-red-400',
         }
       case 'alert':
         return {
           icon: AlertTriangle,
-          bgColor: 'bg-yellow-100',
-          textColor: 'text-yellow-600',
+          bgColor: 'bg-yellow-500/10',
+          textColor: 'text-yellow-600 dark:text-yellow-400',
         }
       default:
         return {
           icon: Clock,
-          bgColor: 'bg-gray-100',
-          textColor: 'text-gray-600',
+          bgColor: 'bg-muted',
+          textColor: 'text-muted-foreground',
         }
     }
   }
@@ -111,31 +125,34 @@ export function LiveActivityFeed({
     return (
       <div className={cn('flex flex-col items-center justify-center p-8 text-center', className)}>
         <Clock className="w-8 h-8 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">No hay actividad reciente</p>
+        <p className="text-sm text-muted-foreground">
+          {t('commandCenter.activity.empty', { defaultValue: 'No hay actividad reciente' })}
+        </p>
       </div>
     )
   }
 
   return (
     <div className={cn('flex flex-col', className)}>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-          </span>
-          Actividad
-        </h3>
-        {onViewAll && (
-          <button
-            onClick={onViewAll}
-            className="text-[10px] text-primary font-bold hover:underline"
-          >
-            Ver Todo
-          </button>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            {t('commandCenter.activity.title', { defaultValue: 'Actividad' })}
+          </h3>
+          {onViewAll && (
+            <button
+              onClick={onViewAll}
+              className="text-[10px] text-primary font-bold hover:underline"
+            >
+              {resolvedViewAllLabel}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Activity list */}
       <div className={cn('overflow-y-auto space-y-1', maxHeight)}>
@@ -149,8 +166,8 @@ export function LiveActivityFeed({
               className={cn(
                 'flex gap-3 p-2.5 rounded-xl transition-all duration-300',
                 'hover:bg-muted/50',
-                activity.severity === 'error' && 'bg-red-50/50 border border-red-100',
-                activity.severity === 'warning' && 'bg-orange-50/50 border border-orange-100',
+                activity.severity === 'error' && 'bg-red-500/10 border border-red-500/20',
+                activity.severity === 'warning' && 'bg-orange-500/10 border border-orange-500/20',
                 !activity.severity && 'hover:bg-muted/30'
               )}
               style={{
@@ -173,7 +190,7 @@ export function LiveActivityFeed({
                 <p
                   className={cn(
                     'text-xs font-bold truncate',
-                    activity.severity === 'error' ? 'text-red-600' : 'text-foreground'
+                    activity.severity === 'error' ? 'text-red-600 dark:text-red-400' : 'text-foreground'
                   )}
                 >
                   {activity.title}
@@ -183,7 +200,7 @@ export function LiveActivityFeed({
                 </p>
                 {showTimestamps && (
                   <p className="text-[9px] text-muted-foreground mt-0.5">
-                    {format(activity.timestamp, 'HH:mm:ss', { locale: es })}
+                    {format(activity.timestamp, 'HH:mm:ss', { locale })}
                   </p>
                 )}
               </div>

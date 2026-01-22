@@ -121,13 +121,10 @@ export function GaugeChart({
           />
         </svg>
 
-        {/* Center text */}
+        {/* Center text - Only percentage */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className={cn('font-black tracking-tight', config.fontSize, colorClasses[getColor].text)}>
-            {Math.round(value)}
-          </div>
-          <div className="text-muted-foreground text-sm font-medium">
-            / {max}
+            {Math.round(percentage)}%
           </div>
         </div>
       </div>
@@ -135,16 +132,6 @@ export function GaugeChart({
       {/* Label */}
       <div className={cn('mt-3 font-semibold text-center text-muted-foreground uppercase tracking-wide', config.labelSize)}>
         {label}
-      </div>
-
-      {/* Percentage badge */}
-      <div className={cn(
-        'mt-2 px-3 py-1 rounded-full text-xs font-bold',
-        'bg-gradient-to-br',
-        colorClasses[getColor].bg,
-        colorClasses[getColor].text,
-      )}>
-        {Math.round(percentage)}%
       </div>
     </div>
   )

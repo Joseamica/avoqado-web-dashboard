@@ -938,6 +938,57 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
     },
   },
 
+  SALES_REPORT: {
+    code: 'SALES_REPORT',
+    name: 'Reporte de Ventas',
+    description: 'Reporte de ventas con evidencias de registro (proof of sale) y validación de transacciones',
+    category: 'analytics',
+    source: 'module_specific',
+
+    component: {
+      path: '@/pages/playtelecom/Sales/SalesReport',
+    },
+
+    routes: [
+      { path: 'sales-report', element: 'SalesReport' },
+    ],
+
+    configSchema: {
+      type: 'object',
+      properties: {
+        requireProofOfSale: {
+          type: 'boolean',
+          default: true,
+          title: 'Requerir evidencia de venta',
+          description: 'Obligar a adjuntar foto de evidencia en cada venta',
+        },
+        autoReconcile: {
+          type: 'boolean',
+          default: false,
+          title: 'Conciliación automática',
+          description: 'Marcar ventas como conciliadas automáticamente al validar ICCID',
+        },
+        showRevenueCharts: {
+          type: 'boolean',
+          default: true,
+          title: 'Mostrar gráficas de ingresos',
+          description: 'Mostrar tendencias de ingresos y volumen',
+        },
+        exportFormats: {
+          type: 'array',
+          default: ['csv', 'xlsx'],
+          title: 'Formatos de exportación',
+          description: 'Formatos disponibles para exportar reportes',
+        },
+      },
+    },
+
+    defaultNavItem: {
+      label: 'Reporte de Ventas',
+      icon: 'Receipt',
+    },
+  },
+
   // ============================================
   // MODULE SPECIFIC: JEWELRY
   // Features for jewelry businesses

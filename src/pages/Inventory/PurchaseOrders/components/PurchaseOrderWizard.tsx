@@ -172,7 +172,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
 
     if (open && sourceData) {
       // console.log('🔄 Resetting form with sourceData:', sourceData)
-      const formValues = {
+      const formValues: PurchaseOrderFormValues = {
         supplierId: sourceData.supplierId || '',
         orderDate: isEditMode
           ? (sourceData.orderDate ? new Date(sourceData.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])

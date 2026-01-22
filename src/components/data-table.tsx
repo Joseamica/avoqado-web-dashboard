@@ -93,6 +93,12 @@ function DataTable<TData>({
   // Search state
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Internal pagination state (used when pagination/setPagination not provided)
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 20,
+  })
+
   // Filter data based on search
   const filteredData = useMemo(() => {
     if (!enableSearch || !searchTerm || !onSearch) {
@@ -101,22 +107,20 @@ function DataTable<TData>({
     return onSearch(searchTerm, data || [])
   }, [enableSearch, searchTerm, onSearch, data])
 
-  // Default pagination state if not provided
-  const defaultPagination = {
-    pageIndex: 0,
-    pageSize: 20,
-  }
+  // Use external pagination if provided, otherwise use internal state
+  const currentPagination = pagination || internalPagination
+  const currentSetPagination = setPagination || setInternalPagination
 
   const table = useReactTable({
     data: filteredData,
     columns,
     state: {
-      pagination: pagination || defaultPagination,
+      pagination: currentPagination,
       rowSelection,
       columnVisibility,
       columnSizing,
     },
-    onPaginationChange: setPagination,
+    onPaginationChange: currentSetPagination,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
@@ -160,7 +164,7 @@ function DataTable<TData>({
   }, [tableId, enableColumnResizing, columnSizing])
 
   if (isLoading) {
-    const skeletonRows = pagination?.pageSize || defaultPagination.pageSize
+    const skeletonRows = currentPagination.pageSize
     return (
       <>
         {/* Toolbar Skeleton */}

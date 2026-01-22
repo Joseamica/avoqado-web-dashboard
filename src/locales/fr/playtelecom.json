@@ -23,7 +23,71 @@
     "activityFeed": "Activité Récente",
     "last7Days": "7 derniers jours",
     "insights": "Alertes",
-    "requiresAttention": "Nécessitent attention"
+    "requiresAttention": "Nécessitent attention",
+    "activity": {
+      "title": "Activité",
+      "empty": "Aucune activité récente",
+      "viewMore": "Voir plus",
+      "unknownVenue": "Aucun magasin",
+      "unknownStaff": "Personnel inconnu",
+      "filters": {
+        "date": "Date",
+        "venue": "Magasin",
+        "promoter": "Promoteur",
+        "type": "Type",
+        "clear": "Effacer les filtres",
+        "selectedCount": "{{count}} sélectionné",
+        "selectedCount_plural": "{{count}} sélectionnés",
+        "dateTitle": "Filtrer par date",
+        "venueTitle": "Filtrer par magasin",
+        "promoterTitle": "Filtrer par promoteur",
+        "typeTitle": "Filtrer par type",
+        "searchVenue": "Rechercher un magasin...",
+        "searchPromoter": "Rechercher un promoteur...",
+        "last": "Derniers {{count}} {{unit}}",
+        "before": "Avant {{value}}",
+        "after": "Après {{value}}",
+        "between": "{{start}} - {{end}}",
+        "on": "Le {{value}}",
+        "and": "et",
+        "apply": "Appliquer",
+        "clearAction": "Effacer",
+        "timezone": "Fuseau horaire",
+        "dateOperators": {
+          "last": "est dans les derniers",
+          "before": "est avant",
+          "after": "est après",
+          "between": "est entre",
+          "on": "est le"
+        },
+        "units": {
+          "hours": "heure",
+          "hours_plural": "heures",
+          "days": "jour",
+          "days_plural": "jours",
+          "weeks": "semaine",
+          "weeks_plural": "semaines",
+          "months": "mois",
+          "months_plural": "mois"
+        }
+      },
+      "table": {
+        "date": "Date",
+        "type": "Type",
+        "venue": "Magasin",
+        "promoter": "Promoteur",
+        "detail": "Détail",
+        "empty": "Aucune activité pour les filtres sélectionnés"
+      },
+      "types": {
+        "sale": "Vente",
+        "checkin": "Check-in",
+        "checkout": "Check-out",
+        "gps_error": "GPS",
+        "alert": "Alerte",
+        "other": "Autre"
+      }
+    }
   },
   "stock": {
     "title": "Contrôle de Stock",

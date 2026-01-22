@@ -21,6 +21,9 @@ export interface TpvSettings {
   // Kiosk Mode
   kioskModeEnabled: boolean      // Allow terminal to enter self-service kiosk mode
   kioskDefaultMerchantId: string | null  // Pre-selected merchant for kiosk payments (skip merchant selection)
+  // Home screen button visibility
+  showQuickPayment: boolean      // Show "Pago rápido" button on home screen
+  showOrderManagement: boolean   // Show "Órdenes" button on home screen
 }
 
 /**
@@ -43,6 +46,9 @@ const DEFAULT_TPV_SETTINGS: TpvSettings = {
   // Kiosk Mode disabled by default
   kioskModeEnabled: false,
   kioskDefaultMerchantId: null,
+  // Home screen buttons enabled by default
+  showQuickPayment: true,
+  showOrderManagement: true,
 }
 
 /**
