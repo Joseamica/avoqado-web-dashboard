@@ -614,7 +614,7 @@ export default function CommandCenter() {
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartPrimary} stopOpacity={0.7} />
-                    <stop offset="95%" stopColor={chartPrimary} stopOpacity={0.05} />
+                    <stop offset="95%" stopColor={chartPrimary} stopOpacity={0.15} />
                   </linearGradient>
                   <filter id="glow">
                     <feGaussianBlur stdDeviation="2" result="coloredBlur" />

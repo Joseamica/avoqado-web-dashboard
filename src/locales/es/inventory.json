@@ -1,6 +1,7 @@
 {
   "title": "Gestión de Inventario",
   "subtitle": "Administra materias primas, recetas y niveles de stock",
+  "save": "Guardar",
 
   "badge": {
     "status": {
@@ -149,21 +150,32 @@
       "usedInRecipes": "Esta Ingrediente está siendo usada en {{count}} receta(s). Por favor elimínala de todas las recetas antes de eliminarla.",
       "activated": "Ingrediente activada exitosamente",
       "deactivated": "Ingrediente desactivada exitosamente",
-      "stockAdjusted": "Stock ajustado exitosamente"
+      "stockAdjusted": "Stock ajustado exitosamente",
+      "skuGenerationFailed": "No se pudo generar un SKU único. Por favor intenta de nuevo o ingrésalo manualmente."
     },
     "notFound": "No se encontraron materias primas",
+    "selectCategory": "Seleccionar categoría",
+    "searchCategory": "Buscar categoría...",
+    "noCategoryFound": "No se encontró ninguna categoría",
+    "selectUnit": "Seleccionar unidad",
+    "searchUnit": "Buscar unidad...",
+    "noUnitFound": "No se encontró ninguna unidad",
     "quickCreate": "Crear \"{{name}}\"",
     "quickCreateTitle": "Creación Rápida de Ingrediente",
     "quickCreateDesc": "Agrega la información mínima requerida. Puedes editar los detalles después.",
     "quickCreateButton": "Crear y Seleccionar",
     "usage": {
-      "column": "Uso",
+      "column": "Uso en receta",
       "title": "Uso en Recetas",
       "usedIn": "Usada en {{count}} receta(s)",
       "inRecipes": "En {{count}} receta(s)",
       "notUsed": "No usada",
-      "noRecipes": "Esta Ingrediente no está siendo usada en ninguna receta aún."
+      "noRecipes": "Este ingrediente no está siendo usado en ninguna receta aún.",
+      "noRecipesHint": "Puedes agregar este ingrediente a la receta de un producto desde la sección de Recetas.",
+      "goToRecipes": "Ir a Recetas"
     },
+    "autoGenerateSku": "Generar",
+    "autoGenerateSkuTooltip": "Generar un SKU único automáticamente",
     "fieldHelp": {
       "sku": "Unidad de Mantenimiento de Inventario - Un código único para identificar y rastrear este ingrediente en tu sistema. Ejemplo: TOM-001, CARNE-500G",
       "unit": "Unidad de medida para este ingrediente. Define cómo rastrearás el stock, harás compras y calcularás costos. Elige la unidad que tenga más sentido para este ingrediente.",
@@ -921,7 +933,9 @@
     "largeAdjustmentWarning": "Este es un ajuste grande ({{percentage}}% del stock actual). Por favor verifica que la cantidad sea correcta.",
     "cannotReduceBelowZero": "No se puede reducir el stock por debajo de 0. Stock actual es {{amount}} {{unit}}. Ajuste mínimo: {{minimum}}",
     "negativeStockWarning": "Este ajuste resultará en stock negativo. El stock no puede ser negativo.",
-    "optionalPriceFloor": "Precio mínimo opcional - el precio sugerido no será menor a este valor"
+    "optionalPriceFloor": "Precio mínimo opcional - el precio sugerido no será menor a este valor",
+    "invalidStockLevels": "Niveles de stock inválidos",
+    "minimumStockMustBeLessOrEqualToReorderPoint": "El stock mínimo debe ser menor o igual al punto de reorden. El punto de reorden es cuando se activa una orden de compra, así que debe ser mayor que el stock mínimo para considerar el tiempo de entrega."
   },
 
   "lowStockThreshold": {
@@ -940,6 +954,35 @@
     "manualDescription": "Establece manualmente los precios de los productos",
     "autoMarkupDescription": "Calcula el precio basado en costo x porcentaje de margen",
     "autoTargetMarginDescription": "Calcula el precio para lograr el porcentaje objetivo de costo de alimentos"
+  },
+
+  "recipeWizard": {
+    "title": "Crear Receta",
+    "stepProgress": "Paso {{current}} de {{total}}",
+    "createRecipe": "Crear Receta",
+    "createError": "Error al crear la receta",
+    "step1": {
+      "title": "Seleccionar Producto",
+      "header": "Selecciona un Producto",
+      "description": "Elige un producto de tu menú que aún no tenga receta. Agregarás ingredientes y calcularás costos en los siguientes pasos.",
+      "searchPlaceholder": "Buscar productos por nombre o categoría...",
+      "allHaveRecipes": "¡Todos los productos tienen receta!",
+      "allHaveRecipesDesc": "Todos tus productos ya tienen recetas configuradas. Puedes editarlas desde la tabla principal."
+    },
+    "step2": {
+      "title": "Agregar Ingredientes",
+      "noIngredients": "Aún no has agregado ingredientes. Haz clic en \"Agregar Ingrediente\" para comenzar.",
+      "notesPlaceholder": "Instrucciones de preparación, notas de cocina, etc.",
+      "costSummary": "Resumen de Costos"
+    },
+    "step3": {
+      "title": "Revisar y Confirmar",
+      "header": "¡Listo para Crear!",
+      "description": "Revisa los detalles de tu receta antes de crearla. Podrás editarla después si necesitas hacer cambios.",
+      "marginPerUnit": "Margen por Unidad",
+      "marginPercentage": "Margen de Utilidad %",
+      "highFoodCostWarning": "¡Atención! El costo de alimentos es superior al 40%. Considera revisar tus precios o ingredientes para mejorar la rentabilidad."
+    }
   },
 
   "modifierAnalytics": {

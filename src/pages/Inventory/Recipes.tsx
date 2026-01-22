@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { type Recipe, productInventoryApi } from '@/services/inventory.service'
 import { Currency } from '@/utils/currency'
 import { RecipeDialog } from './components/RecipeDialog'
+import { CreateRecipeWizard } from './components/CreateRecipeWizard'
 import { YieldStatusHoverCard } from './components/YieldStatusHoverCard'
 import { SimpleConfirmDialog } from './components/SimpleConfirmDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -49,6 +50,7 @@ export default function Recipes() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductWithRecipe | null>(null)
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -364,20 +366,28 @@ export default function Recipes() {
             />
             <p className="text-sm text-muted-foreground">{t('recipes.subtitle')}</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              queryClient.invalidateQueries({
-                queryKey: ['products-with-recipes'],
-                refetchType: 'active',
-              })
-            }}
-            disabled={isLoading}
-          >
-            <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {tCommon('refresh')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <PermissionGate permission="inventory:create">
+              <Button size="sm" onClick={() => setWizardOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t('recipes.add')}
+              </Button>
+            </PermissionGate>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                queryClient.invalidateQueries({
+                  queryKey: ['products-with-recipes'],
+                  refetchType: 'active',
+                })
+              }}
+              disabled={isLoading}
+            >
+              <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {tCommon('refresh')}
+            </Button>
+          </div>
         </div>
 
         {/* Alert for products without recipes */}
@@ -451,6 +461,9 @@ export default function Recipes() {
         onConfirm={() => switchInventoryMethodMutation.mutate()}
         isLoading={switchInventoryMethodMutation.isPending}
       />
+
+      {/* Create Recipe Wizard */}
+      <CreateRecipeWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   )
 }

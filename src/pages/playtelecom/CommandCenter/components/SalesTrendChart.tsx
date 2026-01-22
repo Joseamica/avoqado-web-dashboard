@@ -314,8 +314,8 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({
           >
             <defs>
               <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.05} />
+                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.5} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.15} />
               </linearGradient>
             </defs>
             <CartesianGrid

@@ -37,9 +37,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Home',
     },
 
-    routes: [
-      { path: '', element: 'Home', index: true },
-    ],
+    routes: [{ path: '', element: 'Home', index: true }],
 
     configSchema: {
       type: 'object',
@@ -348,9 +346,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/AvailableBalance/AvailableBalance',
     },
 
-    routes: [
-      { path: 'balance', element: 'AvailableBalance' },
-    ],
+    routes: [{ path: 'balance', element: 'AvailableBalance' }],
 
     configSchema: {
       type: 'object',
@@ -424,9 +420,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Analytics/Analytics',
     },
 
-    routes: [
-      { path: 'analytics', element: 'Analytics' },
-    ],
+    routes: [{ path: 'analytics', element: 'Analytics' }],
 
     configSchema: {
       type: 'object',
@@ -566,9 +560,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Loyalty/LoyaltySettings',
     },
 
-    routes: [
-      { path: 'loyalty', element: 'LoyaltySettings' },
-    ],
+    routes: [{ path: 'loyalty', element: 'LoyaltySettings' }],
 
     configSchema: {
       type: 'object',
@@ -613,9 +605,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/Review/Reviews',
     },
 
-    routes: [
-      { path: 'reviews', element: 'Reviews' },
-    ],
+    routes: [{ path: 'reviews', element: 'Reviews' }],
 
     configSchema: {
       type: 'object',
@@ -704,9 +694,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/playtelecom/CommandCenter/CommandCenter',
     },
 
-    routes: [
-      { path: '', element: 'CommandCenter', index: true },
-    ],
+    routes: [{ path: '', element: 'CommandCenter', index: true }],
 
     configSchema: {
       type: 'object',
@@ -904,9 +892,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/playtelecom/Managers/ManagersDashboard',
     },
 
-    routes: [
-      { path: 'managers', element: 'ManagersDashboard', roles: [StaffRole.ADMIN, StaffRole.OWNER] },
-    ],
+    routes: [{ path: 'managers', element: 'ManagersDashboard', roles: [StaffRole.ADMIN, StaffRole.OWNER] }],
 
     configSchema: {
       type: 'object',
@@ -949,9 +935,7 @@ export const FEATURE_REGISTRY: Record<string, FeatureDefinition> = {
       path: '@/pages/playtelecom/Sales/SalesReport',
     },
 
-    routes: [
-      { path: 'sales-report', element: 'SalesReport' },
-    ],
+    routes: [{ path: 'sales', element: 'SalesReport' }],
 
     configSchema: {
       type: 'object',

@@ -1,6 +1,7 @@
 {
   "title": "Inventory Management",
   "subtitle": "Manage raw materials, recipes, and stock levels",
+  "save": "Save",
 
   "badge": {
     "status": {
@@ -149,21 +150,32 @@
       "usedInRecipes": "This raw material is used in {{count}} recipe(s). Please remove it from all recipes before deleting.",
       "activated": "Raw material activated successfully",
       "deactivated": "Raw material deactivated successfully",
-      "stockAdjusted": "Stock adjusted successfully"
+      "stockAdjusted": "Stock adjusted successfully",
+      "skuGenerationFailed": "Could not generate unique SKU. Please try again or enter manually."
     },
     "notFound": "No raw materials found",
+    "selectCategory": "Select category",
+    "searchCategory": "Search category...",
+    "noCategoryFound": "No category found",
+    "selectUnit": "Select unit",
+    "searchUnit": "Search unit...",
+    "noUnitFound": "No unit found",
     "quickCreate": "Create \"{{name}}\"",
     "quickCreateTitle": "Quick Create Raw Material",
     "quickCreateDesc": "Add minimum required info. You can edit details later.",
     "quickCreateButton": "Create & Select",
     "usage": {
-      "column": "Usage",
+      "column": "Recipe usage",
       "title": "Recipe Usage",
       "usedIn": "Used in {{count}} recipe(s)",
       "inRecipes": "In {{count}} recipe(s)",
       "notUsed": "Not used",
-      "noRecipes": "This raw material is not used in any recipes yet."
+      "noRecipes": "This ingredient is not being used in any recipe yet.",
+      "noRecipesHint": "You can add this ingredient to a product's recipe from the Recipes section.",
+      "goToRecipes": "Go to Recipes"
     },
+    "autoGenerateSku": "Generate",
+    "autoGenerateSkuTooltip": "Auto-generate a unique SKU",
     "fieldHelp": {
       "sku": "Stock Keeping Unit - A unique code to identify and track this ingredient in your inventory system. Example: TOM-001, BEEF-500G",
       "unit": "Unit of measurement for this ingredient. This defines how you'll track stock, make purchases, and calculate costs. Choose the unit that makes most sense for this ingredient.",
@@ -921,7 +933,9 @@
     "largeAdjustmentWarning": "This is a large adjustment ({{percentage}}% of current stock). Please verify the amount is correct.",
     "cannotReduceBelowZero": "Cannot reduce stock below 0. Current stock is {{amount}} {{unit}}. Minimum adjustment: {{minimum}}",
     "negativeStockWarning": "This adjustment will result in negative stock. Stock cannot be negative.",
-    "optionalPriceFloor": "Optional price floor - suggested price will not go below this value"
+    "optionalPriceFloor": "Optional price floor - suggested price will not go below this value",
+    "invalidStockLevels": "Invalid stock levels",
+    "minimumStockMustBeLessOrEqualToReorderPoint": "Minimum stock must be less than or equal to reorder point. The reorder point is when a purchase order is triggered, so it should be higher than minimum stock to account for delivery time."
   },
 
   "lowStockThreshold": {
@@ -940,6 +954,35 @@
     "manualDescription": "Manually set product prices",
     "autoMarkupDescription": "Calculate price based on cost x markup percentage",
     "autoTargetMarginDescription": "Calculate price to achieve target food cost percentage"
+  },
+
+  "recipeWizard": {
+    "title": "Create Recipe",
+    "stepProgress": "Step {{current}} of {{total}}",
+    "createRecipe": "Create Recipe",
+    "createError": "Failed to create recipe",
+    "step1": {
+      "title": "Select Product",
+      "header": "Select a Product",
+      "description": "Choose a product from your menu that doesn't have a recipe yet. You'll add ingredients and calculate costs in the following steps.",
+      "searchPlaceholder": "Search products by name or category...",
+      "allHaveRecipes": "All products have recipes!",
+      "allHaveRecipesDesc": "All your products already have recipes configured. You can edit them from the main table."
+    },
+    "step2": {
+      "title": "Add Ingredients",
+      "noIngredients": "You haven't added any ingredients yet. Click \"Add Ingredient\" to get started.",
+      "notesPlaceholder": "Preparation instructions, cooking notes, etc.",
+      "costSummary": "Cost Summary"
+    },
+    "step3": {
+      "title": "Review & Confirm",
+      "header": "Ready to Create!",
+      "description": "Review your recipe details before creating it. You can edit it later if you need to make changes.",
+      "marginPerUnit": "Margin per Unit",
+      "marginPercentage": "Profit Margin %",
+      "highFoodCostWarning": "Warning! Food cost is above 40%. Consider reviewing your prices or ingredients to improve profitability."
+    }
   },
 
   "modifierAnalytics": {

@@ -60,11 +60,11 @@ export function useUnitTranslation() {
    * Format a unit with quantity, handling pluralization
    * @param quantity - The quantity value
    * @param unitEnum - The unit enum value (e.g., 'KILOGRAM', 'LITER')
-   * @param abbreviated - Whether to use abbreviated form (e.g., "kg" instead of "kilogramo")
-   * @returns Formatted string like "kilogramos" or "kgs" (if abbreviated)
+   * @param abbreviated - Whether to use abbreviated form (e.g., "kg" instead of "kilogramo"). Defaults to true for compact display.
+   * @returns Formatted string like "kgs" (abbreviated, default) or "kilogramos" (full name)
    */
   const formatUnitWithQuantity = useCallback(
-    (quantity: number, unitEnum: string, abbreviated: boolean = false): string => {
+    (quantity: number, unitEnum: string, abbreviated: boolean = true): string => {
       if (!unitEnum) return ''
 
       const isPlural = quantity !== 1

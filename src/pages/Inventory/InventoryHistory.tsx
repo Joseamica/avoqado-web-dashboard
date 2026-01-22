@@ -34,33 +34,49 @@ function translateReason(reason: string | null | undefined, quantity?: number): 
   
   // Common translations mapping (short, concise labels)
   const translations: Record<string, string> = {
-    // Seed data
+    // Seed data / Initial stock
     'Stock inicial - Seed data': 'stock inicial',
     'Stock inicial - Demo venue': 'stock inicial',
     'Stock inicial': 'stock inicial',
+    'Initial stock': 'stock inicial',
+    'initial stock': 'stock inicial',
 
     // User-generated reasons (common patterns)
     'Stock Received': 'recibido',
     'Damaged Goods': 'dañado',
     'Lost Inventory': 'pérdida',
+    'Theft / Stolen': 'robo',
     'Manual adjustment from Inventory Summary': 'ajuste manual',
+    'Physical Count': 'reconteo',
     'adjustment': 'ajuste',
     'ADJUSTMENT': 'ajuste',
     'Adjustment': 'ajuste',
 
     // Movement types
     'PURCHASE': 'recibido',
+    'RECEIVED': 'recibido',
     'COUNT': 'reconteo',
     'LOSS': 'pérdida',
     'USAGE': 'uso',
+    'SALE': 'venta',
+    'RETURN': 'devolución',
+    'TRANSFER': 'transferencia',
+    'TRANSFER_IN': 'transferencia',
+    'TRANSFER_OUT': 'transferencia',
+    'WASTE': 'merma',
+    'SPOILAGE': 'desperdicio',
 
     // Other common reasons
+    'Customer Return': 'devolución',
+    'Supplier Return': 'devolución',
+    'Returned to supplier': 'devolución',
+    'Return to supplier': 'devolución',
     'theft': 'robo',
     'spoilage': 'desperdicio',
     'expired': 'expirado',
     'damaged': 'dañado',
     'lost': 'perdido',
-    'returned': 'devuelto',
+    'returned': 'devolución',
   }
   
   // Check for exact match first (case-sensitive for proper nouns)
@@ -77,6 +93,25 @@ function translateReason(reason: string | null | undefined, quantity?: number): 
   
   // Return original if no translation found
   return reason
+}
+
+const movementTypeLabel = (type: string) => {
+  const map: Record<string, string> = {
+    PURCHASE: 'Recibido',
+    RECEIVED: 'Recibido',
+    COUNT: 'Reconteo',
+    LOSS: 'Pérdida',
+    USAGE: 'Uso',
+    ADJUSTMENT: 'Ajuste',
+    RETURN: 'Devolución',
+    SALE: 'Venta',
+    TRANSFER: 'Transferencia',
+    TRANSFER_IN: 'Transferencia',
+    TRANSFER_OUT: 'Transferencia',
+    WASTE: 'Merma',
+    SPOILAGE: 'Desperdicio',
+  }
+  return map[type] || type
 }
 
 export default function InventoryHistory() {
@@ -120,7 +155,7 @@ export default function InventoryHistory() {
     const uniqueTypes = [...new Set(movements.map((m: GlobalInventoryMovement) => m.type))]
     return uniqueTypes.map(type => ({
       value: type as string,
-      label: type === 'PURCHASE' ? 'Recibido' : type === 'COUNT' ? 'Reconteo' : type === 'LOSS' ? 'Pérdida' : type === 'USAGE' ? 'Uso' : type === 'ADJUSTMENT' ? 'Ajuste' : type as string,
+      label: movementTypeLabel(type as string),
     }))
   }, [movements])
 
@@ -216,21 +251,26 @@ export default function InventoryHistory() {
         }
       }
 
-      // Total cost filter
+      // Total cost filter - only applies to PURCHASE/RETURN movements
       if (totalCostFilter) {
-        const cost = movement.cost || 0
+        const showCostTypes = ['PURCHASE', 'RETURN']
+        if (!showCostTypes.includes(movement.type)) {
+          return false // Exclude non-purchase movements when filtering by cost
+        }
+        const unitCost = movement.unitCost || movement.cost || 0
+        const totalCost = movement.totalCost || (Math.abs(movement.quantity) * unitCost) || 0
         switch (totalCostFilter.operator) {
           case 'gt':
-            if (cost <= (totalCostFilter.value || 0)) return false
+            if (totalCost <= (totalCostFilter.value || 0)) return false
             break
           case 'lt':
-            if (cost >= (totalCostFilter.value || 0)) return false
+            if (totalCost >= (totalCostFilter.value || 0)) return false
             break
           case 'eq':
-            if (cost !== (totalCostFilter.value || 0)) return false
+            if (totalCost !== (totalCostFilter.value || 0)) return false
             break
           case 'between':
-            if (cost < (totalCostFilter.value || 0) || cost > (totalCostFilter.value2 || 0)) return false
+            if (totalCost < (totalCostFilter.value || 0) || totalCost > (totalCostFilter.value2 || 0)) return false
             break
         }
       }
@@ -336,8 +376,8 @@ export default function InventoryHistory() {
         accessorKey: 'createdAt',
         header: t('history.date', { defaultValue: 'Fecha' }),
         cell: ({ row }) => (
-          <span className="font-semibold underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
-           {format(new Date(row.original.createdAt), 'dd/MM/yy, HH:mm')}
+          <span className="font-semibold">
+            {format(new Date(row.original.createdAt), 'dd/MM/yy, HH:mm')}
           </span>
         ),
       },
@@ -368,8 +408,20 @@ export default function InventoryHistory() {
         accessorKey: 'totalCost',
         header: t('history.totalCost', { defaultValue: 'Coste total' }),
         cell: ({ row }) => {
-            const cost = (row.original as any).cost || 0
-            return <span className="font-medium">{cost > 0 ? `$${cost.toFixed(2)}` : '-'}</span>
+            const movement = row.original as any
+            // Only show cost for purchases/receives/returns (movements where you pay for inventory)
+            // Sales, usage, losses don't have an associated purchase cost
+            const showCostTypes = ['PURCHASE', 'RETURN']
+            if (!showCostTypes.includes(movement.type)) {
+              return <span className="text-muted-foreground">-</span>
+            }
+            // Use totalCost if available, otherwise calculate from quantity * unitCost
+            const unitCost = movement.unitCost || movement.cost || 0
+            if (!unitCost) {
+              return <span className="text-muted-foreground">-</span>
+            }
+            const totalCost = movement.totalCost || (Math.abs(movement.quantity) * unitCost)
+            return <span className="font-medium">{totalCost > 0 ? `$${totalCost.toFixed(2)}` : '-'}</span>
         },
       },
       {
@@ -397,12 +449,7 @@ export default function InventoryHistory() {
           let reasonLabel = row.original.reason
           if (!reasonLabel) {
             // Only apply generic labels if no specific reason was provided
-            if (type === 'COUNT') reasonLabel = 'reconteo'
-            else if (type === 'PURCHASE') reasonLabel = 'recibido'
-            else if (type === 'LOSS') reasonLabel = 'pérdida'
-            else if (type === 'USAGE') reasonLabel = 'uso'
-            else if (type === 'ADJUSTMENT') reasonLabel = 'ajuste'
-            else reasonLabel = type.toLowerCase()
+            reasonLabel = movementTypeLabel(type).toLowerCase()
           } else {
             // Translate the reason to Spanish
             reasonLabel = translateReason(reasonLabel, qty)

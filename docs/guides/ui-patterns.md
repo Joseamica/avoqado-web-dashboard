@@ -6,12 +6,15 @@ and maintain visual coherence across the application.
 ## Table of Contents
 
 - [Pill-Style Tabs (MANDATORY)](#pill-style-tabs-mandatory)
+- [URL Hash-Based Tabs (MANDATORY)](#url-hash-based-tabs-mandatory)
 - [Stripe-Style Filters (MANDATORY)](#stripe-style-filters-mandatory)
+- [Clickable Elements Inside DataTable (MANDATORY)](#clickable-elements-inside-datatable-mandatory)
 - [Icon-Based Radio Group Selection](#icon-based-radio-group-selection)
 - [Horizontal Navigation (VenueEditLayout Pattern)](#horizontal-navigation-venueeditlayout-pattern)
 - [Multi-Step Wizard Dialog](#multi-step-wizard-dialog)
 - [Form Input Patterns](#form-input-patterns)
 - [Select/MultipleSelector Patterns](#selectmultipleselector-with-empty-state-and-create-button-mandatory)
+- [SearchableSelect Component](#searchable-dropdown-rule-mandatory)
 - [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
 - [Unit Translation (MANDATORY)](#unit-translation-mandatory)
@@ -101,6 +104,129 @@ If you don't need count badges, simplify the trigger:
 - ✅ Page sections (Orders/History, Members/Invitations)
 - ✅ Detail views with multiple content sections
 - ❌ Do NOT use default Radix `TabsList` styling
+
+---
+
+## URL Hash-Based Tabs (MANDATORY)
+
+**⚠️ Tabs that represent page sections MUST persist state via URL hash** to survive page reloads and enable direct linking.
+
+**When to use:** Any page with tabs that users might want to bookmark, share, or return to after a reload.
+
+**Reference implementation:** `/src/pages/Commissions/CommissionsPage.tsx`, `/src/pages/Inventory/InventorySummary.tsx`
+
+### Why This Pattern?
+
+| Benefit | Description |
+|---------|-------------|
+| **Survives reload** | Tab state persists when user presses F5 or refreshes |
+| **Deep linking** | Users can share URLs like `/inventory/summary#recipe-based` |
+| **Browser history** | Back/forward buttons navigate between tabs |
+| **Bookmarks** | Users can bookmark specific tabs |
+
+### Code Example
+
+```typescript
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+
+// Define valid tabs as const array for type safety
+const VALID_TABS = ['accounting', 'recipe-based'] as const
+type TabValue = typeof VALID_TABS[number]
+
+export default function InventorySummary() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Get tab from URL hash, default to first tab
+  const getTabFromHash = (): TabValue => {
+    const hash = location.hash.replace('#', '')
+    return VALID_TABS.includes(hash as TabValue) ? (hash as TabValue) : 'accounting'
+  }
+
+  const [activeTab, setActiveTab] = useState<TabValue>(getTabFromHash)
+
+  // Sync tab with URL hash on hash change (browser back/forward)
+  useEffect(() => {
+    const tabFromHash = getTabFromHash()
+    if (tabFromHash !== activeTab) {
+      setActiveTab(tabFromHash)
+    }
+  }, [location.hash])
+
+  // Update URL hash when tab changes
+  const handleTabChange = (value: string) => {
+    const tab = value as TabValue
+    setActiveTab(tab)
+    navigate(`${location.pathname}#${tab}`, { replace: true })
+  }
+
+  return (
+    <Tabs value={activeTab} onValueChange={handleTabChange}>
+      <TabsList className="inline-flex h-10 items-center justify-start rounded-full bg-muted/60 px-1 py-1 text-muted-foreground border border-border">
+        <TabsTrigger value="accounting" className="...">
+          {t('inventory.accountingArticles')}
+          <span className="ml-2 ...">{accountingCount}</span>
+        </TabsTrigger>
+        <TabsTrigger value="recipe-based" className="...">
+          {t('inventory.recipeBased')}
+          <span className="ml-2 ...">{recipeCount}</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="accounting">{/* Content */}</TabsContent>
+      <TabsContent value="recipe-based">{/* Content */}</TabsContent>
+    </Tabs>
+  )
+}
+```
+
+### Key Implementation Details
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Type safety** | Use `as const` array + type to validate tab values |
+| **Default tab** | Return first valid tab if hash is invalid/empty |
+| **Hash sync** | `useEffect` syncs state when hash changes externally |
+| **Navigation** | `navigate(..., { replace: true })` prevents history spam |
+| **URL format** | `/venues/my-venue/inventory/summary#recipe-based` |
+
+### Common Mistakes
+
+```typescript
+// ❌ WRONG - Tab state lost on reload
+const [activeTab, setActiveTab] = useState('overview')
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  {/* Tab state lost when user presses F5 */}
+</Tabs>
+
+// ❌ WRONG - Missing hash sync for browser back/forward
+const [activeTab, setActiveTab] = useState(getTabFromHash())
+// User can't use browser back button to navigate tabs
+
+// ✅ CORRECT - Full implementation with hash sync
+const [activeTab, setActiveTab] = useState<TabValue>(getTabFromHash)
+
+useEffect(() => {
+  const tabFromHash = getTabFromHash()
+  if (tabFromHash !== activeTab) {
+    setActiveTab(tabFromHash)
+  }
+}, [location.hash])
+
+const handleTabChange = (value: string) => {
+  const tab = value as TabValue
+  setActiveTab(tab)
+  navigate(`${location.pathname}#${tab}`, { replace: true })
+}
+```
+
+### When NOT to Use
+
+- ❌ Tabs inside dialogs/modals (they close on navigation)
+- ❌ Ephemeral UI states (filters, collapsed sections)
+- ❌ Tabs that require form state preservation
 
 ---
 
@@ -532,6 +658,149 @@ const getFilterDisplayLabel = (selectedValues: string[], options: { value: strin
 - Checkboxes support Space to toggle
 - Focus traps work correctly in popovers
 - Clear button has aria-label for screen readers
+
+---
+
+## Clickable Elements Inside DataTable (MANDATORY)
+
+**⚠️ ALWAYS add underline styling to clickable elements inside DataTable cells to indicate interactivity. ALWAYS use `stopPropagation()` to prevent row click events.**
+
+**When to use:** Any clickable element inside a DataTable cell that performs an action different from the row click (e.g., opening a dialog, navigating to a sub-page, triggering a specific action).
+
+### Why This Pattern
+
+DataTable rows are often clickable themselves (to view details). When a cell contains an interactive element like a button or link that does something different:
+1. **Visual affordance**: Users need to know the element is clickable (underline indicates this)
+2. **Event isolation**: Clicking the element should NOT also trigger the row click (`stopPropagation()`)
+
+### Visual Specifications
+
+- **Underline**: Solid underline with offset (`underline underline-offset-4`)
+- **Decoration color**: Use 50% opacity for subtlety (`decoration-foreground/50` or `decoration-muted-foreground/50`)
+- **Cursor**: Always `cursor-pointer`
+- **No dotted underline**: Use solid underline, NOT `decoration-dotted`
+
+### Code Example - Clickable Values
+
+```typescript
+// In column definition
+{
+  accessorKey: 'currentStock',
+  header: t('columns.stock'),
+  cell: ({ row }) => {
+    const item = row.original
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={e => {
+          e.stopPropagation()  // ← CRITICAL: Prevents row click
+          setSelectedItem(item)
+          setDialogOpen(true)
+        }}
+        className="px-1"
+      >
+        <span className="text-sm font-semibold underline underline-offset-4 decoration-foreground/50 cursor-pointer">
+          {formatNumber(item.currentStock)}
+        </span>
+      </Button>
+    )
+  },
+},
+```
+
+### Code Example - Recipe Usage Button
+
+```typescript
+{
+  id: 'recipeUsage',
+  header: t('columns.usage'),
+  cell: ({ row }) => {
+    const material = row.original
+    const recipeCount = material.recipeCount || 0
+
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={e => {
+          e.stopPropagation()  // ← CRITICAL
+          setSelectedMaterial(material)
+          setRecipeUsageDialogOpen(true)
+        }}
+        className="gap-1 whitespace-nowrap px-1"
+      >
+        <ChefHat className="h-4 w-4 shrink-0" />
+        {recipeCount > 0 ? (
+          <span className="text-sm underline underline-offset-4 decoration-foreground/50">
+            {t('usage.inRecipes', { count: recipeCount })}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground underline underline-offset-4 decoration-muted-foreground/50">
+            {t('usage.notUsed')}
+          </span>
+        )}
+      </Button>
+    )
+  },
+},
+```
+
+### Key Classes Breakdown
+
+| Element | Classes | Purpose |
+|---------|---------|---------|
+| Active values | `underline underline-offset-4 decoration-foreground/50` | Visible underline with good spacing |
+| Muted values | `underline underline-offset-4 decoration-muted-foreground/50` | Subtle underline for secondary actions |
+| Button wrapper | `variant="ghost" size="sm" px-1` | Minimal styling, clickable area |
+
+### stopPropagation() Rule (CRITICAL)
+
+**⚠️ ALWAYS call `e.stopPropagation()` in the `onClick` handler of interactive elements inside DataTable cells.**
+
+```typescript
+// ❌ WRONG - Clicking button also triggers row click
+onClick={() => {
+  setDialogOpen(true)
+}}
+
+// ✅ CORRECT - Only button action fires
+onClick={e => {
+  e.stopPropagation()  // ← Add this FIRST
+  setDialogOpen(true)
+}}
+```
+
+**Why `stopPropagation()`?**
+- DataTable rows have their own click handlers (e.g., `onRowClick`)
+- Without it, clicking a cell button triggers BOTH the button action AND the row action
+- This causes confusing behavior (e.g., dialog opens AND navigation happens)
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/pages/Inventory/RawMaterials.tsx` (lines 478-530) - Stock values and recipe usage buttons
+
+**Where to apply:**
+
+- ✅ Stock/quantity values that open adjustment dialogs
+- ✅ Recipe usage indicators that open recipe lists
+- ✅ Status badges that open status change dialogs
+- ✅ Any cell value that triggers an action different from row click
+- ❌ Cell values that are purely display (no interaction)
+- ❌ Row actions in the "actions" column (those already have proper styling)
+
+### Checklist
+
+When adding clickable elements to DataTable cells:
+
+- [ ] Add `onClick` with `e.stopPropagation()` as first line
+- [ ] Add underline classes: `underline underline-offset-4 decoration-foreground/50`
+- [ ] Use `cursor-pointer` (usually inherited from Button)
+- [ ] Use `variant="ghost"` for Button wrapper to avoid visual clutter
+- [ ] Test that clicking the element does NOT also trigger row click
+- [ ] Use solid underline (NOT `decoration-dotted`)
 
 ---
 
@@ -1481,6 +1750,173 @@ import { MultiSelectCombobox } from '@/components/multi-select-combobox'
 - ✅ Selecting items from a large catalog (Products, Ingredients)
 - ✅ Selecting categories or tags when there are many options
 - ✅ Any multi-select scenario where search is crucial
+
+---
+
+## Searchable Dropdown Rule (MANDATORY)
+
+**⚠️ MANDATORY: Dropdowns with more than 4 options MUST include a search/filter input.**
+
+**When to apply:**
+- ✅ Category selectors (typically 10-30 options)
+- ✅ Unit selectors (20+ measurement units)
+- ✅ Country/region selectors
+- ✅ Any dropdown with 5+ options
+
+**When NOT needed:**
+- ❌ Status filters (2-4 options: Active, Inactive, etc.)
+- ❌ Boolean selections (Yes/No, Enabled/Disabled)
+- ❌ Small fixed lists (payment methods, order types)
+
+### Preferred Approach: SearchableSelect Component
+
+**⚠️ USE THE REUSABLE COMPONENT** instead of implementing the Popover + Command pattern manually.
+
+```typescript
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
+
+// Transform options for SearchableSelect
+const categoryOptions = useMemo<SearchableSelectOption[]>(
+  () => CATEGORY_OPTIONS.map(cat => ({
+    value: cat.value,
+    label: t(`categories.${cat.value}`),
+    icon: cat.icon,  // Optional: supports React nodes
+  })),
+  [t]
+)
+
+// Usage
+<SearchableSelect
+  options={categoryOptions}
+  value={selectedCategory}
+  onValueChange={value => setValue('category', value)}
+  placeholder={t('selectCategory')}
+  searchPlaceholder={t('searchCategory')}
+  emptyMessage={t('noCategoryFound')}
+/>
+```
+
+**Component Props:**
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `options` | `SearchableSelectOption[]` | ✅ | Array of options with `value`, `label`, and optional `icon` |
+| `value` | `string` | ✅ | Current selected value |
+| `onValueChange` | `(value: string) => void` | ✅ | Callback when selection changes |
+| `placeholder` | `string` | | Placeholder when no selection |
+| `searchPlaceholder` | `string` | | Placeholder for search input |
+| `emptyMessage` | `string` | | Message when no results match search |
+| `className` | `string` | | Additional CSS classes for trigger button |
+| `disabled` | `boolean` | | Disable the dropdown |
+| `filterFn` | `(option, search) => boolean` | | Custom filter function (default: label search) |
+
+**Benefits:**
+- **Consistent UX**: Same look and behavior across the app
+- **Less code**: ~5 lines vs ~50 lines for manual implementation
+- **Built-in features**: Search, icons, scroll, modal support (for dialogs)
+- **Accessible**: Keyboard navigation, ARIA attributes
+
+**Reference:** `/src/components/ui/searchable-select.tsx`
+
+**Real-world usage:** `/src/pages/Inventory/components/RawMaterialDialog.tsx` (Category and Unit dropdowns)
+
+---
+
+### Manual Implementation (For Custom Cases)
+
+If you need custom behavior not supported by `SearchableSelect`, use `Popover` + `Command` + `ScrollArea`:
+
+```typescript
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Check, ChevronsUpDown } from 'lucide-react'
+
+const [open, setOpen] = useState(false)
+const [search, setSearch] = useState('')
+
+// Filter options based on search
+const filteredOptions = useMemo(() => {
+  if (!search) return options
+  return options.filter(option =>
+    option.label.toLowerCase().includes(search.toLowerCase())
+  )
+}, [options, search])
+
+<Popover open={open} onOpenChange={setOpen} modal={true}>
+  <PopoverTrigger asChild>
+    <Button
+      type="button"
+      variant="outline"
+      role="combobox"
+      aria-expanded={open}
+      className="w-full justify-between"
+    >
+      {selectedOption ? (
+        <span className="flex items-center gap-2">
+          {selectedOption.icon && <span>{selectedOption.icon}</span>}
+          <span>{selectedOption.label}</span>
+        </span>
+      ) : (
+        <span className="text-muted-foreground">{t('select')}</span>
+      )}
+      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-[300px] p-0" align="start">
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('search')}
+        value={search}
+        onValueChange={setSearch}
+      />
+      <CommandList>
+        <CommandEmpty>{t('noResults')}</CommandEmpty>
+        <ScrollArea className="h-[300px]">
+          <CommandGroup>
+            {filteredOptions.map(option => (
+              <CommandItem
+                key={option.value}
+                value={option.value}
+                onSelect={() => {
+                  setValue(option.value)
+                  setOpen(false)
+                  setSearch('')
+                }}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <Check
+                  className={cn(
+                    'h-4 w-4',
+                    selectedValue === option.value ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+                {option.icon && <span>{option.icon}</span>}
+                <span>{option.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </ScrollArea>
+      </CommandList>
+    </Command>
+  </PopoverContent>
+</Popover>
+```
+
+### Key Points
+
+| Rule | Implementation |
+|------|----------------|
+| **When inside Dialog/Modal** | Use `modal={true}` on Popover |
+| **Filtering** | Use `shouldFilter={false}` on Command, filter manually with useMemo |
+| **Scroll support** | Wrap CommandGroup with `ScrollArea` |
+| **Selection indicator** | Use Check icon with conditional opacity |
+| **Clear on select** | Reset search to empty string after selection |
+
+### Real-World Usage
+
+**Examples in codebase:**
+- `/src/pages/Inventory/components/RawMaterialDialog.tsx` - Category and Unit searchable dropdowns
 
 ---
 

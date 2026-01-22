@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
   ArrowUpDown,
-  Package,
   Plus,
   Edit,
   History,
@@ -16,6 +15,7 @@ import {
   DollarSign,
   Clock,
   Info,
+  MoreHorizontal,
 } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
@@ -38,7 +38,14 @@ import { AdjustStockDialog } from './components/AdjustStockDialog'
 import { StockMovementsDialog } from './components/StockMovementsDialog'
 import { RecipeUsageDialog } from './components/RecipeUsageDialog'
 import { RecipeDialog } from './components/RecipeDialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
@@ -380,6 +387,27 @@ export default function RawMaterials() {
   // Categories for filter - use all categories from constants
   const categories = Object.keys(RAW_MATERIAL_CATEGORIES)
 
+  // Options for category filter
+  const categoryOptions = useMemo<SearchableSelectOption[]>(() => [
+    { value: 'all', label: t('rawMaterials.filters.all') },
+    ...categories.map(category => {
+      const categoryInfo = getCategoryInfo(category as any)
+      return {
+        value: category,
+        label: t(`rawMaterials.categories.${category}`),
+        icon: <span className="text-base">{categoryInfo.icon}</span>,
+      }
+    }),
+  ], [categories, t])
+
+  // Options for stock filter
+  const stockFilterOptions = useMemo<SearchableSelectOption[]>(() => [
+    { value: 'all', label: t('rawMaterials.filters.all') },
+    { value: 'lowStock', label: t('rawMaterials.filters.lowStock') },
+    { value: 'active', label: t('rawMaterials.filters.active') },
+    { value: 'inactive', label: t('rawMaterials.filters.inactive') },
+  ], [t])
+
   // Column definitions
   const columns = useMemo<ColumnDef<RawMaterial, unknown>[]>(
     () => [
@@ -410,45 +438,23 @@ export default function RawMaterials() {
         ),
         cell: ({ row }) => {
           const material = row.original
+          const categoryInfo = getCategoryInfo(material.category as any)
           return (
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-border shadow-sm shrink-0">
-                <Package className="h-4 w-4 text-primary" />
-              </div>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="bg-background flex items-center gap-1.5 px-2 py-1 shrink-0"
+                title={t(`rawMaterials.categories.${material.category}`)}
+              >
+                <span className="text-base" aria-hidden>
+                  {categoryInfo.icon}
+                </span>
+                <span className="hidden xl:inline text-xs">{t(`rawMaterials.categories.${material.category}`)}</span>
+              </Badge>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-medium text-foreground truncate">{material.name}</span>
                 <span className="text-xs text-muted-foreground truncate hidden xl:inline">{material.sku}</span>
               </div>
-            </div>
-          )
-        },
-      },
-      {
-        accessorKey: 'category',
-        meta: { label: t('rawMaterials.fields.category') },
-        header: () => (
-          <div className="flex items-center justify-center">
-            <span className="2xl:hidden text-base" title={t('rawMaterials.fields.category')}>
-              🏷️
-            </span>
-            <span className="hidden 2xl:inline">{t('rawMaterials.fields.category')}</span>
-          </div>
-        ),
-        cell: ({ cell }) => {
-          const category = cell.getValue() as string
-          const categoryInfo = getCategoryInfo(category as any)
-          return (
-            <div className="flex justify-center">
-              <Badge
-                variant="outline"
-                className="bg-background flex items-center justify-center gap-2 px-2 py-1"
-                title={t(`rawMaterials.categories.${category}`)}
-              >
-                <span aria-hidden className="text-base">
-                  {categoryInfo.icon}
-                </span>
-                <span className="whitespace-normal hidden 2xl:inline">{t(`rawMaterials.categories.${category}`)}</span>
-              </Badge>
             </div>
           )
         },
@@ -475,8 +481,8 @@ export default function RawMaterials() {
             <div className="flex items-center gap-1">
               <div className="flex flex-col items-end">
                 <span
-                  className={`text-sm font-semibold ${
-                    isOutOfStock ? 'text-destructive' : isLowStock ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'
+                  className={`text-sm font-semibold underline decoration-dotted underline-offset-4 cursor-pointer ${
+                    isOutOfStock ? 'text-destructive decoration-destructive/50' : isLowStock ? 'text-yellow-600 dark:text-yellow-400 decoration-yellow-600/50 dark:decoration-yellow-400/50' : 'text-foreground decoration-muted-foreground/50'
                   }`}
                 >
                   {stock.toFixed(2)} <span className="hidden xl:inline">{formatUnitWithQuantity(stock, material.unit)}</span>
@@ -611,9 +617,9 @@ export default function RawMaterials() {
             >
               <ChefHat className="h-4 w-4 shrink-0" />
               {recipeCount > 0 ? (
-                <span className="text-sm hidden 2xl:inline">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
+                <span className="text-sm hidden 2xl:inline underline underline-offset-4 decoration-foreground/50">{t('rawMaterials.usage.inRecipes', { count: recipeCount })}</span>
               ) : (
-                <span className="text-sm text-muted-foreground hidden 2xl:inline">{t('rawMaterials.usage.notUsed')}</span>
+                <span className="text-sm text-muted-foreground hidden 2xl:inline underline underline-offset-4 decoration-muted-foreground/50">{t('rawMaterials.usage.notUsed')}</span>
               )}
             </Button>
           )
@@ -640,68 +646,72 @@ export default function RawMaterials() {
         cell: ({ row }) => {
           const material = row.original
           return (
-            <div className="flex items-center gap-0.5">
-              <PermissionGate permission="inventory:adjust">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">{tCommon('actions')}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <PermissionGate permission="inventory:adjust">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedMaterial(material)
+                      setAdjustStockDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <TrendingDown className="h-4 w-4 mr-2" />
+                    {t('rawMaterials.adjustStock')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+                <DropdownMenuItem
                   onClick={e => {
                     e.stopPropagation()
                     setSelectedMaterial(material)
-                    setAdjustStockDialogOpen(true)
+                    setMovementsDialogOpen(true)
                   }}
-                  className="gap-1 whitespace-nowrap px-1"
-                  title={t('rawMaterials.adjustStock')}
+                  className="cursor-pointer"
                 >
-                  <TrendingDown className="h-4 w-4 shrink-0" />
-                  <span className="hidden 2xl:inline">{t('rawMaterials.adjustStock')}</span>
-                </Button>
-              </PermissionGate>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={e => {
-                  e.stopPropagation()
-                  setSelectedMaterial(material)
-                  setMovementsDialogOpen(true)
-                }}
-                className="gap-1 whitespace-nowrap px-1"
-                title={t('rawMaterials.viewMovements')}
-              >
-                <History className="h-4 w-4 shrink-0" />
-                <span className="hidden 2xl:inline">{t('rawMaterials.viewMovements')}</span>
-              </Button>
-              <PermissionGate permission="inventory:update">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={e => {
-                    e.stopPropagation()
-                    setSelectedMaterial(material)
-                    setEditDialogOpen(true)
-                  }}
-                  className="px-1"
-                  title={tCommon('edit')}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </PermissionGate>
-              <PermissionGate permission="inventory:delete">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={e => {
-                    e.stopPropagation()
-                    handleDeleteClick(material)
-                  }}
-                  disabled={deleteMutation.isPending}
-                  className="px-1"
-                  title={tCommon('delete')}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </PermissionGate>
-            </div>
+                  <History className="h-4 w-4 mr-2" />
+                  {t('rawMaterials.viewMovements')}
+                </DropdownMenuItem>
+                <PermissionGate permission="inventory:update">
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelectedMaterial(material)
+                      setEditDialogOpen(true)
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    {tCommon('edit')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+                <PermissionGate permission="inventory:delete">
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={e => {
+                      e.stopPropagation()
+                      handleDeleteClick(material)
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {tCommon('delete')}
+                  </DropdownMenuItem>
+                </PermissionGate>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )
         },
       },
@@ -753,34 +763,23 @@ export default function RawMaterials() {
           </div>
 
           <div className="flex gap-2 sm:gap-4">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder={t('rawMaterials.fields.category')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-                {categories.map(category => {
-                  const categoryInfo = getCategoryInfo(category as any)
-                  return (
-                    <SelectItem key={category} value={category}>
-                      {categoryInfo.icon} {t(`rawMaterials.categories.${category}`)}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={categoryOptions}
+              value={categoryFilter}
+              onValueChange={setCategoryFilter}
+              placeholder={t('rawMaterials.fields.category')}
+              searchPlaceholder={t('rawMaterials.searchCategory')}
+              emptyMessage={t('rawMaterials.noCategoryFound')}
+              className="w-full sm:w-48"
+            />
 
-            <Select value={stockFilter} onValueChange={setStockFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder={tCommon('filter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-                <SelectItem value="lowStock">{t('rawMaterials.filters.lowStock')}</SelectItem>
-                <SelectItem value="active">{t('rawMaterials.filters.active')}</SelectItem>
-                <SelectItem value="inactive">{t('rawMaterials.filters.inactive')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={stockFilterOptions}
+              value={stockFilter}
+              onValueChange={setStockFilter}
+              placeholder={tCommon('filter')}
+              className="w-full sm:w-48"
+            />
           </div>
         </div>
       </div>

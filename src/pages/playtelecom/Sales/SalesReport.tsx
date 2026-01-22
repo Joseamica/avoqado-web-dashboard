@@ -10,20 +10,14 @@
  * Key feature: proofOfSale field - URL to photo evidence of each sale
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { DateTime } from 'luxon'
 import { useAuth } from '@/context/AuthContext'
 import { GlassCard } from '@/components/ui/glass-card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { FilterPill, FilterPopoverFooter, FilterPopoverHeader } from '@/components/filters/FilterPill'
 import {
   AreaChart,
   Area,
@@ -54,160 +49,38 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingCart,
-  Calendar,
-  Store,
   Copy,
   Hash,
   ChevronLeft,
   ChevronRight,
+  Check,
   ImageIcon,
   BarChart3,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/useDebounce'
-
-// Types
-type SaleStatus = 'conciliado' | 'pendiente' | 'exitoso'
-
-interface Sale {
-  id: string
-  date: string
-  store: string
-  product: string
-  productType: 'bait_200' | 'bait_100' | 'portabilidad' | 'recarga'
-  iccid: string
-  proofOfSale?: string // URL to proof of sale image
-  seller: {
-    name: string
-    avatar: string
-  }
-  amount: number
-  status: SaleStatus
-}
-
-// Mock data
-const MOCK_STORES = [
-  { id: 'all', name: 'Todas las Tiendas' },
-  { id: 'centro', name: 'Centro Histórico #402' },
-  { id: 'walmart-norte', name: 'Walmart Norte #112' },
-  { id: 'soriana-sur', name: 'Soriana Sur #203' },
-]
-
-const MOCK_REVENUE_TREND = [
-  { day: 'Lun', revenue: 12500 },
-  { day: 'Mar', revenue: 18200 },
-  { day: 'Mié', revenue: 15400 },
-  { day: 'Jue', revenue: 22100 },
-  { day: 'Vie', revenue: 19500 },
-  { day: 'Sáb', revenue: 28400 },
-  { day: 'Dom', revenue: 25000 },
-]
-
-const MOCK_VOLUME_TREND = [
-  { day: 'Lun', units: 45 },
-  { day: 'Mar', units: 62 },
-  { day: 'Mié', units: 55 },
-  { day: 'Jue', units: 78 },
-  { day: 'Vie', units: 65 },
-  { day: 'Sáb', units: 95 },
-  { day: 'Dom', units: 88 },
-]
-
-const MOCK_SALES: Sale[] = [
-  {
-    id: 'VN-8821',
-    date: '2024-10-24T10:42:00Z',
-    store: 'Centro Histórico',
-    product: 'BAIT $200',
-    productType: 'bait_200',
-    iccid: '89521400630000044421',
-    proofOfSale: 'https://images.unsplash.com/photo-1621243804936-775306a8f2e3?auto=format&fit=crop&q=80&w=400',
-    seller: { name: 'Sarah J.', avatar: 'https://ui-avatars.com/api/?name=Sarah+Jenkins&background=random' },
-    amount: 200.00,
-    status: 'conciliado',
-  },
-  {
-    id: 'VN-8820',
-    date: '2024-10-24T09:15:00Z',
-    store: 'Walmart Norte',
-    product: 'BAIT $100',
-    productType: 'bait_100',
-    iccid: '89521400630000099912',
-    proofOfSale: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400',
-    seller: { name: 'Pedro R.', avatar: 'https://ui-avatars.com/api/?name=Pedro+Ruiz&background=random' },
-    amount: 100.00,
-    status: 'pendiente',
-  },
-  {
-    id: 'VN-8819',
-    date: '2024-10-23T18:40:00Z',
-    store: 'Centro Histórico',
-    product: 'Portabilidad',
-    productType: 'portabilidad',
-    iccid: '89521400630000011102',
-    proofOfSale: undefined, // Portabilidad doesn't require proof
-    seller: { name: 'Sarah J.', avatar: 'https://ui-avatars.com/api/?name=Sarah+Jenkins&background=random' },
-    amount: 0.00,
-    status: 'exitoso',
-  },
-  {
-    id: 'VN-8818',
-    date: '2024-10-23T16:20:00Z',
-    store: 'Soriana Sur',
-    product: 'BAIT $200',
-    productType: 'bait_200',
-    iccid: '89521400630000077789',
-    proofOfSale: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=400',
-    seller: { name: 'Carlos M.', avatar: 'https://ui-avatars.com/api/?name=Carlos+Martinez&background=random' },
-    amount: 200.00,
-    status: 'conciliado',
-  },
-  {
-    id: 'VN-8817',
-    date: '2024-10-23T14:05:00Z',
-    store: 'Walmart Norte',
-    product: 'Recarga $50',
-    productType: 'recarga',
-    iccid: '89521400630000055543',
-    proofOfSale: 'https://images.unsplash.com/photo-1556742393-d75f468bfcb0?auto=format&fit=crop&q=80&w=400',
-    seller: { name: 'Ana G.', avatar: 'https://ui-avatars.com/api/?name=Ana+Garcia&background=random' },
-    amount: 50.00,
-    status: 'conciliado',
-  },
-]
-
-const MOCK_SUMMARY = {
-  totalRevenue: 482500,
-  revenueTrend: 12,
-  totalUnits: 1240,
-  avgPerDay: 45,
-  avgTicket: 389.00,
-  topPlan: '$200',
-  conciliatedCount: 1200,
-  pendingCount: 40,
-}
-
-// Product type colors
-const PRODUCT_TYPE_COLORS: Record<Sale['productType'], string> = {
-  bait_200: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  bait_100: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  portabilidad: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  recarga: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-}
+import { getLast30Days, useVenueDateTime } from '@/utils/datetime'
+import * as saleVerificationService from '@/services/saleVerification.service'
+import type {
+  SaleVerification,
+  SaleVerificationStatus,
+} from '@/services/saleVerification.service'
 
 // Status colors and labels
-const STATUS_CONFIG: Record<SaleStatus, { label: string; className: string }> = {
-  conciliado: {
+const STATUS_CONFIG: Record<SaleVerificationStatus, { label: string; className: string }> = {
+  COMPLETED: {
     label: 'CONCILIADO',
     className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
   },
-  pendiente: {
+  PENDING: {
     label: 'PENDIENTE',
     className: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
   },
-  exitoso: {
-    label: 'EXITOSO',
-    className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
+  FAILED: {
+    label: 'FALLIDO',
+    className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
   },
 }
 
@@ -226,23 +99,159 @@ const ChartTooltip = ({ active, payload, label, valuePrefix = '' }: any) => {
   return null
 }
 
+const getDefaultDateRange = (timezone: string) => {
+  const range = getLast30Days(timezone)
+  const startDate = DateTime.fromJSDate(range.from, { zone: 'utc' }).setZone(timezone).toISODate()
+  const endDate = DateTime.fromJSDate(range.to, { zone: 'utc' }).setZone(timezone).toISODate()
+  return {
+    startDate: startDate ?? '',
+    endDate: endDate ?? '',
+  }
+}
+
+type SingleSelectOption = {
+  value: string
+  label: string
+}
+
+interface SingleSelectFilterContentProps {
+  title: string
+  options: SingleSelectOption[]
+  value: string
+  onApply: (value: string) => void
+  onClose?: () => void
+  clearValue?: string
+  emptyLabel?: string
+}
+
+const SingleSelectFilterContent = ({
+  title,
+  options,
+  value,
+  onApply,
+  onClose,
+  clearValue = 'all',
+  emptyLabel = 'Sin opciones',
+}: SingleSelectFilterContentProps) => {
+  const [localValue, setLocalValue] = useState(value)
+
+  useEffect(() => {
+    setLocalValue(value)
+  }, [value])
+
+  const handleApply = () => {
+    onApply(localValue)
+    onClose?.()
+  }
+
+  const handleClear = () => {
+    setLocalValue(clearValue)
+  }
+
+  return (
+    <div className="flex flex-col">
+      <FilterPopoverHeader title={title} />
+      <div className="max-h-[240px] overflow-y-auto p-2">
+        {options.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
+        ) : (
+          <div className="space-y-1">
+            {options.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setLocalValue(option.value)}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+                  'hover:bg-muted/50',
+                  localValue === option.value && 'bg-muted/30'
+                )}
+              >
+                <span className="flex-1 text-left">{option.label}</span>
+                {localValue === option.value && <Check className="h-4 w-4 text-primary" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <FilterPopoverFooter onApply={handleApply} onClear={handleClear} showClear={localValue !== clearValue} />
+    </div>
+  )
+}
+
+interface DateRangeFilterContentProps {
+  title: string
+  startDate: string
+  endDate: string
+  onApply: (range: { startDate: string; endDate: string }) => void
+  onClose?: () => void
+}
+
+const DateRangeFilterContent = ({ title, startDate, endDate, onApply, onClose }: DateRangeFilterContentProps) => {
+  const [localStart, setLocalStart] = useState(startDate)
+  const [localEnd, setLocalEnd] = useState(endDate)
+
+  useEffect(() => {
+    setLocalStart(startDate)
+    setLocalEnd(endDate)
+  }, [startDate, endDate])
+
+  const handleApply = () => {
+    onApply({ startDate: localStart, endDate: localEnd })
+    onClose?.()
+  }
+
+  const handleClear = () => {
+    setLocalStart('')
+    setLocalEnd('')
+  }
+
+  return (
+    <div className="flex flex-col">
+      <FilterPopoverHeader title={title} />
+      <div className="p-3 space-y-3">
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Desde</p>
+          <Input type="date" value={localStart} onChange={e => setLocalStart(e.target.value)} className="h-9" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Hasta</p>
+          <Input type="date" value={localEnd} onChange={e => setLocalEnd(e.target.value)} className="h-9" />
+        </div>
+      </div>
+      <FilterPopoverFooter onApply={handleApply} onClear={handleClear} showClear={Boolean(localStart || localEnd)} />
+    </div>
+  )
+}
+
 export function SalesReport() {
   const { t } = useTranslation(['playtelecom', 'common'])
   const { activeVenue } = useAuth()
+  const { venueTimezone } = useVenueDateTime()
+  const venueId = activeVenue?.id ?? ''
 
   // Filters
-  const [selectedStore, setSelectedStore] = useState('all')
-  const [startDate, setStartDate] = useState('2024-10-01')
-  const [endDate, setEndDate] = useState('2024-10-24')
+  const [selectedStaff, setSelectedStaff] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<SaleVerificationStatus | 'all'>('all')
+  const defaultRange = useMemo(() => getDefaultDateRange(venueTimezone), [venueTimezone])
+  const [startDate, setStartDate] = useState(defaultRange.startDate)
+  const [endDate, setEndDate] = useState(defaultRange.endDate)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 300)
+  const hasDateRange = Boolean(startDate && endDate)
+
+  useEffect(() => {
+    setStartDate(defaultRange.startDate)
+    setEndDate(defaultRange.endDate)
+  }, [defaultRange.startDate, defaultRange.endDate])
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
 
   // Image preview modal
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [previewImages, setPreviewImages] = useState<string[] | null>(null)
+  const [previewIndex, setPreviewIndex] = useState(0)
 
   // Format currency
   const formatCurrency = useCallback(
@@ -255,59 +264,205 @@ export function SalesReport() {
     [activeVenue?.currency]
   )
 
-  // Format date
-  const formatDate = useCallback((dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat('es-MX', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date)
-  }, [])
+  // Format date in venue timezone
+  const formatDate = useCallback(
+    (dateString: string) => {
+      const date = new Date(dateString)
+      return new Intl.DateTimeFormat('es-MX', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: venueTimezone,
+      }).format(date)
+    },
+    [venueTimezone],
+  )
 
-  // Format ICCID (show last 4 digits)
-  const formatIccid = useCallback((iccid: string) => {
-    return `${iccid.slice(0, 4)}...${iccid.slice(-4)}`
-  }, [])
-
-  // Copy ICCID to clipboard
-  const copyIccid = useCallback((iccid: string) => {
-    navigator.clipboard.writeText(iccid)
-  }, [])
-
-  // Filter sales
-  const filteredSales = useMemo(() => {
-    return MOCK_SALES.filter(sale => {
-      // Store filter
-      if (selectedStore !== 'all') {
-        const storeMatch = MOCK_STORES.find(s => s.id === selectedStore)
-        if (storeMatch && !sale.store.toLowerCase().includes(storeMatch.name.split(' ')[0].toLowerCase())) {
-          return false
-        }
+  const apiDateRange = useMemo(() => {
+    if (!startDate || !endDate) {
+      return {
+        fromDate: undefined,
+        toDate: undefined,
       }
-      // Search filter
-      if (debouncedSearch) {
-        const search = debouncedSearch.toLowerCase()
-        return (
-          sale.id.toLowerCase().includes(search) ||
-          sale.store.toLowerCase().includes(search) ||
-          sale.product.toLowerCase().includes(search) ||
-          sale.iccid.includes(search) ||
-          sale.seller.name.toLowerCase().includes(search)
-        )
+    }
+
+    const start = DateTime.fromISO(startDate, { zone: venueTimezone }).startOf('day')
+    const end = DateTime.fromISO(endDate, { zone: venueTimezone }).endOf('day')
+
+    return {
+      fromDate: start.isValid ? start.toUTC().toISO() ?? undefined : undefined,
+      toDate: end.isValid ? end.toUTC().toISO() ?? undefined : undefined,
+    }
+  }, [startDate, endDate, venueTimezone])
+
+  // Fetch sale verifications
+  const {
+    data: verificationsData,
+    isLoading: isLoadingVerifications,
+  } = useQuery({
+    queryKey: [
+      'sale-verifications',
+      venueId,
+      currentPage,
+      pageSize,
+      statusFilter,
+      selectedStaff,
+      apiDateRange.fromDate,
+      apiDateRange.toDate,
+      debouncedSearch,
+    ],
+    queryFn: () =>
+      saleVerificationService.listSaleVerifications(venueId, {
+        pageNumber: currentPage,
+        pageSize,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        staffId: selectedStaff === 'all' ? undefined : selectedStaff,
+        fromDate: apiDateRange.fromDate,
+        toDate: apiDateRange.toDate,
+        search: debouncedSearch || undefined,
+      }),
+    enabled: !!venueId,
+  })
+
+  // Fetch summary
+  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['sale-verifications-summary', venueId, apiDateRange.fromDate, apiDateRange.toDate],
+    queryFn: () =>
+      saleVerificationService.getSaleVerificationsSummary(venueId, {
+        fromDate: apiDateRange.fromDate,
+        toDate: apiDateRange.toDate,
+      }),
+    enabled: !!venueId,
+  })
+
+  // Fetch daily data for charts
+  const { data: dailyData } = useQuery({
+    queryKey: ['sale-verifications-daily', venueId, apiDateRange.fromDate, apiDateRange.toDate],
+    queryFn: () =>
+      saleVerificationService.getDailySalesData(venueId, {
+        fromDate: apiDateRange.fromDate,
+        toDate: apiDateRange.toDate,
+      }),
+    enabled: !!venueId,
+  })
+
+  // Fetch staff for filter
+  const { data: staffList } = useQuery({
+    queryKey: ['sale-verifications-staff', venueId],
+    queryFn: () => saleVerificationService.getStaffWithVerifications(venueId),
+    enabled: !!venueId,
+  })
+
+  const staffOptions = useMemo<SingleSelectOption[]>(() => {
+    const base = [
+      {
+        value: 'all',
+        label: t('playtelecom:sales.allStaff', { defaultValue: 'Todo el personal' }),
+      },
+    ]
+    if (!staffList) return base
+    return base.concat(
+      staffList.map(staff => ({
+        value: staff.id,
+        label: `${staff.firstName} ${staff.lastName} (${staff.verificationCount})`,
+      })),
+    )
+  }, [staffList, t])
+
+  const statusOptions = useMemo<SingleSelectOption[]>(
+    () => [
+      { value: 'all', label: t('playtelecom:sales.allStatuses', { defaultValue: 'Todos' }) },
+      { value: 'COMPLETED', label: STATUS_CONFIG.COMPLETED.label },
+      { value: 'PENDING', label: STATUS_CONFIG.PENDING.label },
+      { value: 'FAILED', label: STATUS_CONFIG.FAILED.label },
+    ],
+    [t],
+  )
+
+  const selectedStaffLabel = staffOptions.find(option => option.value === selectedStaff)?.label
+  const selectedStatusLabel = statusOptions.find(option => option.value === statusFilter)?.label
+  const formatShortDate = useCallback(
+    (date: string) => DateTime.fromISO(date, { zone: venueTimezone }).toFormat('dd/MM/yy'),
+    [venueTimezone],
+  )
+  const dateRangeLabel = hasDateRange ? `${formatShortDate(startDate)} - ${formatShortDate(endDate)}` : null
+  const clearDateRange = useCallback(() => {
+    setStartDate('')
+    setEndDate('')
+  }, [])
+
+  // Transform daily data for charts
+  const chartData = useMemo(() => {
+    if (!dailyData) return { revenue: [], volume: [] }
+
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const formatDay = (date: string) => {
+      const dt = DateTime.fromISO(date, { zone: venueTimezone })
+      return dayNames[dt.weekday - 1] ?? dayNames[0]
+    }
+
+    if (!hasDateRange) {
+      return {
+        revenue: dailyData.map(d => ({ day: formatDay(d.date), revenue: d.revenue })),
+        volume: dailyData.map(d => ({ day: formatDay(d.date), units: d.count })),
       }
-      return true
-    })
-  }, [selectedStore, debouncedSearch])
+    }
 
-  // Paginated sales
-  const paginatedSales = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return filteredSales.slice(start, start + pageSize)
-  }, [filteredSales, currentPage])
+    const dataByDate = new Map(dailyData.map(d => [d.date, d]))
+    const start = DateTime.fromISO(startDate, { zone: venueTimezone }).startOf('day')
+    const end = DateTime.fromISO(endDate, { zone: venueTimezone }).startOf('day')
+    const days: Array<{ day: string; revenue: number; units: number }> = []
 
-  const totalPages = Math.ceil(filteredSales.length / pageSize)
+    let cursor = start
+    while (cursor.toMillis() <= end.toMillis()) {
+      const dateKey = cursor.toISODate() ?? ''
+      const record = dataByDate.get(dateKey)
+      days.push({
+        day: dayNames[cursor.weekday - 1] ?? dayNames[0],
+        revenue: record?.revenue ?? 0,
+        units: record?.count ?? 0,
+      })
+      cursor = cursor.plus({ days: 1 })
+    }
+
+    return {
+      revenue: days.map(d => ({ day: d.day, revenue: d.revenue })),
+      volume: days.map(d => ({ day: d.day, units: d.units })),
+    }
+  }, [dailyData, startDate, endDate, hasDateRange, venueTimezone])
+
+  const verifications = verificationsData?.data ?? []
+  const pagination = verificationsData?.pagination
+  const totalPages = pagination?.totalPages ?? 1
+
+  // Get staff name
+  const getStaffName = (verification: SaleVerification) => {
+    if (verification.staff) {
+      return `${verification.staff.firstName} ${verification.staff.lastName}`.trim()
+    }
+    return 'N/A'
+  }
+
+  // Get staff avatar URL
+  const getStaffAvatar = (verification: SaleVerification) => {
+    if (verification.staff?.photoUrl) {
+      return verification.staff.photoUrl
+    }
+    const name = getStaffName(verification)
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+  }
+
+  // Copy payment ID to clipboard
+  const copyPaymentId = useCallback((paymentId: string) => {
+    navigator.clipboard.writeText(paymentId)
+  }, [])
+
+  // Format payment ID (show last 8 chars)
+  const formatPaymentId = useCallback((paymentId: string) => {
+    if (paymentId.length <= 12) return paymentId
+    return `${paymentId.slice(0, 4)}...${paymentId.slice(-4)}`
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -330,52 +485,53 @@ export function SalesReport() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3 bg-muted/50 p-1.5 rounded-xl border border-border w-full xl:w-auto">
-            {/* Store Select */}
-            <Select value={selectedStore} onValueChange={setSelectedStore}>
-              <SelectTrigger className="w-48 bg-background">
-                <Store className="w-4 h-4 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MOCK_STORES.map(store => (
-                  <SelectItem key={store.id} value={store.id}>
-                    {store.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+            <FilterPill
+              label={t('playtelecom:sales.staff', { defaultValue: 'Personal' })}
+              activeValue={selectedStaff !== 'all' ? selectedStaffLabel : null}
+              isActive={selectedStaff !== 'all'}
+              onClear={selectedStaff !== 'all' ? () => setSelectedStaff('all') : undefined}
+            >
+              <SingleSelectFilterContent
+                title={t('playtelecom:sales.staff', { defaultValue: 'Personal' })}
+                options={staffOptions}
+                value={selectedStaff}
+                onApply={setSelectedStaff}
+              />
+            </FilterPill>
 
-            <div className="h-6 w-px bg-border hidden sm:block" />
+            <FilterPill
+              label={t('playtelecom:sales.status', { defaultValue: 'Estado' })}
+              activeValue={statusFilter !== 'all' ? selectedStatusLabel : null}
+              isActive={statusFilter !== 'all'}
+              onClear={statusFilter !== 'all' ? () => setStatusFilter('all') : undefined}
+            >
+              <SingleSelectFilterContent
+                title={t('playtelecom:sales.status', { defaultValue: 'Estado' })}
+                options={statusOptions}
+                value={statusFilter}
+                onApply={value => setStatusFilter(value as SaleVerificationStatus | 'all')}
+              />
+            </FilterPill>
 
-            {/* Date Range */}
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                  className="pl-8 w-36 h-9 text-sm bg-background"
-                />
-              </div>
-              <span className="text-muted-foreground text-sm">-</span>
-              <div className="relative">
-                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  className="pl-8 w-36 h-9 text-sm bg-background"
-                />
-              </div>
-            </div>
+            <FilterPill
+              label={t('playtelecom:sales.dateRange', { defaultValue: 'Fecha' })}
+              activeValue={dateRangeLabel}
+              isActive={hasDateRange}
+              onClear={hasDateRange ? clearDateRange : undefined}
+            >
+              <DateRangeFilterContent
+                title={t('playtelecom:sales.dateRange', { defaultValue: 'Fecha' })}
+                startDate={startDate}
+                endDate={endDate}
+                onApply={({ startDate: nextStart, endDate: nextEnd }) => {
+                  setStartDate(nextStart)
+                  setEndDate(nextEnd)
+                }}
+              />
+            </FilterPill>
 
-            {/* Actions */}
-            <Button size="sm" className="gap-1 ml-auto">
-              <Search className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1 ml-auto">
               <Download className="w-4 h-4" />
             </Button>
           </div>
@@ -391,13 +547,21 @@ export function SalesReport() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 {t('playtelecom:sales.totalRevenuePeriod', { defaultValue: 'Ingreso Total (Periodo)' })}
               </p>
-              <p className="text-3xl font-black mt-1">{formatCurrency(MOCK_SUMMARY.totalRevenue)}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="w-3 h-3 text-green-500" />
-                <span className="text-[10px] text-green-500 font-bold">
-                  +{MOCK_SUMMARY.revenueTrend}% {t('playtelecom:sales.vsLastMonth', { defaultValue: 'vs mes anterior' })}
-                </span>
-              </div>
+              {isLoadingSummary ? (
+                <div className="h-9 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-3xl font-black mt-1">{formatCurrency(summary?.totalRevenue ?? 0)}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="w-3 h-3 text-green-500" />
+                    <span className="text-[10px] text-green-500 font-bold">
+                      {summary?.totalCount ?? 0} {t('playtelecom:sales.transactions', { defaultValue: 'transacciones' })}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             <div className="size-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-green-500" />
@@ -412,13 +576,21 @@ export function SalesReport() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 {t('playtelecom:sales.salesVolume', { defaultValue: 'Volumen Ventas' })}
               </p>
-              <p className="text-3xl font-black mt-1">
-                {MOCK_SUMMARY.totalUnits.toLocaleString()}{' '}
-                <span className="text-sm text-muted-foreground font-medium">SIMs</span>
-              </p>
-              <span className="text-[10px] text-muted-foreground font-bold mt-1">
-                {MOCK_SUMMARY.avgPerDay} {t('playtelecom:sales.salesPerDayAvg', { defaultValue: 'ventas/día prom.' })}
-              </span>
+              {isLoadingSummary ? (
+                <div className="h-9 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-3xl font-black mt-1">
+                    {(summary?.totalCount ?? 0).toLocaleString()}{' '}
+                    <span className="text-sm text-muted-foreground font-medium">ventas</span>
+                  </p>
+                  <span className="text-[10px] text-muted-foreground font-bold mt-1">
+                    {summary?.conciliatedCount ?? 0} {t('playtelecom:sales.conciliatedShort', { defaultValue: 'conciliadas' })}
+                  </span>
+                </>
+              )}
             </div>
             <div className="size-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
               <ShoppingCart className="w-6 h-6 text-blue-500" />
@@ -433,10 +605,18 @@ export function SalesReport() {
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                 {t('playtelecom:sales.avgTicket')}
               </p>
-              <p className="text-3xl font-black mt-1">{formatCurrency(MOCK_SUMMARY.avgTicket)}</p>
-              <span className="text-[10px] text-orange-500 font-bold mt-1">
-                {t('playtelecom:sales.planPlusRecharges', { defaultValue: 'Plan $200 + Recargas', plan: MOCK_SUMMARY.topPlan })}
-              </span>
+              {isLoadingSummary ? (
+                <div className="h-9 flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-3xl font-black mt-1">{formatCurrency(summary?.avgAmount ?? 0)}</p>
+                  <span className="text-[10px] text-orange-500 font-bold mt-1">
+                    {summary?.pendingCount ?? 0} {t('playtelecom:sales.pendingShort', { defaultValue: 'pendientes' })}
+                  </span>
+                </>
+              )}
             </div>
             <div className="size-12 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
               <Receipt className="w-6 h-6 text-orange-500" />
@@ -459,11 +639,11 @@ export function SalesReport() {
           </div>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_REVENUE_TREND} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <AreaChart data={chartData.revenue} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" className="stroke-border/30" />
@@ -485,7 +665,7 @@ export function SalesReport() {
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="hsl(var(--primary))"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   fill="url(#revenueGradient)"
                 />
@@ -506,7 +686,7 @@ export function SalesReport() {
           </div>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={MOCK_VOLUME_TREND} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+              <BarChart data={chartData.volume} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="4 4" className="stroke-border/30" />
                 <XAxis
                   dataKey="day"
@@ -545,12 +725,18 @@ export function SalesReport() {
           <div className="flex gap-2">
             <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
               <span className="size-2 bg-green-500 rounded-full mr-1" />
-              {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {MOCK_SUMMARY.conciliatedCount.toLocaleString()}
+              {t('playtelecom:sales.conciliated', { defaultValue: 'Conciliadas' })}: {(summary?.conciliatedCount ?? 0).toLocaleString()}
             </span>
             <span className="bg-background border border-border text-muted-foreground text-[10px] font-bold px-2 py-1 rounded flex items-center">
               <span className="size-2 bg-yellow-400 rounded-full mr-1" />
-              {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {MOCK_SUMMARY.pendingCount}
+              {t('playtelecom:sales.pending', { defaultValue: 'Pendientes' })}: {summary?.pendingCount ?? 0}
             </span>
+            {(summary?.withoutVerificationCount ?? 0) > 0 && (
+              <span className="bg-background border border-amber-300 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-1 rounded flex items-center">
+                <AlertTriangle className="size-3 mr-1" />
+                {t('playtelecom:sales.withoutEvidence', { defaultValue: 'Sin evidencia' })}: {summary?.withoutVerificationCount ?? 0}
+              </span>
+            )}
           </div>
         </div>
 
@@ -559,7 +745,7 @@ export function SalesReport() {
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={t('playtelecom:sales.searchPlaceholder', { defaultValue: 'Buscar por ID, tienda, ICCID...' })}
+              placeholder={t('playtelecom:sales.searchPlaceholder', { defaultValue: 'Buscar por ID, nombre...' })}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -573,13 +759,7 @@ export function SalesReport() {
             <thead className="bg-background border-b border-border/50">
               <tr>
                 <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground">
-                  {t('playtelecom:sales.saleIdDate', { defaultValue: 'ID Venta / Fecha' })}
-                </th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground">
-                  {t('playtelecom:sales.store')}
-                </th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground">
-                  {t('playtelecom:sales.productIccid', { defaultValue: 'Producto / ICCID' })}
+                  {t('playtelecom:sales.paymentIdDate', { defaultValue: 'ID Pago / Fecha' })}
                 </th>
                 <th className="px-6 py-4 font-black text-[10px] uppercase text-muted-foreground text-center">
                   {t('playtelecom:sales.proofOfSale', { defaultValue: 'Evidencia Registro' })}
@@ -596,97 +776,123 @@ export function SalesReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {paginatedSales.map(sale => (
-                <tr key={sale.id} className="hover:bg-muted/30 transition-colors">
-                  {/* ID & Date */}
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-primary text-xs">#{sale.id}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{formatDate(sale.date)}</p>
-                  </td>
-
-                  {/* Store */}
-                  <td className="px-6 py-4 text-xs font-bold">{sale.store}</td>
-
-                  {/* Product & ICCID */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded', PRODUCT_TYPE_COLORS[sale.productType])}>
-                        {sale.product}
-                      </span>
-                    </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => copyIccid(sale.iccid)}
-                            className="text-[10px] text-muted-foreground font-mono mt-1 flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
-                          >
-                            <Hash className="w-3 h-3" />
-                            {formatIccid(sale.iccid)}
-                            <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t('playtelecom:sales.clickToCopy', { defaultValue: 'Clic para copiar' })}</p>
-                          <p className="font-mono text-xs">{sale.iccid}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </td>
-
-                  {/* Proof of Sale */}
-                  <td className="px-6 py-4 text-center">
-                    {sale.proofOfSale ? (
-                      <button
-                        onClick={() => setPreviewImage(sale.proofOfSale!)}
-                        className="relative group inline-block cursor-pointer"
-                      >
-                        <img
-                          src={sale.proofOfSale}
-                          alt={t('playtelecom:sales.proofOfSale')}
-                          className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded transition-colors flex items-center justify-center">
-                          <Search className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                      </button>
-                    ) : (
-                      <span className="text-[9px] text-muted-foreground italic">
-                        {t('playtelecom:sales.notRequired', { defaultValue: 'No requiere' })}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Seller */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={sale.seller.avatar}
-                        alt={sale.seller.name}
-                        className="size-6 rounded-full"
-                      />
-                      <span className="text-xs font-bold">{sale.seller.name}</span>
-                    </div>
-                  </td>
-
-                  {/* Amount */}
-                  <td className="px-6 py-4 text-right font-black">
-                    {formatCurrency(sale.amount)}
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-4 text-center">
-                    <span
-                      className={cn(
-                        'px-2 py-0.5 rounded text-[9px] font-black border',
-                        STATUS_CONFIG[sale.status].className
-                      )}
-                    >
-                      {STATUS_CONFIG[sale.status].label}
-                    </span>
+              {isLoadingVerifications ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {t('common:loading', { defaultValue: 'Cargando...' })}
+                    </p>
                   </td>
                 </tr>
-              ))}
+              ) : verifications.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <Receipt className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      {t('playtelecom:sales.noVerifications', { defaultValue: 'No hay verificaciones de venta' })}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                verifications.map(verification => (
+                  <tr key={verification.id} className="hover:bg-muted/30 transition-colors">
+                    {/* ID & Date */}
+                    <td className="px-6 py-4">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => copyPaymentId(verification.paymentId)}
+                              className="font-bold text-primary text-xs flex items-center gap-1 hover:text-primary/80 transition-colors cursor-pointer"
+                            >
+                              <Hash className="w-3 h-3" />
+                              {formatPaymentId(verification.paymentId)}
+                              <Copy className="w-3 h-3 opacity-50" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('playtelecom:sales.clickToCopy', { defaultValue: 'Clic para copiar' })}</p>
+                            <p className="font-mono text-xs">{verification.paymentId}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                        {formatDate(verification.createdAt)}
+                      </p>
+                    </td>
+
+                    {/* Proof of Sale */}
+                    <td className="px-6 py-4 text-center">
+                      {verification.photos.length > 0 ? (
+                        <button
+                          onClick={() => {
+                            setPreviewImages(verification.photos)
+                            setPreviewIndex(0)
+                          }}
+                          className="relative group inline-block cursor-pointer"
+                        >
+                          <img
+                            src={verification.photos[0]}
+                            alt={t('playtelecom:sales.proofOfSale')}
+                            className="h-10 w-16 object-cover rounded border border-border shadow-sm transition-all group-hover:shadow-md group-hover:scale-105"
+                          />
+                          {verification.photos.length > 1 && (
+                            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                              +{verification.photos.length - 1}
+                            </span>
+                          )}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded transition-colors flex items-center justify-center">
+                            <Search className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-flex items-center justify-center gap-1 text-amber-500">
+                                <AlertTriangle className="w-4 h-4" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t('playtelecom:sales.noVerification', { defaultValue: 'Sin evidencia de registro' })}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </td>
+
+                    {/* Seller */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={getStaffAvatar(verification)}
+                          alt={getStaffName(verification)}
+                          className="size-6 rounded-full"
+                        />
+                        <span className="text-xs font-bold">{getStaffName(verification)}</span>
+                      </div>
+                    </td>
+
+                    {/* Amount */}
+                    <td className="px-6 py-4 text-right font-black">
+                      {formatCurrency(verification.payment?.amount ?? 0)}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[9px] font-black border',
+                          STATUS_CONFIG[verification.status]?.className ?? STATUS_CONFIG.PENDING.className
+                        )}
+                      >
+                        {STATUS_CONFIG[verification.status]?.label ?? verification.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -696,8 +902,8 @@ export function SalesReport() {
           <p className="text-[10px] text-muted-foreground font-bold">
             {t('playtelecom:sales.showingOf', {
               defaultValue: 'Mostrando {{current}} de {{total}} ventas',
-              current: paginatedSales.length,
-              total: filteredSales.length,
+              current: verifications.length,
+              total: pagination?.totalCount ?? 0,
             })}
           </p>
           <div className="flex gap-2">
@@ -726,21 +932,46 @@ export function SalesReport() {
       </GlassCard>
 
       {/* Image Preview Modal */}
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+      <Dialog open={!!previewImages} onOpenChange={() => setPreviewImages(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5" />
               {t('playtelecom:sales.proofOfSale')}
+              {previewImages && previewImages.length > 1 && (
+                <span className="text-sm text-muted-foreground font-normal">
+                  ({previewIndex + 1} / {previewImages.length})
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
-          {previewImage && (
+          {previewImages && (
             <div className="relative">
               <img
-                src={previewImage}
+                src={previewImages[previewIndex]}
                 alt={t('playtelecom:sales.proofOfSale')}
                 className="w-full h-auto rounded-lg"
               />
+              {previewImages.length > 1 && (
+                <div className="flex justify-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={previewIndex === 0}
+                    onClick={() => setPreviewIndex(i => i - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={previewIndex >= previewImages.length - 1}
+                    onClick={() => setPreviewIndex(i => i + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

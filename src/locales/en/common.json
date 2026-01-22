@@ -490,5 +490,7 @@
     "description": "An unexpected error has occurred. Please try again.",
     "goHome": "Go to home",
     "retry": "Retry"
-  }
+  },
+  "yes": "Yes",
+  "no": "No"
 }

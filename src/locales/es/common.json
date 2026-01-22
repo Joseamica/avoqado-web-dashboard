@@ -493,5 +493,7 @@
     "description": "Ha ocurrido un error inesperado. Por favor, intenta de nuevo.",
     "goHome": "Ir al inicio",
     "retry": "Reintentar"
-  }
+  },
+  "yes": "Sí",
+  "no": "No"
 }

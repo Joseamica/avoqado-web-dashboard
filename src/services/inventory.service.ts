@@ -75,6 +75,16 @@ export const rawMaterialsApi = {
 
   getById: (venueId: string, rawMaterialId: string) => api.get(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials/${rawMaterialId}`),
 
+  // Check if a SKU already exists (for validation)
+  checkSkuExists: async (venueId: string, sku: string, excludeId?: string): Promise<boolean> => {
+    const response = await api.get<{ data: RawMaterial[] }>(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials`, {
+      params: { search: sku }
+    })
+    const materials = response.data?.data || []
+    // Check for exact SKU match (case-insensitive), excluding the current item if editing
+    return materials.some(m => m.sku.toLowerCase() === sku.toLowerCase() && m.id !== excludeId)
+  },
+
   create: (venueId: string, data: CreateRawMaterialDto) => api.post(`/api/v1/dashboard/venues/${venueId}/inventory/raw-materials`, data),
 
   update: (venueId: string, rawMaterialId: string, data: UpdateRawMaterialDto) =>

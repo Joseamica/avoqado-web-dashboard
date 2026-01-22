@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { rawMaterialsApi, type RawMaterial } from '@/services/inventory.service'
-import { Loader2, ChefHat, ExternalLink } from 'lucide-react'
+import { Loader2, ChefHat, ExternalLink, Plus } from 'lucide-react'
 import { Currency } from '@/utils/currency'
 
 interface RecipeUsageDialogProps {
@@ -33,7 +34,8 @@ interface ProductWithRecipe {
 
 export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeClick }: RecipeUsageDialogProps) {
   const { t } = useTranslation('inventory')
-  const { venueId } = useCurrentVenue()
+  const { venueId, fullBasePath } = useCurrentVenue()
+  const navigate = useNavigate()
 
   const { data: recipesData, isLoading } = useQuery({
     queryKey: ['rawMaterialRecipes', venueId, rawMaterial?.id],
@@ -61,11 +63,27 @@ export function RecipeUsageDialog({ open, onOpenChange, rawMaterial, onRecipeCli
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : recipes.length === 0 ? (
-          <Alert>
-            <AlertDescription>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <ChefHat className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">
               {t('rawMaterials.usage.noRecipes')}
-            </AlertDescription>
-          </Alert>
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {t('rawMaterials.usage.noRecipesHint')}
+            </p>
+            <Button
+              onClick={() => {
+                onOpenChange(false)
+                navigate(`${fullBasePath}/inventory/recipes`)
+              }}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {t('rawMaterials.usage.goToRecipes')}
+            </Button>
+          </div>
         ) : (
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-3">
