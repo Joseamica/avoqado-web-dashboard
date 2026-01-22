@@ -60,19 +60,22 @@ export function useUnitTranslation() {
    * Format a unit with quantity, handling pluralization
    * @param quantity - The quantity value
    * @param unitEnum - The unit enum value (e.g., 'KILOGRAM', 'LITER')
-   * @returns Formatted string like "304 Unidades" or "1 Unidad"
+   * @param abbreviated - Whether to use abbreviated form (e.g., "kg" instead of "kilogramo")
+   * @returns Formatted string like "kilogramos" or "kgs" (if abbreviated)
    */
   const formatUnitWithQuantity = useCallback(
-    (quantity: number, unitEnum: string): string => {
+    (quantity: number, unitEnum: string, abbreviated: boolean = false): string => {
       if (!unitEnum) return ''
 
       const isPlural = quantity !== 1
-      const translationKey = isPlural ? `units.${unitEnum}_plural` : `units.${unitEnum}`
+      const suffix = abbreviated ? '_abbr' : ''
+      const pluralSuffix = isPlural ? '_plural' : ''
+      const translationKey = `units.${unitEnum}${suffix}${pluralSuffix}`
 
-      // Try to get plural translation, fallback to singular with 's' added
+      // Try to get translation, fallback to singular with 's' added
       const translatedName = isPlural
-        ? t(translationKey, t(`units.${unitEnum}`) + 's') // Fallback: add 's' to singular
-        : t(`units.${unitEnum}`, unitEnum)
+        ? t(translationKey, t(`units.${unitEnum}${suffix}`) + 's') // Fallback: add 's' to singular
+        : t(`units.${unitEnum}${suffix}`, unitEnum)
 
       return translatedName
     },

@@ -15,6 +15,7 @@ and maintain visual coherence across the application.
 - [Searchable Multi-Select (Long Lists)](#searchable-multi-select-long-lists)
 - [Live Preview Layout (Bento Grid)](#live-preview-layout-bento-grid)
 - [Unit Translation (MANDATORY)](#unit-translation-mandatory)
+- [FullScreenModal (Table Detail View Pattern)](#fullscreenmodal-table-detail-view-pattern)
 
 ---
 
@@ -1885,3 +1886,271 @@ const { formatUnitWithQuantity } = useUnitTranslation()
 <span>{qty} {formatUnitWithQuantity(qty, unit)}</span>
 // "1 kilogramo" or "2 kilogramos" ✅
 ```
+
+---
+
+## FullScreenModal (Table Detail View Pattern)
+
+**When to use:** Instead of navigating from a table row to a detail route (e.g., `/promoters/:id`), use FullScreenModal to show detailed information in an overlay that slides up from the bottom.
+
+**Why this pattern:**
+- **Context preservation**: User stays on the same page, can easily close and continue browsing the table
+- **No route change**: Avoids additional navigation state, back button complexity
+- **Visual continuity**: Square-style UX where detail views feel like part of the current flow
+- **Mobile-friendly**: Slide-up animation is natural for mobile users
+
+**Pattern characteristics:**
+- Full-screen overlay covering everything (header, sidebar, content)
+- Slide-up animation from bottom to top (300ms)
+- Highest z-index (`z-[9999]`) to cover all UI elements
+- Sticky header with: close button (left), title (center), action buttons (right)
+- Scrollable content area
+- ESC key to close
+
+### Visual Specifications
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [X Close]           Title                    [Save] [More]  │  ← Sticky header
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│                                                              │
+│                     Scrollable Content                       │
+│                                                              │
+│              (Charts, forms, details, etc.)                  │
+│                                                              │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Header Height**: 64px (`h-16`)
+- **Close Button**: 48x48px rounded-full (`h-12 w-12`), `variant="secondary"` (always shows hover state)
+- **Header Border**: Subtle border (`border-b border-border/30`)
+- **Animation**: `translate-y-full` → `translate-y-0` (300ms ease-out)
+- **Z-Index**: `z-[9999]` (covers everything)
+
+### When to Use FullScreenModal vs Route Navigation
+
+| Scenario | Pattern | Why |
+|----------|---------|-----|
+| **Table → Quick view** | FullScreenModal ✅ | User will return to table quickly |
+| **Table → Full edit page** | Route (`/:id`) | Complex editing with sub-navigation |
+| **Table → View + possible edit** | FullScreenModal ✅ | Keep context, show details first |
+| **Dashboard → Deep detail** | Route (`/:id`) | Needs URL sharing, bookmarking |
+| **Audit/Review workflows** | FullScreenModal ✅ | Review multiple items without losing place |
+
+### Code Example - Component Usage
+
+```typescript
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
+import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+
+export function MyTablePage() {
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const handleRowClick = (item: Item) => {
+    setSelectedItem(item)
+    setModalOpen(true)
+  }
+
+  return (
+    <>
+      <DataTable
+        data={items}
+        columns={columns}
+        onRowClick={handleRowClick}
+      />
+
+      <FullScreenModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={selectedItem?.name || ''}
+        actions={
+          <>
+            <Button variant="outline" size="sm">
+              {t('export')}
+            </Button>
+            <Button size="sm">
+              {t('save')}
+            </Button>
+          </>
+        }
+      >
+        {selectedItem && (
+          <div className="p-6 max-w-7xl mx-auto space-y-6">
+            {/* Detail content: charts, info cards, forms, etc. */}
+            <PromoterCharts data={selectedItem} />
+            <DetailCards item={selectedItem} />
+          </div>
+        )}
+      </FullScreenModal>
+    </>
+  )
+}
+```
+
+### Component Props
+
+```typescript
+interface FullScreenModalProps {
+  /** Controls modal visibility */
+  open: boolean
+  /** Callback when modal should close (X button, ESC key) */
+  onClose: () => void
+  /** Title displayed in center of header */
+  title: string
+  /** Modal content */
+  children: React.ReactNode
+  /** Optional action buttons for the right side of the header */
+  actions?: React.ReactNode
+  /** Optional className for the content container */
+  contentClassName?: string
+}
+```
+
+### Component Implementation
+
+The component uses React Portal to render outside the DOM hierarchy, ensuring it covers all UI elements:
+
+```typescript
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+export function FullScreenModal({
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  contentClassName,
+}: FullScreenModalProps) {
+  const [isVisible, setIsVisible] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true)
+      // Trigger animation after mount (next frame)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true)
+        })
+      })
+      document.body.style.overflow = 'hidden'
+    } else {
+      setIsAnimating(false)
+      // Wait for animation before unmounting
+      const timer = setTimeout(() => {
+        setIsVisible(false)
+        document.body.style.overflow = ''
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && open) onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [open, onClose])
+
+  if (!isVisible) return null
+
+  return createPortal(
+    <div
+      className={cn(
+        'fixed inset-0 z-[9999] flex flex-col bg-background',
+        'transition-transform duration-300 ease-out',
+        isAnimating ? 'translate-y-0' : 'translate-y-full'
+      )}
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-background px-4 border-b border-border/30">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={onClose}
+          className="h-12 w-12 rounded-full"
+        >
+          <X className="h-6 w-6" />
+          <span className="sr-only">Cerrar</span>
+        </Button>
+
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold">
+          {title}
+        </h1>
+
+        <div className="flex items-center gap-2">
+          {actions}
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className={cn('flex-1 overflow-y-auto', contentClassName)}>
+        {children}
+      </main>
+    </div>,
+    document.body
+  )
+}
+```
+
+### Key Implementation Details
+
+| Feature | Implementation | Why |
+|---------|----------------|-----|
+| **React Portal** | `createPortal(..., document.body)` | Renders outside React tree to cover sidebar/header |
+| **Double RAF** | `requestAnimationFrame` twice | Ensures DOM is ready before animation starts |
+| **Body scroll lock** | `document.body.style.overflow = 'hidden'` | Prevents background scrolling |
+| **Animation timing** | 300ms timeout matches CSS duration | Smooth unmount after exit animation |
+| **ESC key** | `document.addEventListener('keydown', ...)` | Standard modal UX |
+
+### Real-World Usage
+
+**Examples in codebase:**
+
+- `/src/components/ui/full-screen-modal.tsx` - **Component implementation**
+- `/src/pages/playtelecom/PromotersAudit/PromotersAuditPage.tsx` - **Reference usage** (promoter detail view)
+
+**Where to apply:**
+
+- ✅ Staff audit/attendance table → detail view
+- ✅ Transaction table → receipt/detail view
+- ✅ Order table → quick order review
+- ✅ Any table where clicking a row shows extended info
+- ❌ Complex edit flows requiring sub-navigation
+- ❌ Pages that need to be bookmarkable/shareable via URL
+- ❌ Multi-step wizards (use Dialog with steps instead)
+
+### Accessibility
+
+- **ESC key**: Closes modal (standard behavior)
+- **Focus trap**: Content is scrollable, header stays fixed
+- **Screen reader**: Close button has `sr-only` label
+- **Body scroll lock**: Prevents confusing scroll behavior
+- **High z-index**: Ensures modal is always on top
+
+### Migration Checklist
+
+When converting a `table → /:id` pattern to FullScreenModal:
+
+- [ ] Import `FullScreenModal` from `@/components/ui/full-screen-modal`
+- [ ] Add state: `const [selectedItem, setSelectedItem] = useState(null)`
+- [ ] Add state: `const [modalOpen, setModalOpen] = useState(false)`
+- [ ] Replace `clickableRow` with `onRowClick` handler
+- [ ] Move detail page content into `FullScreenModal` children
+- [ ] Add action buttons to `actions` prop if needed
+- [ ] Test ESC key closes modal
+- [ ] Test animation is smooth
+- [ ] Test scrolling works in content area

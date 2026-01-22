@@ -398,7 +398,13 @@
     "paymentSectionDesc": "Configura el flujo de cobro y opciones de recibo",
     "securitySection": "Seguridad y Verificación",
     "securitySectionDesc": "Control de acceso y validación de ventas",
-    "attendanceSectionDesc": "Configuración del reloj checador"
+    "attendanceSectionDesc": "Configuración del reloj checador",
+    "homeScreenSection": "Pantalla de Inicio",
+    "homeScreenSectionDesc": "Configura los botones visibles en la pantalla principal",
+    "showQuickPayment": "Mostrar Pago Rápido",
+    "showQuickPaymentDesc": "Muestra el botón de pago rápido en la pantalla de inicio",
+    "showOrderManagement": "Mostrar Órdenes",
+    "showOrderManagementDesc": "Muestra el botón de gestión de órdenes en la pantalla de inicio"
   },
   "activation": {
     "title": "Activar Terminal",

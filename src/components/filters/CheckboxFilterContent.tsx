@@ -20,6 +20,7 @@ interface CheckboxFilterContentProps {
   searchPlaceholder?: string
   applyLabel?: string
   clearLabel?: string
+  emptyLabel?: string
 }
 
 /**
@@ -36,6 +37,7 @@ export function CheckboxFilterContent({
   searchPlaceholder = 'Buscar...',
   applyLabel = 'Aplicar',
   clearLabel = 'Limpiar',
+  emptyLabel = 'Sin resultados',
 }: CheckboxFilterContentProps) {
   const [localSelected, setLocalSelected] = useState<string[]>(selectedValues)
   const [searchTerm, setSearchTerm] = useState('')
@@ -79,7 +81,7 @@ export function CheckboxFilterContent({
 
       <div className="max-h-[240px] overflow-y-auto p-2">
         {filteredOptions.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">Sin resultados</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">{emptyLabel}</p>
         ) : (
           <div className="space-y-1">
             {filteredOptions.map(option => (

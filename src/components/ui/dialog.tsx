@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { VisuallyHidden } from './visually-hidden'
+import { useIsInsideFullScreenModal } from './full-screen-modal'
 
 const Dialog = DialogPrimitive.Root
 
@@ -32,11 +33,18 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   hasTitle?: boolean
   defaultTitle?: string
+  /** Custom className for the overlay (useful for z-index when opening dialog above FullScreenModal) */
+  overlayClassName?: string
 }
 
 const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, DialogContentProps>(
-  ({ className, children, hasTitle, defaultTitle: _defaultTitle = 'Dialog', ...props }, ref) => {
+  ({ className, children, hasTitle, defaultTitle: _defaultTitle = 'Dialog', overlayClassName, ...props }, ref) => {
     const { t } = useTranslation()
+
+    // Auto-detect if we're inside a FullScreenModal and need higher z-index
+    const isInsideFullScreenModal = useIsInsideFullScreenModal()
+    const aboveModalZIndex = isInsideFullScreenModal ? 'z-[10000]' : ''
+
     // Check if any child is a DialogTitle
     const hasExplicitTitle = React.Children.toArray(children).some(
       (child) => React.isValidElement(child) && child.type === DialogTitle,
@@ -57,11 +65,12 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
 
     return (
       <DialogPortal>
-        <DialogOverlay />
+        <DialogOverlay className={cn(aboveModalZIndex, overlayClassName)} />
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
             'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 text-foreground shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg',
+            aboveModalZIndex,
             className,
           )}
           onOpenAutoFocus={handleOpenAutoFocus}
