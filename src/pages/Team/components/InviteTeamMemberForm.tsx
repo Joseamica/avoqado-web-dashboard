@@ -180,7 +180,7 @@ export default function InviteTeamMemberForm({ venueId, onSuccess }: InviteTeamM
           })
           setShowResendDialog(false)
         }
-      } catch (error) {
+      } catch (_error) {
         toast({
           title: tCommon('error'),
           description: t('invite.invitationError'),

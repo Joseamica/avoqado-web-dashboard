@@ -412,7 +412,7 @@ function RulesTab({ discount, t }: TabProps) {
 }
 
 function ConfigTab({ discount, t }: TabProps) {
-  const { t: tCommon } = useTranslation()
+  const { t: _tCommon } = useTranslation()
 
   return (
     <Card>

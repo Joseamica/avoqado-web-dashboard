@@ -48,7 +48,7 @@ import { PeriodBreakdownTable } from './components/PeriodBreakdownTable'
 // ============================================
 // Payment Method Mapping
 // ============================================
-const PAYMENT_METHOD_DISPLAY: Record<string, { key: 'card' | 'cash' | 'other'; color: string }> = {
+const _PAYMENT_METHOD_DISPLAY: Record<string, { key: 'card' | 'cash' | 'other'; color: string }> = {
   CARD: { key: 'card', color: 'bg-blue-500' },
   CASH: { key: 'cash', color: 'bg-green-500' },
   TRANSFER: { key: 'other', color: 'bg-orange-500' },
@@ -632,7 +632,7 @@ export default function SalesSummary() {
 
   // State for collapsible summary rows (Square-style hierarchy)
   const [grossSalesOpen, setGrossSalesOpen] = useState(true)
-  const [discountsOpen, setDiscountsOpen] = useState(true)
+  const [_discountsOpen, _setDiscountsOpen] = useState(true)
 
   // State for export sheet
   const [exportOpen, setExportOpen] = useState(false)

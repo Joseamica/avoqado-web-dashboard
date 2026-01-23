@@ -66,7 +66,7 @@ interface AddIngredientForm {
 
 export function AddIngredientDialog({ open, onOpenChange, product, mode, onAddTempIngredient }: AddIngredientDialogProps) {
   const { t } = useTranslation('inventory')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
   const { t: tMenu } = useTranslation('menu')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()

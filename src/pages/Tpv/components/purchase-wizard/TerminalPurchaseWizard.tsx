@@ -1,22 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react'
 
+import api from '@/api'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Form } from '@/components/ui/form'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
-import api from '@/api'
+import { useToast } from '@/hooks/use-toast'
 
 import { Step1Configuration, Step1Data } from './wizard-steps/Step1Configuration'
-import { Step2ShippingInfo, Step2Data } from './wizard-steps/Step2ShippingInfo'
-import { Step3PaymentMethod, Step3Data } from './wizard-steps/Step3PaymentMethod'
-import { Step4ReviewConfirm, Step4Data } from './wizard-steps/Step4ReviewConfirm'
+import { Step2Data, Step2ShippingInfo } from './wizard-steps/Step2ShippingInfo'
+import { Step3Data, Step3PaymentMethod } from './wizard-steps/Step3PaymentMethod'
+import { Step4Data, Step4ReviewConfirm } from './wizard-steps/Step4ReviewConfirm'
 
 interface TerminalPurchaseWizardProps {
   open: boolean
@@ -33,7 +33,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { venue, venueId, venueSlug, fullBasePath } = useCurrentVenue()
+  const { venue, venueId, fullBasePath } = useCurrentVenue()
 
   const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null)
@@ -217,13 +217,7 @@ export function TerminalPurchaseWizard({ open, onOpenChange, onSuccess }: Termin
         if (venue) {
           // Check if venue has complete data
           const hasCompleteData = Boolean(
-            venue.name &&
-            venue.email &&
-            venue.phone &&
-            venue.address &&
-            venue.city &&
-            venue.state &&
-            venue.zipCode
+            venue.name && venue.email && venue.phone && venue.address && venue.city && venue.state && venue.zipCode,
           )
 
           console.log('🔧 Pre-filling Step 2 with venue data:', {

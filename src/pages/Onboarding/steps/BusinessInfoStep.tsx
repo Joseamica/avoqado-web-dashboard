@@ -33,7 +33,7 @@ interface BusinessInfoStepProps extends OnboardingStepProps {
 
 export function BusinessInfoStep({ onNext, onPrevious, isFirstStep, onSave, initialValue }: BusinessInfoStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
 
   // Form validation schema
   const formSchema = z.object({

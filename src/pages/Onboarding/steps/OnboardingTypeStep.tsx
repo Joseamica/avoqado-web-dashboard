@@ -15,7 +15,7 @@ interface OnboardingTypeStepProps extends OnboardingStepProps {
 
 export function OnboardingTypeStep({ onNext, onPrevious, isFirstStep, onSelect, initialValue }: OnboardingTypeStepProps) {
   const { t } = useTranslation('onboarding')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
   const [selectedType, setSelectedType] = useState<OnboardingType | null>(initialValue || null)
 
   const handleSelect = (type: OnboardingType) => {

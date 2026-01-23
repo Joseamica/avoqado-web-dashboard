@@ -117,7 +117,7 @@ const movementTypeLabel = (type: string) => {
 export default function InventoryHistory() {
   const { t } = useTranslation('inventory')
   const { venueId, venue } = useCurrentVenue()
-  const { formatUnitWithQuantity } = useUnitTranslation()
+  const { formatUnitWithQuantity: _formatUnitWithQuantity } = useUnitTranslation()
 
   // Filters State - Multi-select arrays (ordered by column position)
   const [searchQuery, setSearchQuery] = useState('')
@@ -148,7 +148,7 @@ export default function InventoryHistory() {
     enabled: !!venueId,
   })
 
-  const movements = (data as any)?.data || []
+  const movements = useMemo(() => (data as any)?.data || [], [data])
 
   // Extract unique filter options from data (ordered by column position)
   const typeOptions = useMemo(() => {
@@ -251,14 +251,16 @@ export default function InventoryHistory() {
         }
       }
 
-      // Total cost filter - only applies to PURCHASE/RETURN movements
+      // Total cost filter - applies to all movements with cost
       if (totalCostFilter) {
-        const showCostTypes = ['PURCHASE', 'RETURN']
-        if (!showCostTypes.includes(movement.type)) {
-          return false // Exclude non-purchase movements when filtering by cost
-        }
         const unitCost = movement.unitCost || movement.cost || 0
-        const totalCost = movement.totalCost || (Math.abs(movement.quantity) * unitCost) || 0
+        if (!unitCost) {
+          return false // Exclude movements without cost when filtering by cost
+        }
+        const qty = movement.quantity
+          ? Math.abs(movement.quantity)
+          : Math.abs(movement.newStock - movement.previousStock)
+        const totalCost = movement.totalCost || (qty * unitCost) || 0
         switch (totalCostFilter.operator) {
           case 'gt':
             if (totalCost <= (totalCostFilter.value || 0)) return false
@@ -409,19 +411,22 @@ export default function InventoryHistory() {
         header: t('history.totalCost', { defaultValue: 'Coste total' }),
         cell: ({ row }) => {
             const movement = row.original as any
-            // Only show cost for purchases/receives/returns (movements where you pay for inventory)
-            // Sales, usage, losses don't have an associated purchase cost
-            const showCostTypes = ['PURCHASE', 'RETURN']
-            if (!showCostTypes.includes(movement.type)) {
-              return <span className="text-muted-foreground">-</span>
-            }
-            // Use totalCost if available, otherwise calculate from quantity * unitCost
+            // Calculate total cost for movements that have cost impact:
+            // - PURCHASE/RECEIVED: acquisition cost
+            // - COUNT: value impact of the adjustment (quantity × unit cost)
+            // - LOSS/WASTE: value of lost inventory
             const unitCost = movement.unitCost || movement.cost || 0
             if (!unitCost) {
               return <span className="text-muted-foreground">-</span>
             }
-            const totalCost = movement.totalCost || (Math.abs(movement.quantity) * unitCost)
-            return <span className="font-medium">{totalCost > 0 ? `$${totalCost.toFixed(2)}` : '-'}</span>
+
+            // Calculate quantity for cost calculation
+            const qty = movement.quantity
+              ? Math.abs(movement.quantity)
+              : Math.abs(movement.newStock - movement.previousStock)
+
+            const totalCost = movement.totalCost || (qty * unitCost)
+            return <span className="font-medium">{totalCost > 0 ? Currency(totalCost) : '-'}</span>
         },
       },
       {

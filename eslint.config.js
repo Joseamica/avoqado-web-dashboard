@@ -40,9 +40,19 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': 'off', // Disable in favor of unused-imports
       // Auto-fixable unused imports detection
       'unused-imports/no-unused-imports': 'warn',
+      // Industry-standard unused vars config (Airbnb, Vercel, Next.js pattern)
+      // All underscore-prefixed variables are ignored: _error, _unused, etc.
       'unused-imports/no-unused-vars': [
         'warn',
-        { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' }
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',        // Allows: catch (_error) { ... }
+          destructuredArrayIgnorePattern: '^_',   // Allows: const [_first, second] = arr
+          ignoreRestSiblings: true,               // Allows: const { id, ...rest } = obj (id unused)
+        }
       ],
       // Workaround for ESLint 9 + @typescript-eslint interaction on no-unused-expressions
       '@typescript-eslint/no-unused-expressions': 'off',

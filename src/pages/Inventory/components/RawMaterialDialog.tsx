@@ -25,7 +25,7 @@ interface RawMaterialDialogProps {
 
 export function RawMaterialDialog({ open, onOpenChange, mode, rawMaterial }: RawMaterialDialogProps) {
   const { t } = useTranslation('inventory')
-  const { t: tCommon } = useTranslation('common')
+  const { t: _tCommon } = useTranslation('common')
   const { venueId } = useCurrentVenue()
   const { toast } = useToast()
   const queryClient = useQueryClient()

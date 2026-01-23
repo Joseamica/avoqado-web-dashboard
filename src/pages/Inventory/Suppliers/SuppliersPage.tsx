@@ -60,7 +60,7 @@ export default function SuppliersPage() {
   const {
     data,
     isLoading,
-    refetch,
+    refetch: _refetch,
   } = useQuery({
     queryKey: ['suppliers', venueId, debouncedSearchTerm],
     queryFn: async () => {

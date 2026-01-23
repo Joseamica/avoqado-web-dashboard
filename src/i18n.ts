@@ -132,7 +132,7 @@ const simpleDetector = {
     try {
       const persisted = (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || ''
       if (persisted && (persisted.startsWith('en') || persisted.startsWith('es'))) return persisted.slice(0, 2)
-    } catch (e) {
+    } catch (_e) {
       // ignore storage read errors (e.g., privacy mode)
     }
     if (typeof navigator !== 'undefined') {
@@ -148,7 +148,7 @@ const simpleDetector = {
   cacheUserLanguage(lng: string) {
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem('lang', lng)
-    } catch (e) {
+    } catch (_e) {
       // ignore storage write errors (e.g., privacy mode)
     }
   },

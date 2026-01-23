@@ -94,7 +94,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   })
 
   // Tax state
-  const [taxEnabled, setTaxEnabled] = useState(false)
+  const [_taxEnabled, setTaxEnabled] = useState(false)
   const [taxDialogOpen, setTaxDialogOpen] = useState(false)
   const [taxType, setTaxType] = useState<'percentage' | 'fixed'>('percentage')
 
@@ -395,7 +395,7 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
             toast({ description: t('messages.createSuccess') })
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Error handling is already done in mutation's onError
         if (!saveAsDraft) {
           toast({

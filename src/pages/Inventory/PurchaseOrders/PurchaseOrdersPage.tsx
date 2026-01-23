@@ -408,7 +408,7 @@ export default function PurchaseOrdersPage() {
       link.click()
       URL.revokeObjectURL(url)
       toast({ description: t('actions.pdfDownloaded', { defaultValue: 'PDF descargado' }) })
-    } catch (error) {
+    } catch (_error) {
       toast({
         description: t('actions.pdfError', { defaultValue: 'Error al generar PDF' }),
         variant: 'destructive',

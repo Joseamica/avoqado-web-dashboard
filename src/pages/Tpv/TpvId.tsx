@@ -361,7 +361,7 @@ export default function TpvId() {
         description: 'La cuenta de comercio se ha asignado a la terminal',
       })
       setMerchantAccountToLink('')
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -386,7 +386,7 @@ export default function TpvId() {
         title: 'Cuenta desvinculada',
         description: 'La cuenta de comercio se ha removido de la terminal',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         variant: 'destructive',
         title: 'Error',

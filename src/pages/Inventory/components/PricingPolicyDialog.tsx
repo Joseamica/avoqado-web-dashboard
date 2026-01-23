@@ -85,7 +85,7 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
   })
 
   // Calculate suggested price
-  const { data: calculatedPrice } = useQuery({
+  const { data: _calculatedPrice } = useQuery({
     queryKey: ['calculate-price', venueId, product?.id, pricingStrategy, targetFoodCostPercentage, targetMarkupPercentage],
     queryFn: async () => {
       if (!product) return null

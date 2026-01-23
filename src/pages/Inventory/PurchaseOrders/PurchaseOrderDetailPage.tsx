@@ -217,8 +217,8 @@ export default function PurchaseOrderDetailPage() {
     setReceiveItemDialog({ open: false, item: null, quantity: 0 })
   }
 
-  // Mark item as damaged (local state only)
-  const markItemDamaged = (itemId: string) => {
+  // Mark item as damaged (local state only) - reserved for future use
+  const _markItemDamaged = (itemId: string) => {
     setLocalItemStatuses(prev => ({
       ...prev,
       [itemId]: 'damaged',
@@ -231,8 +231,8 @@ export default function PurchaseOrderDetailPage() {
     setHasUnsavedChanges(true)
   }
 
-  // Mark item as not processed (local state only)
-  const markItemNotProcessed = (itemId: string) => {
+  // Mark item as not processed (local state only) - reserved for future use
+  const _markItemNotProcessed = (itemId: string) => {
     setLocalItemStatuses(prev => ({
       ...prev,
       [itemId]: 'not_processed',

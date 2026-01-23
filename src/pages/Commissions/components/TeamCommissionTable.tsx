@@ -25,7 +25,7 @@ const statusStyles: Record<CommissionSummaryStatus, string> = {
 
 export default function TeamCommissionTable() {
   const { t, i18n } = useTranslation('commissions')
-  const { t: tCommon } = useTranslation()
+  const { t: _tCommon } = useTranslation()
   const navigate = useNavigate()
   const { venueSlug, fullBasePath } = useCurrentVenue()
   const [pagination, setPagination] = useState({

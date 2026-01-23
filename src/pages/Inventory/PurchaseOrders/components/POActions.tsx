@@ -262,7 +262,7 @@ export function POActions({ purchaseOrder, hasUnsavedChanges = false, onSave, is
       URL.revokeObjectURL(url)
 
       toast({ description: 'PDF descargado exitosamente' })
-    } catch (error) {
+    } catch (_error) {
       toast({
         description: 'Error al generar PDF',
         variant: 'destructive',

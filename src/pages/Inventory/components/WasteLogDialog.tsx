@@ -29,7 +29,7 @@ export function WasteLogDialog({ open, onOpenChange, rawMaterial }: WasteLogDial
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { formatUnitWithQuantity } = useUnitTranslation()
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [_selectedCategory, setSelectedCategory] = useState<string>('')
 
   const {
     register,

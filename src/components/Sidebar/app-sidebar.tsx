@@ -213,7 +213,7 @@ export function AppSidebar({ user, ...props }: React.ComponentProps<typeof Sideb
           { title: 'Pedidos', url: 'inventory/purchase-orders', permission: 'inventory:read' },
           { title: 'Proveedores', url: 'inventory/suppliers', permission: 'inventory:read' },
           { title: 'Reabastecimientos pendientes', url: 'inventory/restocks', permission: 'inventory:read' },
-          { title: 'Seguimiento de ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
+          { title: 'Ingredientes', url: 'inventory/ingredients', permission: 'inventory:read' },
           { title: t('sidebar:routes.recipes', { defaultValue: 'Recetas' }), url: 'inventory/recipes', permission: 'inventory:read' },
           { title: 'Precios', url: 'inventory/pricing', permission: 'inventory:read' },
           { title: 'Modificadores', url: 'inventory/modifier-analytics', permission: 'inventory:read' },
