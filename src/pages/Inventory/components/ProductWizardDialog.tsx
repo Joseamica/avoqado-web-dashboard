@@ -1,23 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { SearchableSelect, type SearchableSelectOption } from '@/components/ui/searchable-select'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { useToast } from '@/hooks/use-toast'
 import { useImageUploader } from '@/hooks/use-image-uploader'
-import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod } from '@/services/inventory.service'
+import { productWizardApi, rawMaterialsApi, recipesApi, productInventoryApi, type InventoryMethod, type ProductType } from '@/services/inventory.service'
 import { getMenuCategories, getModifierGroups } from '@/services/menu.service'
-import { Loader2, ChevronRight, ChevronLeft, AlertCircle, Check, Package, Beef, Store, Plus, Trash2, Info } from 'lucide-react'
+import { Loader2, ChevronRight, ChevronLeft, Check, Package, Beef, Plus, Trash2, Info, UtensilsCrossed, Calendar, Ticket, Download, Heart, ImagePlus, Grid3X3 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Currency } from '@/utils/currency'
 import Cropper from 'react-easy-crop'
@@ -26,6 +27,31 @@ import MultipleSelector from '@/components/multi-selector'
 import { SimpleConfirmDialog } from './SimpleConfirmDialog'
 import api from '@/api'
 import { Link, useLocation } from 'react-router-dom'
+import { cn } from '@/lib/utils'
+import { ALL_UNIT_OPTIONS } from '@/lib/inventory-constants'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+// Icon mapping for product types
+const PRODUCT_TYPE_ICONS: Record<ProductType, React.ElementType> = {
+  REGULAR: Package,
+  FOOD_AND_BEV: UtensilsCrossed,
+  APPOINTMENTS_SERVICE: Calendar,
+  EVENT: Ticket,
+  DIGITAL: Download,
+  DONATION: Heart,
+  OTHER: Package,
+}
+
+// Product type labels
+const PRODUCT_TYPE_LABELS: Record<ProductType, { en: string; es: string }> = {
+  REGULAR: { en: 'Regular Item', es: 'Artículo Regular' },
+  FOOD_AND_BEV: { en: 'Food & Beverage', es: 'Bebidas y alimentos preparados' },
+  APPOINTMENTS_SERVICE: { en: 'Appointment/Service', es: 'Servicio con cita' },
+  EVENT: { en: 'Event', es: 'Evento' },
+  DIGITAL: { en: 'Digital Good', es: 'Producto Digital' },
+  DONATION: { en: 'Donation', es: 'Donación' },
+  OTHER: { en: 'Other', es: 'Otro' },
+}
 
 interface ProductWizardDialogProps {
   open: boolean
@@ -33,9 +59,10 @@ interface ProductWizardDialogProps {
   onSuccess?: (productId: string) => void
   mode: 'create' | 'edit'
   productId?: string
+  productType?: ProductType | null
 }
 
-type WizardStep = 1 | 2 | 3
+type WizardStep = 1 | 2  // Reduced from 3 steps to 2: Step 1 (Product + Inventory Type) → Step 2 (Inventory Config)
 
 interface Step1FormData {
   name: string
@@ -44,6 +71,7 @@ interface Step1FormData {
   categoryId: string
   imageUrl?: string
   modifierGroups?: Array<{ label: string; value: string }>
+  type?: ProductType
 }
 
 interface Step2FormData {
@@ -52,6 +80,7 @@ interface Step2FormData {
 }
 
 interface Step3SimpleStockFormData {
+  unit: string // Unit of measurement (UNIT, KILOGRAM, etc.)
   initialStock: number
   costPerUnit: number
   reorderPoint: number
@@ -74,16 +103,48 @@ interface Step3RecipeFormData {
   }>
 }
 
-export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, productId }: ProductWizardDialogProps) {
-  const { t } = useTranslation('inventory')
+// Section header component (from RawMaterialDialog style)
+const SectionHeader = ({ icon: Icon, title, className }: { icon: React.ElementType; title: string; className?: string }) => (
+  <div className={cn('flex items-center gap-3 mb-6', className)}>
+    <div className="p-2.5 rounded-xl bg-primary/10">
+      <Icon className="h-5 w-5 text-primary" />
+    </div>
+    <h2 className="text-lg font-semibold">{title}</h2>
+  </div>
+)
+
+// Field with tooltip component
+const FieldLabel = ({ htmlFor, label, required, tooltip }: { htmlFor: string; label: string; required?: boolean; tooltip?: string }) => (
+  <div className="flex items-center gap-2 mb-2">
+    <Label htmlFor={htmlFor} className="text-sm font-medium">
+      {label} {required && <span className="text-destructive">*</span>}
+    </Label>
+    {tooltip && (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent className="max-w-sm bg-popover text-popover-foreground border border-border">
+            <p className="text-sm">{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
+  </div>
+)
+
+export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, productId, productType }: ProductWizardDialogProps) {
+  const { t, i18n } = useTranslation('inventory')
   const { t: tCommon } = useTranslation('common')
   const { venueId, venueSlug } = useCurrentVenue()
+  const isSpanish = i18n.language.startsWith('es')
   const location = useLocation()
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // Start at step 2 when in edit mode (product already exists)
-  const [currentStep, setCurrentStep] = useState<WizardStep>(mode === 'edit' ? 2 : 1)
+  // Always start at step 1 (in edit mode, only inventory section is shown)
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1)
   const [createdProductId, setCreatedProductId] = useState<string | undefined>(productId)
   const [selectedInventoryMethod, setSelectedInventoryMethod] = useState<InventoryMethod | null>(null)
   const [addIngredientOpen, setAddIngredientOpen] = useState(false)
@@ -126,6 +187,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
   // Step 3 Simple Stock Form
   const step3SimpleForm = useForm<Step3SimpleStockFormData>({
     defaultValues: {
+      unit: 'UNIT', // Default to pieces
       initialStock: undefined, // No default value - user must enter
       costPerUnit: undefined,
       reorderPoint: 10,
@@ -182,7 +244,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       const response = await rawMaterialsApi.getAll(venueId)
       return response.data.data
     },
-    enabled: !!venueId && open && currentStep === 3 && selectedInventoryMethod === 'RECIPE',
+    enabled: !!venueId && open && currentStep === 2 && selectedInventoryMethod === 'RECIPE',
   })
 
   // Fetch existing product data in edit mode
@@ -191,6 +253,17 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     queryFn: async () => {
       if (!productId) return null
       const response = await productWizardApi.getWizardProgress(venueId, productId)
+      return response.data.data
+    },
+    enabled: !!venueId && !!productId && mode === 'edit' && open,
+  })
+
+  // Fetch full product details in edit mode (for name, price, description, etc.)
+  const { data: existingProduct, isLoading: isLoadingProduct } = useQuery({
+    queryKey: ['product-detail', venueId, productId],
+    queryFn: async () => {
+      if (!productId) return null
+      const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products/${productId}`)
       return response.data.data
     },
     enabled: !!venueId && !!productId && mode === 'edit' && open,
@@ -225,6 +298,16 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     queryFn: () => getModifierGroups(venueId!),
     enabled: !!venueId && open && currentStep === 1,
   })
+
+  // Memoized category options for SearchableSelect
+  const categoryOptions = useMemo<SearchableSelectOption[]>(
+    () =>
+      (categories || []).map(cat => ({
+        value: cat.id,
+        label: cat.name,
+      })),
+    [categories]
+  )
 
   // Single mutation: Create product with inventory in one call
   const createProductWithInventoryMutation = useMutation({
@@ -424,7 +507,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // Reset wizard state - wrapped in useCallback to prevent infinite loop
   const resetWizard = useCallback(() => {
-    setCurrentStep(mode === 'edit' ? 2 : 1)
+    setCurrentStep(1)  // Always start at step 1
     setCreatedProductId(productId)
     setSelectedInventoryMethod(null)
     setStep1Data(null)
@@ -435,7 +518,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     step2Form.reset()
     step3SimpleForm.reset()
     step3RecipeForm.reset()
-  }, [mode, productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm])
+  }, [productId, step1Form, step2Form, step3SimpleForm, step3RecipeForm])
 
   // Handle dialog close
   useEffect(() => {
@@ -444,14 +527,42 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
   }, [open, resetWizard])
 
-  // Load existing data in edit mode
+  // Load existing product data into step1Form in edit mode
+  useEffect(() => {
+    if (open && mode === 'edit' && existingProduct && !isLoadingProduct && !hasLoadedExistingData) {
+      console.log('🔄 Loading existing product into step1Form:', existingProduct)
+
+      // Populate step1Form with existing product data
+      step1Form.setValue('name', existingProduct.name || '')
+      step1Form.setValue('description', existingProduct.description || '')
+      step1Form.setValue('price', Number(existingProduct.price) || 0)
+      step1Form.setValue('categoryId', existingProduct.categoryId || '')
+      step1Form.setValue('imageUrl', existingProduct.imageUrl || '')
+
+      // Load modifier groups if available
+      if (existingProduct.modifierGroups && existingProduct.modifierGroups.length > 0) {
+        const modifierGroupsForForm = existingProduct.modifierGroups.map((mg: any) => ({
+          label: mg.name,
+          value: mg.id,
+        }))
+        step1Form.setValue('modifierGroups', modifierGroupsForForm)
+      }
+
+      // Set product type if available
+      if (existingProduct.type) {
+        step1Form.setValue('type', existingProduct.type as ProductType)
+      }
+    }
+  }, [open, mode, existingProduct, isLoadingProduct, hasLoadedExistingData, step1Form])
+
+  // Load existing inventory data in edit mode
   useEffect(() => {
     // ✅ FIX: Only load data ONCE when first opening the wizard
     // This prevents overwriting user changes when they modify inventory settings
-    if (open && mode === 'edit' && currentStep === 2 && existingProductData && !isLoadingExistingData && !hasLoadedExistingData) {
+    if (open && mode === 'edit' && existingProductData && !isLoadingExistingData) {
       const { inventoryMethod, details } = existingProductData
 
-      console.log('🔄 Loading existing product data (first time only):', { inventoryMethod, details })
+      console.log('🔄 Loading existing inventory data:', { inventoryMethod, details })
 
       // ✅ WORLD-CLASS: inventoryMethod column is the SOURCE OF TRUTH
       // Recipe data should only be loaded if inventoryMethod === 'RECIPE'
@@ -523,10 +634,10 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
   // ✅ FIX: Separate effect to load recipe data when it becomes available
   // This handles the case where existingRecipeData loads AFTER existingProductData
-  // OR when navigating to step 3 and ingredients haven't been loaded yet
+  // OR when navigating to step 2 (inventory config) and ingredients haven't been loaded yet
   useEffect(() => {
-    if (open && mode === 'edit' && currentStep === 3 && selectedInventoryMethod === 'RECIPE' && existingRecipeData) {
-      console.log('🔍 DEBUG [LATE LOAD] - Checking recipe data on step 3')
+    if (open && mode === 'edit' && currentStep === 2 && selectedInventoryMethod === 'RECIPE' && existingRecipeData) {
+      console.log('🔍 DEBUG [LATE LOAD] - Checking recipe data on step 2 (inventory config)')
       console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData:', existingRecipeData)
       console.log('🔍 DEBUG [LATE LOAD] - existingRecipeData.lines:', existingRecipeData.lines)
 
@@ -636,7 +747,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     return cleanedData
   }
 
-  // Step 1 Submit Handler - Store data and move to Step 2
+  // Step 1 Submit Handler - Store product data AND inventory selection, then decide next step
   const handleStep1Submit = (data: Step1FormData) => {
     // Use imageUrl from uploader hook if available, otherwise use form value
     const finalImageUrl = imageUrl || data.imageUrl
@@ -659,24 +770,22 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
 
     setStep1Data(productData)
-    setCurrentStep(2)
-  }
 
-  // Step 2 Submit Handler - Store data and move to Step 3 or complete
-  const handleStep2Submit = (data: Step2FormData) => {
-    console.log('📝 Step 2 Submit:', {
-      data,
+    // Get inventory selection from step2Form (now part of step 1)
+    const inventoryData = step2Form.getValues()
+    setStep2Data(inventoryData)
+
+    console.log('📝 Step 1 Submit (merged):', {
       mode,
       productId,
-      useInventory: data.useInventory,
-      inventoryMethod: data.inventoryMethod,
+      useInventory: inventoryData.useInventory,
+      inventoryMethod: inventoryData.inventoryMethod,
     })
-    setStep2Data(data)
 
-    // If not using inventory
-    if (!data.useInventory) {
+    // If not using inventory, complete the wizard
+    if (!inventoryData.useInventory) {
       if (mode === 'edit') {
-        // In edit mode, disable inventory tracking
+        // In edit mode, update product and disable inventory tracking
         if (!productId) {
           toast({
             title: tCommon('error'),
@@ -686,22 +795,27 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           return
         }
 
-        // Call API to disable inventory tracking
+        // Call API to update product and disable inventory tracking
         api
           .put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, {
+            ...productData,
             trackInventory: false,
           })
           .then(() => {
             queryClient.invalidateQueries({ queryKey: ['products', venueId] })
             queryClient.invalidateQueries({ queryKey: ['product', venueId, productId] })
+            queryClient.invalidateQueries({ queryKey: ['product-detail', venueId, productId] })
             queryClient.invalidateQueries({ queryKey: ['product-wizard-progress', venueId, productId] })
 
-            // Don't show toast here - let the parent's onSuccess handler show it
-            // Just close the wizard
+            toast({
+              title: t('wizard.success'),
+              description: t('wizard.successMessage'),
+              variant: 'default',
+            })
+
             resetWizard()
             onOpenChange(false)
 
-            // Call parent's onSuccess to trigger their toast
             if (onSuccess && productId) {
               onSuccess(productId)
             }
@@ -709,7 +823,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
           .catch((error: any) => {
             toast({
               title: tCommon('error'),
-              description: error.response?.data?.message || 'Failed to disable inventory tracking',
+              description: error.response?.data?.message || 'Failed to update product',
               variant: 'destructive',
             })
           })
@@ -717,36 +831,23 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
       }
 
       // In create mode, submit product without inventory
-      if (!step1Data) {
-        toast({
-          title: tCommon('error'),
-          description: 'Missing product data',
-          variant: 'destructive',
-        })
-        return
-      }
-
       createProductWithInventoryMutation.mutate({
-        product: step1Data,
+        product: { ...productData, type: productType ?? undefined },
         inventory: { useInventory: false },
       })
       return
     }
 
-    // If using inventory, set method and move to Step 3
-    if (data.inventoryMethod) {
-      setSelectedInventoryMethod(data.inventoryMethod)
+    // If using inventory, set method and move to Step 2 (inventory config)
+    if (inventoryData.inventoryMethod) {
+      setSelectedInventoryMethod(inventoryData.inventoryMethod)
     }
-
-    // ✅ FIX: Don't save to backend yet - keep in local state
-    // All changes will be committed atomically when user completes Step 3
-    // This prevents inconsistent state if user abandons the wizard
-    setCurrentStep(3)
+    setCurrentStep(2)
   }
 
-  // Step 3 Submit Handler - Collect all data and submit
+  // Step 2 Submit Handler - Collect all data and submit (Inventory Config)
   const handleStep3Submit = () => {
-    // In edit mode, we only need step2Data and the inventory configuration
+    // In edit mode, we need to update product data AND inventory configuration
     if (mode === 'edit') {
       if (!selectedInventoryMethod) {
         toast({
@@ -757,12 +858,33 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
         return
       }
 
+      // First update product data if it was modified
+      const updateProductFirst = async () => {
+        if (step1Data && productId) {
+          try {
+            await api.put(`/api/v1/dashboard/venues/${venueId}/products/${productId}`, step1Data)
+          } catch (error: any) {
+            toast({
+              title: tCommon('error'),
+              description: error.response?.data?.message || 'Failed to update product',
+              variant: 'destructive',
+            })
+            throw error
+          }
+        }
+      }
+
       if (selectedInventoryMethod === 'QUANTITY') {
         const simpleStockData = step3SimpleForm.getValues()
-        configureInventoryMutation.mutate({
-          inventoryMethod: 'QUANTITY',
-          simpleStock: simpleStockData,
+        updateProductFirst().then(() => {
+          configureInventoryMutation.mutate({
+            inventoryMethod: 'QUANTITY',
+            simpleStock: simpleStockData,
+          })
+        }).catch(() => {
+          // Error already handled in updateProductFirst
         })
+        return
       } else if (selectedInventoryMethod === 'RECIPE') {
         const recipeData = step3RecipeForm.getValues()
 
@@ -827,7 +949,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     if (selectedInventoryMethod === 'QUANTITY') {
       const simpleStockData = step3SimpleForm.getValues()
       createProductWithInventoryMutation.mutate({
-        product: step1Data,
+        product: { ...step1Data, type: productType ?? undefined },
         inventory: step2Data,
         simpleStock: simpleStockData,
       })
@@ -875,7 +997,7 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
 
       // Clean data before sending to backend
       createProductWithInventoryMutation.mutate({
-        product: step1Data,
+        product: { ...step1Data, type: productType ?? undefined },
         inventory: step2Data,
         recipe: cleanedRecipe,
       })
@@ -889,22 +1011,79 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
     }
   }
 
-  // Calculate progress
-  const progressPercentage = (currentStep / 3) * 100
+  // Calculate progress (2 steps total)
+  const progressPercentage = (currentStep / 2) * 100
 
   const isLoading = createProductWithInventoryMutation.isPending || configureInventoryMutation.isPending
 
+  // Render action buttons based on current step
+  const renderActions = () => {
+    if (currentStep === 1) {
+      // Step 1: Product info + Inventory selection
+      // Show "Finish" if no inventory selected, "Next" if inventory selected
+      const useInventory = step2Form.watch('useInventory')
+      const showAsFinish = !useInventory
+
+      return (
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            {tCommon('cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="step1-form"
+            disabled={isLoading || (mode === 'create' && (uploading || !!imageForCrop))}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {showAsFinish ? t('wizard.finish') : tCommon('next')}
+            {showAsFinish ? <Check className="ml-2 h-4 w-4" /> : <ChevronRight className="ml-2 h-4 w-4" />}
+          </Button>
+        </>
+      )
+    }
+
+    if (currentStep === 2) {
+      // Step 2: Inventory configuration (was Step 3)
+      return (
+        <>
+          <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            {tCommon('back')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            {tCommon('cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form={selectedInventoryMethod === 'QUANTITY' ? 'step3-simple-form' : 'step3-recipe-form'}
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('wizard.finish')}
+            <Check className="ml-2 h-4 w-4" />
+          </Button>
+        </>
+      )
+    }
+
+    return null
+  }
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <DialogTitle>{mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory')}</DialogTitle>
-              <DialogDescription>
-                {mode === 'create' ? t('wizard.subtitle') : t('products.detail.configureInventoryDesc')}
-              </DialogDescription>
-            </div>
+      <FullScreenModal
+        open={open}
+        onClose={() => onOpenChange(false)}
+        title={mode === 'create' ? t('wizard.title') : t('products.detail.configureInventory')}
+        actions={renderActions()}
+        contentClassName="bg-muted/30"
+      >
+        <div className="max-w-5xl mx-auto p-6 space-y-6">
+          {/* Header with description and manual link */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {mode === 'create' ? t('wizard.subtitle') : t('products.detail.configureInventoryDesc')}
+            </p>
             {mode === 'create' && (
               <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-primary">
                 <Link to="create" state={{ from: location.pathname }}>
@@ -912,444 +1091,364 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                 </Link>
               </Button>
             )}
-          </DialogHeader>
+          </div>
 
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{t(`wizard.step${currentStep}.title`)}</span>
-              <span>{t('wizard.progress', { current: currentStep, total: 3 })}</span>
+              <span>
+                {currentStep === 1
+                  ? (mode === 'edit' ? t('wizard.step2.title') : t('wizard.step1.title'))
+                  : t('wizard.step3.title')}
+              </span>
+              <span>{t('wizard.progress', { current: currentStep, total: 2 })}</span>
             </div>
             <Progress value={progressPercentage} className="h-2" />
           </div>
 
-          {/* Step 1: Basic Product Information */}
+          {/* Step 1: Basic Product Information - Square-style two-column layout */}
+          {/* In edit mode, show inventory config with same layout style */}
           {currentStep === 1 && (
-            <form onSubmit={step1Form.handleSubmit(handleStep1Submit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('wizard.step1.name')} *</Label>
-                <Input id="name" {...step1Form.register('name', { required: true })} placeholder={t('wizard.step1.namePlaceholder')} />
-                {step1Form.formState.errors.name && <p className="text-xs text-destructive">{t('wizard.step1.nameRequired')}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">{t('wizard.step1.description')}</Label>
-                <Textarea
-                  id="description"
-                  {...step1Form.register('description')}
-                  placeholder={t('wizard.step1.descriptionPlaceholder')}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">{t('wizard.step1.price')} *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...step1Form.register('price', { required: true, valueAsNumber: true, min: 0 })}
-                    placeholder="0.00"
-                  />
-                  {step1Form.formState.errors.price && <p className="text-xs text-destructive">{t('wizard.step1.priceRequired')}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="categoryId">{t('wizard.step1.category')} *</Label>
-                  <Select
-                    value={step1Form.watch('categoryId')}
-                    onValueChange={value => step1Form.setValue('categoryId', value, { shouldValidate: true })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('wizard.step1.categoryPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories?.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {step1Form.formState.errors.categoryId && (
-                    <p className="text-xs text-destructive">{t('wizard.step1.categoryRequired')}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="modifierGroups">{t('wizard.step1.modifierGroups')}</Label>
-                <MultipleSelector
-                  value={step1Form.watch('modifierGroups') || []}
-                  onChange={value => step1Form.setValue('modifierGroups', value)}
-                  options={(modifierGroups ?? []).map(modifierGroup => ({
-                    label: modifierGroup.name,
-                    value: modifierGroup.id,
-                    disabled: false,
-                  }))}
-                  hidePlaceholderWhenSelected
-                  placeholder={t('wizard.step1.selectModifierGroups')}
-                  disabled={isModifierGroupsLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('wizard.step1.imageUrl')}</Label>
-                <div className="pb-4">
-                  {/* 1) Si el usuario ya seleccionó una imagen pero todavía no la recorta, mostramos el Cropper */}
-                  {imageForCrop ? (
-                    <div>
-                      <div className="relative w-full h-64 bg-muted">
-                        <Cropper
-                          image={imageForCrop}
-                          crop={crop}
-                          zoom={zoom}
-                          maxZoom={2}
-                          aspect={4 / 3}
-                          onCropChange={setCrop}
-                          onZoomChange={setZoom}
-                          onCropComplete={onCropComplete}
-                        />
-                      </div>
-                      <div className="flex justify-between mt-4">
-                        <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
-                          {t('cancel')}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            handleCropConfirm()
-                            step1Form.setValue('imageUrl', imageUrl, { shouldDirty: true })
-                          }}
-                          disabled={uploading}
-                        >
-                          {t('wizard.step1.confirm')}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : imageUrl ? (
-                    // 2) Si ya hay una imagen (de la BD o subida) y NO estamos recortando:
-                    <div className="relative flex space-x-4">
-                      {/* Sección Izquierda: Imagen */}
-                      <div className="w-1/3">
-                        <img src={imageUrl} alt={t('wizard.step1.imageUrl')} className="object-cover w-full h-auto rounded-md" />
-                      </div>
-
-                      {/* Sección Derecha: Texto y Botones */}
-                      <div className="flex-1 space-y-2">
-                        <p className="text-base">{t('wizard.step1.photoVisible')}</p>
-                        <p className="text-sm text-green-600">
-                          <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                            {t('wizard.step1.photoGuidelines')}
-                          </a>
-                          .
-                        </p>
-                        <p className="text-sm text-muted-foreground">{t('wizard.step1.photoRequirements')}</p>
-
-                        <div className="absolute bottom-0 flex mt-2 space-x-2">
-                          <Button
-                            variant="outline"
-                            type="button"
-                            disabled={uploading}
-                            onClick={() => {
-                              const fileInput = document.createElement('input')
-                              fileInput.type = 'file'
-                              fileInput.accept = 'image/*'
-                              fileInput.onchange = (e: any) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  handleFileUpload(file)
-                                }
-                              }
-                              fileInput.click()
-                            }}
-                          >
-                            {t('wizard.step1.replace')}
-                          </Button>
-                          <Button variant="destructive" type="button" disabled={uploading} onClick={handleDeleteImage}>
-                            {t('wizard.step1.delete')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // 3) Si no hay nada de imagen y no estamos recortando, mostramos input normal
-                    <div className="relative flex space-x-4">
-                      {/* Sección Izquierda: recuadro para subir imagen */}
-                      <div className="relative flex flex-col items-center justify-center w-64 h-64 border-2 border-border border-dashed rounded-md ">
-                        <p className="text-sm text-center text-muted-foreground">{t('wizard.step1.dropImage')}</p>
-                        <p className="text-muted-foreground">{t('wizard.step1.or')}</p>
-
-                        {/* Input "invisible" sobre la zona de drag & drop para que sea clickeable */}
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={e => handleFileUpload(e.target.files?.[0])}
-                          className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer "
-                          disabled={uploading}
-                        />
-
-                        {/* Texto que se ve (debajo del input invisible) */}
-                        <p className="font-normal text-sm text-green-600">{t('wizard.step1.browseFile')}</p>
-                      </div>
-
-                      {/* Sección Derecha: descripción y botones */}
-                      <div className="flex-1 space-y-2 ">
-                        <p className="text-base">{t('wizard.step1.photoHelp')}</p>
-                        <p className="text-sm text-green-600">
-                          <a href="https://www.ubereats.com" target="_blank" rel="noreferrer">
-                            {t('wizard.step1.photoGuidelines')}
-                          </a>
-                        </p>
-                        <p className="text-sm text-muted-foreground">{t('wizard.step1.photoRequirements')}</p>
-
-                        <div className="absolute bottom-0 flex mt-2 space-x-2">
-                          <Button
-                            type="button"
-                            disabled={uploading}
-                            onClick={() => {
-                              const fileInput = document.createElement('input')
-                              fileInput.type = 'file'
-                              fileInput.accept = 'image/*'
-                              fileInput.onchange = (e: any) => {
-                                const file = e.target.files?.[0]
-                                if (file) {
-                                  handleFileUpload(file)
-                                }
-                              }
-                              fileInput.click()
-                            }}
-                          >
-                            {t('wizard.step1.addPhoto')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                  {t('cancel')}
-                </Button>
-                <Button type="submit" disabled={isLoading || uploading || !!imageForCrop}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {tCommon('next')}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-
-          {/* Step 2: Inventory Type Selection */}
-          {currentStep === 2 && (
-            <form onSubmit={step2Form.handleSubmit(handleStep2Submit)} className="space-y-6">
-              {/* Edit Mode Info Alert */}
-              {mode === 'edit' && (
-                <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertDescription className="text-blue-800 dark:text-blue-200">
-                    <strong>{t('wizard.editMode.title')}:</strong> {t('wizard.editMode.description')}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Recommendations */}
-              {recommendations && (
-                <Alert
-                  className={
-                    recommendations.hasInventoryFeature
-                      ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800'
-                      : 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800'
-                  }
-                >
-                  <AlertCircle
-                    className={
-                      recommendations.hasInventoryFeature
-                        ? 'h-4 w-4 text-blue-600 dark:text-blue-400'
-                        : 'h-4 w-4 text-orange-600 dark:text-orange-400'
-                    }
-                  />
-                  <AlertDescription
-                    className={
-                      recommendations.hasInventoryFeature ? 'text-blue-800 dark:text-blue-200' : 'text-orange-800 dark:text-orange-200'
-                    }
-                  >
-                    <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-4">
-                <Label>{t('wizard.step2.question')}</Label>
-
-                <RadioGroup
-                  value={step2Form.watch('useInventory') ? 'true' : 'false'}
-                  onValueChange={value => {
-                    const useInventory = value === 'true'
-                    step2Form.setValue('useInventory', useInventory)
-                    if (!useInventory) {
-                      step2Form.setValue('inventoryMethod', undefined)
-                    }
-                  }}
-                >
-                  <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                    <RadioGroupItem value="false" id="no-inventory" />
-                    <Label htmlFor="no-inventory" className="flex-1 cursor-pointer">
+            <form id="step1-form" onSubmit={step1Form.handleSubmit(handleStep1Submit)}>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left Column - Main Form (both create and edit modes) */}
+                <div className="lg:col-span-8 space-y-6">
+                  {/* Product Type Display (read-only, shows selected type) */}
+                  {productType && (
+                    <section className="bg-card rounded-2xl border border-border/50 p-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
-                          <Store className="h-5 w-5 text-muted-foreground" />
+                        <div className="p-2.5 rounded-xl bg-muted">
+                          {(() => {
+                            const TypeIcon = PRODUCT_TYPE_ICONS[productType] || Package
+                            return <TypeIcon className="h-5 w-5 text-muted-foreground" />
+                          })()}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{t('wizard.step2.noInventory')}</p>
-                          <p className="text-xs text-muted-foreground">{t('wizard.step2.noInventoryDesc')}</p>
+                          <p className="text-xs text-muted-foreground">{t('productTypes.label', { defaultValue: 'Tipo de artículo' })}</p>
+                          <p className="font-medium">
+                            {isSpanish
+                              ? PRODUCT_TYPE_LABELS[productType]?.es
+                              : PRODUCT_TYPE_LABELS[productType]?.en}
+                          </p>
                         </div>
                       </div>
-                    </Label>
-                  </div>
-
-                  {recommendations?.hasInventoryFeature && (
-                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="true" id="use-inventory" />
-                      <Label htmlFor="use-inventory" className="flex-1 cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-                            <Package className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{t('wizard.step2.useInventory')}</p>
-                            <p className="text-xs text-muted-foreground">{t('wizard.step2.useInventoryDesc')}</p>
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
+                    </section>
                   )}
-                </RadioGroup>
+
+                  {/* Basic Information Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <SectionHeader icon={Package} title={t('wizard.step1.basicInfo', { defaultValue: 'Información básica' })} />
+
+                    <div className="space-y-5">
+                      {/* Name */}
+                      <div>
+                        <FieldLabel htmlFor="name" label={t('wizard.step1.name')} required />
+                        <Input
+                          id="name"
+                          {...step1Form.register('name', { required: true })}
+                          placeholder={t('wizard.step1.namePlaceholder')}
+                          className="h-12 text-base"
+                        />
+                        {step1Form.formState.errors.name && (
+                          <p className="text-xs text-destructive mt-1">{t('wizard.step1.nameRequired')}</p>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      <div>
+                        <FieldLabel htmlFor="price" label={t('wizard.step1.price')} required />
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-base">$</span>
+                          <Input
+                            id="price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...step1Form.register('price', { required: true, valueAsNumber: true, min: 0 })}
+                            placeholder="0.00"
+                            className="h-12 text-base pl-8"
+                          />
+                        </div>
+                        {step1Form.formState.errors.price && (
+                          <p className="text-xs text-destructive mt-1">{t('wizard.step1.priceRequired')}</p>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      <div>
+                        <FieldLabel
+                          htmlFor="description"
+                          label={t('wizard.step1.description')}
+                          tooltip={t('wizard.step1.descriptionTooltip', { defaultValue: 'Descripción que verán los clientes al ordenar' })}
+                        />
+                        <Textarea
+                          id="description"
+                          {...step1Form.register('description')}
+                          placeholder={t('wizard.step1.descriptionPlaceholder')}
+                          rows={4}
+                          className="text-base resize-none"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Image Upload Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <SectionHeader icon={ImagePlus} title={t('wizard.step1.imageUrl')} />
+
+                    {/* Cropper Mode */}
+                    {imageForCrop ? (
+                      <div className="space-y-4">
+                        <div className="relative w-full h-64 bg-muted rounded-xl overflow-hidden">
+                          <Cropper
+                            image={imageForCrop}
+                            crop={crop}
+                            zoom={zoom}
+                            maxZoom={2}
+                            aspect={4 / 3}
+                            onCropChange={setCrop}
+                            onZoomChange={setZoom}
+                            onCropComplete={onCropComplete}
+                          />
+                        </div>
+                        <div className="flex justify-between">
+                          <Button variant="outline" type="button" onClick={() => setImageForCrop(null)} disabled={uploading}>
+                            {tCommon('cancel')}
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              handleCropConfirm()
+                              step1Form.setValue('imageUrl', imageUrl, { shouldDirty: true })
+                            }}
+                            disabled={uploading}
+                          >
+                            {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('wizard.step1.confirm')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : imageUrl ? (
+                      /* Image Preview Mode */
+                      <div className="flex gap-4">
+                        <div className="w-32 h-32 rounded-xl overflow-hidden bg-muted shrink-0">
+                          <img src={imageUrl} alt={t('wizard.step1.imageUrl')} className="object-cover w-full h-full" />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <p className="text-sm text-muted-foreground">{t('wizard.step1.photoVisible')}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              type="button"
+                              size="sm"
+                              disabled={uploading}
+                              onClick={() => {
+                                const fileInput = document.createElement('input')
+                                fileInput.type = 'file'
+                                fileInput.accept = 'image/*'
+                                fileInput.onchange = (e: any) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleFileUpload(file)
+                                }
+                                fileInput.click()
+                              }}
+                            >
+                              {t('wizard.step1.replace')}
+                            </Button>
+                            <Button variant="ghost" type="button" size="sm" disabled={uploading} onClick={handleDeleteImage} className="text-destructive hover:text-destructive">
+                              {t('wizard.step1.delete')}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Upload Zone */
+                      <div
+                        className="relative flex flex-col items-center justify-center h-40 border-2 border-border border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          const fileInput = document.createElement('input')
+                          fileInput.type = 'file'
+                          fileInput.accept = 'image/*'
+                          fileInput.onchange = (e: any) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleFileUpload(file)
+                          }
+                          fileInput.click()
+                        }}
+                      >
+                        <ImagePlus className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">{t('wizard.step1.dropImage')}</p>
+                        <p className="text-xs text-primary mt-1">{t('wizard.step1.browseFile')}</p>
+                      </div>
+                    )}
+                  </section>
+                </div>
+
+                {/* Right Column - Sidebar */}
+                <div className="lg:col-span-4 space-y-6">
+                  {/* Category Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <SectionHeader icon={Grid3X3} title={t('wizard.step1.category')} className="mb-4" />
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {t('wizard.step1.categoryHelp', { defaultValue: 'Organiza tus productos en categorías para facilitar la navegación.' })}
+                    </p>
+                    <SearchableSelect
+                      options={categoryOptions}
+                      value={step1Form.watch('categoryId') || ''}
+                      onValueChange={value => step1Form.setValue('categoryId', value, { shouldValidate: true })}
+                      placeholder={t('wizard.step1.categoryPlaceholder')}
+                      searchPlaceholder={t('wizard.step1.searchCategory', { defaultValue: 'Buscar categoría...' })}
+                      emptyMessage={t('wizard.step1.noCategoryFound', { defaultValue: 'No se encontró categoría' })}
+                      size="lg"
+                    />
+                    {step1Form.formState.errors.categoryId && (
+                      <p className="text-xs text-destructive mt-2">{t('wizard.step1.categoryRequired')}</p>
+                    )}
+                  </section>
+
+                  {/* Modifier Groups Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <SectionHeader icon={Plus} title={t('wizard.step1.modifierGroups')} className="mb-4" />
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {t('wizard.step1.modifierGroupsHelp', { defaultValue: 'Agrega opciones y extras que los clientes pueden elegir.' })}
+                    </p>
+                    <MultipleSelector
+                      value={step1Form.watch('modifierGroups') || []}
+                      onChange={value => step1Form.setValue('modifierGroups', value)}
+                      options={(modifierGroups ?? []).map(modifierGroup => ({
+                        label: modifierGroup.name,
+                        value: modifierGroup.id,
+                        disabled: false,
+                      }))}
+                      hidePlaceholderWhenSelected
+                      placeholder={t('wizard.step1.selectModifierGroups')}
+                      disabled={isModifierGroupsLoading}
+                    />
+                  </section>
+
+                  {/* Inventory Selection Section */}
+                  <section className="bg-card rounded-2xl border border-border/50 p-6">
+                    <SectionHeader icon={Package} title={t('wizard.step2.title', { defaultValue: 'Inventario' })} className="mb-4" />
+
+                    {/* Recommendations - compact version */}
+                    {recommendations && (
+                      <div className={cn(
+                        'text-xs p-2 rounded-lg mb-4',
+                        recommendations.hasInventoryFeature
+                          ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
+                          : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300'
+                      )}>
+                        <strong>{t('wizard.step2.recommendation')}:</strong> {t(recommendations.recommendation)}
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {/* Toggle Switch for Inventory */}
+                      <div
+                        className={cn(
+                          'flex items-center gap-3 p-4 rounded-lg border transition-colors',
+                          step2Form.watch('useInventory')
+                            ? 'border-primary/50 bg-primary/5'
+                            : 'border-border'
+                        )}
+                      >
+                        <div className={cn(
+                          'p-2 rounded-lg shrink-0',
+                          step2Form.watch('useInventory')
+                            ? 'bg-primary/10'
+                            : 'bg-muted'
+                        )}>
+                          <Package className={cn(
+                            'h-4 w-4',
+                            step2Form.watch('useInventory')
+                              ? 'text-primary'
+                              : 'text-muted-foreground'
+                          )} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Label htmlFor="track-inventory" className="text-sm font-medium cursor-pointer">
+                            {t('wizard.step2.useInventory')}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t('wizard.step2.useInventoryDesc')}
+                          </p>
+                        </div>
+                        <Switch
+                          id="track-inventory"
+                          checked={step2Form.watch('useInventory')}
+                          onCheckedChange={(checked) => {
+                            step2Form.setValue('useInventory', checked)
+                            if (!checked) {
+                              step2Form.setValue('inventoryMethod', undefined)
+                              setSelectedInventoryMethod(null)
+                            }
+                          }}
+                          disabled={!recommendations?.hasInventoryFeature}
+                          className="shrink-0 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Inventory Method Selection (conditional) */}
+                      {step2Form.watch('useInventory') && (
+                        <div className="space-y-2 pt-3 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground">{t('wizard.step2.inventoryMethodQuestion')}</p>
+
+                          <RadioGroup
+                            value={step2Form.watch('inventoryMethod') || ''}
+                            onValueChange={value => {
+                              step2Form.setValue('inventoryMethod', value as InventoryMethod)
+                              setSelectedInventoryMethod(value as InventoryMethod)
+                            }}
+                            className="space-y-2"
+                          >
+                            <Label
+                              htmlFor="quantity-tracking-step1"
+                              className={cn(
+                                'flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer',
+                                step2Form.watch('inventoryMethod') === 'QUANTITY'
+                                  ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                                  : 'border-border hover:bg-accent/50'
+                              )}
+                            >
+                              <RadioGroupItem value="QUANTITY" id="quantity-tracking-step1" />
+                              <Package className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{t('wizard.step2.quantityTracking')}</p>
+                                <p className="text-xs text-muted-foreground">{t('wizard.step2.quantityTrackingDesc')}</p>
+                              </div>
+                            </Label>
+
+                            <Label
+                              htmlFor="recipe-based-step1"
+                              className={cn(
+                                'flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer',
+                                step2Form.watch('inventoryMethod') === 'RECIPE'
+                                  ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                                  : 'border-border hover:bg-accent/50'
+                              )}
+                            >
+                              <RadioGroupItem value="RECIPE" id="recipe-based-step1" />
+                              <Beef className="h-4 w-4 text-orange-600 dark:text-orange-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{t('wizard.step2.recipeBased')}</p>
+                                <p className="text-xs text-muted-foreground">{t('wizard.step2.recipeBasedDesc')}</p>
+                              </div>
+                            </Label>
+                          </RadioGroup>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                </div>
               </div>
-
-              {/* Inventory Method Selection (conditional) */}
-              {step2Form.watch('useInventory') && (
-                <div className="space-y-4 pl-4 border-l-2 border-primary">
-                  <div className="flex items-center gap-2">
-                    <Label>{t('wizard.step2.inventoryMethodQuestion')}</Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md" side="right">
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-semibold">{t('wizard.step2.inventoryMethodHelp.title')}</p>
-                              <p className="text-sm text-muted-foreground mt-1">{t('wizard.step2.inventoryMethodHelp.description')}</p>
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="bg-green-50 dark:bg-green-950/30 p-2 rounded-md border border-green-200 dark:border-green-800">
-                                <p className="font-medium text-sm text-green-900 dark:text-green-100 flex items-center gap-2">
-                                  <Package className="h-4 w-4" />
-                                  {t('wizard.step2.inventoryMethodHelp.quantity.title')}
-                                </p>
-                                <p className="text-xs font-medium mt-1">{t('wizard.step2.inventoryMethodHelp.quantity.when')}</p>
-                                <ul className="list-disc list-inside space-y-0.5 mt-1 text-xs">
-                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example1')}</li>
-                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example2')}</li>
-                                  <li>{t('wizard.step2.inventoryMethodHelp.quantity.example3')}</li>
-                                </ul>
-                                <p className="text-xs italic mt-1 text-muted-foreground">
-                                  {t('wizard.step2.inventoryMethodHelp.quantity.note')}
-                                </p>
-                              </div>
-
-                              <div className="bg-orange-50 dark:bg-orange-950/30 p-2 rounded-md border border-orange-200 dark:border-orange-800">
-                                <p className="font-medium text-sm text-orange-900 dark:text-orange-100 flex items-center gap-2">
-                                  <Beef className="h-4 w-4" />
-                                  {t('wizard.step2.inventoryMethodHelp.recipe.title')}
-                                </p>
-                                <p className="text-xs font-medium mt-1">{t('wizard.step2.inventoryMethodHelp.recipe.when')}</p>
-                                <ul className="list-disc list-inside space-y-0.5 mt-1 text-xs">
-                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example1')}</li>
-                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example2')}</li>
-                                  <li>{t('wizard.step2.inventoryMethodHelp.recipe.example3')}</li>
-                                </ul>
-                                <p className="text-xs italic mt-1 text-muted-foreground">
-                                  {t('wizard.step2.inventoryMethodHelp.recipe.note')}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-
-                  <RadioGroup
-                    value={step2Form.watch('inventoryMethod') || ''}
-                    onValueChange={value => {
-                      step2Form.setValue('inventoryMethod', value as InventoryMethod)
-                      setSelectedInventoryMethod(value as InventoryMethod)
-                    }}
-                  >
-                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="QUANTITY" id="quantity-tracking" />
-                      <Label htmlFor="quantity-tracking" className="flex-1 cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/50">
-                            <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{t('wizard.step2.quantityTracking')}</p>
-                            <p className="text-xs text-muted-foreground">{t('wizard.step2.quantityTrackingDesc')}</p>
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2 p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="RECIPE" id="recipe-based" />
-                      <Label htmlFor="recipe-based" className="flex-1 cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-950/50">
-                            <Beef className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{t('wizard.step2.recipeBased')}</p>
-                            <p className="text-xs text-muted-foreground">{t('wizard.step2.recipeBasedDesc')}</p>
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              )}
-
-              <DialogFooter className="flex justify-between">
-                <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  {tCommon('back')}
-                </Button>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                    {t('cancel')}
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {step2Form.watch('useInventory') ? tCommon('next') : t('wizard.finish')}
-                    {step2Form.watch('useInventory') ? <ChevronRight className="ml-2 h-4 w-4" /> : <Check className="ml-2 h-4 w-4" />}
-                  </Button>
-                </div>
-              </DialogFooter>
             </form>
           )}
 
-          {/* Step 3: Setup Inventory (Quantity Tracking or Recipe) */}
-          {currentStep === 3 && (
+          {/* Step 2: Setup Inventory (Quantity Tracking or Recipe) */}
+          {currentStep === 2 && selectedInventoryMethod && (
             <>
               {selectedInventoryMethod === 'QUANTITY' && (
-                <form onSubmit={step3SimpleForm.handleSubmit(handleStep3Submit)} className="space-y-4">
+                <form id="step3-simple-form" onSubmit={step3SimpleForm.handleSubmit(handleStep3Submit)} className="space-y-4">
                   <Alert className="bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800">
                     <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <AlertDescription className="text-green-800 dark:text-green-200">{t('wizard.step3.simpleStockInfo')}</AlertDescription>
@@ -1440,27 +1539,11 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     <p className="text-xs text-muted-foreground">{t('lowStockThreshold.separateFromReorder')}</p>
                   </div>
 
-                  <DialogFooter className="flex justify-between">
-                    <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
-                      <ChevronLeft className="mr-2 h-4 w-4" />
-                      {tCommon('back')}
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                        {t('cancel')}
-                      </Button>
-                      <Button type="submit" disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('wizard.finish')}
-                        <Check className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </DialogFooter>
                 </form>
               )}
 
               {selectedInventoryMethod === 'RECIPE' && (
-                <form onSubmit={step3RecipeForm.handleSubmit(handleStep3Submit)} className="space-y-4">
+                <form id="step3-recipe-form" onSubmit={step3RecipeForm.handleSubmit(handleStep3Submit)} className="space-y-4">
                   <Alert className="bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800">
                     <Beef className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                     <AlertDescription className="text-orange-800 dark:text-orange-200">{t('wizard.step3.recipeInfo')}</AlertDescription>
@@ -1634,28 +1717,12 @@ export function ProductWizardDialog({ open, onOpenChange, onSuccess, mode, produ
                     )}
                   </div>
 
-                  <DialogFooter className="flex justify-between">
-                    <Button type="button" variant="outline" onClick={handleBack} disabled={isLoading}>
-                      <ChevronLeft className="mr-2 h-4 w-4" />
-                      {tCommon('back')}
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                        {t('cancel')}
-                      </Button>
-                      <Button type="submit" disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('wizard.finish')}
-                        <Check className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </DialogFooter>
                 </form>
               )}
             </>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      </FullScreenModal>
 
       {/* Conversion Dialog */}
       {conversionDirection && (
