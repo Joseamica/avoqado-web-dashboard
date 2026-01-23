@@ -466,7 +466,7 @@ export default function Payments() {
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
-        header: () => <span className="text-xs">{t('columns.date')}</span>,
+        header: t('columns.date'),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
           // Format as "13 ene 14:30" - day, month abbrev, 24-hour time (no year, no AM/PM)
@@ -476,7 +476,7 @@ export default function Payments() {
           const hours = dateObj.getHours().toString().padStart(2, '0')
           const minutes = dateObj.getMinutes().toString().padStart(2, '0')
           return (
-            <span className="text-xs text-muted-foreground dark:text-foreground whitespace-nowrap">
+            <span className="text-sm text-muted-foreground dark:text-foreground whitespace-nowrap">
               {day} {month} {hours}:{minutes}
             </span>
           )
@@ -488,19 +488,19 @@ export default function Payments() {
         accessorFn: row => row.merchantAccount?.displayName || row.merchantAccount?.externalMerchantId || 'N/A',
         id: 'merchantAccount',
         meta: { label: t('columns.merchantAccount') },
-        header: () => <span className="text-xs">{t('columns.merchantAccount')}</span>,
+        header: t('columns.merchantAccount'),
         cell: ({ row }) => {
           const payment = row.original
           const merchant = payment.merchantAccount
 
           if (!merchant) {
-            return <span className="text-xs text-muted-foreground dark:text-foreground">-</span>
+            return <span className="text-sm text-muted-foreground dark:text-foreground">-</span>
           }
 
           return (
             <div className="flex flex-col">
-              <span className="text-xs font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
-              {merchant.bankName && <span className="text-[10px] text-muted-foreground dark:text-foreground">{merchant.bankName}</span>}
+              <span className="text-sm font-medium">{merchant.displayName || merchant.externalMerchantId}</span>
+              {merchant.bankName && <span className="text-xs text-muted-foreground dark:text-foreground">{merchant.bankName}</span>}
             </div>
           )
         },
@@ -574,7 +574,7 @@ export default function Payments() {
       {
         accessorKey: 'method',
         meta: { label: t('columns.method') },
-        header: () => <span className="text-xs">{t('columns.method')}</span>,
+        header: t('columns.method'),
         cell: ({ row }) => {
           const payment = row.original
           // ANTERIOR: 'CARD', AHORA: 'CREDIT_CARD', 'DEBIT_CARD'
@@ -607,14 +607,14 @@ export default function Payments() {
               {isCard ? (
                 <>
                   <div className="shrink-0"> {getIcon(cardBrand)}</div>
-                  <span className="text-xs text-muted-foreground dark:text-foreground">{maskedLast4}</span>
+                  <span className="text-sm text-muted-foreground dark:text-foreground">{maskedLast4}</span>
                 </>
               ) : (
                 <>
                   <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 shadow-sm">
                     <Banknote className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs text-muted-foreground dark:text-foreground">{methodDisplay}</span>
+                  <span className="text-sm text-muted-foreground dark:text-foreground">{methodDisplay}</span>
                 </>
               )}
             </div>
@@ -632,18 +632,18 @@ export default function Payments() {
         },
         id: 'waiterName',
         meta: { label: t('columns.waiter') },
-        header: () => <span className="text-xs">{t('columns.waiter')}</span>,
+        header: t('columns.waiter'),
         cell: ({ getValue, row }) => {
           const waiterName = getValue() as string
           const commissionAmount = commissionByPaymentId.get(row.original.id) || 0
 
           return (
             <div className="flex flex-col items-start">
-              <span className="text-xs text-muted-foreground dark:text-foreground">{waiterName}</span>
+              <span className="text-sm text-muted-foreground dark:text-foreground">{waiterName}</span>
               {commissionAmount > 0 && (
                 <Badge
                   variant="soft"
-                  className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-transparent text-[10px] px-1.5 py-0 h-5 mt-0.5"
+                  className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-transparent text-xs px-2 py-0.5 mt-0.5"
                 >
                   {Currency(commissionAmount)}
                 </Badge>
@@ -656,10 +656,10 @@ export default function Payments() {
         // CAMBIO: `amount` ahora es el subtotal del pago. Es numérico.
         accessorKey: 'amount',
         meta: { label: t('columns.subtotal') },
-        header: () => <span className="text-xs">{t('columns.subtotal')}</span>,
+        header: t('columns.subtotal'),
         cell: ({ cell }) => {
           const value = cell.getValue()
-          return <span className="text-xs text-muted-foreground dark:text-foreground">{Currency(Math.abs(Number(value) || 0))}</span>
+          return <span className="text-sm text-muted-foreground dark:text-foreground">{Currency(Math.abs(Number(value) || 0))}</span>
         },
       },
       {
@@ -672,7 +672,7 @@ export default function Payments() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs h-7 px-2"
+            className="text-sm h-8 px-2"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             {t('columns.tip')}
@@ -698,8 +698,8 @@ export default function Payments() {
 
           return (
             <div className="flex flex-col items-start">
-              <span className="text-[10px] text-muted-foreground dark:text-foreground">{tipPercentage.toFixed(1)}%</span>
-              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
+              <span className="text-sm text-muted-foreground dark:text-foreground">{tipPercentage.toFixed(1)}%</span>
+              <Badge variant="soft" className={`${tipClasses.bg} ${tipClasses.text} border-transparent text-xs px-2 py-0.5`}>
                 {Currency(totalTip)}
               </Badge>
             </div>
@@ -721,7 +721,7 @@ export default function Payments() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs h-7 px-2"
+                  className="text-sm h-7 px-2"
                   onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
                 >
                   {t('columns.profit')}
@@ -735,7 +735,7 @@ export default function Payments() {
                 if (!payment.transactionCost) {
                   return (
                     <div className="flex">
-                      <span className="text-xs text-muted-foreground dark:text-foreground">-</span>
+                      <span className="text-sm text-muted-foreground dark:text-foreground">-</span>
                     </div>
                   )
                 }
@@ -754,10 +754,10 @@ export default function Payments() {
                         Math.abs(venueCharge),
                       )}`}
                     >
-                      <span className="text-[10px] text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
+                      <span className="text-xs text-red-500 dark:text-red-400">−{(Math.abs(margin) * 100).toFixed(2)}%</span>
                       <Badge
                         variant="outline"
-                        className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800 text-[10px] px-1.5 py-0 h-5"
+                        className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800 text-xs px-2 py-0.5"
                       >
                         −{Currency(Math.abs(profit))}
                       </Badge>
@@ -792,10 +792,10 @@ export default function Payments() {
                     className="flex flex-col items-start"
                     title={`Provider: ${Currency(providerCost)} | Venue: ${Currency(venueCharge)}`}
                   >
-                    <span className="text-[10px] text-muted-foreground dark:text-foreground">{(margin * 100).toFixed(2)}%</span>
+                    <span className="text-xs text-muted-foreground dark:text-foreground">{(margin * 100).toFixed(2)}%</span>
                     <Badge
                       variant="outline"
-                      className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border} text-[10px] px-1.5 py-0 h-5`}
+                      className={`${profitClasses.bg} ${profitClasses.text} ${profitClasses.border} text-xs px-2 py-0.5`}
                     >
                       {Currency(profit)}
                     </Badge>
@@ -815,18 +815,18 @@ export default function Payments() {
         },
         id: 'totalAmount',
         meta: { label: t('columns.total') },
-        header: () => <span className="text-xs">{t('columns.total')}</span>,
+        header: t('columns.total'),
         cell: ({ cell, row }) => {
           const value = cell.getValue()
           const isRefund = row.original.type === PaymentRecordType.REFUND
           return (
             <div className="flex flex-col">
-              <span className={cn('text-xs font-medium', isRefund && 'text-red-600 dark:text-red-400')}>
+              <span className={cn('text-sm font-medium', isRefund && 'text-red-600 dark:text-red-400')}>
                 {isRefund && '−'}
                 {Currency(Math.abs(Number(value) || 0))}
               </span>
               {isRefund && (
-                <span className="text-[10px] text-red-500 dark:text-red-400 flex items-center gap-0.5">
+                <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-0.5">
                   <RotateCcw className="h-2.5 w-2.5" />
                   {t('types.refund')}
                 </span>
@@ -841,7 +841,7 @@ export default function Payments() {
             {
               id: 'actions',
               header: () => (
-                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
                   Superadmin
                 </span>
               ),

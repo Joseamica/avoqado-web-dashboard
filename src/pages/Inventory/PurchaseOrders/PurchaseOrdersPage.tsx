@@ -631,9 +631,9 @@ export default function PurchaseOrdersPage() {
   }, [columns, hiddenColumns])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-3">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-muted-foreground">{t('subtitle')}</p>
@@ -645,7 +645,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* Filters - All in one row */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3">
         {/* Expandable Search */}
         <div className="relative flex items-center">
           {isSearchOpen ? (

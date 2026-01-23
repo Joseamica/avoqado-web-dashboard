@@ -8,7 +8,8 @@ import { useCurrentVenue } from '@/hooks/use-current-venue'
 import { supplierService, CreateSupplierDto } from '@/services/supplier.service'
 import { purchaseOrderService, Unit, CreatePurchaseOrderDto, PurchaseOrderStatus } from '@/services/purchaseOrder.service'
 import { rawMaterialsApi } from '@/services/inventory.service'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { FullScreenModal } from '@/components/ui/full-screen-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -339,19 +340,25 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         return
       }
 
-      if (values.items.length === 0) {
+      // Filter out empty/incomplete items before validation
+      // An item is considered valid if it has: rawMaterialId, quantity > 0, and price > 0
+      const validItems = values.items.filter(
+        (item) => item.rawMaterialId && Number(item.quantityOrdered) > 0 && Number(item.unitPrice) > 0
+      )
+
+      if (validItems.length === 0) {
         toast({ description: t('validation.noItems'), variant: 'destructive' })
         return
       }
 
-      // Calculate taxRate for backend
+      // Calculate taxRate for backend (using only valid items)
       let taxRate = 0
       if (values.tax?.enabled) {
         if (values.tax.type === 'percentage' && values.tax.rate) {
           taxRate = Number(values.tax.rate)
         } else if (values.tax.type === 'fixed' && values.tax.amount) {
           // For fixed amount, calculate the equivalent percentage
-          const subtotal = values.items.reduce((sum, item) => sum + item.quantityOrdered * item.unitPrice, 0)
+          const subtotal = validItems.reduce((sum, item) => sum + Number(item.quantityOrdered) * Number(item.unitPrice), 0)
           taxRate = subtotal > 0 ? Number(values.tax.amount) / subtotal : 0
         }
       }
@@ -368,7 +375,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
         shippingCity: values.shippingAddress?.type === 'custom' ? values.shippingAddress.city : undefined,
         shippingState: values.shippingAddress?.type === 'custom' ? values.shippingAddress.state : undefined,
         shippingZipCode: values.shippingAddress?.type === 'custom' ? values.shippingAddress.zipCode : undefined,
-        items: values.items.map((item) => ({
+        // Only send valid items (filtered above)
+        items: validItems.map((item) => ({
           rawMaterialId: item.rawMaterialId,
           quantityOrdered: Number(item.quantityOrdered),
           unit: item.unit,
@@ -482,12 +490,38 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
   }, [newSupplierData, createSupplierMutation, toast, t])
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditMode ? t('edit') : t('wizard.title')}</DialogTitle>
-        </DialogHeader>
-
+    <FullScreenModal
+      open={open}
+      onClose={handleClose}
+      title={isEditMode ? t('edit') : t('wizard.title')}
+      actions={
+        <div className="flex gap-2">
+          {!isEditMode && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleSubmit(true)}
+              disabled={createMutation.isPending}
+              className="rounded-full"
+            >
+              {t('wizard.saveDraft')}
+            </Button>
+          )}
+          <Button
+            type="button"
+            onClick={() => handleSubmit(false)}
+            disabled={createMutation.isPending || updateMutation.isPending}
+            className="rounded-full"
+          >
+            {(createMutation.isPending || updateMutation.isPending) && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {isEditMode ? t('actions.save') : t('wizard.submit')}
+          </Button>
+        </div>
+      }
+    >
+      <div className="max-w-4xl mx-auto px-6 py-8">
         <Form {...form}>
           <form className="space-y-6">
 
@@ -1355,36 +1389,8 @@ export function PurchaseOrderWizard({ open, onClose, onSuccess, purchaseOrder, d
           </DialogContent>
         </Dialog>
 
-        <DialogFooter className="flex items-center justify-between">
-          <Button type="button" variant="outline" onClick={handleClose}>
-            {t('common:cancel')}
-          </Button>
-
-          <div className="flex gap-2">
-            {!isEditMode && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleSubmit(true)}
-                disabled={createMutation.isPending}
-              >
-                {t('wizard.saveDraft')}
-              </Button>
-            )}
-            <Button
-              type="button"
-              onClick={() => handleSubmit(false)}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {(createMutation.isPending || updateMutation.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isEditMode ? t('actions.save') : t('wizard.submit')}
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </FullScreenModal>
   )
 }
 

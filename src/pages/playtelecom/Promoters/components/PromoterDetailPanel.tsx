@@ -29,14 +29,14 @@
  * Ver cada componente hijo para detalles específicos.
  */
 
+import { cn } from '@/lib/utils'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { PromoterProfileCard } from './PromoterProfileCard'
-import { EntryEvidenceCard } from './EntryEvidenceCard'
-import { DailyScorecard } from './DailyScorecard'
 import { AttendanceCalendar } from './AttendanceCalendar'
+import { DailyScorecard } from './DailyScorecard'
 import { DepositValidation } from './DepositValidation'
-import { cn } from '@/lib/utils'
+import { EntryEvidenceCard } from './EntryEvidenceCard'
+import { PromoterProfileCard } from './PromoterProfileCard'
 
 interface CheckInData {
   time: string
@@ -107,33 +107,40 @@ interface PromoterDetailPanelProps {
 // Map backend attendance status to component status
 const mapAttendanceStatus = (status: 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY'): 'present' | 'late' | 'absent' | 'holiday' => {
   switch (status) {
-    case 'PRESENT': return 'present'
-    case 'LATE': return 'late'
-    case 'ABSENT': return 'absent'
-    case 'HALF_DAY': return 'present' // Treat half day as present
-    default: return 'absent'
+    case 'PRESENT':
+      return 'present'
+    case 'LATE':
+      return 'late'
+    case 'ABSENT':
+      return 'absent'
+    case 'HALF_DAY':
+      return 'present' // Treat half day as present
+    default:
+      return 'absent'
   }
 }
 
 export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
   promoter,
   deposits = [],
-  isLoading = false,
+  isLoading: _isLoading = false,
   currency = 'MXN',
   onApproveDeposit,
   onRejectDeposit,
   className,
 }) => {
-  const { t } = useTranslation(['playtelecom', 'common'])
+  const { t: _t } = useTranslation(['playtelecom', 'common'])
 
   // Map check-in data to evidence card format
-  const evidenceData = promoter.checkIn ? {
-    selfieUrl: promoter.checkIn.photoUrl,
-    checkInTime: promoter.checkIn.time,
-    gpsValid: promoter.checkIn.location !== null,
-    biometricValid: promoter.checkIn.verified,
-    distanceFromStore: 0, // Not available in current API
-  } : null
+  const evidenceData = promoter.checkIn
+    ? {
+        selfieUrl: promoter.checkIn.photoUrl,
+        checkInTime: promoter.checkIn.time,
+        gpsValid: promoter.checkIn.location !== null,
+        biometricValid: promoter.checkIn.verified,
+        distanceFromStore: 0, // Not available in current API
+      }
+    : null
 
   // Map today metrics to scorecard format
   const metricsData = {
@@ -164,12 +171,7 @@ export const PromoterDetailPanel: React.FC<PromoterDetailPanelProps> = ({
       {/* Row 3: Calendar + Deposits */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AttendanceCalendar data={attendanceData} />
-        <DepositValidation
-          deposits={deposits}
-          currency={currency}
-          onApprove={onApproveDeposit}
-          onReject={onRejectDeposit}
-        />
+        <DepositValidation deposits={deposits} currency={currency} onApprove={onApproveDeposit} onReject={onRejectDeposit} />
       </div>
     </div>
   )

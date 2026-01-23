@@ -488,7 +488,7 @@ export default function Orders() {
       {
         accessorKey: 'createdAt',
         meta: { label: t('columns.date') },
-        header: () => renderSortableHeader(<span className="text-xs">{t('columns.date')}</span>, 'createdAt'),
+        header: () => renderSortableHeader(t('columns.date'), 'createdAt'),
         cell: ({ cell }) => {
           const value = cell.getValue() as string
           // Format as "13 ene 14:30" - day, month abbrev, 24-hour time (no year, no AM/PM)
@@ -498,7 +498,7 @@ export default function Orders() {
           const hours = dateObj.getHours().toString().padStart(2, '0')
           const minutes = dateObj.getMinutes().toString().padStart(2, '0')
           return (
-            <span className="text-xs text-foreground whitespace-nowrap">
+            <span className="text-sm text-foreground whitespace-nowrap">
               {day} {month} {hours}:{minutes}
             </span>
           )
@@ -515,10 +515,10 @@ export default function Orders() {
           // Show last 6 digits for ALL orders: "ORD-1767664106975" → "#106975", "FAST-1766069887997" → "#887997"
           if (orderNumber !== '-' && orderNumber.length > 6) {
             const shortNumber = orderNumber.slice(-6)
-            return <span className="font-mono text-xs text-foreground">#{shortNumber}</span>
+            return <span className="font-mono text-sm text-foreground">#{shortNumber}</span>
           }
 
-          return <span className="text-xs">{orderNumber}</span>
+          return <span className="text-sm">{orderNumber}</span>
         },
       },
       {
@@ -544,12 +544,12 @@ export default function Orders() {
             const customerName = `${customer.firstName} ${customer.lastName}`.trim()
             return (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium">{customerName}</span>
+                <span className="text-sm font-medium">{customerName}</span>
                 <Badge
                   variant="outline"
-                  className="text-[10px] px-1 py-0 h-4 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                  className="text-xs px-1.5 py-0.5 bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
                 >
-                  <Clock className="h-2.5 w-2.5 mr-0.5" />
+                  <Clock className="h-3 w-3 mr-0.5" />
                   {t('payLater.badge', { defaultValue: 'Por Cobrar' })}
                 </Badge>
               </div>
@@ -560,16 +560,16 @@ export default function Orders() {
           if (row.original.orderCustomers && row.original.orderCustomers.length > 0) {
             const customer = row.original.orderCustomers[0].customer
             const customerName = `${customer.firstName} ${customer.lastName}`.trim()
-            return <span className="text-xs font-medium">{customerName}</span>
+            return <span className="text-sm font-medium">{customerName}</span>
           }
 
-          return <span className="text-xs text-muted-foreground">—</span>
+          return <span className="text-sm text-muted-foreground">—</span>
         },
       },
       {
         accessorKey: 'type',
         meta: { label: t('columns.type') },
-        header: () => <div className="flex justify-center text-xs">{t('columns.type')}</div>,
+        header: () => <div className="flex justify-center">{t('columns.type')}</div>,
         cell: ({ row }) => {
           const type = row.original.type as string
           const orderNumber = row.original.orderNumber || ''
@@ -589,7 +589,7 @@ export default function Orders() {
             displayText = t('types.PICKUP')
           }
 
-          return <span className="text-xs text-foreground">{displayText}</span>
+          return <span className="text-sm text-foreground">{displayText}</span>
         },
       },
       {
@@ -597,8 +597,8 @@ export default function Orders() {
         accessorFn: row => row.table?.number || '-',
         id: 'tableName',
         meta: { label: t('columns.table') },
-        header: () => <span className="text-xs">{t('columns.table')}</span>,
-        cell: info => <span className="text-xs text-foreground">{info.getValue() as string}</span>,
+        header: t('columns.table'),
+        cell: info => <span className="text-sm text-foreground">{info.getValue() as string}</span>,
       },
       {
         // Waiter: use servedBy (who served the table) or fallback to createdBy
@@ -612,8 +612,8 @@ export default function Orders() {
         },
         id: 'waiterName',
         meta: { label: t('columns.waiter') },
-        header: () => renderSortableHeader(<span className="text-xs">{t('columns.waiter')}</span>, 'waiterName'),
-        cell: info => <span className="text-xs text-foreground">{info.getValue() as string}</span>,
+        header: () => renderSortableHeader(t('columns.waiter'), 'waiterName'),
+        cell: info => <span className="text-sm text-foreground">{info.getValue() as string}</span>,
       },
       {
         // CAMBIO: Los valores de `status` provienen del enum `OrderStatus`
@@ -644,7 +644,7 @@ export default function Orders() {
           }
 
           return (
-            <Badge variant="soft" className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}>
+            <Badge variant="soft" className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-xs px-2 py-0.5`}>
               {statusMap[status] || status}
             </Badge>
           )
@@ -653,20 +653,20 @@ export default function Orders() {
       {
         accessorKey: 'tipAmount',
         meta: { label: t('columns.tip') },
-        header: () => renderSortableHeader(<span className="text-xs">{t('columns.tip')}</span>, 'tipAmount'),
+        header: () => renderSortableHeader(t('columns.tip'), 'tipAmount'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
-          return <span className="text-xs text-foreground">{Currency(value)}</span>
+          return <span className="text-sm text-foreground">{Currency(value)}</span>
         },
       },
       {
         // CAMBIO: El total es un campo numérico directo, no un string.
         accessorKey: 'total',
         meta: { label: t('columns.total') },
-        header: () => renderSortableHeader(<span className="text-xs">{t('columns.total')}</span>, 'total'),
+        header: () => renderSortableHeader(t('columns.total'), 'total'),
         cell: ({ cell }) => {
           const value = (cell.getValue() as number) || 0
-          return <span className="text-xs font-medium">{Currency(value)}</span>
+          return <span className="text-sm font-medium">{Currency(value)}</span>
         },
       },
       // Superadmin actions column
@@ -675,7 +675,7 @@ export default function Orders() {
             {
               id: 'actions',
               header: () => (
-                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
                   Superadmin
                 </span>
               ),

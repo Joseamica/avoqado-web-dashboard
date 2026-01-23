@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { type ColumnDef } from '@tanstack/react-table'
-import { ArrowUpDown, ChefHat, Plus, Edit, AlertCircle, DollarSign, RefreshCcw } from 'lucide-react'
+import { ArrowUpDown, ChefHat, Plus, Edit, AlertCircle, DollarSign, RefreshCcw, Search, X } from 'lucide-react'
 import DataTable from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,10 +18,12 @@ import { SimpleConfirmDialog } from './components/SimpleConfirmDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import api from '@/api'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { PermissionGate } from '@/components/PermissionGate'
 import { PageTitleWithInfo } from '@/components/PageTitleWithInfo'
+import { FilterPill } from '@/components/filters/FilterPill'
+import { CheckboxFilterContent } from '@/components/filters/CheckboxFilterContent'
+import { ColumnCustomizer } from '@/components/filters/ColumnCustomizer'
 
 interface ProductWithRecipe {
   id: string
@@ -52,48 +54,70 @@ export default function Recipes() {
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
 
-  // Filter states
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [recipeFilter, setRecipeFilter] = useState<string>('all')
+  // Filter states - Stripe-style multi-select arrays
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
+  const [recipeFilter, setRecipeFilter] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 20,
   })
 
-  // Fetch products with recipes
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products-with-recipes', venueId, categoryFilter, recipeFilter, debouncedSearchTerm],
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    'name',
+    'price',
+    'recipeStatus',
+    'portionYield',
+    'recipeCost',
+    'foodCostPercentage',
+    'actions',
+  ])
+
+  // Fetch products with recipes (fetch all, filter client-side for Stripe-style filters)
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ['products-with-recipes', venueId, debouncedSearchTerm],
     queryFn: async () => {
       const response = await api.get(`/api/v1/dashboard/venues/${venueId}/products`, {
         params: {
           includeRecipe: true,
-          ...(categoryFilter !== 'all' && { categoryId: categoryFilter }),
         },
       })
-
-      let productsData = response.data.data as ProductWithRecipe[]
-
-      // Apply recipe filter
-      if (recipeFilter === 'withRecipe') {
-        productsData = productsData.filter(p => p.recipe)
-      } else if (recipeFilter === 'withoutRecipe') {
-        productsData = productsData.filter(p => !p.recipe)
-      }
-
-      // Apply search filter
-      if (debouncedSearchTerm) {
-        const lowerSearch = debouncedSearchTerm.toLowerCase()
-        productsData = productsData.filter(
-          p => p.name.toLowerCase().includes(lowerSearch) || p.category.name.toLowerCase().includes(lowerSearch),
-        )
-      }
-
-      return productsData
+      return response.data.data as ProductWithRecipe[]
     },
     enabled: !!venueId,
   })
+
+  // Client-side filtering for Stripe-style filters
+  const products = useMemo(() => {
+    let filtered = productsData || []
+
+    // Apply category filter (multi-select)
+    if (categoryFilter.length > 0) {
+      filtered = filtered.filter(p => categoryFilter.includes(p.category.id))
+    }
+
+    // Apply recipe filter (multi-select)
+    if (recipeFilter.length > 0) {
+      filtered = filtered.filter(p => {
+        if (recipeFilter.includes('withRecipe') && p.recipe) return true
+        if (recipeFilter.includes('withoutRecipe') && !p.recipe) return true
+        return false
+      })
+    }
+
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const lowerSearch = debouncedSearchTerm.toLowerCase()
+      filtered = filtered.filter(
+        p => p.name.toLowerCase().includes(lowerSearch) || p.category.name.toLowerCase().includes(lowerSearch),
+      )
+    }
+
+    return filtered
+  }, [productsData, categoryFilter, recipeFilter, debouncedSearchTerm])
 
   // ✅ Auto-open dialog if productId is active in URL
   useEffect(() => {
@@ -119,6 +143,57 @@ export default function Recipes() {
     },
     enabled: !!venueId,
   })
+
+  // Filter options for category (dynamic from fetched categories)
+  const categoryOptions = useMemo(() =>
+    (categories || []).map((cat: any) => ({
+      value: cat.id,
+      label: cat.name,
+    })),
+    [categories]
+  )
+
+  // Filter options for recipe status
+  const recipeFilterOptions = useMemo(() => [
+    { value: 'withRecipe', label: t('recipes.filters.withRecipe') },
+    { value: 'withoutRecipe', label: t('recipes.filters.withoutRecipe') },
+  ], [t])
+
+  // Helper to get display label for multi-select filters
+  const getFilterDisplayLabel = useCallback((selectedValues: string[], options: { value: string; label: string }[]) => {
+    if (selectedValues.length === 0) return null
+    if (selectedValues.length === 1) {
+      return options.find(o => o.value === selectedValues[0])?.label || null
+    }
+    return `${selectedValues.length} ${t('rawMaterials.filters.selected', { defaultValue: 'seleccionados' })}`
+  }, [t])
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0
+    if (searchTerm) count++
+    if (categoryFilter.length > 0) count++
+    if (recipeFilter.length > 0) count++
+    return count
+  }, [searchTerm, categoryFilter, recipeFilter])
+
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('')
+    setIsSearchOpen(false)
+    setCategoryFilter([])
+    setRecipeFilter([])
+  }, [])
+
+  // Column options for customizer
+  const columnOptions = useMemo(() => [
+    { id: 'name', label: t('recipes.fields.product'), visible: visibleColumns.includes('name') },
+    { id: 'price', label: t('recipes.fields.currentPrice'), visible: visibleColumns.includes('price') },
+    { id: 'recipeStatus', label: tCommon('status'), visible: visibleColumns.includes('recipeStatus') },
+    { id: 'portionYield', label: t('recipes.fields.portionYield'), visible: visibleColumns.includes('portionYield') },
+    { id: 'recipeCost', label: t('recipes.fields.totalCost'), visible: visibleColumns.includes('recipeCost') },
+    { id: 'foodCostPercentage', label: t('pricing.fields.foodCostPercentage'), visible: visibleColumns.includes('foodCostPercentage') },
+  ], [t, tCommon, visibleColumns])
 
   // Mutation to switch inventory method
   const switchInventoryMethodMutation = useMutation({
@@ -217,7 +292,8 @@ export default function Recipes() {
       {
         id: 'portionYield',
         meta: { label: t('recipes.fields.portionYield') },
-        header: t('recipes.fields.portionYield'),
+        header: () => <span className="text-xs">Porciones</span>,
+        size: 80,
         cell: ({ row }) => {
           const product = row.original
           if (!product.recipe) {
@@ -231,11 +307,12 @@ export default function Recipes() {
         id: 'recipeCost',
         meta: { label: t('recipes.fields.totalCost') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
             {t('recipes.fields.totalCost')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
+            <ArrowUpDown className="w-3 h-3 ml-1" />
           </Button>
         ),
+        size: 120,
         cell: ({ row }) => {
           const product = row.original
           if (!product.recipe) {
@@ -246,10 +323,10 @@ export default function Recipes() {
           const costPerServing = totalCost / product.recipe.portionYield
 
           return (
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col">
               <span className="text-sm font-semibold text-foreground">{Currency(totalCost)}</span>
               <span className="text-xs text-muted-foreground">
-                {Currency(costPerServing)} / {t('recipes.fields.costPerServing').split(' ')[0]}
+                {Currency(costPerServing)} / porción
               </span>
             </div>
           )
@@ -264,11 +341,12 @@ export default function Recipes() {
         id: 'foodCostPercentage',
         meta: { label: t('pricing.fields.foodCostPercentage') },
         header: ({ column }) => (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-            {t('pricing.fields.foodCostPercentage')}
-            <ArrowUpDown className="w-4 h-4 ml-2" />
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+            Food Cost %
+            <ArrowUpDown className="w-3 h-3 ml-1" />
           </Button>
         ),
+        size: 100,
         cell: ({ row }) => {
           const product = row.original
           if (!product.recipe) {
@@ -287,8 +365,8 @@ export default function Recipes() {
           }
 
           return (
-            <div className="flex items-center gap-2">
-              <DollarSign className={`h-4 w-4 ${colorClass}`} />
+            <div className="flex items-center gap-1.5">
+              <DollarSign className={`h-3.5 w-3.5 ${colorClass}`} />
               <span className={`text-sm font-semibold ${colorClass}`}>{foodCostPercentage.toFixed(1)}%</span>
             </div>
           )
@@ -349,12 +427,24 @@ export default function Recipes() {
     [t],
   )
 
+  // Filter columns based on visibility
+  const filteredColumns = useMemo(
+    () =>
+      columns.filter(col => {
+        const colId = col.id || (col as any).accessorKey
+        if (!colId) return true
+        if (colId === 'actions') return true // Always show actions
+        return visibleColumns.includes(colId)
+      }),
+    [columns, visibleColumns]
+  )
+
   const productsWithoutRecipes = products?.filter(p => !p.recipe).length || 0
 
   return (
     <div className="p-4 bg-background text-foreground">
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-3">
         <div className="flex flex-row items-center justify-between">
           <div>
             <PageTitleWithInfo
@@ -400,36 +490,104 @@ export default function Recipes() {
           </Alert>
         )}
 
-        {/* Filters */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Input placeholder={t('common:search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="max-w-md" />
+        {/* Stripe-style Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Expandable Search */}
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('common:search')}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') {
+                        if (!searchTerm) setIsSearchOpen(false)
+                      }
+                    }}
+                    className="h-8 w-[200px] pl-8 pr-8 text-sm rounded-full"
+                    autoFocus
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setIsSearchOpen(false)
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant={searchTerm ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsSearchOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
+            {searchTerm && !isSearchOpen && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+            )}
           </div>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={t('rawMaterials.fields.category')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              {categories?.map((category: any) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Category Filter */}
+          <FilterPill
+            label={t('rawMaterials.fields.category')}
+            isActive={categoryFilter.length > 0}
+            activeLabel={getFilterDisplayLabel(categoryFilter, categoryOptions)}
+            onClear={() => setCategoryFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('rawMaterials.fields.category')}
+              options={categoryOptions}
+              selectedValues={categoryFilter}
+              onApply={setCategoryFilter}
+            />
+          </FilterPill>
 
-          <Select value={recipeFilter} onValueChange={setRecipeFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder={tCommon('filter')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('rawMaterials.filters.all')}</SelectItem>
-              <SelectItem value="withRecipe">{t('recipes.filters.withRecipe')}</SelectItem>
-              <SelectItem value="withoutRecipe">{t('recipes.filters.withoutRecipe')}</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Recipe Status Filter */}
+          <FilterPill
+            label={t('recipes.filters.recipeStatus', { defaultValue: 'Estado de receta' })}
+            isActive={recipeFilter.length > 0}
+            activeLabel={getFilterDisplayLabel(recipeFilter, recipeFilterOptions)}
+            onClear={() => setRecipeFilter([])}
+          >
+            <CheckboxFilterContent
+              title={t('recipes.filters.recipeStatus', { defaultValue: 'Estado de receta' })}
+              options={recipeFilterOptions}
+              selectedValues={recipeFilter}
+              onApply={setRecipeFilter}
+            />
+          </FilterPill>
+
+          {/* Column Customizer */}
+          <ColumnCustomizer
+            columns={columnOptions}
+            onApply={setVisibleColumns}
+          />
+
+          {/* Clear All Filters */}
+          {activeFiltersCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-8 rounded-full">
+              {tCommon('filters.clearAll', { defaultValue: 'Limpiar filtros' })} ({activeFiltersCount})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -437,10 +595,11 @@ export default function Recipes() {
       <DataTable
         data={products || []}
         rowCount={products?.length || 0}
-        columns={columns}
+        columns={filteredColumns}
         isLoading={isLoading}
         tableId="recipes:main"
         enableSearch={false}
+        showColumnCustomizer={false}
         pagination={pagination}
         setPagination={setPagination}
       />

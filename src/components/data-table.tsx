@@ -191,38 +191,40 @@ function DataTable<TData>({
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search Bar */}
-        {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
+      {/* Toolbar - Only render if has content */}
+      {(enableSearch || showColumnCustomizer) && (
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Bar */}
+          {enableSearch && <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder={searchPlaceholder || t('search')} />}
 
-        {/* Column Customizer */}
-        {showColumnCustomizer && (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="default" className="gap-2">
-                <Settings2 className="h-4 w-4" /> {t('customize_columns')}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
-              {table
-                .getAllLeafColumns()
-                .filter(col => col.getCanHide())
-                .map(col => (
-                  <DropdownMenuCheckboxItem
-                    key={col.id}
-                    className="capitalize"
-                    checked={col.getIsVisible()}
-                    onCheckedChange={val => col.toggleVisibility(!!val)}
-                  >
-                    {(col.columnDef as any)?.meta?.label ??
-                      (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
+          {/* Column Customizer */}
+          {showColumnCustomizer && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="default" className="gap-2">
+                  <Settings2 className="h-4 w-4" /> {t('customize_columns')}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56" sideOffset={5}>
+                {table
+                  .getAllLeafColumns()
+                  .filter(col => col.getCanHide())
+                  .map(col => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      className="capitalize"
+                      checked={col.getIsVisible()}
+                      onCheckedChange={val => col.toggleVisibility(!!val)}
+                    >
+                      {(col.columnDef as any)?.meta?.label ??
+                        (typeof col.columnDef.header === 'string' ? (col.columnDef.header as string) : col.id)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      )}
       <Table
         containerClassName="mb-4 rounded-xl border border-border bg-background overflow-hidden"
         className="table-sticky"

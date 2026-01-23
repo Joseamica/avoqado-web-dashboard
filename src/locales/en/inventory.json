@@ -116,7 +116,14 @@
       "lowStock": "Low Stock",
       "active": "Active",
       "inactive": "Inactive",
-      "search": "Search by name or SKU"
+      "search": "Search by name or SKU",
+      "stockStatus": "Stock Status",
+      "inStock": "In Stock",
+      "outOfStock": "Out of Stock",
+      "min": "Min",
+      "max": "Max",
+      "selected": "selected",
+      "searchActive": "Search active"
     },
     "movements": {
       "title": "Stock Movements",
@@ -169,6 +176,7 @@
       "title": "Recipe Usage",
       "usedIn": "Used in {{count}} recipe(s)",
       "inRecipes": "In {{count}} recipe(s)",
+      "inRecipesFilter": "Used in recipes",
       "notUsed": "Not used",
       "noRecipes": "This ingredient is not being used in any recipe yet.",
       "noRecipesHint": "You can add this ingredient to a product's recipe from the Recipes section.",
@@ -236,6 +244,7 @@
     "addIngredient": "Add Ingredient",
     "removeIngredient": "Remove Ingredient",
     "filters": {
+      "recipeStatus": "Recipe Status",
       "withRecipe": "With Recipe",
       "withoutRecipe": "Without Recipe"
     },
@@ -303,7 +312,8 @@
       "recipeCost": "Recipe Cost",
       "foodCostPercentage": "Food Cost %",
       "markupPercentage": "Markup %",
-      "contribution": "Contribution Margin"
+      "contribution": "Contribution Margin",
+      "estatus": "Status"
     },
     "strategies": {
       "MANUAL": "Manual",

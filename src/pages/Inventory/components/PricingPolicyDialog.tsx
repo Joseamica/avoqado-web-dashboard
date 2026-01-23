@@ -84,15 +84,29 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
     enabled: !!venueId && !!product && open,
   })
 
-  // Calculate suggested price
+  // Calculate suggested price - only when product has an existing policy
+  // Note: We calculate suggestedPrice locally in this component (line ~170),
+  // so we don't actually need this API call. The backend endpoint requires
+  // a pricing policy to exist, which causes errors for products without one.
+  // Removing the query key dependencies that caused re-fetches on form changes.
   const { data: _calculatedPrice } = useQuery({
-    queryKey: ['calculate-price', venueId, product?.id, pricingStrategy, targetFoodCostPercentage, targetMarkupPercentage],
+    queryKey: ['calculate-price', venueId, product?.id],
     queryFn: async () => {
       if (!product) return null
-      const response = await pricingApi.calculatePrice(venueId, product.id)
-      return response.data.data
+      try {
+        const response = await pricingApi.calculatePrice(venueId, product.id)
+        return response.data.data
+      } catch (error: any) {
+        // Product doesn't have a pricing policy yet - this is expected
+        if (error.response?.status === 404 || error.response?.status === 400) {
+          return null
+        }
+        throw error
+      }
     },
-    enabled: !!venueId && !!product && open && pricingStrategy !== 'MANUAL',
+    // Only call API if product has an existing policy
+    enabled: !!venueId && !!product && open && pricingStrategy !== 'MANUAL' && !!existingPolicy,
+    retry: false, // Don't retry on failure since we handle expected errors
   })
 
   // Reset form when dialog opens or existing policy changes
@@ -138,9 +152,10 @@ export function PricingPolicyDialog({ open, onOpenChange, product }: PricingPoli
         return pricingApi.createPolicy(venueId, product.id, payload as CreatePricingPolicyDto)
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products-pricing', venueId] })
-      queryClient.invalidateQueries({ queryKey: ['pricing-policy', venueId, product?.id] })
+    onSuccess: async () => {
+      // Force refetch instead of just invalidate to ensure table updates immediately
+      await queryClient.refetchQueries({ queryKey: ['products-pricing', venueId] })
+      await queryClient.refetchQueries({ queryKey: ['pricing-policy', venueId, product?.id] })
       toast({
         title: existingPolicy ? t('pricing.messages.policyUpdated') : t('pricing.messages.policyCreated'),
         variant: 'default',

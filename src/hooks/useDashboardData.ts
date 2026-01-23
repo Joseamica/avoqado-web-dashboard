@@ -123,7 +123,18 @@ export const useDashboardData = () => {
 
   // Extract the basic data we need
   const filteredReviews = useMemo(() => basicData?.reviews || [], [basicData?.reviews])
-  const filteredPayments = useMemo(() => basicData?.payments || [], [basicData?.payments])
+
+  // Filter out payments from cancelled orders - these should not count towards total sales
+  const filteredPayments = useMemo(() => {
+    const payments = basicData?.payments || []
+    return payments.filter((payment: any) => {
+      // Exclude if the payment's order is cancelled
+      const orderStatus = payment.order?.status || payment.orderStatus
+      if (orderStatus === 'CANCELLED') return false
+      return true
+    })
+  }, [basicData?.payments])
+
   const paymentMethodsData = useMemo(() => basicData?.paymentMethodsData || [], [basicData?.paymentMethodsData])
 
   const fiveStarReviews = useMemo(() => {
@@ -171,7 +182,15 @@ export const useDashboardData = () => {
     return compareReviews.filter((review: any) => review.stars === 5).length
   }, [compareReviews])
 
-  const comparePayments = useMemo(() => compareData?.payments || [], [compareData?.payments])
+  // Filter out payments from cancelled orders in comparison data too
+  const comparePayments = useMemo(() => {
+    const payments = compareData?.payments || []
+    return payments.filter((payment: any) => {
+      const orderStatus = payment.order?.status || payment.orderStatus
+      if (orderStatus === 'CANCELLED') return false
+      return true
+    })
+  }, [compareData?.payments])
   const compareAmount = useMemo(() => {
     return comparePayments.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0)
   }, [comparePayments])

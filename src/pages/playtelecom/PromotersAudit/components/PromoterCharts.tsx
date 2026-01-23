@@ -22,7 +22,7 @@ interface PromoterChartsProps {
   onDateClick?: (date: string, timeEntries: any[]) => void
 }
 
-export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick }: PromoterChartsProps) {
+export function PromoterCharts({ promoterId, promoterName: _promoterName, venueId, onDateClick }: PromoterChartsProps) {
   const { venue } = useCurrentVenue()
   const queryParams = venueId ? { venueId } : undefined
 
@@ -31,10 +31,9 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
     queryKey: ['staff-sales-trend', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { salesData: [] }
-      const response = await api.get(
-        `/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/sales-trend`,
-        { params: queryParams }
-      )
+      const response = await api.get(`/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/sales-trend`, {
+        params: queryParams,
+      })
       return response.data.data
     },
     enabled: !!venue?.organizationId && !!promoterId,
@@ -45,10 +44,9 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
     queryKey: ['staff-sales-mix', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { salesMix: [] }
-      const response = await api.get(
-        `/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/sales-mix`,
-        { params: queryParams }
-      )
+      const response = await api.get(`/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/sales-mix`, {
+        params: queryParams,
+      })
       return response.data.data
     },
     enabled: !!venue?.organizationId && !!promoterId,
@@ -59,10 +57,9 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
     queryKey: ['staff-attendance-calendar', venue?.organizationId, promoterId, venueId],
     queryFn: async () => {
       if (!venue?.organizationId) return { calendar: [], stats: { present: 0, absent: 0 } }
-      const response = await api.get(
-        `/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/attendance-calendar`,
-        { params: queryParams }
-      )
+      const response = await api.get(`/api/v1/dashboard/organizations/${venue.organizationId}/staff/${promoterId}/attendance-calendar`, {
+        params: queryParams,
+      })
       return response.data.data
     },
     enabled: !!venue?.organizationId && !!promoterId,
@@ -107,7 +104,7 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
                     className={cn(
                       'w-full rounded-t-sm bg-gradient-to-t from-primary to-primary/60',
                       'hover:from-primary/80 hover:to-primary/40 transition-all cursor-pointer',
-                      'relative group'
+                      'relative group',
                     )}
                     style={{ height: `${Math.max(height, 2)}%` }}
                   >
@@ -116,9 +113,7 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
                       ${data.sales.toLocaleString('es-MX')}
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground font-medium mt-1">
-                    {data.day}
-                  </span>
+                  <span className="text-xs text-muted-foreground font-medium mt-1">{data.day}</span>
                 </div>
               )
             })
@@ -134,16 +129,15 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
             <div>
               <p className="text-xs text-muted-foreground">Promedio</p>
               <p className="text-sm font-bold">
-                ${(salesData.reduce((acc: number, d: any) => acc + d.sales, 0) / salesData.length).toLocaleString('es-MX', {
+                $
+                {(salesData.reduce((acc: number, d: any) => acc + d.sales, 0) / salesData.length).toLocaleString('es-MX', {
                   maximumFractionDigits: 0,
                 })}
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Mejor día</p>
-              <p className="text-sm font-bold text-green-600">
-                ${Math.max(...salesData.map((d: any) => d.sales)).toLocaleString('es-MX')}
-              </p>
+              <p className="text-sm font-bold text-green-600">${Math.max(...salesData.map((d: any) => d.sales)).toLocaleString('es-MX')}</p>
             </div>
           </div>
         )}
@@ -166,15 +160,7 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
           <div className="relative w-32 h-32">
             {/* Outer ring with segments */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="20"
-                className="text-muted/20"
-              />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="20" className="text-muted/20" />
               {/* Segments (simplified - would need proper arc calculation in production) */}
               <circle
                 cx="50"
@@ -256,7 +242,7 @@ export function PromoterCharts({ promoterId, promoterName, venueId, onDateClick 
                     !dayData.isFutureDay && dayData.isPresent && 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400',
                     !dayData.isFutureDay && !dayData.isPresent && 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400',
                     dayData.isToday && 'ring-2 ring-primary ring-offset-2',
-                    isClickable && 'cursor-pointer hover:ring-2 hover:ring-primary/50'
+                    isClickable && 'cursor-pointer hover:ring-2 hover:ring-primary/50',
                   )}
                 >
                   {dayData.day}

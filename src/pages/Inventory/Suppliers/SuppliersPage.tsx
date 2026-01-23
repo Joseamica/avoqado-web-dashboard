@@ -117,17 +117,17 @@ export default function SuppliersPage() {
       {
         accessorKey: 'name',
         meta: { label: t('columns.name') },
-        header: () => <span className="text-xs font-medium">{t('columns.name')}</span>,
+        header: t('columns.name'),
         cell: ({ cell }) => (
-          <span className="text-xs font-medium">{cell.getValue() as string}</span>
+          <span className="text-sm font-medium">{cell.getValue() as string}</span>
         ),
       },
       {
         accessorKey: 'contactName',
         meta: { label: t('columns.contact') },
-        header: () => <span className="text-xs font-medium">{t('columns.contact')}</span>,
+        header: t('columns.contact'),
         cell: ({ cell }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {(cell.getValue() as string) || '-'}
           </span>
         ),
@@ -135,9 +135,9 @@ export default function SuppliersPage() {
       {
         accessorKey: 'phone',
         meta: { label: t('columns.phone') },
-        header: () => <span className="text-xs font-medium">{t('columns.phone')}</span>,
+        header: t('columns.phone'),
         cell: ({ cell }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {(cell.getValue() as string) || '-'}
           </span>
         ),
@@ -145,9 +145,9 @@ export default function SuppliersPage() {
       {
         accessorKey: 'email',
         meta: { label: t('columns.email') },
-        header: () => <span className="text-xs font-medium">{t('columns.email')}</span>,
+        header: t('columns.email'),
         cell: ({ cell }) => (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {(cell.getValue() as string) || '-'}
           </span>
         ),
@@ -155,7 +155,7 @@ export default function SuppliersPage() {
       {
         accessorKey: 'active',
         meta: { label: t('columns.status') },
-        header: () => <span className="text-xs font-medium">{t('columns.status')}</span>,
+        header: t('columns.status'),
         cell: ({ cell }) => {
           const isActive = cell.getValue() as boolean
           const statusClasses = isActive
@@ -165,7 +165,7 @@ export default function SuppliersPage() {
           return (
             <Badge
               variant="soft"
-              className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-[10px] px-1.5 py-0 h-5`}
+              className={`${statusClasses.bg} ${statusClasses.text} border-transparent text-xs px-2 py-0.5`}
             >
               {isActive ? t('statuses.active') : t('statuses.inactive')}
             </Badge>
@@ -178,7 +178,7 @@ export default function SuppliersPage() {
             {
               id: 'actions',
               header: () => (
-                <span className="text-xs font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-medium bg-gradient-to-r from-amber-400 to-pink-500 bg-clip-text text-transparent">
                   Superadmin
                 </span>
               ),

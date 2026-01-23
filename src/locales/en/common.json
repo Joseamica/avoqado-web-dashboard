@@ -74,7 +74,8 @@
   "selectPlaceholder": "Select an option",
   "filters": {
     "min": "Minimum",
-    "max": "Maximum"
+    "max": "Maximum",
+    "clearAll": "Clear filters"
   },
   "descending": "Descending",
   "ascending": "Ascending",
