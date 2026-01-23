@@ -32,6 +32,7 @@ export function useImageUploader(
   const [uploading, setUploading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [fileRef, setFileRef] = useState<any>(null)
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
 
   // Para el recorte
   const [imageForCrop, setImageForCrop] = useState<string | null>(null)
@@ -123,19 +124,68 @@ export function useImageUploader(
     }
   }
 
-  // Eliminar archivo de Firebase y limpiar estados
-  const handleFileRemove = () => {
-    if (fileRef) {
-      deleteObject(fileRef)
-        .then(() => {
-          setImageUrl(null)
-          setFileRef(null)
-        })
-        .catch(error => {
-          console.error('Error removing file:', error)
-        })
+  // Initialize with existing image URL (for edit mode)
+  const initializeWithExistingUrl = useCallback((url: string | null) => {
+    setExistingImageUrl(url)
+    setImageUrl(url)
+  }, [])
+
+  // Delete existing image from Firebase by URL
+  const deleteExistingImage = useCallback(async (url: string) => {
+    if (!url || !storage) return
+
+    try {
+      // Extract the path from the Firebase Storage URL
+      // URL format: https://firebasestorage.googleapis.com/v0/b/[bucket]/o/[encoded-path]?...
+      const urlObj = new URL(url)
+      const pathMatch = urlObj.pathname.match(/\/o\/(.+)$/)
+      if (pathMatch) {
+        const encodedPath = pathMatch[1].split('?')[0]
+        const path = decodeURIComponent(encodedPath)
+        const imageRef = ref(storage, path)
+        await deleteObject(imageRef)
+        console.log('✅ Old image deleted from Firebase:', path)
+      }
+    } catch (error) {
+      console.error('Error deleting existing image from Firebase:', error)
+      // Don't throw - the old image might already be deleted or URL might be invalid
     }
-  }
+  }, [])
+
+  // Eliminar archivo de Firebase y limpiar estados
+  const handleFileRemove = useCallback(async () => {
+    // Delete newly uploaded image if exists
+    if (fileRef) {
+      try {
+        await deleteObject(fileRef)
+      } catch (error) {
+        console.error('Error removing file:', error)
+      }
+    }
+
+    // Delete existing image if it was initialized (edit mode)
+    if (existingImageUrl && existingImageUrl !== imageUrl) {
+      await deleteExistingImage(existingImageUrl)
+    } else if (imageUrl && !fileRef) {
+      // imageUrl exists but no fileRef means it's an existing URL
+      await deleteExistingImage(imageUrl)
+    }
+
+    setImageUrl(null)
+    setFileRef(null)
+    setExistingImageUrl(null)
+  }, [fileRef, existingImageUrl, imageUrl, deleteExistingImage])
+
+  // Handle replacing an existing image - delete old one first
+  const handleReplaceImage = useCallback(async (file: File) => {
+    // If there's an existing image, mark it for deletion
+    if (imageUrl) {
+      // Store the old URL to delete after successful upload
+      setExistingImageUrl(imageUrl)
+    }
+    // Proceed with new file upload
+    handleFileUpload(file)
+  }, [imageUrl, handleFileUpload])
 
   return {
     // States
@@ -150,11 +200,15 @@ export function useImageUploader(
     setImageForCrop,
     setCrop,
     setZoom,
+    setImageUrl,
 
     // Handlers
     onCropComplete,
     handleFileUpload,
     handleCropConfirm,
     handleFileRemove,
+    initializeWithExistingUrl,
+    handleReplaceImage,
+    deleteExistingImage,
   }
 }

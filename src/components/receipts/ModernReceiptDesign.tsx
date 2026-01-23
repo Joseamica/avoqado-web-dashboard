@@ -25,8 +25,6 @@ import {
   Sparkles,
   Check,
   AlertCircle,
-  UploadCloud,
-  ImageIcon,
   RotateCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -302,13 +300,6 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                   </div>
                 )}
 
-                {/* Status Badge */}
-                {receiptStatus && (
-                  <div className="absolute top-4 right-4">
-                    <StatusBadge status={receiptStatus} />
-                  </div>
-                )}
-
                 {/* Venue Logo */}
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden shadow-lg border-4 border-background">
                   {venue?.logo && !logoError ? (
@@ -318,13 +309,11 @@ export const ModernReceiptDesign: React.FC<ModernReceiptDesignProps> = ({
                       className="w-full h-full object-cover"
                       onError={() => setLogoError(true)}
                     />
-                  ) : venue?.logo && logoError ? (
-                    <div className="flex items-center justify-center w-full h-full bg-muted">
-                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                    </div>
                   ) : (
                     <div className="flex items-center justify-center w-full h-full bg-primary/10">
-                      <UploadCloud className="w-8 h-8 text-primary" />
+                      <span className="text-2xl font-bold text-primary">
+                        {(venue?.name || '??').slice(0, 2).toUpperCase()}
+                      </span>
                     </div>
                   )}
                 </div>

@@ -393,6 +393,11 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
 
     const selectables = React.useMemo<GroupOption>(() => removePickedOption(options, selected), [options, selected])
 
+    // Check if there are any selectable options left
+    const hasSelectableOptions = React.useMemo(() => {
+      return Object.values(selectables).some(group => group.length > 0)
+    }, [selectables])
+
     /** Avoid Creatable Selector freezing or lagging when paste a long string. */
     const commandFilter = React.useCallback(() => {
       if (commandProps?.filter) {
@@ -416,13 +421,13 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
           handleKeyDown(e)
           commandProps?.onKeyDown?.(e)
         }}
-        className={cn('h-auto overflow-visible bg-background', commandProps?.className)}
+        className={cn('h-auto overflow-visible bg-transparent', commandProps?.className)}
         shouldFilter={commandProps?.shouldFilter !== undefined ? commandProps.shouldFilter : !onSearch} // When onSearch is provided, we don't want to filter the options. You can still override it.
         filter={commandFilter()}
       >
         <div
           className={cn(
-            'min-h-10 rounded-md border border-input bg-linear-to-b from-muted to-muted/70 dark:from-zinc-900 dark:to-zinc-950 text-base md:text-sm shadow-xs ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+            'min-h-10 rounded-md border border-input bg-transparent text-base md:text-sm shadow-xs ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
             {
               'px-3 py-2': selected.length !== 0,
               'cursor-text': !disabled && selected.length !== 0,
@@ -520,7 +525,7 @@ const MultipleSelector = React.forwardRef<MultipleSelectorRef, MultipleSelectorP
           </div>
         </div>
         <div className="relative">
-          {open && (
+          {open && (isLoading || hasSelectableOptions || (creatable && inputValue.length > 0)) && (
             <CommandList
               className="absolute z-50 w-full max-h-64 overflow-auto border rounded-md shadow-md outline-hidden top-1 bg-popover text-popover-foreground animate-in "
               onMouseLeave={() => {

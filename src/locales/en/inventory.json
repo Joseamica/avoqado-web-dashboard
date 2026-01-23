@@ -251,7 +251,7 @@
     "fields": {
       "product": "Product",
       "currentPrice": "Current Price",
-      "portionYield": "Portion Yield",
+      "portionYield": "How many portions does this recipe make?",
       "prepTime": "Prep Time (min)",
       "cookTime": "Cook Time (min)",
       "notes": "Notes",
@@ -259,12 +259,12 @@
       "costPerServing": "Cost Per Serving"
     },
     "portionYieldHelp": {
-      "title": "What is Portion Yield?",
-      "description": "The number of servings this recipe produces. Used to calculate cost per serving and profitability.",
-      "examples": "Examples:",
-      "example1": "Hamburger = 1 serving",
-      "example2": "Large Pizza = 8 servings (8 slices)",
-      "example3": "Soup Pot = 10 servings"
+      "title": "Portions per recipe",
+      "description": "Ex: If your salsa recipe makes enough for 10 tacos, enter 10",
+      "examples": "More examples:",
+      "example1": "Hamburger = 1 portion",
+      "example2": "Large Pizza = 8 portions (8 slices)",
+      "example3": "Pitcher of lemonade = 6 portions (6 glasses)"
     },
     "ingredients": {
       "title": "Ingredients",
@@ -291,6 +291,14 @@
       "noRecipe": "This product doesn't have a recipe yet",
       "noRecipeShort": "No recipe",
       "productsWithoutRecipes": "{{count}} products without recipes"
+    },
+    "preview": {
+      "title": "Preview",
+      "uses": "Uses",
+      "currentStock": "Current stock",
+      "lowStock": "Low stock",
+      "linkedGroup": "Linked group",
+      "customerCanSubstitute": "Customer will be able to substitute this ingredient"
     }
   },
 
@@ -629,6 +637,34 @@
       "successRecipe": "Recipe setup completed!",
       "errorSimple": "Failed to setup simple stock",
       "errorRecipe": "Failed to setup recipe"
+    },
+    "preview": {
+      "title": "Preview",
+      "productName": "Product name",
+      "modifierGroups": "Modifier groups",
+      "required": "Required",
+      "selectExact": "Select {{count}}",
+      "selectRange": "Min {{min}}, Max {{max}}",
+      "selectMin": "Minimum {{min}}",
+      "selectMax": "Maximum {{max}}",
+      "recipe": "Recipe",
+      "stock": "Direct stock",
+      "stockValue": "Stock: {{value}}",
+      "ingredientsCount": "{{count}} ingredients",
+      "noIngredients": "No ingredients",
+      "unknownIngredient": "Ingredient",
+      "recipeCost": "Recipe cost",
+      "modifierInventory": {
+        "tracksInventory": "Tracks inventory",
+        "addition": "Addition",
+        "additionDesc": "Adds to order",
+        "substitution": "Substitution",
+        "substitutionDesc": "Replaces ingredient",
+        "uses": "Uses",
+        "perUnit": "per unit",
+        "cost": "Cost",
+        "withInventory": "with inventory"
+      }
     }
   },
 
@@ -680,8 +716,8 @@
     "TON_abbr_plural": "ts",
     "LITER": "Liter",
     "LITER_plural": "Liters",
-    "LITER_abbr": "L",
-    "LITER_abbr_plural": "L",
+    "LITER_abbr": "lt",
+    "LITER_abbr_plural": "lts",
     "MILLILITER": "Milliliter",
     "MILLILITER_plural": "Milliliters",
     "MILLILITER_abbr": "ml",

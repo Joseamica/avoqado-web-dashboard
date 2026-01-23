@@ -40,11 +40,18 @@ export function useUnitTranslation() {
   )
 
   /**
-   * Get just the short label (kg, L, ml, etc.)
+   * Get just the short label (kg, lt, ml, etc.) using translations
    */
-  const getShortLabel = useCallback((unitEnum: string): string => {
-    return getUnitLabel(unitEnum)
-  }, [])
+  const getShortLabel = useCallback(
+    (unitEnum: string): string => {
+      if (!unitEnum) return ''
+      // Try to get translated abbreviation, fallback to static label
+      const translatedAbbr = t(`units.${unitEnum}_abbr`, { defaultValue: '' })
+      if (translatedAbbr) return translatedAbbr
+      return getUnitLabel(unitEnum)
+    },
+    [t],
+  )
 
   /**
    * Get just the translated full name (Kilogramo, Litro, etc.)

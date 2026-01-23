@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { useDebounce } from '@/hooks/useDebounce'
 import { FilterPill, CheckboxFilterContent, ColumnCustomizer } from '@/components/filters'
 import { useVenueDateTime } from '@/utils/datetime'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useCurrentVenue } from '@/hooks/use-current-venue'
 import DataTable from '@/components/data-table'
 import { AddToAIButton } from '@/components/AddToAIButton'
@@ -73,8 +73,6 @@ export default function Products() {
   const { checkFeatureAccess } = useAuth()
   const hasChatbot = checkFeatureAccess('CHATBOT')
 
-  const location = useLocation()
-  const navigate = useNavigate()
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -93,6 +91,8 @@ export default function Products() {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false)
   const [selectedProductType, setSelectedProductType] = useState<ProductType | null>(null)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [editProductId, setEditProductId] = useState<string | null>(null)
+  const [editWizardOpen, setEditWizardOpen] = useState(false)
 
   // ✅ STRIPE-STYLE FILTERS: State for FilterPills
   const [searchTerm, setSearchTerm] = useState('')
@@ -646,7 +646,8 @@ export default function Products() {
                 <DropdownMenuItem
                   onClick={e => {
                     e.stopPropagation()
-                    navigate(product.id, { state: { from: location.pathname } })
+                    setEditProductId(product.id)
+                    setEditWizardOpen(true)
                   }}
                   className="cursor-pointer"
                 >
@@ -688,7 +689,7 @@ export default function Products() {
         )
       },
     },
-  ], [hasChatbot, t, tCommon, imageErrors, formatDate, toggleActive, fullBasePath, location.pathname, navigate])
+  ], [hasChatbot, t, tCommon, imageErrors, formatDate, toggleActive, fullBasePath])
 
   // ✅ STRIPE-STYLE: Column options for ColumnCustomizer
   const columnOptions = useMemo(() => {
@@ -897,10 +898,10 @@ export default function Products() {
         tableId="menu:products"
         pagination={pagination}
         setPagination={setPagination}
-        clickableRow={row => ({
-          to: row.id,
-          state: { from: location.pathname },
-        })}
+        onRowClick={row => {
+          setEditProductId(row.id)
+          setEditWizardOpen(true)
+        }}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -967,6 +968,22 @@ export default function Products() {
         }}
         mode="create"
         productType={selectedProductType}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['products', venueId] })
+        }}
+      />
+
+      {/* Product Wizard for Edit Mode */}
+      <ProductWizardDialog
+        open={editWizardOpen}
+        onOpenChange={(open) => {
+          setEditWizardOpen(open)
+          if (!open) {
+            setEditProductId(null)
+          }
+        }}
+        mode="edit"
+        productId={editProductId ?? undefined}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['products', venueId] })
         }}

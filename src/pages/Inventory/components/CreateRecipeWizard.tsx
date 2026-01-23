@@ -492,7 +492,7 @@ export function CreateRecipeWizard({ open, onClose }: CreateRecipeWizardProps) {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-base">{t('recipes.ingredients.title')}</Label>
-                      <Button variant="outline" size="sm" onClick={() => setAddIngredientOpen(true)}>
+                      <Button variant="ghost" size="sm" className="border border-border" onClick={() => setAddIngredientOpen(true)}>
                         <Plus className="h-4 w-4 mr-1" />
                         {t('recipes.addIngredient')}
                       </Button>
